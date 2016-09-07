@@ -21,13 +21,18 @@ void warning(const char *message) {
 
 void optimizeModel() {
     bool converged = 1;
+    int curIteration = 0;
     do {
+        ++curIteration;
+        printf("Iteration %d\n", curIteration);
+        fflush(stdout);
+
         double timepoints [] = {};
         double theta [] = {};
         clock_t timeBegin = clock();
         double j = evaluateObjectiveFunction(timepoints, theta,
                                              NUM_FIXED_PARAMS + NUM_STATE_VARIABLES,
-                                             NUM_CELL_LINES, NUM_EXPERIMENTS_PER_CELLLINE);
+                                             NUM_CELL_LINES, NUM_EXPERIMENTS_PER_CELLLINE, true);
         printf("Objective function value %e\n", j);
         clock_t timeEnd = clock();
         double timeElapsed = (double) (timeEnd - timeBegin) / CLOCKS_PER_SEC;
