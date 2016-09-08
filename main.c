@@ -32,7 +32,7 @@ void optimizeModel() {
         clock_t timeBegin = clock();
         double j = evaluateObjectiveFunction(timepoints, theta,
                                              NUM_FIXED_PARAMS + NUM_STATE_VARIABLES,
-                                             NUM_CELL_LINES, NUM_EXPERIMENTS_PER_CELLLINE, true);
+                                             NUM_CELL_LINES, true);
         printf("Objective function value %e\n", j);
         clock_t timeEnd = clock();
         double timeElapsed = (double) (timeEnd - timeBegin) / CLOCKS_PER_SEC;
