@@ -5,7 +5,6 @@
 #include <time.h>
 
 #include "include/symbolic_functions.h"
-#include "wrapfunctions.h"
 #include "dataprovider.h"
 
 #include "include/amici.h"
