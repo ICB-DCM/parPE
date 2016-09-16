@@ -1,5 +1,5 @@
-#ifndef OBJECTIVE_FUNCTION_H
-#define OBJECTIVE_FUNCTION_H
+#ifndef LOCAL_OPTIMIZATION_H
+#define LOCAL_OPTIMIZATION_H
 
 #include <IpStdCInterface.h>
 
@@ -9,6 +9,7 @@
 #include <include/rdata.h>
 
 #define IPTOPT_LOG_FILE "/home/dweindl/src/CanPathProSSH/dw/ipopt.log"
+
 void getLocalOptimum(double *initialTheta);
 IpoptProblem setupIpoptProblem();
 void getLocalOptimumOld();
@@ -18,6 +19,7 @@ typedef struct {
     ExpData edata;
     ReturnData rdata;
     double *gradient;
+    double objectiveFunctionValue;
 } MyUserData;
 
 /** Type defining the callback function for evaluating the value of

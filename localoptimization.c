@@ -1,8 +1,10 @@
 #include "localoptimization.h"
+
 #include <stdbool.h>
 #include <stdio.h>
 #include <assert.h>
 #include <time.h>
+
 #include "objectivefunction.h"
 
 void getLocalOptimum(double *initialTheta) {
@@ -10,104 +12,121 @@ void getLocalOptimum(double *initialTheta) {
     IpoptProblem problem = setupIpoptProblem();
 
     Number loglikelihood = INFINITY;
+
     MyUserData myUserData;
     myUserData.gradient = 0;
 
     clock_t timeBegin = clock();
 
-    enum ApplicationReturnStatus status;
-    status = IpoptSolve(problem, initialTheta, NULL, &loglikelihood, NULL, NULL, NULL, &myUserData);
+    enum ApplicationReturnStatus status = IpoptSolve(problem, initialTheta, NULL, &loglikelihood, NULL, NULL, NULL, &myUserData);
 
     clock_t timeEnd = clock();
     double timeElapsed = (double) (timeEnd - timeBegin) / CLOCKS_PER_SEC;
 
-    printf("Ipopt status %d, llh: %e, time: %f\n", status, loglikelihood, timeElapsed);
+    printf("Ipopt status %d,  final llh: %e, time: %f\n", status, loglikelihood, timeElapsed);
 
     FreeIpoptProblem(problem);
+
+    // TODO return solution in initialTheta
+    printf("Theta 1..10: ");
+    printfArray(initialTheta, 10, "%e ");
+    printf("\n");
 }
 
 IpoptProblem setupIpoptProblem()
 {
-    Number *thetaLowerBounds = malloc(sizeof(Number) * NUM_OPTIMIZATION_PARAMS);
-    fillArray(thetaLowerBounds, NUM_OPTIMIZATION_PARAMS, -1E4);
+    Index numOptimizationParams = NUM_OPTIMIZATION_PARAMS;
 
-    Number *thetaUpperBounds = malloc(sizeof(Number) * NUM_OPTIMIZATION_PARAMS);
-    fillArray(thetaUpperBounds, NUM_OPTIMIZATION_PARAMS, 1E4);
+    Number *thetaLowerBounds = malloc(sizeof(Number) * numOptimizationParams);
+    fillArray(thetaLowerBounds, numOptimizationParams, 1e-10);
+
+    Number *thetaUpperBounds = malloc(sizeof(Number) * numOptimizationParams);
+    fillArray(thetaUpperBounds, numOptimizationParams, 1E4);
 
     Index numberConstraints = 0;
 
-    Index numNonZeroElementsJacobian = NUM_OPTIMIZATION_PARAMS; // TODO only nonzero elements
-    Index numNonZeroElementsHessian = 0; //NUM_OPTIMIZATION_PARAMS * NUM_OPTIMIZATION_PARAMS; // TODO
+    Index numNonZeroElementsConstraintJacobian = 0; // TODO only nonzero elements
+    Index numNonZeroElementsLagrangianHessian = 0; //NUM_OPTIMIZATION_PARAMS * NUM_OPTIMIZATION_PARAMS; // TODO
 
-    IpoptProblem problem = CreateIpoptProblem(NUM_OPTIMIZATION_PARAMS,
-                                              thetaLowerBounds, thetaUpperBounds,
+    IpoptProblem nlp = CreateIpoptProblem(numOptimizationParams, thetaLowerBounds, thetaUpperBounds,
                                               numberConstraints, NULL, NULL,
-                                              numNonZeroElementsJacobian, numNonZeroElementsHessian,
-                                              0, Eval_F, Eval_G, Eval_Grad_F, Eval_Jac_G, Eval_H);
+                                              numNonZeroElementsConstraintJacobian, numNonZeroElementsLagrangianHessian, 0,
+                                              &Eval_F, &Eval_G, &Eval_Grad_F, &Eval_Jac_G, &Eval_H);
+    assert(nlp != 0);
 
     free(thetaLowerBounds);
     free(thetaUpperBounds);
 
-    AddIpoptIntOption(problem, "print_level", 5);
-    AddIpoptStrOption(problem, "print_user_options", "yes");
-    AddIpoptNumOption(problem, "tol", 1e-9);
-    AddIpoptIntOption(problem, "max_iter", 100);
-    AddIpoptStrOption(problem, "hessian_approximation", "limited-memory");
-    AddIpoptStrOption(problem, "limited_memory_update_type", "bfgs");
+    AddIpoptIntOption(nlp, "print_level", 5);
+    AddIpoptStrOption(nlp, "print_user_options", "yes");
+    AddIpoptNumOption(nlp, "tol", 1e-9);
+    AddIpoptIntOption(nlp, "max_iter", 100);
+    AddIpoptStrOption(nlp, "hessian_approximation", "limited-memory");
+    AddIpoptStrOption(nlp, "limited_memory_update_type", "bfgs");
+
+    AddIpoptIntOption(nlp, "acceptable_iter", 1);
+    AddIpoptNumOption(nlp, "acceptable_constr_viol_tol", 1e20);
+    AddIpoptNumOption(nlp, "acceptable_dual_inf_tol", 1e20);
+    AddIpoptNumOption(nlp, "acceptable_compl_inf_tol", 1e20);
+    AddIpoptNumOption(nlp, "acceptable_obj_change_tol", 1e20);
+
     // TODO check further limited memory options http://www.coin-or.org/Ipopt/documentation/node53.html#opt:hessian_approximation
 
-    OpenIpoptOutputFile(problem, IPTOPT_LOG_FILE, 5);
-    SetIntermediateCallback(problem, Intermediate);
+    OpenIpoptOutputFile(nlp, IPTOPT_LOG_FILE, 6);
+    SetIntermediateCallback(nlp, Intermediate);
 
-    return problem;
+    return nlp;
 }
 
 
-void getLocalOptimumOld() {
-    bool converged = 1;
-    int curIteration = 0;
-    do {
-        ++curIteration;
-        printf("Iteration %d\n", curIteration);
-        fflush(stdout);
+//void getLocalOptimumOld() {
+//    bool converged = 1;
+//    int curIteration = 0;
+//    do {
+//        ++curIteration;
+//        printf("Iteration %d\n", curIteration);
+//        fflush(stdout);
 
-        double timepoints [] = {};
-        double theta [] = {};
-        clock_t timeBegin = clock();
-        double j = evaluateObjectiveFunction(timepoints, theta,
-                                             NUM_FIXED_PARAMS + NUM_STATE_VARIABLES,
-                                             NUM_CELL_LINES, true);
-        printf("Objective function value %e\n", j);
-        clock_t timeEnd = clock();
-        double timeElapsed = (double) (timeEnd - timeBegin) / CLOCKS_PER_SEC;
-        printf("Elapsed time %fs\n", timeElapsed);
-    } while(!converged);
-}
+//        double timepoints [] = {};
+//        double theta [] = {};
+//        clock_t timeBegin = clock();
+//        double j = evaluateObjectiveFunction(timepoints, theta,
+//                                             NUM_FIXED_PARAMS + NUM_STATE_VARIABLES,
+//                                             NUM_CELL_LINES, true);
+//        printf("Objective function value %e\n", j);
+//        clock_t timeEnd = clock();
+//        double timeElapsed = (double) (timeEnd - timeBegin) / CLOCKS_PER_SEC;
+//        printf("Elapsed time %fs\n", timeElapsed);
+//    } while(!converged);
+//}
 
 Bool Eval_F(Index n, Number *x_, Bool new_x, Number *obj_value, UserDataPtr user_data)
 {
     assert(n == NUM_OPTIMIZATION_PARAMS);
 
+    static int numFunctionCalls = 0;
+    printf("Eval_F (%d) #%d\n", new_x, ++numFunctionCalls);
+    fflush(stdout);
+
     clock_t timeBegin = clock();
     int status = 0;
+    MyUserData *data = (MyUserData *) user_data;
 
     if(new_x) {
-        // TODO
-        double timepoints [] = {};
         //TODO // check status -> false
-        double *gradient = malloc(sizeof(double) * NUM_STATE_VARIABLES);
-        status = evaluateObjectiveFunction(timepoints, x_,
+        double *gradient = malloc(sizeof(double) * NUM_OPTIMIZATION_PARAMS);
+        status = evaluateObjectiveFunction(x_,
                                              NUM_FIXED_PARAMS + NUM_STATE_VARIABLES,
                                              NUM_CELL_LINES, obj_value, gradient);
         printf("Objective function value %e\n", *obj_value);
 
-        MyUserData *data = (MyUserData *) user_data;
         if(data != 0) {
-            free(data);
+            free(data->gradient);
         }
         data->gradient = gradient;
+        data->objectiveFunctionValue = obj_value[0];
     } else {
-        assert(1==2);
+        obj_value[0] = data->objectiveFunctionValue;
     }
 
     clock_t timeEnd = clock();
@@ -121,6 +140,10 @@ Bool Eval_F(Index n, Number *x_, Bool new_x, Number *obj_value, UserDataPtr user
 Bool Eval_Grad_F(Index n, Number *x, Bool new_x, Number *grad_f, UserDataPtr user_data)
 {
     assert(n == NUM_OPTIMIZATION_PARAMS);
+
+    static int numFunctionCalls = 0;
+    printf("Eval_Grad_F (%d) #%d\n", new_x, ++numFunctionCalls);
+    fflush(stdout);
 
     clock_t timeBegin = clock();
 
@@ -148,6 +171,10 @@ Bool Eval_G(Index n, Number *x_, Bool new_x, Index m, Number *g_, UserDataPtr us
 {
     assert(n == NUM_OPTIMIZATION_PARAMS);
 
+    static int numFunctionCalls = 0;
+    printf("Eval_G #%d\n", ++numFunctionCalls);
+    fflush(stdout);
+
     // no constraints, nothing to do here
 
     return true;
@@ -155,6 +182,9 @@ Bool Eval_G(Index n, Number *x_, Bool new_x, Index m, Number *g_, UserDataPtr us
 
 Bool Eval_Jac_G(Index n, Number *x_, Bool new_x, Index m, Index nele_jac, Index *iRow, Index *jCol, Number *values, UserDataPtr user_data)
 {
+    static int numFunctionCalls = 0;
+    printf("Eval_Jac_G #%d\n", ++numFunctionCalls);
+    fflush(stdout);
 
     // no constraints, nothing to do here
 
@@ -163,6 +193,10 @@ Bool Eval_Jac_G(Index n, Number *x_, Bool new_x, Index m, Index nele_jac, Index 
 
 Bool Eval_H(Index n, Number *x_, Bool new_x, Number obj_factor, Index m, Number *lambda, Bool new_lambda, Index nele_hess, Index *iRow, Index *jCol, Number *values, UserDataPtr user_data)
 {
+    static int numFunctionCalls = 0;
+    printf("Eval_H #%d\n", ++numFunctionCalls);
+    fflush(stdout);
+
     assert(1==3);
     // TODO not yet used. wait for 2nd order adjoint sensitivities
 
@@ -188,3 +222,4 @@ Bool Intermediate(Index alg_mod, Index iter_count, Number obj_value, Number inf_
     fflush(stdout);
     return true;
 }
+
