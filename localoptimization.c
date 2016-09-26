@@ -20,6 +20,8 @@ void getLocalOptimum(double *initialTheta) {
 
     enum ApplicationReturnStatus status = IpoptSolve(problem, initialTheta, NULL, &loglikelihood, NULL, NULL, NULL, &myUserData);
 
+    free(myUserData.gradient);
+
     clock_t timeEnd = clock();
     double timeElapsed = (double) (timeEnd - timeBegin) / CLOCKS_PER_SEC;
 
@@ -60,7 +62,7 @@ IpoptProblem setupIpoptProblem()
     AddIpoptIntOption(nlp, "print_level", 5);
     AddIpoptStrOption(nlp, "print_user_options", "yes");
     AddIpoptNumOption(nlp, "tol", 1e-9);
-    AddIpoptIntOption(nlp, "max_iter", 100);
+    AddIpoptIntOption(nlp, "max_iter", 10);
     AddIpoptStrOption(nlp, "hessian_approximation", "limited-memory");
     AddIpoptStrOption(nlp, "limited_memory_update_type", "bfgs");
 
@@ -118,7 +120,7 @@ Bool Eval_F(Index n, Number *x_, Bool new_x, Number *obj_value, UserDataPtr user
         status = evaluateObjectiveFunction(x_,
                                              NUM_FIXED_PARAMS + NUM_STATE_VARIABLES,
                                              NUM_CELL_LINES, obj_value, gradient);
-        printf("Objective function value %e\n", *obj_value);
+//        printf("Objective function value %e\n", *obj_value);
 
         if(data != 0) {
             free(data->gradient);
@@ -132,7 +134,7 @@ Bool Eval_F(Index n, Number *x_, Bool new_x, Number *obj_value, UserDataPtr user
     clock_t timeEnd = clock();
     double timeElapsed = (double) (timeEnd - timeBegin) / CLOCKS_PER_SEC;
 
-    printf("Eval_F: Elapsed time %fs\n", timeElapsed);
+//    printf("Eval_F: Elapsed time %fs\n", timeElapsed);
 
     return status == 0;
 }
