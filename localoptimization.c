@@ -4,10 +4,9 @@
 #include <stdio.h>
 #include <assert.h>
 #include <time.h>
-
 #include "objectivefunction.h"
 
-void getLocalOptimum(double *initialTheta) {
+void getLocalOptimum(double *initialTheta, loggerdata *datalogger) {
 
     IpoptProblem problem = setupIpoptProblem();
 
@@ -15,6 +14,7 @@ void getLocalOptimum(double *initialTheta) {
 
     MyUserData myUserData;
     myUserData.gradient = 0;
+    myUserData.datalogger = datalogger;
 
     clock_t timeBegin = clock();
 
@@ -62,7 +62,7 @@ IpoptProblem setupIpoptProblem()
     AddIpoptIntOption(nlp, "print_level", 5);
     AddIpoptStrOption(nlp, "print_user_options", "yes");
     AddIpoptNumOption(nlp, "tol", 1e-9);
-    AddIpoptIntOption(nlp, "max_iter", 10);
+    AddIpoptIntOption(nlp, "max_iter", 20);
     AddIpoptStrOption(nlp, "hessian_approximation", "limited-memory");
     AddIpoptStrOption(nlp, "limited_memory_update_type", "bfgs");
 
@@ -102,7 +102,7 @@ IpoptProblem setupIpoptProblem()
 //    } while(!converged);
 //}
 
-Bool Eval_F(Index n, Number *x_, Bool new_x, Number *obj_value, UserDataPtr user_data)
+Bool Eval_F(Index n, Number *x, Bool new_x, Number *obj_value, UserDataPtr user_data)
 {
     assert(n == NUM_OPTIMIZATION_PARAMS);
 
@@ -117,7 +117,7 @@ Bool Eval_F(Index n, Number *x_, Bool new_x, Number *obj_value, UserDataPtr user
     if(new_x) {
         //TODO // check status -> false
         double *gradient = malloc(sizeof(double) * NUM_OPTIMIZATION_PARAMS);
-        status = evaluateObjectiveFunction(x_,
+        status = evaluateObjectiveFunction(x,
                                              NUM_FIXED_PARAMS + NUM_STATE_VARIABLES,
                                              NUM_CELL_LINES, obj_value, gradient);
 //        printf("Objective function value %e\n", *obj_value);
@@ -127,12 +127,20 @@ Bool Eval_F(Index n, Number *x_, Bool new_x, Number *obj_value, UserDataPtr user
         }
         data->gradient = gradient;
         data->objectiveFunctionValue = obj_value[0];
+
     } else {
         obj_value[0] = data->objectiveFunctionValue;
     }
 
     clock_t timeEnd = clock();
     double timeElapsed = (double) (timeEnd - timeBegin) / CLOCKS_PER_SEC;
+
+    if(data->datalogger) {
+        writeObjectiveFunctionData(*data->datalogger, numFunctionCalls, data->objectiveFunctionValue, data->gradient, n);
+        writeOptimizationParameters(*data->datalogger, numFunctionCalls, x, n);
+        writeEvalFTime(*data->datalogger, numFunctionCalls, timeElapsed);
+        flushLogger(*data->datalogger);
+    }
 
 //    printf("Eval_F: Elapsed time %fs\n", timeElapsed);
 
@@ -182,7 +190,7 @@ Bool Eval_G(Index n, Number *x_, Bool new_x, Index m, Number *g_, UserDataPtr us
     return true;
 }
 
-Bool Eval_Jac_G(Index n, Number *x_, Bool new_x, Index m, Index nele_jac, Index *iRow, Index *jCol, Number *values, UserDataPtr user_data)
+Bool Eval_Jac_G(Index n, Number *x, Bool new_x, Index m, Index nele_jac, Index *iRow, Index *jCol, Number *values, UserDataPtr user_data)
 {
     static int numFunctionCalls = 0;
     printf("Eval_Jac_G #%d\n", ++numFunctionCalls);

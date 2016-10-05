@@ -10,6 +10,7 @@
 
 #include "localoptimization.h"
 #include "objectivefunction.h"
+#include "logger.h"
 
 int mpe_event_begin_simulate, mpe_event_end_simulate;
 int mpe_event_begin_getrefs, mpe_event_end_getrefs;
@@ -38,10 +39,11 @@ int main(int argc, char **argv)
         // double initialTheta[NUM_OPTIMIZATION_PARAMS] = {0};
         // getLocalOptimum(initialTheta);
 
+        loggerdata datalogger = initResultHDFFile("results.h5", "/results/multistarts/0");
         UserData udata = getMyUserData();
-        getLocalOptimum(udata->am_p);
+        getLocalOptimum(udata->am_p, &datalogger);
         freeUserData(udata);
-
+        closeResultHDFFile(datalogger);
         sendTerminationSignalToAllWorkers();
     } else {
         doWorkerWork();
