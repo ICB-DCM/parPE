@@ -12,6 +12,9 @@
 #include "objectivefunction.h"
 #include "logger.h"
 
+void getMpeLogIDs();
+void describeMpeStates();
+
 // MPE event IDs for logging
 int mpe_event_begin_simulate, mpe_event_end_simulate;
 int mpe_event_begin_getrefs, mpe_event_end_getrefs;
@@ -26,7 +29,7 @@ int main(int argc, char **argv)
     mpiErr = MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
     assert(mpiCommSize > 1);
 
-    int mpeErr = MPE_Init_log();
+    MPE_Init_log();
     getMpeLogIDs();
 
     if(mpiRank == 0) {
@@ -37,7 +40,7 @@ int main(int argc, char **argv)
 
         loggerdata datalogger = initResultHDFFile("results.h5", "/results/multistarts/0");
 
-        UserData udata = getMyUserData();
+        UserData *udata = getMyUserData();
 
         getLocalOptimum(udata->am_p, &datalogger);
 

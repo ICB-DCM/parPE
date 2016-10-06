@@ -31,13 +31,13 @@ loggerdata initResultHDFFile(const char *filename, const char *rootPath)
 void writeObjectiveFunctionValue(loggerdata logstruct, const int iter, const double obj_value)
 {
     // TODO need to know whoch multistart... need to provide logging struct? add to ipopt uzserdata
-    const char *fullGroupPath = myStringCat(logstruct.rootPath, "/trajectory/");
+    char *fullGroupPath = myStringCat(logstruct.rootPath, "/trajectory/");
 
     if(!hdf5GroupExists(logstruct.file_id, fullGroupPath)) {
         hdf5CreateGroup(logstruct.file_id, fullGroupPath, true);
     }
 
-    const char *fullDatasetPath = myStringCat(fullGroupPath, "negLogLikelihood");
+    char *fullDatasetPath = myStringCat(fullGroupPath, "negLogLikelihood");
 
     if(!hdf5DatasetExists(logstruct.file_id, fullDatasetPath)) {
         hdf5CreateExtendableDouble2DArray(logstruct.file_id, fullDatasetPath, 1);
@@ -57,7 +57,7 @@ void writeObjectiveFunctionGradient(loggerdata logstruct, const int iter, const 
         hdf5CreateGroup(logstruct.file_id, fullGroupPath, true);
     }
 
-    const char *fullDatasetPath = myStringCat(fullGroupPath, "negLogLikelihoodGradient");
+    char *fullDatasetPath = myStringCat(fullGroupPath, "negLogLikelihoodGradient");
 
     if(!hdf5DatasetExists(logstruct.file_id, fullDatasetPath)) {
         hdf5CreateExtendableDouble2DArray(logstruct.file_id, fullDatasetPath, size);
@@ -83,7 +83,7 @@ void writeOptimizationParameters(loggerdata logstruct, const int iter, const dou
         hdf5CreateGroup(logstruct.file_id, fullGroupPath, true);
     }
 
-    const char *fullDatasetPath = myStringCat(fullGroupPath, "p");
+    char *fullDatasetPath = myStringCat(fullGroupPath, "p");
 
     if(!hdf5DatasetExists(logstruct.file_id, fullDatasetPath)) {
         hdf5CreateExtendableDouble2DArray(logstruct.file_id, fullDatasetPath, nTheta);
@@ -103,7 +103,7 @@ void writeEvalFTime(loggerdata logstruct, const int iter, double timeElapsedInSe
         hdf5CreateGroup(logstruct.file_id, fullGroupPath, true);
     }
 
-    const char *fullDatasetPath = myStringCat(fullGroupPath, "evalFTime");
+    char *fullDatasetPath = myStringCat(fullGroupPath, "evalFTime");
 
     if(!hdf5DatasetExists(logstruct.file_id, fullDatasetPath)) {
         hdf5CreateExtendableDouble2DArray(logstruct.file_id, fullDatasetPath, 1);

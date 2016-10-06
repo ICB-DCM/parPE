@@ -18,7 +18,7 @@ void doWorkerWork() {
     err = MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
     bool terminate = false;
-    UserData udata = getMyUserData();
+    UserData *udata = getMyUserData();
 
     while(!terminate) {
         // wait for receiving data to run a single simulation
@@ -46,8 +46,8 @@ void doWorkerWork() {
         // run simulation
         int status = 0;
         //ReturnData rdata = getSteadystateSolution(wp.udata, wp.edata, &status);
-        ExpData expData;
-        ReturnData rdata = getSteadystateSolutionForExperiment(cellLineId, experimentId, udata, &status, &expData);
+        ExpData *expData;
+        ReturnData *rdata = getSteadystateSolutionForExperiment(cellLineId, experimentId, udata, &status, &expData);
         // write results (later)
         // writeReturnData(rdata);
         err = MPE_Log_event(mpe_event_end_simulate, mpiStatus.MPI_TAG, "sim");
