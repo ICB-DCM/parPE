@@ -68,7 +68,7 @@ void doWorkerWork() {
         //terminate = true;
     }
 
-    freeUserData(udata);
+    freeUserData(udata); // TODO delete free mismatch
 }
 
 void reportToMaster(ReturnData rdata) {

@@ -5,12 +5,6 @@
 
 hid_t file_id = 0;
 
-void writeObjectiveFunctionData(loggerdata logstruct, const int iter, const double obj_value, const double * const gradient, int size)
-{
-    writeObjectiveFunctionValue(logstruct, iter, obj_value);
-    writeObjectiveFunctionGradient(logstruct, iter, gradient, size);
-}
-
 loggerdata initResultHDFFile(const char *filename, const char *rootPath)
 {
     loggerdata logstruct;
@@ -28,45 +22,6 @@ loggerdata initResultHDFFile(const char *filename, const char *rootPath)
     return logstruct;
 }
 
-void writeObjectiveFunctionValue(loggerdata logstruct, const int iter, const double obj_value)
-{
-    // TODO need to know whoch multistart... need to provide logging struct? add to ipopt uzserdata
-    char *fullGroupPath = myStringCat(logstruct.rootPath, "/trajectory/");
-
-    if(!hdf5GroupExists(logstruct.file_id, fullGroupPath)) {
-        hdf5CreateGroup(logstruct.file_id, fullGroupPath, true);
-    }
-
-    char *fullDatasetPath = myStringCat(fullGroupPath, "negLogLikelihood");
-
-    if(!hdf5DatasetExists(logstruct.file_id, fullDatasetPath)) {
-        hdf5CreateExtendableDouble2DArray(logstruct.file_id, fullDatasetPath, 1);
-    }
-
-    hdf5Extend2ndDimensionAndWriteToDouble2DArray(logstruct.file_id, fullDatasetPath, &obj_value);
-
-    free(fullDatasetPath);
-}
-
-void writeObjectiveFunctionGradient(loggerdata logstruct, const int iter, const double * const gradient, int size)
-{
-       // extend /multistarts/n/objectiveFunctionGradient/
-    const char *fullGroupPath = myStringCat(logstruct.rootPath, "/trajectory/");
-
-    if(!hdf5GroupExists(logstruct.file_id, fullGroupPath)) {
-        hdf5CreateGroup(logstruct.file_id, fullGroupPath, true);
-    }
-
-    char *fullDatasetPath = myStringCat(fullGroupPath, "negLogLikelihoodGradient");
-
-    if(!hdf5DatasetExists(logstruct.file_id, fullDatasetPath)) {
-        hdf5CreateExtendableDouble2DArray(logstruct.file_id, fullDatasetPath, size);
-    }
-
-    hdf5Extend2ndDimensionAndWriteToDouble2DArray(logstruct.file_id, fullDatasetPath, gradient);
-
-    free(fullDatasetPath);
-}
 
 void closeResultHDFFile(loggerdata logstruct)
 {
@@ -75,44 +30,6 @@ void closeResultHDFFile(loggerdata logstruct)
 
 }
 
-void writeOptimizationParameters(loggerdata logstruct, const int iter, const double * const theta, const int nTheta)
-{
-    const char *fullGroupPath = myStringCat(logstruct.rootPath, "/trajectory/");
-
-    if(!hdf5GroupExists(logstruct.file_id, fullGroupPath)) {
-        hdf5CreateGroup(logstruct.file_id, fullGroupPath, true);
-    }
-
-    char *fullDatasetPath = myStringCat(fullGroupPath, "p");
-
-    if(!hdf5DatasetExists(logstruct.file_id, fullDatasetPath)) {
-        hdf5CreateExtendableDouble2DArray(logstruct.file_id, fullDatasetPath, nTheta);
-    }
-
-    hdf5Extend2ndDimensionAndWriteToDouble2DArray(logstruct.file_id, fullDatasetPath, theta);
-
-    free(fullDatasetPath);
-}
-
-
-void writeEvalFTime(loggerdata logstruct, const int iter, double timeElapsedInSeconds)
-{
-    const char *fullGroupPath = myStringCat(logstruct.rootPath, "/trajectory/");
-
-    if(!hdf5GroupExists(logstruct.file_id, fullGroupPath)) {
-        hdf5CreateGroup(logstruct.file_id, fullGroupPath, true);
-    }
-
-    char *fullDatasetPath = myStringCat(fullGroupPath, "evalFTime");
-
-    if(!hdf5DatasetExists(logstruct.file_id, fullDatasetPath)) {
-        hdf5CreateExtendableDouble2DArray(logstruct.file_id, fullDatasetPath, 1);
-    }
-
-    hdf5Extend2ndDimensionAndWriteToDouble2DArray(logstruct.file_id, fullDatasetPath, &timeElapsedInSeconds);
-
-    free(fullDatasetPath);
-}
 
 
 void flushLogger(loggerdata logstruct)
@@ -209,4 +126,51 @@ char *myStringCat(const char *first, const char *second)
     strcpy(concatenation, first);
     strcat(concatenation, second);
     return concatenation;
+}
+
+void logLocalOptimizerObjectiveFunctionEvaluation(loggerdata logstruct, int numFunctionCalls, double *theta, double objectiveFunctionValue, const double *gradient, double timeElapsedInSeconds, int nTheta)
+{
+    // TODO need to know whoch multistart... need to provide logging struct? add to ipopt uzserdata
+    char *fullGroupPath = myStringCat(logstruct.rootPath, "/trajectory/optimizerObjFunEvaluations/");
+
+    hdf5CreateOrExtendAndWriteToDouble2DArray(logstruct.file_id, fullGroupPath, "negLogLikelihood", &objectiveFunctionValue, 1);
+    hdf5CreateOrExtendAndWriteToDouble2DArray(logstruct.file_id, fullGroupPath, "negLogLikelihoodGradient", gradient, nTheta);
+    hdf5CreateOrExtendAndWriteToDouble2DArray(logstruct.file_id, fullGroupPath, "p", theta, nTheta);
+    hdf5CreateOrExtendAndWriteToDouble2DArray(logstruct.file_id, fullGroupPath, "evalFTime", &timeElapsedInSeconds, 1);
+
+    free(fullGroupPath);
+
+    flushLogger(logstruct);
+}
+
+void logLocalOptimizerIteration(loggerdata logstruct, int numIterations, double *theta, double objectiveFunctionValue, const double *gradient, double timeElapsedInSeconds, int nTheta)
+{
+    // TODO need to know whoch multistart... need to provide logging struct? add to ipopt uzserdata
+    char *fullGroupPath = myStringCat(logstruct.rootPath, "/trajectory/optimizerIterations/");
+
+    hdf5CreateOrExtendAndWriteToDouble2DArray(logstruct.file_id, fullGroupPath, "negLogLikelihood", &objectiveFunctionValue, 1);
+    hdf5CreateOrExtendAndWriteToDouble2DArray(logstruct.file_id, fullGroupPath, "negLogLikelihoodGradient", gradient, nTheta);
+    hdf5CreateOrExtendAndWriteToDouble2DArray(logstruct.file_id, fullGroupPath, "p", theta, nTheta);
+    hdf5CreateOrExtendAndWriteToDouble2DArray(logstruct.file_id, fullGroupPath, "evalFTime", &timeElapsedInSeconds, 1);
+
+    free(fullGroupPath);
+
+    flushLogger(logstruct);
+}
+
+void hdf5CreateOrExtendAndWriteToDouble2DArray(hid_t file_id, const char *parentPath, const char *datasetName, const double *buffer, int stride)
+{
+    if(!hdf5GroupExists(file_id, parentPath)) {
+        hdf5CreateGroup(file_id, parentPath, true);
+    }
+
+    char *fullDatasetPath = myStringCat(parentPath, datasetName);
+
+    if(!hdf5DatasetExists(file_id, fullDatasetPath)) {
+        hdf5CreateExtendableDouble2DArray(file_id, fullDatasetPath, stride);
+    }
+
+    hdf5Extend2ndDimensionAndWriteToDouble2DArray(file_id, fullDatasetPath, buffer);
+
+    free(fullDatasetPath);
 }

@@ -17,6 +17,8 @@ IpoptProblem setupIpoptProblem();
 void getLocalOptimumOld();
 
 typedef struct {
+    int nTheta;
+    double *theta;
     UserData udata;
     ExpData edata;
     ReturnData rdata;
