@@ -5,6 +5,9 @@
 #include <assert.h>
 #include <time.h>
 #include "objectivefunction.h"
+#include <signal.h>
+
+extern volatile sig_atomic_t caughtTerminationSignal;
 
 void getLocalOptimum(double *initialTheta, loggerdata *datalogger) {
 
@@ -28,12 +31,11 @@ void getLocalOptimum(double *initialTheta, loggerdata *datalogger) {
     clock_t timeEnd = clock();
     double timeElapsed = (double) (timeEnd - timeBegin) / CLOCKS_PER_SEC;
 
-    printf("Ipopt status %d,  final llh: %e, time: %f\n", status, loglikelihood, timeElapsed);
+    printf("\n\nIpopt status %d,  final llh: %e, time: %f\n", status, loglikelihood, timeElapsed);
 
     FreeIpoptProblem(problem);
 
-    // TODO return solution in initialTheta
-    printf("Theta 1..10: ");
+    printf("Theta* 1..10: ");
     printfArray(initialTheta, 10, "%e ");
     printf("\n");
 }
@@ -64,10 +66,12 @@ IpoptProblem setupIpoptProblem()
 
     AddIpoptIntOption(nlp, "print_level", 5);
     AddIpoptStrOption(nlp, "print_user_options", "yes");
-    AddIpoptNumOption(nlp, "tol", 1e-9);
-    AddIpoptIntOption(nlp, "max_iter", 1);
+
     AddIpoptStrOption(nlp, "hessian_approximation", "limited-memory");
     AddIpoptStrOption(nlp, "limited_memory_update_type", "bfgs");
+
+    AddIpoptIntOption(nlp, "max_iter", 5);
+    AddIpoptNumOption(nlp, "tol", 1e-9);
 
     AddIpoptIntOption(nlp, "acceptable_iter", 1);
     AddIpoptNumOption(nlp, "acceptable_constr_viol_tol", 1e20);
@@ -135,7 +139,6 @@ Bool Eval_Grad_F(Index n, Number *x, Bool new_x, Number *grad_f, UserDataPtr use
             grad_f[i] = data->gradient[i];
         }
     }
-    printfArray(grad_f, n, "%f ");
 
     return true;
 }
@@ -185,6 +188,12 @@ Bool Intermediate(Index alg_mod, Index iter_count, Number obj_value, Number inf_
     if(data->datalogger) {
         logLocalOptimizerIteration(*data->datalogger, iter_count, data->theta, data->objectiveFunctionValue, data->gradient, 0, data->nTheta);
     }
+
+    if(caughtTerminationSignal) {
+        fprintf(stderr, "\nCAUGHT SIGTERM... EXITING\n");
+        return false;
+    }
+
 
     return true;
 }
