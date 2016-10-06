@@ -12,8 +12,15 @@
 #include "objectivefunction.h"
 #include "logger.h"
 
+#include <signal.h>
+#include <unistd.h>
+
+volatile sig_atomic_t caughtTerminationSignal = 0;
+
 void getMpeLogIDs();
 void describeMpeStates();
+void term(int sigNum) { caughtTerminationSignal = 1; }
+
 
 // MPE event IDs for logging
 int mpe_event_begin_simulate, mpe_event_end_simulate;
@@ -33,6 +40,11 @@ int main(int argc, char **argv)
     getMpeLogIDs();
 
     if(mpiRank == 0) {
+
+        struct sigaction action;
+        action.sa_handler = term;
+        sigaction(SIGTERM, &action, NULL);
+
         describeMpeStates();
 
         // double initialTheta[NUM_OPTIMIZATION_PARAMS] = {0};

@@ -194,7 +194,5 @@ Bool Intermediate(Index alg_mod, Index iter_count, Number obj_value, Number inf_
         return false;
     }
 
-
     return true;
 }
-
