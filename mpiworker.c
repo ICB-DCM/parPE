@@ -46,7 +46,7 @@ void doWorkerWork() {
         // run simulation
         int status = 0;
         //ReturnData rdata = getSteadystateSolution(wp.udata, wp.edata, &status);
-        ExpData *expData;
+        ExpData *expData = 0;
         ReturnData *rdata = getSteadystateSolutionForExperiment(cellLineId, experimentId, udata, &status, &expData);
         // write results (later)
         // writeReturnData(rdata);
@@ -60,7 +60,7 @@ void doWorkerWork() {
         MPI_Send(rdata->am_llhdata, 1, MPI_DOUBLE, 0, mpiStatus.MPI_TAG, MPI_COMM_WORLD);
         MPI_Send(rdata->am_sllhdata, udata->am_np, MPI_DOUBLE, 0, mpiStatus.MPI_TAG, MPI_COMM_WORLD);
 
-        freeExpData(expData);
+        myFreeExpData(expData);
         freeReturnData(rdata);
         // MPI_Send(rdata->am_sllhdata, udata->am_np, MPI_DOUBLE, 0, mpiStatus.MPI_TAG, MPI_COMM_WORLD);
 
