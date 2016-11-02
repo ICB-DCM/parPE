@@ -1,19 +1,35 @@
 #ifndef MPI_WORKER_H
 #define MPI_WORKER_H
 
-#include "include/amici.h"
+#include "dataprovider.h"
 
-typedef struct {
-    int packageId;
-    UserData udata;
-    ExpData edata;
-} workpackage;
+#define MPI_TAG_EXIT_SIGNAL 0
+#define MPI_WORKER_H_VERBOSE 2
+
+typedef struct workPackageMessage_tag {
+    datapath path;
+    double *theta;
+    int sensitivityMethod;
+} workPackageMessage;
+
+typedef struct resultPackageMessage_tag {
+    int status;
+    double llh;
+    double *sllh;
+} resultPackageMessage;
+
+int getLengthWorkPackageMessage(int nTheta);
+
+int getLengthResultPackageMessage(int nTheta);
+
+void serializeWorkPackageMessage(workPackageMessage work, int nTheta, char *buffer);
+void deserializeWorkPackageMessage(char *msg, int nTheta, datapath *path, double *theta, int *sensitivityMethod);
+
+void serializeResultPackageMessage(resultPackageMessage result, int nTheta, char *buffer);
+void deserializeResultPackageMessage(char *buffer, int nTheta, int *status, double *llh, double *sllh);
 
 void doWorkerWork();
-workpackage receiveData();
-void reportToMaster(ReturnData rdata);
 
 void sendTerminationSignalToAllWorkers();
-
 
 #endif
