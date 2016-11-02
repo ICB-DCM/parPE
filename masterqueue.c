@@ -2,7 +2,7 @@
 #include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
-
+#include <alloca.h>
 
 typedef struct masterQueueElement_tag {
     queueData *data;

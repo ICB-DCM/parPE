@@ -1,3 +1,5 @@
+#include <alloca.h>
+
 #include "masterthread.h"
 #include "dataprovider.h"
 #include "localoptimization.h"

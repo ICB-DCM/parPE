@@ -3,6 +3,7 @@
 #include <mpi.h>
 #include <mpe.h>
 #include <assert.h>
+#include <alloca.h>
 #include "objectivefunction.h"
 #include "dataprovider.h"
 #include "resultwriter.h"
