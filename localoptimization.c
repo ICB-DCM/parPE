@@ -5,6 +5,7 @@
 #include <assert.h>
 #include <time.h>
 #include <signal.h>
+#include <alloca.h>
 
 #include "objectivefunction.h"
 

@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <time.h>
+#include <signal.h>
+#include <unistd.h>
 
 #include <mpi.h>
 #include <mpe.h>
@@ -15,9 +17,6 @@
 #include "masterqueue.h"
 #include "masterthread.h"
 #include "dataprovider.h"
-
-#include <signal.h>
-#include <unistd.h>
 
 volatile sig_atomic_t caughtTerminationSignal = 0;
 
