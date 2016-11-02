@@ -11,7 +11,7 @@
 
 #include "localoptimization.h"
 #include "objectivefunction.h"
-#include "logger.h"
+#include "resultwriter.h"
 #include "masterqueue.h"
 #include "masterthread.h"
 #include "dataprovider.h"
@@ -51,7 +51,7 @@ int main(int argc, char **argv)
     initDataProvider("/home/dweindl/src/CanPathPro-NonMatlab/data/data.h5"); // TODO arguemnt (log: Reading from..
 
     char *resultFileName = getResultFileName();
-    loggerdata datalogger = initResultHDFFile(resultFileName, "/results/multistarts/0"); // TODO
+    initResultHDFFile(resultFileName);
     free(resultFileName);
 
     if(mpiRank == 0) {
@@ -71,7 +71,7 @@ int main(int argc, char **argv)
     }
 
     closeDataProvider();
-    closeResultHDFFile(datalogger);
+    closeResultHDFFile();
 
     printf("Finalizing MPE log: mpe.log\n");
     mpiErr = MPE_Finish_log("mpe.log");

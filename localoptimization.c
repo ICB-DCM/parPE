@@ -150,7 +150,7 @@ static Bool Eval_F(Index n, Number *x, Bool new_x, Number *obj_value, UserDataPt
     clock_t timeEnd = clock();
     double timeElapsed = (double) (timeEnd - timeBegin) / CLOCKS_PER_SEC;
 
-    // TODO logLocalOptimizerObjectiveFunctionEvaluation(data->datapath, numFunctionCalls, x, data->objectiveFunctionValue, data->gradient, timeElapsed, n);
+    logLocalOptimizerObjectiveFunctionEvaluation(data->datapath, numFunctionCalls, x, data->objectiveFunctionValue, data->gradient, timeElapsed, n);
 
     printf("Done Eval_F (%d) #%d %f\n", new_x, ++numFunctionCalls, *obj_value);
 
@@ -246,7 +246,7 @@ static Bool Intermediate(Index alg_mod, Index iter_count, Number obj_value, Numb
 
     data->datapath.idxLocalOptimizationIteration = iter_count;
 
-    // TODO logLocalOptimizerIteration(data->datapath, iter_count, data->theta, data->objectiveFunctionValue, data->gradient, 0, data->nTheta);
+    logLocalOptimizerIteration(data->datapath, iter_count, data->theta, data->objectiveFunctionValue, data->gradient, 0, data->nTheta);
 
     if(caughtTerminationSignal) {
         fprintf(stderr, "\nCAUGHT SIGTERM... EXITING\n");

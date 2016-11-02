@@ -5,6 +5,7 @@
 #include <assert.h>
 #include "objectivefunction.h"
 #include "dataprovider.h"
+#include "resultwriter.h"
 
 extern const int mpe_event_begin_simulate, mpe_event_end_simulate;
 
@@ -59,6 +60,7 @@ void doWorkerWork() {
         double endTime = MPI_Wtime();
         double timeSeconds = (endTime - startTime);
 
+        logSimulation(path, rdata->am_llhdata[0], rdata->am_sllhdata, timeSeconds, udata->am_np, mpiStatus.MPI_TAG);
         // send back whatever is needed
         //reportToMaster(rdata);
         resultPackageMessage result;
