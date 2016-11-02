@@ -6,6 +6,7 @@
 #include <time.h>
 #include <signal.h>
 #include <unistd.h>
+#include <alloca.h>
 
 #include <mpi.h>
 #include <mpe.h>
