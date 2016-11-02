@@ -1,4 +1,5 @@
 #include <alloca.h>
+#include <unistd.h>
 
 #include "masterthread.h"
 #include "dataprovider.h"
@@ -26,7 +27,7 @@ void *newMultiStartOptimization(void *multiStartIndexVP) {
 
     for(int ms = 0; ms < numLocalOptimizations; ++ms) {
         pthread_join(localOptimizationThreads[ms], NULL);
-        sleep(0.1);
+        printf("Thread ms #%d finished\n", ms);
     }
 
     printf("Leaving thread for global optimization #%d\n", multiStartIndex);

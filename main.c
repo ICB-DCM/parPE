@@ -141,9 +141,8 @@ void doMasterWork() {
 
     // wait for finish
     for(int k = 0; k < numMultiStartRuns; ++k) {
-        printf("Waiting for thread k %d\n", k);
         pthread_join(multiStartThreads[k], NULL);
-        sleep(0.1);
+        printf("Thread k %d finished\n", k);
     }
     printf("All k threads finished.\n");
 
