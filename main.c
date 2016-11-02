@@ -75,7 +75,7 @@ int main(int argc, char **argv)
 
     printf("Finalizing MPE log: mpe.log\n");
     mpiErr = MPE_Finish_log("mpe.log");
-
+    printf("Finalizing MPI\n");
     mpiErr = MPI_Finalize();
 }
 
