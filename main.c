@@ -48,7 +48,7 @@ int main(int argc, char **argv)
     MPE_Init_log();
     getMpeLogIDs();
 
-    initDataProvider("/home/dweindl/src/CanPathPro-NonMatlab/data/data.h5"); // TODO arguemnt (log: Reading from..
+    initDataProvider("../data/data.h5"); // TODO arguemnt (log: Reading from..
 
     char *resultFileName = getResultFileName();
     initResultHDFFile(resultFileName);
