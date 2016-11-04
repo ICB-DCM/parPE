@@ -7,6 +7,7 @@
 #include <signal.h>
 #include <unistd.h>
 #include <alloca.h>
+#include <execinfo.h>
 
 #include <mpi.h>
 #include <mpe.h>
@@ -25,6 +26,7 @@ void printMPIInfo();
 void getMpeLogIDs();
 void describeMpeStates();
 void term(int sigNum) { caughtTerminationSignal = 1; }
+void segv(int sigNum);
 char *getResultFileName();
 void doMasterWork();
 void printDebugInfoAndWait();
@@ -63,6 +65,10 @@ int main(int argc, char **argv)
         struct sigaction action;
         action.sa_handler = term;
         sigaction(SIGTERM, &action, NULL);
+
+        struct sigaction action2;
+        action2.sa_handler = segv;
+        sigaction(SIGSEGV, &action2, NULL);
 
         describeMpeStates();
 
@@ -118,6 +124,13 @@ void describeMpeStates() {
     MPE_Describe_state(mpe_event_begin_aggregate, mpe_event_end_aggregate, "aggregate", "red:gray");
     MPE_Describe_state(mpe_event_begin_getrefs,   mpe_event_end_getrefs,   "getrefs",   "green:gray");
     MPE_Describe_state(mpe_event_begin_getdrugs,  mpe_event_end_getdrugs,  "getdrugs",  "yellow:gray");
+}
+
+void segv(int sigNum) {
+    void *array[15];
+    size_t size;
+    size = backtrace(array, 15);
+    backtrace_symbols_fd(array, size, STDERR_FILENO);
 }
 
 char *getResultFileName() {
