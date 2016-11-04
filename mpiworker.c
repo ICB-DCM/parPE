@@ -100,6 +100,10 @@ void sendTerminationSignalToAllWorkers()
     MPI_Waitall(commSize - 1, reqs, MPI_STATUS_IGNORE);
 }
 
+int getLengthWorkPackageMessage(int nTheta)
+{
+    return sizeof(datapath) + sizeof(double) * (nTheta) + sizeof(int);
+}
 
 void serializeWorkPackageMessage(workPackageMessage work, int nTheta, char *buffer)
 {
@@ -115,6 +119,8 @@ void serializeWorkPackageMessage(workPackageMessage work, int nTheta, char *buff
 
     size = sizeof(int);
     memcpy(buffer, &work.sensitivityMethod, size);
+    buffer += size;
+
 }
 
 void deserializeWorkPackageMessage(char *msg, int nTheta, datapath *path, double *theta, int *sensitivityMethod)
@@ -167,11 +173,6 @@ void deserializeResultPackageMessage(char *buffer, int nTheta, int *status, doub
     size = nTheta * sizeof(double);
     memcpy(sllh, buffer, size);
     buffer += size;
-}
-
-int getLengthWorkPackageMessage(int nTheta)
-{
-    return sizeof(datapath) + sizeof(double) * (nTheta) + sizeof(int);
 }
 
 int getLengthResultPackageMessage(int nTheta)
