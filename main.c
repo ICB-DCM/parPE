@@ -18,6 +18,7 @@
 #include "masterqueue.h"
 #include "masterthread.h"
 #include "dataprovider.h"
+#include "misc.h"
 
 volatile sig_atomic_t caughtTerminationSignal = 0;
 
@@ -37,12 +38,17 @@ int mpe_event_begin_aggregate, mpe_event_end_aggregate;
 
 int main(int argc, char **argv)
 {
+    // Seed random number generator
+    srand(1337);
+
     int mpiCommSize, mpiRank, mpiErr;
 
     mpiErr = MPI_Init(&argc, &argv);
     mpiErr = MPI_Comm_size(MPI_COMM_WORLD, &mpiCommSize);
     mpiErr = MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
     assert(mpiCommSize > 1);
+
+    double startTime = MPI_Wtime();
 
     // printDebugInfoAndWait();
     printMPIInfo();
@@ -79,6 +85,11 @@ int main(int argc, char **argv)
 
     printf("Finalizing MPE log: mpe.log\n");
     mpiErr = MPE_Finish_log("mpe.log");
+
+    double endTime = MPI_Wtime();
+    double timeSeconds = (endTime - startTime);
+    printf("Total programm runtime: %ds\n", timeSeconds);
+
     printf("Finalizing MPI\n");
     mpiErr = MPI_Finalize();
 }
