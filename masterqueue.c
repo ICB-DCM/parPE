@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <alloca.h>
+#include <assert.h>
 
 typedef struct masterQueueElement_tag {
     queueData *data;
@@ -21,15 +22,15 @@ static pthread_mutex_t mutexQueue = PTHREAD_MUTEX_INITIALIZER;
 // one for each worker, idx 0 not used
 static MPI_Request *sendRequests;
 static MPI_Request *recvRequests;
-static queueData **sentJobs;
+static queueData **sentJobsData;
 
 static void *masterQueueRun(void *unusedArgument);
 
 static masterQueueElement *getNextJob();
 
-static void sendToWorker(int workerID, masterQueueElement *queueElement);
+static void sendToWorker(int workerIdx, masterQueueElement *queueElement);
 
-static void receiveFinished(int workerID);
+static void receiveFinished(int workerID, int jobID);
 
 void initMasterQueue() {
     static bool queueCreated = false;
@@ -45,32 +46,54 @@ void initMasterQueue() {
 static void *masterQueueRun(void *unusedArgument) {
     int mpiCommSize;
     MPI_Comm_size(MPI_COMM_WORLD, &mpiCommSize);
+    int numWorkers = mpiCommSize - 1;
+    sendRequests = alloca(numWorkers * sizeof(MPI_Request));
+    recvRequests = alloca(numWorkers * sizeof(MPI_Request));
+    sentJobsData = alloca(numWorkers * sizeof(queueData *));
 
-    sendRequests = alloca(mpiCommSize * sizeof(MPI_Request));
-    recvRequests = alloca(mpiCommSize * sizeof(MPI_Request));
-    sentJobs = alloca(mpiCommSize * sizeof(queueData *));
-
-    for(int i = 0; i < mpiCommSize; ++i) // have to init before can wait!
+    for(int i = 0; i < numWorkers; ++i) // have to init before can wait!
         recvRequests[i] = MPI_REQUEST_NULL;
 
     while(1) {
-        int freeWorkerIndex;
+        // check if any job finished
         MPI_Status status;
-        MPI_Waitany(mpiCommSize, recvRequests, &freeWorkerIndex, &status);
+        int finishedWorkerIdx = 0;
 
-        if(freeWorkerIndex != MPI_UNDEFINED) {
-            printf("\x1b[32mReceived result for job %d from %d.\x1b[0m\n", status.MPI_TAG, status.MPI_SOURCE);
-            receiveFinished(freeWorkerIndex);
-        } else {
-            // no jobs yet, send to first worker
-            freeWorkerIndex = 1;
+        while(1) {
+            int dummy;
+            MPI_Testany(numWorkers, recvRequests, &finishedWorkerIdx, &dummy, &status);
+
+            if(finishedWorkerIdx >= 0) { // dummy == 1 despite finishedWorkerIdx == MPI_UNDEFINED
+                receiveFinished(finishedWorkerIdx, status.MPI_TAG);
+            } else {
+                break;
+            }
+        }
+
+        // getNextFreeWorker
+        int freeWorkerIndex = finishedWorkerIdx;
+
+        if(freeWorkerIndex < 0) {
+            for(int i = 0; i < numWorkers; ++i) {
+                if(recvRequests[i] == MPI_REQUEST_NULL) {
+                    freeWorkerIndex = i;
+                    break;
+                }
+            }
+        }
+
+        if(freeWorkerIndex < 0) {
+            MPI_Status status;
+            MPI_Waitany(mpiCommSize, recvRequests, &freeWorkerIndex, &status);
+            assert(freeWorkerIndex != MPI_UNDEFINED);
+            receiveFinished(freeWorkerIndex, status.MPI_TAG);
         }
 
         masterQueueElement *currentQueueElement = getNextJob();
 
         if(currentQueueElement) {
             sendToWorker(freeWorkerIndex, currentQueueElement);
-            sentJobs[freeWorkerIndex] = currentQueueElement->data;
+            sentJobsData[freeWorkerIndex] = currentQueueElement->data;
             free(currentQueueElement);
         }
 
@@ -96,14 +119,16 @@ static masterQueueElement *getNextJob() {
 }
 
 
-static void sendToWorker(int workerID, masterQueueElement *queueElement) {
+static void sendToWorker(int workerIdx, masterQueueElement *queueElement) {
     int tag = queueElement->jobId;
-
+    int workerRank = workerIdx + 1;
     queueData *data = queueElement->data;
 
-    MPI_Isend(data->sendBuffer, data->lenSendBuffer, MPI_BYTE, workerID, tag, MPI_COMM_WORLD, &sendRequests[workerID]);
+    printf("\x1b[36mSent job %d to %d.\x1b[0m\n", tag, workerRank);
 
-    MPI_Irecv(data->recvBuffer, data->lenRecvBuffer, MPI_BYTE, workerID, tag, MPI_COMM_WORLD, &recvRequests[workerID]);
+    MPI_Isend(data->sendBuffer, data->lenSendBuffer, MPI_BYTE, workerRank, tag, MPI_COMM_WORLD, &sendRequests[workerIdx]);
+
+    MPI_Irecv(data->recvBuffer, data->lenRecvBuffer, MPI_BYTE, workerRank, tag, MPI_COMM_WORLD, &recvRequests[workerIdx]);
 }
 
 
@@ -136,8 +161,11 @@ void terminateMasterQueue() {
 }
 
 
-static void receiveFinished(int workerID)
+static void receiveFinished(int workerID, int jobID)
 {
-    queueData *data = sentJobs[workerID];
+    printf("\x1b[32mReceived result for job %d from %d\x1b[0m\n", jobID, workerID + 1);
+
+    queueData *data = sentJobsData[workerID];
     *data->jobDone = true;
+    recvRequests[workerID] = MPI_REQUEST_NULL;
 }
