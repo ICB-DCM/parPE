@@ -57,8 +57,8 @@ int main(int argc, char **argv)
     getMpeLogIDs();
 
     const char *inputFile = "../data/data.h5";
-    printf("Reading options and data from '%s'\n", inputFile);
-    initDataProvider(inputFile); // TODO arguemnt (log: Reading from..
+    logmessage(LOGLVL_INFO, "Reading options and data from '%s'.", inputFile);
+    initDataProvider(inputFile); // TODO arguemnt
 
     char *resultFileName = getResultFileName();
     initResultHDFFile(resultFileName);
@@ -110,7 +110,7 @@ void printDebugInfoAndWait() {
     //int i = 0;
     char hostname[256];
     gethostname(hostname, sizeof(hostname));
-    printf("PID %d on %s ready for attach\n", getpid(), hostname);
+    logmessage(LOGLVL_DEBUG, "PID %d on %s ready for attach\n", getpid(), hostname);
     fflush(stdout);
     //while (0 == i)
         sleep(15);
@@ -168,9 +168,9 @@ void doMasterWork() {
     // wait for finish
     for(int k = 0; k < numMultiStartRuns; ++k) {
         pthread_join(multiStartThreads[k], NULL);
-        printf("Thread k %d finished\n", k);
+        logmessage(LOGLVL_DEBUG, "Thread k %d finished", k);
     }
-    printf("All k threads finished.\n");
+    logmessage(LOGLVL_DEBUG, "All k threads finished.");
 
     terminateMasterQueue();
 }

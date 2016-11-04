@@ -6,7 +6,7 @@
 #include <time.h>
 #include <signal.h>
 #include <alloca.h>
-
+#include "misc.h"
 #include "objectivefunction.h"
 
 extern volatile sig_atomic_t caughtTerminationSignal;
@@ -74,7 +74,7 @@ void getLocalOptimum(datapath dataPath) {
     clock_t timeEnd = clock();
     double timeElapsed = (double) (timeEnd - timeBegin) / CLOCKS_PER_SEC;
 
-    printf("\n\nIpopt status %d,  final llh: %e, time: %f\n", status, loglikelihood, timeElapsed);
+    logmessage(LOGLVL_INFO, "Ipopt status %d,  final llh: %e, time: %f.", status, loglikelihood, timeElapsed);
 
     FreeIpoptProblem(problem);
 }
@@ -84,7 +84,7 @@ void getFeasibleInitialTheta(datapath dataPath, Number *initialTheta)
 {
     int feasible = 0;
 
-    printf("Finding feasible initial theta...\n");
+    logmessage(LOGLVL_INFO, "Finding feasible initial theta...");
     while(!feasible) {
         getInitialTheta(dataPath, initialTheta);
         double objFunVal;
@@ -92,9 +92,9 @@ void getFeasibleInitialTheta(datapath dataPath, Number *initialTheta)
         feasible = !isnan(objFunVal) && status == 0;
 
         if(!feasible)
-            printf("Retrying finding feasible initial theta...\n");
+            logmessage(LOGLVL_INFO, "Retrying finding feasible initial theta...");
     }
-    printf("... success.\n");
+    logmessage(LOGLVL_INFO, "... success.");
 }
 
 static IpoptProblem setupIpoptProblem(datapath path)
@@ -147,7 +147,7 @@ static IpoptProblem setupIpoptProblem(datapath path)
 static Bool Eval_F(Index n, Number *x, Bool new_x, Number *obj_value, UserDataPtr user_data)
 {
     static int numFunctionCalls = 0;
-    printf("Eval_F (%d) #%d\n", new_x, ++numFunctionCalls);
+    logmessage(LOGLVL_DEBUG, "Eval_F (%d) #%d.", new_x, ++numFunctionCalls);
     fflush(stdout);
 
     clock_t timeBegin = clock();
@@ -166,8 +166,6 @@ static Bool Eval_F(Index n, Number *x, Bool new_x, Number *obj_value, UserDataPt
 
     logLocalOptimizerObjectiveFunctionEvaluation(data->datapath, numFunctionCalls, x, data->objectiveFunctionValue, timeElapsed, n);
 
-    printf("Done Eval_F (%d) #%d %f\n", new_x, ++numFunctionCalls, *obj_value);
-
     return !isnan(data->objectiveFunctionValue) && status == 0;
 }
 
@@ -178,7 +176,7 @@ static Bool Eval_F(Index n, Number *x, Bool new_x, Number *obj_value, UserDataPt
 static Bool Eval_Grad_F(Index n, Number *x, Bool new_x, Number *grad_f, UserDataPtr user_data)
 {
     static int numFunctionCalls = 0;
-    printf("Eval_Grad_F (%d) #%d\n", new_x, ++numFunctionCalls);
+    logmessage(LOGLVL_DEBUG, "Eval_Grad_F (%d) #%d", new_x, ++numFunctionCalls);
     fflush(stdout);
 
     clock_t timeBegin = clock();
@@ -197,7 +195,6 @@ static Bool Eval_Grad_F(Index n, Number *x, Bool new_x, Number *grad_f, UserData
     double timeElapsed = (double) (timeEnd - timeBegin) / CLOCKS_PER_SEC;
 
     logLocalOptimizerObjectiveFunctionGradientEvaluation(data->datapath, numFunctionCalls, x, data->objectiveFunctionValue, data->gradient, timeElapsed, n);
-
 
     return !isnan(data->objectiveFunctionValue) && status == 0;
 }
@@ -231,7 +228,7 @@ static Bool Eval_Jac_G(Index n, Number *x, Bool new_x, Index m, Index nele_jac, 
 static Bool Eval_H(Index n, Number *x_, Bool new_x, Number obj_factor, Index m, Number *lambda, Bool new_lambda, Index nele_hess, Index *iRow, Index *jCol, Number *values, UserDataPtr user_data)
 {
     static int numFunctionCalls = 0;
-    printf("Eval_H #%d\n", ++numFunctionCalls);
+    logmessage(LOGLVL_DEBUG, "Eval_H #%d", ++numFunctionCalls);
     fflush(stdout);
 
     assert(1==3);
@@ -270,7 +267,7 @@ static Bool Intermediate(Index alg_mod, Index iter_count, Number obj_value, Numb
     logLocalOptimizerIteration(data->datapath, iter_count, data->theta, data->objectiveFunctionValue, data->gradient, 0, data->nTheta);
 
     if(caughtTerminationSignal) {
-        fprintf(stderr, "\nCAUGHT SIGTERM... EXITING\n");
+        logmessage(LOGLVL_CRITICAL, "CAUGHT SIGTERM... EXITING.");
         return false;
     }
 
