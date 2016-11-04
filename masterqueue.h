@@ -4,6 +4,8 @@
 #include <mpi.h>
 #include <dataprovider.h>
 
+//#define MASTER_QUEUE_H_SHOW_COMMUNICATION
+
 // callback function to provide simulation results to
 typedef void (*queueSimulationFinished_cb) (void *);
 

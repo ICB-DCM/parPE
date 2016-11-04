@@ -74,7 +74,6 @@ void doWorkerWork() {
     printf("[%d] Simulation done, sending results (llh: %f). ", rank, result.llh); printDatapath(path); fflush(stdout);
 #endif
 
-        //printf("W%d: Sending results %d (%fs)\n", rank, mpiStatus.MPI_TAG, timeSeconds);
         MPI_Send(buffer, resultpackageLength, MPI_BYTE, 0, mpiStatus.MPI_TAG, MPI_COMM_WORLD);
 
         myFreeExpData(expData);

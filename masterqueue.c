@@ -1,4 +1,5 @@
 #include "masterqueue.h"
+
 #include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
@@ -19,7 +20,7 @@ static int lastJobId = 0;
 static pthread_t queueThread;
 static pthread_mutex_t mutexQueue = PTHREAD_MUTEX_INITIALIZER;
 
-// one for each worker, idx 0 not used
+// one for each worker, index is off by one from MPI rank
 static MPI_Request *sendRequests;
 static MPI_Request *recvRequests;
 static queueData **sentJobsData;
@@ -31,6 +32,7 @@ static masterQueueElement *getNextJob();
 static void sendToWorker(int workerIdx, masterQueueElement *queueElement);
 
 static void receiveFinished(int workerID, int jobID);
+
 
 void initMasterQueue() {
     static bool queueCreated = false;
@@ -51,7 +53,7 @@ static void *masterQueueRun(void *unusedArgument) {
     recvRequests = alloca(numWorkers * sizeof(MPI_Request));
     sentJobsData = alloca(numWorkers * sizeof(queueData *));
 
-    for(int i = 0; i < numWorkers; ++i) // have to init before can wait!
+    for(int i = 0; i < numWorkers; ++i) // have to initialize before can wait!
         recvRequests[i] = MPI_REQUEST_NULL;
 
     while(1) {
@@ -84,7 +86,7 @@ static void *masterQueueRun(void *unusedArgument) {
 
         if(freeWorkerIndex < 0) {
             MPI_Status status;
-            MPI_Waitany(mpiCommSize, recvRequests, &freeWorkerIndex, &status);
+            MPI_Waitany(numWorkers, recvRequests, &freeWorkerIndex, &status);
             assert(freeWorkerIndex != MPI_UNDEFINED);
             receiveFinished(freeWorkerIndex, status.MPI_TAG);
         }
@@ -124,7 +126,9 @@ static void sendToWorker(int workerIdx, masterQueueElement *queueElement) {
     int workerRank = workerIdx + 1;
     queueData *data = queueElement->data;
 
+#ifdef MASTER_QUEUE_H_SHOW_COMMUNICATION
     printf("\x1b[36mSent job %d to %d.\x1b[0m\n", tag, workerRank);
+#endif
 
     MPI_Isend(data->sendBuffer, data->lenSendBuffer, MPI_BYTE, workerRank, tag, MPI_COMM_WORLD, &sendRequests[workerIdx]);
 
@@ -163,7 +167,9 @@ void terminateMasterQueue() {
 
 static void receiveFinished(int workerID, int jobID)
 {
+#ifdef MASTER_QUEUE_H_SHOW_COMMUNICATION
     printf("\x1b[32mReceived result for job %d from %d\x1b[0m\n", jobID, workerID + 1);
+#endif
 
     queueData *data = sentJobsData[workerID];
     *data->jobDone = true;

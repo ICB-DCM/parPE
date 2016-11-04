@@ -106,7 +106,7 @@ static IpoptProblem setupIpoptProblem()
     AddIpoptStrOption(nlp, "hessian_approximation", "limited-memory");
     AddIpoptStrOption(nlp, "limited_memory_update_type", "bfgs");
 
-    AddIpoptIntOption(nlp, "max_iter", 1);
+    AddIpoptIntOption(nlp, "max_iter", 300);
     AddIpoptNumOption(nlp, "tol", 1e-9);
 
     AddIpoptIntOption(nlp, "acceptable_iter", 1);
@@ -139,14 +139,10 @@ static Bool Eval_F(Index n, Number *x, Bool new_x, Number *obj_value, UserDataPt
 
     MyUserData *data = (MyUserData *) user_data;
 
-    if(new_x) {
-        status = evaluateObjectiveFunction(x, n, data->datapath, obj_value, data->gradient);
-        data->objectiveFunctionValue = obj_value[0];
-        for(int i = 0; i < n; ++i)
-            data->theta[i] = x[i];
-    } else {
-        obj_value[0] = data->objectiveFunctionValue;
-    }
+    status = evaluateObjectiveFunction(x, n, data->datapath, obj_value, NULL);
+    data->objectiveFunctionValue = *obj_value;
+    for(int i = 0; i < n; ++i)
+        data->theta[i] = x[i];
 
     clock_t timeEnd = clock();
     double timeElapsed = (double) (timeEnd - timeBegin) / CLOCKS_PER_SEC;
@@ -155,7 +151,7 @@ static Bool Eval_F(Index n, Number *x, Bool new_x, Number *obj_value, UserDataPt
 
     printf("Done Eval_F (%d) #%d %f\n", new_x, ++numFunctionCalls, *obj_value);
 
-    return status == 0;
+    return !isnan(data->objectiveFunctionValue) && status == 0;
 }
 
 /** Type defining the callback function for evaluating the gradient of
@@ -168,19 +164,25 @@ static Bool Eval_Grad_F(Index n, Number *x, Bool new_x, Number *grad_f, UserData
     printf("Eval_Grad_F (%d) #%d\n", new_x, ++numFunctionCalls);
     fflush(stdout);
 
-    if(new_x) {
-        Number objVal = 0;
-        Bool fstatus = Eval_F(n, x, new_x, &objVal, user_data);
-        if(!fstatus)
-            return FALSE;
-    } else {
-        MyUserData *data = (MyUserData*) user_data;
-        for(int i = 0; i < n; ++i) {
-            grad_f[i] = data->gradient[i];
-        }
+    clock_t timeBegin = clock();
+
+    int status = 0;
+
+    MyUserData *data = (MyUserData *) user_data;
+
+    status = evaluateObjectiveFunction(x, n, data->datapath, &data->objectiveFunctionValue, data->gradient);
+    for(int i = 0; i < n; ++i) {
+        data->theta[i] = x[i];
+        grad_f[i] = data->gradient[i];
     }
 
-    return true;
+    clock_t timeEnd = clock();
+    double timeElapsed = (double) (timeEnd - timeBegin) / CLOCKS_PER_SEC;
+
+    logLocalOptimizerObjectiveFunctionEvaluation(data->datapath, numFunctionCalls, x, data->objectiveFunctionValue, data->gradient, timeElapsed, n);
+
+
+    return !isnan(data->objectiveFunctionValue) && status == 0;
 }
 
 /** Type defining the callback function for evaluating the value of

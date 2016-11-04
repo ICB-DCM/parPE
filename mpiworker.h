@@ -4,7 +4,7 @@
 #include "dataprovider.h"
 
 #define MPI_TAG_EXIT_SIGNAL 0
-#define MPI_WORKER_H_VERBOSE 2
+#define MPI_WORKER_H_VERBOSE 0
 
 typedef struct workPackageMessage_tag {
     datapath path;
