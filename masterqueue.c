@@ -55,9 +55,11 @@ static void *masterQueueRun(void *unusedArgument) {
 
     while(1) {
         int freeWorkerIndex;
-        MPI_Waitany(mpiCommSize, recvRequests, &freeWorkerIndex, MPI_STATUS_IGNORE);
+        MPI_Status status;
+        MPI_Waitany(mpiCommSize, recvRequests, &freeWorkerIndex, &status);
 
         if(freeWorkerIndex != MPI_UNDEFINED) {
+            printf("\x1b[32mReceived result for job %d from %d.\x1b[0m\n", status.MPI_TAG, status.MPI_SOURCE);
             receiveFinished(freeWorkerIndex);
         } else {
             // no jobs yet, send to first worker
@@ -67,7 +69,6 @@ static void *masterQueueRun(void *unusedArgument) {
         masterQueueElement *currentQueueElement = getNextJob();
 
         if(currentQueueElement) {
-
             sendToWorker(freeWorkerIndex, currentQueueElement);
             sentJobs[freeWorkerIndex] = currentQueueElement->data;
             free(currentQueueElement);
