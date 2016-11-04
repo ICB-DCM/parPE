@@ -83,14 +83,14 @@ int main(int argc, char **argv)
     closeDataProvider();
     closeResultHDFFile();
 
-    printf("Finalizing MPE log: mpe.log\n");
+    logmessage(LOGLVL_INFO, "Finalizing MPE log: mpe.log");
     mpiErr = MPE_Finish_log("mpe.log");
 
     double endTime = MPI_Wtime();
     double timeSeconds = (endTime - startTime);
-    printf("Total programm runtime: %ds\n", timeSeconds);
+    logmessage(LOGLVL_INFO, "Total programm runtime: %ds\n", timeSeconds);
 
-    printf("Finalizing MPI\n");
+    logmessage(LOGLVL_INFO, "Finalizing MPI");
     mpiErr = MPI_Finalize();
 }
 
@@ -103,7 +103,7 @@ void printMPIInfo() {
     int procNameLen;
     MPI_Get_processor_name(procName, &procNameLen);
 
-    printf("Rank %d/%d running on %s.\n", mpiRank, mpiCommSize, procName);
+    logmessage(LOGLVL_DEBUG, "Rank %d/%d running on %s.", mpiRank, mpiCommSize, procName);
 }
 
 void printDebugInfoAndWait() {
@@ -121,7 +121,6 @@ void getMpeLogIDs() {
     MPE_Log_get_state_eventIDs(&mpe_event_begin_aggregate, &mpe_event_end_aggregate);
     MPE_Log_get_state_eventIDs(&mpe_event_begin_getrefs, &mpe_event_end_getrefs);
     MPE_Log_get_state_eventIDs(&mpe_event_begin_getdrugs, &mpe_event_end_getdrugs);
-
 }
 
 void describeMpeStates() {

@@ -19,4 +19,7 @@ int doubleSort(const void *x, const void *y);
 
 void rank(const double *in, double *out, int length);
 
+typedef enum loglevel_tag {LOGLVL_CRITICAL, LOGLVL_ERROR, LOGLVL_WARNING, LOGLVL_INFO, LOGLVL_DEBUG} loglevel;
+
+void logmessage(loglevel lvl, const char *format, ...);
 #endif

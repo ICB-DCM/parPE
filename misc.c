@@ -3,13 +3,16 @@
 #include <stdlib.h>
 #include <string.h>
 #include <include/symbolic_functions.h>
+#include <stdarg.h>
+#include <mpi.h>
+#include <time.h>
 
 void error(const char *message) { // exit?
-    printf("ERROR: %s\n", message);
+    logmessage(LOGLVL_ERROR, message);
 }
 
 void warning(const char *message) {
-    printf("WARNING: %s\n", message);
+    logmessage(LOGLVL_WARNING, message);
 }
 
 void getLatinHyperCubeSamples(int numParameters, int numSamples, double *sample) {
@@ -50,4 +53,48 @@ void rank(const double *in, double *out, int length) {
             }
         }
     }
+}
+
+void logmessage(loglevel lvl, const char *format, ...)
+{
+    // TODO: fileLogLevel, consoleLogLevel
+    switch (lvl) {
+    case LOGLVL_CRITICAL:
+        printf(ANSI_COLOR_MAGENTA);
+        break;
+    case LOGLVL_ERROR:
+        printf(ANSI_COLOR_RED);
+        break;
+    case LOGLVL_DEBUG:
+        printf(ANSI_COLOR_CYAN);
+        break;
+    case LOGLVL_INFO:
+        printf(ANSI_COLOR_GREEN);
+        break;
+    }
+
+    time_t timer;
+    time(&timer);
+    struct tm* tm_info;
+    tm_info = localtime(&timer);
+    char dateBuffer[50];
+    strftime(dateBuffer, 25, "[%Y-%m-%d %H:%M:%S] ", tm_info);
+    printf(dateBuffer);
+
+
+    int mpiCommSize, mpiRank;
+    MPI_Comm_size(MPI_COMM_WORLD, &mpiCommSize);
+    MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
+
+    char procName[MPI_MAX_PROCESSOR_NAME];
+    int procNameLen;
+    MPI_Get_processor_name(procName, &procNameLen);
+
+    printf("[%d/%s] ", mpiRank, procName);
+
+    va_list argptr;
+    va_start(argptr,format);
+    vprintf(format, argptr);
+    va_end(argptr);
+    printf("\n" ANSI_COLOR_RESET);
 }
