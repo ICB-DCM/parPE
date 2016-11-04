@@ -12,28 +12,23 @@ void warning(const char *message) {
     printf("WARNING: %s\n", message);
 }
 
-void getLatinHyperCubeSample(int numParameters, double *sample) {
-    double tmpSample[numParameters];
+void getLatinHyperCubeSamples(int numParameters, int numSamples, double *sample) {
+    for(int i = 0; i < numParameters; ++i) {
+        double tmpSample[numSamples];
 
-    for(int j = 0; j < numParameters; ++j)
-        tmpSample[j] = rand();
+        for(int j = 0; j < numSamples; ++j)
+            tmpSample[j] = rand();
 
-    rank(tmpSample, sample, numParameters);
+        double tmpRank[numSamples];
 
-    for(int j = 0; j < numParameters; ++j) {
-        // sample[j] = (sample[j] + 0.5) / numParameters; // square center
-        sample[j] = (sample[j] + rand() / (double)RAND_MAX) / numParameters;
+        rank(tmpSample, tmpRank, numSamples);
+
+        for(int j = 0; j < numSamples; ++j) {
+            //double add = 0.5; // square center
+            double add = rand() / (double)RAND_MAX;
+            sample[numParameters * j + i] = (tmpRank[j] + add) / numSamples;
+        }
     }
-}
-
-double *getLatinHyperCubeSamples(int numParameters, int numSamples) {
-    double *sample = malloc(sizeof(double) * numParameters * numSamples);
-
-    for(int i = 0; i < numSamples; ++i) {
-        getLatinHyperCubeSample(numParameters, &sample[i * numParameters]);
-    }
-
-    return sample;
 }
 
 
