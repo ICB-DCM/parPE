@@ -61,7 +61,7 @@ void doWorkerWork() {
         double endTime = MPI_Wtime();
         double timeSeconds = (endTime - startTime);
 
-        logSimulation(path, rdata->am_llhdata[0], rdata->am_sllhdata, timeSeconds, udata->am_np, mpiStatus.MPI_TAG);
+        logSimulation(path, rdata->am_llhdata[0], rdata->am_sllhdata, timeSeconds, udata->am_np, udata->am_nx, rdata->am_xdata, rdata->am_sxdata, mpiStatus.MPI_TAG);
         // send back whatever is needed
         //reportToMaster(rdata);
         resultPackageMessage result;

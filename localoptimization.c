@@ -143,11 +143,11 @@ static Bool Eval_F(Index n, Number *x, Bool new_x, Number *obj_value, UserDataPt
     data->objectiveFunctionValue = *obj_value;
     for(int i = 0; i < n; ++i)
         data->theta[i] = x[i];
-
+    fillArray(data->gradient, n, NAN);
     clock_t timeEnd = clock();
     double timeElapsed = (double) (timeEnd - timeBegin) / CLOCKS_PER_SEC;
 
-    logLocalOptimizerObjectiveFunctionEvaluation(data->datapath, numFunctionCalls, x, data->objectiveFunctionValue, data->gradient, timeElapsed, n);
+    logLocalOptimizerObjectiveFunctionEvaluation(data->datapath, numFunctionCalls, x, data->objectiveFunctionValue, timeElapsed, n);
 
     printf("Done Eval_F (%d) #%d %f\n", new_x, ++numFunctionCalls, *obj_value);
 
@@ -179,7 +179,7 @@ static Bool Eval_Grad_F(Index n, Number *x, Bool new_x, Number *grad_f, UserData
     clock_t timeEnd = clock();
     double timeElapsed = (double) (timeEnd - timeBegin) / CLOCKS_PER_SEC;
 
-    logLocalOptimizerObjectiveFunctionEvaluation(data->datapath, numFunctionCalls, x, data->objectiveFunctionValue, data->gradient, timeElapsed, n);
+    logLocalOptimizerObjectiveFunctionGradientEvaluation(data->datapath, numFunctionCalls, x, data->objectiveFunctionValue, data->gradient, timeElapsed, n);
 
 
     return !isnan(data->objectiveFunctionValue) && status == 0;
@@ -193,6 +193,7 @@ static Bool Eval_G(Index n, Number *x_, Bool new_x, Index m, Number *g_, UserDat
 {
     // no constraints, should never get here
     assert(false);
+    return true;
 }
 
 /** Type defining the callback function for evaluating the Jacobian of
