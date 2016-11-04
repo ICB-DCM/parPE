@@ -21,6 +21,7 @@
 
 volatile sig_atomic_t caughtTerminationSignal = 0;
 
+void printMPIInfo();
 void getMpeLogIDs();
 void describeMpeStates();
 void term(int sigNum) { caughtTerminationSignal = 1; }
@@ -44,11 +45,14 @@ int main(int argc, char **argv)
     assert(mpiCommSize > 1);
 
     // printDebugInfoAndWait();
+    printMPIInfo();
 
     MPE_Init_log();
     getMpeLogIDs();
 
-    initDataProvider("../data/data.h5"); // TODO arguemnt (log: Reading from..
+    const char *inputFile = "../data/data.h5";
+    printf("Reading options and data from '%s'\n", inputFile);
+    initDataProvider(inputFile); // TODO arguemnt (log: Reading from..
 
     char *resultFileName = getResultFileName();
     initResultHDFFile(resultFileName);
@@ -79,6 +83,18 @@ int main(int argc, char **argv)
     mpiErr = MPI_Finalize();
 }
 
+void printMPIInfo() {
+    int mpiCommSize, mpiRank;
+    MPI_Comm_size(MPI_COMM_WORLD, &mpiCommSize);
+    MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
+
+    char procName[MPI_MAX_PROCESSOR_NAME];
+    int procNameLen;
+    MPI_Get_processor_name(procName, &procNameLen);
+
+    printf("Rank %d/%d running on %s.\n", mpiRank, mpiCommSize, procName);
+}
+
 void printDebugInfoAndWait() {
     //int i = 0;
     char hostname[256];
@@ -98,10 +114,10 @@ void getMpeLogIDs() {
 }
 
 void describeMpeStates() {
-    MPE_Describe_state(mpe_event_begin_simulate, mpe_event_end_simulate, "simulate", "blue:gray");
+    MPE_Describe_state(mpe_event_begin_simulate,  mpe_event_end_simulate,  "simulate",  "blue:gray");
     MPE_Describe_state(mpe_event_begin_aggregate, mpe_event_end_aggregate, "aggregate", "red:gray");
-    MPE_Describe_state(mpe_event_begin_getrefs, mpe_event_end_getrefs, "getrefs", "green:gray");
-    MPE_Describe_state(mpe_event_begin_getdrugs, mpe_event_end_getdrugs, "getdrugs", "yellow:gray");
+    MPE_Describe_state(mpe_event_begin_getrefs,   mpe_event_end_getrefs,   "getrefs",   "green:gray");
+    MPE_Describe_state(mpe_event_begin_getdrugs,  mpe_event_end_getdrugs,  "getdrugs",  "yellow:gray");
 }
 
 char *getResultFileName() {

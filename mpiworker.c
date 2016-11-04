@@ -14,7 +14,7 @@ void doWorkerWork() {
     int rank, err;
     err = MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-#if MPI_WORKER_H_VERBOSE >= 2
+#if MPI_WORKER_H_VERBOSE >= 4
     printf("[%d] Entering doWorkerWork.\n", rank); fflush(stdout);
 #endif
 
@@ -29,7 +29,7 @@ void doWorkerWork() {
 
     while(!terminate) {
 
-#if MPI_WORKER_H_VERBOSE >= 2
+#if MPI_WORKER_H_VERBOSE >= 3
     printf("[%d] Waiting for work.\n", rank); fflush(stdout);
 #endif
 
