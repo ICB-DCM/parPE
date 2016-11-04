@@ -22,7 +22,7 @@ typedef struct {
     datapath datapath;
 } MyUserData;
 
-static IpoptProblem setupIpoptProblem();
+static IpoptProblem setupIpoptProblem(datapath path);
 
 /******************************/
 
@@ -50,11 +50,12 @@ static Bool Intermediate(Index alg_mod,
                 Number alpha_du, Number alpha_pr,
                 Index ls_trials, UserDataPtr user_data);
 
+void getFeasibleInitialTheta(datapath dataPath, Number *buffer);
 /******************************/
 
 void getLocalOptimum(datapath dataPath) {
 
-    IpoptProblem problem = setupIpoptProblem();
+    IpoptProblem problem = setupIpoptProblem(dataPath);
 
     Number loglikelihood = INFINITY;
 
@@ -67,8 +68,7 @@ void getLocalOptimum(datapath dataPath) {
     clock_t timeBegin = clock();
 
     double initialTheta[myUserData.nTheta];
-    getInitialTheta(dataPath, initialTheta);
-
+    getFeasibleInitialTheta(dataPath, initialTheta);
     enum ApplicationReturnStatus status = IpoptSolve(problem, initialTheta, NULL, &loglikelihood, NULL, NULL, NULL, &myUserData);
 
     clock_t timeEnd = clock();
@@ -79,15 +79,32 @@ void getLocalOptimum(datapath dataPath) {
     FreeIpoptProblem(problem);
 }
 
-static IpoptProblem setupIpoptProblem()
+
+void getFeasibleInitialTheta(datapath dataPath, Number *initialTheta)
+{
+    int feasible = 0;
+
+    printf("Finding feasible initial theta...\n");
+    while(!feasible) {
+        getInitialTheta(dataPath, initialTheta);
+        double objFunVal;
+        int status = evaluateObjectiveFunction(initialTheta, getLenTheta(), dataPath, &objFunVal, NULL);
+        feasible = !isnan(objFunVal) && status == 0;
+
+        if(!feasible)
+            printf("Retrying finding feasible initial theta...\n");
+    }
+    printf("... success.\n");
+}
+
+static IpoptProblem setupIpoptProblem(datapath path)
 {
     Index numOptimizationParams = NUM_OPTIMIZATION_PARAMS;
 
     Number *thetaLowerBounds = alloca(sizeof(Number) * numOptimizationParams);
-    fillArray(thetaLowerBounds, numOptimizationParams, 1e-10);
-
+    getThetaLowerBounds(path, thetaLowerBounds);
     Number *thetaUpperBounds = alloca(sizeof(Number) * numOptimizationParams);
-    fillArray(thetaUpperBounds, numOptimizationParams, 1E4);
+    getThetaUpperBounds(path, thetaUpperBounds);
 
     Index numberConstraints = 0;
 
