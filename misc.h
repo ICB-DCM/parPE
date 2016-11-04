@@ -13,4 +13,12 @@ void error(const char *message);
 
 void warning(const char *message);
 
+void getLatinHyperCubeSample(int numParameters, double *sample);
+
+double *getLatinHyperCubeSamples(int numParameters, int numSamples);
+
+int doubleSort(const void *x, const void *y);
+
+void rank(const double *in, double *out, int length);
+
 #endif
