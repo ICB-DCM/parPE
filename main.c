@@ -83,14 +83,14 @@ int main(int argc, char **argv)
     closeDataProvider();
     closeResultHDFFile();
 
-    logmessage(LOGLVL_INFO, "Finalizing MPE log: mpe.log");
+    logmessage(LOGLVL_DEBUG, "Finalizing MPE log: mpe.log");
     mpiErr = MPE_Finish_log("mpe.log");
 
     double endTime = MPI_Wtime();
     double timeSeconds = (endTime - startTime);
-    logmessage(LOGLVL_INFO, "Total programm runtime: %ds\n", timeSeconds);
+    logmessage(LOGLVL_INFO, "Total programm runtime: %ds", timeSeconds);
 
-    logmessage(LOGLVL_INFO, "Finalizing MPI");
+    logmessage(LOGLVL_DEBUG, "Finalizing MPI");
     mpiErr = MPI_Finalize();
 }
 
@@ -110,7 +110,7 @@ void printDebugInfoAndWait() {
     //int i = 0;
     char hostname[256];
     gethostname(hostname, sizeof(hostname));
-    logmessage(LOGLVL_DEBUG, "PID %d on %s ready for attach\n", getpid(), hostname);
+    logmessage(LOGLVL_DEBUG, "PID %d on %s ready for attach", getpid(), hostname);
     fflush(stdout);
     //while (0 == i)
         sleep(15);

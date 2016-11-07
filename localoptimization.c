@@ -120,6 +120,9 @@ static IpoptProblem setupIpoptProblem(datapath path)
     AddIpoptIntOption(nlp, "print_level", 5);
     AddIpoptStrOption(nlp, "print_user_options", "yes");
 
+    AddIpoptStrOption(nlp, "derivative_test", "first-order");
+    AddIpoptIntOption(nlp, "derivative_test_first_index", 4130);
+
     AddIpoptStrOption(nlp, "hessian_approximation", "limited-memory");
     AddIpoptStrOption(nlp, "limited_memory_update_type", "bfgs");
 
