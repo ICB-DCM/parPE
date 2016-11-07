@@ -89,7 +89,7 @@ void getFeasibleInitialTheta(datapath dataPath, Number *initialTheta)
         getInitialTheta(dataPath, initialTheta);
         double objFunVal;
         int status = evaluateObjectiveFunction(initialTheta, getLenTheta(), dataPath, &objFunVal, NULL);
-        feasible = !isnan(objFunVal) && status == 0;
+        feasible = !isnan(objFunVal) && !isinf(objFunVal) && status == 0;
 
         if(!feasible)
             logmessage(LOGLVL_INFO, "Retrying finding feasible initial theta...");
