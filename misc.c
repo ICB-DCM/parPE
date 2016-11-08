@@ -58,6 +58,8 @@ void rank(const double *in, double *out, int length) {
 void logmessage(loglevel lvl, const char *format, ...)
 {
     // TODO: fileLogLevel, consoleLogLevel
+
+    // Coloring
     switch (lvl) {
     case LOGLVL_CRITICAL:
         printf(ANSI_COLOR_MAGENTA);
@@ -73,6 +75,7 @@ void logmessage(loglevel lvl, const char *format, ...)
         break;
     }
 
+    // Timestamp
     time_t timer;
     time(&timer);
     struct tm* tm_info;
@@ -81,7 +84,7 @@ void logmessage(loglevel lvl, const char *format, ...)
     strftime(dateBuffer, 25, "[%Y-%m-%d %H:%M:%S] ", tm_info);
     printf(dateBuffer);
 
-
+    // MPI info
     int mpiCommSize, mpiRank;
     MPI_Comm_size(MPI_COMM_WORLD, &mpiCommSize);
     MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
@@ -92,9 +95,10 @@ void logmessage(loglevel lvl, const char *format, ...)
 
     printf("[%d/%s] ", mpiRank, procName);
 
+    // Message
     va_list argptr;
     va_start(argptr,format);
     vprintf(format, argptr);
     va_end(argptr);
-    printf("\n" ANSI_COLOR_RESET);
+    printf(ANSI_COLOR_RESET "\n");
 }

@@ -4,11 +4,12 @@
 #include "masterthread.h"
 #include "dataprovider.h"
 #include "localoptimization.h"
+#include "misc.h"
 
 void *newMultiStartOptimization(void *multiStartIndexVP) {
     int multiStartIndex = *(int *) multiStartIndexVP;
 
-    printf("Spawning thread for global optimization #%d\n", multiStartIndex);
+    logmessage(LOGLVL_DEBUG, "Spawning thread for global optimization #%d", multiStartIndex);
 
     int numLocalOptimizations = getNumLocalOptimizationsForMultiStartRun(multiStartIndex);
 
@@ -20,17 +21,17 @@ void *newMultiStartOptimization(void *multiStartIndexVP) {
 
     for(int ms = 0; ms < numLocalOptimizations; ++ms) {
         int id = multiStartIndex * 1000 + ms;
-        printf("Spawning thread for local optimization #%d.%d\n", multiStartIndex, ms);
+        logmessage(LOGLVL_DEBUG, "Spawning thread for local optimization #%d.%d", multiStartIndex, ms);
         pthread_create(&localOptimizationThreads[ms], &threadAttr, newLocalOptimization, (void *)&id);
     }
     pthread_attr_destroy(&threadAttr);
 
     for(int ms = 0; ms < numLocalOptimizations; ++ms) {
         pthread_join(localOptimizationThreads[ms], NULL);
-        printf("Thread ms #%d finished\n", ms);
+        logmessage(LOGLVL_DEBUG, "Thread ms #%d finished", ms);
     }
 
-    printf("Leaving thread for global optimization #%d\n", multiStartIndex);
+    logmessage(LOGLVL_DEBUG, "Leaving thread for global optimization #%d", multiStartIndex);
 
     return 0;
 }
@@ -45,9 +46,8 @@ void *newLocalOptimization(void *idVP) {
 
     // TODO pass options object, also add IpOpt options to config file
 
-
     getLocalOptimum(datapath);
-    printf("Finished newLocalOptimization #%d\n", id);
+    logmessage(LOGLVL_DEBUG, "Finished newLocalOptimization #%d", id);
 
     return 0;
 }

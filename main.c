@@ -87,7 +87,7 @@ int main(int argc, char **argv)
     mpiErr = MPE_Finish_log("mpe.log");
 
     double endTime = MPI_Wtime();
-    double timeSeconds = (endTime - startTime);
+    double timeSeconds = (endTime - startTime) / 1000;
     logmessage(LOGLVL_INFO, "Total programm runtime: %ds", timeSeconds);
 
     logmessage(LOGLVL_DEBUG, "Finalizing MPI");
