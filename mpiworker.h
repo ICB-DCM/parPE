@@ -23,12 +23,14 @@ int getLengthWorkPackageMessage(int nTheta);
 int getLengthResultPackageMessage(int nTheta);
 
 void serializeWorkPackageMessage(workPackageMessage work, int nTheta, char *buffer);
-void deserializeWorkPackageMessage(char *msg, int nTheta, datapath *path, double *theta, int *sensitivityMethod);
+void deserializeWorkPackageMessage(const char *msg, int nTheta, datapath *path, double *theta, int *sensitivityMethod);
 
 void serializeResultPackageMessage(resultPackageMessage result, int nTheta, char *buffer);
 void deserializeResultPackageMessage(char *buffer, int nTheta, int *status, double *llh, double *sllh);
 
 void doWorkerWork();
+
+resultPackageMessage handleWorkPackage(const char *buffer, UserData *udata, ReturnData **prdata, int tag);
 
 void sendTerminationSignalToAllWorkers();
 

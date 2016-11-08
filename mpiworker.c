@@ -7,6 +7,7 @@
 #include "objectivefunction.h"
 #include "dataprovider.h"
 #include "resultwriter.h"
+#include "misc.h"
 
 extern const int mpe_event_begin_simulate, mpe_event_end_simulate;
 
@@ -42,44 +43,64 @@ void doWorkerWork() {
         if(mpiStatus.MPI_TAG == MPI_TAG_EXIT_SIGNAL)
             break;
 
-        datapath path;
-        deserializeWorkPackageMessage(buffer, udata->am_np, &path, udata->am_p, &udata->am_sensi_meth);
+        ReturnData *rdata;
+
+        MPE_Log_event(mpe_event_begin_simulate, mpiStatus.MPI_TAG, "sim");
+        resultPackageMessage result = handleWorkPackage(buffer, udata, &rdata, mpiStatus.MPI_TAG);
+        MPE_Log_event(mpe_event_end_simulate, mpiStatus.MPI_TAG, "sim");
 
 #if MPI_WORKER_H_VERBOSE >= 2
-    printf("[%d] Received work. ", rank); printDatapath(path); fflush(stdout);
+        printf("[%d] Simulation done, sending results (llh: %f). ", rank, result.llh); printDatapath(path); fflush(stdout);
 #endif
-
-        double startTime = MPI_Wtime();
-        err = MPE_Log_event(mpe_event_begin_simulate, mpiStatus.MPI_TAG, "sim");
-        // run simulation
-        int status = 0;
-        ExpData *expData = 0; // TODO: not needed if no llh calculation here
-        ReturnData *rdata = getSteadystateSolutionForExperiment(path, udata, &status, &expData);
-        assert(status == 0);
-        // TODO write simulation results (set jobid as attribute)
-        err = MPE_Log_event(mpe_event_end_simulate, mpiStatus.MPI_TAG, "sim");
-        double endTime = MPI_Wtime();
-        double timeSeconds = (endTime - startTime);
-
-        logSimulation(path, rdata->am_llhdata[0], rdata->am_sllhdata, timeSeconds, udata->am_np, udata->am_nx, rdata->am_xdata, rdata->am_sxdata, mpiStatus.MPI_TAG);
-        // send back whatever is needed
-        //reportToMaster(rdata);
-        resultPackageMessage result;
-        result.llh = rdata->am_llhdata[0];
-        result.sllh = rdata->am_sllhdata;
-        result.status = status;
         serializeResultPackageMessage(result, udata->am_np, buffer);
-
-#if MPI_WORKER_H_VERBOSE >= 2
-    printf("[%d] Simulation done, sending results (llh: %f). ", rank, result.llh); printDatapath(path); fflush(stdout);
-#endif
 
         MPI_Send(buffer, resultpackageLength, MPI_BYTE, 0, mpiStatus.MPI_TAG, MPI_COMM_WORLD);
 
-        myFreeExpData(expData);
-        freeReturnData(rdata);    }
+        freeReturnData(rdata); // is referenced by workPackage, can only deallocate after sending
+    }
 
     freeUserData(udata); // TODO delete free mismatch
+}
+
+resultPackageMessage handleWorkPackage(const char *buffer, UserData *udata, ReturnData **prdata, int tag)
+{
+    datapath path;
+    deserializeWorkPackageMessage(buffer, udata->am_np, &path, udata->am_p, &udata->am_sensi_meth);
+
+#if MPI_WORKER_H_VERBOSE >= 2
+printf("[%d] Received work. ", rank); printDatapath(path); fflush(stdout);
+#endif
+
+    double startTime = MPI_Wtime();
+
+    // run simulation
+    int status = 0;
+    ExpData *expData = 0; // TODO: not needed if no llh calculation here
+    *prdata = getSteadystateSolutionForExperiment(path, udata, &status, &expData);
+    myFreeExpData(expData);
+
+    ReturnData *rdata = *prdata;
+
+    char pathStrBuf[100];
+    sprintDatapath(pathStrBuf, path);
+    logmessage(LOGLVL_DEBUG, "Result for %s: %e ", pathStrBuf, rdata->am_llhdata[0]);
+
+    assert(status == 0);
+    // TODO write simulation results (set jobid as attribute)
+
+    double endTime = MPI_Wtime();
+    double timeSeconds = (endTime - startTime);
+
+    // TODO save Y
+    logSimulation(path, rdata->am_llhdata[0], rdata->am_sllhdata, timeSeconds, udata->am_np, udata->am_nx, rdata->am_xdata, rdata->am_sxdata, rdata->am_ydata, tag);
+    // send back whatever is needed
+    //reportToMaster(rdata);
+    resultPackageMessage result;
+    result.llh = rdata->am_llhdata[0];
+    result.sllh = rdata->am_sllhdata;
+    result.status = status;
+
+    return result;
 }
 
 
@@ -123,7 +144,7 @@ void serializeWorkPackageMessage(workPackageMessage work, int nTheta, char *buff
 
 }
 
-void deserializeWorkPackageMessage(char *msg, int nTheta, datapath *path, double *theta, int *sensitivityMethod)
+void deserializeWorkPackageMessage(const char *msg, int nTheta, datapath *path, double *theta, int *sensitivityMethod)
 {
     size_t size;
 
@@ -179,3 +200,4 @@ int getLengthResultPackageMessage(int nTheta)
 {
     return sizeof(datapath) + sizeof(double) * (nTheta + 1);
 }
+
