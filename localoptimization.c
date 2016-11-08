@@ -69,12 +69,16 @@ void getLocalOptimum(datapath dataPath) {
 
     double initialTheta[myUserData.nTheta];
     getFeasibleInitialTheta(dataPath, initialTheta);
+
+//    for(int i = 0; i < myUserData.nTheta; ++i)
+//        initialTheta[i] = log10(initialTheta[i]);
+
     enum ApplicationReturnStatus status = IpoptSolve(problem, initialTheta, NULL, &loglikelihood, NULL, NULL, NULL, &myUserData);
 
     clock_t timeEnd = clock();
     double timeElapsed = (double) (timeEnd - timeBegin) / CLOCKS_PER_SEC;
 
-    logmessage(LOGLVL_INFO, "Ipopt status %d,  final llh: %e, time: %f.", status, loglikelihood, timeElapsed);
+    logmessage(LOGLVL_INFO, "Ipopt status %d, final llh: %e, time: %f.", status, loglikelihood, timeElapsed);
 
     FreeIpoptProblem(problem);
 }
@@ -85,15 +89,19 @@ void getFeasibleInitialTheta(datapath dataPath, Number *initialTheta)
     int feasible = 0;
 
     logmessage(LOGLVL_INFO, "Finding feasible initial theta...");
+
     while(!feasible) {
         getInitialTheta(dataPath, initialTheta);
+
         double objFunVal;
         int status = evaluateObjectiveFunction(initialTheta, getLenTheta(), dataPath, &objFunVal, NULL);
+
         feasible = !isnan(objFunVal) && !isinf(objFunVal) && status == 0;
 
         if(!feasible)
             logmessage(LOGLVL_INFO, "Retrying finding feasible initial theta...");
     }
+
     logmessage(LOGLVL_INFO, "... success.");
 }
 
@@ -120,8 +128,8 @@ static IpoptProblem setupIpoptProblem(datapath path)
     AddIpoptIntOption(nlp, "print_level", 5);
     AddIpoptStrOption(nlp, "print_user_options", "yes");
 
-    AddIpoptStrOption(nlp, "derivative_test", "first-order");
-    AddIpoptIntOption(nlp, "derivative_test_first_index", 4130);
+    //    AddIpoptStrOption(nlp, "derivative_test", "first-order");
+    //    AddIpoptIntOption(nlp, "derivative_test_first_index", 4130);
 
     AddIpoptStrOption(nlp, "hessian_approximation", "limited-memory");
     AddIpoptStrOption(nlp, "limited_memory_update_type", "bfgs");
@@ -129,11 +137,11 @@ static IpoptProblem setupIpoptProblem(datapath path)
     AddIpoptIntOption(nlp, "max_iter", 300);
     AddIpoptNumOption(nlp, "tol", 1e-9);
 
-    AddIpoptIntOption(nlp, "acceptable_iter", 1);
-    AddIpoptNumOption(nlp, "acceptable_constr_viol_tol", 1e20);
-    AddIpoptNumOption(nlp, "acceptable_dual_inf_tol", 1e20);
-    AddIpoptNumOption(nlp, "acceptable_compl_inf_tol", 1e20);
-    AddIpoptNumOption(nlp, "acceptable_obj_change_tol", 1e20);
+    //    AddIpoptIntOption(nlp, "acceptable_iter", 1);
+    //    AddIpoptNumOption(nlp, "acceptable_constr_viol_tol", 1e20);
+    //    AddIpoptNumOption(nlp, "acceptable_dual_inf_tol", 1e20);
+    //    AddIpoptNumOption(nlp, "acceptable_compl_inf_tol", 1e20);
+    //    AddIpoptNumOption(nlp, "acceptable_obj_change_tol", 1e20);
 
     // TODO check further limited memory options http://www.coin-or.org/Ipopt/documentation/node53.html#opt:hessian_approximation
 
@@ -151,23 +159,28 @@ static Bool Eval_F(Index n, Number *x, Bool new_x, Number *obj_value, UserDataPt
 {
     static int numFunctionCalls = 0;
     logmessage(LOGLVL_DEBUG, "Eval_F (%d) #%d.", new_x, ++numFunctionCalls);
-    fflush(stdout);
+
+    Number *myX = x;
+    //Number myX[n];
+    //for(int i = 0; i < n; ++i)
+    //    myX[i] = pow(10, x[i]);
 
     clock_t timeBegin = clock();
 
     int status = 0;
-
     MyUserData *data = (MyUserData *) user_data;
 
-    status = evaluateObjectiveFunction(x, n, data->datapath, obj_value, NULL);
+    status = evaluateObjectiveFunction(myX, n, data->datapath, obj_value, NULL);
+
     data->objectiveFunctionValue = *obj_value;
     for(int i = 0; i < n; ++i)
-        data->theta[i] = x[i];
+        data->theta[i] = myX[i];
     fillArray(data->gradient, n, NAN);
+
     clock_t timeEnd = clock();
     double timeElapsed = (double) (timeEnd - timeBegin) / CLOCKS_PER_SEC;
 
-    logLocalOptimizerObjectiveFunctionEvaluation(data->datapath, numFunctionCalls, x, data->objectiveFunctionValue, timeElapsed, n);
+    logLocalOptimizerObjectiveFunctionEvaluation(data->datapath, numFunctionCalls, myX, data->objectiveFunctionValue, timeElapsed, n);
 
     return !isnan(data->objectiveFunctionValue) && status == 0;
 }
@@ -180,7 +193,11 @@ static Bool Eval_Grad_F(Index n, Number *x, Bool new_x, Number *grad_f, UserData
 {
     static int numFunctionCalls = 0;
     logmessage(LOGLVL_DEBUG, "Eval_Grad_F (%d) #%d", new_x, ++numFunctionCalls);
-    fflush(stdout);
+
+    Number *myX = x;
+    //Number myX[n];
+    //for(int i = 0; i < n; ++i)
+    //    myX[i] = pow(10, x[i]);
 
     clock_t timeBegin = clock();
 
@@ -188,16 +205,16 @@ static Bool Eval_Grad_F(Index n, Number *x, Bool new_x, Number *grad_f, UserData
 
     MyUserData *data = (MyUserData *) user_data;
 
-    status = evaluateObjectiveFunction(x, n, data->datapath, &data->objectiveFunctionValue, data->gradient);
+    status = evaluateObjectiveFunction(myX, n, data->datapath, &data->objectiveFunctionValue, data->gradient);
     for(int i = 0; i < n; ++i) {
-        data->theta[i] = x[i];
-        grad_f[i] = data->gradient[i];
+        data->theta[i] = myX[i];
+        grad_f[i] = (data->gradient[i]);
     }
 
     clock_t timeEnd = clock();
     double timeElapsed = (double) (timeEnd - timeBegin) / CLOCKS_PER_SEC;
 
-    logLocalOptimizerObjectiveFunctionGradientEvaluation(data->datapath, numFunctionCalls, x, data->objectiveFunctionValue, data->gradient, timeElapsed, n);
+    logLocalOptimizerObjectiveFunctionGradientEvaluation(data->datapath, numFunctionCalls, myX, data->objectiveFunctionValue, data->gradient, timeElapsed, n);
 
     return !isnan(data->objectiveFunctionValue) && status == 0;
 }
@@ -232,7 +249,6 @@ static Bool Eval_H(Index n, Number *x_, Bool new_x, Number obj_factor, Index m, 
 {
     static int numFunctionCalls = 0;
     logmessage(LOGLVL_DEBUG, "Eval_H #%d", ++numFunctionCalls);
-    fflush(stdout);
 
     assert(1==3);
     // TODO not yet used. wait for 2nd order adjoint sensitivities
