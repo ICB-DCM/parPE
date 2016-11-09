@@ -67,6 +67,9 @@ void logmessage(loglevel lvl, const char *format, ...)
     case LOGLVL_ERROR:
         printf(ANSI_COLOR_RED);
         break;
+    case LOGLVL_WARNING:
+        printf(ANSI_COLOR_YELLOW);
+        break;
     case LOGLVL_DEBUG:
         printf(ANSI_COLOR_CYAN);
         break;
