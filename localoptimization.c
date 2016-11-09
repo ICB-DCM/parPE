@@ -20,9 +20,10 @@ typedef struct {
     double *gradient;
     double objectiveFunctionValue;
     datapath datapath;
+    int scaling;
 } MyUserData;
 
-static IpoptProblem setupIpoptProblem(datapath path);
+static IpoptProblem setupIpoptProblem(datapath path, Index numOptimizationParams, AMI_parameter_scaling scaling);
 
 /******************************/
 
@@ -50,12 +51,10 @@ static Bool Intermediate(Index alg_mod,
                 Number alpha_du, Number alpha_pr,
                 Index ls_trials, UserDataPtr user_data);
 
-void getFeasibleInitialTheta(datapath dataPath, Number *buffer);
+void getFeasibleInitialTheta(datapath dataPath, Number *buffer, AMI_parameter_scaling scaling);
 /******************************/
 
 void getLocalOptimum(datapath dataPath) {
-
-    IpoptProblem problem = setupIpoptProblem(dataPath);
 
     Number loglikelihood = INFINITY;
 
@@ -64,14 +63,14 @@ void getLocalOptimum(datapath dataPath) {
     myUserData.gradient = alloca(sizeof(double) * myUserData.nTheta);
     myUserData.theta    = alloca(sizeof(double) * myUserData.nTheta);
     myUserData.datapath = dataPath;
+    myUserData.scaling  = AMI_SCALING_LOG10;
+
+    IpoptProblem problem = setupIpoptProblem(dataPath, myUserData.nTheta, myUserData.scaling);
 
     clock_t timeBegin = clock();
 
     double initialTheta[myUserData.nTheta];
-    getFeasibleInitialTheta(dataPath, initialTheta);
-
-//    for(int i = 0; i < myUserData.nTheta; ++i)
-//        initialTheta[i] = log10(initialTheta[i]);
+    getFeasibleInitialTheta(dataPath, initialTheta, (AMI_parameter_scaling) myUserData.scaling);
 
     enum ApplicationReturnStatus status = IpoptSolve(problem, initialTheta, NULL, &loglikelihood, NULL, NULL, NULL, &myUserData);
 
@@ -84,17 +83,17 @@ void getLocalOptimum(datapath dataPath) {
 }
 
 
-void getFeasibleInitialTheta(datapath dataPath, Number *initialTheta)
+void getFeasibleInitialTheta(datapath dataPath, Number *initialTheta, AMI_parameter_scaling scaling)
 {
     int feasible = 0;
 
     logmessage(LOGLVL_INFO, "Finding feasible initial theta...");
 
     while(!feasible) {
-        getInitialTheta(dataPath, initialTheta);
+        getInitialTheta(dataPath, initialTheta, scaling);
 
         double objFunVal;
-        int status = evaluateObjectiveFunction(initialTheta, getLenTheta(), dataPath, &objFunVal, NULL);
+        int status = evaluateObjectiveFunction(initialTheta, getLenTheta(), dataPath, &objFunVal, NULL, scaling);
 
         feasible = !isnan(objFunVal) && !isinf(objFunVal) && status == 0;
 
@@ -105,14 +104,12 @@ void getFeasibleInitialTheta(datapath dataPath, Number *initialTheta)
     logmessage(LOGLVL_INFO, "... success.");
 }
 
-static IpoptProblem setupIpoptProblem(datapath path)
+static IpoptProblem setupIpoptProblem(datapath path, Index numOptimizationParams, AMI_parameter_scaling scaling)
 {
-    Index numOptimizationParams = NUM_OPTIMIZATION_PARAMS;
-
     Number *thetaLowerBounds = alloca(sizeof(Number) * numOptimizationParams);
-    getThetaLowerBounds(path, thetaLowerBounds);
+    getThetaLowerBounds(path, thetaLowerBounds, scaling);
     Number *thetaUpperBounds = alloca(sizeof(Number) * numOptimizationParams);
-    getThetaUpperBounds(path, thetaUpperBounds);
+    getThetaUpperBounds(path, thetaUpperBounds, scaling);
 
     Index numberConstraints = 0;
 
@@ -161,16 +158,13 @@ static Bool Eval_F(Index n, Number *x, Bool new_x, Number *obj_value, UserDataPt
     logmessage(LOGLVL_DEBUG, "Eval_F (%d) #%d.", new_x, ++numFunctionCalls);
 
     Number *myX = x;
-    //Number myX[n];
-    //for(int i = 0; i < n; ++i)
-    //    myX[i] = pow(10, x[i]);
 
     clock_t timeBegin = clock();
 
     int status = 0;
     MyUserData *data = (MyUserData *) user_data;
 
-    status = evaluateObjectiveFunction(myX, n, data->datapath, obj_value, NULL);
+    status = evaluateObjectiveFunction(myX, n, data->datapath, obj_value, NULL, data->scaling);
 
     data->objectiveFunctionValue = *obj_value;
     for(int i = 0; i < n; ++i)
@@ -195,9 +189,6 @@ static Bool Eval_Grad_F(Index n, Number *x, Bool new_x, Number *grad_f, UserData
     logmessage(LOGLVL_DEBUG, "Eval_Grad_F (%d) #%d", new_x, ++numFunctionCalls);
 
     Number *myX = x;
-    //Number myX[n];
-    //for(int i = 0; i < n; ++i)
-    //    myX[i] = pow(10, x[i]);
 
     clock_t timeBegin = clock();
 
@@ -205,7 +196,7 @@ static Bool Eval_Grad_F(Index n, Number *x, Bool new_x, Number *grad_f, UserData
 
     MyUserData *data = (MyUserData *) user_data;
 
-    status = evaluateObjectiveFunction(myX, n, data->datapath, &data->objectiveFunctionValue, data->gradient);
+    status = evaluateObjectiveFunction(myX, n, data->datapath, &data->objectiveFunctionValue, data->gradient, data->scaling);
     for(int i = 0; i < n; ++i) {
         data->theta[i] = myX[i];
         grad_f[i] = (data->gradient[i]);
