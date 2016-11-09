@@ -102,3 +102,11 @@ void logmessage(loglevel lvl, const char *format, ...)
     va_end(argptr);
     printf(ANSI_COLOR_RESET "\n");
 }
+
+void printMatlabArray(const double *buffer, int len)
+{
+    printf("[");
+    printfArray(buffer, len - 1, "%e, ");
+    printf("%e]\n", buffer[len - 1]);
+    fflush(stdout);
+}
