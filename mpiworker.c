@@ -85,7 +85,7 @@ printf("[%d] Received work. ", rank); printDatapath(path); fflush(stdout);
     sprintDatapath(pathStrBuf, path);
     logmessage(LOGLVL_DEBUG, "Result for %s: %e ", pathStrBuf, rdata->am_llhdata[0]);
 
-    assert(status == 0);
+    // assert(status == 0);
     // TODO write simulation results (set jobid as attribute)
 
     double endTime = MPI_Wtime();
