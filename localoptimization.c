@@ -60,8 +60,8 @@ void getLocalOptimum(datapath dataPath) {
 
     MyUserData myUserData;
     myUserData.nTheta = getLenTheta();
-    myUserData.gradient = alloca(sizeof(double) * myUserData.nTheta);
-    myUserData.theta    = alloca(sizeof(double) * myUserData.nTheta);
+    myUserData.gradient = malloc(sizeof(double) * myUserData.nTheta);
+    myUserData.theta    = malloc(sizeof(double) * myUserData.nTheta);
     myUserData.datapath = dataPath;
     myUserData.scaling  = AMI_SCALING_LOG10;
 
@@ -69,7 +69,7 @@ void getLocalOptimum(datapath dataPath) {
 
     clock_t timeBegin = clock();
 
-    double initialTheta[myUserData.nTheta];
+    double *initialTheta = malloc(sizeof(double) * myUserData.nTheta);
     getFeasibleInitialTheta(dataPath, initialTheta, (AMI_parameter_scaling) myUserData.scaling);
 
     enum ApplicationReturnStatus status = IpoptSolve(problem, initialTheta, NULL, &loglikelihood, NULL, NULL, NULL, &myUserData);
@@ -79,6 +79,9 @@ void getLocalOptimum(datapath dataPath) {
 
     logmessage(LOGLVL_INFO, "Ipopt status %d, final llh: %e, time: %f.", status, loglikelihood, timeElapsed);
 
+    free(initialTheta);
+    free(myUserData.gradient);
+    free(myUserData.theta);
     FreeIpoptProblem(problem);
 }
 
@@ -131,7 +134,7 @@ static IpoptProblem setupIpoptProblem(datapath path, Index numOptimizationParams
     AddIpoptStrOption(nlp, "hessian_approximation", "limited-memory");
     AddIpoptStrOption(nlp, "limited_memory_update_type", "bfgs");
 
-    AddIpoptIntOption(nlp, "max_iter", 300);
+    AddIpoptIntOption(nlp, "max_iter", 10);
     AddIpoptNumOption(nlp, "tol", 1e-9);
 
     //    AddIpoptIntOption(nlp, "acceptable_iter", 1);

@@ -3,7 +3,6 @@
 #include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
-#include <alloca.h>
 #include <assert.h>
 
 typedef struct masterQueueElement_tag {
@@ -49,9 +48,9 @@ static void *masterQueueRun(void *unusedArgument) {
     int mpiCommSize;
     MPI_Comm_size(MPI_COMM_WORLD, &mpiCommSize);
     int numWorkers = mpiCommSize - 1;
-    sendRequests = alloca(numWorkers * sizeof(MPI_Request));
-    recvRequests = alloca(numWorkers * sizeof(MPI_Request));
-    sentJobsData = alloca(numWorkers * sizeof(queueData *));
+    sendRequests = malloc(numWorkers * sizeof(MPI_Request));
+    recvRequests = malloc(numWorkers * sizeof(MPI_Request));
+    sentJobsData = malloc(numWorkers * sizeof(queueData *));
 
     for(int i = 0; i < numWorkers; ++i) // have to initialize before can wait!
         recvRequests[i] = MPI_REQUEST_NULL;
@@ -101,6 +100,10 @@ static void *masterQueueRun(void *unusedArgument) {
 
         pthread_yield();
     };
+
+    free(sentJobsData);
+    free(sendRequests);
+    free(recvRequests);
 
     return 0;
 }
