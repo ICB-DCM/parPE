@@ -160,8 +160,10 @@ void doMasterWork() {
     pthread_attr_init(&threadAttr);
     pthread_attr_setdetachstate(&threadAttr, PTHREAD_CREATE_JOINABLE);
 
+    int ids[numMultiStartRuns]; // need to keep, since passed by ref to new thread
     for(int k = 0; k < numMultiStartRuns; ++k) {
-        pthread_create(&multiStartThreads[k], &threadAttr, newMultiStartOptimization, (void *)&k);
+        ids[k] = k;
+        pthread_create(&multiStartThreads[k], &threadAttr, newMultiStartOptimization, (void *)&ids[k]);
     }
     pthread_attr_destroy(&threadAttr);
 

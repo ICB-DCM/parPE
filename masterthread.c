@@ -19,10 +19,11 @@ void *newMultiStartOptimization(void *multiStartIndexVP) {
     pthread_attr_init(&threadAttr);
     pthread_attr_setdetachstate(&threadAttr, PTHREAD_CREATE_JOINABLE);
 
+    int ids[numLocalOptimizations];
     for(int ms = 0; ms < numLocalOptimizations; ++ms) {
-        int id = multiStartIndex * 1000 + ms;
+        ids[ms] = multiStartIndex * 1000 + ms;
         logmessage(LOGLVL_DEBUG, "Spawning thread for local optimization #%d.%d", multiStartIndex, ms);
-        pthread_create(&localOptimizationThreads[ms], &threadAttr, newLocalOptimization, (void *)&id);
+        pthread_create(&localOptimizationThreads[ms], &threadAttr, newLocalOptimization, (void *)&ids[ms]);
     }
     pthread_attr_destroy(&threadAttr);
 
@@ -45,9 +46,9 @@ void *newLocalOptimization(void *idVP) {
     datapath.idxLocalOptimization = id % 1000;
 
     // TODO pass options object, also add IpOpt options to config file
-
+    logmessage(LOGLVL_DEBUG, "Starting newLocalOptimization #%d.%d", datapath.idxMultiStart, datapath.idxLocalOptimization);
     getLocalOptimum(datapath);
-    logmessage(LOGLVL_DEBUG, "Finished newLocalOptimization #%d", id);
+    logmessage(LOGLVL_DEBUG, "Finished newLocalOptimization #%d.%d", datapath.idxMultiStart, datapath.idxLocalOptimization);
 
     return 0;
 }
