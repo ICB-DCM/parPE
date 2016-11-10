@@ -91,8 +91,10 @@ void getLocalOptimum(datapath dataPath) {
 void getFeasibleInitialTheta(datapath dataPath, Number *initialTheta, AMI_parameter_scaling scaling)
 {
     int feasible = 0;
+    char strPath[50];
+    sprintDatapath(strPath, dataPath);
 
-    logmessage(LOGLVL_INFO, "Finding feasible initial theta...");
+    logmessage(LOGLVL_INFO, "%s Finding feasible initial theta...", strPath);
 
     while(!feasible) {
         getInitialTheta(dataPath, initialTheta, scaling);
@@ -103,10 +105,10 @@ void getFeasibleInitialTheta(datapath dataPath, Number *initialTheta, AMI_parame
         feasible = !isnan(objFunVal) && !isinf(objFunVal) && status == 0;
 
         if(!feasible)
-            logmessage(LOGLVL_INFO, "Retrying finding feasible initial theta...");
+            logmessage(LOGLVL_INFO, "%s Retrying finding feasible initial theta...", strPath);
     }
 
-    logmessage(LOGLVL_INFO, "... success.");
+    logmessage(LOGLVL_INFO, "%s Found feasible initial theta.", strPath);
 }
 
 static IpoptProblem setupIpoptProblem(datapath path, Index numOptimizationParams, AMI_parameter_scaling scaling)
