@@ -136,7 +136,7 @@ static IpoptProblem setupIpoptProblem(datapath path, Index numOptimizationParams
     AddIpoptStrOption(nlp, "hessian_approximation", "limited-memory");
     AddIpoptStrOption(nlp, "limited_memory_update_type", "bfgs");
 
-    AddIpoptIntOption(nlp, "max_iter", 10);
+    AddIpoptIntOption(nlp, "max_iter", getMaxIter());
     AddIpoptNumOption(nlp, "tol", 1e-9);
 
     //    AddIpoptIntOption(nlp, "acceptable_iter", 1);
