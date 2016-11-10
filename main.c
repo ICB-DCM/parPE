@@ -4,7 +4,12 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <time.h>
+
+#undef INSTALL_SIGNAL_HANDLER
+#ifdef INSTALL_SIGNAL_HANDLER
 #include <signal.h>
+#endif
+
 #include <unistd.h>
 #include <alloca.h>
 
@@ -20,12 +25,14 @@
 #include "dataprovider.h"
 #include "misc.h"
 
+#ifdef INSTALL_SIGNAL_HANDLER
 volatile sig_atomic_t caughtTerminationSignal = 0;
+void term(int sigNum) { caughtTerminationSignal = 1; }
+#endif
 
 void printMPIInfo();
 void getMpeLogIDs();
 void describeMpeStates();
-void term(int sigNum) { caughtTerminationSignal = 1; }
 char *getResultFileName();
 void doMasterWork();
 void printDebugInfoAndWait();
@@ -65,11 +72,11 @@ int main(int argc, char **argv)
     free(resultFileName);
 
     if(mpiRank == 0) {
-
+#ifdef INSTALL_SIGNAL_HANDLER
         struct sigaction action;
         action.sa_handler = term;
         sigaction(SIGTERM, &action, NULL);
-
+#endif
         describeMpeStates();
 
         doMasterWork();

@@ -9,7 +9,9 @@
 #include "misc.h"
 #include "objectivefunction.h"
 
+#ifdef INSTALL_SIGNAL_HANDLER
 extern volatile sig_atomic_t caughtTerminationSignal;
+#endif
 
 typedef struct {
     int nTheta;
@@ -279,10 +281,12 @@ static Bool Intermediate(Index alg_mod, Index iter_count, Number obj_value, Numb
 
     logLocalOptimizerIteration(data->datapath, iter_count, data->theta, data->objectiveFunctionValue, data->gradient, 0, data->nTheta);
 
+#ifdef INSTALL_SIGNAL_HANDLER
     if(caughtTerminationSignal) {
         logmessage(LOGLVL_CRITICAL, "CAUGHT SIGTERM... EXITING.");
         return false;
     }
+#endif
 
     return true;
 }
