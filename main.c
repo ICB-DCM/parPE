@@ -88,14 +88,22 @@ int main(int argc, char **argv)
     }
 
     closeDataProvider();
+
+    double endTime = MPI_Wtime();
+    double myTimeSeconds = (endTime - startTime);
+
+    double allTimeInSeconds = 0;
+    MPI_Reduce(&myTimeSeconds, &allTimeInSeconds, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+
+    if(mpiRank == 0) {
+        logmessage(LOGLVL_INFO, "Total programm runtime: %fs", allTimeInSeconds);
+        saveTotalWalltime(allTimeInSeconds);
+    }
+
     closeResultHDFFile();
 
     logmessage(LOGLVL_DEBUG, "Finalizing MPE log: mpe.log");
     mpiErr = MPE_Finish_log("mpe.log");
-
-    double endTime = MPI_Wtime();
-    double timeSeconds = (endTime - startTime) / 1000;
-    logmessage(LOGLVL_INFO, "Total programm runtime: %ds", timeSeconds);
 
     logmessage(LOGLVL_DEBUG, "Finalizing MPI");
     mpiErr = MPI_Finalize();
