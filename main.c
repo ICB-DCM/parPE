@@ -49,6 +49,7 @@ int main(int argc, char **argv)
     srand(1337);
 
     int mpiCommSize, mpiRank, mpiErr;
+    int status;
 
     mpiErr = MPI_Init(&argc, &argv);
     mpiErr = MPI_Comm_size(MPI_COMM_WORLD, &mpiCommSize);
@@ -65,11 +66,15 @@ int main(int argc, char **argv)
 
     const char *inputFile = "../data/data.h5";
     logmessage(LOGLVL_INFO, "Reading options and data from '%s'.", inputFile);
-    initDataProvider(inputFile); // TODO arguemnt
+    status = initDataProvider(inputFile); // TODO arguemnt
+    if(status != 0)
+        exit(1);
 
     char *resultFileName = getResultFileName();
-    initResultHDFFile(resultFileName);
+    status = initResultHDFFile(resultFileName);
     free(resultFileName);
+    if(status != 0)
+        exit(1);
 
     if(mpiRank == 0) {
 #ifdef INSTALL_SIGNAL_HANDLER
