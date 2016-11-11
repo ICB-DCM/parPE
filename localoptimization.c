@@ -162,7 +162,7 @@ static IpoptProblem setupIpoptProblem(datapath path, Index numOptimizationParams
 
 static Bool Eval_F(Index n, Number *x, Bool new_x, Number *obj_value, UserDataPtr user_data)
 {
-    static int numFunctionCalls = 0;
+    static __thread int numFunctionCalls = 0;
     logmessage(LOGLVL_DEBUG, "Eval_F (%d) #%d.", new_x, ++numFunctionCalls);
 
     Number *myX = x;
@@ -193,7 +193,7 @@ static Bool Eval_F(Index n, Number *x, Bool new_x, Number *obj_value, UserDataPt
 
 static Bool Eval_Grad_F(Index n, Number *x, Bool new_x, Number *grad_f, UserDataPtr user_data)
 {
-    static int numFunctionCalls = 0;
+    static __thread int numFunctionCalls = 0;
     logmessage(LOGLVL_DEBUG, "Eval_Grad_F (%d) #%d", new_x, ++numFunctionCalls);
 
     Number *myX = x;
@@ -246,7 +246,7 @@ static Bool Eval_Jac_G(Index n, Number *x, Bool new_x, Index m, Index nele_jac, 
 
 static Bool Eval_H(Index n, Number *x_, Bool new_x, Number obj_factor, Index m, Number *lambda, Bool new_lambda, Index nele_hess, Index *iRow, Index *jCol, Number *values, UserDataPtr user_data)
 {
-    static int numFunctionCalls = 0;
+    static __thread int numFunctionCalls = 0;
     logmessage(LOGLVL_DEBUG, "Eval_H #%d", ++numFunctionCalls);
 
     assert(1==3);
