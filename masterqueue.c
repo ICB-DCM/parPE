@@ -183,13 +183,17 @@ void terminateMasterQueue() {
 }
 
 
-static void receiveFinished(int workerID, int jobID)
-{
+static void receiveFinished(int workerID, int jobID) {
+
 #ifdef MASTER_QUEUE_H_SHOW_COMMUNICATION
     printf("\x1b[32mReceived result for job %d from %d\x1b[0m\n", jobID, workerID + 1);
 #endif
 
     queueData *data = sentJobsData[workerID];
-    *data->jobDone = true;
+    ++(*data->jobDone);
+    pthread_mutex_lock(data->jobDoneChangedMutex);
+    pthread_cond_signal(data->jobDoneChangedCondition);
+    pthread_mutex_unlock(data->jobDoneChangedMutex);
+
     recvRequests[workerID] = MPI_REQUEST_NULL;
 }

@@ -2,6 +2,7 @@
 #define MASTER_QUEUE_H
 
 #include <mpi.h>
+#include <pthread.h>
 #include <dataprovider.h>
 
 //#define MASTER_QUEUE_H_SHOW_COMMUNICATION
@@ -17,7 +18,12 @@ typedef struct queueData_tag {
     int lenRecvBuffer;
     char *recvBuffer;
 
-    bool *jobDone;
+    // incremented by one, once the results have been received
+    int *jobDone;
+    // is signaled after jobDone has been incremented
+    pthread_cond_t *jobDoneChangedCondition;
+    pthread_mutex_t *jobDoneChangedMutex;
+
     MPI_Request *recvRequest;
 } queueData;
 
