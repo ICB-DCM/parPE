@@ -79,6 +79,7 @@ void getLocalOptimum(datapath dataPath) {
     clock_t timeEnd = clock();
     double timeElapsed = (double) (timeEnd - timeBegin) / CLOCKS_PER_SEC;
 
+    saveLocalOptimizerResults(dataPath, loglikelihood, timeElapsed, status);
     logmessage(LOGLVL_INFO, "Ipopt status %d, final llh: %e, time: %f.", status, loglikelihood, timeElapsed);
 
     free(initialTheta);
