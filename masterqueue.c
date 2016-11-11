@@ -1,6 +1,7 @@
 #include "masterqueue.h"
 
 #include <pthread.h>
+#include <semaphore.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
@@ -16,6 +17,7 @@ static masterQueueElement *queueStart = 0;
 static masterQueueElement *queueEnd = 0;
 static int lastJobId = 0;
 
+static sem_t semQueue;
 static pthread_t queueThread;
 static pthread_mutex_t mutexQueue = PTHREAD_MUTEX_INITIALIZER;
 
@@ -38,6 +40,14 @@ void initMasterQueue() {
 
     // There can only be one queue
     if(!queueCreated) {
+        // Create semaphore to limit queue length
+        // and avoid huge memory allocation for all send and receive buffers
+        int mpiCommSize;
+        MPI_Comm_size(MPI_COMM_WORLD, &mpiCommSize);
+        unsigned int queueMaxLength = mpiCommSize;
+        queueMaxLength = SEM_VALUE_MAX < queueMaxLength ? SEM_VALUE_MAX : queueMaxLength;
+        sem_init(&semQueue, 0, queueMaxLength);
+
         pthread_create(&queueThread, NULL, masterQueueRun, NULL);
         queueCreated = true;
     }
@@ -136,10 +146,14 @@ static void sendToWorker(int workerIdx, masterQueueElement *queueElement) {
     MPI_Isend(data->sendBuffer, data->lenSendBuffer, MPI_BYTE, workerRank, tag, MPI_COMM_WORLD, &sendRequests[workerIdx]);
 
     MPI_Irecv(data->recvBuffer, data->lenRecvBuffer, MPI_BYTE, workerRank, tag, MPI_COMM_WORLD, &recvRequests[workerIdx]);
+
+    sem_post(&semQueue);
 }
 
 
 void queueSimulation(queueData *jobData) {
+    sem_wait(&semQueue);
+
     masterQueueElement *queueElement = malloc(sizeof(masterQueueElement));
 
     queueElement->data = jobData;
@@ -165,6 +179,7 @@ void queueSimulation(queueData *jobData) {
 void terminateMasterQueue() {
     pthread_mutex_destroy(&mutexQueue);
     pthread_cancel(queueThread);
+    sem_destroy(&semQueue);
 }
 
 
