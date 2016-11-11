@@ -74,9 +74,9 @@ printf("[%d] Received work. ", rank); printDatapath(path); fflush(stdout);
     double startTime = MPI_Wtime();
 
     // run simulation
-    int status = 0;
+    int status, iterationsUntilSteadystate = 0;
     ExpData *expData = 0; // TODO: not needed if no llh calculation here
-    *prdata = getSteadystateSolutionForExperiment(path, udata, &status, &expData);
+    *prdata = getSteadystateSolutionForExperiment(path, udata, &status, &expData, &iterationsUntilSteadystate);
     myFreeExpData(expData);
 
     ReturnData *rdata = *prdata;
@@ -92,7 +92,7 @@ printf("[%d] Received work. ", rank); printDatapath(path); fflush(stdout);
     double timeSeconds = (endTime - startTime);
 
     // TODO save Y
-    logSimulation(path, rdata->am_llhdata[0], rdata->am_sllhdata, timeSeconds, udata->am_np, udata->am_nx, rdata->am_xdata, rdata->am_sxdata, rdata->am_ydata, tag);
+    logSimulation(path, rdata->am_llhdata[0], rdata->am_sllhdata, timeSeconds, udata->am_np, udata->am_nx, rdata->am_xdata, rdata->am_sxdata, rdata->am_ydata, tag, iterationsUntilSteadystate);
     // send back whatever is needed
     //reportToMaster(rdata);
     resultPackageMessage result;
