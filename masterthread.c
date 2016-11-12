@@ -40,7 +40,7 @@ void *newMultiStartOptimization(void *multiStartIndexVP) {
 
 void *newLocalOptimization(void *idVP) {
     int id = *(int *) idVP;
-    datapath datapath;
+    datapath datapath = {INT_MIN};
 
     datapath.idxMultiStart = id / 1000;
     datapath.idxLocalOptimization = id % 1000;

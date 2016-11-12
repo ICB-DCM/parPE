@@ -100,7 +100,7 @@ void getFeasibleInitialTheta(datapath dataPath, Number *initialTheta, AMI_parame
     while(!feasible) {
         getInitialTheta(dataPath, initialTheta, scaling);
 
-        double objFunVal;
+        double objFunVal = NAN;
         int status = evaluateObjectiveFunction(initialTheta, getLenTheta(), dataPath, &objFunVal, NULL, scaling);
 
         feasible = !isnan(objFunVal) && !isinf(objFunVal) && status == 0;
