@@ -59,7 +59,7 @@ void doWorkerWork() {
         freeReturnData(rdata); // is referenced by workPackage, can only deallocate after sending
     }
 
-    freeUserData(udata); // TODO delete free mismatch
+    freeUserDataC(udata);
 }
 
 resultPackageMessage handleWorkPackage(const char *buffer, UserData *udata, ReturnData **prdata, int tag)
