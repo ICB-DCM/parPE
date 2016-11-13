@@ -279,10 +279,16 @@ static Bool Eval_H(Index n, Number *x_, Bool new_x, Number obj_factor, Index m, 
 static Bool Intermediate(Index alg_mod, Index iter_count, Number obj_value, Number inf_pr, Number inf_du, Number mu, Number d_norm, Number regularization_size, Number alpha_du, Number alpha_pr, Index ls_trials, UserDataPtr user_data)
 {
     MyUserData *data = (MyUserData *) user_data;
-
     data->datapath.idxLocalOptimizationIteration = iter_count;
 
-    logLocalOptimizerIteration(data->datapath, iter_count, data->theta, data->objectiveFunctionValue, data->gradient, 0, data->nTheta);
+    char strBuf[50];
+    sprintDatapath(strBuf, data->datapath);
+//    logmessage(LOGLVL_INFO, "%s: %d %d %e %e %e %e %e %e %e %e %d", strBuf,
+//               alg_mod, iter_count, obj_value, inf_pr, inf_du,
+//               mu, d_norm, regularization_size, alpha_du, alpha_pr, ls_trials);
+
+    logLocalOptimizerIteration(data->datapath, iter_count, data->theta, obj_value, data->gradient, 0, data->nTheta,
+                               alg_mod, inf_pr, inf_du, mu, d_norm, regularization_size, alpha_du, alpha_pr, ls_trials);
 
 #ifdef INSTALL_SIGNAL_HANDLER
     if(caughtTerminationSignal) {
