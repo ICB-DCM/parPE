@@ -7,6 +7,8 @@
 #include <mpi.h>
 #include <time.h>
 
+const char *loglevelShortStr[] = {"", "CRI", "ERR", "WRN", "INF", "DBG"};
+
 void error(const char *message) { // exit?
     logmessage(LOGLVL_ERROR, message);
 }
@@ -58,7 +60,6 @@ void rank(const double *in, double *out, int length) {
 void logmessage(loglevel lvl, const char *format, ...)
 {
     // TODO: fileLogLevel, consoleLogLevel
-
     // Coloring
     switch (lvl) {
     case LOGLVL_CRITICAL:
@@ -85,7 +86,9 @@ void logmessage(loglevel lvl, const char *format, ...)
     tm_info = localtime(&timer);
     char dateBuffer[50];
     strftime(dateBuffer, 25, "[%Y-%m-%d %H:%M:%S] ", tm_info);
-    printf(dateBuffer);
+    fputs(dateBuffer, stdout);
+
+    printf("[%s] ", loglevelShortStr[lvl]);
 
     // MPI info
     int mpiCommSize, mpiRank;
@@ -96,7 +99,7 @@ void logmessage(loglevel lvl, const char *format, ...)
     int procNameLen;
     MPI_Get_processor_name(procName, &procNameLen);
 
-    printf("[%d/%s] ", mpiRank, procName);
+    printf("[%*d/%s] ", 1 + (int)log10(mpiCommSize), mpiRank, procName);
 
     // Message
     va_list argptr;
