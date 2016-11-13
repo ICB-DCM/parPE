@@ -81,15 +81,16 @@ printf("[%d] Received work. ", rank); printDatapath(path); fflush(stdout);
 
     ReturnData *rdata = *prdata;
 
+    double endTime = MPI_Wtime();
+    double timeSeconds = (endTime - startTime);
+
     char pathStrBuf[100];
     sprintDatapath(pathStrBuf, path);
-    logmessage(LOGLVL_DEBUG, "Result for %s: %e ", pathStrBuf, rdata->am_llhdata[0]);
+    logmessage(LOGLVL_DEBUG, "Result for %s: %e  (%d) (%.2fs)", pathStrBuf, rdata->am_llhdata[0], status, timeSeconds);
 
     // assert(status == 0);
     // TODO write simulation results (set jobid as attribute)
 
-    double endTime = MPI_Wtime();
-    double timeSeconds = (endTime - startTime);
 
     // TODO save Y
     logSimulation(path, rdata->am_llhdata[0], rdata->am_sllhdata, timeSeconds, udata->am_np, udata->am_nx, rdata->am_xdata, rdata->am_sxdata, rdata->am_ydata, tag, iterationsUntilSteadystate);
