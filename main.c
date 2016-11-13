@@ -30,6 +30,8 @@ volatile sig_atomic_t caughtTerminationSignal = 0;
 void term(int sigNum) { caughtTerminationSignal = 1; }
 #endif
 
+// void usage(int exitStatus); // TODO
+// void parseCommandLineOptions(int argc, char **argv); // TODO
 void printMPIInfo();
 void getMpeLogIDs();
 void describeMpeStates();
@@ -64,7 +66,14 @@ int main(int argc, char **argv)
     MPE_Init_log();
     getMpeLogIDs();
 
-    const char *inputFile = "../data/data.h5";
+    const char *inputFile;
+    if(argc != 2) {
+        logmessage(LOGLVL_CRITICAL, "Must provide input file as first and only argument to %s.", argv[0]);
+        return 1;
+    } else {
+        inputFile = argv[1];
+    }
+
     logmessage(LOGLVL_INFO, "Reading options and data from '%s'.", inputFile);
     status = initDataProvider(inputFile); // TODO arguemnt
     if(status != 0)
