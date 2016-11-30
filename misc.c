@@ -6,6 +6,7 @@
 #include <stdarg.h>
 #include <mpi.h>
 #include <time.h>
+#include <alloca.h>
 
 const char *loglevelShortStr[] = {"", "CRI", "ERR", "WRN", "INF", "DBG"};
 
@@ -115,4 +116,20 @@ void printMatlabArray(const double *buffer, int len)
     printfArray(buffer, len - 1, "%e, ");
     printf("%e]\n", buffer[len - 1]);
     fflush(stdout);
+}
+
+void logProcessStats()
+{
+    int bufSize = 1024;
+    char *buffer = malloc(bufSize);
+
+    FILE* status = fopen( "/proc/self/status", "r" );
+
+    while (fgets(buffer, bufSize, status)) {
+        buffer[strlen(buffer) - 1] = '\0'; // remove \n
+        logmessage(LOGLVL_DEBUG, "%s", buffer);
+    }
+
+    fclose(status);
+    free(buffer);
 }

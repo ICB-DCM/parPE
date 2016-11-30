@@ -116,6 +116,8 @@ int main(int argc, char **argv)
 
     closeResultHDFFile();
 
+    logProcessStats();
+
     logmessage(LOGLVL_DEBUG, "Finalizing MPE log: mpe.log");
     mpiErr = MPE_Finish_log("mpe.log");
 
