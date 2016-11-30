@@ -72,7 +72,7 @@ void getLocalOptimum(datapath dataPath) {
     clock_t timeBegin = clock();
 
     double *initialTheta = malloc(sizeof(double) * myUserData.nTheta);
-    getFeasibleInitialTheta(dataPath, initialTheta, (AMI_parameter_scaling) myUserData.scaling);
+    getFeasibleInitialThetaFromFile(dataPath, initialTheta, (AMI_parameter_scaling) myUserData.scaling);
 
     enum ApplicationReturnStatus status = IpoptSolve(problem, initialTheta, NULL, &loglikelihood, NULL, NULL, NULL, &myUserData);
 

@@ -45,7 +45,9 @@ void initMasterQueue() {
         int mpiCommSize;
         MPI_Comm_size(MPI_COMM_WORLD, &mpiCommSize);
         unsigned int queueMaxLength = mpiCommSize;
+#ifdef SEM_VALUE_MAX
         queueMaxLength = SEM_VALUE_MAX < queueMaxLength ? SEM_VALUE_MAX : queueMaxLength;
+#endif
         sem_init(&semQueue, 0, queueMaxLength);
 
         pthread_create(&queueThread, NULL, masterQueueRun, NULL);
