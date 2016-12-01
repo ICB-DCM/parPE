@@ -110,7 +110,7 @@ int main(int argc, char **argv)
     MPI_Reduce(&myTimeSeconds, &allTimeInSeconds, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
 
     if(mpiRank == 0) {
-        logmessage(LOGLVL_INFO, "Total programm walltime: %fs", allTimeInSeconds);
+        logmessage(LOGLVL_INFO, "Total walltime: %fs", allTimeInSeconds);
         saveTotalWalltime(allTimeInSeconds);
     }
 
