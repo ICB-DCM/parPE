@@ -223,4 +223,6 @@ void initHDF5Mutex() {
     pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
     pthread_mutex_init(&mutexHDF, &attr);
     pthread_mutexattr_destroy(&attr);
+
+    H5dont_atexit();
 }
