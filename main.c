@@ -13,6 +13,7 @@
 #include <unistd.h>
 #include <alloca.h>
 
+#include <pthread.h>
 #include <mpi.h>
 #include <mpe.h>
 #include "mpiworker.h"
@@ -38,12 +39,16 @@ void describeMpeStates();
 char *getResultFileName();
 void doMasterWork();
 void printDebugInfoAndWait();
+void initHDF5Mutex();
 
 // MPE event IDs for logging
 int mpe_event_begin_simulate, mpe_event_end_simulate;
 int mpe_event_begin_getrefs, mpe_event_end_getrefs;
 int mpe_event_begin_getdrugs, mpe_event_end_getdrugs;
 int mpe_event_begin_aggregate, mpe_event_end_aggregate;
+
+// global mutex for HDF5 library calls
+pthread_mutex_t mutexHDF;
 
 int main(int argc, char **argv)
 {
@@ -73,6 +78,8 @@ int main(int argc, char **argv)
     } else {
         inputFile = argv[1];
     }
+
+    initHDF5Mutex();
 
     logmessage(LOGLVL_INFO, "Reading options and data from '%s'.", inputFile);
     status = initDataProvider(inputFile); // TODO arguemnt
@@ -115,6 +122,8 @@ int main(int argc, char **argv)
     }
 
     closeResultHDFFile();
+
+    pthread_mutex_destroy(&mutexHDF);
 
     logProcessStats();
 
@@ -206,4 +215,12 @@ void doMasterWork() {
     logmessage(LOGLVL_DEBUG, "All k threads finished.");
 
     terminateMasterQueue();
+}
+
+void initHDF5Mutex() {
+    pthread_mutexattr_t attr;
+    pthread_mutexattr_init(&attr);
+    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+    pthread_mutex_init(&mutexHDF, &attr);
+    pthread_mutexattr_destroy(&attr);
 }

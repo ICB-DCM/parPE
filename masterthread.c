@@ -50,5 +50,6 @@ void *newLocalOptimization(void *idVP) {
     getLocalOptimum(datapath);
     logmessage(LOGLVL_DEBUG, "Finished newLocalOptimization #%d.%d", datapath.idxMultiStart, datapath.idxLocalOptimization);
 
+    // TODO need to acquire hdf5 mutex lock when running H5_term_library in at_exit
     return 0;
 }
