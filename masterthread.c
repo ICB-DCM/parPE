@@ -20,16 +20,42 @@ void *newMultiStartOptimization(void *multiStartIndexVP) {
     pthread_attr_setdetachstate(&threadAttr, PTHREAD_CREATE_JOINABLE);
 
     int ids[numLocalOptimizations];
+
+    int lastStartIdx = -1;
+
     for(int ms = 0; ms < numLocalOptimizations; ++ms) {
-        ids[ms] = multiStartIndex * 1000 + ms;
-        logmessage(LOGLVL_DEBUG, "Spawning thread for local optimization #%d.%d", multiStartIndex, ms);
+        ids[ms] = multiStartIndex * 1000 + ++lastStartIdx;
+        logmessage(LOGLVL_DEBUG, "Spawning thread for local optimization #%d.%d (%d)", multiStartIndex, lastStartIdx, ms);
         pthread_create(&localOptimizationThreads[ms], &threadAttr, newLocalOptimization, (void *)&ids[ms]);
     }
     pthread_attr_destroy(&threadAttr);
 
-    for(int ms = 0; ms < numLocalOptimizations; ++ms) {
-        pthread_join(localOptimizationThreads[ms], NULL);
-        logmessage(LOGLVL_DEBUG, "Thread ms #%d finished", ms);
+    int numCompleted = 0;
+
+    while(numCompleted < numLocalOptimizations) {
+        for(int ms = 0; ms < numLocalOptimizations; ++ms) {
+            if(!localOptimizationThreads[ms])
+                continue;
+
+            void *threadStatus = 0;
+            int joinStatus = pthread_tryjoin_np(localOptimizationThreads[ms], &threadStatus);
+            if(joinStatus == 0) { // joined successful
+                if(*(int*)threadStatus == 0) {
+                    logmessage(LOGLVL_DEBUG, "Thread ms #%d finished successfully", ms);
+                    localOptimizationThreads[ms] = 0;
+                    ++numCompleted;
+                } else {
+                    logmessage(LOGLVL_WARNING, "Thread ms #%d finished unsuccessfully... trying new starting point", ms);
+
+                    ids[ms] = multiStartIndex * 1000 + ++lastStartIdx;
+                    logmessage(LOGLVL_DEBUG, "Spawning thread for local optimization #%d.%d (%d)", multiStartIndex, lastStartIdx, ms);
+                    pthread_create(&localOptimizationThreads[ms], &threadAttr, newLocalOptimization, (void *)&ids[ms]);
+                }
+                free(threadStatus);
+            }
+        }
+
+        sleep(1);
     }
 
     logmessage(LOGLVL_DEBUG, "Leaving thread for global optimization #%d", multiStartIndex);
@@ -47,9 +73,9 @@ void *newLocalOptimization(void *idVP) {
 
     // TODO pass options object, also add IpOpt options to config file
     logmessage(LOGLVL_DEBUG, "Starting newLocalOptimization #%d.%d", datapath.idxMultiStart, datapath.idxLocalOptimization);
-    getLocalOptimum(datapath);
+    int *status = malloc(sizeof(int));
+    *status = getLocalOptimum(datapath);
     logmessage(LOGLVL_DEBUG, "Finished newLocalOptimization #%d.%d", datapath.idxMultiStart, datapath.idxLocalOptimization);
 
-    // TODO need to acquire hdf5 mutex lock when running H5_term_library in at_exit
-    return 0;
+    return status;
 }
