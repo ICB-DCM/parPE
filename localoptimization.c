@@ -80,7 +80,10 @@ void getLocalOptimum(datapath dataPath) {
     double timeElapsed = (double) (timeEnd - timeBegin) / CLOCKS_PER_SEC;
 
     saveLocalOptimizerResults(dataPath, loglikelihood, timeElapsed, status);
-    logmessage(LOGLVL_INFO, "Ipopt status %d, final llh: %e, time: %f.", status, loglikelihood, timeElapsed);
+
+    char strBuf[100];
+    sprintDatapath(strBuf, dataPath);
+    logmessage(LOGLVL_INFO, "%s: Ipopt status %d, final llh: %e, time: %f.", strBuf, status, loglikelihood, timeElapsed);
 
     free(initialTheta);
     free(myUserData.gradient);
