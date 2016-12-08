@@ -10,6 +10,8 @@
 #include <signal.h>
 #endif
 
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #include <alloca.h>
 
@@ -171,20 +173,32 @@ void describeMpeStates() {
 }
 
 char *getResultFileName() {
+    // create directory for each compute node
+    char procName[MPI_MAX_PROCESSOR_NAME];
+    int procNameLen;
+    MPI_Get_processor_name(procName, &procNameLen);
+
+    struct stat st = {0};
+
+    if (stat(procName, &st) == -1) {
+        mkdir(procName, 0700);
+    }
+
+    // generate file name
     time_t timer;
     time(&timer);
 
     struct tm* tm_info;
     tm_info = localtime(&timer);
 
-    char tmpFileName[50];
-    strftime(tmpFileName, 50, "CPP_%Y-%m-%d_%H%M%S_%%05d.h5", tm_info);
+    char tmpFileName[200];
+    strftime(tmpFileName, 200, "%%s/CPP_%Y-%m-%d_%H%M%S_%%05d.h5", tm_info);
 
     int mpiRank;
     MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
 
     char *fileName = malloc(31);
-    sprintf(fileName, tmpFileName, mpiRank);
+    sprintf(fileName, tmpFileName, procName, mpiRank);
 
     return fileName;
 }
