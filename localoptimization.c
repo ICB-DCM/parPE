@@ -56,7 +56,7 @@ static Bool Intermediate(Index alg_mod,
 void getFeasibleInitialTheta(datapath dataPath, Number *buffer, AMI_parameter_scaling scaling);
 /******************************/
 
-void getLocalOptimum(datapath dataPath) {
+int getLocalOptimum(datapath dataPath) {
 
     Number loglikelihood = INFINITY;
 
@@ -89,6 +89,8 @@ void getLocalOptimum(datapath dataPath) {
     free(myUserData.gradient);
     free(myUserData.theta);
     FreeIpoptProblem(problem);
+
+    return status < Maximum_Iterations_Exceeded;
 }
 
 

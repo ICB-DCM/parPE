@@ -13,6 +13,6 @@
 
 #define IPTOPT_LOG_FILE "/home/dweindl/src/CanPathProSSH/dw/ipopt.log"
 
-void getLocalOptimum(datapath dataPath);
+int getLocalOptimum(datapath dataPath);
 
 #endif
