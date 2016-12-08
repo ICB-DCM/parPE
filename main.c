@@ -197,7 +197,7 @@ char *getResultFileName() {
     int mpiRank;
     MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
 
-    char *fileName = malloc(31);
+    char *fileName = malloc(MPI_MAX_PROCESSOR_NAME + 32);
     sprintf(fileName, tmpFileName, procName, mpiRank);
 
     return fileName;
