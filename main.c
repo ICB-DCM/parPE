@@ -85,6 +85,7 @@ int main(int argc, char **argv)
 
     logmessage(LOGLVL_INFO, "Reading options and data from '%s'.", inputFile);
     status = initDataProvider(inputFile); // TODO arguemnt
+
     if(status != 0)
         exit(1);
 
@@ -95,6 +96,8 @@ int main(int argc, char **argv)
         exit(1);
 
     if(mpiRank == 0) {
+        dataproviderPrintInfo();
+
 #ifdef INSTALL_SIGNAL_HANDLER
         struct sigaction action;
         action.sa_handler = term;
