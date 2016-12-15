@@ -52,6 +52,23 @@ int mpe_event_begin_aggregate, mpe_event_end_aggregate;
 // global mutex for HDF5 library calls
 pthread_mutex_t mutexHDF;
 
+
+// intercept malloc calls & check results
+extern void *__libc_malloc(size_t);
+
+inline void *malloc(size_t size)
+{
+    void *p = __libc_malloc(size);
+
+    if(size && !p) {
+        fprintf(stderr, "Could not allocate memory.\n");
+        abort();
+    }
+
+    return p;
+}
+
+
 int main(int argc, char **argv)
 {
     // Seed random number generator
