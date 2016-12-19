@@ -13,7 +13,7 @@ extern const int mpe_event_begin_simulate, mpe_event_end_simulate;
 
 void doWorkerWork() {
     int rank, err;
-    err = MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
 #if MPI_WORKER_H_VERBOSE >= 4
     printf("[%d] Entering doWorkerWork.\n", rank); fflush(stdout);
@@ -39,6 +39,8 @@ void doWorkerWork() {
         MPI_Status mpiStatus;
         err = MPI_Recv(buffer, workpackageLength, MPI_BYTE, source, MPI_ANY_TAG, MPI_COMM_WORLD, &mpiStatus);
         //printf("W%d: Received job %d\n", rank, mpiStatus.MPI_TAG);
+        if(err != MPI_SUCCESS)
+            abort();
 
         if(mpiStatus.MPI_TAG == MPI_TAG_EXIT_SIGNAL)
             break;
