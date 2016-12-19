@@ -60,6 +60,9 @@ void rank(const double *in, double *out, int length) {
 
 void logmessage(loglevel lvl, const char *format, ...)
 {
+    int mpiInitialized = 0;
+    MPI_Initialized(&mpiInitialized);
+
     // TODO: fileLogLevel, consoleLogLevel
     // Coloring
     switch (lvl) {
@@ -92,14 +95,18 @@ void logmessage(loglevel lvl, const char *format, ...)
     printf("[%s] ", loglevelShortStr[lvl]);
 
     // MPI info
-    int mpiCommSize, mpiRank;
-    MPI_Comm_size(MPI_COMM_WORLD, &mpiCommSize);
-    MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
+    int mpiCommSize = 1, mpiRank = -1;
+    if(mpiInitialized) {
+        MPI_Comm_size(MPI_COMM_WORLD, &mpiCommSize);
+        MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
+    }
 
     char procName[MPI_MAX_PROCESSOR_NAME];
-    int procNameLen;
-    MPI_Get_processor_name(procName, &procNameLen);
-
+    procName[0] = '\0';
+    if(mpiInitialized) {
+        int procNameLen;
+        MPI_Get_processor_name(procName, &procNameLen);
+    }
     printf("[%*d/%s] ", 1 + (int)log10(mpiCommSize), mpiRank, procName);
 
     // Message

@@ -4,22 +4,21 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <time.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <alloca.h>
+#include <pthread.h>
+#include <mpi.h>
+#include <mpe.h>
+#include <getopt.h>
 
 #undef INSTALL_SIGNAL_HANDLER
 #ifdef INSTALL_SIGNAL_HANDLER
 #include <signal.h>
 #endif
 
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <alloca.h>
-
-#include <pthread.h>
-#include <mpi.h>
-#include <mpe.h>
 #include "mpiworker.h"
-
 #include "localoptimization.h"
 #include "objectivefunction.h"
 #include "resultwriter.h"
@@ -33,8 +32,6 @@ volatile sig_atomic_t caughtTerminationSignal = 0;
 void term(int sigNum) { caughtTerminationSignal = 1; }
 #endif
 
-// void usage(int exitStatus); // TODO
-// void parseCommandLineOptions(int argc, char **argv); // TODO
 void printMPIInfo();
 void getMpeLogIDs();
 void describeMpeStates();
@@ -42,6 +39,7 @@ char *getResultFileName();
 void doMasterWork();
 void printDebugInfoAndWait();
 void initHDF5Mutex();
+int parseOptions(int argc, char **argv);
 
 // MPE event IDs for logging
 int mpe_event_begin_simulate, mpe_event_end_simulate;
@@ -52,6 +50,15 @@ int mpe_event_begin_aggregate, mpe_event_end_aggregate;
 // global mutex for HDF5 library calls
 pthread_mutex_t mutexHDF;
 
+static struct option const long_options[] = {
+    {"debug", no_argument, NULL, 'd'},
+    {"print-worklist", no_argument, NULL, 'p'},
+    {"help", no_argument, NULL, 'h'},
+    {"version", no_argument, NULL, 'v'},
+    {NULL, 0, NULL, 0}
+};
+
+static const char *inputFile;
 
 // intercept malloc calls & check results
 extern void *__libc_malloc(size_t);
@@ -68,7 +75,6 @@ inline void *malloc(size_t size)
     return p;
 }
 
-
 int main(int argc, char **argv)
 {
     // Seed random number generator
@@ -77,10 +83,22 @@ int main(int argc, char **argv)
     int mpiCommSize, mpiRank, mpiErr;
     int status;
 
+    status = parseOptions(argc, argv);
+    if(status)
+        return status;
+
     mpiErr = MPI_Init(&argc, &argv);
-    mpiErr = MPI_Comm_size(MPI_COMM_WORLD, &mpiCommSize);
-    mpiErr = MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
-    assert(mpiCommSize > 1);
+    if(mpiErr != MPI_SUCCESS) {
+        logmessage(LOGLVL_CRITICAL, "Problem initializing MPI. Exiting.");
+        exit(1);
+    }
+
+    MPI_Comm_size(MPI_COMM_WORLD, &mpiCommSize);
+    MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
+    if(mpiCommSize < 2) {
+        logmessage(LOGLVL_CRITICAL, "Need at least 2 MPI processes. Exiting.");
+        exit(1);
+    }
 
     double startTime = MPI_Wtime();
 
@@ -90,18 +108,10 @@ int main(int argc, char **argv)
     MPE_Init_log();
     getMpeLogIDs();
 
-    const char *inputFile;
-    if(argc != 2) {
-        logmessage(LOGLVL_CRITICAL, "Must provide input file as first and only argument to %s.", argv[0]);
-        return 1;
-    } else {
-        inputFile = argv[1];
-    }
-
     initHDF5Mutex();
 
     logmessage(LOGLVL_INFO, "Reading options and data from '%s'.", inputFile);
-    status = initDataProvider(inputFile); // TODO arguemnt
+    status = initDataProvider(inputFile);
 
     if(status != 0)
         exit(1);
@@ -133,14 +143,14 @@ int main(int argc, char **argv)
     closeDataProvider();
 
     double endTime = MPI_Wtime();
-    double myTimeSeconds = (endTime - startTime);
+    double wallTimeSeconds = (endTime - startTime);
 
-    double allTimeInSeconds = 0;
-    MPI_Reduce(&myTimeSeconds, &allTimeInSeconds, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+    double totalTimeInSeconds = 0;
+    MPI_Reduce(&wallTimeSeconds, &totalTimeInSeconds, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
 
     if(mpiRank == 0) {
-        logmessage(LOGLVL_INFO, "Total walltime: %fs", allTimeInSeconds);
-        saveTotalWalltime(allTimeInSeconds);
+        logmessage(LOGLVL_INFO, "Walltime: %fs, total compute time:%fs", wallTimeSeconds, totalTimeInSeconds);
+        saveTotalWalltime(totalTimeInSeconds);
     }
 
     closeResultHDFFile();
@@ -150,10 +160,10 @@ int main(int argc, char **argv)
     logProcessStats();
 
     logmessage(LOGLVL_DEBUG, "Finalizing MPE log: mpe.log");
-    mpiErr = MPE_Finish_log("mpe.log");
+    MPE_Finish_log("mpe.log");
 
     logmessage(LOGLVL_DEBUG, "Finalizing MPI");
-    mpiErr = MPI_Finalize();
+    MPI_Finalize();
 }
 
 void printMPIInfo() {
@@ -259,4 +269,44 @@ void initHDF5Mutex() {
     pthread_mutexattr_destroy(&attr);
 
     H5dont_atexit();
+}
+
+int parseOptions (int argc, char **argv) {
+
+    int c;
+
+    while (1) {
+        int option_index = 0;
+        c = getopt_long (argc, argv, "dvh", long_options, &option_index);
+
+        if (c == -1)
+            break;
+
+        switch (c) {
+        case 'd':
+            printDebugInfoAndWait();
+        case 'v':
+            printf("Version: %s\n", GIT_VERSION);
+            break;
+        case 'h':
+            printf("Usage: %s [OPTION]... FILE\n", argv[0]);
+            printf("FILE: HDF5 data file");
+            printf("Options: \n"
+                   "  -h, --help    Print this help text\n"
+                   "  -v, --version Print version info\n"
+                   );
+            break;
+        default:
+            printf("%c\n", c);
+        }
+    }
+
+    if(optind < argc) {
+        inputFile = argv[optind++];
+    } else {
+        logmessage(LOGLVL_CRITICAL, "Must provide input file as first and only argument to %s.", argv[0]);
+        return 1;
+    }
+
+    return 0;
 }
