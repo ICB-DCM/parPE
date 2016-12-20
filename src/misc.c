@@ -140,3 +140,40 @@ void logProcessStats()
     fclose(status);
     free(buffer);
 }
+
+
+int checkGradient(objectiveFunction objFun, objectiveFunctionGradient objFunGrad, int nParams, double *theta, double epsilon, int *indices, int nIndices) {
+    double gradient[nParams];
+    objFunGrad(theta, gradient);
+
+    double thetaTmp[nParams];
+    memcpy(thetaTmp, theta, sizeof(double) * nParams);
+
+    double f = 0;
+    objFun(theta, &f);
+
+    printf("Index\tGradient\tfd_f\t\t(delta)\t\tfd_c\t\t(delta)\t\tfd_b\t\t(delta)\n");
+
+    for(int i = 0; i < nIndices; ++i) {
+        int curInd = indices[i];
+        double fb = 0, ff = 0;
+
+        thetaTmp[curInd] = theta[curInd] + epsilon;
+        objFun(thetaTmp, &ff);
+
+        thetaTmp[curInd] = theta[curInd] - epsilon;
+        objFun(thetaTmp, &fb);
+
+        double fd_f = (ff - f) / epsilon;
+
+        double fd_b = (f - fb) / epsilon;
+
+        double fd_c = (ff - fb) / (2 * epsilon);
+
+        thetaTmp[curInd] = theta[curInd];
+
+        printf("%d\t%f\t%f\t(%f)\t%f\t(%f)\t%f\t(%f)\n", curInd, gradient[curInd], fd_f, gradient[curInd] - fd_f, fd_c, gradient[curInd] - fd_c, fd_b, gradient[curInd] - fd_b);
+    }
+
+    return 0;
+}

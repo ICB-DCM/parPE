@@ -26,4 +26,9 @@ void logmessage(loglevel lvl, const char *format, ...);
 void printMatlabArray(const double *buffer, int len);
 
 void logProcessStats();
+
+typedef int (*objectiveFunction)(const double *, double *);
+typedef int (*objectiveFunctionGradient)(const double *, double *);
+
+int checkGradient(objectiveFunction objFun, objectiveFunctionGradient objFunGrad, int nParams, double *theta, double epsilon, int *indices, int nIndices);
 #endif
