@@ -5,11 +5,14 @@
 #include <time.h>
 #include <mpi.h>
 #include <alloca.h>
-#include <mpe.h>
 #include <math.h>
 #include <string.h>
 #include <assert.h>
 #include <unistd.h>
+
+#ifdef USE_MPE
+#include <mpe.h>
+#endif
 
 #include <masterqueue.h>
 #include "misc.h"
@@ -21,10 +24,12 @@
 
 #define MIN(a,b) (((a)<(b))?(a):(b))
 
+#ifdef USE_MPE
 // MPE event IDs for logging
 extern const int mpe_event_begin_aggregate, mpe_event_end_aggregate;
 extern const int mpe_event_begin_getrefs, mpe_event_end_getrefs;
 extern const int mpe_event_begin_getdrugs, mpe_event_end_getdrugs;
+#endif
 
 /******************************/
 
@@ -73,10 +78,15 @@ int evaluateObjectiveFunction(const double theta[], const int lenTheta, datapath
 
     int errors = 0;
 
-    // simulation of reference
+#ifdef USE_MPE
     MPE_Log_event(mpe_event_begin_getrefs, 0, "getrefs");
+#endif
+
     errors = simulateReferenceExperiments(path, numGenotypes, llhRef, sllhRef, udata);
+
+#ifdef USE_MPE
     MPE_Log_event(mpe_event_end_getrefs, 0, "getrefs");
+#endif
 
     if(errors == 0) { // only simulate drug treatments if not prior errors occured
         // result arrays
@@ -84,18 +94,28 @@ int evaluateObjectiveFunction(const double theta[], const int lenTheta, datapath
         double *sllhDrug[numGenotypes];
 
         // printf("Reference simulations done, next drugs...\n"); fflush(stdout);
-
+#ifdef USE_MPE
         MPE_Log_event(mpe_event_begin_getdrugs, 0, "getdrugs");
+#endif
+
         errors = simulateDrugExperiments(path, numGenotypes, llhDrug, sllhDrug, udata);
+
+#ifdef USE_MPE
         MPE_Log_event(mpe_event_end_getdrugs, 0, "getdrugs");
+#endif
 
         // printf("Simulations done, aggregating...\n"); fflush(stdout);
 
         // agregate & free buffers // TODO check data file  cell line index
+#ifdef USE_MPE
         MPE_Log_event(mpe_event_begin_aggregate, 0, "agg");
-        aggregateLikelihoodAndGradient(numGenotypes, path, udata, llhRef, llhDrug, sllhRef, sllhDrug, objectiveFunctionValue, objectiveFunctionGradient);
-        MPE_Log_event(mpe_event_end_aggregate, 0, "agg");
+#endif
 
+        aggregateLikelihoodAndGradient(numGenotypes, path, udata, llhRef, llhDrug, sllhRef, sllhDrug, objectiveFunctionValue, objectiveFunctionGradient);
+
+#ifdef USE_MPE
+        MPE_Log_event(mpe_event_end_aggregate, 0, "agg");
+#endif
     }
 
     freeUserDataC(udata);

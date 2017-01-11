@@ -1,9 +1,12 @@
 #include "mpiworker.h"
 #include <string.h>
 #include <mpi.h>
-#include <mpe.h>
 #include <assert.h>
 #include <alloca.h>
+
+#ifdef USE_MPE
+#include <mpe.h>
+#endif
 
 #include <include/rdata.h>
 
@@ -12,7 +15,9 @@
 #include "resultwriter.h"
 #include "misc.h"
 
+#ifdef USE_MPE
 extern const int mpe_event_begin_simulate, mpe_event_end_simulate;
+#endif
 
 static resultPackageMessage handleWorkPackage(const char *buffer, UserData *udata, ReturnData **prdata, int tag);
 
@@ -52,9 +57,15 @@ void doWorkerWork() {
 
         ReturnData *rdata;
 
+#ifdef USE_MPE
         MPE_Log_event(mpe_event_begin_simulate, mpiStatus.MPI_TAG, "sim");
+#endif
+
         resultPackageMessage result = handleWorkPackage(buffer, udata, &rdata, mpiStatus.MPI_TAG);
+
+#ifdef USE_MPE
         MPE_Log_event(mpe_event_end_simulate, mpiStatus.MPI_TAG, "sim");
+#endif
 
 #if MPI_WORKER_H_VERBOSE >= 2
         printf("[%d] Simulation done, sending results (llh: %f). ", rank, result.llh); printDatapath(path); fflush(stdout);

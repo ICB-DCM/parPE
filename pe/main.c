@@ -6,8 +6,11 @@
 #include <time.h>
 #include <pthread.h>
 #include <mpi.h>
-#include <mpe.h>
 #include <getopt.h>
+
+#ifdef USE_MPE
+#include <mpe.h>
+#endif
 
 #undef INSTALL_SIGNAL_HANDLER
 #ifdef INSTALL_SIGNAL_HANDLER
@@ -25,11 +28,13 @@ volatile sig_atomic_t caughtTerminationSignal = 0;
 void term(int sigNum) { caughtTerminationSignal = 1; }
 #endif
 
+#ifdef USE_MPE
 // MPE event IDs for logging
 int mpe_event_begin_simulate, mpe_event_end_simulate;
 int mpe_event_begin_getrefs, mpe_event_end_getrefs;
 int mpe_event_begin_getdrugs, mpe_event_end_getdrugs;
 int mpe_event_begin_aggregate, mpe_event_end_aggregate;
+#endif
 
 // global mutex for HDF5 library calls
 pthread_mutex_t mutexHDF;
@@ -69,7 +74,9 @@ int finalize(clock_t begin);
 
 void finalizeTiming(clock_t begin);
 
+#ifdef USE_MPE
 void getMpeLogIDs();
+#endif
 
 void describeMpeStates();
 
@@ -124,8 +131,10 @@ void init(int argc, char **argv) {
     // printDebugInfoAndWait();
     printMPIInfo();
 
+#ifdef USE_MPE
     MPE_Init_log();
     getMpeLogIDs();
+#endif
 
     initHDF5Mutex();
 
@@ -154,7 +163,9 @@ void doMasterWork() {
     sigaction(SIGTERM, &action, NULL);
 #endif
 
+#ifdef USE_MPE
     describeMpeStates();
+#endif
 
     startParameterEstimation();
 
@@ -173,8 +184,10 @@ int finalize(clock_t begin) {
 
     logProcessStats();
 
+#ifdef USE_MPE
     logmessage(LOGLVL_DEBUG, "Finalizing MPE log: mpe.log");
     MPE_Finish_log("mpe.log");
+#endif
 
     logmessage(LOGLVL_DEBUG, "Finalizing MPI");
     MPI_Finalize();
@@ -201,22 +214,24 @@ void finalizeTiming(clock_t begin) {
     }
 }
 
-
+#ifdef USE_MPE
 void getMpeLogIDs() {
     MPE_Log_get_state_eventIDs(&mpe_event_begin_simulate, &mpe_event_end_simulate);
     MPE_Log_get_state_eventIDs(&mpe_event_begin_aggregate, &mpe_event_end_aggregate);
     MPE_Log_get_state_eventIDs(&mpe_event_begin_getrefs, &mpe_event_end_getrefs);
     MPE_Log_get_state_eventIDs(&mpe_event_begin_getdrugs, &mpe_event_end_getdrugs);
 }
+#endif
 
 
+#ifdef USE_MPE
 void describeMpeStates() {
     MPE_Describe_state(mpe_event_begin_simulate,  mpe_event_end_simulate,  "simulate",  "blue:gray");
     MPE_Describe_state(mpe_event_begin_aggregate, mpe_event_end_aggregate, "aggregate", "red:gray");
     MPE_Describe_state(mpe_event_begin_getrefs,   mpe_event_end_getrefs,   "getrefs",   "green:gray");
     MPE_Describe_state(mpe_event_begin_getdrugs,  mpe_event_end_getdrugs,  "getdrugs",  "yellow:gray");
 }
-
+#endif
 
 char *getResultFileName() {
     // create directory for each compute node
