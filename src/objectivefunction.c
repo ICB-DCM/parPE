@@ -22,31 +22,30 @@ extern const int mpe_event_begin_aggregate, mpe_event_end_aggregate;
 extern const int mpe_event_begin_getrefs, mpe_event_end_getrefs;
 extern const int mpe_event_begin_getdrugs, mpe_event_end_getdrugs;
 
+/******************************/
 
 // static function prototypes
 static int simulateReferenceExperiments(datapath datapath, int numGenotypes, double llhRef[], double sllhRef[], UserData *udata);
 
 static int simulateDrugExperiments(datapath path, int numGenotypes, double *llhDrug[], double *sllhDrug[], UserData *udata);
 
+static void saveSimulationResults(datapath path);
+
 static void updateInitialConditions(double destination[], const double src[], int count);
 
 static bool reachedSteadyState(const double *xdot, const double *x, int numTimepoints, int numStates, double tolerance);
 
-static double getLogLikelihoodIncrementForExperiment1(const ReturnData *caseSolution, const ReturnData *rdataControl, const ExpData *caseData, double *_growthInhibition);
-
-static double getLogLikelihoodIncrementForExperiment2(const double llhCase, const double llhControl, const double y, const double sigmaY, double *_growthInhibition);
-
-static void updateLogLikelihoodGradientForExperiment1(const ReturnData *caseSolution, const ReturnData *rdataControl, const ExpData *caseData, int numTheta, double inhib, double *dloglik);
-
-static void updateLogLikelihoodGradientForExperiment2(const double llhCase, const double llhControl, const double *sllhCase, const double *sllhControl, const double caseY, const double caseSigmaY, const int numTheta, const double inhib, double *dloglik);
-
 static void aggregateLikelihoodAndGradient(int numGenotypes, datapath path, UserData *udata, double *llhRef, double **llhDrug, double *sllhRef, double **sllhDrug, double *objectiveFunctionValue, double *objectiveFunctionGradient);
 
-static void saveSimulationResults(datapath path);
+static double getLogLikelihoodIncrementForExperiment(const double llhCase, const double llhControl, const double y, const double sigmaY, double *_growthInhibition);
+
+static void updateLogLikelihoodGradientForExperiment(const double llhCase, const double llhControl, const double *sllhCase, const double *sllhControl, const double caseY, const double caseSigmaY, const int numTheta, const double inhib, double *dloglik);
+
 /******************************/
 
 int evaluateObjectiveFunction(const double theta[], const int lenTheta, datapath path,
                               double *objectiveFunctionValue, double *objectiveFunctionGradient, AMI_parameter_scaling scaling) {
+
     UserData *udata = getMyUserData(); // TODO datapath
     udata->am_pscale = scaling;
 
@@ -75,7 +74,7 @@ int evaluateObjectiveFunction(const double theta[], const int lenTheta, datapath
     errors = simulateReferenceExperiments(path, numGenotypes, llhRef, sllhRef, udata);
     MPE_Log_event(mpe_event_end_getrefs, 0, "getrefs");
 
-    if(errors == 0) {
+    if(errors == 0) { // only simulate drug treatments if not prior errors occured
         // result arrays
         double *llhDrug[numGenotypes];
         double *sllhDrug[numGenotypes];
@@ -132,14 +131,14 @@ static void aggregateLikelihoodAndGradient(int numGenotypes, datapath path, User
             ExpData *edata = getExperimentalDataForExperiment(path, udata);
 
             double growthInhibition;
-            double logLikelihoodIncrement = getLogLikelihoodIncrementForExperiment2(llhDrug[genotypeIdx][experimentIdx],
+            double logLikelihoodIncrement = getLogLikelihoodIncrementForExperiment(llhDrug[genotypeIdx][experimentIdx],
                                                                                     llhRef[genotypeIdx],
                                                                                     edata->am_my[0], edata->am_ysigma[0], &growthInhibition);
             // logmessage(LOGLVL_DEBUG, "Agg llh: old: %f inc: %f new: %f (drug: %f ref: %f) \n", logLikelihood, logLikelihoodIncrement, logLikelihood + logLikelihoodIncrement, llhDrug[genotypeIdx][experimentIdx], llhRef[genotypeIdx]);
             logLikelihood += logLikelihoodIncrement;
 
             if(objectiveFunctionGradient) {
-                updateLogLikelihoodGradientForExperiment2(llhDrug[genotypeIdx][experimentIdx], llhRef[genotypeIdx],
+                updateLogLikelihoodGradientForExperiment(llhDrug[genotypeIdx][experimentIdx], llhRef[genotypeIdx],
                                                           &sllhDrug[genotypeIdx][experimentIdx * np], &sllhRef[genotypeIdx * np],
                                                           edata->am_my[0], edata->am_ysigma[0],
                                                           np, growthInhibition, objectiveFunctionGradient);
@@ -163,6 +162,7 @@ static void aggregateLikelihoodAndGradient(int numGenotypes, datapath path, User
         }
     }
 }
+
 
 static int simulateReferenceExperiments(datapath path, int numGenotypes, double llhRef[], double sllhRef[], UserData *udata)
 {
@@ -233,6 +233,7 @@ static int simulateReferenceExperiments(datapath path, int numGenotypes, double 
     return errors;
 }
 
+
 int simulateDrugExperiments(datapath path, int numGenotypes, double *llhDrug[], double *sllhDrug[], UserData *udata)
 {
     int errors = 0;
@@ -297,7 +298,7 @@ int simulateDrugExperiments(datapath path, int numGenotypes, double *llhDrug[], 
     // wait for simulations to finish
     pthread_mutex_lock(&simulationsMutex);
     while(numJobsFinished < numJobsTotal)
-        pthread_cond_wait(&simulationsCond, &simulationsMutex);
+        pthread_cond_wait(&simulationsCond, &simulationsMutex); // TODO: could already queue drug simulations here for each finished controls
     pthread_mutex_unlock(&simulationsMutex);
     pthread_mutex_destroy(&simulationsMutex);
     pthread_cond_destroy(&simulationsCond);
@@ -343,9 +344,21 @@ bool reachedSteadyState(const double xdot[], const double x[], const int numTime
     return TRUE;
 }
 
-static void updateInitialConditions(double destination[], const double src[], const int count) {
-    memcpy(destination, src, count * sizeof(double));
+
+ReturnData *getSteadystateSolutionForExperiment(datapath path, UserData *udata, int *status, ExpData **_edata, int *iterationsDone) {
+    ExpData *edata = getExperimentalDataForExperiment(path, udata);
+
+    ReturnData *rdata = getSteadystateSolution(udata, edata, status, iterationsDone);
+
+    if(_edata) {
+        *_edata = edata;
+    } else {
+        myFreeExpData(edata);
+    }
+
+    return rdata;
 }
+
 
 ReturnData *getSteadystateSolution(UserData *udata, ExpData *edata, int *status, int *iterationDone) {
     // logmessage(LOGLVL_DEBUG, "getSteadystateSolutionForExperiment");
@@ -353,27 +366,31 @@ ReturnData *getSteadystateSolution(UserData *udata, ExpData *edata, int *status,
     ReturnData *rdata;
     bool inSteadyState = FALSE;
     int iterations = 0;
+
     while (!inSteadyState) {
         ++iterations;
+
         rdata = getSimulationResults(udata, edata, status);
         // logmessage(LOGLVL_DEBUG, "llh %e", rdata->am_llhdata[0]); fflush(stdout);
+
         if(*status < 0) {
             error("Failed to integrate."); // TODO add dataset info, case/control, celline
             return rdata;
         }
+
         inSteadyState = reachedSteadyState(xdotdata, xdata, nt, nx, XDOT_REL_TOLERANCE);
 
-        if(inSteadyState)
+        if(inSteadyState) {
             break;
-
-        if(iterations >= 100) {
+        } else if(iterations >= 100) {
             logmessage(LOGLVL_WARNING, "getSteadystateSolutionForExperiment: no steady after %d iterations... aborting...", iterations);
             *status = -1;
             break;
         }
 
-        if(iterations % 10 == 0)
+        if(iterations % 10 == 0) {
             logmessage(LOGLVL_DEBUG, "getSteadystateSolutionForExperiment: no steady state after %d iterations... trying on...", iterations);
+        }
 
         // use previous solution as initial conditions
         updateInitialConditions(x0data, xdata, NUM_STATE_VARIABLES);
@@ -387,60 +404,43 @@ ReturnData *getSteadystateSolution(UserData *udata, ExpData *edata, int *status,
     return rdata;
 }
 
-ReturnData *getSteadystateSolutionForExperiment(datapath path, UserData *udata, int *status, ExpData **_edata, int *iterationsDone) {
-    ExpData *edata = getExperimentalDataForExperiment(path, udata);
 
-    ReturnData *rdata = getSteadystateSolution(udata, edata, status, iterationsDone);
-
-    if(_edata) {
-        *_edata = edata;
-    } else {
-        myFreeExpData(edata);
-    }
-    return rdata;
+static void updateInitialConditions(double destination[], const double src[], const int count) {
+    memcpy(destination, src, count * sizeof(double));
 }
 
-double getLogLikelihoodIncrementForExperiment1(const ReturnData *rdataCase, const ReturnData *rdataControl, const ExpData *caseData, double *_growthInhibition)
-{
-    return getLogLikelihoodIncrementForExperiment2(*rdataCase->am_llhdata, *rdataControl->am_llhdata, caseData->am_my[0], caseData->am_ysigma[0], _growthInhibition);
-}
 
-double getLogLikelihoodIncrementForExperiment2(const double llhCase, const double llhControl, const double y, const double sigmaY, double *_growthInhibition) {
+double getLogLikelihoodIncrementForExperiment(const double llhCase, const double llhControl, const double y, const double sigmaY, double *_growthInhibition) {
+
     double growthInhibitionSimulated = llhCase / llhControl;
-    double weightedError = ((growthInhibitionSimulated - y) / sigmaY);
+    double weightedError = (growthInhibitionSimulated - y) / sigmaY;
 
     if(_growthInhibition)
         *_growthInhibition = growthInhibitionSimulated;
 
     return -0.5 * weightedError * weightedError;
-
 }
 
-void updateLogLikelihoodGradientForExperiment1(const ReturnData *rdataCase, const ReturnData *rdataControl, const ExpData *caseData, const int numTheta, const double inhib, double *dloglik)
-{
-    // TODO need to adapt for multiple outputsrdataControl
-    updateLogLikelihoodGradientForExperiment2(rdataControl->am_llhdata[0], rdataCase->am_llhdata[0],
-            rdataCase->am_sllhdata, rdataControl->am_sllhdata,
-            caseData->am_my[0], caseData->am_ysigma[0], numTheta, inhib, dloglik);
-}
 
-void updateLogLikelihoodGradientForExperiment2(const double llhCase, const double llhControl,
-                                               const double *sllhCase, const double *sllhControl,
-                                               const double caseY, const double caseSigmaY,
-                                               const int numTheta, const double inhib, double *dloglik)
+void updateLogLikelihoodGradientForExperiment(const double llhCase, const double llhControl,
+                                              const double *sllhCase, const double *sllhControl,
+                                              const double caseY, const double caseSigmaY,
+                                              const int numTheta, const double inhib, double *dloglik)
 {
-    // TODO need to adapt for multiple outputs
+    // TODO need to adapt for multiple Y
 
     double llhCtrlSqrd = llhControl * llhControl;
     double ySigmaSqrd = caseSigmaY * caseSigmaY;
     double weightedError = (inhib - caseY) / ySigmaSqrd;
 
     //logmessage(LOGLVL_DEBUG, "getDllh: llh: %e %e ^2 %e sigma2: %e inhibsim: %e inhibmes: %e", llhCase, llhControl, llhCtrlSqrd, ySigmaSqrd, inhib, caseY);
-    for(int i = 0; i < numTheta; ++i) {
-        double dInhib = (sllhCase[i] * llhControl - llhCase * sllhControl[i]) / llhCtrlSqrd;
+
+    for(int paramIdx = 0; paramIdx < numTheta; ++paramIdx) {
+        double dInhib = (sllhCase[paramIdx] * llhControl - llhCase * sllhControl[paramIdx]) / llhCtrlSqrd;
+        dloglik[paramIdx] -= weightedError * dInhib;
+
         //if(fabs(sllhCase[i]) > 1E-16 || fabs(sllhControl[i]) > 1E-16)
         //    logmessage(LOGLVL_DEBUG, "\ti = %d dInhib: %e sCase %e sCtrl %e", i,  dInhib, sllhCase[i], sllhControl[i]);
-        dloglik[i] -= weightedError * dInhib ;
     }
 }
 
