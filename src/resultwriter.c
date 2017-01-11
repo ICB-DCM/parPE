@@ -10,9 +10,35 @@
                                 H5Eset_auto1(NULL, NULL);
 #define H5_RESTORE_ERROR_HANDLER H5Eset_auto1(old_func, old_client_data);
 
-
 static hid_t file_id = 0;
 extern pthread_mutex_t mutexHDF;
+
+
+// TODO
+static bool hdf5DatasetExists(hid_t file_id, const char *datasetName);
+
+static bool hdf5GroupExists(hid_t file_id, const char *groupName);
+
+static void hdf5CreateGroup(hid_t file_id, const char *groupPath, bool recursively);
+
+static void hdf5CreateExtendableDouble2DArray(hid_t file_id, const char* datasetPath, int stride);
+
+static void hdf5CreateExtendableInt2DArray(hid_t file_id, const char* datasetPath, int stride);
+
+static void hdf5CreateExtendableDouble3DArray(hid_t file_id, const char *datasetPath, int stride1, int stride2);
+
+static void hdf5Extend2ndDimensionAndWriteToDouble2DArray(hid_t file_id, const char *datasetPath, const double *buffer);
+
+static void hdf5Extend2ndDimensionAndWriteToInt2DArray(hid_t file_id, const char *datasetPath, const int *buffer);
+
+static void hdf5CreateOrExtendAndWriteToDouble2DArray(hid_t file_id, const char *parentPath, const char *datasetName, const double *buffer, int stride);
+
+static void hdf5CreateOrExtendAndWriteToInt2DArray(hid_t file_id, const char *parentPath, const char *datasetName, const int *buffer, int stride);
+
+static void hdf5CreateOrExtendAndWriteToDouble3DArray(hid_t file_id, const char *parentPath, const char *datasetName, const double *buffer, int stride1, int stride2);
+
+static char *myStringCat(const char *first, const char *second);
+
 
 int initResultHDFFile(const char *filename)
 {

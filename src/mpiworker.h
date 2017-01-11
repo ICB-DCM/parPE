@@ -30,8 +30,6 @@ void deserializeResultPackageMessage(char *buffer, int nTheta, int *status, doub
 
 void doWorkerWork();
 
-resultPackageMessage handleWorkPackage(const char *buffer, UserData *udata, ReturnData **prdata, int tag);
-
 void sendTerminationSignalToAllWorkers();
 
 #endif

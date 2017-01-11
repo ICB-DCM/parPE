@@ -18,6 +18,8 @@
 #include <signal.h>
 #endif
 
+#include <include/amici.h>
+
 #include "mpiworker.h"
 #include "localoptimization.h"
 #include "objectivefunction.h"

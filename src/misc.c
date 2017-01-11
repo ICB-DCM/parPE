@@ -2,12 +2,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <include/symbolic_functions.h>
 #include <stdarg.h>
 #include <mpi.h>
 #include <time.h>
 #include <alloca.h>
 #include <unistd.h>
+#include <math.h>
 #include <sys/stat.h>
 
 const char *loglevelShortStr[] = {"", "CRI", "ERR", "WRN", "INF", "DBG"};
@@ -119,13 +119,13 @@ void logmessage(loglevel lvl, const char *format, ...)
     printf(ANSI_COLOR_RESET "\n");
 }
 
-void printMatlabArray(const double *buffer, int len)
-{
-    printf("[");
-    printfArray(buffer, len - 1, "%e, ");
-    printf("%e]\n", buffer[len - 1]);
-    fflush(stdout);
-}
+//void printMatlabArray(const double *buffer, int len)
+//{
+//    printf("[");
+//    printfArray(buffer, len - 1, "%e, ");
+//    printf("%e]\n", buffer[len - 1]);
+//    fflush(stdout);
+//}
 
 void logProcessStats()
 {

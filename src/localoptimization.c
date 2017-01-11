@@ -6,8 +6,15 @@
 #include <time.h>
 #include <signal.h>
 #include <alloca.h>
+
+#include <IpStdCInterface.h>
+#include <include/amici.h>
+
 #include "misc.h"
 #include "objectivefunction.h"
+#include "resultwriter.h"
+
+#define IPTOPT_LOG_FILE "/home/dweindl/src/CanPathProSSH/dw/ipopt.log"
 
 #ifdef INSTALL_SIGNAL_HANDLER
 extern volatile sig_atomic_t caughtTerminationSignal;

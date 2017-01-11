@@ -5,6 +5,7 @@
 #include "dataprovider.h"
 #include "localoptimization.h"
 #include "misc.h"
+
 #include "masterqueue.h"
 
 void startParameterEstimation() {

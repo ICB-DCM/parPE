@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <stdbool.h>
+#include <limits.h>
 
 typedef struct masterQueueElement_tag {
     queueData *data;

@@ -25,7 +25,7 @@ typedef enum loglevel_tag {LOGLVL_CRITICAL = 1, LOGLVL_ERROR, LOGLVL_WARNING, LO
 
 void logmessage(loglevel lvl, const char *format, ...);
 
-void printMatlabArray(const double *buffer, int len);
+//void printMatlabArray(const double *buffer, int len);
 
 void logProcessStats();
 
@@ -41,5 +41,4 @@ void printDebugInfoAndWait();
 void createDirectoryIfNotExists(char *dirName);
 
 void strFormatCurrentLocaltime(char *buffer, size_t bufferSize, const char *format);
-
 #endif

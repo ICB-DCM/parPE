@@ -10,10 +10,14 @@
 #include <string.h>
 #include <assert.h>
 #include <unistd.h>
-#include <include/udata_accessors.h>
-#include <include/rdata_accessors.h>
+
+#include <masterqueue.h>
 #include "misc.h"
 #include "mpiworker.h"
+
+#include <include/amici.h>
+#include <include/udata_accessors.h>
+#include <include/rdata_accessors.h>
 
 #define MIN(a,b) (((a)<(b))?(a):(b))
 

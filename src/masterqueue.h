@@ -3,14 +3,10 @@
 
 #include <mpi.h>
 #include <pthread.h>
-#include <dataprovider.h>
 
 //#define MASTER_QUEUE_H_SHOW_COMMUNICATION
 
-// callback function to provide simulation results to
-typedef void (*queueSimulationFinished_cb) (void *);
-
-// data to be sent to workers
+/** data to be sent to workers */
 typedef struct queueData_tag {
     int lenSendBuffer;
     char *sendBuffer;
@@ -18,9 +14,10 @@ typedef struct queueData_tag {
     int lenRecvBuffer;
     char *recvBuffer;
 
-    // incremented by one, once the results have been received
+    /** incremented by one, once the results have been received */
     int *jobDone;
-    // is signaled after jobDone has been incremented
+
+    /** is signaled after jobDone has been incremented */
     pthread_cond_t *jobDoneChangedCondition;
     pthread_mutex_t *jobDoneChangedMutex;
 
@@ -32,4 +29,5 @@ void initMasterQueue();
 void queueSimulation(queueData *jobData);
 
 void terminateMasterQueue();
+
 #endif

@@ -4,12 +4,17 @@
 #include <mpe.h>
 #include <assert.h>
 #include <alloca.h>
+
+#include <include/rdata.h>
+
 #include "objectivefunction.h"
 #include "dataprovider.h"
 #include "resultwriter.h"
 #include "misc.h"
 
 extern const int mpe_event_begin_simulate, mpe_event_end_simulate;
+
+static resultPackageMessage handleWorkPackage(const char *buffer, UserData *udata, ReturnData **prdata, int tag);
 
 void doWorkerWork() {
     int rank, err;

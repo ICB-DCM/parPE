@@ -11,8 +11,8 @@
 
 #include <hdf5.h>
 #include <hdf5_hl.h>
-#include <include/symbolic_functions.h>
-#include <include/amici.h>
+#include <include/udata.h>
+#include <include/edata.h>
 #include "misc.h"
 
 typedef struct datapath_tag {
