@@ -103,7 +103,7 @@ void getFeasibleInitialTheta(datapath dataPath, Number *initialTheta, AMI_parame
     logmessage(LOGLVL_INFO, "%s Finding feasible initial theta...", strPath);
 
     while(!feasible) {
-        getInitialTheta(dataPath, initialTheta, scaling);
+        getRandomInitialThetaFromFile(dataPath, initialTheta, scaling);
 
         double objFunVal = NAN;
         int status = evaluateObjectiveFunction(initialTheta, getLenTheta(), dataPath, &objFunVal, NULL, scaling);

@@ -16,11 +16,11 @@
 #include "misc.h"
 
 typedef struct datapath_tag {
-    int idxMultiStart; // current multistart batch (e.g. for crossvalidation)
-    int idxLocalOptimization; // current start index in multistart run
-    int idxLocalOptimizationIteration; // iteration of local solver
-    int idxGenotype;
-    int idxExperiment;
+    int idxMultiStart;                 /** current multistart batch (e.g. for crossvalidation) */
+    int idxLocalOptimization;          /** current start index in multistart run */
+    int idxLocalOptimizationIteration; /** iteration of local solver */
+    int idxGenotype;                   /** genotype index (starting from 1!!) */
+    int idxExperiment;                 /** experiment index */
 } datapath;
 
 void printDatapath(datapath p);
@@ -45,39 +45,66 @@ int getLenTheta();
 
 int getLenKappa();
 
+/**
+ * @brief getThetaLowerBounds Get lower parameter bounds
+ * @param dataPath (not yet used)
+ * @param buffer allocated memory to write parameter bounds
+ * @param scaling scaling methods for parameter bounds
+ */
+
 void getThetaLowerBounds(datapath dataPath, double *buffer, AMI_parameter_scaling scaling);
+
+/**
+ * @brief getThetaUpperBounds Get upper parameter bounds
+ * @param dataPath (not yet used)
+ * @param buffer allocated memory to write parameter bounds
+ * @param scaling scaling methods for parameter bounds
+ */
 
 void getThetaUpperBounds(datapath dataPath, double *buffer, AMI_parameter_scaling scaling);
 
-void getInitialTheta(datapath dataPath, double *buffer, AMI_parameter_scaling scaling);
+/**
+ * @brief getInitialThetaLHS Get random starting parameters using latin hypercube sampling. TODO: check LHS code
+ * @param dataPath
+ * @param buffer
+ * @param scaling
+ */
+
+void getInitialThetaLHS(datapath dataPath, double *buffer, AMI_parameter_scaling scaling);
+
+/**
+ * @brief getFeasibleInitialThetaFromFile Get user-provided initial theta TODO: can be removed?
+ * @param dataPath
+ * @param buffer
+ * @param scaling
+ */
 
 void getFeasibleInitialThetaFromFile(datapath dataPath, double *buffer, AMI_parameter_scaling scaling);
 
+/**
+ * @brief getRandomInitialThetaFromFile Get a initial parameter vector from a pregenerated list of random vectors
+ * @param dataPath
+ * @param buffer
+ * @param scaling NOT USED
+ */
+
 void getRandomInitialThetaFromFile(datapath dataPath, double *buffer, AMI_parameter_scaling scaling);
 
-int getNumberOfSimulationForObjectiveFunction(datapath path);
+int getNumberOfSimulationForObjectiveFunction(datapath path); // Not used
 
 UserData *getMyUserData(); // TODO: specific for each multistart run
 
-void readFixedParameters(int dataMatrixRow, UserData *udata);
-
 ExpData *getExperimentalDataForExperiment(datapath dpath, UserData *udata);
 
-// TODO void logmessage(loglevel lvl, datapath path, const char *format, ...);
+herr_t hdf5ErrorStackWalker_cb(unsigned int n, const H5E_error_t *err_desc, void *client_data); // TODO: also use for resultwriter
 
+void dataproviderPrintInfo();
+
+// TODO void logmessage(loglevel lvl, datapath path, const char *format, ...);
 
 // Workaround to delete ExpData memory allocated by getExperimentalDataForExperiment, since AMICI freeExpData cannot be used (new[] vs malloc issue)
 void myFreeExpData(ExpData *edata);
 
 void freeUserDataC(UserData *udata);
-
-herr_t hdf5ErrorStackWalker_cb(unsigned int n, const H5E_error_t *err_desc, void *client_data);
-
-// malloc version of ami_hdf5.cpp
-void getDoubleArrayAttributeC(hid_t file_id, const char* optionsObject, const char* attributeName, double **destination, hsize_t *length);
-
-void getIntArrayAttributeC(hid_t file_id, const char* optionsObject, const char* attributeName, int **destination, hsize_t *length);
-
-void dataproviderPrintInfo();
 
 #endif

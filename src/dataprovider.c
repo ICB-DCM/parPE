@@ -16,12 +16,22 @@
                                 void *old_client_data; \
                                 H5Eget_auto1(&old_func, &old_client_data); \
                                 H5Eset_auto1(NULL, NULL);
+
 #define H5_RESTORE_ERROR_HANDLER H5Eset_auto1(old_func, old_client_data);
 
 static hid_t file_id;
 
 // TODO check docs if this can be avoided
 extern pthread_mutex_t mutexHDF;
+
+
+static void readFixedParameters(int dataMatrixRow, UserData *udata);
+
+// malloc version of ami_hdf5.cpp
+static void getDoubleArrayAttributeC(hid_t file_id, const char* optionsObject, const char* attributeName, double **destination, hsize_t *length);
+static void getIntArrayAttributeC(hid_t file_id, const char* optionsObject, const char* attributeName, int **destination, hsize_t *length);
+
+
 
 int initDataProvider(const char *hdf5Filename) {
 
@@ -431,7 +441,7 @@ void getRandomInitialThetaFromFile(datapath dataPath, double *buffer, AMI_parame
     pthread_mutex_unlock(&mutexHDF);
 }
 
-void getInitialTheta(datapath dataPath, double *buffer, AMI_parameter_scaling scaling)
+void getInitialThetaLHS(datapath dataPath, double *buffer, AMI_parameter_scaling scaling)
 {
     // zeros(buffer, getLenTheta());
     int lenTheta = getLenTheta();
