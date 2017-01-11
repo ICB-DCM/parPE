@@ -4,6 +4,7 @@
 #include "masterthread.h"
 #include "dataprovider.h"
 #include "localoptimization.h"
+#include "objectivefunction.h"
 #include "misc.h"
 
 #include "masterqueue.h"
@@ -97,16 +98,44 @@ void *newMultiStartOptimization(void *multiStartIndexVP) {
 
 void *newLocalOptimization(void *idVP) {
     int id = *(int *) idVP;
-    datapath datapath = {INT_MIN};
+    datapath path = {INT_MIN};
 
-    datapath.idxMultiStart = id / 1000;
-    datapath.idxLocalOptimization = id % 1000;
+    path.idxMultiStart = id / 1000;
+    path.idxLocalOptimization = id % 1000;
 
     // TODO pass options object, also add IpOpt options to config file
-    logmessage(LOGLVL_DEBUG, "Starting newLocalOptimization #%d.%d", datapath.idxMultiStart, datapath.idxLocalOptimization);
+    logmessage(LOGLVL_DEBUG, "Starting newLocalOptimization #%d.%d", path.idxMultiStart, path.idxLocalOptimization);
     int *status = malloc(sizeof(int));
-    *status = getLocalOptimum(datapath);
-    logmessage(LOGLVL_DEBUG, "Finished newLocalOptimization #%d.%d", datapath.idxMultiStart, datapath.idxLocalOptimization);
+    *status = getLocalOptimum(path);
+    logmessage(LOGLVL_DEBUG, "Finished newLocalOptimization #%d.%d", path.idxMultiStart, path.idxLocalOptimization);
 
     return status;
+}
+
+void startObjectiveFunctionGradientCheck()
+{
+    initMasterQueue();
+
+    int lenTheta = getLenTheta();
+    double *theta = malloc(sizeof(double) * lenTheta);
+
+    datapath path;
+    path.idxMultiStart = 0;
+    path.idxLocalOptimization = 0;
+    path.idxLocalOptimizationIteration = 0;
+    path.idxGenotype = 0;
+    path.idxExperiment = 0;
+
+    double epsilon = 1e-6;
+
+    int *parameterIndices = malloc(sizeof(int) * lenTheta);
+    for(size_t i = 0; i < lenTheta; ++i)
+        parameterIndices[i] = i;
+    shuffle(parameterIndices, lenTheta);
+
+    objectiveFunctionGradientCheck(theta, lenTheta, path, AMI_SCALING_LOG10, parameterIndices, 50, epsilon);
+
+    free(theta);
+
+    terminateMasterQueue();
 }

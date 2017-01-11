@@ -44,4 +44,6 @@ ReturnData *getSteadystateSolution(UserData *udata, ExpData *edata, int *status,
 
 ReturnData *getSteadystateSolutionForExperiment(datapath path, UserData *udata, int *status, ExpData **_edata, int *iterationsDone);
 
+
+void objectiveFunctionGradientCheck(const double theta[], const int lenTheta, datapath path, AMI_parameter_scaling scaling, const int parameterIndices[], int numParameterIndices, double epsilon);
 #endif

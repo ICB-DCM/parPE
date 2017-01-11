@@ -4,27 +4,21 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <time.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <alloca.h>
 #include <pthread.h>
 #include <mpi.h>
-#include <mpe.h>
 #include <getopt.h>
+
+#ifdef USE_MPE
+#include <mpe.h>
+#endif
 
 #undef INSTALL_SIGNAL_HANDLER
 #ifdef INSTALL_SIGNAL_HANDLER
 #include <signal.h>
 #endif
 
-#include <include/amici.h>
-
 #include "mpiworker.h"
-#include "localoptimization.h"
-#include "objectivefunction.h"
 #include "resultwriter.h"
-#include "masterqueue.h"
 #include "masterthread.h"
 #include "dataprovider.h"
 #include "misc.h"
@@ -34,24 +28,18 @@ volatile sig_atomic_t caughtTerminationSignal = 0;
 void term(int sigNum) { caughtTerminationSignal = 1; }
 #endif
 
-void printMPIInfo();
-void getMpeLogIDs();
-void describeMpeStates();
-char *getResultFileName();
-void startParameterEstimation();
-void printDebugInfoAndWait();
-void initHDF5Mutex();
-int parseOptions(int argc, char **argv);
-
+#ifdef USE_MPE
 // MPE event IDs for logging
 int mpe_event_begin_simulate, mpe_event_end_simulate;
 int mpe_event_begin_getrefs, mpe_event_end_getrefs;
 int mpe_event_begin_getdrugs, mpe_event_end_getdrugs;
 int mpe_event_begin_aggregate, mpe_event_end_aggregate;
+#endif
 
 // global mutex for HDF5 library calls
 pthread_mutex_t mutexHDF;
 
+// program options
 static struct option const long_options[] = {
     {"debug", no_argument, NULL, 'd'},
     {"print-worklist", no_argument, NULL, 'p'},
@@ -60,6 +48,7 @@ static struct option const long_options[] = {
     {NULL, 0, NULL, 0}
 };
 
+// HDF5 file for reading options and data
 static const char *inputFile;
 
 // intercept malloc calls & check results
@@ -77,126 +66,75 @@ inline void *malloc(size_t size)
     return p;
 }
 
-int benchmarkObj(const double *theta, double *llh) {
-    int status;
-    datapath dp;
-    dp.idxExperiment = 1;
-    dp.idxGenotype = 1;
-    dp.idxLocalOptimization = 0;
-    dp.idxLocalOptimizationIteration = 0;
-    dp.idxMultiStart = 0;
-    UserData *udata = getMyUserData();
-    //int iterationsDone = 0;
+void init(int argc, char **argv);
 
-    udata->am_sensi_meth = 0;
-    //ReturnData *rdata = getSteadystateSolutionForExperiment(dp, udata, &status, 0, &iterationsDone);
+void doMasterWork();
 
-    memcpy(udata->am_p, theta, sizeof(double) * NUM_OPTIMIZATION_PARAMS);
-    ExpData *edata = getExperimentalDataForExperiment(dp, udata);
+int finalize(clock_t begin);
 
-    ReturnData *rdata = getSimulationResults(udata, edata, &status);
+void finalizeTiming(clock_t begin);
 
-    *llh = *rdata->am_llhdata;
+#ifdef USE_MPE
+void getMpeLogIDs();
+#endif
 
-    myFreeExpData(edata);
-    freeUserDataC(udata);
-    freeReturnData(rdata);
+void describeMpeStates();
 
-    return 0;
-}
+char *getResultFileName();
 
+void initHDF5Mutex();
 
-int benchmarkObjGrad(const double *theta, double *gradient) {
-    int status;
-    datapath dp;
-    dp.idxExperiment = 1;
-    dp.idxGenotype = 1;
-    dp.idxLocalOptimization = 0;
-    dp.idxLocalOptimizationIteration = 0;
-    dp.idxMultiStart = 0;
-    UserData *udata = getMyUserData();
-    udata->am_sensi_meth = 2;
+int parseOptions(int argc, char **argv);
 
-    //int iterationsDone = 0;
-    //ReturnData *rdata = getSteadystateSolutionForExperiment(dp, udata, &status, 0, &iterationsDone);
-
-    memcpy(udata->am_p, theta, sizeof(double) * NUM_OPTIMIZATION_PARAMS);
-    ExpData *edata = getExperimentalDataForExperiment(dp, udata);
-
-    ReturnData *rdata = getSimulationResults(udata, edata, &status);
-
-    memcpy(gradient, rdata->am_sllhdata, sizeof(double) * NUM_OPTIMIZATION_PARAMS);
-
-    myFreeExpData(edata);
-    freeUserDataC(udata);
-    freeReturnData(rdata);
-
-    return 0;
-}
 
 int main(int argc, char **argv)
 {
-    int status = 0;
+    clock_t begin = clock();
 
-    status = parseOptions(argc, argv);
-    if(status)
-        return status;
+    init(argc, argv);
 
-    initHDF5Mutex();
-    logmessage(LOGLVL_INFO, "Reading options and data from '%s'.", inputFile);
-    status = initDataProvider(inputFile);
-    datapath dp;
-    dp.idxExperiment = 1;
-    dp.idxGenotype = 1;
-    dp.idxLocalOptimization = 0;
-    dp.idxLocalOptimizationIteration = 0;
-    dp.idxMultiStart = 0;
+    int mpiRank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
 
-    double theta[NUM_OPTIMIZATION_PARAMS];
-    getRandomInitialThetaFromFile(dp, theta, AMI_SCALING_LOG10);
-    int indices[NUM_OPTIMIZATION_PARAMS];
-    for(int i = 0; i < NUM_OPTIMIZATION_PARAMS; ++i)
-        indices[i] = i;
-    for(int i = 0; i < NUM_OPTIMIZATION_PARAMS; ++i) {
-        int a = rand() / (double) RAND_MAX * NUM_OPTIMIZATION_PARAMS;
-        int tmp = indices[a];
-        indices[a] = indices[i];
-        indices[i] = tmp;
+    if(mpiRank == 0) {
+        doMasterWork();
+    } else {
+        doWorkerWork();
     }
 
-    checkGradient(benchmarkObj, benchmarkObjGrad, NUM_OPTIMIZATION_PARAMS, theta, 1e-8, indices, NUM_OPTIMIZATION_PARAMS);
+    return finalize(begin);
+}
 
-    exit(0);
-
+void init(int argc, char **argv) {
     // Seed random number generator
     srand(1337);
 
-    int mpiCommSize, mpiRank, mpiErr;
-
+    int status;
     status = parseOptions(argc, argv);
     if(status)
-        return status;
+        exit(status);
 
-    mpiErr = MPI_Init(&argc, &argv);
+    int mpiErr = MPI_Init(&argc, &argv);
     if(mpiErr != MPI_SUCCESS) {
         logmessage(LOGLVL_CRITICAL, "Problem initializing MPI. Exiting.");
         exit(1);
     }
 
+    int mpiCommSize;
     MPI_Comm_size(MPI_COMM_WORLD, &mpiCommSize);
-    MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
+
     if(mpiCommSize < 2) {
         logmessage(LOGLVL_CRITICAL, "Need at least 2 MPI processes. Exiting.");
         exit(1);
     }
 
-    double startTime = MPI_Wtime();
-
     // printDebugInfoAndWait();
     printMPIInfo();
 
+#ifdef USE_MPE
     MPE_Init_log();
     getMpeLogIDs();
+#endif
 
     initHDF5Mutex();
 
@@ -204,71 +142,96 @@ int main(int argc, char **argv)
     status = initDataProvider(inputFile);
 
     if(status != 0)
-        exit(1);
+        exit(status);
 
     char *resultFileName = getResultFileName();
     status = initResultHDFFile(resultFileName);
     free(resultFileName);
-    if(status != 0)
-        exit(1);
 
-    if(mpiRank == 0) {
-        dataproviderPrintInfo();
+    if(status != 0)
+        exit(status);
+}
+
+
+void doMasterWork() {
+
+    dataproviderPrintInfo();
 
 #ifdef INSTALL_SIGNAL_HANDLER
-        struct sigaction action;
-        action.sa_handler = term;
-        sigaction(SIGTERM, &action, NULL);
+    struct sigaction action;
+    action.sa_handler = term;
+    sigaction(SIGTERM, &action, NULL);
 #endif
-        describeMpeStates();
 
-        startParameterEstimation();
+#ifdef USE_MPE
+    describeMpeStates();
+#endif
 
-        sendTerminationSignalToAllWorkers();
+    startObjectiveFunctionGradientCheck();
 
-    } else {
-        doWorkerWork();
-    }
+    sendTerminationSignalToAllWorkers();
+}
+
+
+int finalize(clock_t begin) {
+    finalizeTiming(begin);
 
     closeDataProvider();
-
-    double endTime = MPI_Wtime();
-    double wallTimeSeconds = (endTime - startTime);
-
-    double totalTimeInSeconds = 0;
-    MPI_Reduce(&wallTimeSeconds, &totalTimeInSeconds, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
-
-    if(mpiRank == 0) {
-        logmessage(LOGLVL_INFO, "Walltime: %fs, total compute time:%fs", wallTimeSeconds, totalTimeInSeconds);
-        saveTotalWalltime(totalTimeInSeconds);
-    }
 
     closeResultHDFFile();
 
     pthread_mutex_destroy(&mutexHDF);
 
-    logProcessStats();
+//    logProcessStats();
 
+#ifdef USE_MPE
     logmessage(LOGLVL_DEBUG, "Finalizing MPE log: mpe.log");
     MPE_Finish_log("mpe.log");
+#endif
 
     logmessage(LOGLVL_DEBUG, "Finalizing MPI");
     MPI_Finalize();
+
+    return 0;
 }
 
+
+void finalizeTiming(clock_t begin) {
+    // wall-time for current process
+    clock_t end = clock();
+    double wallTimeSeconds = (double)(end - begin) / CLOCKS_PER_SEC;
+
+    // total run-time
+    double totalTimeInSeconds = 0;
+    MPI_Reduce(&wallTimeSeconds, &totalTimeInSeconds, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+
+    int mpiRank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
+
+    if(mpiRank == 0) {
+        logmessage(LOGLVL_INFO, "Walltime: %fs, total compute time:%fs", wallTimeSeconds, totalTimeInSeconds);
+        saveTotalWalltime(totalTimeInSeconds);
+    }
+}
+
+#ifdef USE_MPE
 void getMpeLogIDs() {
     MPE_Log_get_state_eventIDs(&mpe_event_begin_simulate, &mpe_event_end_simulate);
     MPE_Log_get_state_eventIDs(&mpe_event_begin_aggregate, &mpe_event_end_aggregate);
     MPE_Log_get_state_eventIDs(&mpe_event_begin_getrefs, &mpe_event_end_getrefs);
     MPE_Log_get_state_eventIDs(&mpe_event_begin_getdrugs, &mpe_event_end_getdrugs);
 }
+#endif
 
+
+#ifdef USE_MPE
 void describeMpeStates() {
     MPE_Describe_state(mpe_event_begin_simulate,  mpe_event_end_simulate,  "simulate",  "blue:gray");
     MPE_Describe_state(mpe_event_begin_aggregate, mpe_event_end_aggregate, "aggregate", "red:gray");
     MPE_Describe_state(mpe_event_begin_getrefs,   mpe_event_end_getrefs,   "getrefs",   "green:gray");
     MPE_Describe_state(mpe_event_begin_getdrugs,  mpe_event_end_getdrugs,  "getdrugs",  "yellow:gray");
 }
+#endif
 
 char *getResultFileName() {
     // create directory for each compute node
@@ -276,21 +239,10 @@ char *getResultFileName() {
     int procNameLen;
     MPI_Get_processor_name(procName, &procNameLen);
 
-    struct stat st = {0};
-
-    if (stat(procName, &st) == -1) {
-        mkdir(procName, 0700);
-    }
-
-    // generate file name
-    time_t timer;
-    time(&timer);
-
-    struct tm* tm_info;
-    tm_info = localtime(&timer);
+    createDirectoryIfNotExists(procName);
 
     char tmpFileName[200];
-    strftime(tmpFileName, 200, "%%s/CPP_%Y-%m-%d_%H%M%S_%%05d.h5", tm_info);
+    strFormatCurrentLocaltime(tmpFileName, 200, "%%s/CPP_%Y-%m-%d_%H%M%S_%%05d.h5");
 
     int mpiRank;
     MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
@@ -300,6 +252,7 @@ char *getResultFileName() {
 
     return fileName;
 }
+
 
 void initHDF5Mutex() {
     pthread_mutexattr_t attr;
@@ -350,3 +303,5 @@ int parseOptions (int argc, char **argv) {
 
     return 0;
 }
+
+
