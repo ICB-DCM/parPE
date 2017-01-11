@@ -5,6 +5,36 @@
 #include "dataprovider.h"
 #include "localoptimization.h"
 #include "misc.h"
+#include "masterqueue.h"
+
+void startParameterEstimation() {
+    initMasterQueue();
+
+    // create threads for multistart batches
+    int numMultiStartRuns = getNumMultiStartRuns();
+    pthread_t *multiStartThreads = alloca(numMultiStartRuns * sizeof(pthread_t));
+
+    pthread_attr_t threadAttr;
+    pthread_attr_init(&threadAttr);
+    pthread_attr_setdetachstate(&threadAttr, PTHREAD_CREATE_JOINABLE);
+
+    int ids[numMultiStartRuns]; // need to keep, since passed by ref to new thread
+    for(int k = 0; k < numMultiStartRuns; ++k) {
+        ids[k] = k;
+        pthread_create(&multiStartThreads[k], &threadAttr, newMultiStartOptimization, (void *)&ids[k]);
+    }
+    pthread_attr_destroy(&threadAttr);
+
+    // wait for finish
+    for(int k = 0; k < numMultiStartRuns; ++k) {
+        pthread_join(multiStartThreads[k], NULL);
+        logmessage(LOGLVL_DEBUG, "Thread k %d finished", k);
+    }
+    logmessage(LOGLVL_DEBUG, "All k threads finished.");
+
+    terminateMasterQueue();
+}
+
 
 void *newMultiStartOptimization(void *multiStartIndexVP) {
     int multiStartIndex = *(int *) multiStartIndexVP;

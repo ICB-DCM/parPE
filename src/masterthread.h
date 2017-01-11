@@ -3,6 +3,7 @@
 
 #include <pthread.h>
 
+void startParameterEstimation();
 void *newMultiStartOptimization(void *multiStartIndexVP);
 void *newLocalOptimization(void *idVP);
 

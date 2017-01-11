@@ -7,6 +7,8 @@
 #include <mpi.h>
 #include <time.h>
 #include <alloca.h>
+#include <unistd.h>
+#include <sys/stat.h>
 
 const char *loglevelShortStr[] = {"", "CRI", "ERR", "WRN", "INF", "DBG"};
 
@@ -176,4 +178,47 @@ int checkGradient(objectiveFunction objFun, objectiveFunctionGradient objFunGrad
     }
 
     return 0;
+}
+
+
+void printMPIInfo() {
+    int mpiCommSize, mpiRank;
+    MPI_Comm_size(MPI_COMM_WORLD, &mpiCommSize);
+    MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
+
+    char procName[MPI_MAX_PROCESSOR_NAME];
+    int procNameLen;
+    MPI_Get_processor_name(procName, &procNameLen);
+
+    logmessage(LOGLVL_DEBUG, "Rank %d/%d running on %s.", mpiRank, mpiCommSize, procName);
+}
+
+
+void printDebugInfoAndWait() {
+    //int i = 0;
+    char hostname[256];
+    gethostname(hostname, sizeof(hostname));
+    logmessage(LOGLVL_DEBUG, "PID %d on %s ready for attach", getpid(), hostname);
+    fflush(stdout);
+    //while (0 == i)
+        sleep(15);
+}
+
+void createDirectoryIfNotExists(char *dirName)
+{
+    struct stat st = {0};
+
+    if (stat(dirName, &st) == -1) {
+        mkdir(dirName, 0700);
+    }
+}
+
+void strFormatCurrentLocaltime(char *buffer, size_t bufferSize, const char *format) {
+    time_t timer;
+    time(&timer);
+
+    struct tm* tm_info;
+    tm_info = localtime(&timer);
+
+    strftime(buffer, bufferSize, format, tm_info);
 }

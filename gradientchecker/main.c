@@ -36,7 +36,7 @@ void printMPIInfo();
 void getMpeLogIDs();
 void describeMpeStates();
 char *getResultFileName();
-void doMasterWork();
+void startParameterEstimation();
 void printDebugInfoAndWait();
 void initHDF5Mutex();
 int parseOptions(int argc, char **argv);
@@ -220,7 +220,7 @@ int main(int argc, char **argv)
 #endif
         describeMpeStates();
 
-        doMasterWork();
+        startParameterEstimation();
 
         sendTerminationSignalToAllWorkers();
 
@@ -252,28 +252,6 @@ int main(int argc, char **argv)
 
     logmessage(LOGLVL_DEBUG, "Finalizing MPI");
     MPI_Finalize();
-}
-
-void printMPIInfo() {
-    int mpiCommSize, mpiRank;
-    MPI_Comm_size(MPI_COMM_WORLD, &mpiCommSize);
-    MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
-
-    char procName[MPI_MAX_PROCESSOR_NAME];
-    int procNameLen;
-    MPI_Get_processor_name(procName, &procNameLen);
-
-    logmessage(LOGLVL_DEBUG, "Rank %d/%d running on %s.", mpiRank, mpiCommSize, procName);
-}
-
-void printDebugInfoAndWait() {
-    //int i = 0;
-    char hostname[256];
-    gethostname(hostname, sizeof(hostname));
-    logmessage(LOGLVL_DEBUG, "PID %d on %s ready for attach", getpid(), hostname);
-    fflush(stdout);
-    //while (0 == i)
-        sleep(15);
 }
 
 void getMpeLogIDs() {
@@ -319,34 +297,6 @@ char *getResultFileName() {
     sprintf(fileName, tmpFileName, procName, mpiRank);
 
     return fileName;
-}
-
-void doMasterWork() {
-    initMasterQueue();
-
-    // create threads for multistart batches
-    int numMultiStartRuns = getNumMultiStartRuns();
-    pthread_t *multiStartThreads = alloca(numMultiStartRuns * sizeof(pthread_t));
-
-    pthread_attr_t threadAttr;
-    pthread_attr_init(&threadAttr);
-    pthread_attr_setdetachstate(&threadAttr, PTHREAD_CREATE_JOINABLE);
-
-    int ids[numMultiStartRuns]; // need to keep, since passed by ref to new thread
-    for(int k = 0; k < numMultiStartRuns; ++k) {
-        ids[k] = k;
-        pthread_create(&multiStartThreads[k], &threadAttr, newMultiStartOptimization, (void *)&ids[k]);
-    }
-    pthread_attr_destroy(&threadAttr);
-
-    // wait for finish
-    for(int k = 0; k < numMultiStartRuns; ++k) {
-        pthread_join(multiStartThreads[k], NULL);
-        logmessage(LOGLVL_DEBUG, "Thread k %d finished", k);
-    }
-    logmessage(LOGLVL_DEBUG, "All k threads finished.");
-
-    terminateMasterQueue();
 }
 
 void initHDF5Mutex() {
