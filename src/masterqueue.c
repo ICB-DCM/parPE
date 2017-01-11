@@ -15,6 +15,7 @@ typedef struct masterQueueElement_tag {
     struct masterQueueElement_tag *nextElement;
 } masterQueueElement;
 
+static bool queueCreated = false;
 static masterQueueElement *queueStart = 0;
 static masterQueueElement *queueEnd = 0;
 static int lastJobId = 0;
@@ -38,8 +39,6 @@ static void receiveFinished(int workerID, int jobID);
 
 
 void initMasterQueue() {
-    static bool queueCreated = false;
-
     // There can only be one queue
     if(!queueCreated) {
         // Create semaphore to limit queue length
@@ -156,6 +155,8 @@ static void sendToWorker(int workerIdx, masterQueueElement *queueElement) {
 
 
 void queueSimulation(queueData *jobData) {
+    assert(queueCreated);
+
     sem_wait(&semQueue);
 
     masterQueueElement *queueElement = malloc(sizeof(masterQueueElement));
