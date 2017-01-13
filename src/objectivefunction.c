@@ -471,7 +471,7 @@ void updateLogLikelihoodGradientForExperiment(const double llhCase, const double
 
 void objectiveFunctionGradientCheck(const double theta[], const int lenTheta, datapath path, AMI_parameter_scaling scaling, const int parameterIndices[], int numParameterIndices, double epsilon)
 {
-    double fc = 0;
+    double fc = 0; // f(theta)
     double *gradient = malloc(sizeof(double) * lenTheta);
 
     evaluateObjectiveFunction(theta, lenTheta, path, &fc, gradient, scaling);
@@ -483,13 +483,13 @@ void objectiveFunctionGradientCheck(const double theta[], const int lenTheta, da
 
     for(int i = 0; i < numParameterIndices; ++i) {
         int curInd = parameterIndices[i];
-        double fb = 0, ff = 0;
+        double fb = 0, ff = 0; // f(theta + eps) , f(theta - eps)
 
         thetaTmp[curInd] = theta[curInd] + epsilon;
-        evaluateObjectiveFunction(theta, lenTheta, path, &ff, 0, scaling);
+        evaluateObjectiveFunction(thetaTmp, lenTheta, path, &ff, 0, scaling);
 
         thetaTmp[curInd] = theta[curInd] - epsilon;
-        evaluateObjectiveFunction(theta, lenTheta, path, &fb, 0, scaling);
+        evaluateObjectiveFunction(thetaTmp, lenTheta, path, &fb, 0, scaling);
 
         printf("\t\t%f\t%f\t%f\t\n", fb, fc, ff);
 
@@ -504,5 +504,6 @@ void objectiveFunctionGradientCheck(const double theta[], const int lenTheta, da
         printf("%d\t%f\t%f\t(%f)\t%f\t(%f)\t%f\t(%f)\n", curInd, gradient[curInd], fd_f, gradient[curInd] - fd_f, fd_c, gradient[curInd] - fd_c, fd_b, gradient[curInd] - fd_b);
     }
 
+    free(gradient);
     free(thetaTmp);
 }
