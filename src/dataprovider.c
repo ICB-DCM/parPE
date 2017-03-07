@@ -443,25 +443,6 @@ void getRandomInitialThetaFromFile(datapath dataPath, double *buffer, AMI_parame
     pthread_mutex_unlock(&mutexHDF);
 }
 
-void getInitialThetaLHS(datapath dataPath, double *buffer, AMI_parameter_scaling scaling)
-{
-    // zeros(buffer, getLenTheta());
-    int lenTheta = getLenTheta();
-    getLatinHyperCubeSamples(lenTheta, 1, buffer);
-
-    double lb[lenTheta];
-    double ub[lenTheta];
-    getThetaLowerBounds(dataPath, lb, scaling);
-    getThetaUpperBounds(dataPath, ub, scaling);
-
-    for(int i = 0; i < lenTheta; ++i)
-        buffer[i] = lb[i] + (ub[i] - lb[i]) * buffer[i];
-
-    // printMatlabArray(buffer, lenTheta);
-
-    // fillArray(buffer, lenTheta, 2);
-}
-
 int getLenTheta()
 {
     return NUM_OPTIMIZATION_PARAMS;
