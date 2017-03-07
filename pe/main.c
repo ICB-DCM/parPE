@@ -118,7 +118,7 @@ void init(int argc, char **argv) {
     MPI_Comm_size(MPI_COMM_WORLD, &mpiCommSize);
 
     if(mpiCommSize < 2) {
-        logmessage(LOGLVL_CRITICAL, "Need at least 2 MPI processes. Exiting.");
+        logmessage(LOGLVL_CRITICAL, "Need at least 2 MPI processes, but got %d %d. Exiting.", mpiCommSize);
         exit(1);
     }
 

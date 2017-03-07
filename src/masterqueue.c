@@ -1,4 +1,5 @@
 #include "masterqueue.h"
+#include "misc.h"
 
 #include <pthread.h>
 #include <semaphore.h>
@@ -15,6 +16,7 @@ typedef struct masterQueueElement_tag {
     struct masterQueueElement_tag *nextElement;
 } masterQueueElement;
 
+static int numWorkers;
 static bool queueCreated = false;
 static masterQueueElement *queueStart = 0;
 static masterQueueElement *queueEnd = 0;
@@ -29,7 +31,7 @@ static MPI_Request *sendRequests = 0;
 static MPI_Request *recvRequests = 0;
 static queueData **sentJobsData = 0;
 
-static void *masterQueueRun(void *pNumWorkers);
+static void *masterQueueRun(void *unusedArguemnt);
 
 static masterQueueElement *getNextJob();
 
@@ -45,7 +47,7 @@ void initMasterQueue() {
         int mpiCommSize;
         MPI_Comm_size(MPI_COMM_WORLD, &mpiCommSize);
 
-        int numWorkers = mpiCommSize - 1;
+        numWorkers = mpiCommSize - 1;
         sendRequests = malloc(numWorkers * sizeof(MPI_Request));
         recvRequests = malloc(numWorkers * sizeof(MPI_Request));
         sentJobsData = malloc(numWorkers * sizeof(queueData *));
@@ -60,28 +62,31 @@ void initMasterQueue() {
         queueMaxLength = SEM_VALUE_MAX < queueMaxLength ? SEM_VALUE_MAX : queueMaxLength;
 #endif
         sem_init(&semQueue, 0, queueMaxLength);
-
-        pthread_create(&queueThread, NULL, masterQueueRun, &numWorkers);
+        pthread_create(&queueThread, NULL, masterQueueRun, 0);
         queueCreated = true;
     }
 }
 
 // Thread entry point
-static void *masterQueueRun(void *pNumWorkers) {
-    int numWorkers = *(int *)pNumWorkers;
+static void *masterQueueRun(void *unusedArguemnt) {
 
+    // dispatch queued work packages
     while(1) {
         // check if any job finished
         MPI_Status status;
         int finishedWorkerIdx = 0;
 
+        // handle all finished jobs, if any
         while(1) {
             int dummy;
             MPI_Testany(numWorkers, recvRequests, &finishedWorkerIdx, &dummy, &status);
 
-            if(finishedWorkerIdx >= 0) { // dummy == 1 despite finishedWorkerIdx == MPI_UNDEFINED
+            if(finishedWorkerIdx >= 0) {
+                // dummy == 1 despite finishedWorkerIdx == MPI_UNDEFINED
+                // some job is finished
                 receiveFinished(finishedWorkerIdx, status.MPI_TAG);
             } else {
+                // there was nothing to be finished
                 break;
             }
         }
@@ -89,7 +94,7 @@ static void *masterQueueRun(void *pNumWorkers) {
         // getNextFreeWorker
         int freeWorkerIndex = finishedWorkerIdx;
 
-        if(freeWorkerIndex < 0) {
+        if(freeWorkerIndex < 0) { // no job finished recently, checked free slots
             for(int i = 0; i < numWorkers; ++i) {
                 if(recvRequests[i] == MPI_REQUEST_NULL) {
                     freeWorkerIndex = i;
@@ -99,8 +104,10 @@ static void *masterQueueRun(void *pNumWorkers) {
         }
 
         if(freeWorkerIndex < 0) {
+            // all workers are busy, wait for next one to finish
             MPI_Status status;
             MPI_Waitany(numWorkers, recvRequests, &freeWorkerIndex, &status);
+
             assert(freeWorkerIndex != MPI_UNDEFINED);
             receiveFinished(freeWorkerIndex, status.MPI_TAG);
         }
