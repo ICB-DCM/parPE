@@ -8,27 +8,21 @@
 #include <mpi.h>
 #include <getopt.h>
 
-#ifdef USE_MPE
-#include <mpe.h>
-#endif
-
-#undef INSTALL_SIGNAL_HANDLER
-#ifdef INSTALL_SIGNAL_HANDLER
-#include <signal.h>
-#endif
-
 #include "mpiworker.h"
 #include "resultwriter.h"
 #include "masterthread.h"
 #include "dataprovider.h"
 #include "misc.h"
 
+#undef INSTALL_SIGNAL_HANDLER
 #ifdef INSTALL_SIGNAL_HANDLER
+#include <signal.h>
 volatile sig_atomic_t caughtTerminationSignal = 0;
 void term(int sigNum) { caughtTerminationSignal = 1; }
 #endif
 
 #ifdef USE_MPE
+#include <mpe.h>
 // MPE event IDs for logging
 int mpe_event_begin_simulate, mpe_event_end_simulate;
 int mpe_event_begin_getrefs, mpe_event_end_getrefs;
