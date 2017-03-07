@@ -12,6 +12,7 @@ set(SRC_LIST
     misc.c
     testobjectivefunction.c
     testmpiworker.c
+    testmasterqueue.c
 )
 
 include_directories(${CPPUTEST_INCLUDE_DIR})
