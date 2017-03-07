@@ -25,11 +25,11 @@ static pthread_t queueThread;
 static pthread_mutex_t mutexQueue = PTHREAD_MUTEX_INITIALIZER;
 
 // one for each worker, index is off by one from MPI rank
-static MPI_Request *sendRequests;
-static MPI_Request *recvRequests;
-static queueData **sentJobsData;
+static MPI_Request *sendRequests = 0;
+static MPI_Request *recvRequests = 0;
+static queueData **sentJobsData = 0;
 
-static void *masterQueueRun(void *unusedArgument);
+static void *masterQueueRun(void *pNumWorkers);
 
 static masterQueueElement *getNextJob();
 
@@ -41,32 +41,33 @@ static void receiveFinished(int workerID, int jobID);
 void initMasterQueue() {
     // There can only be one queue
     if(!queueCreated) {
-        // Create semaphore to limit queue length
-        // and avoid huge memory allocation for all send and receive buffers
         int mpiCommSize;
         MPI_Comm_size(MPI_COMM_WORLD, &mpiCommSize);
+
+        int numWorkers = mpiCommSize - 1;
+        sendRequests = malloc(numWorkers * sizeof(MPI_Request));
+        recvRequests = malloc(numWorkers * sizeof(MPI_Request));
+        sentJobsData = malloc(numWorkers * sizeof(queueData *));
+
+        for(int i = 0; i < numWorkers; ++i) // have to initialize before can wait!
+            recvRequests[i] = MPI_REQUEST_NULL;
+
+        // Create semaphore to limit queue length
+        // and avoid huge memory allocation for all send and receive buffers
         unsigned int queueMaxLength = mpiCommSize;
 #ifdef SEM_VALUE_MAX
         queueMaxLength = SEM_VALUE_MAX < queueMaxLength ? SEM_VALUE_MAX : queueMaxLength;
 #endif
         sem_init(&semQueue, 0, queueMaxLength);
 
-        pthread_create(&queueThread, NULL, masterQueueRun, NULL);
+        pthread_create(&queueThread, NULL, masterQueueRun, &numWorkers);
         queueCreated = true;
     }
 }
 
 // Thread entry point
-static void *masterQueueRun(void *unusedArgument) {
-    int mpiCommSize;
-    MPI_Comm_size(MPI_COMM_WORLD, &mpiCommSize);
-    int numWorkers = mpiCommSize - 1;
-    sendRequests = malloc(numWorkers * sizeof(MPI_Request));
-    recvRequests = malloc(numWorkers * sizeof(MPI_Request));
-    sentJobsData = malloc(numWorkers * sizeof(queueData *));
-
-    for(int i = 0; i < numWorkers; ++i) // have to initialize before can wait!
-        recvRequests[i] = MPI_REQUEST_NULL;
+static void *masterQueueRun(void *pNumWorkers) {
+    int numWorkers = *(int *)pNumWorkers;
 
     while(1) {
         // check if any job finished
@@ -113,10 +114,6 @@ static void *masterQueueRun(void *unusedArgument) {
 
         pthread_yield();
     };
-
-    free(sentJobsData);
-    free(sendRequests);
-    free(recvRequests);
 
     return 0;
 }
@@ -185,6 +182,13 @@ void terminateMasterQueue() {
     pthread_mutex_destroy(&mutexQueue);
     pthread_cancel(queueThread);
     sem_destroy(&semQueue);
+
+    if(sentJobsData)
+        free(sentJobsData);
+    if(sendRequests)
+        free(sendRequests);
+    if(recvRequests)
+        free(recvRequests);
 }
 
 
