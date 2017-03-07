@@ -1,11 +1,11 @@
 #include "CppUTest/TestHarness_c.h"
 #include "CppUTestExt/MockSupport_c.h"
-#include "alloca.h"
 
 // include .c because of static functions
 #include "objectivefunction.c"
 
 // BEGIN required globals
+
 #ifdef USE_MPE
 // MPE event IDs for logging
 const int mpe_event_begin_simulate, mpe_event_end_simulate;
@@ -16,20 +16,18 @@ const int mpe_event_begin_aggregate, mpe_event_end_aggregate;
 
 // global mutex for HDF5 library calls
 pthread_mutex_t mutexHDF;
+
 // END required globals
 
 /* TODO: test model/readSimulationUserData readSimulationExpData   getSimulationResults  */
 
-TEST_GROUP_C_SETUP(objectivefunction)
-{
+TEST_GROUP_C_SETUP(objectivefunction) {
 }
 
-TEST_GROUP_C_TEARDOWN(objectivefunction)
-{
+TEST_GROUP_C_TEARDOWN(objectivefunction) {
 }
 
-TEST_C(objectivefunction, test_reachedSteadyState)
-{
+TEST_C(objectivefunction, test_reachedSteadyState) {
     int numStates = 4;
     double x[] = {1, 1, 1, 1};
     double xdot[] = {1e-6, 1e-6, 1e-6, 1e-6};

@@ -9,7 +9,9 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -include ${CPPUTEST_DIR}/include/CppUTes
 
 set(SRC_LIST
     main.cpp
+    misc.c
     testobjectivefunction.c
+    testmpiworker.c
 )
 
 include_directories(${CPPUTEST_INCLUDE_DIR})
