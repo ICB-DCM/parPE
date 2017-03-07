@@ -37,6 +37,7 @@ static void sendToWorker(int workerIdx, masterQueueElement *queueElement);
 
 static void receiveFinished(int workerID, int jobID);
 
+static void freeQueueElements();
 
 void initMasterQueue() {
     // There can only be one queue
@@ -189,8 +190,22 @@ void terminateMasterQueue() {
         free(sendRequests);
     if(recvRequests)
         free(recvRequests);
+
+    freeQueueElements();
 }
 
+/**
+ * @brief freeQueueElements Deallocate queueElement memory when non-empty queue is terminated.
+ * Freeing masterQueueElement.queueData memory is the users problem.
+ */
+static void freeQueueElements() {
+    masterQueueElement *nextElement = queueStart;
+    while(nextElement) {
+        masterQueueElement *curElement = nextElement;
+        nextElement = curElement->nextElement;
+        free(curElement);
+    }
+}
 
 static void receiveFinished(int workerID, int jobID) {
 
