@@ -9,6 +9,7 @@
 #include <stdbool.h>
 #include <limits.h>
 
+/** a new object is created upon queueSimulation() */
 typedef struct masterQueueElement_tag {
     queueData *data;
     int jobId;
@@ -16,20 +17,24 @@ typedef struct masterQueueElement_tag {
     struct masterQueueElement_tag *nextElement;
 } masterQueueElement;
 
-static int numWorkers;
-static bool queueCreated = false;
-static masterQueueElement *queueStart = 0;
-static masterQueueElement *queueEnd = 0;
-static int lastJobId = 0;
+typedef struct masterQueue_tag {
+    int numWorkers;
+    bool queueCreated;
+    masterQueueElement *queueStart;
+    masterQueueElement *queueEnd;
+    int lastJobId;
+    // one for each worker, index is off by one from MPI rank
+    MPI_Request *sendRequests;
+    MPI_Request *recvRequests;
+    queueData **sentJobsData;
+    pthread_mutex_t mutexQueue;
+    sem_t semQueue;
+    pthread_t queueThread;
+} masterQueueStruct;
 
-static sem_t semQueue;
-static pthread_t queueThread;
-static pthread_mutex_t mutexQueue = PTHREAD_MUTEX_INITIALIZER;
+#define MASTERQUEUE_QUEUE_INITIALIZER {0, false, NULL, NULL, 0, NULL, NULL, NULL, PTHREAD_MUTEX_INITIALIZER, {}, 0}
 
-// one for each worker, index is off by one from MPI rank
-static MPI_Request *sendRequests = 0;
-static MPI_Request *recvRequests = 0;
-static queueData **sentJobsData = 0;
+static masterQueueStruct masterQueue = MASTERQUEUE_QUEUE_INITIALIZER;
 
 static void *masterQueueRun(void *unusedArguemnt);
 
@@ -43,17 +48,17 @@ static void freeQueueElements();
 
 void initMasterQueue() {
     // There can only be one queue
-    if(!queueCreated) {
+    if(!masterQueue.queueCreated) {
         int mpiCommSize;
         MPI_Comm_size(MPI_COMM_WORLD, &mpiCommSize);
 
-        numWorkers = mpiCommSize - 1;
-        sendRequests = malloc(numWorkers * sizeof(MPI_Request));
-        recvRequests = malloc(numWorkers * sizeof(MPI_Request));
-        sentJobsData = malloc(numWorkers * sizeof(queueData *));
+        masterQueue.numWorkers = mpiCommSize - 1;
+        masterQueue.sendRequests = malloc(masterQueue.numWorkers * sizeof(MPI_Request));
+        masterQueue.recvRequests = malloc(masterQueue.numWorkers * sizeof(MPI_Request));
+        masterQueue.sentJobsData = malloc(masterQueue.numWorkers * sizeof(queueData *));
 
-        for(int i = 0; i < numWorkers; ++i) // have to initialize before can wait!
-            recvRequests[i] = MPI_REQUEST_NULL;
+        for(int i = 0; i < masterQueue.numWorkers; ++i) // have to initialize before can wait!
+            masterQueue.recvRequests[i] = MPI_REQUEST_NULL;
 
         // Create semaphore to limit queue length
         // and avoid huge memory allocation for all send and receive buffers
@@ -61,9 +66,9 @@ void initMasterQueue() {
 #ifdef SEM_VALUE_MAX
         queueMaxLength = SEM_VALUE_MAX < queueMaxLength ? SEM_VALUE_MAX : queueMaxLength;
 #endif
-        sem_init(&semQueue, 0, queueMaxLength);
-        pthread_create(&queueThread, NULL, masterQueueRun, 0);
-        queueCreated = true;
+        sem_init(&masterQueue.semQueue, 0, queueMaxLength);
+        pthread_create(&masterQueue.queueThread, NULL, masterQueueRun, 0);
+        masterQueue.queueCreated = true;
     }
 }
 
@@ -79,7 +84,7 @@ static void *masterQueueRun(void *unusedArguemnt) {
         // handle all finished jobs, if any
         while(1) {
             int dummy;
-            MPI_Testany(numWorkers, recvRequests, &finishedWorkerIdx, &dummy, &status);
+            MPI_Testany(masterQueue.numWorkers, masterQueue.recvRequests, &finishedWorkerIdx, &dummy, &status);
 
             if(finishedWorkerIdx >= 0) {
                 // dummy == 1 despite finishedWorkerIdx == MPI_UNDEFINED
@@ -95,8 +100,8 @@ static void *masterQueueRun(void *unusedArguemnt) {
         int freeWorkerIndex = finishedWorkerIdx;
 
         if(freeWorkerIndex < 0) { // no job finished recently, checked free slots
-            for(int i = 0; i < numWorkers; ++i) {
-                if(recvRequests[i] == MPI_REQUEST_NULL) {
+            for(int i = 0; i < masterQueue.numWorkers; ++i) {
+                if(masterQueue.recvRequests[i] == MPI_REQUEST_NULL) {
                     freeWorkerIndex = i;
                     break;
                 }
@@ -106,7 +111,7 @@ static void *masterQueueRun(void *unusedArguemnt) {
         if(freeWorkerIndex < 0) {
             // all workers are busy, wait for next one to finish
             MPI_Status status;
-            MPI_Waitany(numWorkers, recvRequests, &freeWorkerIndex, &status);
+            MPI_Waitany(masterQueue.numWorkers, masterQueue.recvRequests, &freeWorkerIndex, &status);
 
             assert(freeWorkerIndex != MPI_UNDEFINED);
             receiveFinished(freeWorkerIndex, status.MPI_TAG);
@@ -116,7 +121,7 @@ static void *masterQueueRun(void *unusedArguemnt) {
 
         if(currentQueueElement) {
             sendToWorker(freeWorkerIndex, currentQueueElement);
-            sentJobsData[freeWorkerIndex] = currentQueueElement->data;
+            masterQueue.sentJobsData[freeWorkerIndex] = currentQueueElement->data;
             free(currentQueueElement);
         }
 
@@ -128,15 +133,15 @@ static void *masterQueueRun(void *unusedArguemnt) {
 
 static masterQueueElement *getNextJob() {
 
-    pthread_mutex_lock(&mutexQueue);
+    pthread_mutex_lock(&masterQueue.mutexQueue);
 
-    masterQueueElement *oldStart = queueStart;
+    masterQueueElement *oldStart = masterQueue.queueStart;
 
-    if(queueStart) {
-        queueStart = oldStart->nextElement;
+    if(masterQueue.queueStart) {
+        masterQueue.queueStart = oldStart->nextElement;
     }
 
-    pthread_mutex_unlock(&mutexQueue);
+    pthread_mutex_unlock(&masterQueue.mutexQueue);
 
     return oldStart;
 }
@@ -151,52 +156,52 @@ static void sendToWorker(int workerIdx, masterQueueElement *queueElement) {
     printf("\x1b[36mSent job %d to %d.\x1b[0m\n", tag, workerRank);
 #endif
 
-    MPI_Isend(data->sendBuffer, data->lenSendBuffer, MPI_BYTE, workerRank, tag, MPI_COMM_WORLD, &sendRequests[workerIdx]);
+    MPI_Isend(data->sendBuffer, data->lenSendBuffer, MPI_BYTE, workerRank, tag, MPI_COMM_WORLD, &masterQueue.sendRequests[workerIdx]);
 
-    MPI_Irecv(data->recvBuffer, data->lenRecvBuffer, MPI_BYTE, workerRank, tag, MPI_COMM_WORLD, &recvRequests[workerIdx]);
+    MPI_Irecv(data->recvBuffer, data->lenRecvBuffer, MPI_BYTE, workerRank, tag, MPI_COMM_WORLD, &masterQueue.recvRequests[workerIdx]);
 
-    sem_post(&semQueue);
+    sem_post(&masterQueue.semQueue);
 }
 
 
 void queueSimulation(queueData *jobData) {
-    assert(queueCreated);
+    assert(masterQueue.queueCreated);
 
-    sem_wait(&semQueue);
+    sem_wait(&masterQueue.semQueue);
 
-    masterQueueElement *queueElement = malloc(sizeof(masterQueueElement));
+    masterQueueElement *queueElement = malloc(sizeof(*queueElement));
 
     queueElement->data = jobData;
     queueElement->nextElement = 0;
 
-    pthread_mutex_lock(&mutexQueue);
+    pthread_mutex_lock(&masterQueue.mutexQueue);
 
-    if(lastJobId == INT_MAX) // Unlikely, but prevent overflow
-        lastJobId = 0;
+    if(masterQueue.lastJobId == INT_MAX) // Unlikely, but prevent overflow
+        masterQueue.lastJobId = 0;
 
-    queueElement->jobId = ++lastJobId;
+    queueElement->jobId = ++masterQueue.lastJobId;
 
-    if(queueStart) {
-        queueEnd->nextElement = queueElement;
+    if(masterQueue.queueStart) {
+        masterQueue.queueEnd->nextElement = queueElement;
     } else {
-        queueStart = queueElement;
+        masterQueue.queueStart = queueElement;
     }
-    queueEnd = queueElement;
+    masterQueue.queueEnd = queueElement;
 
-    pthread_mutex_unlock(&mutexQueue);
+    pthread_mutex_unlock(&masterQueue.mutexQueue);
 }
 
 void terminateMasterQueue() {
-    pthread_mutex_destroy(&mutexQueue);
-    pthread_cancel(queueThread);
-    sem_destroy(&semQueue);
+    pthread_mutex_destroy(&masterQueue.mutexQueue);
+    pthread_cancel(masterQueue.queueThread);
+    sem_destroy(&masterQueue.semQueue);
 
-    if(sentJobsData)
-        free(sentJobsData);
-    if(sendRequests)
-        free(sendRequests);
-    if(recvRequests)
-        free(recvRequests);
+    if(masterQueue.sentJobsData)
+        free(masterQueue.sentJobsData);
+    if(masterQueue.sendRequests)
+        free(masterQueue.sendRequests);
+    if(masterQueue.recvRequests)
+        free(masterQueue.recvRequests);
 
     freeQueueElements();
 }
@@ -206,7 +211,7 @@ void terminateMasterQueue() {
  * Freeing masterQueueElement.queueData memory is the users problem.
  */
 static void freeQueueElements() {
-    masterQueueElement *nextElement = queueStart;
+    masterQueueElement *nextElement = masterQueue.queueStart;
     while(nextElement) {
         masterQueueElement *curElement = nextElement;
         nextElement = curElement->nextElement;
@@ -220,11 +225,11 @@ static void receiveFinished(int workerID, int jobID) {
     printf("\x1b[32mReceived result for job %d from %d\x1b[0m\n", jobID, workerID + 1);
 #endif
 
-    queueData *data = sentJobsData[workerID];
+    queueData *data = masterQueue.sentJobsData[workerID];
     ++(*data->jobDone);
     pthread_mutex_lock(data->jobDoneChangedMutex);
     pthread_cond_signal(data->jobDoneChangedCondition);
     pthread_mutex_unlock(data->jobDoneChangedMutex);
 
-    recvRequests[workerID] = MPI_REQUEST_NULL;
+    masterQueue.recvRequests[workerID] = MPI_REQUEST_NULL;
 }
