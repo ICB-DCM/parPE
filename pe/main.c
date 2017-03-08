@@ -33,9 +33,15 @@ int mpe_event_begin_aggregate, mpe_event_end_aggregate;
 // global mutex for HDF5 library calls
 pthread_mutex_t mutexHDF;
 
+typedef enum operationType_tag {OP_TYPE_PARAMETER_ESTIMATION, OP_TYPE_GRADIENT_CHECK} operationType;
+
+operationType opType = OP_TYPE_PARAMETER_ESTIMATION;
+
 // program options
-static struct option const long_options[] = {
+const char *shortOptions = "dvht:";
+static struct option const longOptions[] = {
     {"debug", no_argument, NULL, 'd'},
+    {"task", required_argument, NULL, 't'},
     {"print-worklist", no_argument, NULL, 'p'},
     {"help", no_argument, NULL, 'h'},
     {"version", no_argument, NULL, 'v'},
@@ -161,7 +167,15 @@ void doMasterWork() {
     describeMpeStates();
 #endif
 
-    startParameterEstimation();
+    switch (opType) {
+    case OP_TYPE_GRADIENT_CHECK:
+        printf("Grad");
+        startObjectiveFunctionGradientCheck();
+        break;
+    default:
+        startParameterEstimation();
+        break;
+    }
 
     sendTerminationSignalToAllWorkers();
 }
@@ -263,8 +277,8 @@ int parseOptions (int argc, char **argv) {
     int c;
 
     while (1) {
-        int option_index = 0;
-        c = getopt_long (argc, argv, "dvh", long_options, &option_index);
+        int optionIndex = 0;
+        c = getopt_long (argc, argv, shortOptions, longOptions, &optionIndex);
 
         if (c == -1)
             break;
@@ -272,17 +286,21 @@ int parseOptions (int argc, char **argv) {
         switch (c) {
         case 'd':
             printDebugInfoAndWait();
+        case 't':
+            if(strcmp(optarg, "gradient_check") == 0)
+                opType = OP_TYPE_GRADIENT_CHECK;
         case 'v':
             printf("Version: %s\n", GIT_VERSION);
-            break;
+            return 1;
         case 'h':
             printf("Usage: %s [OPTION]... FILE\n", argv[0]);
             printf("FILE: HDF5 data file");
             printf("Options: \n"
+                   "  -t, --task    What to do? Parameter estimation (default) or check gradient ('gradient_check')"
                    "  -h, --help    Print this help text\n"
                    "  -v, --version Print version info\n"
                    );
-            break;
+            return 1;
         default:
             printf("%c\n", c);
         }
