@@ -2,7 +2,7 @@ project(pe)
 
 set(SRC_LIST
     dataprovider.c
-    localoptimization.c
+    localoptimizationipopt.c
     objectivefunction.c
     misc.c
     mpiworker.c

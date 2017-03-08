@@ -3,7 +3,7 @@
 
 #include "masterthread.h"
 #include "dataprovider.h"
-#include "localoptimization.h"
+#include "localoptimizationipopt.h"
 #include "objectivefunction.h"
 #include "misc.h"
 
