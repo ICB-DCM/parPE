@@ -436,8 +436,8 @@ void getRandomInitialThetaFromFile(datapath dataPath, double *buffer, AMI_parame
     if(H5Eget_num(H5E_DEFAULT)) {
         error("Problem in getRandomInitialThetaFromFile\n");
         H5Ewalk2(H5E_DEFAULT, H5E_WALK_DOWNWARD, hdf5ErrorStackWalker_cb, NULL);
+        abort(); // TODO: implement nicer error handling
     }
-    abort();
 
     H5_RESTORE_ERROR_HANDLER
     pthread_mutex_unlock(&mutexHDF);

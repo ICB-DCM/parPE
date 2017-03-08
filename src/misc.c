@@ -117,6 +117,14 @@ void logmessage(loglevel lvl, const char *format, ...)
     vprintf(format, argptr);
     va_end(argptr);
     printf(ANSI_COLOR_RESET "\n");
+
+    switch (lvl) {
+    case LOGLVL_CRITICAL:
+    case LOGLVL_ERROR:
+        fflush(stdout);
+    default:
+        break;
+    }
 }
 
 //void printMatlabArray(const double *buffer, int len)

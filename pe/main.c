@@ -40,14 +40,14 @@ operationTypeEnum opType = OP_TYPE_PARAMETER_ESTIMATION;
 optimizerEnum optimizer = OPTIMIZER_IPOPT;
 
 // program options
-const char *shortOptions = "dvht:o:";
+const char *shortOptions = "dhvt:o:";
 static struct option const longOptions[] = {
     {"debug", no_argument, NULL, 'd'},
-    {"task", required_argument, NULL, 't'},
-    {"optimizer", required_argument, NULL, 'o'},
     {"print-worklist", no_argument, NULL, 'p'},
     {"help", no_argument, NULL, 'h'},
     {"version", no_argument, NULL, 'v'},
+    {"task", required_argument, NULL, 't'},
+    {"optimizer", required_argument, NULL, 'o'},
     {NULL, 0, NULL, 0}
 };
 
@@ -172,7 +172,6 @@ void doMasterWork() {
 
     switch (opType) {
     case OP_TYPE_GRADIENT_CHECK:
-        printf("Grad");
         startObjectiveFunctionGradientCheck();
         break;
     default:
@@ -289,12 +288,15 @@ int parseOptions (int argc, char **argv) {
         switch (c) {
         case 'd':
             printDebugInfoAndWait();
+            break;
         case 't':
             if(strcmp(optarg, "gradient_check") == 0)
                 opType = OP_TYPE_GRADIENT_CHECK;
+            break;
         case 'o':
             if(strcmp(optarg, "ceres") == 0)
                 optimizer = OPTIMIZER_CERES;
+            break;
         case 'v':
             printf("Version: %s\n", GIT_VERSION);
             return 1;
@@ -302,13 +304,14 @@ int parseOptions (int argc, char **argv) {
             printf("Usage: %s [OPTION]... FILE\n", argv[0]);
             printf("FILE: HDF5 data file");
             printf("Options: \n"
+                   "  -o, --optimizer Which optimizer to use Ipopt (default) Ceres (not yet implemented)"
                    "  -t, --task    What to do? Parameter estimation (default) or check gradient ('gradient_check')"
                    "  -h, --help    Print this help text\n"
                    "  -v, --version Print version info\n"
                    );
             return 1;
         default:
-            printf("%c\n", c);
+            printf("Unrecognized option: %c\n", c);
         }
     }
 
