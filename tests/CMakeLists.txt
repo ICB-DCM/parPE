@@ -1,4 +1,7 @@
-project(cpp_benchmark_tests)
+project(unittests)
+
+enable_testing ()
+add_test (NAME test1 COMMAND unittests)
 
 set(CPPUTEST_DIR /home/dweindl/src/cpputest/)
 set(CPPUTEST_INCLUDE_DIR ${CPPUTEST_DIR}/include)
