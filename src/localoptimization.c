@@ -63,7 +63,7 @@ static Bool Intermediate(Index alg_mod,
 void getFeasibleInitialTheta(datapath dataPath, Number *buffer, AMI_parameter_scaling scaling);
 /******************************/
 
-int getLocalOptimum(datapath dataPath) {
+int getLocalOptimumIpopt(datapath dataPath) {
 
     Number loglikelihood = INFINITY;
 

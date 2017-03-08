@@ -33,15 +33,18 @@ int mpe_event_begin_aggregate, mpe_event_end_aggregate;
 // global mutex for HDF5 library calls
 pthread_mutex_t mutexHDF;
 
-typedef enum operationType_tag {OP_TYPE_PARAMETER_ESTIMATION, OP_TYPE_GRADIENT_CHECK} operationType;
+typedef enum operationType_tag {OP_TYPE_PARAMETER_ESTIMATION, OP_TYPE_GRADIENT_CHECK} operationTypeEnum;
 
-operationType opType = OP_TYPE_PARAMETER_ESTIMATION;
+operationTypeEnum opType = OP_TYPE_PARAMETER_ESTIMATION;
+
+optimizerEnum optimizer = OPTIMIZER_IPOPT;
 
 // program options
-const char *shortOptions = "dvht:";
+const char *shortOptions = "dvht:o:";
 static struct option const longOptions[] = {
     {"debug", no_argument, NULL, 'd'},
     {"task", required_argument, NULL, 't'},
+    {"optimizer", required_argument, NULL, 'o'},
     {"print-worklist", no_argument, NULL, 'p'},
     {"help", no_argument, NULL, 'h'},
     {"version", no_argument, NULL, 'v'},
@@ -173,7 +176,7 @@ void doMasterWork() {
         startObjectiveFunctionGradientCheck();
         break;
     default:
-        startParameterEstimation();
+        startParameterEstimation(optimizer);
         break;
     }
 
@@ -289,6 +292,9 @@ int parseOptions (int argc, char **argv) {
         case 't':
             if(strcmp(optarg, "gradient_check") == 0)
                 opType = OP_TYPE_GRADIENT_CHECK;
+        case 'o':
+            if(strcmp(optarg, "ceres") == 0)
+                optimizer = OPTIMIZER_CERES;
         case 'v':
             printf("Version: %s\n", GIT_VERSION);
             return 1;

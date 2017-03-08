@@ -9,7 +9,13 @@
 
 #include "masterqueue.h"
 
-void startParameterEstimation() {
+typedef struct newLocalOptimizationOption_tag {
+    int multiStartIdx;
+    int localOptimizationIdx;
+    optimizerEnum optimizer;
+} newLocalOptimizationOption;
+
+void startParameterEstimation(optimizerEnum optimizer) {
     initMasterQueue();
 
     // create threads for multistart batches
@@ -20,10 +26,11 @@ void startParameterEstimation() {
     pthread_attr_init(&threadAttr);
     pthread_attr_setdetachstate(&threadAttr, PTHREAD_CREATE_JOINABLE);
 
-    int ids[numMultiStartRuns]; // need to keep, since passed by ref to new thread
+    newLocalOptimizationOption childOptions[numMultiStartRuns]; // need to keep, since passed by ref to new thread
     for(int k = 0; k < numMultiStartRuns; ++k) {
-        ids[k] = k;
-        pthread_create(&multiStartThreads[k], &threadAttr, newMultiStartOptimization, (void *)&ids[k]);
+        childOptions[k].multiStartIdx = k;
+        childOptions[k].optimizer = optimizer;
+        pthread_create(&multiStartThreads[k], &threadAttr, newMultiStartOptimization, (void *)&childOptions[k]);
     }
     pthread_attr_destroy(&threadAttr);
 
@@ -37,13 +44,12 @@ void startParameterEstimation() {
     terminateMasterQueue();
 }
 
+void *newMultiStartOptimization(void *pOptions) {
+    newLocalOptimizationOption options = *(newLocalOptimizationOption *)pOptions;
 
-void *newMultiStartOptimization(void *multiStartIndexVP) {
-    int multiStartIndex = *(int *) multiStartIndexVP;
+    logmessage(LOGLVL_DEBUG, "Spawning thread for global optimization #%d", options.multiStartIdx);
 
-    logmessage(LOGLVL_DEBUG, "Spawning thread for global optimization #%d", multiStartIndex);
-
-    int numLocalOptimizations = getNumLocalOptimizationsForMultiStartRun(multiStartIndex);
+    int numLocalOptimizations = getNumLocalOptimizationsForMultiStartRun(options.multiStartIdx);
 
     pthread_t *localOptimizationThreads = alloca(numLocalOptimizations * sizeof(pthread_t));
 
@@ -51,14 +57,16 @@ void *newMultiStartOptimization(void *multiStartIndexVP) {
     pthread_attr_init(&threadAttr);
     pthread_attr_setdetachstate(&threadAttr, PTHREAD_CREATE_JOINABLE);
 
-    int ids[numLocalOptimizations];
+    newLocalOptimizationOption childOptions[numLocalOptimizations]; // need to keep, since passed by ref to new thread
 
     int lastStartIdx = -1;
 
     for(int ms = 0; ms < numLocalOptimizations; ++ms) {
-        ids[ms] = multiStartIndex * 1000 + ++lastStartIdx;
-        logmessage(LOGLVL_DEBUG, "Spawning thread for local optimization #%d.%d (%d)", multiStartIndex, lastStartIdx, ms);
-        pthread_create(&localOptimizationThreads[ms], &threadAttr, newLocalOptimization, (void *)&ids[ms]);
+        childOptions[ms].multiStartIdx = options.multiStartIdx;
+        childOptions[ms].optimizer = options.optimizer;
+        childOptions[ms].localOptimizationIdx = ++lastStartIdx;
+        logmessage(LOGLVL_DEBUG, "Spawning thread for local optimization #%d.%d (%d)", options.multiStartIdx, lastStartIdx, ms);
+        pthread_create(&localOptimizationThreads[ms], &threadAttr, newLocalOptimization, (void *)&childOptions[ms]);
     }
     pthread_attr_destroy(&threadAttr);
 
@@ -78,10 +86,9 @@ void *newMultiStartOptimization(void *multiStartIndexVP) {
                     ++numCompleted;
                 } else {
                     logmessage(LOGLVL_WARNING, "Thread ms #%d finished unsuccessfully... trying new starting point", ms);
-
-                    ids[ms] = multiStartIndex * 1000 + ++lastStartIdx;
-                    logmessage(LOGLVL_DEBUG, "Spawning thread for local optimization #%d.%d (%d)", multiStartIndex, lastStartIdx, ms);
-                    pthread_create(&localOptimizationThreads[ms], &threadAttr, newLocalOptimization, (void *)&ids[ms]);
+                    childOptions[ms].localOptimizationIdx = ++lastStartIdx;
+                    logmessage(LOGLVL_DEBUG, "Spawning thread for local optimization #%d.%d (%d)", options.multiStartIdx, lastStartIdx, ms);
+                    pthread_create(&localOptimizationThreads[ms], &threadAttr, newLocalOptimization, (void *)&childOptions[ms]);
                 }
                 free(threadStatus);
             }
@@ -90,23 +97,32 @@ void *newMultiStartOptimization(void *multiStartIndexVP) {
         sleep(1);
     }
 
-    logmessage(LOGLVL_DEBUG, "Leaving thread for global optimization #%d", multiStartIndex);
+    logmessage(LOGLVL_DEBUG, "Leaving thread for global optimization #%d", options.multiStartIdx);
 
     return 0;
 }
 
 
-void *newLocalOptimization(void *idVP) {
-    int id = *(int *) idVP;
+void *newLocalOptimization(void *pOptions) {
+    newLocalOptimizationOption options = *(newLocalOptimizationOption *)pOptions;
     datapath path = {INT_MIN};
 
-    path.idxMultiStart = id / 1000;
-    path.idxLocalOptimization = id % 1000;
+    path.idxMultiStart = options.multiStartIdx;
+    path.idxLocalOptimization = options.localOptimizationIdx;
 
     // TODO pass options object, also add IpOpt options to config file
     logmessage(LOGLVL_DEBUG, "Starting newLocalOptimization #%d.%d", path.idxMultiStart, path.idxLocalOptimization);
     int *status = malloc(sizeof(int));
-    *status = getLocalOptimum(path);
+
+    switch (options.optimizer) {
+    case OPTIMIZER_CERES:
+        logmessage(LOGLVL_CRITICAL, "Not yet implemented.");
+        abort();
+        break;
+    default:
+        *status = getLocalOptimumIpopt(path);
+    }
+
     logmessage(LOGLVL_DEBUG, "Finished newLocalOptimization #%d.%d", path.idxMultiStart, path.idxLocalOptimization);
 
     return status;

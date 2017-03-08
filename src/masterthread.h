@@ -2,8 +2,9 @@
 #define MASTER_THREAD_H
 
 #include <pthread.h>
+#include <misc.h>
 
-void startParameterEstimation();
+void startParameterEstimation(optimizerEnum optimizer);
 void startObjectiveFunctionGradientCheck();
 
 /**
@@ -11,13 +12,13 @@ void startObjectiveFunctionGradientCheck();
  * @param multiStartIndexVP
  * @return always returns 0
  */
-void *newMultiStartOptimization(void *multiStartIndexVP);
+void *newMultiStartOptimization(void *pOptions);
 
 /**
  * @brief newLocalOptimization
  * @param idVP
  * @return Pointer to int indicating status. 0: success, != 0: failure
  */
-void *newLocalOptimization(void *idVP);
+void *newLocalOptimization(void *pOptions);
 
 #endif
