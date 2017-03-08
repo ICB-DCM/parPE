@@ -57,6 +57,10 @@ static void freeQueueElements();
 void initMasterQueue() {
     // There can only be one queue
     if(!masterQueue.queueCreated) {
+        int mpiInitialized = 0;
+        MPI_Initialized(&mpiInitialized);
+        assert(mpiInitialized);
+
         int mpiCommSize;
         MPI_Comm_size(MPI_COMM_WORLD, &mpiCommSize);
 

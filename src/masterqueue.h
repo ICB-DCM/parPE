@@ -25,7 +25,8 @@ typedef struct queueData_tag {
 } queueData;
 
 /**
- * @brief initMasterQueue Intialize queue. There can only be one queue. Repeated calls won't do anything.
+ * @brief initMasterQueue Intialize queue. There can only be one queue.
+ * Repeated calls won't do anything. MPI_Init has to be called before.
  */
 
 void initMasterQueue();
