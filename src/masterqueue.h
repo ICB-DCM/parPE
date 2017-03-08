@@ -24,9 +24,22 @@ typedef struct queueData_tag {
     MPI_Request *recvRequest;
 } queueData;
 
+/**
+ * @brief initMasterQueue Intialize queue. There can only be one queue. Repeated calls won't do anything.
+ */
+
 void initMasterQueue();
 
+/**
+ * @brief queueSimulation Append work to queue.
+ * @param jobData
+ */
+
 void queueSimulation(queueData *jobData);
+
+/**
+ * @brief queueSimulation Cancel the queue thread and clean up. Do not wait for finish.
+ */
 
 void terminateMasterQueue();
 

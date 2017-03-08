@@ -24,6 +24,7 @@ typedef struct masterQueue_tag {
     masterQueueElement *queueEnd;
     int lastJobId;
     // one for each worker, index is off by one from MPI rank
+    // because no job is sent to master (rank 0)
     MPI_Request *sendRequests;
     MPI_Request *recvRequests;
     queueData **sentJobsData;
@@ -34,18 +35,25 @@ typedef struct masterQueue_tag {
 
 #define MASTERQUEUE_QUEUE_INITIALIZER {0, false, NULL, NULL, 0, NULL, NULL, NULL, PTHREAD_MUTEX_INITIALIZER, {}, 0}
 
+
 static masterQueueStruct masterQueue = MASTERQUEUE_QUEUE_INITIALIZER;
 
-static void *masterQueueRun(void *unusedArguemnt);
+
+static void *masterQueueRun(void *unusedArgument);
 
 static masterQueueElement *getNextJob();
 
 static void sendToWorker(int workerIdx, masterQueueElement *queueElement);
 
+static void masterQueueAppendElement(masterQueueElement *queueElement);
+
 static void receiveFinished(int workerID, int jobID);
 
 static void freeQueueElements();
 
+/**
+ * @brief initMasterQueue Intialize queue.
+ */
 void initMasterQueue() {
     // There can only be one queue
     if(!masterQueue.queueCreated) {
@@ -72,8 +80,13 @@ void initMasterQueue() {
     }
 }
 
-// Thread entry point
-static void *masterQueueRun(void *unusedArguemnt) {
+/**
+ * @brief masterQueueRun Thread entry point. This is run from initMasterQueue()
+ * @param unusedArgument
+ * @return 0, always
+ */
+
+static void *masterQueueRun(void *unusedArgument) {
 
     // dispatch queued work packages
     while(1) {
@@ -131,6 +144,10 @@ static void *masterQueueRun(void *unusedArguemnt) {
     return 0;
 }
 
+/**
+ * @brief getNextJob Pop oldest element from the queue and return.
+ * @return The first queue element.
+ */
 static masterQueueElement *getNextJob() {
 
     pthread_mutex_lock(&masterQueue.mutexQueue);
@@ -146,7 +163,11 @@ static masterQueueElement *getNextJob() {
     return oldStart;
 }
 
-
+/**
+ * @brief sendToWorker Send the given work package to the given worker and track requests
+ * @param workerIdx
+ * @param queueElement
+ */
 static void sendToWorker(int workerIdx, masterQueueElement *queueElement) {
     int tag = queueElement->jobId;
     int workerRank = workerIdx + 1;
@@ -163,7 +184,6 @@ static void sendToWorker(int workerIdx, masterQueueElement *queueElement) {
     sem_post(&masterQueue.semQueue);
 }
 
-
 void queueSimulation(queueData *jobData) {
     assert(masterQueue.queueCreated);
 
@@ -173,7 +193,14 @@ void queueSimulation(queueData *jobData) {
 
     queueElement->data = jobData;
     queueElement->nextElement = 0;
+    masterQueueAppendElement(queueElement);
+}
 
+/**
+ * @brief masterQueueAppendElement Assign job ID and append to queue.
+ * @param queueElement
+ */
+static void masterQueueAppendElement(masterQueueElement *queueElement) {
     pthread_mutex_lock(&masterQueue.mutexQueue);
 
     if(masterQueue.lastJobId == INT_MAX) // Unlikely, but prevent overflow
@@ -219,6 +246,11 @@ static void freeQueueElements() {
     }
 }
 
+/**
+ * @brief receiveFinished Message received from worker, mark job as done.
+ * @param workerID
+ * @param jobID
+ */
 static void receiveFinished(int workerID, int jobID) {
 
 #ifdef MASTER_QUEUE_H_SHOW_COMMUNICATION
