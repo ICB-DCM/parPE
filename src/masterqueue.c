@@ -41,6 +41,8 @@ static masterQueueStruct masterQueue = MASTERQUEUE_QUEUE_INITIALIZER;
 
 static void *masterQueueRun(void *unusedArgument);
 
+static void assertMPIInitialized();
+
 static masterQueueElement *getNextJob();
 
 static void sendToWorker(int workerIdx, masterQueueElement *queueElement);
@@ -51,15 +53,14 @@ static void receiveFinished(int workerID, int jobID);
 
 static void freeQueueElements();
 
+
 /**
  * @brief initMasterQueue Intialize queue.
  */
 void initMasterQueue() {
     // There can only be one queue
     if(!masterQueue.queueCreated) {
-        int mpiInitialized = 0;
-        MPI_Initialized(&mpiInitialized);
-        assert(mpiInitialized);
+        assertMPIInitialized();
 
         int mpiCommSize;
         MPI_Comm_size(MPI_COMM_WORLD, &mpiCommSize);
@@ -83,6 +84,14 @@ void initMasterQueue() {
         masterQueue.queueCreated = true;
     }
 }
+
+#ifndef MASTER_QUEUE_TEST
+static void assertMPIInitialized() {
+    int mpiInitialized = 0;
+    MPI_Initialized(&mpiInitialized);
+    assert(mpiInitialized);
+}
+#endif
 
 /**
  * @brief masterQueueRun Thread entry point. This is run from initMasterQueue()

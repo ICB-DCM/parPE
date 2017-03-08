@@ -2,6 +2,9 @@
 #include "CppUTestExt/MockSupport_c.h"
 
 #include <unistd.h>
+#include <stdio.h>
+
+#define MASTER_QUEUE_TEST
 
 // include .c because of static functions
 #include "masterqueue.c"
@@ -26,11 +29,14 @@ TEST_GROUP_C_TEARDOWN(masterqueue) {
     mock_c()->clear();
 }
 
+// mock
+static void assertMPIInitialized() {}
+
 // mock for MPI_Comm_size
 int MPI_Comm_size(MPI_Comm comm, int *size) {
     mock_c()->actualCall("MPI_Comm_size");
     *size = 10;
-    return 1; // ?
+    return MPI_SUCCESS;
 }
 
 int MPI_Testany(int count, MPI_Request array_of_requests[], int *index,
@@ -83,7 +89,6 @@ TEST_C(masterqueue, test_queue_reinitialization) {
     initMasterQueue();
     terminateMasterQueue();
 }
-
 
 TEST_C(masterqueue, test_terminateMasterQueue_noInit) {
     // terminate uninitialized masterQueue should not fail
