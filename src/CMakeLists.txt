@@ -5,9 +5,9 @@ set(SRC_LIST
     localoptimizationipopt.c
     objectivefunction.c
     misc.c
-    mpiworker.c
     resultwriter.c
-    masterqueue.c
+    queuemaster.c
+    queueworker.c
     masterthread.c
 )
 

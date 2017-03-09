@@ -1,5 +1,5 @@
-#ifndef MPI_WORKER_H
-#define MPI_WORKER_H
+#ifndef QUEUE_WORKER_H
+#define QUEUE_WORKER_H
 
 #include "dataprovider.h"
 

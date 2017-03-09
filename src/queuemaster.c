@@ -1,4 +1,4 @@
-#include "masterqueue.h"
+#include "queuemaster.h"
 #include "misc.h"
 
 #include <pthread.h>
@@ -33,10 +33,10 @@ typedef struct masterQueue_tag {
     pthread_t queueThread;
 } masterQueueStruct;
 
-#define MASTERQUEUE_QUEUE_INITIALIZER {0, false, NULL, NULL, 0, NULL, NULL, NULL, PTHREAD_MUTEX_INITIALIZER, {}, 0}
+#define QUEUEMASTER_QUEUE_INITIALIZER {0, false, NULL, NULL, 0, NULL, NULL, NULL, PTHREAD_MUTEX_INITIALIZER, {}, 0}
 
 
-static masterQueueStruct masterQueue = MASTERQUEUE_QUEUE_INITIALIZER;
+static masterQueueStruct masterQueue = QUEUEMASTER_QUEUE_INITIALIZER;
 
 
 static void *masterQueueRun(void *unusedArgument);
@@ -85,7 +85,7 @@ void initMasterQueue() {
     }
 }
 
-#ifndef MASTER_QUEUE_TEST
+#ifndef QUEUE_MASTER_TEST
 static void assertMPIInitialized() {
     int mpiInitialized = 0;
     MPI_Initialized(&mpiInitialized);

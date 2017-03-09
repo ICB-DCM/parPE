@@ -1,4 +1,4 @@
-#include "mpiworker.h"
+#include "queueworker.h"
 #include <string.h>
 #include <mpi.h>
 #include <assert.h>

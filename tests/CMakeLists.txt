@@ -13,8 +13,8 @@ set(SRC_LIST
     main.cpp
     misc.c
     testobjectivefunction.c
-    testmpiworker.c
-    testmasterqueue.c
+    testqueueworker.c
+    testqueuemaster.c
 )
 
 include_directories(${CPPUTEST_INCLUDE_DIR})

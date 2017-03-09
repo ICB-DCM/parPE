@@ -8,7 +8,8 @@
 #include <mpi.h>
 #include <getopt.h>
 
-#include "mpiworker.h"
+#include "queuemaster.h"
+#include "queueworker.h"
 #include "resultwriter.h"
 #include "masterthread.h"
 #include "dataprovider.h"

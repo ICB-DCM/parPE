@@ -4,12 +4,12 @@
 #include <unistd.h>
 #include <stdio.h>
 
-#define MASTER_QUEUE_TEST
+#define QUEUE_MASTER_TEST
 
 // include .c because of static functions
-#include "masterqueue.c"
+#include "queuemaster.c"
 
-TEST_GROUP_C_SETUP(masterqueue) {
+TEST_GROUP_C_SETUP(queuemaster) {
     // reset globals
     masterQueue.numWorkers = 0;
     masterQueue.queueCreated = false;
@@ -24,7 +24,7 @@ TEST_GROUP_C_SETUP(masterqueue) {
     memset(&masterQueue.queueThread, 0, sizeof masterQueue.queueThread);
 }
 
-TEST_GROUP_C_TEARDOWN(masterqueue) {
+TEST_GROUP_C_TEARDOWN(queuemaster) {
     mock_c()->checkExpectations();
     mock_c()->clear();
 }
@@ -48,7 +48,7 @@ int MPI_Testany(int count, MPI_Request array_of_requests[], int *index,
     return 0;
 }
 
-TEST_C(masterqueue, test_queueinit) {
+TEST_C(queuemaster, test_queueinit) {
     mock_c()->expectOneCall("MPI_Comm_size");
     // Can happen or not, depending on how quick it's terminated
     // mock_c()->expectOneCall("MPI_Testany");
@@ -63,7 +63,7 @@ TEST_C(masterqueue, test_queueinit) {
     terminateMasterQueue();
 }
 
-TEST_C(masterqueue, test_queue) {
+TEST_C(queuemaster, test_queue) {
     mock_c()->expectNCalls(1, "MPI_Comm_size");
     initMasterQueue();
 
@@ -82,7 +82,7 @@ TEST_C(masterqueue, test_queue) {
     terminateMasterQueue();
 }
 
-TEST_C(masterqueue, test_queue_reinitialization) {
+TEST_C(queuemaster, test_queue_reinitialization) {
     // should not crash or cause memory leaks
     mock_c()->expectNCalls(1, "MPI_Comm_size");
     initMasterQueue();
@@ -90,7 +90,7 @@ TEST_C(masterqueue, test_queue_reinitialization) {
     terminateMasterQueue();
 }
 
-TEST_C(masterqueue, test_terminateMasterQueue_noInit) {
+TEST_C(queuemaster, test_terminateMasterQueue_noInit) {
     // terminate uninitialized masterQueue should not fail
     terminateMasterQueue();
 }

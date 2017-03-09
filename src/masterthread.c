@@ -7,7 +7,7 @@
 #include "objectivefunction.h"
 #include "misc.h"
 
-#include "masterqueue.h"
+#include "queuemaster.h"
 
 typedef struct newLocalOptimizationOption_tag {
     int multiStartIdx;

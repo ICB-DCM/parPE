@@ -14,9 +14,9 @@
 #include <mpe.h>
 #endif
 
-#include <masterqueue.h>
+#include "queuemaster.h"
 #include "misc.h"
-#include "mpiworker.h"
+#include "queueworker.h"
 
 #include <include/amici.h>
 #include <include/udata_accessors.h>

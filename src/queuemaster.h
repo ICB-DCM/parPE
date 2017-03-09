@@ -1,5 +1,5 @@
-#ifndef MASTER_QUEUE_H
-#define MASTER_QUEUE_H
+#ifndef QUEUE_MASTER_H
+#define QUEUE_MASTER_H
 
 #include <mpi.h>
 #include <pthread.h>

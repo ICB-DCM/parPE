@@ -1,16 +1,16 @@
 #include "CppUTest/TestHarness_c.h"
 #include "CppUTestExt/MockSupport_c.h"
 
-#include "mpiworker.h"
+#include "queueworker.h"
 #include "misc.h"
 
-TEST_GROUP_C_SETUP(mpiworker) {
+TEST_GROUP_C_SETUP(queueworker) {
 }
 
-TEST_GROUP_C_TEARDOWN(mpiworker) {
+TEST_GROUP_C_TEARDOWN(queueworker) {
 }
 
-TEST_C(mpiworker, test_serializeResultPackageMessage) {
+TEST_C(queueworker, test_serializeResultPackageMessage) {
     // serialize and deserialize resultpackage with random content
     int nTheta = randInt(0, 5000);
     int resultPackageLength = getLengthResultPackageMessage(nTheta);
@@ -40,7 +40,7 @@ TEST_C(mpiworker, test_serializeResultPackageMessage) {
     }
 }
 
-TEST_C(mpiworker, test_serializeWorkPackageMessage) {
+TEST_C(queueworker, test_serializeWorkPackageMessage) {
     // serialize and deserialize workpackage with random content
     int nTheta = randInt(0, 5000);
     int workPackageLength = getLengthWorkPackageMessage(nTheta);
