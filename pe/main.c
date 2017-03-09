@@ -9,7 +9,7 @@
 #include <getopt.h>
 
 #include "queuemaster.h"
-#include "queueworker.h"
+#include "simulationworker.h"
 #include "resultwriter.h"
 #include "masterthread.h"
 #include "dataprovider.h"
@@ -90,6 +90,7 @@ void initHDF5Mutex();
 
 int parseOptions(int argc, char **argv);
 
+void sendTerminationSignalToAllWorkers();
 
 int main(int argc, char **argv)
 {
@@ -327,3 +328,17 @@ int parseOptions (int argc, char **argv) {
 }
 
 
+void sendTerminationSignalToAllWorkers()
+{
+    int commSize;
+    MPI_Comm_size(MPI_COMM_WORLD, &commSize);
+
+    MPI_Request reqs[commSize - 1];
+
+    for(int i = 1; i < commSize; ++i) {
+        reqs[i - 1] =  MPI_REQUEST_NULL;
+        MPI_Isend(MPI_BOTTOM, 0, MPI_INT, i, 0, MPI_COMM_WORLD, &reqs[i - 1]);
+    }
+    logmessage(LOGLVL_INFO, "Sent termination signal to workers.");
+    MPI_Waitall(commSize - 1, reqs, MPI_STATUS_IGNORE);
+}

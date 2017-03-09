@@ -8,6 +8,7 @@ set(SRC_LIST
     resultwriter.c
     queuemaster.c
     queueworker.c
+    simulationworker.c
     masterthread.c
 )
 

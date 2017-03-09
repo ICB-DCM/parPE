@@ -14,9 +14,11 @@
 #include <mpe.h>
 #endif
 
-#include "queuemaster.h"
-#include "misc.h"
 #include "queueworker.h"
+#include "queuemaster.h"
+#include "simulationworker.h"
+#include "misc.h"
+
 
 #include <include/amici.h>
 #include <include/udata_accessors.h>

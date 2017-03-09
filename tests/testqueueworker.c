@@ -2,6 +2,8 @@
 #include "CppUTestExt/MockSupport_c.h"
 
 #include "queueworker.h"
+// single out
+#include "simulationworker.h"
 #include "misc.h"
 
 TEST_GROUP_C_SETUP(queueworker) {
