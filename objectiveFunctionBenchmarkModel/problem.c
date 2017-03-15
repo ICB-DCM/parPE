@@ -4,6 +4,7 @@
 #include <math.h>
 #include <string.h>
 
+// #define NO_OBJ_FUN_EVAL
 
 int objectiveFunctionWrapper(void *problem, const double *parameters, double *result);
 
@@ -71,8 +72,11 @@ void freeBenchmarkProblem(OptimizationProblem *problem)
 
 
 int objectiveFunctionWrapper(void *_problem, const double *parameters, double *result) {
-//    *result = 1;
-//    return 1;
+
+#ifdef NO_OBJ_FUN_EVAL
+    *result = 1;
+    return 1;
+#endif
 
     OptimizationProblem *problem = (OptimizationProblem *) _problem;
     MyUserData *myUserData = (MyUserData *) problem->userData;
@@ -94,10 +98,12 @@ int objectiveFunctionGradientWrapper(void *_problem, const double *parameters, d
     OptimizationProblem *problem = (OptimizationProblem *) _problem;
     MyUserData *myUserData = (MyUserData *) problem->userData;
 
-//    for(int i = 0; i < problem->numOptimizationParameters; ++i)
-//        objFunGrad = 0;
-//    *objFunVal = 1;
-//    return 1;
+#ifdef NO_OBJ_FUN_EVAL
+    for(int i = 0; i < problem->numOptimizationParameters; ++i)
+        objFunGrad = 0;
+    *objFunVal = 1;
+    return 1;
+#endif
 
     int status = evaluateObjectiveFunction(parameters, problem->numOptimizationParameters,
                                            myUserData->datapath, objFunVal,
