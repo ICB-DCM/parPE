@@ -12,7 +12,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -include ${CPPUTEST_DIR}/include/CppUTes
 set(SRC_LIST
     main.cpp
     misc.c
-    testobjectivefunction.c
+    objectiveFunctionTest.c
     testqueueworker.c
     testqueuemaster.c
 )

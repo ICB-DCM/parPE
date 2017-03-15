@@ -1,4 +1,4 @@
-#include "objectivefunction.h"
+#include "objectiveFunction.h"
 #include "dataprovider.h"
 
 #include <stdio.h>

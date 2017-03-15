@@ -1,4 +1,4 @@
-#include "localoptimizationipopt.h"
+#include "localOptimizationIpopt.h"
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -11,7 +11,7 @@
 #include <include/amici.h>
 
 #include "misc.h"
-#include "objectivefunction.h"
+#include "objectiveFunction.h"
 #include "resultwriter.h"
 
 #define IPTOPT_LOG_FILE "/home/dweindl/src/CanPathProSSH/dw/ipopt.log"

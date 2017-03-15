@@ -3,8 +3,8 @@
 
 #include "masterthread.h"
 #include "dataprovider.h"
-#include "localoptimizationipopt.h"
-#include "objectivefunction.h"
+#include "localOptimizationIpopt.h"
+#include "objectiveFunction.h"
 #include "misc.h"
 
 #include "queuemaster.h"

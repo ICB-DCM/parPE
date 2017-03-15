@@ -2,8 +2,8 @@ project(pe)
 
 set(SRC_LIST
     dataprovider.c
-    localoptimizationipopt.c
-    objectivefunction.c
+    localOptimizationIpopt.c
+    objectiveFunction.c
     misc.c
     resultwriter.c
     queuemaster.c
@@ -24,3 +24,4 @@ target_link_libraries(${PROJECT_NAME}
     ${SUITESPARSE_LIBRARIES}
     -lpthread
 )
+

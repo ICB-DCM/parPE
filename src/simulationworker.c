@@ -1,6 +1,6 @@
 #include "simulationworker.h"
 #include "queueworker.h"
-#include "objectivefunction.h"
+#include "objectiveFunction.h"
 #include "dataprovider.h"
 #include "resultwriter.h"
 #include <string.h>
