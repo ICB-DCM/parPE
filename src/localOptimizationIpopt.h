@@ -1,7 +1,7 @@
 #ifndef LOCAL_OPTIMIZATION_H
 #define LOCAL_OPTIMIZATION_H
 
-#include "dataprovider.h"
+#include "../objectiveFunctionBenchmarkModel/dataprovider.h"
 
 /**
  * @brief getLocalOptimum Get local optimum using Ipopt Optimizer

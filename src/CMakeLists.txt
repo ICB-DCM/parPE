@@ -1,9 +1,7 @@
 project(pe)
 
 set(SRC_LIST
-    dataprovider.c
     localOptimizationIpopt.c
-    objectiveFunction.c
     misc.c
     resultwriter.c
     loadBalancerMaster.c
@@ -23,6 +21,7 @@ target_link_libraries(${PROJECT_NAME}
     ${HDF5_C_LIBRARIES}
     ${MPE_LIBRARIES}
     ${SUITESPARSE_LIBRARIES}
+    objectiveFunctionBenchmarkModel
     -lpthread
 )
 

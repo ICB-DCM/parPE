@@ -1,8 +1,8 @@
 #ifndef SIMULATION_WORKER_H
 #define SIMULATION_WORKER_H
 
-#include "dataprovider.h"
-#include <include/rdata.h>
+// TODO:for datapath, remove
+#include "../objectiveFunctionBenchmarkModel/dataprovider.h"
 
 typedef struct workPackageMessage_tag {
     datapath path;

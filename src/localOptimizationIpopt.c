@@ -11,7 +11,7 @@
 #include <include/amici.h>
 
 #include "misc.h"
-#include "objectiveFunction.h"
+#include "../objectiveFunctionBenchmarkModel/objectiveFunction.h"
 #include "resultwriter.h"
 
 #define IPTOPT_LOG_FILE "/home/dweindl/src/CanPathProSSH/dw/ipopt.log"

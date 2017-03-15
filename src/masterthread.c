@@ -2,9 +2,9 @@
 #include <unistd.h>
 
 #include "masterthread.h"
-#include "dataprovider.h"
+#include "../objectiveFunctionBenchmarkModel/dataprovider.h"
 #include "localOptimizationIpopt.h"
-#include "objectiveFunction.h"
+#include "../objectiveFunctionBenchmarkModel/objectiveFunction.h"
 #include "misc.h"
 
 #include "loadBalancerMaster.h"

@@ -12,7 +12,7 @@
 #include "simulationWorker.h"
 #include "resultwriter.h"
 #include "masterthread.h"
-#include "dataprovider.h"
+#include "../objectiveFunctionBenchmarkModel/dataprovider.h"
 #include "misc.h"
 
 #undef INSTALL_SIGNAL_HANDLER

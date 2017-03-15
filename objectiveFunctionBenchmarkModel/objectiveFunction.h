@@ -3,10 +3,10 @@
 
 #define OBJECTIVE_FUNCTION_H_DEBUG_LEVEL 0
 
-#include<include/udata.h>
-#include<include/edata.h>
+#include <include/udata.h>
+#include <include/edata.h>
 #include <include/rdata.h>
-#include<dataprovider.h>
+#include "dataprovider.h"
 
 /**
  * @brief evaluateObjectiveFunction Evaluate objective function and gradient (optional)

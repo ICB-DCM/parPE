@@ -2,9 +2,13 @@
 #include "loadBalancerWorker.h"
 #include <string.h>
 #include <assert.h>
+#include <include/rdata.h>
+#include <include/udata.h>
+#include <include/edata.h>
 
 // TODO get rid of:
-#include "dataprovider.h"
+#include "../objectiveFunctionBenchmarkModel/dataprovider.h"
+#include "../objectiveFunctionBenchmarkModel/objectiveFunction.h"
 #include "resultwriter.h"
 
 #ifdef USE_MPE

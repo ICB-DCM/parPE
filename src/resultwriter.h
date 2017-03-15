@@ -4,7 +4,7 @@
 #include <hdf5.h>
 #include <hdf5_hl.h>
 #include <stdbool.h>
-#include "dataprovider.h"
+#include "../objectiveFunctionBenchmarkModel/dataprovider.h"
 
 int initResultHDFFile(const char *filename);
 
