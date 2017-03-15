@@ -2,6 +2,7 @@
 #include <unistd.h>
 
 #include "masterthread.h"
+#include "../objectiveFunctionBenchmarkModel/problem.h"
 #include "../objectiveFunctionBenchmarkModel/dataprovider.h"
 #include "localOptimizationIpopt.h"
 #include "../objectiveFunctionBenchmarkModel/objectiveFunction.h"
@@ -123,7 +124,7 @@ void *newLocalOptimization(void *pOptions) {
         abort();
         break;
     default:
-        *status = getLocalOptimum(path);
+        getLocalOptimum(path);
     }
 
     logmessage(LOGLVL_DEBUG, "Finished newLocalOptimization #%d.%d", path.idxMultiStart, path.idxLocalOptimization);
@@ -155,10 +156,17 @@ void startObjectiveFunctionGradientCheck()
     objectiveFunctionGradientCheck(theta, lenTheta, path, AMI_SCALING_LOG10, parameterIndices, 50, epsilon);
 
     free(theta);
+    free(parameterIndices);
 
     loadBalancerTerminate();
 }
 
 int getLocalOptimum(Datapath dataPath) {
-    return getLocalOptimumIpopt(dataPath);
+    OptimizationProblem *problem = getBenchmarkOptimizationProblem(dataPath);
+
+    int status = getLocalOptimumIpopt(problem);
+
+    freeBenchmarkProblem(problem);
+
+    return status;
 }

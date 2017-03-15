@@ -3,7 +3,6 @@ project(pe)
 set(SRC_LIST
     localOptimizationIpopt.c
     misc.c
-    resultwriter.c
     loadBalancerMaster.c
     loadBalancerWorker.c
     simulationWorker.c

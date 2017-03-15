@@ -54,6 +54,7 @@ static void updateLogLikelihoodGradientForExperiment(const double llhCase, const
 
 /******************************/
 
+
 int evaluateObjectiveFunction(const double theta[], const int lenTheta, Datapath path,
                               double *objectiveFunctionValue, double *objectiveFunctionGradient, AMI_parameter_scaling scaling) {
 

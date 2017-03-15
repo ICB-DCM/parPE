@@ -4,6 +4,8 @@ set(SRC_LIST
     ${AMICI_DIR}/src/ami_hdf5.cpp
     dataprovider.c
     objectiveFunction.c
+    problem.c
+    resultwriter.c
 )
 
 add_library(${PROJECT_NAME} ${SRC_LIST})

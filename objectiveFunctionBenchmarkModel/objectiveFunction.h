@@ -7,6 +7,7 @@
 #include <include/edata.h>
 #include <include/rdata.h>
 #include "dataprovider.h"
+#include "optimizationProblem.h"
 
 /**
  * @brief evaluateObjectiveFunction Evaluate objective function and gradient (optional)
@@ -47,8 +48,4 @@ ReturnData *getSteadystateSolutionForExperiment(Datapath path, UserData *udata, 
 
 void objectiveFunctionGradientCheck(const double theta[], const int lenTheta, Datapath path, AMI_parameter_scaling scaling, const int parameterIndices[], int numParameterIndices, double epsilon);
 
-
-void *serializeDataPath(Datapath *path);
-
-void deserializeDataPath(char *msg, Datapath *path);
 #endif

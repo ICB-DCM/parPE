@@ -215,6 +215,7 @@ void loadBalancerTerminate() {
         free(loadBalancer.recvRequests);
 
     queueDestroy(loadBalancer.queue, 0);
+    loadBalancer.queue = 0;
 }
 
 

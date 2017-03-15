@@ -10,7 +10,6 @@
 // required for datapath
 #include "../objectiveFunctionBenchmarkModel/dataprovider.h"
 #include "../objectiveFunctionBenchmarkModel/objectiveFunction.h"
-#include "resultwriter.h"
 
 #ifdef USE_MPE
 #include <mpe.h>

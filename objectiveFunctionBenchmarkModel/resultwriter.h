@@ -4,14 +4,19 @@
 #include <hdf5.h>
 #include <hdf5_hl.h>
 #include <stdbool.h>
-#include "../objectiveFunctionBenchmarkModel/dataprovider.h"
+#include "optimizationProblem.h"
+#include "dataprovider.h"
 
 int initResultHDFFile(const char *filename);
 
 void closeResultHDFFile();
 
-void logLocalOptimizerObjectiveFunctionEvaluation(Datapath path, int numFunctionCalls, double *theta, double objectiveFunctionValue, double timeElapsedInSeconds, int nTheta);
-void logLocalOptimizerObjectiveFunctionGradientEvaluation(Datapath path, int numFunctionCalls, double *theta, double objectiveFunctionValue, const double *gradient, double timeElapsedInSeconds, int nTheta);
+void logLocalOptimizerObjectiveFunctionEvaluation(void *problem,
+                                                  const double *parameters,
+                                                  double objectiveFunctionValue,
+                                                  int numFunctionCalls,
+                                                  double timeElapsed);
+void logLocalOptimizerObjectiveFunctionGradientEvaluation(void *_problem, const double *parameters, double objectiveFunctionValue, const double *objectiveFunctionGradient, int numFunctionCalls, double timeElapsed);
 
 // TODO add likelihood for individual experiments
 void logLocalOptimizerIteration(Datapath path, int numIterations, double *theta, double objectiveFunctionValue, const double *gradient, double timeElapsedInSeconds, int nTheta, int alg_mod, double inf_pr, double inf_du, double mu, double d_norm, double regularization_size, double alpha_du, double alpha_pr, int ls_trials);
@@ -22,6 +27,8 @@ void flushResultWriter();
 
 void saveTotalWalltime(const double timeInSeconds);
 
-void saveLocalOptimizerResults(Datapath path, double finalNegLogLikelihood, double masterTime, int exitStatus);
-
+void saveLocalOptimizerResults(void *_problem,
+                               double finalNegLogLikelihood,
+                               double masterTime,
+                               int exitStatus);
 #endif

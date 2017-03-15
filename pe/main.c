@@ -10,10 +10,10 @@
 
 #include "loadBalancerMaster.h"
 #include "simulationWorker.h"
-#include "resultwriter.h"
 #include "masterthread.h"
 // for initDataProvider
 #include "../objectiveFunctionBenchmarkModel/dataprovider.h"
+#include "../objectiveFunctionBenchmarkModel/resultwriter.h"
 #include "misc.h"
 
 #undef INSTALL_SIGNAL_HANDLER
@@ -136,7 +136,7 @@ void init(int argc, char **argv) {
         exit(1);
     }
 
-    // printDebugInfoAndWait();
+//    printDebugInfoAndWait();
     printMPIInfo();
 
 #ifdef USE_MPE

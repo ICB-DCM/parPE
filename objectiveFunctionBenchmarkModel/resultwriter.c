@@ -3,6 +3,7 @@
 #include <string.h>
 #include <assert.h>
 #include <pthread.h>
+#include "problem.h"
 
 #define H5_SAVE_ERROR_HANDLER   herr_t (*old_func)(void*); \
                                 void *old_client_data; \
@@ -231,27 +232,39 @@ char *myStringCat(const char *first, const char *second)
     return concatenation;
 }
 
-void logLocalOptimizerObjectiveFunctionEvaluation(Datapath path, int numFunctionCalls, double *theta, double objectiveFunctionValue, double timeElapsedInSeconds, int nTheta)
+void logLocalOptimizerObjectiveFunctionEvaluation(void *_problem, const double *parameters, double objectiveFunctionValue, int numFunctionCalls, double timeElapsed)
 {
+    OptimizationProblem *problem = (OptimizationProblem *)_problem;
+    MyUserData *myUserData = (MyUserData *) problem->userData;
+
     char fullGroupPath[100];
-    sprintf(fullGroupPath, "/crossvalidations/%d/multistarts/%d/objFunEval/", path.idxMultiStart, path.idxLocalOptimization);
+    sprintf(fullGroupPath, "/crossvalidations/%d/multistarts/%d/objFunEval/", myUserData->datapath.idxMultiStart, myUserData->datapath.idxLocalOptimization);
 
     hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "negLogLikelihood", &objectiveFunctionValue, 1);
-    hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "p", theta, nTheta);
-    hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "evalFTime", &timeElapsedInSeconds, 1);
+    hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "p", parameters, problem->numOptimizationParameters);
+    hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "evalFTime", &timeElapsed, 1);
 
     flushResultWriter();
 }
 
 
-void logLocalOptimizerObjectiveFunctionGradientEvaluation(Datapath path, int numFunctionCalls, double *theta, double objectiveFunctionValue, const double *gradient, double timeElapsedInSeconds, int nTheta)
+void logLocalOptimizerObjectiveFunctionGradientEvaluation(void *_problem,
+                                                          const double *parameters,
+                                                          double objectiveFunctionValue,
+                                                          const double *gradient,
+                                                          int numFunctionCalls,
+                                                          double timeElapsedInSeconds)
 {
+    OptimizationProblem *problem = (OptimizationProblem *)_problem;
+    MyUserData *myUserData = (MyUserData *) problem->userData;
+
+
     char fullGroupPath[100];
-    sprintf(fullGroupPath, "/crossvalidations/%d/multistarts/%d/objFunGradEval/", path.idxMultiStart, path.idxLocalOptimization);
+    sprintf(fullGroupPath, "/crossvalidations/%d/multistarts/%d/objFunGradEval/", myUserData->datapath.idxMultiStart, myUserData->datapath.idxLocalOptimization);
 
     hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "negLogLikelihood", &objectiveFunctionValue, 1);
-    hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "negLogLikelihoodGradient", gradient, nTheta);
-    hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "p", theta, nTheta);
+    hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "negLogLikelihoodGradient", gradient, problem->numOptimizationParameters);
+    hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "p", parameters, problem->numOptimizationParameters);
     hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "evalFTime", &timeElapsedInSeconds, 1);
 
     flushResultWriter();
@@ -462,8 +475,19 @@ void saveTotalWalltime(const double timeInSeconds) {
     pthread_mutex_unlock(&mutexHDF);
 }
 
-void saveLocalOptimizerResults(Datapath path, double finalNegLogLikelihood, double masterTime, int exitStatus)
+void saveLocalOptimizerResults(void *_problem,
+                               double finalNegLogLikelihood,
+                               double timeElapsed,
+                               int exitStatus)
 {
+    OptimizationProblem *problem = (OptimizationProblem *)_problem;
+    MyUserData *myUserData = (MyUserData *) problem->userData;
+    Datapath path = myUserData->datapath;
+
+    char strBuf[100];
+    sprintDatapath(strBuf, path);
+    logmessage(LOGLVL_INFO, "%s: Ipopt status %d, final llh: %e, time: %f.", strBuf, exitStatus, finalNegLogLikelihood, timeElapsed);
+
     hsize_t dims[1] = {1};
 
     char fullPath[100];
@@ -474,7 +498,7 @@ void saveLocalOptimizerResults(Datapath path, double finalNegLogLikelihood, doub
     H5LTmake_dataset(file_id, fullPath, 1, dims, H5T_NATIVE_DOUBLE, &finalNegLogLikelihood);
 
     sprintf(fullPath, "/crossvalidations/%d/multistarts/%d/timeOnMaster", path.idxMultiStart, path.idxLocalOptimization);
-    H5LTmake_dataset(file_id, fullPath, 1, dims, H5T_NATIVE_DOUBLE, &masterTime);
+    H5LTmake_dataset(file_id, fullPath, 1, dims, H5T_NATIVE_DOUBLE, &timeElapsed);
 
     sprintf(fullPath, "/crossvalidations/%d/multistarts/%d/exitStatus", path.idxMultiStart, path.idxLocalOptimization);
     H5LTmake_dataset(file_id, fullPath, 1, dims, H5T_NATIVE_INT, &exitStatus);
