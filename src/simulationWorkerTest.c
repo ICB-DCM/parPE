@@ -1,6 +1,7 @@
 #include "simulationWorker.h"
 #include "testingMisc.h"
-
+// TODO: test separetely
+#include "../objectiveFunctionBenchmarkModel/dataprovider.h"
 #include "CppUTest/TestHarness_c.h"
 #include "CppUTestExt/MockSupport_c.h"
 
@@ -49,11 +50,14 @@ TEST_C(simulationWorker, testSerializeWorkPackageMessage) {
     char *buffer = alloca(workPackageLength);
     workPackageMessage wp;
     wp.sensitivityMethod = randInt(INT_MIN, INT_MAX);
-    wp.path.idxMultiStart = randInt(INT_MIN, INT_MAX);
-    wp.path.idxLocalOptimization = randInt(INT_MIN, INT_MAX);
-    wp.path.idxLocalOptimizationIteration = randInt(INT_MIN, INT_MAX);
-    wp.path.idxGenotype = randInt(INT_MIN, INT_MAX);
-    wp.path.idxExperiment = randInt(INT_MIN, INT_MAX);
+    datapath expPath;
+    expPath.idxMultiStart = randInt(INT_MIN, INT_MAX);
+    expPath.idxLocalOptimization = randInt(INT_MIN, INT_MAX);
+    expPath.idxLocalOptimizationIteration = randInt(INT_MIN, INT_MAX);
+    expPath.idxGenotype = randInt(INT_MIN, INT_MAX);
+    expPath.idxExperiment = randInt(INT_MIN, INT_MAX);
+    wp.data = &expPath;
+    wp.lenData = sizeof(datapath);
     wp.theta = alloca(nTheta * sizeof(*wp.theta));
     for(int i = 0; i < nTheta; ++i) {
         wp.theta[i] = randDouble(-DBL_MIN, DBL_MAX);
@@ -68,11 +72,11 @@ TEST_C(simulationWorker, testSerializeWorkPackageMessage) {
     deserializeWorkPackageMessage(buffer, nTheta, &actPath, actTheta, &actSensitivityMethod);
 
     CHECK_EQUAL_C_INT(actSensitivityMethod, wp.sensitivityMethod);
-    CHECK_EQUAL_C_INT(actPath.idxMultiStart, wp.path.idxMultiStart);
-    CHECK_EQUAL_C_INT(actPath.idxLocalOptimization, wp.path.idxLocalOptimization);
-    CHECK_EQUAL_C_INT(actPath.idxLocalOptimizationIteration, wp.path.idxLocalOptimizationIteration);
-    CHECK_EQUAL_C_INT(actPath.idxGenotype, wp.path.idxGenotype);
-    CHECK_EQUAL_C_INT(actPath.idxExperiment, wp.path.idxExperiment);
+    CHECK_EQUAL_C_INT(actPath.idxMultiStart, expPath.idxMultiStart);
+    CHECK_EQUAL_C_INT(actPath.idxLocalOptimization, expPath.idxLocalOptimization);
+    CHECK_EQUAL_C_INT(actPath.idxLocalOptimizationIteration, expPath.idxLocalOptimizationIteration);
+    CHECK_EQUAL_C_INT(actPath.idxGenotype, expPath.idxGenotype);
+    CHECK_EQUAL_C_INT(actPath.idxExperiment, expPath.idxExperiment);
 
     for(int i = 0; i < nTheta; ++i) {
         CHECK_EQUAL_C_REAL(actTheta[i], wp.theta[i], 0);

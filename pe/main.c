@@ -12,6 +12,7 @@
 #include "simulationWorker.h"
 #include "resultwriter.h"
 #include "masterthread.h"
+// for initDataProvider
 #include "../objectiveFunctionBenchmarkModel/dataprovider.h"
 #include "misc.h"
 
@@ -104,7 +105,9 @@ int main(int argc, char **argv)
     if(mpiRank == 0) {
         doMasterWork();
     } else {
-        doWorkerWork();
+        UserData *udata = getMyUserData();
+        doWorkerWork(udata);
+        freeUserDataC(udata);
     }
 
     return finalize(begin);

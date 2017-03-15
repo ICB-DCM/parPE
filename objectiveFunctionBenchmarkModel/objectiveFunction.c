@@ -223,7 +223,8 @@ static int simulateReferenceExperiments(datapath path, int numGenotypes, double 
         d->recvBuffer = &recvBuffer[celllineIdx * lenRecvBuffer];
 
         workPackageMessage work;
-        work.path = path;
+        work.data = &path;
+        work.lenData = sizeof(path);
         work.sensitivityMethod = sensi_meth;
         work.theta = p;
 
@@ -308,7 +309,8 @@ int simulateDrugExperiments(datapath path, int numGenotypes, double *llhDrug[], 
             d->recvBuffer    = &recvBuffer[celllineIdx][expIdx * lenRecvBuffer];
 
             workPackageMessage work;
-            work.path = path;
+            work.data = &path;
+            work.lenData = sizeof(path);
             work.sensitivityMethod = sensi_meth;
             work.theta = p;
             serializeWorkPackageMessage(work, np, d->sendBuffer);
@@ -509,3 +511,4 @@ void objectiveFunctionGradientCheck(const double theta[], const int lenTheta, da
     free(gradient);
     free(thetaTmp);
 }
+

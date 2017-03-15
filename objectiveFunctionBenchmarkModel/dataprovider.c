@@ -279,7 +279,7 @@ void readFixedParameters(int dataMatrixRow, UserData *udata) {
     hsize_t count[] = {1, NUM_FIXED_PARAMS + NUM_STATE_VARIABLES};
 
     H5Sselect_hyperslab(dataspaceId, H5S_SELECT_SET, offset, NULL, count, NULL);
-    H5Dread(datasetId, H5T_NATIVE_DOUBLE, memspaceId, dataspaceId, H5P_DEFAULT, k);
+    H5Dread(datasetId, H5T_NATIVE_DOUBLE, memspaceId, dataspaceId, H5P_DEFAULT, udata->am_k);
 
     if(H5Eget_num(H5E_DEFAULT)) {
         error("Problem in readFixedParameters\n");

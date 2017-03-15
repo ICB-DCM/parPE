@@ -7,6 +7,7 @@
 #include <include/edata.h>
 
 // TODO get rid of:
+// required for datapath
 #include "../objectiveFunctionBenchmarkModel/dataprovider.h"
 #include "../objectiveFunctionBenchmarkModel/objectiveFunction.h"
 #include "resultwriter.h"
@@ -18,18 +19,13 @@ extern const int mpe_event_begin_simulate, mpe_event_end_simulate;
 
 static UserData *udata = 0;
 
-void doWorkerWork() {
-    assert(udata == 0);
-
-    // TODO get rid of
-    udata = getMyUserData();
+void doWorkerWork(UserData *_udata) {
+    udata = _udata;
 
     int workpackageLength = getLengthWorkPackageMessage(udata->am_np);
     int resultpackageLength = getLengthResultPackageMessage(udata->am_np);
 
     loadBalancerWorkerRun(workpackageLength, resultpackageLength, handleWorkPackage);
-
-    freeUserDataC(udata);
 }
 
 
@@ -91,8 +87,12 @@ void serializeWorkPackageMessage(workPackageMessage work, int nTheta, char *buff
 {
     size_t size = 0;
 
-    size = sizeof(datapath);
-    memcpy(buffer, &work.path, size);
+    size = sizeof(work.lenData);
+    memcpy(buffer, &work.lenData, size);
+    buffer += size;
+
+    size = work.lenData;
+    memcpy(buffer, work.data, size);
     buffer += size;
 
     size = nTheta * sizeof(double);
@@ -105,12 +105,17 @@ void serializeWorkPackageMessage(workPackageMessage work, int nTheta, char *buff
 
 }
 
-void deserializeWorkPackageMessage(const char *msg, int nTheta, datapath *path, double *theta, int *sensitivityMethod)
+void deserializeWorkPackageMessage(const char *msg, int nTheta, void *data, double *theta, int *sensitivityMethod)
 {
     size_t size;
 
-    *path = *(datapath *)msg;
-    size = sizeof(datapath);
+    int lenData = 0;
+    size = sizeof(lenData);
+    memcpy(&lenData, msg, size);
+    msg += size;
+
+    size = lenData;
+    memcpy(data, msg, size);
     msg += size;
 
     size = nTheta * sizeof(double);

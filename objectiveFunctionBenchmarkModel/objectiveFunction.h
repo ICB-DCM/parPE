@@ -46,4 +46,9 @@ ReturnData *getSteadystateSolutionForExperiment(datapath path, UserData *udata, 
 
 
 void objectiveFunctionGradientCheck(const double theta[], const int lenTheta, datapath path, AMI_parameter_scaling scaling, const int parameterIndices[], int numParameterIndices, double epsilon);
+
+
+void *serializeDataPath(datapath *path);
+
+void deserializeDataPath(char *msg, datapath *path);
 #endif
