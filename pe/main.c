@@ -8,7 +8,7 @@
 #include <mpi.h>
 #include <getopt.h>
 
-#include "queuemaster.h"
+#include "loadBalancerMaster.h"
 #include "simulationworker.h"
 #include "resultwriter.h"
 #include "masterthread.h"

@@ -7,7 +7,7 @@
 #define QUEUE_MASTER_TEST
 
 // include .c because of static functions
-#include "queuemaster.c"
+#include "loadBalancerMaster.c"
 
 TEST_GROUP_C_SETUP(queuemaster) {
     // reset globals

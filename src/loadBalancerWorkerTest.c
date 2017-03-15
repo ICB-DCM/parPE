@@ -1,10 +1,10 @@
 #include "CppUTest/TestHarness_c.h"
 #include "CppUTestExt/MockSupport_c.h"
 
-#include "queueworker.h"
+#include "loadBalancerWorker.h"
 // single out
 #include "simulationworker.h"
-#include "misc.h"
+#include "testingMisc.h"
 
 TEST_GROUP_C_SETUP(queueworker) {
 }

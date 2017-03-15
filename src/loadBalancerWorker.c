@@ -4,7 +4,7 @@
 #include <alloca.h>
 #include <assert.h>
 #include <stdbool.h>
-#include "queueworker.h"
+#include "loadBalancerWorker.h"
 #include "misc.h"
 
 void runQueueWorker(int inMsgSize, int outMesgSize, messageHandler msgHandler) {

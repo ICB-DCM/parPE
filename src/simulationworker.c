@@ -1,5 +1,5 @@
 #include "simulationworker.h"
-#include "queueworker.h"
+#include "loadBalancerWorker.h"
 #include "objectiveFunction.h"
 #include "dataprovider.h"
 #include "resultwriter.h"

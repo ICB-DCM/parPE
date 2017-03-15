@@ -13,8 +13,8 @@ set(SRC_LIST
     main.cpp
     ../src/testingMisc.c
     ../src/objectiveFunctionTest.c
-    ../src/testqueueworker.c
-    ../src/testqueuemaster.c
+    ../src/loadBalancerWorkerTest.c
+    ../src/loadBalancerMasterTest.c
     ../src/queueTest.c
 )
 

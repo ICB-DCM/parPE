@@ -14,8 +14,8 @@
 #include <mpe.h>
 #endif
 
-#include "queueworker.h"
-#include "queuemaster.h"
+#include "loadBalancerMaster.h"
+#include "loadBalancerWorker.h"
 #include "simulationworker.h"
 #include "misc.h"
 

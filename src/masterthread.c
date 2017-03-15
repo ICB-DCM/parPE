@@ -7,7 +7,7 @@
 #include "objectiveFunction.h"
 #include "misc.h"
 
-#include "queuemaster.h"
+#include "loadBalancerMaster.h"
 
 typedef struct newLocalOptimizationOption_tag {
     int multiStartIdx;

@@ -6,8 +6,8 @@ set(SRC_LIST
     objectiveFunction.c
     misc.c
     resultwriter.c
-    queuemaster.c
-    queueworker.c
+    loadBalancerMaster.c
+    loadBalancerWorker.c
     simulationworker.c
     masterthread.c
     queue.c
