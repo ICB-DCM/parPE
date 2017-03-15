@@ -1,10 +1,11 @@
 #include "simulationWorker.h"
 #include "loadBalancerWorker.h"
-#include "objectiveFunction.h"
-#include "dataprovider.h"
-#include "resultwriter.h"
 #include <string.h>
 #include <assert.h>
+
+// TODO get rid of:
+#include "dataprovider.h"
+#include "resultwriter.h"
 
 #ifdef USE_MPE
 #include <mpe.h>
