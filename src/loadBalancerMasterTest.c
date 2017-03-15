@@ -11,15 +11,15 @@
 
 TEST_GROUP_C_SETUP(queuemaster) {
     // reset globals
-    masterQueue.numWorkers = 0;
-    masterQueue.queue = NULL;
-    masterQueue.lastJobId = 0;
-    masterQueue.mutexQueue = (pthread_mutex_t) PTHREAD_MUTEX_INITIALIZER;
-    masterQueue.sendRequests = 0;
-    masterQueue.recvRequests = 0;
-    masterQueue.sentJobsData = 0;
-    memset(&masterQueue.semQueue, 0, sizeof masterQueue.semQueue);
-    memset(&masterQueue.queueThread, 0, sizeof masterQueue.queueThread);
+    loadBalancer.numWorkers = 0;
+    loadBalancer.queue = NULL;
+    loadBalancer.lastJobId = 0;
+    loadBalancer.mutexQueue = (pthread_mutex_t) PTHREAD_MUTEX_INITIALIZER;
+    loadBalancer.sendRequests = 0;
+    loadBalancer.recvRequests = 0;
+    loadBalancer.sentJobsData = 0;
+    memset(&loadBalancer.semQueue, 0, sizeof loadBalancer.semQueue);
+    memset(&loadBalancer.queueThread, 0, sizeof loadBalancer.queueThread);
 }
 
 TEST_GROUP_C_TEARDOWN(queuemaster) {
@@ -51,41 +51,41 @@ TEST_C(queuemaster, test_queueinit) {
     // Can happen or not, depending on how quick it's terminated
     // mock_c()->expectOneCall("MPI_Testany");
 
-    initMasterQueue();
+    loadBalancerStartMaster();
 
-    CHECK_EQUAL_C_BOOL(true, masterQueue.queue != 0);
+    CHECK_EQUAL_C_BOOL(true, loadBalancer.queue != 0);
     int actVal;
-    sem_getvalue(&masterQueue.semQueue, &actVal);
+    sem_getvalue(&loadBalancer.semQueue, &actVal);
     CHECK_EQUAL_C_BOOL(true, actVal > 0);
 
-    terminateMasterQueue();
+    loadBalancerTerminate();
 }
 
 TEST_C(queuemaster, test_queue) {
     mock_c()->expectNCalls(1, "MPI_Comm_size");
-    initMasterQueue();
+    loadBalancerStartMaster();
 
     JobData data;
-    queueSimulation(&data);
-    CHECK_EQUAL_C_INT(1, masterQueue.lastJobId);
+    loadBalancerQueueJob(&data);
+    CHECK_EQUAL_C_INT(1, loadBalancer.lastJobId);
 
     JobData data2;
-    queueSimulation(&data2);
-    CHECK_EQUAL_C_INT(2, masterQueue.lastJobId);
+    loadBalancerQueueJob(&data2);
+    CHECK_EQUAL_C_INT(2, loadBalancer.lastJobId);
     // getNextJob()
 
-    terminateMasterQueue();
+    loadBalancerTerminate();
 }
 
 TEST_C(queuemaster, test_queue_reinitialization) {
     // should not crash or cause memory leaks
     mock_c()->expectNCalls(1, "MPI_Comm_size");
-    initMasterQueue();
-    initMasterQueue();
-    terminateMasterQueue();
+    loadBalancerStartMaster();
+    loadBalancerStartMaster();
+    loadBalancerTerminate();
 }
 
 TEST_C(queuemaster, test_terminateMasterQueue_noInit) {
     // terminate uninitialized masterQueue should not fail
-    terminateMasterQueue();
+    loadBalancerTerminate();
 }

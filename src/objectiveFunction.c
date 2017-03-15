@@ -229,7 +229,7 @@ static int simulateReferenceExperiments(datapath path, int numGenotypes, double 
 
         serializeWorkPackageMessage(work, np, d->sendBuffer);
 
-        queueSimulation(d);
+        loadBalancerQueueJob(d);
 
         // printf("Queued work: "); printDatapath(path);
     }
@@ -313,7 +313,7 @@ int simulateDrugExperiments(datapath path, int numGenotypes, double *llhDrug[], 
             work.theta = p;
             serializeWorkPackageMessage(work, np, d->sendBuffer);
 
-            queueSimulation(d);
+            loadBalancerQueueJob(d);
 
             ++numJobsTotal;
 

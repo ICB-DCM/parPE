@@ -16,6 +16,7 @@ static UserData *udata = 0;
 void doWorkerWork() {
     assert(udata == 0);
 
+    // TODO get rid of
     udata = getMyUserData();
 
     int workpackageLength = getLengthWorkPackageMessage(udata->am_np);

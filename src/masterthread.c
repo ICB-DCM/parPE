@@ -16,7 +16,7 @@ typedef struct newLocalOptimizationOption_tag {
 } newLocalOptimizationOption;
 
 void startParameterEstimation(optimizerEnum optimizer) {
-    initMasterQueue();
+    loadBalancerStartMaster();
 
     // create threads for multistart batches
     int numMultiStartRuns = getNumMultiStartRuns();
@@ -41,7 +41,7 @@ void startParameterEstimation(optimizerEnum optimizer) {
     }
     logmessage(LOGLVL_DEBUG, "All k threads finished.");
 
-    terminateMasterQueue(false);
+    loadBalancerTerminate(false);
 }
 
 void *newMultiStartOptimization(void *pOptions) {
@@ -130,7 +130,7 @@ void *newLocalOptimization(void *pOptions) {
 
 void startObjectiveFunctionGradientCheck()
 {
-    initMasterQueue();
+    loadBalancerStartMaster();
 
     int lenTheta = getLenTheta();
     double *theta = malloc(sizeof(double) * lenTheta);
@@ -153,5 +153,5 @@ void startObjectiveFunctionGradientCheck()
 
     free(theta);
 
-    terminateMasterQueue(false);
+    loadBalancerTerminate(false);
 }

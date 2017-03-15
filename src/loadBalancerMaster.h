@@ -8,11 +8,17 @@
 
 /** data to be sent to workers */
 typedef struct JobData_tag {
+    /** auto-assigned */
     int jobId;
+
+    /** size of data to send */
     int lenSendBuffer;
+    /** data to send */
     char *sendBuffer;
 
+    /** size of data to receive */
     int lenRecvBuffer;
+    /** data to receive */
     char *recvBuffer;
 
     /** incremented by one, once the results have been received */
@@ -20,29 +26,28 @@ typedef struct JobData_tag {
 
     /** is signaled after jobDone has been incremented */
     pthread_cond_t *jobDoneChangedCondition;
+    /** is locked to signal jobDoneChangedCondition condition  */
     pthread_mutex_t *jobDoneChangedMutex;
-
-    MPI_Request *recvRequest;
 } JobData;
 
 /**
- * @brief initMasterQueue Intialize queue. There can only be one queue.
+ * @brief loadBalancerStartMaster Intialize queue. There can only be one queue.
  * Repeated calls won't do anything. MPI_Init has to be called before.
  */
 
-void initMasterQueue();
+void loadBalancerStartMaster();
 
 /**
- * @brief queueSimulation Append work to queue.
+ * @brief loadBalancerQueueJob Append work to queue.
  * @param data
  */
 
-void queueSimulation(JobData *data);
+void loadBalancerQueueJob(JobData *data);
 
 /**
- * @brief queueSimulation Cancel the queue thread and clean up. Do not wait for finish.
+ * @brief loadBalancerTerminate Cancel the queue thread and clean up. Do not wait for finish.
  */
 
-void terminateMasterQueue();
+void loadBalancerTerminate();
 
 #endif
