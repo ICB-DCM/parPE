@@ -29,6 +29,15 @@ TEST_C_WRAPPER(queuemaster, test_queue)
 TEST_C_WRAPPER(queuemaster, test_terminateMasterQueue_noInit)
 TEST_C_WRAPPER(queuemaster, test_queue_reinitialization)
 
+TEST_GROUP_C_WRAPPER(testQueue)
+{
+    TEST_GROUP_C_SETUP_WRAPPER(testQueue)
+    TEST_GROUP_C_TEARDOWN_WRAPPER(testQueue)
+};
+TEST_C_WRAPPER(testQueue, testInitQueue)
+TEST_C_WRAPPER(testQueue, testQueueAppend)
+TEST_C_WRAPPER(testQueue, testQueuePop)
+
 
 int main(int argc, char** argv)
 {

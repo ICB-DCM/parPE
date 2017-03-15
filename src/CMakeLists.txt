@@ -10,6 +10,7 @@ set(SRC_LIST
     queueworker.c
     simulationworker.c
     masterthread.c
+    queue.c
 )
 
 add_library(${PROJECT_NAME} ${SRC_LIST})
