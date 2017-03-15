@@ -7,7 +7,8 @@
 //#define MASTER_QUEUE_H_SHOW_COMMUNICATION
 
 /** data to be sent to workers */
-typedef struct queueData_tag {
+typedef struct JobData_tag {
+    int jobId;
     int lenSendBuffer;
     char *sendBuffer;
 
@@ -22,7 +23,7 @@ typedef struct queueData_tag {
     pthread_mutex_t *jobDoneChangedMutex;
 
     MPI_Request *recvRequest;
-} queueData;
+} JobData;
 
 /**
  * @brief initMasterQueue Intialize queue. There can only be one queue.
@@ -33,10 +34,10 @@ void initMasterQueue();
 
 /**
  * @brief queueSimulation Append work to queue.
- * @param jobData
+ * @param data
  */
 
-void queueSimulation(queueData *jobData);
+void queueSimulation(JobData *data);
 
 /**
  * @brief queueSimulation Cancel the queue thread and clean up. Do not wait for finish.

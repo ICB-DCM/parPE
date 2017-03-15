@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <assert.h>
 #include "queue.h"
 
 
@@ -28,6 +29,8 @@ Queue *queueInit()
 
 void queueAppend(Queue *queue, void *newElementData)
 {
+    assert(queue);
+
     QueueElement *newElement = queueQueueElementForData(newElementData);
 
     if(queue->queueStart) {
@@ -44,7 +47,7 @@ void *queuePop(Queue *queue)
 {
     void *data = 0;
 
-    if(queue->queueStart) {
+    if(queue && queue->queueStart) {
         QueueElement *oldStart = queue->queueStart;
         queue->queueStart = oldStart->nextElement;
         data = oldStart->data;
@@ -56,6 +59,8 @@ void *queuePop(Queue *queue)
 
 int queueNumberOfElements(Queue *queue)
 {
+    assert(queue);
+
     return queue->numElements;
 }
 
@@ -68,11 +73,18 @@ static QueueElement *queueQueueElementForData(void *data) {
     return newElement;
 }
 
-void queueDestroy(Queue *queue) {
-    QueueElement *nextElement = queue->queueStart;
-    while(nextElement) {
-        QueueElement *curElement = nextElement;
-        nextElement = curElement->nextElement;
-        free(curElement);
+void queueDestroy(Queue *queue, queueMapFP mapFunction) {
+
+    if(queue) {
+        QueueElement *nextElement = queue->queueStart;
+        while(nextElement) {
+            QueueElement *curElement = nextElement;
+            nextElement = curElement->nextElement;
+            if(mapFunction) {
+                mapFunction(curElement->data);
+            }
+            free(curElement);
+        }
+        free(queue);
     }
 }

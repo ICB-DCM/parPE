@@ -1,66 +1,55 @@
 #include "queuemaster.h"
 #include "misc.h"
+#include "queue.h"
 
 #include <pthread.h>
 #include <semaphore.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include <stdbool.h>
 #include <limits.h>
-
-/** a new object is created upon queueSimulation() */
-typedef struct masterQueueElement_tag {
-    queueData *data;
-    int jobId;
-    // linked list
-    struct masterQueueElement_tag *nextElement;
-} masterQueueElement;
 
 typedef struct masterQueue_tag {
     int numWorkers;
-    bool queueCreated;
-    masterQueueElement *queueStart;
-    masterQueueElement *queueEnd;
+    Queue *queue;
     int lastJobId;
     // one for each worker, index is off by one from MPI rank
     // because no job is sent to master (rank 0)
     MPI_Request *sendRequests;
     MPI_Request *recvRequests;
-    queueData **sentJobsData;
+    JobData **sentJobsData;
     pthread_mutex_t mutexQueue;
     sem_t semQueue;
     pthread_t queueThread;
 } masterQueueStruct;
 
-#define QUEUEMASTER_QUEUE_INITIALIZER {0, false, NULL, NULL, 0, NULL, NULL, NULL, PTHREAD_MUTEX_INITIALIZER, {}, 0}
-
+#define QUEUEMASTER_QUEUE_INITIALIZER {0, (void*) 0, 0, NULL, NULL, NULL, PTHREAD_MUTEX_INITIALIZER, {}, 0}
 
 static masterQueueStruct masterQueue = QUEUEMASTER_QUEUE_INITIALIZER;
-
 
 static void *masterQueueRun(void *unusedArgument);
 
 static void assertMPIInitialized();
 
-static masterQueueElement *getNextJob();
+static JobData *getNextJob();
 
-static void sendToWorker(int workerIdx, masterQueueElement *queueElement);
+static void sendToWorker(int workerIdx, JobData *queueElement);
 
-static void masterQueueAppendElement(masterQueueElement *queueElement);
+static void masterQueueAppendElement(JobData *queueElement);
 
 static void receiveFinished(int workerID, int jobID);
 
-static void freeQueueElements();
-
+static void freeJobData(void *element);
 
 /**
  * @brief initMasterQueue Intialize queue.
  */
 void initMasterQueue() {
     // There can only be one queue
-    if(!masterQueue.queueCreated) {
+    if(!masterQueue.queue) {
         assertMPIInitialized();
+
+        masterQueue.queue = queueInit();
 
         int mpiCommSize;
         MPI_Comm_size(MPI_COMM_WORLD, &mpiCommSize);
@@ -68,7 +57,7 @@ void initMasterQueue() {
         masterQueue.numWorkers = mpiCommSize - 1;
         masterQueue.sendRequests = malloc(masterQueue.numWorkers * sizeof(MPI_Request));
         masterQueue.recvRequests = malloc(masterQueue.numWorkers * sizeof(MPI_Request));
-        masterQueue.sentJobsData = malloc(masterQueue.numWorkers * sizeof(queueData *));
+        masterQueue.sentJobsData = malloc(masterQueue.numWorkers * sizeof(JobData *));
 
         for(int i = 0; i < masterQueue.numWorkers; ++i) // have to initialize before can wait!
             masterQueue.recvRequests[i] = MPI_REQUEST_NULL;
@@ -81,7 +70,6 @@ void initMasterQueue() {
 #endif
         sem_init(&masterQueue.semQueue, 0, queueMaxLength);
         pthread_create(&masterQueue.queueThread, NULL, masterQueueRun, 0);
-        masterQueue.queueCreated = true;
     }
 }
 
@@ -143,12 +131,11 @@ static void *masterQueueRun(void *unusedArgument) {
             receiveFinished(freeWorkerIndex, status.MPI_TAG);
         }
 
-        masterQueueElement *currentQueueElement = getNextJob();
+        JobData *currentQueueElement = getNextJob();
 
         if(currentQueueElement) {
             sendToWorker(freeWorkerIndex, currentQueueElement);
-            masterQueue.sentJobsData[freeWorkerIndex] = currentQueueElement->data;
-            free(currentQueueElement);
+            masterQueue.sentJobsData[freeWorkerIndex] = currentQueueElement;
         }
 
         pthread_yield();
@@ -161,19 +148,15 @@ static void *masterQueueRun(void *unusedArgument) {
  * @brief getNextJob Pop oldest element from the queue and return.
  * @return The first queue element.
  */
-static masterQueueElement *getNextJob() {
+static JobData *getNextJob() {
 
     pthread_mutex_lock(&masterQueue.mutexQueue);
 
-    masterQueueElement *oldStart = masterQueue.queueStart;
-
-    if(masterQueue.queueStart) {
-        masterQueue.queueStart = oldStart->nextElement;
-    }
+    JobData *nextJob = (JobData *) queuePop(masterQueue.queue);
 
     pthread_mutex_unlock(&masterQueue.mutexQueue);
 
-    return oldStart;
+    return nextJob;
 }
 
 /**
@@ -181,10 +164,9 @@ static masterQueueElement *getNextJob() {
  * @param workerIdx
  * @param queueElement
  */
-static void sendToWorker(int workerIdx, masterQueueElement *queueElement) {
-    int tag = queueElement->jobId;
+static void sendToWorker(int workerIdx, JobData *data) {
+    int tag = data->jobId;
     int workerRank = workerIdx + 1;
-    queueData *data = queueElement->data;
 
 #ifdef MASTER_QUEUE_H_SHOW_COMMUNICATION
     printf("\x1b[36mSent job %d to %d.\x1b[0m\n", tag, workerRank);
@@ -197,38 +179,27 @@ static void sendToWorker(int workerIdx, masterQueueElement *queueElement) {
     sem_post(&masterQueue.semQueue);
 }
 
-void queueSimulation(queueData *jobData) {
-    assert(masterQueue.queueCreated);
-
-    sem_wait(&masterQueue.semQueue);
-
-    masterQueueElement *queueElement = malloc(sizeof(*queueElement));
-
-    queueElement->data = jobData;
-    queueElement->nextElement = 0;
-    masterQueueAppendElement(queueElement);
-}
-
 /**
  * @brief masterQueueAppendElement Assign job ID and append to queue.
  * @param queueElement
  */
-static void masterQueueAppendElement(masterQueueElement *queueElement) {
+
+void queueSimulation(JobData *data) {
+    assert(masterQueue.queue);
+
+    sem_wait(&masterQueue.semQueue);
+
     pthread_mutex_lock(&masterQueue.mutexQueue);
 
     if(masterQueue.lastJobId == INT_MAX) // Unlikely, but prevent overflow
         masterQueue.lastJobId = 0;
 
-    queueElement->jobId = ++masterQueue.lastJobId;
+    data->jobId = ++masterQueue.lastJobId;
 
-    if(masterQueue.queueStart) {
-        masterQueue.queueEnd->nextElement = queueElement;
-    } else {
-        masterQueue.queueStart = queueElement;
-    }
-    masterQueue.queueEnd = queueElement;
+    queueAppend(masterQueue.queue, data);
 
     pthread_mutex_unlock(&masterQueue.mutexQueue);
+
 }
 
 void terminateMasterQueue() {
@@ -243,21 +214,9 @@ void terminateMasterQueue() {
     if(masterQueue.recvRequests)
         free(masterQueue.recvRequests);
 
-    freeQueueElements();
+    queueDestroy(masterQueue.queue, 0);
 }
 
-/**
- * @brief freeQueueElements Deallocate queueElement memory when non-empty queue is terminated.
- * Freeing masterQueueElement.queueData memory is the users problem.
- */
-static void freeQueueElements() {
-    masterQueueElement *nextElement = masterQueue.queueStart;
-    while(nextElement) {
-        masterQueueElement *curElement = nextElement;
-        nextElement = curElement->nextElement;
-        free(curElement);
-    }
-}
 
 /**
  * @brief receiveFinished Message received from worker, mark job as done.
@@ -270,7 +229,7 @@ static void receiveFinished(int workerID, int jobID) {
     printf("\x1b[32mReceived result for job %d from %d\x1b[0m\n", jobID, workerID + 1);
 #endif
 
-    queueData *data = masterQueue.sentJobsData[workerID];
+    JobData *data = masterQueue.sentJobsData[workerID];
     ++(*data->jobDone);
     pthread_mutex_lock(data->jobDoneChangedMutex);
     pthread_cond_signal(data->jobDoneChangedCondition);

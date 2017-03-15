@@ -41,7 +41,7 @@ void startParameterEstimation(optimizerEnum optimizer) {
     }
     logmessage(LOGLVL_DEBUG, "All k threads finished.");
 
-    terminateMasterQueue();
+    terminateMasterQueue(false);
 }
 
 void *newMultiStartOptimization(void *pOptions) {
@@ -153,5 +153,5 @@ void startObjectiveFunctionGradientCheck()
 
     free(theta);
 
-    terminateMasterQueue();
+    terminateMasterQueue(false);
 }

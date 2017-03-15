@@ -12,9 +12,7 @@
 TEST_GROUP_C_SETUP(queuemaster) {
     // reset globals
     masterQueue.numWorkers = 0;
-    masterQueue.queueCreated = false;
-    masterQueue.queueStart = 0;
-    masterQueue.queueEnd = 0;
+    masterQueue.queue = NULL;
     masterQueue.lastJobId = 0;
     masterQueue.mutexQueue = (pthread_mutex_t) PTHREAD_MUTEX_INITIALIZER;
     masterQueue.sendRequests = 0;
@@ -55,7 +53,7 @@ TEST_C(queuemaster, test_queueinit) {
 
     initMasterQueue();
 
-    CHECK_EQUAL_C_BOOL(true, masterQueue.queueCreated);
+    CHECK_EQUAL_C_BOOL(true, masterQueue.queue != 0);
     int actVal;
     sem_getvalue(&masterQueue.semQueue, &actVal);
     CHECK_EQUAL_C_BOOL(true, actVal > 0);
@@ -67,15 +65,12 @@ TEST_C(queuemaster, test_queue) {
     mock_c()->expectNCalls(1, "MPI_Comm_size");
     initMasterQueue();
 
-    queueData data;
+    JobData data;
     queueSimulation(&data);
-    CHECK_EQUAL_C_BOOL(false, masterQueue.queueEnd == 0);
-    CHECK_EQUAL_C_BOOL(false, masterQueue.queueStart == 0);
-    CHECK_EQUAL_C_BOOL(true, masterQueue.queueEnd == masterQueue.queueStart);
     CHECK_EQUAL_C_INT(1, masterQueue.lastJobId);
 
-    queueSimulation(&data);
-    CHECK_EQUAL_C_BOOL(false, masterQueue.queueEnd == masterQueue.queueStart);
+    JobData data2;
+    queueSimulation(&data2);
     CHECK_EQUAL_C_INT(2, masterQueue.lastJobId);
     // getNextJob()
 

@@ -193,7 +193,7 @@ static void aggregateLikelihoodAndGradient(int numGenotypes, datapath path, User
 static int simulateReferenceExperiments(datapath path, int numGenotypes, double llhRef[], double sllhRef[], UserData *udata)
 {
     int errors = 0;
-    queueData *data = malloc(sizeof(queueData) * numGenotypes);
+    JobData *data = malloc(sizeof(JobData) * numGenotypes);
 
     int lenSendBuffer = getLengthWorkPackageMessage(np);
     int lenRecvBuffer = getLengthResultPackageMessage(np);
@@ -213,7 +213,7 @@ static int simulateReferenceExperiments(datapath path, int numGenotypes, double 
 
         path.idxGenotype = celllineIdx + 1; // starting from 1
 
-        queueData *d = &data[celllineIdx];
+        JobData *d = &data[celllineIdx];
         d->jobDone = &numJobsFinished;
         d->jobDoneChangedCondition = &simulationsCond;
         d->jobDoneChangedMutex = &simulationsMutex;
@@ -244,7 +244,7 @@ static int simulateReferenceExperiments(datapath path, int numGenotypes, double 
 
     // unpack
     for(int celllineIdx = 0; celllineIdx < numGenotypes; ++celllineIdx) {
-        queueData *d = &data[celllineIdx];
+        JobData *d = &data[celllineIdx];
         int status;
 
         deserializeResultPackageMessage(d->recvBuffer, np, &status, &llhRef[celllineIdx], &sllhRef[celllineIdx * np]);
@@ -268,7 +268,7 @@ int simulateDrugExperiments(datapath path, int numGenotypes, double *llhDrug[], 
     int lenRecvBuffer = getLengthResultPackageMessage(np);
 
     // count number of experiments and allocate result memory
-    queueData *data[numGenotypes];
+    JobData *data[numGenotypes];
     char *recvBuffer[numGenotypes];
     char *sendBuffer[numGenotypes];
 
@@ -279,7 +279,7 @@ int simulateDrugExperiments(datapath path, int numGenotypes, double *llhDrug[], 
          llhDrug[celllineIdx] = malloc(sizeof(double) * numExperiments);
         sllhDrug[celllineIdx] = malloc(sizeof(double) * numExperiments * np);
 
-                 data[celllineIdx] = malloc(sizeof(queueData) * numExperiments);
+                 data[celllineIdx] = malloc(sizeof(JobData) * numExperiments);
            recvBuffer[celllineIdx] = malloc(lenRecvBuffer     * numExperiments);
            sendBuffer[celllineIdx] = malloc(lenSendBuffer     * numExperiments);
     }
@@ -298,7 +298,7 @@ int simulateDrugExperiments(datapath path, int numGenotypes, double *llhDrug[], 
         for(int expIdx = 0; expIdx < numExperiments; ++expIdx) {
             path.idxExperiment = expIdx;
 
-            queueData *d = &data[celllineIdx][expIdx];
+            JobData *d = &data[celllineIdx][expIdx];
             d->jobDone = &numJobsFinished;
             d->jobDoneChangedCondition = &simulationsCond;
             d->jobDoneChangedMutex = &simulationsMutex;
@@ -336,7 +336,7 @@ int simulateDrugExperiments(datapath path, int numGenotypes, double *llhDrug[], 
 
         for(int expIdx = 0; expIdx < numExperiments; ++expIdx) {
 
-            queueData *d = &data[celllineIdx][expIdx];
+            JobData *d = &data[celllineIdx][expIdx];
 
             int status; // use!!
             deserializeResultPackageMessage(d->recvBuffer, np, &status,

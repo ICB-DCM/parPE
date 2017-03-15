@@ -16,7 +16,7 @@ TEST_C(testQueue, testInitQueue) {
     CHECK_EQUAL_C_INT(0, queueNumberOfElements(queue));
     CHECK_EQUAL_C_POINTER(0, queuePop(queue));
 
-    queueDestroy(queue);
+    queueDestroy(queue, false);
 }
 
 TEST_C(testQueue, testQueueAppend) {
@@ -25,7 +25,7 @@ TEST_C(testQueue, testQueueAppend) {
     queueAppend(queue, 0);
     CHECK_EQUAL_C_INT(1, queueNumberOfElements(queue));
 
-    queueDestroy(queue);
+    queueDestroy(queue, false);
 }
 
 TEST_C(testQueue, testQueuePop) {
@@ -42,5 +42,5 @@ TEST_C(testQueue, testQueuePop) {
     CHECK_EQUAL_C_POINTER(&i, queuePop(queue));
     CHECK_EQUAL_C_POINTER(&j, queuePop(queue));
 
-    queueDestroy(queue);
+    queueDestroy(queue, false);
 }
