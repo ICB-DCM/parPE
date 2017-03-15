@@ -19,7 +19,7 @@
  * @return 0 if successful
  */
 
-int evaluateObjectiveFunction(const double theta[], int lenTheta, datapath path, double *objectiveFunctionValue, double *objectiveFunctionGradient, AMI_parameter_scaling scaling);
+int evaluateObjectiveFunction(const double theta[], int lenTheta, Datapath path, double *objectiveFunctionValue, double *objectiveFunctionGradient, AMI_parameter_scaling scaling);
 
 /**
  * @brief getSteadystateSolution Simulate the model until steady state
@@ -42,13 +42,13 @@ ReturnData *getSteadystateSolution(UserData *udata, ExpData *edata, int *status,
  * @return
  */
 
-ReturnData *getSteadystateSolutionForExperiment(datapath path, UserData *udata, int *status, ExpData **_edata, int *iterationsDone);
+ReturnData *getSteadystateSolutionForExperiment(Datapath path, UserData *udata, int *status, ExpData **_edata, int *iterationsDone);
 
 
-void objectiveFunctionGradientCheck(const double theta[], const int lenTheta, datapath path, AMI_parameter_scaling scaling, const int parameterIndices[], int numParameterIndices, double epsilon);
+void objectiveFunctionGradientCheck(const double theta[], const int lenTheta, Datapath path, AMI_parameter_scaling scaling, const int parameterIndices[], int numParameterIndices, double epsilon);
 
 
-void *serializeDataPath(datapath *path);
+void *serializeDataPath(Datapath *path);
 
-void deserializeDataPath(char *msg, datapath *path);
+void deserializeDataPath(char *msg, Datapath *path);
 #endif

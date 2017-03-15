@@ -8,6 +8,6 @@
  * @param dataPath
  * @return Returns 0 on success.
  */
-int getLocalOptimumIpopt(datapath dataPath);
+int getLocalOptimumIpopt(Datapath dataPath);
 
 #endif

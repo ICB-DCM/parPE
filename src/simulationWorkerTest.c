@@ -50,14 +50,14 @@ TEST_C(simulationWorker, testSerializeWorkPackageMessage) {
     char *buffer = alloca(workPackageLength);
     workPackageMessage wp;
     wp.sensitivityMethod = randInt(INT_MIN, INT_MAX);
-    datapath expPath;
+    Datapath expPath;
     expPath.idxMultiStart = randInt(INT_MIN, INT_MAX);
     expPath.idxLocalOptimization = randInt(INT_MIN, INT_MAX);
     expPath.idxLocalOptimizationIteration = randInt(INT_MIN, INT_MAX);
     expPath.idxGenotype = randInt(INT_MIN, INT_MAX);
     expPath.idxExperiment = randInt(INT_MIN, INT_MAX);
     wp.data = &expPath;
-    wp.lenData = sizeof(datapath);
+    wp.lenData = sizeof(Datapath);
     wp.theta = alloca(nTheta * sizeof(*wp.theta));
     for(int i = 0; i < nTheta; ++i) {
         wp.theta[i] = randDouble(-DBL_MIN, DBL_MAX);
@@ -66,7 +66,7 @@ TEST_C(simulationWorker, testSerializeWorkPackageMessage) {
     serializeWorkPackageMessage(wp, nTheta, buffer);
 
     int actSensitivityMethod;
-    datapath actPath;
+    Datapath actPath;
     double *actTheta = alloca(nTheta * sizeof(*actTheta));
 
     deserializeWorkPackageMessage(buffer, nTheta, &actPath, actTheta, &actSensitivityMethod);

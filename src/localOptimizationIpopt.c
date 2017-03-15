@@ -28,11 +28,11 @@ typedef struct {
     ReturnData rdata;
     double *gradient;
     double objectiveFunctionValue;
-    datapath datapath;
+    Datapath datapath;
     int scaling;
 } MyUserData;
 
-static IpoptProblem setupIpoptProblem(datapath path, Index numOptimizationParams, AMI_parameter_scaling scaling);
+static IpoptProblem setupIpoptProblem(Datapath path, Index numOptimizationParams, AMI_parameter_scaling scaling);
 
 /******************************/
 
@@ -60,10 +60,10 @@ static Bool Intermediate(Index alg_mod,
                 Number alpha_du, Number alpha_pr,
                 Index ls_trials, UserDataPtr user_data);
 
-void getFeasibleInitialTheta(datapath dataPath, Number *buffer, AMI_parameter_scaling scaling);
+void getFeasibleInitialTheta(Datapath dataPath, Number *buffer, AMI_parameter_scaling scaling);
 /******************************/
 
-int getLocalOptimumIpopt(datapath dataPath) {
+int getLocalOptimumIpopt(Datapath dataPath) {
 
     Number loglikelihood = INFINITY;
 
@@ -101,7 +101,7 @@ int getLocalOptimumIpopt(datapath dataPath) {
 }
 
 
-void getFeasibleInitialTheta(datapath dataPath, Number *initialTheta, AMI_parameter_scaling scaling)
+void getFeasibleInitialTheta(Datapath dataPath, Number *initialTheta, AMI_parameter_scaling scaling)
 {
     int feasible = 0;
     char strPath[50];
@@ -124,7 +124,7 @@ void getFeasibleInitialTheta(datapath dataPath, Number *initialTheta, AMI_parame
     logmessage(LOGLVL_INFO, "%s Found feasible initial theta.", strPath);
 }
 
-static IpoptProblem setupIpoptProblem(datapath path, Index numOptimizationParams, AMI_parameter_scaling scaling)
+static IpoptProblem setupIpoptProblem(Datapath path, Index numOptimizationParams, AMI_parameter_scaling scaling)
 {
     Number *thetaLowerBounds = alloca(sizeof(Number) * numOptimizationParams);
     getThetaLowerBounds(path, thetaLowerBounds, scaling);

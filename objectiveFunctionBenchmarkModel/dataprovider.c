@@ -78,14 +78,14 @@ int getMaxIter() {
     return 1;
 }
 
-int getNumGenotypes(datapath path)
+int getNumGenotypes(Datapath path)
 {
     // TODO
     return 1;
     return 96;
 }
 
-int getExperimentCountForCellline(datapath dpath)
+int getExperimentCountForCellline(Datapath dpath)
 {
     return 1; // TODO testing
 
@@ -114,7 +114,7 @@ int getExperimentCountForCellline(datapath dpath)
     return(len);
 }
 
-int getNumberOfSimulationForObjectiveFunction(datapath path) {
+int getNumberOfSimulationForObjectiveFunction(Datapath path) {
     int count = 0;
 
     int numGenotypes = getNumGenotypes(path);
@@ -292,7 +292,7 @@ void readFixedParameters(int dataMatrixRow, UserData *udata) {
     pthread_mutex_unlock(&mutexHDF);
 }
 
-ExpData *getExperimentalDataForExperiment(datapath dpath, UserData *udata) {
+ExpData *getExperimentalDataForExperiment(Datapath dpath, UserData *udata) {
 
 #if DATA_PROVIDER_H_VERBOSE >= 2
     printf("Entering getExperimentalDataForExperiment "); printDatapath(dpath); fflush(stdout);
@@ -386,7 +386,7 @@ void freeUserDataC(UserData *udata) {
     }
 }
 
-void getThetaLowerBounds(datapath dataPath, double *buffer, AMI_parameter_scaling scaling)
+void getThetaLowerBounds(Datapath dataPath, double *buffer, AMI_parameter_scaling scaling)
 {
     if(scaling == AMI_SCALING_LOG10)
         fillArray(buffer, getLenTheta(), -2);
@@ -394,7 +394,7 @@ void getThetaLowerBounds(datapath dataPath, double *buffer, AMI_parameter_scalin
         fillArray(buffer, getLenTheta(), 1e-2);
 }
 
-void getThetaUpperBounds(datapath dataPath, double *buffer, AMI_parameter_scaling scaling)
+void getThetaUpperBounds(Datapath dataPath, double *buffer, AMI_parameter_scaling scaling)
 {
     if(scaling == AMI_SCALING_LOG10)
         fillArray(buffer, getLenTheta(), 2);
@@ -402,7 +402,7 @@ void getThetaUpperBounds(datapath dataPath, double *buffer, AMI_parameter_scalin
         fillArray(buffer, getLenTheta(), 1e2);
 }
 
-void getFeasibleInitialThetaFromFile(datapath dataPath, double *buffer, AMI_parameter_scaling scaling) {
+void getFeasibleInitialThetaFromFile(Datapath dataPath, double *buffer, AMI_parameter_scaling scaling) {
     char path[100];
     sprintf(path, "/crossvalidations/%d/multistarts/%d/initialTheta", dataPath.idxMultiStart, dataPath.idxLocalOptimization  % 5); // TODO %5 to reuse starting points for scaling tests
 
@@ -413,7 +413,7 @@ void getFeasibleInitialThetaFromFile(datapath dataPath, double *buffer, AMI_para
     pthread_mutex_unlock(&mutexHDF);
 }
 
-void getRandomInitialThetaFromFile(datapath dataPath, double *buffer, AMI_parameter_scaling scaling) {
+void getRandomInitialThetaFromFile(Datapath dataPath, double *buffer, AMI_parameter_scaling scaling) {
     // TODO matlab writes fortran style, so this reads rowwise, transpose...
 
     logmessage(LOGLVL_INFO, "Reading random initial theta %d from /randomstarts", dataPath.idxLocalOptimization);
@@ -453,12 +453,12 @@ int getLenKappa()
     return NUM_FIXED_PARAMS;
 }
 
-void printDatapath(datapath path)
+void printDatapath(Datapath path)
 {
     printf("%d.%d.%d.%d.%d\n", path.idxMultiStart, path.idxLocalOptimization, path.idxLocalOptimizationIteration, path.idxGenotype, path.idxExperiment);
 }
 
-void sprintDatapath(char *buffer, datapath path)
+void sprintDatapath(char *buffer, Datapath path)
 {
     sprintf(buffer, "%d.%d.%d.%d.%d", path.idxMultiStart, path.idxLocalOptimization, path.idxLocalOptimizationIteration, path.idxGenotype, path.idxExperiment);
 }
@@ -528,7 +528,7 @@ void dataproviderPrintInfo() {
     int numMultiStartRuns = getNumMultiStartRuns();
     logmessage(LOGLVL_INFO, "%*s: %d", maxwidth, "Num multistart optims", numMultiStartRuns);
 
-    datapath path;
+    Datapath path;
 
     for(int i = 0; i < numMultiStartRuns; ++i) {
         path.idxMultiStart = i;

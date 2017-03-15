@@ -15,6 +15,9 @@ typedef struct newLocalOptimizationOption_tag {
     optimizerEnum optimizer;
 } newLocalOptimizationOption;
 
+int getLocalOptimum(Datapath dataPath);
+
+
 void startParameterEstimation(optimizerEnum optimizer) {
     loadBalancerStartMaster();
 
@@ -41,7 +44,7 @@ void startParameterEstimation(optimizerEnum optimizer) {
     }
     logmessage(LOGLVL_DEBUG, "All k threads finished.");
 
-    loadBalancerTerminate(false);
+    loadBalancerTerminate();
 }
 
 void *newMultiStartOptimization(void *pOptions) {
@@ -105,7 +108,7 @@ void *newMultiStartOptimization(void *pOptions) {
 
 void *newLocalOptimization(void *pOptions) {
     newLocalOptimizationOption options = *(newLocalOptimizationOption *)pOptions;
-    datapath path = {INT_MIN};
+    Datapath path = {INT_MIN};
 
     path.idxMultiStart = options.multiStartIdx;
     path.idxLocalOptimization = options.localOptimizationIdx;
@@ -120,7 +123,7 @@ void *newLocalOptimization(void *pOptions) {
         abort();
         break;
     default:
-        *status = getLocalOptimumIpopt(path);
+        *status = getLocalOptimum(path);
     }
 
     logmessage(LOGLVL_DEBUG, "Finished newLocalOptimization #%d.%d", path.idxMultiStart, path.idxLocalOptimization);
@@ -135,7 +138,7 @@ void startObjectiveFunctionGradientCheck()
     int lenTheta = getLenTheta();
     double *theta = malloc(sizeof(double) * lenTheta);
 
-    datapath path;
+    Datapath path;
     path.idxMultiStart = 0;
     path.idxLocalOptimization = 0;
     path.idxLocalOptimizationIteration = 0;
@@ -153,5 +156,9 @@ void startObjectiveFunctionGradientCheck()
 
     free(theta);
 
-    loadBalancerTerminate(false);
+    loadBalancerTerminate();
+}
+
+int getLocalOptimum(Datapath dataPath) {
+    return getLocalOptimumIpopt(dataPath);
 }

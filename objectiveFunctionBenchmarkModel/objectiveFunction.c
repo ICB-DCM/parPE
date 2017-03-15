@@ -36,17 +36,17 @@ extern const int mpe_event_begin_getdrugs, mpe_event_end_getdrugs;
 /******************************/
 
 // static function prototypes
-static int simulateReferenceExperiments(datapath datapath, int numGenotypes, double llhRef[], double sllhRef[], UserData *udata);
+static int simulateReferenceExperiments(Datapath datapath, int numGenotypes, double llhRef[], double sllhRef[], UserData *udata);
 
-static int simulateDrugExperiments(datapath path, int numGenotypes, double *llhDrug[], double *sllhDrug[], UserData *udata);
+static int simulateDrugExperiments(Datapath path, int numGenotypes, double *llhDrug[], double *sllhDrug[], UserData *udata);
 
-static void saveSimulationResults(datapath path);
+static void saveSimulationResults(Datapath path);
 
 static void updateInitialConditions(double destination[], const double src[], int count);
 
 static bool reachedSteadyState(const double *xdot, const double *x, int numTimepoints, int numStates, double tolerance);
 
-static void aggregateLikelihoodAndGradient(int numGenotypes, datapath path, UserData *udata, double *llhRef, double **llhDrug, double *sllhRef, double **sllhDrug, double *objectiveFunctionValue, double *objectiveFunctionGradient);
+static void aggregateLikelihoodAndGradient(int numGenotypes, Datapath path, UserData *udata, double *llhRef, double **llhDrug, double *sllhRef, double **sllhDrug, double *objectiveFunctionValue, double *objectiveFunctionGradient);
 
 static double getLogLikelihoodIncrementForExperiment(const double llhCase, const double llhControl, const double y, const double sigmaY, double *_growthInhibition);
 
@@ -54,7 +54,7 @@ static void updateLogLikelihoodGradientForExperiment(const double llhCase, const
 
 /******************************/
 
-int evaluateObjectiveFunction(const double theta[], const int lenTheta, datapath path,
+int evaluateObjectiveFunction(const double theta[], const int lenTheta, Datapath path,
                               double *objectiveFunctionValue, double *objectiveFunctionGradient, AMI_parameter_scaling scaling) {
 
     UserData *udata = getMyUserData(); // TODO datapath
@@ -132,13 +132,13 @@ int evaluateObjectiveFunction(const double theta[], const int lenTheta, datapath
     return errors;
 }
 
-static void saveSimulationResults(datapath path)
+static void saveSimulationResults(Datapath path)
 {
     // TODO Implement me
     // or better save on worker side and collect later
 }
 
-static void aggregateLikelihoodAndGradient(int numGenotypes, datapath path, UserData *udata,
+static void aggregateLikelihoodAndGradient(int numGenotypes, Datapath path, UserData *udata,
                                            double *llhRef, double **llhDrug, double *sllhRef, double **sllhDrug,
                                            double *objectiveFunctionValue, double *objectiveFunctionGradient)
 {
@@ -190,7 +190,7 @@ static void aggregateLikelihoodAndGradient(int numGenotypes, datapath path, User
 }
 
 
-static int simulateReferenceExperiments(datapath path, int numGenotypes, double llhRef[], double sllhRef[], UserData *udata)
+static int simulateReferenceExperiments(Datapath path, int numGenotypes, double llhRef[], double sllhRef[], UserData *udata)
 {
     int errors = 0;
     JobData *data = malloc(sizeof(JobData) * numGenotypes);
@@ -261,7 +261,7 @@ static int simulateReferenceExperiments(datapath path, int numGenotypes, double 
 }
 
 
-int simulateDrugExperiments(datapath path, int numGenotypes, double *llhDrug[], double *sllhDrug[], UserData *udata)
+int simulateDrugExperiments(Datapath path, int numGenotypes, double *llhDrug[], double *sllhDrug[], UserData *udata)
 {
     int errors = 0;
     // TODO: need to send steadystate as initial conditions
@@ -373,7 +373,7 @@ bool reachedSteadyState(const double xdot[], const double x[], const int numTime
 }
 
 
-ReturnData *getSteadystateSolutionForExperiment(datapath path, UserData *udata, int *status, ExpData **_edata, int *iterationsDone) {
+ReturnData *getSteadystateSolutionForExperiment(Datapath path, UserData *udata, int *status, ExpData **_edata, int *iterationsDone) {
     ExpData *edata = getExperimentalDataForExperiment(path, udata);
 
     ReturnData *rdata = getSteadystateSolution(udata, edata, status, iterationsDone);
@@ -473,7 +473,7 @@ void updateLogLikelihoodGradientForExperiment(const double llhCase, const double
 }
 
 
-void objectiveFunctionGradientCheck(const double theta[], const int lenTheta, datapath path, AMI_parameter_scaling scaling, const int parameterIndices[], int numParameterIndices, double epsilon)
+void objectiveFunctionGradientCheck(const double theta[], const int lenTheta, Datapath path, AMI_parameter_scaling scaling, const int parameterIndices[], int numParameterIndices, double epsilon)
 {
     double fc = 0; // f(theta)
     double *gradient = malloc(sizeof(double) * lenTheta);

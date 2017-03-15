@@ -21,11 +21,11 @@ typedef struct datapath_tag {
     int idxLocalOptimizationIteration; /** iteration of local solver */
     int idxGenotype;                   /** genotype index (starting from 1!!) */
     int idxExperiment;                 /** experiment index */
-} datapath;
+} Datapath;
 
-void printDatapath(datapath p);
+void printDatapath(Datapath p);
 
-void sprintDatapath(char *buffer, datapath path);
+void sprintDatapath(char *buffer, Datapath path);
 
 int initDataProvider(const char *hdf5Filename);
 
@@ -37,9 +37,9 @@ int getNumLocalOptimizationsForMultiStartRun(int multiStartRun);
 
 int getMaxIter();
 
-int getNumGenotypes(datapath path);
+int getNumGenotypes(Datapath path);
 
-int getExperimentCountForCellline(datapath dpath);
+int getExperimentCountForCellline(Datapath dpath);
 
 int getLenTheta();
 
@@ -52,7 +52,7 @@ int getLenKappa();
  * @param scaling scaling methods for parameter bounds
  */
 
-void getThetaLowerBounds(datapath dataPath, double *buffer, AMI_parameter_scaling scaling);
+void getThetaLowerBounds(Datapath dataPath, double *buffer, AMI_parameter_scaling scaling);
 
 /**
  * @brief getThetaUpperBounds Get upper parameter bounds
@@ -61,7 +61,7 @@ void getThetaLowerBounds(datapath dataPath, double *buffer, AMI_parameter_scalin
  * @param scaling scaling methods for parameter bounds
  */
 
-void getThetaUpperBounds(datapath dataPath, double *buffer, AMI_parameter_scaling scaling);
+void getThetaUpperBounds(Datapath dataPath, double *buffer, AMI_parameter_scaling scaling);
 
 /**
  * @brief getInitialThetaLHS Get random starting parameters using latin hypercube sampling. TODO: check LHS code
@@ -70,7 +70,7 @@ void getThetaUpperBounds(datapath dataPath, double *buffer, AMI_parameter_scalin
  * @param scaling
  */
 
-void getInitialThetaLHS(datapath dataPath, double *buffer, AMI_parameter_scaling scaling);
+void getInitialThetaLHS(Datapath dataPath, double *buffer, AMI_parameter_scaling scaling);
 
 /**
  * @brief getFeasibleInitialThetaFromFile Get user-provided initial theta TODO: can be removed?
@@ -79,7 +79,7 @@ void getInitialThetaLHS(datapath dataPath, double *buffer, AMI_parameter_scaling
  * @param scaling
  */
 
-void getFeasibleInitialThetaFromFile(datapath dataPath, double *buffer, AMI_parameter_scaling scaling);
+void getFeasibleInitialThetaFromFile(Datapath dataPath, double *buffer, AMI_parameter_scaling scaling);
 
 /**
  * @brief getRandomInitialThetaFromFile Get a initial parameter vector from a pregenerated list of random vectors
@@ -88,13 +88,13 @@ void getFeasibleInitialThetaFromFile(datapath dataPath, double *buffer, AMI_para
  * @param scaling NOT USED
  */
 
-void getRandomInitialThetaFromFile(datapath dataPath, double *buffer, AMI_parameter_scaling scaling);
+void getRandomInitialThetaFromFile(Datapath dataPath, double *buffer, AMI_parameter_scaling scaling);
 
-int getNumberOfSimulationForObjectiveFunction(datapath path); // Not used
+int getNumberOfSimulationForObjectiveFunction(Datapath path); // Not used
 
 UserData *getMyUserData(); // TODO: specific for each multistart run
 
-ExpData *getExperimentalDataForExperiment(datapath dpath, UserData *udata);
+ExpData *getExperimentalDataForExperiment(Datapath dpath, UserData *udata);
 
 herr_t hdf5ErrorStackWalker_cb(unsigned int n, const H5E_error_t *err_desc, void *client_data); // TODO: also use for resultwriter
 

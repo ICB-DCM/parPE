@@ -231,7 +231,7 @@ char *myStringCat(const char *first, const char *second)
     return concatenation;
 }
 
-void logLocalOptimizerObjectiveFunctionEvaluation(datapath path, int numFunctionCalls, double *theta, double objectiveFunctionValue, double timeElapsedInSeconds, int nTheta)
+void logLocalOptimizerObjectiveFunctionEvaluation(Datapath path, int numFunctionCalls, double *theta, double objectiveFunctionValue, double timeElapsedInSeconds, int nTheta)
 {
     char fullGroupPath[100];
     sprintf(fullGroupPath, "/crossvalidations/%d/multistarts/%d/objFunEval/", path.idxMultiStart, path.idxLocalOptimization);
@@ -244,7 +244,7 @@ void logLocalOptimizerObjectiveFunctionEvaluation(datapath path, int numFunction
 }
 
 
-void logLocalOptimizerObjectiveFunctionGradientEvaluation(datapath path, int numFunctionCalls, double *theta, double objectiveFunctionValue, const double *gradient, double timeElapsedInSeconds, int nTheta)
+void logLocalOptimizerObjectiveFunctionGradientEvaluation(Datapath path, int numFunctionCalls, double *theta, double objectiveFunctionValue, const double *gradient, double timeElapsedInSeconds, int nTheta)
 {
     char fullGroupPath[100];
     sprintf(fullGroupPath, "/crossvalidations/%d/multistarts/%d/objFunGradEval/", path.idxMultiStart, path.idxLocalOptimization);
@@ -257,7 +257,7 @@ void logLocalOptimizerObjectiveFunctionGradientEvaluation(datapath path, int num
     flushResultWriter();
 }
 
-void logLocalOptimizerIteration(datapath path, int numIterations, double *theta, double objectiveFunctionValue, const double *gradient, double timeElapsedInSeconds, int nTheta, int alg_mod, double inf_pr, double inf_du, double mu, double d_norm, double regularization_size, double alpha_du, double alpha_pr, int ls_trials)
+void logLocalOptimizerIteration(Datapath path, int numIterations, double *theta, double objectiveFunctionValue, const double *gradient, double timeElapsedInSeconds, int nTheta, int alg_mod, double inf_pr, double inf_du, double mu, double d_norm, double regularization_size, double alpha_du, double alpha_pr, int ls_trials)
 {
     char fullGroupPath[100];
     sprintf(fullGroupPath, "/crossvalidations/%d/multistarts/%d/optimizerIterations/", path.idxMultiStart, path.idxLocalOptimization);
@@ -281,7 +281,7 @@ void logLocalOptimizerIteration(datapath path, int numIterations, double *theta,
     flushResultWriter();
 }
 
-void logSimulation(datapath path, double llh, const double *gradient, double timeElapsedInSeconds, int nTheta, int numStates, double *states, double *stateSensi, double *y, int jobId, int iterationsUntilSteadystate)
+void logSimulation(Datapath path, double llh, const double *gradient, double timeElapsedInSeconds, int nTheta, int numStates, double *states, double *stateSensi, double *y, int jobId, int iterationsUntilSteadystate)
 {
     char fullGroupPath[200];
     // TODO doesnt have to be extendable in current implementation
@@ -462,7 +462,7 @@ void saveTotalWalltime(const double timeInSeconds) {
     pthread_mutex_unlock(&mutexHDF);
 }
 
-void saveLocalOptimizerResults(datapath path, double finalNegLogLikelihood, double masterTime, int exitStatus)
+void saveLocalOptimizerResults(Datapath path, double finalNegLogLikelihood, double masterTime, int exitStatus)
 {
     hsize_t dims[1] = {1};
 

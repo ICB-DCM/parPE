@@ -31,7 +31,7 @@ void doWorkerWork(UserData *_udata) {
 
 void handleWorkPackage(char *buffer, int jobId)
 {
-    datapath path;
+    Datapath path;
     deserializeWorkPackageMessage(buffer, udata->am_np, &path, udata->am_p, &udata->am_sensi_meth);
 
 #if MPI_WORKER_H_VERBOSE >= 2
@@ -80,7 +80,7 @@ void handleWorkPackage(char *buffer, int jobId)
 
 int getLengthWorkPackageMessage(int nTheta)
 {
-    return sizeof(datapath) + sizeof(double) * (nTheta) + sizeof(int);
+    return sizeof(Datapath) + sizeof(double) * (nTheta) + sizeof(int);
 }
 
 void serializeWorkPackageMessage(workPackageMessage work, int nTheta, char *buffer)
@@ -164,5 +164,5 @@ void deserializeResultPackageMessage(char *buffer, int nTheta, int *status, doub
 
 int getLengthResultPackageMessage(int nTheta)
 {
-    return sizeof(datapath) + sizeof(double) * (nTheta + 1);
+    return sizeof(Datapath) + sizeof(double) * (nTheta + 1);
 }
