@@ -8,8 +8,8 @@
  * messageHandler is called by runQueueWorker when a message is received. The message is contained in buffer.
  * jobId is a message identifier, unique over the range of MAX_INT messages.
  */
-typedef void (messageHandler)(char* buffer, int jobId);
+typedef void (messageHandlerFp)(char* buffer, int jobId);
 
-void runQueueWorker(int inMsgSize, int outMesgSize, messageHandler msgHandler);
+void loadBalancerWorkerRun(int inMsgSize, int outMesgSize, messageHandlerFp msgHandler);
 
 #endif

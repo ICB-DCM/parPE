@@ -22,7 +22,7 @@ void doWorkerWork() {
     int workpackageLength = getLengthWorkPackageMessage(udata->am_np);
     int resultpackageLength = getLengthResultPackageMessage(udata->am_np);
 
-    runQueueWorker(workpackageLength, resultpackageLength, handleWorkPackage);
+    loadBalancerWorkerRun(workpackageLength, resultpackageLength, handleWorkPackage);
 
     freeUserDataC(udata);
 }
