@@ -16,8 +16,8 @@ TEST_GROUP_C_WRAPPER(queueworker)
     TEST_GROUP_C_SETUP_WRAPPER(queueworker)
     TEST_GROUP_C_TEARDOWN_WRAPPER(queueworker)
 };
-TEST_C_WRAPPER(queueworker, test_serializeResultPackageMessage)
-TEST_C_WRAPPER(queueworker, test_serializeWorkPackageMessage)
+//TEST_C_WRAPPER(queueworker, test_serializeResultPackageMessage)
+//TEST_C_WRAPPER(queueworker, test_serializeWorkPackageMessage)
 
 TEST_GROUP_C_WRAPPER(queuemaster)
 {
@@ -37,6 +37,15 @@ TEST_GROUP_C_WRAPPER(testQueue)
 TEST_C_WRAPPER(testQueue, testInitQueue)
 TEST_C_WRAPPER(testQueue, testQueueAppend)
 TEST_C_WRAPPER(testQueue, testQueuePop)
+
+
+TEST_GROUP_C_WRAPPER(simulationWorker)
+{
+    TEST_GROUP_C_SETUP_WRAPPER(simulationWorker)
+    TEST_GROUP_C_TEARDOWN_WRAPPER(simulationWorker)
+};
+TEST_C_WRAPPER(simulationWorker, testSerializeResultPackageMessage)
+TEST_C_WRAPPER(simulationWorker, testSerializeWorkPackageMessage)
 
 
 int main(int argc, char** argv)

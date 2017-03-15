@@ -15,6 +15,7 @@ set(SRC_LIST
     ../src/objectiveFunctionTest.c
     ../src/loadBalancerWorkerTest.c
     ../src/loadBalancerMasterTest.c
+    ../src/simulationWorkerTest.c
     ../src/queueTest.c
 )
 
