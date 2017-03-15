@@ -1,4 +1,4 @@
-#include "simulationworker.h"
+#include "simulationWorker.h"
 #include "loadBalancerWorker.h"
 #include "objectiveFunction.h"
 #include "dataprovider.h"

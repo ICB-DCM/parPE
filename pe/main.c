@@ -9,7 +9,7 @@
 #include <getopt.h>
 
 #include "loadBalancerMaster.h"
-#include "simulationworker.h"
+#include "simulationWorker.h"
 #include "resultwriter.h"
 #include "masterthread.h"
 #include "dataprovider.h"

@@ -1,4 +1,4 @@
-#include "simulationworker.h"
+#include "simulationWorker.h"
 #include "testingMisc.h"
 
 #include "CppUTest/TestHarness_c.h"

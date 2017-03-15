@@ -8,7 +8,7 @@ set(SRC_LIST
     resultwriter.c
     loadBalancerMaster.c
     loadBalancerWorker.c
-    simulationworker.c
+    simulationWorker.c
     masterthread.c
     queue.c
 )

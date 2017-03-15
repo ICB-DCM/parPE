@@ -16,7 +16,7 @@
 
 #include "loadBalancerMaster.h"
 #include "loadBalancerWorker.h"
-#include "simulationworker.h"
+#include "simulationWorker.h"
 #include "misc.h"
 
 
