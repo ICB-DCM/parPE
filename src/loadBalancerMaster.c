@@ -23,7 +23,7 @@ typedef struct LoadBalancer_tag {
     pthread_t queueThread;
 } LoadBalancer;
 
-#define QUEUEMASTER_QUEUE_INITIALIZER {0, (void*) 0, 0, NULL, NULL, NULL, PTHREAD_MUTEX_INITIALIZER, {}, 0}
+#define QUEUEMASTER_QUEUE_INITIALIZER {0, NULL, 0, NULL, NULL, NULL, PTHREAD_MUTEX_INITIALIZER, {}, 0}
 
 static LoadBalancer loadBalancer = QUEUEMASTER_QUEUE_INITIALIZER;
 
@@ -91,12 +91,15 @@ static void *loadBalancerRun(void *unusedArgument) {
 
     // dispatch queued work packages
     while(1) {
+
         // check if any job finished
         MPI_Status status;
         int finishedWorkerIdx = 0;
 
         // handle all finished jobs, if any
         while(1) {
+            // add cancellation point to avoid invalid reads in loadBalancer.recvRequests
+            pthread_testcancel();
             int dummy;
             MPI_Testany(loadBalancer.numWorkers, loadBalancer.recvRequests, &finishedWorkerIdx, &dummy, &status);
 
@@ -123,6 +126,9 @@ static void *loadBalancerRun(void *unusedArgument) {
         }
 
         if(freeWorkerIndex < 0) {
+            // add cancellation point to avoid invalid reads in loadBalancer.recvRequests
+            pthread_testcancel();
+
             // all workers are busy, wait for next one to finish
             MPI_Status status;
             MPI_Waitany(loadBalancer.numWorkers, loadBalancer.recvRequests, &freeWorkerIndex, &status);
@@ -203,8 +209,8 @@ void loadBalancerQueueJob(JobData *data) {
 }
 
 void loadBalancerTerminate() {
-    pthread_mutex_destroy(&loadBalancer.mutexQueue);
     pthread_cancel(loadBalancer.queueThread);
+    pthread_mutex_destroy(&loadBalancer.mutexQueue);
     sem_destroy(&loadBalancer.semQueue);
 
     if(loadBalancer.sentJobsData)
