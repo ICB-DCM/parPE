@@ -1,22 +1,20 @@
-project(unittests)
+project(unittests_pe)
 
-add_test (NAME test1 COMMAND unittests)
+add_test (NAME unittests_pe COMMAND unittests_pe -c)
 
-set(CPPUTEST_DIR /home/dweindl/src/cpputest/)
-set(CPPUTEST_INCLUDE_DIR ${CPPUTEST_DIR}/include)
-set(CPPUTEST_LIBRARY ${CPPUTEST_DIR}/build/src/CppUTest/libCppUTest.a ${CPPUTEST_DIR}/build/src/CppUTestExt/libCppUTestExt.a)
+set(CPPUTEST_DIR "/home/dweindl/src/cpputest/")
+set(CPPUTEST_INCLUDE_DIR "${CPPUTEST_DIR}/include")
+set(CPPUTEST_LIBRARY "${CPPUTEST_DIR}/build/src/CppUTest/libCppUTest.a" "${CPPUTEST_DIR}/build/src/CppUTestExt/libCppUTestExt.a")
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -include ${CPPUTEST_DIR}/include/CppUTest/MemoryLeakDetectorMallocMacros.h")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -include ${CPPUTEST_DIR}/include/CppUTest/MemoryLeakDetectorNewMacros.h")
 
 set(SRC_LIST
     main.cpp
-    ../src/testingMisc.c
-    ../objectiveFunctionBenchmarkModel/objectiveFunctionTest.c
-    ../src/loadBalancerWorkerTest.c
-    ../src/loadBalancerMasterTest.c
-    ../objectiveFunctionBenchmarkModel/simulationWorkerTest.c
-    ../src/queueTest.c
+    ../testingMisc.c
+    ../loadBalancerWorkerTest.c
+    ../loadBalancerMasterTest.c
+    ../queueTest.c
 )
 
 include_directories(${CPPUTEST_INCLUDE_DIR})

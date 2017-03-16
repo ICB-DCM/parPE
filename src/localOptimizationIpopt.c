@@ -7,9 +7,9 @@
 #include <time.h>
 #include <signal.h>
 #include <alloca.h>
+#include <math.h>
 
 #include <IpStdCInterface.h>
-#include <include/amici.h>
 
 #include "misc.h"
 
