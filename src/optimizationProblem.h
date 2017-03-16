@@ -37,7 +37,7 @@ typedef void (*logObjectiveFunctionGradientEvaluationFp)(void *problem,
 // typedef void (*logOptimizerIterationFp)(void *);
 
 typedef void (*logOptimizerFinishedFp)(void *problem,
-                                       double finalNegLogLikelihood,
+                                       double finalObjectiveFunctionValue,
                                        double masterTime,
                                        int exitStatus);
 
@@ -58,5 +58,6 @@ typedef struct OptimizationProblem_tag {
     logOptimizerFinishedFp logOptimizerFinished;
 } OptimizationProblem;
 
+OptimizationProblem *optimizationProblemNew();
 
 #endif

@@ -14,6 +14,7 @@ set(SRC_LIST
     ../testingMisc.c
     ../loadBalancerWorkerTest.c
     ../loadBalancerMasterTest.c
+    ../localOptimizationIpoptTest.c
     ../queueTest.c
 )
 
@@ -31,6 +32,5 @@ target_link_libraries(${PROJECT_NAME}
     ${SUITESPARSE_LIBRARIES}
     ${CPPUTEST_LIBRARY}
     -lpthread
-    benchmarkProblem
     pe
 )
