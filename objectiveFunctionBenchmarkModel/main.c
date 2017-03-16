@@ -9,11 +9,11 @@
 #include <getopt.h>
 
 #include "loadBalancerMaster.h"
-#include "simulationWorker.h"
 #include "masterthread.h"
 // for initDataProvider
 #include "../objectiveFunctionBenchmarkModel/dataprovider.h"
 #include "../objectiveFunctionBenchmarkModel/resultwriter.h"
+#include "../objectiveFunctionBenchmarkModel/simulationWorker.h"
 #include "misc.h"
 
 #undef INSTALL_SIGNAL_HANDLER

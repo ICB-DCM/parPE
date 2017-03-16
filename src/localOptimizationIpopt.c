@@ -12,7 +12,6 @@
 #include <include/amici.h>
 
 #include "misc.h"
-#include "../objectiveFunctionBenchmarkModel/objectiveFunction.h"
 
 #define IPTOPT_LOG_FILE "/home/dweindl/src/CanPathProSSH/dw/ipopt.log"
 
@@ -48,7 +47,6 @@ static Bool Intermediate(Index alg_mod,
                 Number alpha_du, Number alpha_pr,
                 Index ls_trials, UserDataPtr user_data);
 
-void getFeasibleInitialTheta(Datapath dataPath, Number *buffer, AMI_parameter_scaling scaling);
 /******************************/
 
 int getLocalOptimumIpopt(OptimizationProblem *problem) {
@@ -77,29 +75,6 @@ int getLocalOptimumIpopt(OptimizationProblem *problem) {
     return status < Maximum_Iterations_Exceeded;
 }
 
-
-void getFeasibleInitialTheta(Datapath dataPath, Number *initialTheta, AMI_parameter_scaling scaling)
-{
-    int feasible = 0;
-    char strPath[50];
-    sprintDatapath(strPath, dataPath);
-
-    logmessage(LOGLVL_INFO, "%s Finding feasible initial theta...", strPath);
-
-    while(!feasible) {
-        getRandomInitialThetaFromFile(dataPath, initialTheta, scaling);
-
-        double objFunVal = NAN;
-        int status = evaluateObjectiveFunction(initialTheta, getLenTheta(), dataPath, &objFunVal, NULL, scaling);
-
-        feasible = !isnan(objFunVal) && !isinf(objFunVal) && status == 0;
-
-        if(!feasible)
-            logmessage(LOGLVL_INFO, "%s Retrying finding feasible initial theta...", strPath);
-    }
-
-    logmessage(LOGLVL_INFO, "%s Found feasible initial theta.", strPath);
-}
 
 static IpoptProblem setupIpoptProblem(OptimizationProblem *problem)
 {

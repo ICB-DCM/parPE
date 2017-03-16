@@ -8,8 +8,9 @@
 
 // TODO get rid of:
 // required for datapath
-#include "../objectiveFunctionBenchmarkModel/dataprovider.h"
-#include "../objectiveFunctionBenchmarkModel/objectiveFunction.h"
+#include "dataprovider.h"
+#include "objectiveFunction.h"
+#include "resultwriter.h"
 
 #ifdef USE_MPE
 #include <mpe.h>

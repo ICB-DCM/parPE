@@ -2,7 +2,7 @@
 #include "CppUTestExt/MockSupport_c.h"
 
 // include .c because of static functions
-#include "../objectiveFunctionBenchmarkModel/objectiveFunction.c"
+#include "objectiveFunction.c"
 
 // BEGIN required globals
 

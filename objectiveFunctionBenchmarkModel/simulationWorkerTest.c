@@ -1,7 +1,7 @@
 #include "simulationWorker.h"
 #include "testingMisc.h"
 // TODO: test separetely
-#include "../objectiveFunctionBenchmarkModel/dataprovider.h"
+#include "dataprovider.h"
 #include "CppUTest/TestHarness_c.h"
 #include "CppUTestExt/MockSupport_c.h"
 

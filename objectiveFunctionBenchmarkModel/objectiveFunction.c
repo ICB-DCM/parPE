@@ -52,6 +52,8 @@ static double getLogLikelihoodIncrementForExperiment(const double llhCase, const
 
 static void updateLogLikelihoodGradientForExperiment(const double llhCase, const double llhControl, const double *sllhCase, const double *sllhControl, const double caseY, const double caseSigmaY, const int numTheta, const double inhib, double *dloglik);
 
+void getFeasibleInitialTheta(Datapath dataPath, double *buffer, AMI_parameter_scaling scaling);
+
 /******************************/
 
 
@@ -513,3 +515,26 @@ void objectiveFunctionGradientCheck(const double theta[], const int lenTheta, Da
     free(thetaTmp);
 }
 
+
+void getFeasibleInitialTheta(Datapath dataPath, double *initialTheta, AMI_parameter_scaling scaling)
+{
+    int feasible = 0;
+    char strPath[50];
+    sprintDatapath(strPath, dataPath);
+
+    logmessage(LOGLVL_INFO, "%s Finding feasible initial theta...", strPath);
+
+    while(!feasible) {
+        getRandomInitialThetaFromFile(dataPath, initialTheta, scaling);
+
+        double objFunVal = NAN;
+        int status = evaluateObjectiveFunction(initialTheta, getLenTheta(), dataPath, &objFunVal, NULL, scaling);
+
+        feasible = !isnan(objFunVal) && !isinf(objFunVal) && status == 0;
+
+        if(!feasible)
+            logmessage(LOGLVL_INFO, "%s Retrying finding feasible initial theta...", strPath);
+    }
+
+    logmessage(LOGLVL_INFO, "%s Found feasible initial theta.", strPath);
+}

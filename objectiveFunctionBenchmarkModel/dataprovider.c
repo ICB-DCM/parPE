@@ -32,8 +32,6 @@ static void readFixedParameters(int dataMatrixRow, UserData *udata);
 static void getDoubleArrayAttributeC(hid_t file_id, const char* optionsObject, const char* attributeName, double **destination, hsize_t *length);
 static void getIntArrayAttributeC(hid_t file_id, const char* optionsObject, const char* attributeName, int **destination, hsize_t *length);
 
-
-
 int initDataProvider(const char *hdf5Filename) {
 
 #if DATA_PROVIDER_H_VERBOSE >= 2

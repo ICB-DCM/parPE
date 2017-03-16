@@ -5,8 +5,6 @@ set(SRC_LIST
     misc.c
     loadBalancerMaster.c
     loadBalancerWorker.c
-    simulationWorker.c
-    masterthread.c
     queue.c
     optimizationProblem.c
 )
@@ -21,7 +19,6 @@ target_link_libraries(${PROJECT_NAME}
     ${HDF5_C_LIBRARIES}
     ${MPE_LIBRARIES}
     ${SUITESPARSE_LIBRARIES}
-    objectiveFunctionBenchmarkModel
     -lpthread
 )
 

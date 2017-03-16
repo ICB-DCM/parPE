@@ -15,7 +15,7 @@ set(SRC_LIST
     ../objectiveFunctionBenchmarkModel/objectiveFunctionTest.c
     ../src/loadBalancerWorkerTest.c
     ../src/loadBalancerMasterTest.c
-    ../src/simulationWorkerTest.c
+    ../objectiveFunctionBenchmarkModel/simulationWorkerTest.c
     ../src/queueTest.c
 )
 
@@ -33,5 +33,6 @@ target_link_libraries(${PROJECT_NAME}
     ${SUITESPARSE_LIBRARIES}
     ${CPPUTEST_LIBRARY}
     -lpthread
+    benchmarkProblem
     pe
 )
