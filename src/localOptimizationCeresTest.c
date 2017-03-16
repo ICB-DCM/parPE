@@ -23,8 +23,8 @@ TEST_C(localOptimizationCeres, testOptimization) {
 
     mock_c()->expectOneCall("logFinish")->withIntParameters("exitStatus", 0);
     mock_c()->expectNCalls(0, "testObj");
-    mock_c()->expectNCalls(9, "testObjGrad");
-mock_c()->ignoreOtherCalls();
+    mock_c()->expectNCalls(10, "testObjGrad");
+
     getLocalOptimumCeres(problem);
     // TODO: disabled due to ceres bug?!
     // CHECK_EQUAL_C_REAL(42.0, quadraticTestProblemOptimalCost, 1e-12);
