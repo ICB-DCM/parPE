@@ -45,14 +45,17 @@ typedef void (*logOptimizerFinishedFp)(void *problem,
 typedef struct OptimizationProblem_tag {
     objectiveFunctionFp objectiveFunction;
     objectiveFunctionGradientFp objectiveFunctionGradient;
-    intermediateFunctionFp intermediateFunction;
+
     int numOptimizationParameters;
     double *initialParameters;
     double *parametersMin;
     double *parametersMax;
     void *userData;
+
     char *logFile;
     int maxOptimizerIterations;
+
+    intermediateFunctionFp intermediateFunction;
     logObjectiveFunctionEvaluationFp logObjectiveFunctionEvaluation;
     logObjectiveFunctionGradientEvaluationFp logObjectiveFunctionGradientEvaluation;
     //logOptimizerIterationFp logOptimizerIteration;
