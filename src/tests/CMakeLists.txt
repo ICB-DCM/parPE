@@ -16,6 +16,7 @@ set(SRC_LIST
     ../loadBalancerMasterTest.c
     ../localOptimizationIpoptTest.c
     ../queueTest.c
+    quadraticTestProblem.c
 )
 
 include_directories(${CPPUTEST_INCLUDE_DIR})
