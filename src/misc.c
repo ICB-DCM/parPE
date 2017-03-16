@@ -2,11 +2,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <include/symbolic_functions.h>
 #include <stdarg.h>
 #include <mpi.h>
 #include <time.h>
 #include <alloca.h>
+#include <unistd.h>
+#include <math.h>
+#include <sys/stat.h>
 
 const char *loglevelShortStr[] = {"", "CRI", "ERR", "WRN", "INF", "DBG"};
 
@@ -115,15 +117,23 @@ void logmessage(loglevel lvl, const char *format, ...)
     vprintf(format, argptr);
     va_end(argptr);
     printf(ANSI_COLOR_RESET "\n");
+
+    switch (lvl) {
+    case LOGLVL_CRITICAL:
+    case LOGLVL_ERROR:
+        fflush(stdout);
+    default:
+        break;
+    }
 }
 
-void printMatlabArray(const double *buffer, int len)
-{
-    printf("[");
-    printfArray(buffer, len - 1, "%e, ");
-    printf("%e]\n", buffer[len - 1]);
-    fflush(stdout);
-}
+//void printMatlabArray(const double *buffer, int len)
+//{
+//    printf("[");
+//    printfArray(buffer, len - 1, "%e, ");
+//    printf("%e]\n", buffer[len - 1]);
+//    fflush(stdout);
+//}
 
 void logProcessStats()
 {
@@ -139,4 +149,95 @@ void logProcessStats()
 
     fclose(status);
     free(buffer);
+}
+
+
+int checkGradient(objectiveFunction objFun, objectiveFunctionGradient objFunGrad, int nParams, double *theta, double epsilon, int *indices, int nIndices) {
+    double gradient[nParams];
+    objFunGrad(theta, gradient);
+
+    double thetaTmp[nParams];
+    memcpy(thetaTmp, theta, sizeof(double) * nParams);
+
+    double f = 0;
+    objFun(theta, &f);
+
+    printf("Index\tGradient\tfd_f\t\t(delta)\t\tfd_c\t\t(delta)\t\tfd_b\t\t(delta)\n");
+
+    for(int i = 0; i < nIndices; ++i) {
+        int curInd = indices[i];
+        double fb = 0, ff = 0;
+
+        thetaTmp[curInd] = theta[curInd] + epsilon;
+        objFun(thetaTmp, &ff);
+
+        thetaTmp[curInd] = theta[curInd] - epsilon;
+        objFun(thetaTmp, &fb);
+
+        double fd_f = (ff - f) / epsilon;
+
+        double fd_b = (f - fb) / epsilon;
+
+        double fd_c = (ff - fb) / (2 * epsilon);
+
+        thetaTmp[curInd] = theta[curInd];
+
+        printf("%d\t%f\t%f\t(%f)\t%f\t(%f)\t%f\t(%f)\n", curInd, gradient[curInd], fd_f, gradient[curInd] - fd_f, fd_c, gradient[curInd] - fd_c, fd_b, gradient[curInd] - fd_b);
+    }
+
+    return 0;
+}
+
+
+void printMPIInfo() {
+    int mpiCommSize, mpiRank;
+    MPI_Comm_size(MPI_COMM_WORLD, &mpiCommSize);
+    MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
+
+    char procName[MPI_MAX_PROCESSOR_NAME];
+    int procNameLen;
+    MPI_Get_processor_name(procName, &procNameLen);
+
+    logmessage(LOGLVL_DEBUG, "Rank %d/%d running on %s.", mpiRank, mpiCommSize, procName);
+}
+
+
+void printDebugInfoAndWait() {
+    //int i = 0;
+    char hostname[256];
+    gethostname(hostname, sizeof(hostname));
+    logmessage(LOGLVL_DEBUG, "PID %d on %s ready for attach", getpid(), hostname);
+    fflush(stdout);
+    //while (0 == i)
+        sleep(15);
+}
+
+void createDirectoryIfNotExists(char *dirName)
+{
+    struct stat st = {0};
+
+    if (stat(dirName, &st) == -1) {
+        mkdir(dirName, 0700);
+    }
+}
+
+void strFormatCurrentLocaltime(char *buffer, size_t bufferSize, const char *format) {
+    time_t timer;
+    time(&timer);
+
+    struct tm* tm_info;
+    tm_info = localtime(&timer);
+
+    strftime(buffer, bufferSize, format, tm_info);
+}
+
+void shuffle(int *array, size_t numElements)
+{
+    size_t i;
+    for (i = 0; i < numElements - 1; ++i) {
+        size_t j = numElements * rand() / RAND_MAX;
+        int tmp = array[j];
+        array[j] = array[i];
+        array[i] = tmp;
+    }
 }

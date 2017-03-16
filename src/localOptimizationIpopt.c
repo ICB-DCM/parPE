@@ -1,4 +1,5 @@
-#include "localoptimization.h"
+#include "localOptimizationIpopt.h"
+#include "optimizationProblem.h"
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -6,26 +7,19 @@
 #include <time.h>
 #include <signal.h>
 #include <alloca.h>
+#include <math.h>
+
+#include <IpStdCInterface.h>
+
 #include "misc.h"
-#include "objectivefunction.h"
+
+#define IPTOPT_LOG_FILE "/home/dweindl/src/CanPathProSSH/dw/ipopt.log"
 
 #ifdef INSTALL_SIGNAL_HANDLER
 extern volatile sig_atomic_t caughtTerminationSignal;
 #endif
 
-typedef struct {
-    int nTheta;
-    double *theta;
-    UserData udata;
-    ExpData edata;
-    ReturnData rdata;
-    double *gradient;
-    double objectiveFunctionValue;
-    datapath datapath;
-    int scaling;
-} MyUserData;
-
-static IpoptProblem setupIpoptProblem(datapath path, Index numOptimizationParams, AMI_parameter_scaling scaling);
+static IpoptProblem setupIpoptProblem(OptimizationProblem *problem);
 
 /******************************/
 
@@ -53,83 +47,46 @@ static Bool Intermediate(Index alg_mod,
                 Number alpha_du, Number alpha_pr,
                 Index ls_trials, UserDataPtr user_data);
 
-void getFeasibleInitialTheta(datapath dataPath, Number *buffer, AMI_parameter_scaling scaling);
 /******************************/
 
-int getLocalOptimum(datapath dataPath) {
+int getLocalOptimumIpopt(OptimizationProblem *problem) {
 
     Number loglikelihood = INFINITY;
 
-    MyUserData myUserData;
-    myUserData.nTheta = getLenTheta();
-    myUserData.gradient = malloc(sizeof(double) * myUserData.nTheta);
-    myUserData.theta    = malloc(sizeof(double) * myUserData.nTheta);
-    myUserData.datapath = dataPath;
-    myUserData.scaling  = AMI_SCALING_LOG10;
-
-    IpoptProblem problem = setupIpoptProblem(dataPath, myUserData.nTheta, myUserData.scaling);
+    IpoptProblem ipoptProblem = setupIpoptProblem(problem);
 
     clock_t timeBegin = clock();
 
-    double *initialTheta = malloc(sizeof(double) * myUserData.nTheta);
-    getRandomInitialThetaFromFile(dataPath, initialTheta, (AMI_parameter_scaling) myUserData.scaling);
-
-    enum ApplicationReturnStatus status = IpoptSolve(problem, initialTheta, NULL, &loglikelihood, NULL, NULL, NULL, &myUserData);
+    enum ApplicationReturnStatus status = IpoptSolve(ipoptProblem,
+                                                     problem->initialParameters,
+                                                     NULL,
+                                                     &loglikelihood,
+                                                     NULL, NULL, NULL,
+                                                     problem);
 
     clock_t timeEnd = clock();
     double timeElapsed = (double) (timeEnd - timeBegin) / CLOCKS_PER_SEC;
 
-    saveLocalOptimizerResults(dataPath, loglikelihood, timeElapsed, status);
+    if(problem->logOptimizerFinished)
+        problem->logOptimizerFinished(problem, loglikelihood, timeElapsed, status);
 
-    char strBuf[100];
-    sprintDatapath(strBuf, dataPath);
-    logmessage(LOGLVL_INFO, "%s: Ipopt status %d, final llh: %e, time: %f.", strBuf, status, loglikelihood, timeElapsed);
-
-    free(initialTheta);
-    free(myUserData.gradient);
-    free(myUserData.theta);
-    FreeIpoptProblem(problem);
+    FreeIpoptProblem(ipoptProblem);
 
     return status < Maximum_Iterations_Exceeded;
 }
 
 
-void getFeasibleInitialTheta(datapath dataPath, Number *initialTheta, AMI_parameter_scaling scaling)
+static IpoptProblem setupIpoptProblem(OptimizationProblem *problem)
 {
-    int feasible = 0;
-    char strPath[50];
-    sprintDatapath(strPath, dataPath);
+    assert(sizeof(double) == sizeof(Number));
 
-    logmessage(LOGLVL_INFO, "%s Finding feasible initial theta...", strPath);
-
-    while(!feasible) {
-        getInitialTheta(dataPath, initialTheta, scaling);
-
-        double objFunVal = NAN;
-        int status = evaluateObjectiveFunction(initialTheta, getLenTheta(), dataPath, &objFunVal, NULL, scaling);
-
-        feasible = !isnan(objFunVal) && !isinf(objFunVal) && status == 0;
-
-        if(!feasible)
-            logmessage(LOGLVL_INFO, "%s Retrying finding feasible initial theta...", strPath);
-    }
-
-    logmessage(LOGLVL_INFO, "%s Found feasible initial theta.", strPath);
-}
-
-static IpoptProblem setupIpoptProblem(datapath path, Index numOptimizationParams, AMI_parameter_scaling scaling)
-{
-    Number *thetaLowerBounds = alloca(sizeof(Number) * numOptimizationParams);
-    getThetaLowerBounds(path, thetaLowerBounds, scaling);
-    Number *thetaUpperBounds = alloca(sizeof(Number) * numOptimizationParams);
-    getThetaUpperBounds(path, thetaUpperBounds, scaling);
-
+    // TODO
     Index numberConstraints = 0;
-
     Index numNonZeroElementsConstraintJacobian = 0; // TODO only nonzero elements
     Index numNonZeroElementsLagrangianHessian = 0; //NUM_OPTIMIZATION_PARAMS * NUM_OPTIMIZATION_PARAMS; // TODO
 
-    IpoptProblem nlp = CreateIpoptProblem(numOptimizationParams, thetaLowerBounds, thetaUpperBounds,
+    IpoptProblem nlp = CreateIpoptProblem(problem->numOptimizationParameters,
+                                          problem->parametersMin, problem->parametersMax,
                                               numberConstraints, NULL, NULL,
                                               numNonZeroElementsConstraintJacobian, numNonZeroElementsLagrangianHessian, 0,
                                               &Eval_F, &Eval_G, &Eval_Grad_F, &Eval_Jac_G, &Eval_H);
@@ -144,7 +101,7 @@ static IpoptProblem setupIpoptProblem(datapath path, Index numOptimizationParams
     AddIpoptStrOption(nlp, "hessian_approximation", "limited-memory");
     AddIpoptStrOption(nlp, "limited_memory_update_type", "bfgs");
 
-    AddIpoptIntOption(nlp, "max_iter", getMaxIter());
+    AddIpoptIntOption(nlp, "max_iter", problem->maxOptimizerIterations);
     AddIpoptNumOption(nlp, "tol", 1e-9);
 
     //    AddIpoptIntOption(nlp, "acceptable_iter", 1);
@@ -155,6 +112,7 @@ static IpoptProblem setupIpoptProblem(datapath path, Index numOptimizationParams
 
     // TODO check further limited memory options http://www.coin-or.org/Ipopt/documentation/node53.html#opt:hessian_approximation
 
+    // TODO: remove
     OpenIpoptOutputFile(nlp, IPTOPT_LOG_FILE, 6);
     SetIntermediateCallback(nlp, &Intermediate);
 
@@ -170,26 +128,20 @@ static Bool Eval_F(Index n, Number *x, Bool new_x, Number *obj_value, UserDataPt
     static __thread int numFunctionCalls = 0;
     logmessage(LOGLVL_DEBUG, "Eval_F (%d) #%d.", new_x, ++numFunctionCalls);
 
-    Number *myX = x;
+    int status = 0;
 
     clock_t timeBegin = clock();
 
-    int status = 0;
-    MyUserData *data = (MyUserData *) user_data;
-
-    status = evaluateObjectiveFunction(myX, n, data->datapath, obj_value, NULL, data->scaling);
-
-    data->objectiveFunctionValue = *obj_value;
-    for(int i = 0; i < n; ++i)
-        data->theta[i] = myX[i];
-    fillArray(data->gradient, n, NAN);
+    OptimizationProblem *problem = (OptimizationProblem *) user_data;
+    problem->objectiveFunction(user_data, x, obj_value);
 
     clock_t timeEnd = clock();
     double timeElapsed = (double) (timeEnd - timeBegin) / CLOCKS_PER_SEC;
 
-    logLocalOptimizerObjectiveFunctionEvaluation(data->datapath, numFunctionCalls, myX, data->objectiveFunctionValue, timeElapsed, n);
+    if(problem->logObjectiveFunctionEvaluation)
+        problem->logObjectiveFunctionEvaluation(problem, x, *obj_value, numFunctionCalls, timeElapsed);
 
-    return !isnan(data->objectiveFunctionValue) && status == 0;
+    return !isnan(*obj_value) && status == 0;
 }
 
 /** Type defining the callback function for evaluating the gradient of
@@ -201,26 +153,21 @@ static Bool Eval_Grad_F(Index n, Number *x, Bool new_x, Number *grad_f, UserData
     static __thread int numFunctionCalls = 0;
     logmessage(LOGLVL_DEBUG, "Eval_Grad_F (%d) #%d", new_x, ++numFunctionCalls);
 
-    Number *myX = x;
+    int status = 0;
 
     clock_t timeBegin = clock();
 
-    int status = 0;
-
-    MyUserData *data = (MyUserData *) user_data;
-
-    status = evaluateObjectiveFunction(myX, n, data->datapath, &data->objectiveFunctionValue, data->gradient, data->scaling);
-    for(int i = 0; i < n; ++i) {
-        data->theta[i] = myX[i];
-        grad_f[i] = (data->gradient[i]);
-    }
+    OptimizationProblem *problem = (OptimizationProblem *) user_data;
+    double objectiveFunctionValue;
+    problem->objectiveFunctionGradient(user_data, x, &objectiveFunctionValue, grad_f);
 
     clock_t timeEnd = clock();
     double timeElapsed = (double) (timeEnd - timeBegin) / CLOCKS_PER_SEC;
 
-    logLocalOptimizerObjectiveFunctionGradientEvaluation(data->datapath, numFunctionCalls, myX, data->objectiveFunctionValue, data->gradient, timeElapsed, n);
+    if(problem->logObjectiveFunctionGradientEvaluation)
+        problem->logObjectiveFunctionGradientEvaluation(problem, x, objectiveFunctionValue, grad_f, numFunctionCalls, timeElapsed);
 
-    return !isnan(data->objectiveFunctionValue) && status == 0;
+    return !isnan(objectiveFunctionValue) && status == 0;
 }
 
 /** Type defining the callback function for evaluating the value of
@@ -281,19 +228,29 @@ static Bool Eval_H(Index n, Number *x_, Bool new_x, Number obj_factor, Index m, 
  *  Ipopt will terminate the optimization. */
 /* alg_mod: 0 is regular, 1 is resto */
 
-static Bool Intermediate(Index alg_mod, Index iter_count, Number obj_value, Number inf_pr, Number inf_du, Number mu, Number d_norm, Number regularization_size, Number alpha_du, Number alpha_pr, Index ls_trials, UserDataPtr user_data)
+static Bool Intermediate(Index alg_mod,
+                         Index iter_count,
+                         Number obj_value,
+                         Number inf_pr, Number inf_du,
+                         Number mu,
+                         Number d_norm,
+                         Number regularization_size,
+                         Number alpha_du, Number alpha_pr,
+                         Index ls_trials,
+                         UserDataPtr user_data)
 {
-    MyUserData *data = (MyUserData *) user_data;
-    data->datapath.idxLocalOptimizationIteration = iter_count;
+    OptimizationProblem *problem = (OptimizationProblem *) user_data;
 
-    char strBuf[50];
-    sprintDatapath(strBuf, data->datapath);
-//    logmessage(LOGLVL_INFO, "%s: %d %d %e %e %e %e %e %e %e %e %d", strBuf,
-//               alg_mod, iter_count, obj_value, inf_pr, inf_du,
-//               mu, d_norm, regularization_size, alpha_du, alpha_pr, ls_trials);
+    int status = true;
 
-    logLocalOptimizerIteration(data->datapath, iter_count, data->theta, obj_value, data->gradient, 0, data->nTheta,
-                               alg_mod, inf_pr, inf_du, mu, d_norm, regularization_size, alpha_du, alpha_pr, ls_trials);
+    if(problem->intermediateFunction)
+            status = problem->intermediateFunction(problem, alg_mod,
+                                               iter_count, obj_value,
+                                               inf_pr,  inf_du,
+                                               mu, d_norm,
+                                               regularization_size,
+                                               alpha_du,  alpha_pr,
+                                               ls_trials);
 
 #ifdef INSTALL_SIGNAL_HANDLER
     if(caughtTerminationSignal) {
@@ -302,5 +259,5 @@ static Bool Intermediate(Index alg_mod, Index iter_count, Number obj_value, Numb
     }
 #endif
 
-    return true;
+    return status;
 }

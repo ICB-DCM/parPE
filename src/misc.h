@@ -1,6 +1,10 @@
 #ifndef CPP_MISC_H
 #define CPP_MISC_H
 
+#include <stdlib.h>
+
+typedef enum optimizer_tag {OPTIMIZER_IPOPT, OPTIMIZER_CERES} optimizerEnum;
+
 #define ANSI_COLOR_RED     "\x1b[31m"
 #define ANSI_COLOR_GREEN   "\x1b[32m"
 #define ANSI_COLOR_YELLOW  "\x1b[33m"
@@ -23,7 +27,22 @@ typedef enum loglevel_tag {LOGLVL_CRITICAL = 1, LOGLVL_ERROR, LOGLVL_WARNING, LO
 
 void logmessage(loglevel lvl, const char *format, ...);
 
-void printMatlabArray(const double *buffer, int len);
+//void printMatlabArray(const double *buffer, int len);
 
 void logProcessStats();
+
+typedef int (*objectiveFunction)(const double *, double *);
+typedef int (*objectiveFunctionGradient)(const double *, double *);
+
+int checkGradient(objectiveFunction objFun, objectiveFunctionGradient objFunGrad, int nParams, double *theta, double epsilon, int *indices, int nIndices);
+
+void printMPIInfo();
+
+void printDebugInfoAndWait();
+
+void createDirectoryIfNotExists(char *dirName);
+
+void strFormatCurrentLocaltime(char *buffer, size_t bufferSize, const char *format);
+
+void shuffle(int *array, size_t numElements);
 #endif
