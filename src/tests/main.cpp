@@ -41,6 +41,14 @@ TEST_GROUP_C_WRAPPER(localOptimizationIpopt)
 TEST_C_WRAPPER(localOptimizationIpopt, testOptimization)
 
 
+TEST_GROUP_C_WRAPPER(localOptimizationCeres)
+{
+    TEST_GROUP_C_SETUP_WRAPPER(localOptimizationCeres)
+    TEST_GROUP_C_TEARDOWN_WRAPPER(localOptimizationCeres)
+};
+TEST_C_WRAPPER(localOptimizationCeres, testOptimization)
+
+
 int main(int argc, char** argv)
 {
     srand(time(NULL));

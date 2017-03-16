@@ -15,6 +15,7 @@ set(SRC_LIST
     ../loadBalancerWorkerTest.c
     ../loadBalancerMasterTest.c
     ../localOptimizationIpoptTest.c
+    ../localOptimizationCeresTest.c
     ../queueTest.c
     quadraticTestProblem.c
 )
@@ -26,6 +27,7 @@ add_executable(${PROJECT_NAME} ${SRC_LIST})
 target_link_libraries(${PROJECT_NAME}
     ${MODEL_LIBRARIES}
     ${IPOPT_LIBRARIES}
+    ${CERES_LIBRARIES}
     ${SUNDIALS_LIBRARIES}
     ${HDF5_HL_LIBRARIES}
     ${HDF5_C_LIBRARIES}

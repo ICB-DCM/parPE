@@ -2,6 +2,7 @@ project(pe)
 
 set(SRC_LIST
     localOptimizationIpopt.c
+    localOptimizationCeres.cpp
     misc.c
     loadBalancerMaster.c
     loadBalancerWorker.c
@@ -14,6 +15,7 @@ add_library(${PROJECT_NAME} ${SRC_LIST})
 target_link_libraries(${PROJECT_NAME}
     ${MODEL_LIBRARIES}
     ${IPOPT_LIBRARIES}
+    ${CERES_LIBRARIES}
     ${SUNDIALS_LIBRARIES}
     ${HDF5_HL_LIBRARIES}
     ${HDF5_C_LIBRARIES}

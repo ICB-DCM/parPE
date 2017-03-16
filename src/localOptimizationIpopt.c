@@ -8,6 +8,7 @@
 #include <signal.h>
 #include <alloca.h>
 #include <math.h>
+#include <string.h>
 
 #include <IpStdCInterface.h>
 
@@ -51,6 +52,10 @@ static Bool Intermediate(Index alg_mod,
 
 int getLocalOptimumIpopt(OptimizationProblem *problem) {
 
+    double *parameters = (double *) malloc(sizeof(*parameters) * problem->numOptimizationParameters);
+    // copy, because will be update each iteration
+    memcpy(parameters, problem->initialParameters, sizeof(*parameters) * problem->numOptimizationParameters);
+
     Number loglikelihood = INFINITY;
 
     IpoptProblem ipoptProblem = setupIpoptProblem(problem);
@@ -58,7 +63,7 @@ int getLocalOptimumIpopt(OptimizationProblem *problem) {
     clock_t timeBegin = clock();
 
     enum ApplicationReturnStatus status = IpoptSolve(ipoptProblem,
-                                                     problem->initialParameters,
+                                                     parameters,
                                                      NULL,
                                                      &loglikelihood,
                                                      NULL, NULL, NULL,
@@ -68,9 +73,10 @@ int getLocalOptimumIpopt(OptimizationProblem *problem) {
     double timeElapsed = (double) (timeEnd - timeBegin) / CLOCKS_PER_SEC;
 
     if(problem->logOptimizerFinished)
-        problem->logOptimizerFinished(problem, loglikelihood, timeElapsed, status);
+        problem->logOptimizerFinished(problem, loglikelihood, parameters, timeElapsed, status);
 
     FreeIpoptProblem(ipoptProblem);
+    free(parameters);
 
     return status < Maximum_Iterations_Exceeded;
 }

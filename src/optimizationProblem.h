@@ -37,7 +37,8 @@ typedef void (*logObjectiveFunctionGradientEvaluationFp)(void *problem,
 // typedef void (*logOptimizerIterationFp)(void *);
 
 typedef void (*logOptimizerFinishedFp)(void *problem,
-                                       double finalObjectiveFunctionValue,
+                                       double optimalCost,
+                                       const double *optimalParameters,
                                        double masterTime,
                                        int exitStatus);
 
