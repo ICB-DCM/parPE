@@ -98,8 +98,14 @@ static IpoptProblem setupIpoptProblem(OptimizationProblem *problem)
                                               &Eval_F, &Eval_G, &Eval_Grad_F, &Eval_Jac_G, &Eval_H);
     assert(nlp != 0);
 
-    AddIpoptIntOption(nlp, "print_level", 5);
-    AddIpoptStrOption(nlp, "print_user_options", "yes");
+    if(problem->printToStdout) {
+        AddIpoptIntOption(nlp, "print_level", 5);
+        AddIpoptStrOption(nlp, "print_user_options", "yes");
+    } else {
+        AddIpoptIntOption(nlp, "print_level", 0);
+        AddIpoptStrOption(nlp, "print_user_options", "no");
+        AddIpoptStrOption(nlp, "sb", "yes"); // suppress copyright message
+    }
 
     //    AddIpoptStrOption(nlp, "derivative_test", "first-order");
     //    AddIpoptIntOption(nlp, "derivative_test_first_index", 4130);
@@ -132,7 +138,8 @@ static IpoptProblem setupIpoptProblem(OptimizationProblem *problem)
 static Bool Eval_F(Index n, Number *x, Bool new_x, Number *obj_value, UserDataPtr user_data)
 {
     static __thread int numFunctionCalls = 0;
-    logmessage(LOGLVL_DEBUG, "Eval_F (%d) #%d.", new_x, ++numFunctionCalls);
+    ++numFunctionCalls;
+    // logmessage(LOGLVL_DEBUG, "Eval_F (%d) #%d.", new_x, numFunctionCalls);
 
     int status = 0;
 
@@ -157,7 +164,8 @@ static Bool Eval_F(Index n, Number *x, Bool new_x, Number *obj_value, UserDataPt
 static Bool Eval_Grad_F(Index n, Number *x, Bool new_x, Number *grad_f, UserDataPtr user_data)
 {
     static __thread int numFunctionCalls = 0;
-    logmessage(LOGLVL_DEBUG, "Eval_Grad_F (%d) #%d", new_x, ++numFunctionCalls);
+    ++numFunctionCalls;
+    // logmessage(LOGLVL_DEBUG, "Eval_Grad_F (%d) #%d", new_x, numFunctionCalls);
 
     int status = 0;
 

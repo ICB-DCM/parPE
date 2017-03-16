@@ -24,7 +24,7 @@ int testObj(void *problem, const double *parameters, double *objFunVal){
 
     *objFunVal = pow(parameters[0] + 1.0, 2) + 42.0;
 
-    printf("f: %f %f\n", parameters[0], *objFunVal);
+//    printf("f: %f %f\n", parameters[0], *objFunVal);
 
     return 0;
 }
@@ -36,7 +36,7 @@ int testObjGrad(void *problem, const double *parameters, double *objFunVal, doub
     objFunVal[0] = pow(parameters[0] + 1.0, 2) + 42.0;
     objFunGrad[0] = 2.0 * parameters[0] + 2.0;
 
-    printf("g: %f %f %f\n", parameters[0], *objFunVal, objFunGrad[0]);
+//    printf("g: %f %f %f\n", parameters[0], *objFunVal, objFunGrad[0]);
 
     return 0;
 }
@@ -47,7 +47,7 @@ void logFinish(void *problem, double optimalCost, const double *optimalParameter
     quadraticTestProblemOptimalCost = optimalCost;
     quadraticTestProblemOptimalParameter = optimalParameters[0];
 
-    printf("f(x) %f x %f t %f s %d\n", optimalCost, optimalParameters[0], masterTime, exitStatus);
+//    printf("f(x) %f x %f t %f s %d\n", optimalCost, optimalParameters[0], masterTime, exitStatus);
 }
 
 OptimizationProblem *getQuadraticTestProblem()

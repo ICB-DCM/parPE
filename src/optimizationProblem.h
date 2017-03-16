@@ -1,6 +1,7 @@
 #ifndef OPTIMIZATION_PROBLEM_H
 #define OPTIMIZATION_PROBLEM_H
 
+#include <stdbool.h>
 
 typedef int (*objectiveFunctionFp)(void *problem,
                                    const double *parameters,
@@ -53,6 +54,7 @@ typedef struct OptimizationProblem_tag {
     void *userData;
 
     char *logFile;
+    bool *printToStdout;
     int maxOptimizerIterations;
 
     intermediateFunctionFp intermediateFunction;
