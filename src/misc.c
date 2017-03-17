@@ -9,6 +9,7 @@
 #include <math.h>
 #include <sys/stat.h>
 #include "logging.h"
+#include <execinfo.h>
 
 //void printMatlabArray(const double *buffer, int len)
 //{
@@ -73,3 +74,9 @@ void runInParallelAndWaitForFinish(void *(*function)(void *), void **args, int n
     logmessage(LOGLVL_DEBUG, "All k threads finished.");
 }
 
+void printBacktrace(int depth) {
+    void *array[depth];
+    size_t size;
+    size = backtrace(array, depth);
+    backtrace_symbols_fd(array, size, STDERR_FILENO);
+}

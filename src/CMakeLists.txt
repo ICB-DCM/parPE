@@ -10,6 +10,7 @@ set(SRC_LIST
     optimizationProblem.c
     multiStartOptimization.c
     logging.c
+    hdf5Misc.c
 )
 
 add_library(${PROJECT_NAME} ${SRC_LIST})
