@@ -11,7 +11,7 @@ typedef int (*objectiveFunctionFp)(OptimizationProblem *problem,
                                    const double *parameters,
                                    double *result);
 
-typedef int (*objectiveFunctionGradientFp)(void *problem,
+typedef int (*objectiveFunctionGradientFp)(OptimizationProblem *problem,
                                             const double *parameters,
                                             double *objFunVal,
                                             double *objFunGrad);
@@ -69,8 +69,6 @@ typedef struct OptimizationProblem_tag {
     //logOptimizerIterationFp logOptimizerIteration;
     logOptimizerFinishedFp logOptimizerFinished;
 
-    /** used for multiStartOptimization to inform client (TODO: find better place) */
-    int startIdx;
 } OptimizationProblem;
 
 OptimizationProblem *optimizationProblemNew();

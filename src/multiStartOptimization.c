@@ -13,13 +13,14 @@ MultiStartOptimization *multiStartOptimizationNew()
     memset(ms, 0, sizeof(*ms));
 
     return ms;
-
 }
 
 
 int runParallelMultiStartOptimization(MultiStartOptimization *multiStartOptimization)
 {
     int numLocalOptimizations = multiStartOptimization->numberOfStarts;
+
+    logmessage(LOGLVL_DEBUG, "Starting runParallelMultiStartOptimization with %d starts", numLocalOptimizations);
 
     pthread_t *localOptimizationThreads = alloca(numLocalOptimizations * sizeof(pthread_t));
 
@@ -36,7 +37,9 @@ int runParallelMultiStartOptimization(MultiStartOptimization *multiStartOptimiza
         localProblems[ms] = *multiStartOptimization->optimizationProblem;
         localProblems[ms].initialParameters = malloc(sizeof(double) * multiStartOptimization->optimizationProblem->numOptimizationParameters);
         multiStartOptimization->getInitialPoint(multiStartOptimization, ms, localProblems[ms].initialParameters);
-        localProblems[ms].startIdx = ++lastStartIdx;
+        if(multiStartOptimization->getUserData)
+            localProblems[ms].userData = multiStartOptimization->getUserData(multiStartOptimization, ms);
+        ++lastStartIdx;
 
         logmessage(LOGLVL_DEBUG, "Spawning thread for local optimization #%d (%d)", lastStartIdx, ms);
 
@@ -61,7 +64,10 @@ int runParallelMultiStartOptimization(MultiStartOptimization *multiStartOptimiza
                     ++numCompleted;
                 } else {
                     logmessage(LOGLVL_WARNING, "Thread ms #%d finished unsuccessfully... trying new starting point", ms);
-                    localProblems[ms].startIdx = ++lastStartIdx;
+                    ++lastStartIdx;
+                    if(multiStartOptimization->getUserData)
+                        localProblems[ms].userData = multiStartOptimization->getUserData(multiStartOptimization, lastStartIdx);
+                    multiStartOptimization->getInitialPoint(multiStartOptimization, ms, localProblems[ms].initialParameters);
                     logmessage(LOGLVL_DEBUG, "Spawning thread for local optimization #%d (%d)", lastStartIdx, ms);
                     pthread_create(&localOptimizationThreads[ms], &threadAttr, getLocalOptimumThreadWrapper, (void *)&localProblems[ms]);
                 }

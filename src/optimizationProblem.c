@@ -13,6 +13,11 @@ OptimizationProblem *optimizationProblemNew()
     return problem;
 }
 
+/**
+ * @brief getLocalOptimum
+ * @param problem
+ * @return int indicating status. 0: success, != 0: failure
+ */
 
 int getLocalOptimum(OptimizationProblem *problem)
 {
@@ -26,6 +31,11 @@ int getLocalOptimum(OptimizationProblem *problem)
     }
 }
 
+/**
+ * @brief getLocalOptimumThreadWrapper wrapper for using getLocalOptimum with pThreads.
+ * @param problem
+ * @return Pointer to int indicating status. 0: success, != 0: failure
+ */
 
 void *getLocalOptimumThreadWrapper(void *optimizationProblemVp)
 {

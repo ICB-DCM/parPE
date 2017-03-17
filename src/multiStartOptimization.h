@@ -3,8 +3,10 @@
 
 #include "optimizationProblem.h"
 
-typedef int (*multiStartOptimizationGetInitialPointFp)(void *multiStartOptimization, int currentStartIdx, double *buffer);
-typedef void *(*multiStartOptimizationGetUserDataFp)(void *multiStartOptimization, int currentStartIdx);
+typedef struct MultiStartOptimization_tag MultiStartOptimization;
+
+typedef int (*multiStartOptimizationGetInitialPointFp)(const MultiStartOptimization *multiStartOptimization, int currentStartIdx, double *buffer);
+typedef void *(*multiStartOptimizationGetUserDataFp)(const MultiStartOptimization *multiStartOptimization, int currentStartIdx);
 
 
 // TODO: add userData for multistart IDs, ...
@@ -28,7 +30,12 @@ typedef struct MultiStartOptimization_tag {
 
 MultiStartOptimization *multiStartOptimizationNew();
 
-int runParallelMultiStartOptimization(MultiStartOptimization *multiStartOptimization);
+/**
+ * @brief runParallelMultiStartOptimization
+ * @param multiStartOptimization
+ * @return always returns 0
+ */
 
+int runParallelMultiStartOptimization(MultiStartOptimization *multiStartOptimization);
 
 #endif
