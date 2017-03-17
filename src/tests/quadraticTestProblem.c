@@ -18,7 +18,7 @@ double thetaMax[] = {1e5};
  * f(-1) = 42
  */
 
-int testObj(void *problem, const double *parameters, double *objFunVal){
+int testObj(OptimizationProblem *problem, const double *parameters, double *objFunVal){
 
     mock_c()->actualCall("testObj");
 
@@ -29,7 +29,7 @@ int testObj(void *problem, const double *parameters, double *objFunVal){
     return 0;
 }
 
-int testObjGrad(void *problem, const double *parameters, double *objFunVal, double *objFunGrad) {
+int testObjGrad(OptimizationProblem *problem, const double *parameters, double *objFunVal, double *objFunGrad) {
 
     mock_c()->actualCall("testObjGrad");
 
@@ -41,7 +41,7 @@ int testObjGrad(void *problem, const double *parameters, double *objFunVal, doub
     return 0;
 }
 
-void logFinish(void *problem, double optimalCost, const double *optimalParameters, double masterTime, int exitStatus) {
+void logFinish(OptimizationProblem *problem, double optimalCost, const double *optimalParameters, double masterTime, int exitStatus) {
     mock_c()->actualCall("logFinish")->withIntParameters("exitStatus", exitStatus);
 
     quadraticTestProblemOptimalCost = optimalCost;

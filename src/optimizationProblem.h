@@ -5,7 +5,9 @@
 
 typedef enum optimizer_tag {OPTIMIZER_IPOPT, OPTIMIZER_CERES} optimizerEnum;
 
-typedef int (*objectiveFunctionFp)(void *problem,
+typedef struct OptimizationProblem_tag OptimizationProblem;
+
+typedef int (*objectiveFunctionFp)(OptimizationProblem *problem,
                                    const double *parameters,
                                    double *result);
 
@@ -14,7 +16,7 @@ typedef int (*objectiveFunctionGradientFp)(void *problem,
                                             double *objFunVal,
                                             double *objFunGrad);
 
-typedef int (*intermediateFunctionFp)(void *problem,
+typedef int (*intermediateFunctionFp)(OptimizationProblem *problem,
                                        int alg_mod,
                                        int iter_count,
                                        double obj_value,
@@ -25,13 +27,13 @@ typedef int (*intermediateFunctionFp)(void *problem,
                                        double alpha_du, double alpha_pr,
                                        int ls_trials);
 
-typedef void (*logObjectiveFunctionEvaluationFp)(void *problem,
+typedef void (*logObjectiveFunctionEvaluationFp)(OptimizationProblem *problem,
                                                  const double *parameters,
                                                  double objectiveFunctionValue,
                                                  int numFunctionCalls,
                                                  double timeElapsed);
 
-typedef void (*logObjectiveFunctionGradientEvaluationFp)(void *problem,
+typedef void (*logObjectiveFunctionGradientEvaluationFp)(OptimizationProblem *problem,
                                                          const double *parameters,
                                                          double objectiveFunctionValue,
                                                          const double *objectiveFunctionGradient,
@@ -39,7 +41,7 @@ typedef void (*logObjectiveFunctionGradientEvaluationFp)(void *problem,
                                                          double timeElapsed);
 // typedef void (*logOptimizerIterationFp)(void *);
 
-typedef void (*logOptimizerFinishedFp)(void *problem,
+typedef void (*logOptimizerFinishedFp)(OptimizationProblem *problem,
                                        double optimalCost,
                                        const double *optimalParameters,
                                        double masterTime,

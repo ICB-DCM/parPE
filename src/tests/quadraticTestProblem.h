@@ -5,11 +5,11 @@
 
 extern double optimalCost, optimalParameter;
 
-int testObj(void *problem, const double *parameters, double *result);
+int testObj(OptimizationProblem *problem, const double *parameters, double *result);
 
-int testObjGrad(void *problem, const double *parameters, double *objFunVal, double *objFunGrad);
+int testObjGrad(OptimizationProblem *problem, const double *parameters, double *objFunVal, double *objFunGrad);
 
-void logFinish(void *problem, double optimalCost, const double *optimalParameters, double masterTime, int exitStatus);
+void logFinish(OptimizationProblem *problem, double optimalCost, const double *optimalParameters, double masterTime, int exitStatus);
 
 OptimizationProblem *getQuadraticTestProblem();
 
