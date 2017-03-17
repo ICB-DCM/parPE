@@ -20,7 +20,6 @@ target_link_libraries(${PROJECT_NAME}
     ${SUNDIALS_LIBRARIES}
     ${HDF5_HL_LIBRARIES}
     ${HDF5_C_LIBRARIES}
-    ${MPE_LIBRARIES}
     ${SUITESPARSE_LIBRARIES}
     -lpthread
 )
