@@ -4,8 +4,8 @@
 #include <alloca.h>
 #include <assert.h>
 #include <stdbool.h>
+#include <stdlib.h>
 #include "loadBalancerWorker.h"
-#include "misc.h"
 
 static bool waitForAndHandleJobs(int inMsgSize, int outMesgSize, messageHandlerFp msgHandler, char *buffer);
 
