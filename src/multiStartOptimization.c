@@ -5,6 +5,7 @@
 #include <pthread.h>
 #include <unistd.h>
 
+#include "logging.h"
 #include "misc.h"
 
 MultiStartOptimization *multiStartOptimizationNew()

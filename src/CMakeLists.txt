@@ -9,6 +9,7 @@ set(SRC_LIST
     queue.c
     optimizationProblem.c
     multiStartOptimization.c
+    logging.c
 )
 
 add_library(${PROJECT_NAME} ${SRC_LIST})

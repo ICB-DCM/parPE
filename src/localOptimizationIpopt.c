@@ -9,10 +9,11 @@
 #include <alloca.h>
 #include <math.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include <IpStdCInterface.h>
 
-#include "misc.h"
+#include "logging.h"
 
 #define IPTOPT_LOG_FILE "/home/dweindl/src/CanPathProSSH/dw/ipopt.log"
 
