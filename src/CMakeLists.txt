@@ -8,6 +8,7 @@ set(SRC_LIST
     loadBalancerWorker.c
     queue.c
     optimizationProblem.c
+    multiStartOptimization.c
 )
 
 add_library(${PROJECT_NAME} ${SRC_LIST})

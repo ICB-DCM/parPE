@@ -2,6 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "localOptimizationCeres.hpp"
+#include "localOptimizationIpopt.h"
+
 OptimizationProblem *optimizationProblemNew()
 {
     OptimizationProblem *problem = malloc(sizeof(*problem));
@@ -10,11 +13,24 @@ OptimizationProblem *optimizationProblemNew()
     return problem;
 }
 
-MultiStartOptimization *multiStartOptimizationNew()
+
+int getLocalOptimum(OptimizationProblem *problem)
 {
-    MultiStartOptimization *ms = malloc(sizeof(*ms));
-    memset(ms, 0, sizeof(*ms));
+    switch (problem->optimizer) {
+    case OPTIMIZER_CERES:
+        return getLocalOptimumCeres(problem);
+    case OPTIMIZER_IPOPT:
+        return getLocalOptimumIpopt(problem);
+    default:
+        abort();
+    }
+}
 
-    return ms;
 
+void *getLocalOptimumThreadWrapper(void *optimizationProblemVp)
+{
+    OptimizationProblem *problem = (OptimizationProblem *) optimizationProblemVp;
+    int *result = malloc(sizeof(*result));
+    *result = getLocalOptimum(problem);
+    return result;
 }
