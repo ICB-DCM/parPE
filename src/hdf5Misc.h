@@ -6,11 +6,14 @@
 
 #include <pthread.h>
 
-// mutex for **ALL** HDF5 library calls; read and write; any file(?)
-pthread_mutex_t mutexHDF;
 
 void initHDF5Mutex();
 
+void hdf5LockMutex();
+
+void hdf5UnlockMutex();
+
+void destroyHDF5Mutex();
 
 #define H5_SAVE_ERROR_HANDLER   herr_t (*old_func)(void*); \
                                 void *old_client_data; \

@@ -6,6 +6,8 @@
 #include <unistd.h>
 #include <stdlib.h>
 
+// mutex for **ALL** HDF5 library calls; read and write; any file(?)
+static pthread_mutex_t mutexHDF;
 
 void initHDF5Mutex() {
     pthread_mutexattr_t attr;
@@ -15,6 +17,19 @@ void initHDF5Mutex() {
     pthread_mutexattr_destroy(&attr);
 
     H5dont_atexit();
+}
+
+void hdf5LockMutex() {
+    pthread_mutex_lock(&mutexHDF);
+}
+
+void hdf5UnlockMutex() {
+    pthread_mutex_unlock(&mutexHDF);
+}
+
+void destroyHDF5Mutex() {
+    pthread_mutex_destroy(&mutexHDF);
+
 }
 
 herr_t hdf5ErrorStackWalker_cb(unsigned int n, const H5E_error_t *err_desc, void *client_data)
