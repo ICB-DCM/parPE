@@ -3,6 +3,8 @@
 
 #include <stdbool.h>
 
+typedef enum optimizer_tag {OPTIMIZER_IPOPT, OPTIMIZER_CERES} optimizerEnum;
+
 typedef int (*objectiveFunctionFp)(void *problem,
                                    const double *parameters,
                                    double *result);
@@ -53,6 +55,8 @@ typedef struct OptimizationProblem_tag {
     double *parametersMax;
     void *userData;
 
+    optimizerEnum optimizer;
+
     char *logFile;
     bool *printToStdout;
     int maxOptimizerIterations;
@@ -65,5 +69,25 @@ typedef struct OptimizationProblem_tag {
 } OptimizationProblem;
 
 OptimizationProblem *optimizationProblemNew();
+
+
+typedef double *(*multiStartOptimizationGetInitialPointFp)(void *multiStartOptimization, int currentStartIdx);
+
+typedef struct MultiStartOptimization_tag {
+
+    OptimizationProblem optimizationProblem;
+
+    /** Number of starts to perform */
+    int numberOfStarts;
+
+    /** restart local optimization, until numberOfStarts successful starts are reached */
+    bool restartOnFailure;
+
+    /** Function for initial points */
+    multiStartOptimizationGetInitialPointFp multiStartOptimizationGetInitialPoint;
+} MultiStartOptimization;
+
+
+MultiStartOptimization *multiStartOptimizationNew();
 
 #endif

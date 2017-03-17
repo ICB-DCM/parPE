@@ -9,3 +9,12 @@ OptimizationProblem *optimizationProblemNew()
 
     return problem;
 }
+
+MultiStartOptimization *multiStartOptimizationNew()
+{
+    MultiStartOptimization *ms = malloc(sizeof(*ms));
+    memset(ms, 0, sizeof(*ms));
+
+    return ms;
+
+}
