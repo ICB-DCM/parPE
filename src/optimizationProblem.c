@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "misc.h"
 #include "localOptimizationCeres.hpp"
 #include "localOptimizationIpopt.h"
 
@@ -43,4 +44,9 @@ void *getLocalOptimumThreadWrapper(void *optimizationProblemVp)
     int *result = malloc(sizeof(*result));
     *result = getLocalOptimum(problem);
     return result;
+}
+
+
+void runOptimizationsParallel(const OptimizationProblem **problems, int numProblems) {
+    runInParallelAndWaitForFinish(getLocalOptimumThreadWrapper, (void**)problems, numProblems);
 }

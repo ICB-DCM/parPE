@@ -241,3 +241,28 @@ void shuffle(int *array, size_t numElements)
         array[i] = tmp;
     }
 }
+
+
+#include <pthread.h>
+
+void runInParallelAndWaitForFinish(void *(*function)(void *), void **args, int numArgs) {
+    // create threads
+    pthread_attr_t threadAttr;
+    pthread_attr_init(&threadAttr);
+    pthread_attr_setdetachstate(&threadAttr, PTHREAD_CREATE_JOINABLE);
+
+    pthread_t *threads = alloca(numArgs * sizeof(pthread_t));
+
+    for(int i = 0; i < numArgs; ++i) {
+        pthread_create(&threads[i], &threadAttr, function, args[i]);
+    }
+    pthread_attr_destroy(&threadAttr);
+
+    // wait for finish
+    for(int i = 0; i < numArgs; ++i) {
+        pthread_join(threads[i], NULL);
+        logmessage(LOGLVL_DEBUG, "Thread i %d finished", i);
+    }
+    logmessage(LOGLVL_DEBUG, "All k threads finished.");
+}
+
