@@ -49,6 +49,7 @@ TEST_GROUP_C_WRAPPER(localOptimizationCeres)
 TEST_C_WRAPPER(localOptimizationCeres, testOptimization)
 
 
+
 int main(int argc, char** argv)
 {
     srand(time(NULL));
