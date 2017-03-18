@@ -7,9 +7,9 @@
 #include <stdlib.h>
 #include "loadBalancerWorker.h"
 
-static bool waitForAndHandleJobs(int inMsgSize, int outMesgSize, messageHandlerFp msgHandler, char *buffer);
+static bool waitForAndHandleJobs(int inMsgSize, int outMesgSize, messageHandlerFp msgHandler, char *buffer, void *userData);
 
-void loadBalancerWorkerRun(int inMsgSize, int outMesgSize, messageHandlerFp msgHandler) {
+void loadBalancerWorkerRun(int inMsgSize, int outMesgSize, messageHandlerFp msgHandler, void *userData) {
     // TODO replace fixed buffer size by MPI_PROBE?
     int bufferSize = (outMesgSize > inMsgSize) ? outMesgSize : inMsgSize;
     char *buffer = alloca(bufferSize);
@@ -17,13 +17,13 @@ void loadBalancerWorkerRun(int inMsgSize, int outMesgSize, messageHandlerFp msgH
     bool terminate = false;
 
     while(!terminate) {
-        terminate = waitForAndHandleJobs(inMsgSize, outMesgSize, msgHandler, buffer);
+        terminate = waitForAndHandleJobs(inMsgSize, outMesgSize, msgHandler, buffer, userData);
     }
 
 }
 
 
-bool waitForAndHandleJobs(int inMsgSize, int outMesgSize, messageHandlerFp msgHandler, char *buffer) {
+bool waitForAndHandleJobs(int inMsgSize, int outMesgSize, messageHandlerFp msgHandler, char *buffer, void *userData) {
     int rank, err;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
@@ -43,7 +43,7 @@ bool waitForAndHandleJobs(int inMsgSize, int outMesgSize, messageHandlerFp msgHa
     if(mpiStatus.MPI_TAG == MPI_TAG_EXIT_SIGNAL)
         return 1;
 
-    msgHandler(buffer, mpiStatus.MPI_TAG);
+    msgHandler(buffer, mpiStatus.MPI_TAG, userData);
 
 #if QUEUE_WORKER_H_VERBOSE >= 2
     printf("[%d] Simulation done, sending results (llh: %f). ", rank, result.llh); printDatapath(path); fflush(stdout);
