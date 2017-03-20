@@ -85,7 +85,7 @@ typedef struct OptimizationProblem_tag {
     char *logFile;
 
     /** Print progress to stdout */
-    bool *printToStdout;
+    bool printToStdout;
     /** Maximum number of optimizer iterations*/
     int maxOptimizerIterations;
 
