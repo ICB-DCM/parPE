@@ -4,12 +4,13 @@
 #include "localOptimizationCeres.hpp"
 #include "testingMisc.h"
 #include "tests/quadraticTestProblem.h"
+#include <math.h>
 
 extern double quadraticTestProblemOptimalCost, quadraticTestProblemOptimalParameter;
 
 TEST_GROUP_C_SETUP(localOptimizationCeres) {
-    quadraticTestProblemOptimalCost = -1e8;
-    quadraticTestProblemOptimalParameter = -1e8;
+    quadraticTestProblemOptimalCost = NAN;
+    quadraticTestProblemOptimalParameter = NAN;
 }
 
 TEST_GROUP_C_TEARDOWN(localOptimizationCeres) {
@@ -26,8 +27,7 @@ TEST_C(localOptimizationCeres, testOptimization) {
     mock_c()->expectNCalls(10, "testObjGrad");
 
     getLocalOptimumCeres(problem);
-    // TODO: disabled due to ceres bug?!
-    // CHECK_EQUAL_C_REAL(42.0, quadraticTestProblemOptimalCost, 1e-12);
+    CHECK_EQUAL_C_REAL(42.0, quadraticTestProblemOptimalCost, 1e-12);
     CHECK_EQUAL_C_REAL(-1.0, quadraticTestProblemOptimalParameter, 1e-12);
     // free(problem); //?
 }
