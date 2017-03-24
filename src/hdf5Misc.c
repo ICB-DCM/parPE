@@ -32,7 +32,6 @@ void hdf5UnlockMutex() {
 
 void destroyHDF5Mutex() {
     pthread_mutex_destroy(&mutexHDF);
-
 }
 
 herr_t hdf5ErrorStackWalker_cb(unsigned int n, const H5E_error_t *err_desc, void *client_data)
