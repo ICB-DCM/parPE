@@ -35,8 +35,14 @@ int runParallelMultiStartOptimization(MultiStartOptimization *multiStartOptimiza
     // launch threads for required number of starts
     for(int ms = 0; ms < numLocalOptimizations; ++ms) {
         localProblems[ms] = *multiStartOptimization->optimizationProblem;
-        localProblems[ms].initialParameters = malloc(sizeof(double) * multiStartOptimization->optimizationProblem->numOptimizationParameters);
-        multiStartOptimization->getInitialPoint(multiStartOptimization, ms, localProblems[ms].initialParameters);
+
+        if(multiStartOptimization->getInitialPoint) {
+            localProblems[ms].initialParameters = malloc(sizeof(double) * multiStartOptimization->optimizationProblem->numOptimizationParameters);
+            multiStartOptimization->getInitialPoint(multiStartOptimization, ms, localProblems[ms].initialParameters);
+        } else {
+            localProblems[ms].initialParameters = 0;
+        }
+
         if(multiStartOptimization->getUserData)
             localProblems[ms].userData = multiStartOptimization->getUserData(multiStartOptimization, ms);
         ++lastStartIdx;

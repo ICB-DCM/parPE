@@ -29,8 +29,12 @@ private:
 int getLocalOptimumCeres(OptimizationProblem *problem)
 {
     double *parameters = (double *) malloc(sizeof(*parameters) * problem->numOptimizationParameters);
-    // copy, because will be update each iteration
-    memcpy(parameters, problem->initialParameters, sizeof(*parameters) * problem->numOptimizationParameters);
+    if(problem->initialParameters) {
+        // copy, because will be update each iteration
+        memcpy(parameters, problem->initialParameters, sizeof(*parameters) * problem->numOptimizationParameters);
+    } else {
+        getRandomStartingpoint(problem->parametersMin, problem->parametersMax, problem->numOptimizationParameters, parameters);
+    }
 
     ceres::GradientProblemSolver::Options options;
     options.minimizer_progress_to_stdout = problem->printToStdout;

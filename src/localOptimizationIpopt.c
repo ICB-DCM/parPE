@@ -54,8 +54,13 @@ static Bool Intermediate(Index alg_mod,
 int getLocalOptimumIpopt(OptimizationProblem *problem) {
 
     double *parameters = (double *) malloc(sizeof(*parameters) * problem->numOptimizationParameters);
-    // copy, because will be update each iteration
-    memcpy(parameters, problem->initialParameters, sizeof(*parameters) * problem->numOptimizationParameters);
+
+    if(problem->initialParameters) {
+        // copy, because will be update each iteration
+        memcpy(parameters, problem->initialParameters, sizeof(*parameters) * problem->numOptimizationParameters);
+    } else {
+        getRandomStartingpoint(problem->parametersMin, problem->parametersMax, problem->numOptimizationParameters, parameters);
+    }
 
     Number loglikelihood = INFINITY;
 

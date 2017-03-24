@@ -20,7 +20,7 @@ typedef struct MultiStartOptimization_tag {
     /** restart local optimization, until numberOfStarts successful starts are reached */
     bool restartOnFailure;
 
-    /** Function for initial points */
+    /** Function for initial points. If 0, random starting points are drawn from [optimizationProblem.parametersMin, optimizationProblem.parametersMax] */
     multiStartOptimizationGetInitialPointFp getInitialPoint;
 
     /** Function to get userData for each start */

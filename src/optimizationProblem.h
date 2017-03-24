@@ -3,6 +3,10 @@
 
 #include <stdbool.h>
 
+#if defined (__cplusplus)
+extern "C" {
+#endif
+
 typedef enum optimizer_tag {OPTIMIZER_IPOPT, OPTIMIZER_CERES} optimizerEnum;
 
 typedef struct OptimizationProblem_tag OptimizationProblem;
@@ -69,7 +73,7 @@ typedef struct OptimizationProblem_tag {
 
     /** number of optimization parameters */
     int numOptimizationParameters;
-    /** starting point for optimization */
+    /** starting point for optimization. If 0, random starting points are drawn from [parametersMin, parametersMax] */
     double *initialParameters;
     /** lowest allowed parameter values */
     double *parametersMin;
@@ -109,5 +113,10 @@ void *getLocalOptimumThreadWrapper(void *optimizationProblemVp);
 void runOptimizationsParallel(const OptimizationProblem **problems, int numProblems);
 
 void getRandomStartingpoint(const double *min, const double *max, int numParameters, double *buffer);
+
+
+#if defined (__cplusplus)
+}
+#endif
 
 #endif
