@@ -107,4 +107,7 @@ int getLocalOptimum(OptimizationProblem *problem);
 void *getLocalOptimumThreadWrapper(void *optimizationProblemVp);
 
 void runOptimizationsParallel(const OptimizationProblem **problems, int numProblems);
+
+void getRandomStartingpoint(const double *min, const double *max, int numParameters, double *buffer);
+
 #endif

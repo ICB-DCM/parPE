@@ -15,4 +15,14 @@ void runInParallelAndWaitForFinish(void *(*function)(void *), void **args, int n
 
 void printBacktrace(int depth);
 
+double randDouble(double min, double max);
+
+/**
+ * @brief fillArrayRandomDoubleIndividualInterval Fill "buffer" with "length" random double values, drawn from an interval [min, max] given for each value.
+ * @param min
+ * @param max
+ * @param length
+ * @param buffer
+ */
+void fillArrayRandomDoubleIndividualInterval(const double *min, const double *max, int length, double *buffer);
 #endif

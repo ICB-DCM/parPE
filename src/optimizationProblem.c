@@ -50,3 +50,8 @@ void *getLocalOptimumThreadWrapper(void *optimizationProblemVp)
 void runOptimizationsParallel(const OptimizationProblem **problems, int numProblems) {
     runInParallelAndWaitForFinish(getLocalOptimumThreadWrapper, (void**)problems, numProblems);
 }
+
+void getRandomStartingpoint(const double *min, const double *max, int numParameters, double *buffer)
+{
+    fillArrayRandomDoubleIndividualInterval(min, max, numParameters, buffer);
+}

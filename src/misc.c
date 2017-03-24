@@ -80,3 +80,13 @@ void printBacktrace(int depth) {
     size = backtrace(array, depth);
     backtrace_symbols_fd(array, size, STDERR_FILENO);
 }
+
+double randDouble(double min, double max) {
+    return min + rand() / (double) RAND_MAX * (max - min);
+}
+
+void fillArrayRandomDoubleIndividualInterval(const double *min, const double *max, int length, double *buffer)
+{
+    for(int i = 0; i < length; ++i)
+        buffer[i] = randDouble(min[i], max[i]);
+}
