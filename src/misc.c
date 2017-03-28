@@ -90,3 +90,9 @@ void fillArrayRandomDoubleIndividualInterval(const double *min, const double *ma
     for(int i = 0; i < length; ++i)
         buffer[i] = randDouble(min[i], max[i]);
 }
+
+void fillArrayRandomDoubleSameInterval(double min, double max, int length, double *buffer)
+{
+    for(int i = 0; i < length; ++i)
+        buffer[i] = randDouble(min, max);
+}

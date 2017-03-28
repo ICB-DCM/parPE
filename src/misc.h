@@ -25,4 +25,6 @@ double randDouble(double min, double max);
  * @param buffer
  */
 void fillArrayRandomDoubleIndividualInterval(const double *min, const double *max, int length, double *buffer);
+
+void fillArrayRandomDoubleSameInterval(double min, double max, int length, double *buffer);
 #endif
