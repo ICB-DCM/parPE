@@ -1,6 +1,7 @@
 #include "optimizationProblem.h"
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 #include "misc.h"
 #include "localOptimizationCeres.hpp"
@@ -54,4 +55,45 @@ void runOptimizationsParallel(const OptimizationProblem **problems, int numProbl
 void getRandomStartingpoint(const double *min, const double *max, int numParameters, double *buffer)
 {
     fillArrayRandomDoubleIndividualInterval(min, max, numParameters, buffer);
+}
+
+void optimizationProblemGradientCheck(OptimizationProblem *problem, const int parameterIndices[], int numParameterIndices, double epsilon)
+{
+    double fc = 0; // f(theta)
+    double *theta = problem->initialParameters;
+
+    double *gradient = malloc(sizeof(double) * problem->numOptimizationParameters);
+
+    problem->objectiveFunctionGradient(problem, theta, &fc, gradient);
+
+    double *thetaTmp = malloc(sizeof(double) * problem->numOptimizationParameters);
+    memcpy(thetaTmp, theta, sizeof(double) * problem->numOptimizationParameters);
+
+    printf("Index\tGradient\tfd_f\t\t(delta)\t\tfd_c\t\t(delta)\t\tfd_b\t\t(delta)\n");
+
+    for(int i = 0; i < numParameterIndices; ++i) {
+        int curInd = parameterIndices[i];
+        double fb = 0, ff = 0; // f(theta + eps) , f(theta - eps)
+
+        thetaTmp[curInd] = theta[curInd] + epsilon;
+        problem->objectiveFunction(problem, thetaTmp, &ff);
+
+        thetaTmp[curInd] = theta[curInd] - epsilon;
+        problem->objectiveFunction(problem, thetaTmp, &fb);
+
+        printf("\t\t%f\t%f\t%f\t\n", fb, fc, ff);
+
+        double fd_f = (ff - fc) / epsilon;
+
+        double fd_b = (fc - fb) / epsilon;
+
+        double fd_c = (ff - fb) / (2 * epsilon);
+
+        thetaTmp[curInd] = theta[curInd];
+
+        printf("%d\t%f\t%f\t(%f)\t%f\t(%f)\t%f\t(%f)\n", curInd, gradient[curInd], fd_f, gradient[curInd] - fd_f, fd_c, gradient[curInd] - fd_c, fd_b, gradient[curInd] - fd_b);
+    }
+
+    free(gradient);
+    free(thetaTmp);
 }

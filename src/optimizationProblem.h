@@ -114,6 +114,7 @@ void runOptimizationsParallel(const OptimizationProblem **problems, int numProbl
 
 void getRandomStartingpoint(const double *min, const double *max, int numParameters, double *buffer);
 
+void optimizationProblemGradientCheck(OptimizationProblem *problem, const int parameterIndices[], int numParameterIndices, double epsilon);
 
 #if defined (__cplusplus)
 }
