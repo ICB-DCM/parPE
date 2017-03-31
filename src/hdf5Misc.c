@@ -106,11 +106,11 @@ bool hdf5GroupExists(hid_t file_id, const char *groupName)
     hdf5LockMutex();
 
     // switch off error handler, check existance and reenable
-    H5_SAVE_ERROR_HANDLER
+    H5_SAVE_ERROR_HANDLER;
 
     herr_t status = H5Gget_objinfo(file_id, groupName, 0, NULL);
 
-    H5_RESTORE_ERROR_HANDLER
+    H5_RESTORE_ERROR_HANDLER;
 
     hdf5UnlockMutex();
 
