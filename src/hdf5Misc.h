@@ -7,6 +7,10 @@
 #include <pthread.h>
 #include <stdbool.h>
 
+#if defined (__cplusplus)
+extern "C" {
+#endif
+
 void initHDF5Mutex();
 
 void hdf5LockMutex();
@@ -52,6 +56,10 @@ void hdf5CreateOrExtendAndWriteToDouble2DArray(hid_t file_id, const char *parent
 void hdf5CreateOrExtendAndWriteToInt2DArray(hid_t file_id, const char *parentPath, const char *datasetName, const int *buffer, int stride);
 
 void hdf5CreateOrExtendAndWriteToDouble3DArray(hid_t file_id, const char *parentPath, const char *datasetName, const double *buffer, int stride1, int stride2);
+
+#if defined (__cplusplus)
+}
+#endif
 
 
 #endif

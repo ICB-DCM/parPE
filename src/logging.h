@@ -9,6 +9,10 @@
 #define ANSI_COLOR_CYAN    "\x1b[36m"
 #define ANSI_COLOR_RESET   "\x1b[0m"
 
+#if defined (__cplusplus)
+extern "C" {
+#endif
+
 typedef enum loglevel_tag {LOGLVL_CRITICAL = 1, LOGLVL_ERROR, LOGLVL_WARNING, LOGLVL_INFO, LOGLVL_DEBUG} loglevel;
 
 void logmessage(loglevel lvl, const char *format, ...);
@@ -23,5 +27,9 @@ void printDebugInfoAndWait();
 void error(const char *message);
 // TODO remove
 void warning(const char *message);
+
+#if defined (__cplusplus)
+}
+#endif
 
 #endif
