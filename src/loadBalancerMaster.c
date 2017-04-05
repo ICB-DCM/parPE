@@ -1,5 +1,4 @@
 #include "loadBalancerMaster.h"
-#include "misc.h"
 #include "queue.h"
 
 #include <pthread.h>

@@ -8,10 +8,12 @@
 #include <signal.h>
 #include <alloca.h>
 #include <math.h>
+#include <string.h>
+#include <stdlib.h>
 
 #include <IpStdCInterface.h>
 
-#include "misc.h"
+#include "logging.h"
 
 #define IPTOPT_LOG_FILE "/home/dweindl/src/CanPathProSSH/dw/ipopt.log"
 
@@ -51,6 +53,15 @@ static Bool Intermediate(Index alg_mod,
 
 int getLocalOptimumIpopt(OptimizationProblem *problem) {
 
+    double *parameters = (double *) malloc(sizeof(*parameters) * problem->numOptimizationParameters);
+
+    if(problem->initialParameters) {
+        // copy, because will be update each iteration
+        memcpy(parameters, problem->initialParameters, sizeof(*parameters) * problem->numOptimizationParameters);
+    } else {
+        getRandomStartingpoint(problem->parametersMin, problem->parametersMax, problem->numOptimizationParameters, parameters);
+    }
+
     Number loglikelihood = INFINITY;
 
     IpoptProblem ipoptProblem = setupIpoptProblem(problem);
@@ -58,7 +69,7 @@ int getLocalOptimumIpopt(OptimizationProblem *problem) {
     clock_t timeBegin = clock();
 
     enum ApplicationReturnStatus status = IpoptSolve(ipoptProblem,
-                                                     problem->initialParameters,
+                                                     parameters,
                                                      NULL,
                                                      &loglikelihood,
                                                      NULL, NULL, NULL,
@@ -68,9 +79,10 @@ int getLocalOptimumIpopt(OptimizationProblem *problem) {
     double timeElapsed = (double) (timeEnd - timeBegin) / CLOCKS_PER_SEC;
 
     if(problem->logOptimizerFinished)
-        problem->logOptimizerFinished(problem, loglikelihood, timeElapsed, status);
+        problem->logOptimizerFinished(problem, loglikelihood, parameters, timeElapsed, status);
 
     FreeIpoptProblem(ipoptProblem);
+    free(parameters);
 
     return status < Maximum_Iterations_Exceeded;
 }
@@ -92,8 +104,14 @@ static IpoptProblem setupIpoptProblem(OptimizationProblem *problem)
                                               &Eval_F, &Eval_G, &Eval_Grad_F, &Eval_Jac_G, &Eval_H);
     assert(nlp != 0);
 
-    AddIpoptIntOption(nlp, "print_level", 5);
-    AddIpoptStrOption(nlp, "print_user_options", "yes");
+    if(problem->printToStdout) {
+        AddIpoptIntOption(nlp, "print_level", 5);
+        AddIpoptStrOption(nlp, "print_user_options", "yes");
+    } else {
+        AddIpoptIntOption(nlp, "print_level", 0);
+        AddIpoptStrOption(nlp, "print_user_options", "no");
+        AddIpoptStrOption(nlp, "sb", "yes"); // suppress copyright message
+    }
 
     //    AddIpoptStrOption(nlp, "derivative_test", "first-order");
     //    AddIpoptIntOption(nlp, "derivative_test_first_index", 4130);
@@ -126,7 +144,8 @@ static IpoptProblem setupIpoptProblem(OptimizationProblem *problem)
 static Bool Eval_F(Index n, Number *x, Bool new_x, Number *obj_value, UserDataPtr user_data)
 {
     static __thread int numFunctionCalls = 0;
-    logmessage(LOGLVL_DEBUG, "Eval_F (%d) #%d.", new_x, ++numFunctionCalls);
+    ++numFunctionCalls;
+    // logmessage(LOGLVL_DEBUG, "Eval_F (%d) #%d.", new_x, numFunctionCalls);
 
     int status = 0;
 
@@ -151,7 +170,8 @@ static Bool Eval_F(Index n, Number *x, Bool new_x, Number *obj_value, UserDataPt
 static Bool Eval_Grad_F(Index n, Number *x, Bool new_x, Number *grad_f, UserDataPtr user_data)
 {
     static __thread int numFunctionCalls = 0;
-    logmessage(LOGLVL_DEBUG, "Eval_Grad_F (%d) #%d", new_x, ++numFunctionCalls);
+    ++numFunctionCalls;
+    // logmessage(LOGLVL_DEBUG, "Eval_Grad_F (%d) #%d", new_x, numFunctionCalls);
 
     int status = 0;
 

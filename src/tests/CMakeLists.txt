@@ -15,7 +15,9 @@ set(SRC_LIST
     ../loadBalancerWorkerTest.c
     ../loadBalancerMasterTest.c
     ../localOptimizationIpoptTest.c
+    ../localOptimizationCeresTest.c
     ../queueTest.c
+    quadraticTestProblem.c
 )
 
 include_directories(${CPPUTEST_INCLUDE_DIR})
@@ -25,10 +27,10 @@ add_executable(${PROJECT_NAME} ${SRC_LIST})
 target_link_libraries(${PROJECT_NAME}
     ${MODEL_LIBRARIES}
     ${IPOPT_LIBRARIES}
+    ${CERES_LIBRARIES}
     ${SUNDIALS_LIBRARIES}
     ${HDF5_HL_LIBRARIES}
     ${HDF5_C_LIBRARIES}
-    ${MPE_LIBRARIES}
     ${SUITESPARSE_LIBRARIES}
     ${CPPUTEST_LIBRARY}
     -lpthread
