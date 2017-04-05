@@ -30,11 +30,6 @@ void destroyHDF5Mutex();
 herr_t hdf5ErrorStackWalker_cb(unsigned int n, const H5E_error_t *err_desc, void *client_data); // TODO: also use for resultwriter
 
 
-// malloc version of ami_hdf5.cpp
-void getDoubleArrayAttributeC(hid_t file_id, const char* optionsObject, const char* attributeName, double **destination, hsize_t *length);
-void getIntArrayAttributeC(hid_t file_id, const char* optionsObject, const char* attributeName, int **destination, hsize_t *length);
-
-
 bool hdf5DatasetExists(hid_t file_id, const char *datasetName);
 
 bool hdf5GroupExists(hid_t file_id, const char *groupName);
