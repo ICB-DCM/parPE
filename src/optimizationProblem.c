@@ -63,7 +63,6 @@ void optimizationProblemGradientCheck(OptimizationProblem *problem, const int pa
     double *theta = problem->initialParameters;
 
     double *gradient = malloc(sizeof(double) * problem->numOptimizationParameters);
-
     problem->objectiveFunctionGradient(problem, theta, &fc, gradient);
 
     double *thetaTmp = malloc(sizeof(double) * problem->numOptimizationParameters);
@@ -81,8 +80,6 @@ void optimizationProblemGradientCheck(OptimizationProblem *problem, const int pa
         thetaTmp[curInd] = theta[curInd] - epsilon;
         problem->objectiveFunction(problem, thetaTmp, &fb);
 
-        printf("\t\t%f\t%f\t%f\t\n", fb, fc, ff);
-
         double fd_f = (ff - fc) / epsilon;
 
         double fd_b = (fc - fb) / epsilon;
@@ -91,7 +88,12 @@ void optimizationProblemGradientCheck(OptimizationProblem *problem, const int pa
 
         thetaTmp[curInd] = theta[curInd];
 
-        printf("%d\t%f\t%f\t(%f)\t%f\t(%f)\t%f\t(%f)\n", curInd, gradient[curInd], fd_f, gradient[curInd] - fd_f, fd_c, gradient[curInd] - fd_c, fd_b, gradient[curInd] - fd_b);
+        printf("%d\tg: %f\tfd_f: %f\t(%f)\tfd_c: %f\t(%f)\tfd_b: %f\t(%f)",
+               curInd, gradient[curInd],
+               fd_f, gradient[curInd] - fd_f,
+               fd_c, gradient[curInd] - fd_c,
+               fd_b, gradient[curInd] - fd_b);
+        printf("\t\tfb: %f\tfc: %f\tff: %f\t\n", fb, fc, ff);
     }
 
     free(gradient);
