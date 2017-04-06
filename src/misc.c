@@ -19,7 +19,6 @@
 //    fflush(stdout);
 //}
 
-
 void createDirectoryIfNotExists(char *dirName)
 {
     struct stat st = {0};

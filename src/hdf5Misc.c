@@ -36,6 +36,8 @@ void destroyHDF5Mutex() {
 
 herr_t hdf5ErrorStackWalker_cb(unsigned int n, const H5E_error_t *err_desc, void *client_data)
 {
+    printBacktrace(20);
+
     assert (err_desc);
     const int		indent = 2;
 
