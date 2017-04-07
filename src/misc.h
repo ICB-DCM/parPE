@@ -3,6 +3,13 @@
 
 #include <stdlib.h>
 
+#ifdef __cplusplus
+#define EXTERNC extern "C"
+#else
+#define EXTERNC
+#include <stdbool.h>
+#endif
+
 //void printMatlabArray(const double *buffer, int len);
 
 void createDirectoryIfNotExists(char *dirName);
@@ -13,7 +20,7 @@ void shuffle(int *array, size_t numElements);
 
 void runInParallelAndWaitForFinish(void *(*function)(void *), void **args, int numArgs);
 
-void printBacktrace(int depth);
+EXTERNC void printBacktrace(int depth);
 
 double randDouble(double min, double max);
 

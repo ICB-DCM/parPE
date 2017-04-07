@@ -53,45 +53,6 @@ herr_t hdf5ErrorStackWalker_cb(unsigned int n, const H5E_error_t *err_desc, void
     return 0;
 }
 
-void getDoubleArrayAttributeC(hid_t file_id, const char* optionsObject, const char* attributeName, double **destination, hsize_t *length) {
-    H5T_class_t type_class;
-    size_t type_size;
-    herr_t status;
-
-    pthread_mutex_lock(&mutexHDF);
-
-    status = H5LTget_attribute_info(file_id, optionsObject, attributeName, length, &type_class, &type_size);
-    if(status < 0) {
-        fprintf(stderr, "Error in getDoubleArrayAttributeC: Cannot read attribute '%s' of '%s'\n", attributeName, optionsObject);
-        printBacktrace(10);
-    }
-
-    *destination = malloc(sizeof(double) * (*length)); // vs. type_size
-    status = H5LTget_attribute_double(file_id, optionsObject, attributeName, *destination);
-    if(status < 0)
-        fprintf(stderr, "Error in getDoubleArrayAttributeC: Cannot read attribute '%s' of '%s'\n", attributeName, optionsObject);
-
-    pthread_mutex_unlock(&mutexHDF);
-}
-
-void getIntArrayAttributeC(hid_t file_id, const char* optionsObject, const char* attributeName, int **destination, hsize_t *length) {
-    H5T_class_t type_class;
-    size_t type_size;
-
-    pthread_mutex_lock(&mutexHDF);
-
-    H5LTget_attribute_info(file_id, optionsObject, attributeName, length, &type_class, &type_size);
-#ifdef AMI_HDF5_H_DEBUG
-    printf("%s: %d: ", attributeName, *length);
-#endif
-    *destination = (int*) malloc(sizeof(int) * (*length));
-    H5LTget_attribute_int(file_id, optionsObject, attributeName, *destination);
-
-    pthread_mutex_unlock(&mutexHDF);
-}
-
-
-
 bool hdf5DatasetExists(hid_t file_id, const char *datasetName)
 {
     hdf5LockMutex();
