@@ -8,7 +8,6 @@ typedef struct MultiStartOptimization_tag MultiStartOptimization;
 typedef int (*multiStartOptimizationGetInitialPointFp)(const MultiStartOptimization *multiStartOptimization, int currentStartIdx, double *buffer);
 typedef void *(*multiStartOptimizationGetUserDataFp)(const MultiStartOptimization *multiStartOptimization, int currentStartIdx);
 
-
 // TODO: add userData for multistart IDs, ...
 typedef struct MultiStartOptimization_tag {
 
@@ -28,7 +27,14 @@ typedef struct MultiStartOptimization_tag {
 } MultiStartOptimization;
 
 
-MultiStartOptimization *multiStartOptimizationNew();
+#ifdef __cplusplus
+#define EXTERNC extern "C"
+#else
+#define EXTERNC
+#endif
+
+
+EXTERNC MultiStartOptimization *multiStartOptimizationNew();
 
 /**
  * @brief runParallelMultiStartOptimization
@@ -36,6 +42,6 @@ MultiStartOptimization *multiStartOptimizationNew();
  * @return always returns 0
  */
 
-int runParallelMultiStartOptimization(MultiStartOptimization *multiStartOptimization);
+EXTERNC int runParallelMultiStartOptimization(MultiStartOptimization *multiStartOptimization);
 
 #endif

@@ -30,24 +30,30 @@ typedef struct JobData_tag {
     pthread_mutex_t *jobDoneChangedMutex;
 } JobData;
 
+#ifdef __cplusplus
+#define EXTERNC extern "C"
+#else
+#define EXTERNC
+#endif
+
 /**
  * @brief loadBalancerStartMaster Intialize queue. There can only be one queue.
  * Repeated calls won't do anything. MPI_Init has to be called before.
  */
 
-void loadBalancerStartMaster();
+EXTERNC void loadBalancerStartMaster();
 
 /**
  * @brief loadBalancerQueueJob Append work to queue.
  * @param data
  */
 
-void loadBalancerQueueJob(JobData *data);
+EXTERNC void loadBalancerQueueJob(JobData *data);
 
 /**
  * @brief loadBalancerTerminate Cancel the queue thread and clean up. Do not wait for finish.
  */
 
-void loadBalancerTerminate();
+EXTERNC void loadBalancerTerminate();
 
 #endif

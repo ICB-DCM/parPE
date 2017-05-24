@@ -12,17 +12,17 @@
 
 //void printMatlabArray(const double *buffer, int len);
 
-void createDirectoryIfNotExists(char *dirName);
+EXTERNC void createDirectoryIfNotExists(char *dirName);
 
-void strFormatCurrentLocaltime(char *buffer, size_t bufferSize, const char *format);
+EXTERNC void strFormatCurrentLocaltime(char *buffer, size_t bufferSize, const char *format);
 
-void shuffle(int *array, size_t numElements);
+EXTERNC void shuffle(int *array, size_t numElements);
 
-void runInParallelAndWaitForFinish(void *(*function)(void *), void **args, int numArgs);
+EXTERNC void runInParallelAndWaitForFinish(void *(*function)(void *), void **args, int numArgs);
 
 EXTERNC void printBacktrace(int depth);
 
-double randDouble(double min, double max);
+EXTERNC double randDouble(double min, double max);
 
 /**
  * @brief fillArrayRandomDoubleIndividualInterval Fill "buffer" with "length" random double values, drawn from an interval [min, max] given for each value.
@@ -31,7 +31,7 @@ double randDouble(double min, double max);
  * @param length
  * @param buffer
  */
-void fillArrayRandomDoubleIndividualInterval(const double *min, const double *max, int length, double *buffer);
+EXTERNC void fillArrayRandomDoubleIndividualInterval(const double *min, const double *max, int length, double *buffer);
 
-void fillArrayRandomDoubleSameInterval(double min, double max, int length, double *buffer);
+EXTERNC void fillArrayRandomDoubleSameInterval(double min, double max, int length, double *buffer);
 #endif
