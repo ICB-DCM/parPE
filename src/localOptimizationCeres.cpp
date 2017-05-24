@@ -10,12 +10,7 @@ public:
     virtual bool Evaluate(const double* parameters,
                           double* cost,
                           double* gradient) const {
-        bool status;
-
-        if(gradient)
-            status = problem->objectiveFunctionGradient(problem, parameters, cost, gradient);
-        else
-            status = problem->objectiveFunction(problem, parameters, cost);
+        bool status = problem->evaluateObjectiveFunction(parameters, cost, gradient);
 
         return status == 0;
     }
@@ -49,7 +44,7 @@ int getLocalOptimumCeres(OptimizationProblem *problem)
 
 //    std::cout<<summary.FullReport();
 
-    problem->logOptimizerFinished(problem, summary.final_cost, parameters, summary.total_time_in_seconds, summary.termination_type);
+    problem->logOptimizerFinished(summary.final_cost, parameters, summary.total_time_in_seconds, summary.termination_type);
 
     free(parameters);
 
