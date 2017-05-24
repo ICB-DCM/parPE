@@ -78,8 +78,7 @@ int getLocalOptimumIpopt(OptimizationProblem *problem) {
     clock_t timeEnd = clock();
     double timeElapsed = (double) (timeEnd - timeBegin) / CLOCKS_PER_SEC;
 
-    if(problem->logOptimizerFinished)
-        problem->logOptimizerFinished(problem, loglikelihood, parameters, timeElapsed, status);
+    problem->logOptimizerFinished(loglikelihood, parameters, timeElapsed, status);
 
     FreeIpoptProblem(ipoptProblem);
     free(parameters);
@@ -152,13 +151,12 @@ static Bool Eval_F(Index n, Number *x, Bool new_x, Number *obj_value, UserDataPt
     clock_t timeBegin = clock();
 
     OptimizationProblem *problem = (OptimizationProblem *) user_data;
-    problem->objectiveFunction(problem, x, obj_value);
+    status = problem->evaluateObjectiveFunction(x, obj_value, NULL);
 
     clock_t timeEnd = clock();
     double timeElapsed = (double) (timeEnd - timeBegin) / CLOCKS_PER_SEC;
 
-    if(problem->logObjectiveFunctionEvaluation)
-        problem->logObjectiveFunctionEvaluation(problem, x, *obj_value, numFunctionCalls, timeElapsed);
+    problem->logObjectiveFunctionEvaluation(x, *obj_value, numFunctionCalls, timeElapsed);
 
     return !isnan(*obj_value) && status == 0;
 }
@@ -179,13 +177,12 @@ static Bool Eval_Grad_F(Index n, Number *x, Bool new_x, Number *grad_f, UserData
 
     OptimizationProblem *problem = (OptimizationProblem *)user_data;
     double objectiveFunctionValue;
-    problem->objectiveFunctionGradient(problem, x, &objectiveFunctionValue, grad_f);
+    status = problem->evaluateObjectiveFunction(x, &objectiveFunctionValue, grad_f);
 
     clock_t timeEnd = clock();
     double timeElapsed = (double) (timeEnd - timeBegin) / CLOCKS_PER_SEC;
 
-    if(problem->logObjectiveFunctionGradientEvaluation)
-        problem->logObjectiveFunctionGradientEvaluation(problem, x, objectiveFunctionValue, grad_f, numFunctionCalls, timeElapsed);
+    problem->logObjectiveFunctionGradientEvaluation(x, objectiveFunctionValue, grad_f, numFunctionCalls, timeElapsed);
 
     return !isnan(objectiveFunctionValue) && status == 0;
 }
@@ -263,8 +260,7 @@ static Bool Intermediate(Index alg_mod,
 
     int status = true;
 
-    if(problem->intermediateFunction)
-            status = problem->intermediateFunction(problem, alg_mod,
+    status = problem->intermediateFunction(alg_mod,
                                                iter_count, obj_value,
                                                inf_pr,  inf_du,
                                                mu, d_norm,
@@ -279,5 +275,5 @@ static Bool Intermediate(Index alg_mod,
     }
 #endif
 
-    return status;
+    return status == 0;
 }

@@ -3,15 +3,29 @@
 
 #include "optimizationProblem.h"
 
-extern double optimalCost, optimalParameter;
+class QuadraticTestProblem : public OptimizationProblem {
+public:
 
-int testObj(OptimizationProblem *problem, const double *parameters, double *result);
+    QuadraticTestProblem();
+    /*
+     * Test Problem for minimization
+     * f (x) = (x+1)^2 + 42 = x^2  + 2x + 1 + 42
+     * f'(x) = 2x + 2 = 0 <=> x = -1
+     * f(-1) = 42
+     */
 
-int testObjGrad(OptimizationProblem *problem, const double *parameters, double *objFunVal, double *objFunGrad);
+    int evaluateObjectiveFunction(const double *parameters, double *objFunVal, double *objFunGrad);
 
-void logFinish(OptimizationProblem *problem, double optimalCost, const double *optimalParameters, double masterTime, int exitStatus);
+    void logOptimizerFinished(double optimalCost,
+                                const double *optimalParameters,
+                                double masterTime,
+                                int exitStatus);
 
-OptimizationProblem *getQuadraticTestProblem();
+    ~QuadraticTestProblem();
 
+
+    double optimalCost;
+    double optimalParameter;
+};
 
 #endif

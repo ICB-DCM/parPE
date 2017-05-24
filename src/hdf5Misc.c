@@ -217,7 +217,6 @@ void hdf5CreateOrExtendAndWriteToDouble2DArray(hid_t file_id, const char *parent
     char *fullDatasetPath = myStringCat(parentPath, datasetName);
 
     if(!hdf5DatasetExists(file_id, fullDatasetPath)) {
-        logmessage(LOGLVL_DEBUG, "Creating %s", fullDatasetPath);
         hdf5CreateExtendableDouble2DArray(file_id, fullDatasetPath, stride);
     }
 

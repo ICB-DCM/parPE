@@ -55,7 +55,7 @@ void optimizationProblemGradientCheck(OptimizationProblem *problem, const int pa
     double *theta = problem->initialParameters;
 
     double *gradient = new double[problem->numOptimizationParameters];
-    problem->objectiveFunctionGradient(problem, theta, &fc, gradient);
+    problem->evaluateObjectiveFunction(theta, &fc, gradient);
 
     double *thetaTmp = new double[problem->numOptimizationParameters];
     memcpy(thetaTmp, theta, sizeof(double) * problem->numOptimizationParameters);
@@ -67,10 +67,10 @@ void optimizationProblemGradientCheck(OptimizationProblem *problem, const int pa
         double fb = 0, ff = 0; // f(theta + eps) , f(theta - eps)
 
         thetaTmp[curInd] = theta[curInd] + epsilon;
-        problem->objectiveFunction(problem, thetaTmp, &ff);
+        problem->evaluateObjectiveFunction(thetaTmp, &ff, NULL);
 
         thetaTmp[curInd] = theta[curInd] - epsilon;
-        problem->objectiveFunction(problem, thetaTmp, &fb);
+        problem->evaluateObjectiveFunction(thetaTmp, &fb, NULL);
 
         double fd_f = (ff - fc) / epsilon;
 
@@ -90,4 +90,29 @@ void optimizationProblemGradientCheck(OptimizationProblem *problem, const int pa
 
     free(gradient);
     free(thetaTmp);
+}
+
+int OptimizationProblem::evaluateObjectiveFunction(const double *parameters, double *objFunVal, double *objFunGrad)
+{
+    return 0;
+}
+
+int OptimizationProblem::intermediateFunction(int alg_mod, int iter_count, double obj_value, double inf_pr, double inf_du, double mu, double d_norm, double regularization_size, double alpha_du, double alpha_pr, int ls_trials)
+{
+    return 0;
+}
+
+void OptimizationProblem::logObjectiveFunctionEvaluation(const double *parameters, double objectiveFunctionValue, int numFunctionCalls, double timeElapsed)
+{
+
+}
+
+void OptimizationProblem::logObjectiveFunctionGradientEvaluation(const double *parameters, double objectiveFunctionValue, const double *objectiveFunctionGradient, int numFunctionCalls, double timeElapsed)
+{
+
+}
+
+void OptimizationProblem::logOptimizerFinished(double optimalCost, const double *optimalParameters, double masterTime, int exitStatus)
+{
+
 }
