@@ -1,6 +1,7 @@
 project(unittests_pe)
 
-add_test (NAME unittests_pe COMMAND unittests_pe -c)
+add_test (NAME ${PROJECT_NAME}_c COMMAND ${PROJECT_NAME}_c -c)
+add_test (NAME ${PROJECT_NAME}_cpp COMMAND ${PROJECT_NAME}_cpp -c)
 
 set(CPPUTEST_DIR "/home/dweindl/src/cpputest/")
 set(CPPUTEST_INCLUDE_DIR "${CPPUTEST_DIR}/include")
@@ -9,23 +10,36 @@ set(CPPUTEST_LIBRARY "${CPPUTEST_DIR}/build/src/CppUTest/libCppUTest.a" "${CPPUT
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -include ${CPPUTEST_DIR}/include/CppUTest/MemoryLeakDetectorMallocMacros.h")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -include ${CPPUTEST_DIR}/include/CppUTest/MemoryLeakDetectorNewMacros.h")
 
-set(SRC_LIST
-    main.cpp
+include_directories(${CPPUTEST_INCLUDE_DIR})
+
+set(SRC_LIST_C
+    main_c.cpp
     ../testingMisc.c
     ../loadBalancerWorkerTest.c
     ../loadBalancerMasterTest.c
-    ../localOptimizationIpoptTest.c
-    ../localOptimizationCeresTest.c
     ../queueTest.c
-    quadraticTestProblem.c
 )
 
-include_directories(${CPPUTEST_INCLUDE_DIR})
+add_executable(${PROJECT_NAME}_c ${SRC_LIST_C})
 
-add_executable(${PROJECT_NAME} ${SRC_LIST})
+target_link_libraries(${PROJECT_NAME}_c
+    ${CPPUTEST_LIBRARY}
+    -lpthread
+    pe
+)
 
-target_link_libraries(${PROJECT_NAME}
-    ${MODEL_LIBRARIES}
+
+set(SRC_LIST_CPP
+    main.cpp
+    ../testingMisc.c
+    ../localOptimizationIpoptTest.cpp
+    ../localOptimizationCeresTest.cpp
+    quadraticTestProblem.cpp
+)
+
+add_executable(${PROJECT_NAME}_cpp ${SRC_LIST_CPP})
+
+target_link_libraries(${PROJECT_NAME}_cpp
     ${IPOPT_LIBRARIES}
     ${CERES_LIBRARIES}
     ${SUNDIALS_LIBRARIES}

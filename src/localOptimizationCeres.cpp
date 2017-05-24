@@ -1,4 +1,4 @@
-#include "localOptimizationCeres.hpp"
+#include "localOptimizationCeres.h"
 
 #include "ceres/ceres.h"
 

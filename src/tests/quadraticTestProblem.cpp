@@ -52,7 +52,7 @@ void logFinish(OptimizationProblem *problem, double optimalCost, const double *o
 
 OptimizationProblem *getQuadraticTestProblem()
 {
-    OptimizationProblem *problem = optimizationProblemNew();
+    OptimizationProblem *problem = new OptimizationProblem;
 
     problem->numOptimizationParameters = 1;
     problem->initialParameters = theta0;

@@ -9,7 +9,7 @@
 
 MultiStartOptimization *multiStartOptimizationNew()
 {
-    MultiStartOptimization *ms = malloc(sizeof(*ms));
+    MultiStartOptimization *ms = new MultiStartOptimization;
     memset(ms, 0, sizeof(*ms));
 
     return ms;
@@ -22,7 +22,7 @@ int runParallelMultiStartOptimization(MultiStartOptimization *multiStartOptimiza
 
     logmessage(LOGLVL_DEBUG, "Starting runParallelMultiStartOptimization with %d starts", numLocalOptimizations);
 
-    pthread_t *localOptimizationThreads = alloca(numLocalOptimizations * sizeof(pthread_t));
+    pthread_t *localOptimizationThreads = (pthread_t *) alloca(numLocalOptimizations * sizeof(pthread_t));
 
     OptimizationProblem localProblems[numLocalOptimizations]; // need to keep, since passed by ref to new thread
 
@@ -37,7 +37,7 @@ int runParallelMultiStartOptimization(MultiStartOptimization *multiStartOptimiza
         localProblems[ms] = *multiStartOptimization->optimizationProblem;
 
         if(multiStartOptimization->getInitialPoint) {
-            localProblems[ms].initialParameters = malloc(sizeof(double) * multiStartOptimization->optimizationProblem->numOptimizationParameters);
+            localProblems[ms].initialParameters = new double [multiStartOptimization->optimizationProblem->numOptimizationParameters];
             multiStartOptimization->getInitialPoint(multiStartOptimization, ms, localProblems[ms].initialParameters);
         } else {
             localProblems[ms].initialParameters = 0;

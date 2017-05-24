@@ -4,16 +4,8 @@
 #include <stdio.h>
 
 #include "misc.h"
-#include "localOptimizationCeres.hpp"
+#include "localOptimizationCeres.h"
 #include "localOptimizationIpopt.h"
-
-OptimizationProblem *optimizationProblemNew()
-{
-    OptimizationProblem *problem = malloc(sizeof(*problem));
-    memset(problem, 0, sizeof(*problem));
-
-    return problem;
-}
 
 /**
  * @brief getLocalOptimum
@@ -42,7 +34,7 @@ int getLocalOptimum(OptimizationProblem *problem)
 void *getLocalOptimumThreadWrapper(void *optimizationProblemVp)
 {
     OptimizationProblem *problem = (OptimizationProblem *) optimizationProblemVp;
-    int *result = malloc(sizeof(*result));
+    int *result = new int;
     *result = getLocalOptimum(problem);
     return result;
 }
@@ -62,10 +54,10 @@ void optimizationProblemGradientCheck(OptimizationProblem *problem, const int pa
     double fc = 0; // f(theta)
     double *theta = problem->initialParameters;
 
-    double *gradient = malloc(sizeof(double) * problem->numOptimizationParameters);
+    double *gradient = new double[problem->numOptimizationParameters];
     problem->objectiveFunctionGradient(problem, theta, &fc, gradient);
 
-    double *thetaTmp = malloc(sizeof(double) * problem->numOptimizationParameters);
+    double *thetaTmp = new double[problem->numOptimizationParameters];
     memcpy(thetaTmp, theta, sizeof(double) * problem->numOptimizationParameters);
 
     printf("Index\tGradient\tfd_f\t\t(delta)\t\tfd_c\t\t(delta)\t\tfd_b\t\t(delta)\n");

@@ -103,9 +103,6 @@ typedef struct OptimizationProblem_tag {
 
 } OptimizationProblem;
 
-/** Create a new optimization problem with default values */
-OptimizationProblem *optimizationProblemNew();
-
 int getLocalOptimum(OptimizationProblem *problem);
 
 void *getLocalOptimumThreadWrapper(void *optimizationProblemVp);

@@ -1,14 +1,14 @@
 project(pe)
 
 set(SRC_LIST
-    localOptimizationIpopt.c
+    localOptimizationIpopt.cpp
     localOptimizationCeres.cpp
     misc.c
     loadBalancerMaster.c
     loadBalancerWorker.c
     queue.c
-    optimizationProblem.c
-    multiStartOptimization.c
+    optimizationProblem.cpp
+    multiStartOptimization.cpp
     logging.c
     hdf5Misc.c
 )

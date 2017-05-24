@@ -152,7 +152,7 @@ static Bool Eval_F(Index n, Number *x, Bool new_x, Number *obj_value, UserDataPt
     clock_t timeBegin = clock();
 
     OptimizationProblem *problem = (OptimizationProblem *) user_data;
-    problem->objectiveFunction(user_data, x, obj_value);
+    problem->objectiveFunction(problem, x, obj_value);
 
     clock_t timeEnd = clock();
     double timeElapsed = (double) (timeEnd - timeBegin) / CLOCKS_PER_SEC;
@@ -177,9 +177,9 @@ static Bool Eval_Grad_F(Index n, Number *x, Bool new_x, Number *grad_f, UserData
 
     clock_t timeBegin = clock();
 
-    OptimizationProblem *problem = (OptimizationProblem *) user_data;
+    OptimizationProblem *problem = (OptimizationProblem *)user_data;
     double objectiveFunctionValue;
-    problem->objectiveFunctionGradient(user_data, x, &objectiveFunctionValue, grad_f);
+    problem->objectiveFunctionGradient(problem, x, &objectiveFunctionValue, grad_f);
 
     clock_t timeEnd = clock();
     double timeElapsed = (double) (timeEnd - timeBegin) / CLOCKS_PER_SEC;
