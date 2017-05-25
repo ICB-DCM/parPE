@@ -370,3 +370,21 @@ char *myStringCat(const char *first, const char *second)
     strcat(concatenation, second);
     return concatenation;
 }
+
+int read2DDoubleHyperslab(hid_t file_id, const char* path, hsize_t size0, hsize_t size1, hsize_t offset0, hsize_t offset1, double *buffer) {
+    hid_t datasetId   = H5Dopen2(file_id, path, H5P_DEFAULT);
+    hid_t dataspaceId = H5Dget_space(datasetId);
+    hsize_t offset[]  = {offset0, offset1};
+    hsize_t count[]   = {size0, size1};
+
+    const int ndims = H5Sget_simple_extent_ndims(dataspaceId);
+    assert(ndims == 2);
+    hsize_t dims[ndims];
+    H5Sget_simple_extent_dims(dataspaceId, dims, NULL);
+    assert(dims[0] >= offset0 && dims[0] >= size0);
+    assert(dims[1] >= offset1 && dims[1] >= size1);
+
+    H5Sselect_hyperslab(dataspaceId, H5S_SELECT_SET, offset, NULL, count, NULL);
+    H5Dread(datasetId, H5T_NATIVE_DOUBLE, H5S_ALL, dataspaceId, H5P_DEFAULT, buffer);
+}
+
