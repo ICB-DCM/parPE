@@ -16,8 +16,6 @@ typedef struct JobData_tag {
     /** data to send */
     char *sendBuffer;
 
-    /** size of data to receive */
-    int lenRecvBuffer;
     /** data to receive */
     char *recvBuffer;
 
