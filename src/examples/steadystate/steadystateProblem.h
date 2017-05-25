@@ -23,11 +23,6 @@ public:
 
 
     void logObjectiveFunctionEvaluation(const double *parameters,
-                                        double objectiveFunctionValue,
-                                        int numFunctionCalls,
-                                        double timeElapsed);
-
-    void logObjectiveFunctionGradientEvaluation(const double *parameters,
                                                 double objectiveFunctionValue,
                                                 const double *objectiveFunctionGradient,
                                                 int numFunctionCalls,

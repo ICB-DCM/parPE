@@ -156,7 +156,7 @@ static Bool Eval_F(Index n, Number *x, Bool new_x, Number *obj_value, UserDataPt
     clock_t timeEnd = clock();
     double timeElapsed = (double) (timeEnd - timeBegin) / CLOCKS_PER_SEC;
 
-    problem->logObjectiveFunctionEvaluation(x, *obj_value, numFunctionCalls, timeElapsed);
+    problem->logObjectiveFunctionEvaluation(x, *obj_value, NULL, numFunctionCalls, timeElapsed);
 
     return !isnan(*obj_value) && status == 0;
 }
@@ -182,7 +182,7 @@ static Bool Eval_Grad_F(Index n, Number *x, Bool new_x, Number *grad_f, UserData
     clock_t timeEnd = clock();
     double timeElapsed = (double) (timeEnd - timeBegin) / CLOCKS_PER_SEC;
 
-    problem->logObjectiveFunctionGradientEvaluation(x, objectiveFunctionValue, grad_f, numFunctionCalls, timeElapsed);
+    problem->logObjectiveFunctionEvaluation(x, objectiveFunctionValue, grad_f, numFunctionCalls, timeElapsed);
 
     return !isnan(objectiveFunctionValue) && status == 0;
 }

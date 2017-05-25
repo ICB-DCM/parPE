@@ -102,12 +102,7 @@ int OptimizationProblem::intermediateFunction(int alg_mod, int iter_count, doubl
     return 0;
 }
 
-void OptimizationProblem::logObjectiveFunctionEvaluation(const double *parameters, double objectiveFunctionValue, int numFunctionCalls, double timeElapsed)
-{
-
-}
-
-void OptimizationProblem::logObjectiveFunctionGradientEvaluation(const double *parameters, double objectiveFunctionValue, const double *objectiveFunctionGradient, int numFunctionCalls, double timeElapsed)
+void OptimizationProblem::logObjectiveFunctionEvaluation(const double *parameters, double objectiveFunctionValue, const double *objectiveFunctionGradient, int numFunctionCalls, double timeElapsed)
 {
 
 }

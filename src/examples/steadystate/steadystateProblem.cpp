@@ -58,12 +58,7 @@ int SteadystateProblem::intermediateFunction(int alg_mod, int iter_count, double
     return 0;
 }
 
-void SteadystateProblem::logObjectiveFunctionEvaluation(const double *parameters, double objectiveFunctionValue, int numFunctionCalls, double timeElapsed)
-{
-
-}
-
-void SteadystateProblem::logObjectiveFunctionGradientEvaluation(const double *parameters, double objectiveFunctionValue, const double *objectiveFunctionGradient, int numFunctionCalls, double timeElapsed)
+void SteadystateProblem::logObjectiveFunctionEvaluation(const double *parameters, double objectiveFunctionValue, const double *objectiveFunctionGradient, int numFunctionCalls, double timeElapsed)
 {
 
 }

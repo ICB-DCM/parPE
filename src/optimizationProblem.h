@@ -28,13 +28,7 @@ public:
                              double alpha_du, double alpha_pr,
                              int ls_trials);
 
-
     virtual void logObjectiveFunctionEvaluation(const double *parameters,
-                                        double objectiveFunctionValue,
-                                        int numFunctionCalls,
-                                        double timeElapsed);
-
-    virtual void logObjectiveFunctionGradientEvaluation(const double *parameters,
                                                 double objectiveFunctionValue,
                                                 const double *objectiveFunctionGradient,
                                                 int numFunctionCalls,
