@@ -69,8 +69,6 @@ void SteadystateProblem::logOptimizerFinished(double optimalCost, const double *
     printArray(optimalParameters, udata->am_np);
     printf("\n");
     printf("Minimal cost: %f\n", optimalCost);
-
-
 }
 
 SteadystateProblem::~SteadystateProblem(){

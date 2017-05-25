@@ -64,3 +64,25 @@ target_link_libraries(${PROJECT_NAME}
     pe
 )
 # /example_steadystate executable
+
+# example_steadystate_parallel executable
+project(example_steadystate_parallel)
+
+set(SRC_LIST_EXE_PARALLEL
+    main_parallel.cpp
+    steadystateProblemParallel.cpp
+)
+
+add_executable(${PROJECT_NAME} ${SRC_LIST_EXE_PARALLEL})
+
+target_link_libraries(${PROJECT_NAME}
+    ${MODEL_LIBRARIES}
+    ${IPOPT_LIBRARIES}
+    ${SUNDIALS_LIBRARIES}
+    ${HDF5_HL_LIBRARIES}
+    ${HDF5_C_LIBRARIES}
+    ${SUITESPARSE_LIBRARIES}
+    -lpthread
+    pe
+)
+# /example_steadystate_parallel executable
