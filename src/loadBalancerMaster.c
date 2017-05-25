@@ -52,6 +52,7 @@ void loadBalancerStartMaster() {
 
         int mpiCommSize;
         MPI_Comm_size(MPI_COMM_WORLD, &mpiCommSize);
+        assert(mpiCommSize > 1); // crashes otherwise
 
         loadBalancer.numWorkers = mpiCommSize - 1;
         loadBalancer.sendRequests = malloc(loadBalancer.numWorkers * sizeof(MPI_Request));
@@ -242,4 +243,18 @@ static void receiveFinished(int workerID, int jobID) {
     pthread_mutex_unlock(data->jobDoneChangedMutex);
 
     loadBalancer.recvRequests[workerID] = MPI_REQUEST_NULL;
+}
+
+void sendTerminationSignalToAllWorkers()
+{
+    int commSize;
+    MPI_Comm_size(MPI_COMM_WORLD, &commSize);
+
+    MPI_Request reqs[commSize - 1];
+
+    for(int i = 1; i < commSize; ++i) {
+        reqs[i - 1] =  MPI_REQUEST_NULL;
+        MPI_Isend(MPI_BOTTOM, 0, MPI_INT, i, 0, MPI_COMM_WORLD, &reqs[i - 1]);
+    }
+    MPI_Waitall(commSize - 1, reqs, MPI_STATUS_IGNORE);
 }

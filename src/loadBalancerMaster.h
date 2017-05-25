@@ -56,4 +56,6 @@ EXTERNC void loadBalancerQueueJob(JobData *data);
 
 EXTERNC void loadBalancerTerminate();
 
+EXTERNC void sendTerminationSignalToAllWorkers();
+
 #endif
