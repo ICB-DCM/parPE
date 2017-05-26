@@ -371,20 +371,49 @@ char *myStringCat(const char *first, const char *second)
     return concatenation;
 }
 
-int read2DDoubleHyperslab(hid_t file_id, const char* path, hsize_t size0, hsize_t size1, hsize_t offset0, hsize_t offset1, double *buffer) {
-    hid_t datasetId   = H5Dopen2(file_id, path, H5P_DEFAULT);
-    hid_t dataspaceId = H5Dget_space(datasetId);
+int hdf5Read2DDoubleHyperslab(hid_t file_id, const char* path, hsize_t size0, hsize_t size1, hsize_t offset0, hsize_t offset1, double *buffer) {
+    hid_t dataset   = H5Dopen2(file_id, path, H5P_DEFAULT);
+    hid_t dataspace = H5Dget_space(dataset);
     hsize_t offset[]  = {offset0, offset1};
     hsize_t count[]   = {size0, size1};
 
-    const int ndims = H5Sget_simple_extent_ndims(dataspaceId);
+    const int ndims = H5Sget_simple_extent_ndims(dataspace);
     assert(ndims == 2);
     hsize_t dims[ndims];
-    H5Sget_simple_extent_dims(dataspaceId, dims, NULL);
+    H5Sget_simple_extent_dims(dataspace, dims, NULL);
     assert(dims[0] >= offset0 && dims[0] >= size0);
     assert(dims[1] >= offset1 && dims[1] >= size1);
 
-    H5Sselect_hyperslab(dataspaceId, H5S_SELECT_SET, offset, NULL, count, NULL);
-    H5Dread(datasetId, H5T_NATIVE_DOUBLE, H5S_ALL, dataspaceId, H5P_DEFAULT, buffer);
+    H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, offset, NULL, count, NULL);
+
+    hid_t memspace = H5Screate_simple(2, count, NULL);
+
+    H5Dread(dataset, H5T_NATIVE_DOUBLE, memspace, dataspace, H5P_DEFAULT, buffer);
+
+    H5Sclose(dataspace);
+    H5Dclose(dataset);
+
+    return 0;
 }
 
+
+void hdf5GetDatasetDimensions2D(hid_t file_id, const char *path, int *d1, int *d2)
+{
+    hdf5LockMutex();
+
+    hid_t dataset   = H5Dopen2(file_id, path, H5P_DEFAULT);
+    hid_t dataspace = H5Dget_space(dataset);
+
+    const int ndims = H5Sget_simple_extent_ndims(dataspace);
+    assert(ndims == 2);
+    hsize_t dims[ndims];
+    H5Sget_simple_extent_dims(dataspace, dims, NULL);
+
+    *d1 = dims[0];
+    *d2 = dims[1];
+
+    H5Sclose(dataspace);
+    H5Dclose(dataset);
+
+    hdf5UnlockMutex();
+}
