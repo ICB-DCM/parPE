@@ -36,7 +36,7 @@ SteadystateProblemParallel::SteadystateProblemParallel(int numConditions) : numC
     fixedParameters = new double[udata->am_nk * numConditions];
     for(int i = 0; i < numConditions; ++i)
         for(int ik = 0; ik < udata->am_nk; ++ik)
-            fixedParameters[ik + i * udata->am_nk] = udata->am_k[ik];// + numConditions / 100.0;
+            fixedParameters[ik + i * udata->am_nk] = udata->am_k[ik] + numConditions / 10000.0;
 }
 
 int SteadystateProblemParallel::evaluateObjectiveFunction(const double *parameters, double *objFunVal, double *objFunGrad)
@@ -134,8 +134,8 @@ int SteadystateProblemParallel::evaluateSerial(const double *parameters, double 
         *objFunVal -= *rdata->am_llhdata;
 
         if(objFunGrad)
-            for(int i = 0; i < udata->am_np; ++i)
-                objFunGrad[i] -= rdata->am_sllhdata[i];
+            for(int ip = 0; ip < udata->am_np; ++ip)
+                objFunGrad[ip] -= rdata->am_sllhdata[ip];
 
         freeReturnData(rdata);
     }
@@ -213,8 +213,10 @@ void SteadystateProblemParallel::setupUserData()
 void SteadystateProblemParallel::setupExpData()
 {
     edata = new ExpData();
+
     edata->am_my = new double[udata->am_nytrue * udata->am_nt];
     fillArray(edata->am_my, udata->am_nytrue * udata->am_nt, 1);
+
     edata->am_ysigma = new double[udata->am_nytrue * udata->am_nt];
     fillArray(edata->am_ysigma, udata->am_nytrue * udata->am_nt, 1);
 }
