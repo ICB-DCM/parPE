@@ -31,3 +31,4 @@ if(${BUILD_TESTS})
 endif(${BUILD_TESTS})
 
 add_subdirectory(examples/steadystate)
+add_subdirectory(examples/loadbalancer)
