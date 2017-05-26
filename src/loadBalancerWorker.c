@@ -40,8 +40,10 @@ bool waitForAndHandleJobs(messageHandlerFp msgHandler, void *userData) {
     if(err != MPI_SUCCESS)
         abort();
 
-    if(mpiStatus.MPI_TAG == MPI_TAG_EXIT_SIGNAL)
+    if(mpiStatus.MPI_TAG == MPI_TAG_EXIT_SIGNAL) {
+        free(buffer);
         return 1;
+    }
 
     msgHandler(&buffer, &msgSize, mpiStatus.MPI_TAG, userData);
 
@@ -49,6 +51,7 @@ bool waitForAndHandleJobs(messageHandlerFp msgHandler, void *userData) {
     printf("[%d] Job done, sending results, %dB.\n", rank, msgSize);
 #endif
     MPI_Send(buffer, msgSize, MPI_BYTE, 0, mpiStatus.MPI_TAG, MPI_COMM_WORLD);
+    free(buffer);
 
     return 0;
 }

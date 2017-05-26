@@ -114,7 +114,8 @@ static void *loadBalancerRun(void *unusedArgument) {
         // getNextFreeWorker
         int freeWorkerIndex = finishedWorkerIdx;
 
-        if(freeWorkerIndex < 0) { // no job finished recently, check free slots
+        if(freeWorkerIndex < 0) {
+            // no job finished recently, check free slots
             for(int i = 0; i < loadBalancer.numWorkers; ++i) {
                 if(loadBalancer.workerIsBusy[i] == false) {
                     freeWorkerIndex = i;
@@ -133,6 +134,7 @@ static void *loadBalancerRun(void *unusedArgument) {
             freeWorkerIndex = handleReply(&status);
         }
 
+        // found free worker, check for jobs to do
         JobData *currentQueueElement = getNextJob();
 
         if(currentQueueElement) {
@@ -209,6 +211,8 @@ void loadBalancerQueueJob(JobData *data) {
 
 void loadBalancerTerminate() {
     pthread_cancel(loadBalancer.queueThread);
+    pthread_join(loadBalancer.queueThread, NULL);
+
     pthread_mutex_destroy(&loadBalancer.mutexQueue);
     sem_destroy(&loadBalancer.semQueue);
 
@@ -231,8 +235,8 @@ void loadBalancerTerminate() {
  */
 static int handleReply(MPI_Status *mpiStatus) {
 
-    int workerID = mpiStatus->MPI_SOURCE - 1;
-    JobData *data = loadBalancer.sentJobsData[workerID];
+    int workerIdx = mpiStatus->MPI_SOURCE - 1;
+    JobData *data = loadBalancer.sentJobsData[workerIdx];
 
     // allocate memory for result
     int size;
@@ -252,15 +256,15 @@ static int handleReply(MPI_Status *mpiStatus) {
     pthread_mutex_unlock(data->jobDoneChangedMutex);
 
     // free send buffer TODO: this should be done earlier using TestAny on sendRequests
-    loadBalancer.sendRequests[workerID] = MPI_REQUEST_NULL;
+    loadBalancer.sendRequests[workerIdx] = MPI_REQUEST_NULL;
     free(data->sendBuffer);
-    loadBalancer.workerIsBusy[workerID] = false;
+    loadBalancer.workerIsBusy[workerIdx] = false;
 
 #ifdef MASTER_QUEUE_H_SHOW_COMMUNICATION
     printf("\x1b[32mReceived result for job %d from %d\x1b[0m\n", mpiStatus->MPI_TAG, mpiStatus->MPI_SOURCE);
 #endif
 
-    return workerID;
+    return workerIdx;
 }
 
 void sendTerminationSignalToAllWorkers()
