@@ -40,6 +40,8 @@ static int handleReply(MPI_Status *mpiStatus);
 
 static void freeEmptiedSendBuffers();
 
+static int handleFinishedJobs();
+
 
 /**
  * @brief initLoadBalancerMaster Intialize load balancer.
@@ -94,30 +96,12 @@ static void *loadBalancerRun(void *unusedArgument) {
     while(1) {
 
         // check if any job finished
-        MPI_Status status;
-        int finishedWorkerIdx = -1;
-
-        // handle all finished jobs, if any
-        while(1) {
-            // add cancellation point to avoid invalid reads in loadBalancer.recvRequests
-            pthread_testcancel();
-
-            int flag;
-            MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &flag, &status);
-
-            if(flag) {
-                // some job is finished
-                finishedWorkerIdx = handleReply(&status);
-            } else {
-                // there was nothing to be finished
-                break;
-            }
-        }
+        int lastFinishedWorkerIdx = handleFinishedJobs();
 
         freeEmptiedSendBuffers();
 
         // getNextFreeWorker
-        int freeWorkerIndex = finishedWorkerIdx;
+        int freeWorkerIndex = lastFinishedWorkerIdx;
 
         if(freeWorkerIndex < 0) {
             // no job finished recently, check free slots
@@ -167,6 +151,30 @@ static void freeEmptiedSendBuffers() {
         }
     }
 }
+
+static int handleFinishedJobs() {
+    MPI_Status status;
+    int finishedWorkerIdx = -1;
+
+    // handle all finished jobs, if any
+    while(1) {
+        // add cancellation point to avoid invalid reads in loadBalancer.recvRequests
+        pthread_testcancel();
+
+        int messageWaiting;
+        MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &messageWaiting, &status);
+
+        if(messageWaiting) {
+            // some job is finished
+            finishedWorkerIdx = handleReply(&status);
+        } else {
+            // there was nothing to be finished
+            break;
+        }
+    }
+    return finishedWorkerIdx;
+}
+
 /**
  * @brief getNextJob Pop oldest element from the queue and return.
  * @return The first queue element.
