@@ -42,6 +42,7 @@ static void freeEmptiedSendBuffers();
 
 static int handleFinishedJobs();
 
+static int getNextFreeWorkerIndex();
 
 /**
  * @brief initLoadBalancerMaster Intialize load balancer.
@@ -105,12 +106,7 @@ static void *loadBalancerRun(void *unusedArgument) {
 
         if(freeWorkerIndex < 0) {
             // no job finished recently, check free slots
-            for(int i = 0; i < loadBalancer.numWorkers; ++i) {
-                if(loadBalancer.workerIsBusy[i] == false) {
-                    freeWorkerIndex = i;
-                    break;
-                }
-            }
+            freeWorkerIndex = getNextFreeWorkerIndex();
         }
 
         if(freeWorkerIndex < 0) {
@@ -173,6 +169,15 @@ static int handleFinishedJobs() {
         }
     }
     return finishedWorkerIdx;
+}
+
+static int getNextFreeWorkerIndex() {
+    for(int i = 0; i < loadBalancer.numWorkers; ++i) {
+        if(loadBalancer.workerIsBusy[i] == false) {
+            return i;
+        }
+    }
+    return -1;
 }
 
 /**
