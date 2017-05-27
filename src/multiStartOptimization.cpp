@@ -84,7 +84,7 @@ int runParallelMultiStartOptimization(optimizationProblemGeneratorForMultiStartF
 
                     localProblems[ms] = getLocalProblem(problemGenerator, lastStartIdx, userData);
                     logmessage(LOGLVL_DEBUG, "Spawning thread for local optimization #%d (%d)", lastStartIdx, ms);
-                    pthread_create(&localOptimizationThreads[ms], &threadAttr, getLocalOptimumThreadWrapper, (void *)&localProblems[ms]);
+                    pthread_create(&localOptimizationThreads[ms], &threadAttr, getLocalOptimumThreadWrapper, (void *)localProblems[ms]);
                 }
                 delete threadStatus;
             }

@@ -7,6 +7,7 @@
 #include <string.h>
 #include <assert.h>
 #include <limits.h>
+#include <stdio.h>
 
 typedef struct LoadBalancer_tag {
     int numWorkers;
@@ -275,7 +276,7 @@ static int handleReply(MPI_Status *mpiStatus) {
     data->recvBuffer = malloc(data->lenRecvBuffer);
 
 #ifdef MASTER_QUEUE_H_SHOW_COMMUNICATION
-    printf("\x1b[32mReceiving result for job %d from %d (%dB)\x1b[0m\n", mpiStatus->MPI_TAG, mpiStatus->MPI_SOURCE, size);
+    printf("\x1b[32mReceiving result for job %d from %d (%dB)\x1b[0m\n", mpiStatus->MPI_TAG, mpiStatus->MPI_SOURCE, data->lenRecvBuffer);
 #endif
 
     // receive
