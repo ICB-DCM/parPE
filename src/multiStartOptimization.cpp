@@ -15,23 +15,29 @@ MultiStartOptimization *multiStartOptimizationNew()
     return ms;
 }
 
+OptimizationProblem getLocalProblem(MultiStartOptimization *multiStartOptimization, int ms) {
+    OptimizationProblem problem = *multiStartOptimization->optimizationProblem;
+
+    if(multiStartOptimization->getInitialPoint) {
+        problem.initialParameters = new double [multiStartOptimization->optimizationProblem->numOptimizationParameters];
+        multiStartOptimization->getInitialPoint(multiStartOptimization, ms, problem.initialParameters);
+    } else {
+        problem.initialParameters = 0;
+    }
+
+    if(multiStartOptimization->getUserData)
+        problem.userData = multiStartOptimization->getUserData(multiStartOptimization, ms);
+
+    return problem;
+}
+
 OptimizationProblem *createLocalOptimizationProblems(MultiStartOptimization *multiStartOptimization) {
     int numLocalOptimizations = multiStartOptimization->numberOfStarts;
 
     OptimizationProblem *localProblems = new OptimizationProblem[numLocalOptimizations];
 
     for(int ms = 0; ms < numLocalOptimizations; ++ms) {
-        localProblems[ms] = *multiStartOptimization->optimizationProblem;
-
-        if(multiStartOptimization->getInitialPoint) {
-            localProblems[ms].initialParameters = new double [multiStartOptimization->optimizationProblem->numOptimizationParameters];
-            multiStartOptimization->getInitialPoint(multiStartOptimization, ms, localProblems[ms].initialParameters);
-        } else {
-            localProblems[ms].initialParameters = 0;
-        }
-
-        if(multiStartOptimization->getUserData)
-            localProblems[ms].userData = multiStartOptimization->getUserData(multiStartOptimization, ms);
+        localProblems[ms] = getLocalProblem(multiStartOptimization, ms);
     }
 
     return localProblems;
@@ -81,9 +87,9 @@ int runParallelMultiStartOptimization(MultiStartOptimization *multiStartOptimiza
                 } else {
                     logmessage(LOGLVL_WARNING, "Thread ms #%d finished unsuccessfully... trying new starting point", ms);
                     ++lastStartIdx;
+
                     if(multiStartOptimization->getUserData)
-                        localProblems[ms].userData = multiStartOptimization->getUserData(multiStartOptimization, lastStartIdx);
-                    multiStartOptimization->getInitialPoint(multiStartOptimization, ms, localProblems[ms].initialParameters);
+                        localProblems[ms] = getLocalProblem(multiStartOptimization, lastStartIdx);
                     logmessage(LOGLVL_DEBUG, "Spawning thread for local optimization #%d (%d)", lastStartIdx, ms);
                     pthread_create(&localOptimizationThreads[ms], &threadAttr, getLocalOptimumThreadWrapper, (void *)&localProblems[ms]);
                 }
