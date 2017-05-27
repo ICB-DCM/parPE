@@ -3,45 +3,47 @@
 
 #include "optimizationProblem.h"
 
-typedef struct MultiStartOptimization_tag MultiStartOptimization;
+typedef OptimizationProblem* (*optimizationProblemGeneratorForMultiStartFp)(int currentStartIdx);
 
-typedef int (*multiStartOptimizationGetInitialPointFp)(const MultiStartOptimization *multiStartOptimization, int currentStartIdx, double *buffer);
-typedef void *(*multiStartOptimizationGetUserDataFp)(const MultiStartOptimization *multiStartOptimization, int currentStartIdx);
+//typedef struct MultiStartOptimization_tag MultiStartOptimization;
 
-// TODO: add userData for multistart IDs, ...
-typedef struct MultiStartOptimization_tag {
+//typedef int (*multiStartOptimizationGetInitialPointFp)(const MultiStartOptimization *multiStartOptimization, int currentStartIdx, double *buffer);
+//typedef void *(*multiStartOptimizationGetUserDataFp)(const MultiStartOptimization *multiStartOptimization, int currentStartIdx);
 
-    const OptimizationProblem *optimizationProblem;
+//// TODO: add userData for multistart IDs, ...
+//typedef struct MultiStartOptimization_tag {
 
-    /** Number of starts to perform */
-    int numberOfStarts;
+//    const OptimizationProblem *optimizationProblem;
 
-    /** restart local optimization, until numberOfStarts successful starts are reached */
-    bool restartOnFailure;
+//    /** Number of starts to perform */
+//    int numberOfStarts;
 
-    /** Function for initial points. If 0, random starting points are drawn from [optimizationProblem.parametersMin, optimizationProblem.parametersMax] */
-    multiStartOptimizationGetInitialPointFp getInitialPoint;
+//    /** restart local optimization, until numberOfStarts successful starts are reached */
+//    bool restartOnFailure;
 
-    /** Function to get userData for each start */
-    multiStartOptimizationGetUserDataFp getUserData;
-} MultiStartOptimization;
+//    /** Function for initial points. If 0, random starting points are drawn from [optimizationProblem.parametersMin, optimizationProblem.parametersMax] */
+//    multiStartOptimizationGetInitialPointFp getInitialPoint;
 
-
-#ifdef __cplusplus
-#define EXTERNC extern "C"
-#else
-#define EXTERNC
-#endif
+//    /** Function to get userData for each start */
+//    multiStartOptimizationGetUserDataFp getUserData;
+//} MultiStartOptimization;
 
 
-EXTERNC MultiStartOptimization *multiStartOptimizationNew();
+//#ifdef __cplusplus
+//#define EXTERNC extern "C"
+//#else
+//#define EXTERNC
+//#endif
 
-/**
- * @brief runParallelMultiStartOptimization
- * @param multiStartOptimization
- * @return always returns 0
- */
 
-EXTERNC int runParallelMultiStartOptimization(MultiStartOptimization *multiStartOptimization);
+//EXTERNC MultiStartOptimization *multiStartOptimizationNew();
+
+///**
+// * @brief runParallelMultiStartOptimization
+// * @param multiStartOptimization
+// * @return always returns 0
+// */
+
+int runParallelMultiStartOptimization(optimizationProblemGeneratorForMultiStartFp problemGenerator, int numberOfStarts, bool restartOnFailure);
 
 #endif

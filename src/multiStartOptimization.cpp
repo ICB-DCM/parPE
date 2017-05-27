@@ -7,51 +7,38 @@
 
 #include "logging.h"
 
-MultiStartOptimization *multiStartOptimizationNew()
-{
-    MultiStartOptimization *ms = new MultiStartOptimization;
-    memset(ms, 0, sizeof(*ms));
 
-    return ms;
-}
+OptimizationProblem *getLocalProblem(optimizationProblemGeneratorForMultiStartFp problemGenerator, int multiStartIndex) {
+    OptimizationProblem *problem = problemGenerator(multiStartIndex);
 
-OptimizationProblem getLocalProblem(MultiStartOptimization *multiStartOptimization, int ms) {
-    OptimizationProblem problem = *multiStartOptimization->optimizationProblem;
-
-    if(multiStartOptimization->getInitialPoint) {
-        problem.initialParameters = new double [multiStartOptimization->optimizationProblem->numOptimizationParameters];
-        multiStartOptimization->getInitialPoint(multiStartOptimization, ms, problem.initialParameters);
-    } else {
-        problem.initialParameters = 0;
+    if(!problem->initialParameters) {
+        problem->initialParameters = new double [problem->numOptimizationParameters];
+        getRandomStartingpoint(problem->parametersMin,
+                               problem->parametersMax,
+                               problem->numOptimizationParameters,
+                               problem->initialParameters);
     }
-
-    if(multiStartOptimization->getUserData)
-        problem.userData = multiStartOptimization->getUserData(multiStartOptimization, ms);
 
     return problem;
 }
 
-OptimizationProblem *createLocalOptimizationProblems(MultiStartOptimization *multiStartOptimization) {
-    int numLocalOptimizations = multiStartOptimization->numberOfStarts;
-
-    OptimizationProblem *localProblems = new OptimizationProblem[numLocalOptimizations];
+OptimizationProblem **createLocalOptimizationProblems(optimizationProblemGeneratorForMultiStartFp problemGenerator, int numLocalOptimizations) {
+    OptimizationProblem **localProblems = new OptimizationProblem*[numLocalOptimizations];
 
     for(int ms = 0; ms < numLocalOptimizations; ++ms) {
-        localProblems[ms] = getLocalProblem(multiStartOptimization, ms);
+        localProblems[ms] = getLocalProblem(problemGenerator, ms);
     }
 
     return localProblems;
 }
 
-int runParallelMultiStartOptimization(MultiStartOptimization *multiStartOptimization)
+int runParallelMultiStartOptimization(optimizationProblemGeneratorForMultiStartFp problemGenerator, int numberOfStarts, bool restartOnFailure)
 {
-    int numLocalOptimizations = multiStartOptimization->numberOfStarts;
+    logmessage(LOGLVL_DEBUG, "Starting runParallelMultiStartOptimization with %d starts", numberOfStarts);
 
-    logmessage(LOGLVL_DEBUG, "Starting runParallelMultiStartOptimization with %d starts", numLocalOptimizations);
+    pthread_t *localOptimizationThreads = (pthread_t *) alloca(numberOfStarts * sizeof(pthread_t));
 
-    pthread_t *localOptimizationThreads = (pthread_t *) alloca(numLocalOptimizations * sizeof(pthread_t));
-
-    OptimizationProblem *localProblems = createLocalOptimizationProblems(multiStartOptimization); // need to keep, since passed by ref to new thread
+    OptimizationProblem **localProblems = createLocalOptimizationProblems(problemGenerator, numberOfStarts);
 
     pthread_attr_t threadAttr;
     pthread_attr_init(&threadAttr);
@@ -60,48 +47,52 @@ int runParallelMultiStartOptimization(MultiStartOptimization *multiStartOptimiza
     int lastStartIdx = -1;
 
     // launch threads for required number of starts
-    for(int ms = 0; ms < numLocalOptimizations; ++ms) {
+    for(int ms = 0; ms < numberOfStarts; ++ms) {
         ++lastStartIdx;
 
         logmessage(LOGLVL_DEBUG, "Spawning thread for local optimization #%d (%d)", lastStartIdx, ms);
 
-        pthread_create(&localOptimizationThreads[ms], &threadAttr, getLocalOptimumThreadWrapper, (void *)&localProblems[ms]);
+        pthread_create(&localOptimizationThreads[ms], &threadAttr, getLocalOptimumThreadWrapper, (void *)localProblems[ms]);
     }
-    pthread_attr_destroy(&threadAttr);
 
     int numCompleted = 0;
 
-    while(numCompleted < numLocalOptimizations) {
-        for(int ms = 0; ms < numLocalOptimizations; ++ms) {
+    while(numCompleted < numberOfStarts) {
+        for(int ms = 0; ms < numberOfStarts; ++ms) {
             if(!localOptimizationThreads[ms])
                 continue;
 
             void *threadStatus = 0;
             int joinStatus = pthread_tryjoin_np(localOptimizationThreads[ms], &threadStatus);
+            bool finishedSuccessfully = *(int*)threadStatus == 0;
 
             if(joinStatus == 0) { // joined successful
-                if(*(int*)threadStatus == 0) {
-                    logmessage(LOGLVL_DEBUG, "Thread ms #%d finished successfully", ms);
+                if(finishedSuccessfully || !restartOnFailure) {
+                    if(finishedSuccessfully)
+                        logmessage(LOGLVL_DEBUG, "Thread ms #%d finished successfully", ms);
+                    else
+                        logmessage(LOGLVL_DEBUG, "Thread ms #%d finished unsuccessfully. Not trying new starting point.", ms);
                     localOptimizationThreads[ms] = 0;
+                    delete localProblems[ms];
                     ++numCompleted;
                 } else {
+                    delete localProblems[ms];
                     logmessage(LOGLVL_WARNING, "Thread ms #%d finished unsuccessfully... trying new starting point", ms);
                     ++lastStartIdx;
 
-                    if(multiStartOptimization->getUserData)
-                        localProblems[ms] = getLocalProblem(multiStartOptimization, lastStartIdx);
+                    localProblems[ms] = getLocalProblem(problemGenerator, lastStartIdx);
                     logmessage(LOGLVL_DEBUG, "Spawning thread for local optimization #%d (%d)", lastStartIdx, ms);
                     pthread_create(&localOptimizationThreads[ms], &threadAttr, getLocalOptimumThreadWrapper, (void *)&localProblems[ms]);
                 }
-                free(threadStatus);
+                delete (int*)threadStatus;
             }
         }
 
-        sleep(1);
+        sleep(1); // TODO: replace by condition via ThreadWrapper
     }
+    delete[] localProblems;
+    pthread_attr_destroy(&threadAttr);
 
     return 0;
 
 }
-
-

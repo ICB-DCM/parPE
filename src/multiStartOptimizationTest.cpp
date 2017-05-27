@@ -5,6 +5,7 @@
 #include "testingMisc.h"
 #include "tests/quadraticTestProblem.h"
 #include "multiStartOptimization.h"
+#include <stdio.h>
 
 TEST_GROUP(multiStartOptimization)
 {
@@ -19,15 +20,15 @@ TEST_GROUP(multiStartOptimization)
 
 TEST(multiStartOptimization, testMultiStartOptimization) {
     mock().disable();
-
     int numStarts = 1;
-    runParallelMultiStartOptimization(quadraticOptimizationProblemGeneratorForMultiStart, numStarts, true);
 
-//    mock().expectNCalls(12, "logFinish").withIntParameter("exitStatus", 0 );
-//    mock().ignoreOtherCalls();
-//    mock().checkExpectations();
-//    mock().clear();
-    mock().enable();
+    mock().expectNCalls(numStarts, "logFinish").withIntParameter("exitStatus", 0 );
+    mock().ignoreOtherCalls();
+
+    runParallelMultiStartOptimization(quadraticOptimizationProblemGeneratorForMultiStart, numStarts, true);
+    fflush(stdout);
+    mock().checkExpectations();
+    mock().clear();
 }
 
 
