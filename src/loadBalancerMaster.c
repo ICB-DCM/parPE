@@ -250,11 +250,6 @@ static int handleReply(MPI_Status *mpiStatus) {
     // receive
     MPI_Recv(data->recvBuffer, size, MPI_BYTE, mpiStatus->MPI_SOURCE, mpiStatus->MPI_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-    ++(*data->jobDone);
-    pthread_mutex_lock(data->jobDoneChangedMutex);
-    pthread_cond_signal(data->jobDoneChangedCondition);
-    pthread_mutex_unlock(data->jobDoneChangedMutex);
-
     // free send buffer TODO: this should be done earlier using TestAny on sendRequests
     loadBalancer.sendRequests[workerIdx] = MPI_REQUEST_NULL;
     free(data->sendBuffer);
@@ -263,6 +258,12 @@ static int handleReply(MPI_Status *mpiStatus) {
 #ifdef MASTER_QUEUE_H_SHOW_COMMUNICATION
     printf("\x1b[32mReceived result for job %d from %d\x1b[0m\n", mpiStatus->MPI_TAG, mpiStatus->MPI_SOURCE);
 #endif
+
+    // signal job done
+    ++(*data->jobDone);
+    pthread_mutex_lock(data->jobDoneChangedMutex);
+    pthread_cond_signal(data->jobDoneChangedCondition);
+    pthread_mutex_unlock(data->jobDoneChangedMutex);
 
     return workerIdx;
 }
