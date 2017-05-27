@@ -34,6 +34,7 @@ set(SRC_LIST_CPP
     ../testingMisc.c
     ../localOptimizationIpoptTest.cpp
     ../localOptimizationCeresTest.cpp
+    ../multiStartOptimizationTest.cpp
     quadraticTestProblem.cpp
 )
 

@@ -87,7 +87,7 @@ int runParallelMultiStartOptimization(optimizationProblemGeneratorForMultiStartF
             }
         }
 
-        sleep(1); // TODO: replace by condition via ThreadWrapper
+        sleep(0.1); // TODO: replace by condition via ThreadWrapper
     }
     delete[] localProblems;
     pthread_attr_destroy(&threadAttr);
