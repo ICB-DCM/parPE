@@ -21,7 +21,7 @@ int getLocalOptimum(OptimizationProblem *problem)
     case OPTIMIZER_IPOPT:
         return getLocalOptimumIpopt(problem);
     default:
-        abort();
+        return getLocalOptimumIpopt(problem);
     }
 }
 

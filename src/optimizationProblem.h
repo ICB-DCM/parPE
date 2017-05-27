@@ -1,6 +1,8 @@
 #ifndef OPTIMIZATION_PROBLEM_H
 #define OPTIMIZATION_PROBLEM_H
 
+#include <cstdlib>
+
 typedef enum optimizer_tag {OPTIMIZER_IPOPT, OPTIMIZER_CERES} optimizerEnum;
 
 /** Type to describe an optimization (minimization) problem */
@@ -42,31 +44,28 @@ public:
     virtual ~OptimizationProblem(){}
 
     /** number of optimization parameters */
-    int numOptimizationParameters;
+    int numOptimizationParameters = 0;
 
     /** starting point for optimization. If 0, random starting points are drawn from [parametersMin, parametersMax] */
-    double *initialParameters;
+    double *initialParameters = NULL;
 
     /** lowest allowed parameter values */
-    double *parametersMin;
+    double *parametersMin = NULL;
 
     /** highest allowed parameter values */
-    double *parametersMax;
-
-    /** any user-provided data that is passed to all callback functions */
-    void *userData;
+    double *parametersMax = NULL;
 
     /** Optimizer to use */
-    optimizerEnum optimizer;
+    optimizerEnum optimizer = OPTIMIZER_IPOPT;
 
     /** Optimizer log file */
-    char *logFile;
+    char *logFile = NULL;
 
     /** Print progress to stdout */
-    bool printToStdout;
+    bool printToStdout = true;
 
     /** Maximum number of optimizer iterations*/
-    int maxOptimizerIterations;
+    int maxOptimizerIterations = 1000;
 };
 
 int getLocalOptimum(OptimizationProblem *problem);
