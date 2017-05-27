@@ -59,7 +59,7 @@ QuadraticTestProblem::~QuadraticTestProblem()
     delete[] parametersMax;
 }
 
-OptimizationProblem *quadraticOptimizationProblemGeneratorForMultiStart(int currentStartIdx)
+OptimizationProblem *quadraticOptimizationProblemGeneratorForMultiStart(int currentStartIdx, void *userData)
 {
     OptimizationProblem *problem = new QuadraticTestProblem();
     // delete starting point, so random parameters will be chosen

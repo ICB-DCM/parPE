@@ -8,8 +8,9 @@
 #include "logging.h"
 
 
-OptimizationProblem *getLocalProblem(optimizationProblemGeneratorForMultiStartFp problemGenerator, int multiStartIndex) {
-    OptimizationProblem *problem = problemGenerator(multiStartIndex);
+OptimizationProblem *getLocalProblem(optimizationProblemGeneratorForMultiStartFp problemGenerator,
+                                     int multiStartIndex, void *userData) {
+    OptimizationProblem *problem = problemGenerator(multiStartIndex, userData);
 
     if(!problem->initialParameters) {
         problem->initialParameters = new double [problem->numOptimizationParameters];
@@ -22,23 +23,25 @@ OptimizationProblem *getLocalProblem(optimizationProblemGeneratorForMultiStartFp
     return problem;
 }
 
-OptimizationProblem **createLocalOptimizationProblems(optimizationProblemGeneratorForMultiStartFp problemGenerator, int numLocalOptimizations) {
+OptimizationProblem **createLocalOptimizationProblems(optimizationProblemGeneratorForMultiStartFp problemGenerator,
+                                                      int numLocalOptimizations, void *userData) {
     OptimizationProblem **localProblems = new OptimizationProblem*[numLocalOptimizations];
 
     for(int ms = 0; ms < numLocalOptimizations; ++ms) {
-        localProblems[ms] = getLocalProblem(problemGenerator, ms);
+        localProblems[ms] = getLocalProblem(problemGenerator, ms, userData);
     }
 
     return localProblems;
 }
 
-int runParallelMultiStartOptimization(optimizationProblemGeneratorForMultiStartFp problemGenerator, int numberOfStarts, bool restartOnFailure)
+int runParallelMultiStartOptimization(optimizationProblemGeneratorForMultiStartFp problemGenerator,
+                                      int numberOfStarts, bool restartOnFailure, void *userData)
 {
     logmessage(LOGLVL_DEBUG, "Starting runParallelMultiStartOptimization with %d starts", numberOfStarts);
 
     pthread_t *localOptimizationThreads = (pthread_t *) alloca(numberOfStarts * sizeof(pthread_t));
 
-    OptimizationProblem **localProblems = createLocalOptimizationProblems(problemGenerator, numberOfStarts);
+    OptimizationProblem **localProblems = createLocalOptimizationProblems(problemGenerator, numberOfStarts, userData);
 
     pthread_attr_t threadAttr;
     pthread_attr_init(&threadAttr);
@@ -79,7 +82,7 @@ int runParallelMultiStartOptimization(optimizationProblemGeneratorForMultiStartF
                     logmessage(LOGLVL_WARNING, "Thread ms #%d finished unsuccessfully... trying new starting point", ms);
                     ++lastStartIdx;
 
-                    localProblems[ms] = getLocalProblem(problemGenerator, lastStartIdx);
+                    localProblems[ms] = getLocalProblem(problemGenerator, lastStartIdx, userData);
                     logmessage(LOGLVL_DEBUG, "Spawning thread for local optimization #%d (%d)", lastStartIdx, ms);
                     pthread_create(&localOptimizationThreads[ms], &threadAttr, getLocalOptimumThreadWrapper, (void *)&localProblems[ms]);
                 }

@@ -20,12 +20,12 @@ TEST_GROUP(multiStartOptimization)
 
 TEST(multiStartOptimization, testMultiStartOptimization) {
     mock().disable();
-    int numStarts = 100;
+    int numStarts = 10;
 
     mock().expectNCalls(numStarts, "logFinish").withIntParameter("exitStatus", 0 );
     mock().ignoreOtherCalls();
 
-    runParallelMultiStartOptimization(quadraticOptimizationProblemGeneratorForMultiStart, numStarts, true);
+    runParallelMultiStartOptimization(quadraticOptimizationProblemGeneratorForMultiStart, numStarts, true, NULL);
     fflush(stdout);
     mock().checkExpectations();
     mock().clear();
