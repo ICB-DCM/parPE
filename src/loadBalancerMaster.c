@@ -271,16 +271,15 @@ static int handleReply(MPI_Status *mpiStatus) {
     JobData *data = loadBalancer.sentJobsData[workerIdx];
 
     // allocate memory for result
-    int size;
-    MPI_Get_count(mpiStatus, MPI_BYTE, &size);
-    data->recvBuffer = malloc(size);
+    MPI_Get_count(mpiStatus, MPI_BYTE, &data->lenRecvBuffer);
+    data->recvBuffer = malloc(data->lenRecvBuffer);
 
 #ifdef MASTER_QUEUE_H_SHOW_COMMUNICATION
     printf("\x1b[32mReceiving result for job %d from %d (%dB)\x1b[0m\n", mpiStatus->MPI_TAG, mpiStatus->MPI_SOURCE, size);
 #endif
 
     // receive
-    MPI_Recv(data->recvBuffer, size, MPI_BYTE, mpiStatus->MPI_SOURCE, mpiStatus->MPI_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    MPI_Recv(data->recvBuffer, data->lenRecvBuffer, MPI_BYTE, mpiStatus->MPI_SOURCE, mpiStatus->MPI_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
     loadBalancer.workerIsBusy[workerIdx] = false;
 
