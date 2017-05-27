@@ -88,8 +88,8 @@ void optimizationProblemGradientCheck(OptimizationProblem *problem, const int pa
         printf("\t\tfb: %f\tfc: %f\tff: %f\t\n", fb, fc, ff);
     }
 
-    free(gradient);
-    free(thetaTmp);
+    delete[] gradient;
+    delete[] thetaTmp;
 }
 
 int OptimizationProblem::evaluateObjectiveFunction(const double *parameters, double *objFunVal, double *objFunGrad)
