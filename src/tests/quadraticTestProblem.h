@@ -28,4 +28,5 @@ public:
     double optimalParameter;
 };
 
+OptimizationProblem *quadraticOptimizationProblemGeneratorForMultiStart(int currentStartIdx);
 #endif
