@@ -67,6 +67,7 @@ OptimizationProblem *quadraticOptimizationProblemGeneratorForMultiStart(int curr
     problem->initialParameters = NULL;
 
     problem->optimizer = OPTIMIZER_CERES;
+    problem->optimizer = OPTIMIZER_IPOPT;
 
 
     return problem;

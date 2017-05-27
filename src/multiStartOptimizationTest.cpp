@@ -20,7 +20,7 @@ TEST_GROUP(multiStartOptimization)
 
 TEST(multiStartOptimization, testMultiStartOptimization) {
     mock().disable();
-    int numStarts = 200;
+    int numStarts = 100;
 
     mock().expectNCalls(numStarts, "logFinish").withIntParameter("exitStatus", 0 );
     mock().ignoreOtherCalls();

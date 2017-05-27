@@ -12,7 +12,7 @@
 #include <stdlib.h>
 
 #include <IpStdCInterface.h>
-
+#include <pthread.h>
 #include "logging.h"
 
 #define IPTOPT_LOG_FILE "/home/dweindl/src/CanPathProSSH/dw/ipopt.log"
@@ -20,6 +20,12 @@
 #ifdef INSTALL_SIGNAL_HANDLER
 extern volatile sig_atomic_t caughtTerminationSignal;
 #endif
+
+/**
+ * @brief ipoptMutex Ipopt seems not to be thread safe. Lock this mutex every time
+ * when control is passed to ipopt functions.
+ */
+static pthread_mutex_t ipoptMutex = PTHREAD_MUTEX_INITIALIZER;
 
 static IpoptProblem setupIpoptProblem(OptimizationProblem *problem);
 
@@ -64,6 +70,8 @@ int getLocalOptimumIpopt(OptimizationProblem *problem) {
 
     Number loglikelihood = INFINITY;
 
+    pthread_mutex_lock(&ipoptMutex);
+
     IpoptProblem ipoptProblem = setupIpoptProblem(problem);
 
     clock_t timeBegin = clock();
@@ -82,6 +90,8 @@ int getLocalOptimumIpopt(OptimizationProblem *problem) {
 
     FreeIpoptProblem(ipoptProblem);
     free(parameters);
+
+    pthread_mutex_unlock(&ipoptMutex);
 
     return status < Maximum_Iterations_Exceeded;
 }
@@ -146,6 +156,8 @@ static Bool Eval_F(Index n, Number *x, Bool new_x, Number *obj_value, UserDataPt
     ++numFunctionCalls;
     // logmessage(LOGLVL_DEBUG, "Eval_F (%d) #%d.", new_x, numFunctionCalls);
 
+    pthread_mutex_unlock(&ipoptMutex);
+
     int status = 0;
 
     clock_t timeBegin = clock();
@@ -157,6 +169,8 @@ static Bool Eval_F(Index n, Number *x, Bool new_x, Number *obj_value, UserDataPt
     double timeElapsed = (double) (timeEnd - timeBegin) / CLOCKS_PER_SEC;
 
     problem->logObjectiveFunctionEvaluation(x, *obj_value, NULL, numFunctionCalls, timeElapsed);
+
+    pthread_mutex_lock(&ipoptMutex);
 
     return !isnan(*obj_value) && status == 0;
 }
@@ -171,6 +185,8 @@ static Bool Eval_Grad_F(Index n, Number *x, Bool new_x, Number *grad_f, UserData
     ++numFunctionCalls;
     // logmessage(LOGLVL_DEBUG, "Eval_Grad_F (%d) #%d", new_x, numFunctionCalls);
 
+    pthread_mutex_unlock(&ipoptMutex);
+
     int status = 0;
 
     clock_t timeBegin = clock();
@@ -183,6 +199,8 @@ static Bool Eval_Grad_F(Index n, Number *x, Bool new_x, Number *grad_f, UserData
     double timeElapsed = (double) (timeEnd - timeBegin) / CLOCKS_PER_SEC;
 
     problem->logObjectiveFunctionEvaluation(x, objectiveFunctionValue, grad_f, numFunctionCalls, timeElapsed);
+
+    pthread_mutex_lock(&ipoptMutex);
 
     return !isnan(objectiveFunctionValue) && status == 0;
 }
