@@ -8,7 +8,7 @@
 
 /** data to be sent to workers */
 typedef struct JobData_tag {
-    /** auto-assigned */
+    /** auto-assigned (unique number up to MAX_INT) */
     int jobId;
 
     /** size of data to send */
@@ -16,7 +16,9 @@ typedef struct JobData_tag {
     /** data to send */
     char *sendBuffer;
 
-    /** data to receive */
+    /** size of data to receive (set when job finished) */
+    int lenRecvBuffer;
+    /** data to receive (set when job finished) */
     char *recvBuffer;
 
     /** incremented by one, once the results have been received */
@@ -55,5 +57,8 @@ EXTERNC void loadBalancerQueueJob(JobData *data);
 EXTERNC void loadBalancerTerminate();
 
 EXTERNC void sendTerminationSignalToAllWorkers();
+
+EXTERNC JobData initJobData(int lenSendBuffer, char *sendBuffer, int *jobDone,
+                            pthread_cond_t *jobDoneChangedCondition, pthread_mutex_t *jobDoneChangedMutex);
 
 #endif
