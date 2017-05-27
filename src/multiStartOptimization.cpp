@@ -62,13 +62,12 @@ int runParallelMultiStartOptimization(optimizationProblemGeneratorForMultiStartF
             if(!localOptimizationThreads[ms])
                 continue;
 
-            void *threadStatus = 0;
-            int joinStatus = pthread_tryjoin_np(localOptimizationThreads[ms], &threadStatus);
-            bool finishedSuccessfully = *(int*)threadStatus == 0;
+            int *threadStatus = 0;
+            int joinStatus = pthread_tryjoin_np(localOptimizationThreads[ms], (void**) &threadStatus);
 
             if(joinStatus == 0) { // joined successful
-                if(finishedSuccessfully || !restartOnFailure) {
-                    if(finishedSuccessfully)
+                if(*threadStatus == 0 || !restartOnFailure) {
+                    if(*threadStatus == 0)
                         logmessage(LOGLVL_DEBUG, "Thread ms #%d finished successfully", ms);
                     else
                         logmessage(LOGLVL_DEBUG, "Thread ms #%d finished unsuccessfully. Not trying new starting point.", ms);
@@ -84,7 +83,7 @@ int runParallelMultiStartOptimization(optimizationProblemGeneratorForMultiStartF
                     logmessage(LOGLVL_DEBUG, "Spawning thread for local optimization #%d (%d)", lastStartIdx, ms);
                     pthread_create(&localOptimizationThreads[ms], &threadAttr, getLocalOptimumThreadWrapper, (void *)&localProblems[ms]);
                 }
-                delete (int*)threadStatus;
+                delete threadStatus;
             }
         }
 
