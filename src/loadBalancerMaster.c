@@ -38,6 +38,9 @@ static void masterQueueAppendElement(JobData *queueElement);
 
 static int handleReply(MPI_Status *mpiStatus);
 
+static void freeEmptiedSendBuffers();
+
+
 /**
  * @brief initLoadBalancerMaster Intialize load balancer.
  */
@@ -111,6 +114,8 @@ static void *loadBalancerRun(void *unusedArgument) {
             }
         }
 
+        freeEmptiedSendBuffers();
+
         // getNextFreeWorker
         int freeWorkerIndex = finishedWorkerIdx;
 
@@ -148,6 +153,20 @@ static void *loadBalancerRun(void *unusedArgument) {
     return 0;
 }
 
+static void freeEmptiedSendBuffers() {
+    // free any emptied send buffers
+    while(1) {
+        int emptiedBufferIdx = -1;
+        int anySendCompleted = 0;
+        MPI_Testany(loadBalancer.numWorkers, loadBalancer.sendRequests, &emptiedBufferIdx, &anySendCompleted, MPI_STATUS_IGNORE);
+
+        if(anySendCompleted && emptiedBufferIdx != MPI_UNDEFINED) {
+            free(loadBalancer.sentJobsData[emptiedBufferIdx]->sendBuffer);
+        } else {
+            break;
+        }
+    }
+}
 /**
  * @brief getNextJob Pop oldest element from the queue and return.
  * @return The first queue element.
@@ -250,9 +269,6 @@ static int handleReply(MPI_Status *mpiStatus) {
     // receive
     MPI_Recv(data->recvBuffer, size, MPI_BYTE, mpiStatus->MPI_SOURCE, mpiStatus->MPI_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-    // free send buffer TODO: this should be done earlier using TestAny on sendRequests
-    loadBalancer.sendRequests[workerIdx] = MPI_REQUEST_NULL;
-    free(data->sendBuffer);
     loadBalancer.workerIsBusy[workerIdx] = false;
 
 #ifdef MASTER_QUEUE_H_SHOW_COMMUNICATION
