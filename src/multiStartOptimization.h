@@ -11,7 +11,7 @@ typedef void *(*multiStartOptimizationGetUserDataFp)(const MultiStartOptimizatio
 // TODO: add userData for multistart IDs, ...
 typedef struct MultiStartOptimization_tag {
 
-    OptimizationProblem *optimizationProblem;
+    const OptimizationProblem *optimizationProblem;
 
     /** Number of starts to perform */
     int numberOfStarts;

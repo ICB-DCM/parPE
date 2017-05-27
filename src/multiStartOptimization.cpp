@@ -15,24 +15,11 @@ MultiStartOptimization *multiStartOptimizationNew()
     return ms;
 }
 
-
-int runParallelMultiStartOptimization(MultiStartOptimization *multiStartOptimization)
-{
+OptimizationProblem *createLocalOptimizationProblems(MultiStartOptimization *multiStartOptimization) {
     int numLocalOptimizations = multiStartOptimization->numberOfStarts;
 
-    logmessage(LOGLVL_DEBUG, "Starting runParallelMultiStartOptimization with %d starts", numLocalOptimizations);
+    OptimizationProblem *localProblems = new OptimizationProblem[numLocalOptimizations];
 
-    pthread_t *localOptimizationThreads = (pthread_t *) alloca(numLocalOptimizations * sizeof(pthread_t));
-
-    OptimizationProblem localProblems[numLocalOptimizations]; // need to keep, since passed by ref to new thread
-
-    pthread_attr_t threadAttr;
-    pthread_attr_init(&threadAttr);
-    pthread_attr_setdetachstate(&threadAttr, PTHREAD_CREATE_JOINABLE);
-
-    int lastStartIdx = -1;
-
-    // launch threads for required number of starts
     for(int ms = 0; ms < numLocalOptimizations; ++ms) {
         localProblems[ms] = *multiStartOptimization->optimizationProblem;
 
@@ -45,6 +32,29 @@ int runParallelMultiStartOptimization(MultiStartOptimization *multiStartOptimiza
 
         if(multiStartOptimization->getUserData)
             localProblems[ms].userData = multiStartOptimization->getUserData(multiStartOptimization, ms);
+    }
+
+    return localProblems;
+}
+
+int runParallelMultiStartOptimization(MultiStartOptimization *multiStartOptimization)
+{
+    int numLocalOptimizations = multiStartOptimization->numberOfStarts;
+
+    logmessage(LOGLVL_DEBUG, "Starting runParallelMultiStartOptimization with %d starts", numLocalOptimizations);
+
+    pthread_t *localOptimizationThreads = (pthread_t *) alloca(numLocalOptimizations * sizeof(pthread_t));
+
+    OptimizationProblem *localProblems = createLocalOptimizationProblems(multiStartOptimization); // need to keep, since passed by ref to new thread
+
+    pthread_attr_t threadAttr;
+    pthread_attr_init(&threadAttr);
+    pthread_attr_setdetachstate(&threadAttr, PTHREAD_CREATE_JOINABLE);
+
+    int lastStartIdx = -1;
+
+    // launch threads for required number of starts
+    for(int ms = 0; ms < numLocalOptimizations; ++ms) {
         ++lastStartIdx;
 
         logmessage(LOGLVL_DEBUG, "Spawning thread for local optimization #%d (%d)", lastStartIdx, ms);
