@@ -158,12 +158,12 @@ static Bool Eval_F(Index n, Number *x, Bool new_x, Number *obj_value, UserDataPt
 
     pthread_mutex_unlock(&ipoptMutex);
 
-    int status = 0;
+    int errors = 0;
 
     clock_t timeBegin = clock();
 
     OptimizationProblem *problem = (OptimizationProblem *) user_data;
-    status = problem->evaluateObjectiveFunction(x, obj_value, NULL);
+    errors = problem->evaluateObjectiveFunction(x, obj_value, NULL);
 
     clock_t timeEnd = clock();
     double timeElapsed = (double) (timeEnd - timeBegin) / CLOCKS_PER_SEC;
@@ -172,7 +172,7 @@ static Bool Eval_F(Index n, Number *x, Bool new_x, Number *obj_value, UserDataPt
 
     pthread_mutex_lock(&ipoptMutex);
 
-    return !isnan(*obj_value) && status == 0;
+    return errors == 0;
 }
 
 /** Type defining the callback function for evaluating the gradient of
@@ -187,13 +187,13 @@ static Bool Eval_Grad_F(Index n, Number *x, Bool new_x, Number *grad_f, UserData
 
     pthread_mutex_unlock(&ipoptMutex);
 
-    int status = 0;
+    int errors = 0;
 
     clock_t timeBegin = clock();
 
     OptimizationProblem *problem = (OptimizationProblem *)user_data;
     double objectiveFunctionValue;
-    status = problem->evaluateObjectiveFunction(x, &objectiveFunctionValue, grad_f);
+    errors = problem->evaluateObjectiveFunction(x, &objectiveFunctionValue, grad_f);
 
     clock_t timeEnd = clock();
     double timeElapsed = (double) (timeEnd - timeBegin) / CLOCKS_PER_SEC;
@@ -202,7 +202,7 @@ static Bool Eval_Grad_F(Index n, Number *x, Bool new_x, Number *grad_f, UserData
 
     pthread_mutex_lock(&ipoptMutex);
 
-    return !isnan(objectiveFunctionValue) && status == 0;
+    return errors == 0;
 }
 
 /** Type defining the callback function for evaluating the value of

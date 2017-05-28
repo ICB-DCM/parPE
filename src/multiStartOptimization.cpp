@@ -69,16 +69,16 @@ int runParallelMultiStartOptimization(optimizationProblemGeneratorForMultiStartF
             int joinStatus = pthread_tryjoin_np(localOptimizationThreads[ms], (void**) &threadStatus);
 
             if(joinStatus == 0) { // joined successful
+                localOptimizationThreads[ms] = 0;
+                delete localProblems[ms];
+
                 if(*threadStatus == 0 || !restartOnFailure) {
                     if(*threadStatus == 0)
                         logmessage(LOGLVL_DEBUG, "Thread ms #%d finished successfully", ms);
                     else
                         logmessage(LOGLVL_DEBUG, "Thread ms #%d finished unsuccessfully. Not trying new starting point.", ms);
-                    localOptimizationThreads[ms] = 0;
-                    delete localProblems[ms];
                     ++numCompleted;
                 } else {
-                    delete localProblems[ms];
                     logmessage(LOGLVL_WARNING, "Thread ms #%d finished unsuccessfully... trying new starting point", ms);
                     ++lastStartIdx;
 
@@ -92,6 +92,9 @@ int runParallelMultiStartOptimization(optimizationProblemGeneratorForMultiStartF
 
         sleep(0.1); // TODO: replace by condition via ThreadWrapper
     }
+
+    logmessage(LOGLVL_DEBUG, "runParallelMultiStartOptimization finished");
+
     delete[] localProblems;
     pthread_attr_destroy(&threadAttr);
 

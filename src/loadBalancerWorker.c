@@ -36,7 +36,9 @@ bool waitForAndHandleJobs(messageHandlerFp msgHandler, void *userData) {
     int source = 0;
     err = MPI_Recv(buffer, msgSize, MPI_BYTE, source, MPI_ANY_TAG, MPI_COMM_WORLD, &mpiStatus);
 
-    //printf("W%d: Received job %d\n", rank, mpiStatus.MPI_TAG);
+#if QUEUE_WORKER_H_VERBOSE >= 3
+    printf("W%d: Received job %d\n", rank, mpiStatus.MPI_TAG);
+#endif
     if(err != MPI_SUCCESS)
         abort();
 

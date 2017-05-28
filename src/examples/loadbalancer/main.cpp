@@ -80,6 +80,8 @@ void messageHandler(char** buffer, int *size, int jobId, void *userData) {
     double value = **((double**) buffer);
     free(*buffer);
 
+    //sleep(1);
+
     // prepare result
     *size = sizeof(double);
     *buffer = (char*) malloc(*size);
