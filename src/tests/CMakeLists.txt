@@ -24,7 +24,7 @@ add_executable(${PROJECT_NAME}_c ${SRC_LIST_C})
 
 target_link_libraries(${PROJECT_NAME}_c
     ${CPPUTEST_LIBRARY}
-    -lpthread
+    Threads::Threads
     pe
 )
 
