@@ -111,3 +111,15 @@ void OptimizationProblem::logOptimizerFinished(double optimalCost, const double 
 {
 
 }
+
+OptimizationProblem::OptimizationProblem()
+{
+    numOptimizationParameters = 0;
+    initialParameters = NULL;
+    parametersMin = NULL;
+    parametersMax = NULL;
+    optimizer = OPTIMIZER_IPOPT;
+    logFile = NULL;
+    printToStdout = true;
+    maxOptimizerIterations = 1000;
+}

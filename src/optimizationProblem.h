@@ -10,6 +10,8 @@ typedef enum optimizer_tag {OPTIMIZER_IPOPT, OPTIMIZER_CERES} optimizerEnum;
 class OptimizationProblem {
 
 public:
+    OptimizationProblem();
+
     /**
      * Callback function for objective function gradient evaluation at parameters.
      * Non-zero return status indicates failure. If objFunGrad is not null, gradient information is expected.
@@ -44,28 +46,28 @@ public:
     virtual ~OptimizationProblem(){}
 
     /** number of optimization parameters */
-    int numOptimizationParameters = 0;
+    int numOptimizationParameters;
 
     /** starting point for optimization. If 0, random starting points are drawn from [parametersMin, parametersMax] */
-    double *initialParameters = NULL;
+    double *initialParameters;
 
     /** lowest allowed parameter values */
-    double *parametersMin = NULL;
+    double *parametersMin;
 
     /** highest allowed parameter values */
-    double *parametersMax = NULL;
+    double *parametersMax;
 
     /** Optimizer to use */
-    optimizerEnum optimizer = OPTIMIZER_IPOPT;
+    optimizerEnum optimizer;
 
     /** Optimizer log file */
-    char *logFile = NULL;
+    char *logFile;
 
     /** Print progress to stdout */
-    bool printToStdout = true;
+    bool printToStdout;
 
     /** Maximum number of optimizer iterations*/
-    int maxOptimizerIterations = 1000;
+    int maxOptimizerIterations;
 };
 
 int getLocalOptimum(OptimizationProblem *problem);
