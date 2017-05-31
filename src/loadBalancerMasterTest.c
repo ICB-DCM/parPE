@@ -53,10 +53,10 @@ TEST_C(queuemaster, test_queueinit) {
 
     loadBalancerStartMaster();
 
-    CHECK_EQUAL_C_BOOL(true, loadBalancer.queue != 0);
+    CHECK_C(loadBalancer.queue != 0);
     int actVal;
     sem_getvalue(&loadBalancer.semQueue, &actVal);
-    CHECK_EQUAL_C_BOOL(true, actVal > 0);
+    CHECK_C(actVal > 0);
 
     loadBalancerTerminate();
 }
