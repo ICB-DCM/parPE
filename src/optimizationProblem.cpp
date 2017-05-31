@@ -15,7 +15,7 @@
 
 int getLocalOptimum(OptimizationProblem *problem)
 {
-    switch (problem->optimizer) {
+    switch (problem->optimizationOptions->optimizer) {
     case OPTIMIZER_CERES:
         return getLocalOptimumCeres(problem);
     case OPTIMIZER_IPOPT:
@@ -132,5 +132,5 @@ OptimizationOptions::OptimizationOptions()
 
 OptimizationOptions *OptimizationOptions::fromHDF5(const char *fileName)
 {
-
+    return NULL; // TODO
 }

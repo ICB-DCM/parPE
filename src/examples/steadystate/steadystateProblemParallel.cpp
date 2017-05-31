@@ -24,11 +24,13 @@ SteadystateProblemParallel::SteadystateProblemParallel(int numConditions) : numC
     parametersMax = new double [numOptimizationParameters];
     fillArray(parametersMax, udata->am_np, 5);
 
-    optimizer = OPTIMIZER_IPOPT;
+    optimizationOptions = new OptimizationOptions();
 
-    printToStdout = true;
+    optimizationOptions->optimizer = OPTIMIZER_IPOPT;
 
-    maxOptimizerIterations = 3;
+    optimizationOptions->printToStdout = true;
+
+    optimizationOptions->maxOptimizerIterations = 3;
 
     MPI_Comm_size(MPI_COMM_WORLD, &commSize);
 
@@ -167,6 +169,8 @@ SteadystateProblemParallel::~SteadystateProblemParallel(){
     delete[] parametersMax;
     freeUserData(udata);
     freeExpData(edata);
+
+    delete optimizationOptions;
 }
 
 void SteadystateProblemParallel::setupUserData()

@@ -11,9 +11,11 @@ QuadraticTestProblem::QuadraticTestProblem()
     initialParameters = new double[numOptimizationParameters];
     parametersMin = new double[numOptimizationParameters];
     parametersMax = new double[numOptimizationParameters];
-    maxOptimizerIterations = 12;
 
-    optimizer = OPTIMIZER_IPOPT;
+    optimizationOptions = new OptimizationOptions();
+    optimizationOptions->maxOptimizerIterations = 12;
+
+    optimizationOptions->optimizer = OPTIMIZER_IPOPT;
 
     initialParameters[0] = -100;
     parametersMin[0] = -1e5;
@@ -57,6 +59,7 @@ QuadraticTestProblem::~QuadraticTestProblem()
     delete[] initialParameters;
     delete[] parametersMin;
     delete[] parametersMax;
+    delete optimizationOptions;
 }
 
 OptimizationProblem *quadraticOptimizationProblemGeneratorForMultiStart(int currentStartIdx, void *userData)
@@ -66,8 +69,8 @@ OptimizationProblem *quadraticOptimizationProblemGeneratorForMultiStart(int curr
     delete[] problem->initialParameters;
     problem->initialParameters = NULL;
 
-    problem->optimizer = OPTIMIZER_CERES;
-    problem->optimizer = OPTIMIZER_IPOPT;
+    problem->optimizationOptions->optimizer = OPTIMIZER_CERES;
+    problem->optimizationOptions->optimizer = OPTIMIZER_IPOPT;
 
 
     return problem;

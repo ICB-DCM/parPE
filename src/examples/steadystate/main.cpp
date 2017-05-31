@@ -16,7 +16,7 @@ int main(int argc, char **argv)
     printf("# CERES #\n");
     printf("#########\n");
 
-    problem.optimizer = OPTIMIZER_CERES;
+    problem.optimizationOptions->optimizer = OPTIMIZER_CERES;
     status += getLocalOptimum(&problem);
 
     return status;

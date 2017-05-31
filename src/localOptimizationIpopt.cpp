@@ -113,7 +113,7 @@ static IpoptProblem setupIpoptProblem(OptimizationProblem *problem)
                                               &Eval_F, &Eval_G, &Eval_Grad_F, &Eval_Jac_G, &Eval_H);
     assert(nlp != 0);
 
-    if(problem->optimizationOptions-->printToStdout) {
+    if(problem->optimizationOptions->printToStdout) {
         AddIpoptIntOption(nlp, "print_level", 5);
         AddIpoptStrOption(nlp, "print_user_options", "yes");
     } else {

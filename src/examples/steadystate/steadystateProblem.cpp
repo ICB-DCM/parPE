@@ -18,11 +18,13 @@ SteadystateProblem::SteadystateProblem()
     parametersMax = new double [numOptimizationParameters];
     fillArray(parametersMax, udata->am_np, 5);
 
-    optimizer = OPTIMIZER_IPOPT;
+    optimizationOptions = new OptimizationOptions();
 
-    printToStdout = true;
+    optimizationOptions->optimizer = OPTIMIZER_IPOPT;
 
-    maxOptimizerIterations = 100;
+    optimizationOptions->printToStdout = true;
+
+    optimizationOptions->maxOptimizerIterations = 100;
 }
 
 int SteadystateProblem::evaluateObjectiveFunction(const double *parameters, double *objFunVal, double *objFunGrad)
@@ -77,6 +79,8 @@ SteadystateProblem::~SteadystateProblem(){
     delete[] parametersMax;
     freeUserData(udata);
     freeExpData(edata);
+
+    delete optimizationOptions;
 }
 
 void SteadystateProblem::setupUserData()

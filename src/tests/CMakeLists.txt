@@ -41,6 +41,7 @@ set(SRC_LIST_CPP
 add_executable(${PROJECT_NAME}_cpp ${SRC_LIST_CPP})
 
 target_link_libraries(${PROJECT_NAME}_cpp
+    pe
     ${IPOPT_LIBRARIES}
     ${CERES_LIBRARIES}
     ${SUNDIALS_LIBRARIES}
@@ -49,5 +50,4 @@ target_link_libraries(${PROJECT_NAME}_cpp
     ${SUITESPARSE_LIBRARIES}
     ${CPPUTEST_LIBRARY}
     -lpthread
-    pe
 )

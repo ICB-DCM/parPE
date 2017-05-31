@@ -32,8 +32,8 @@ int getLocalOptimumCeres(OptimizationProblem *problem)
     }
 
     ceres::GradientProblemSolver::Options options;
-    options.minimizer_progress_to_stdout = problem->printToStdout;
-    options.max_num_iterations = problem->maxOptimizerIterations;
+    options.minimizer_progress_to_stdout = problem->optimizationOptions->printToStdout;
+    options.max_num_iterations = problem->optimizationOptions->maxOptimizerIterations;
 //    options.gradient_tolerance = 1e-18;
 //    options.function_tolerance = 1e-18;
 
