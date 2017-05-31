@@ -7,6 +7,26 @@ typedef enum optimizer_tag {OPTIMIZER_IPOPT, OPTIMIZER_CERES} optimizerEnum;
 
 /** Type to describe an optimization (minimization) problem */
 
+class OptimizationOptions {
+public:
+    OptimizationOptions();
+
+    /** Optimizer to use */
+    optimizerEnum optimizer;
+
+    /** Optimizer log file */
+    char *logFile;
+
+    /** Print progress to stdout */
+    bool printToStdout;
+
+    /** Maximum number of optimizer iterations*/
+    int maxOptimizerIterations;
+
+    static OptimizationOptions* fromHDF5(const char* fileName);
+
+};
+
 class OptimizationProblem {
 
 public:
@@ -57,17 +77,7 @@ public:
     /** highest allowed parameter values */
     double *parametersMax;
 
-    /** Optimizer to use */
-    optimizerEnum optimizer;
-
-    /** Optimizer log file */
-    char *logFile;
-
-    /** Print progress to stdout */
-    bool printToStdout;
-
-    /** Maximum number of optimizer iterations*/
-    int maxOptimizerIterations;
+    OptimizationOptions *optimizationOptions;
 };
 
 int getLocalOptimum(OptimizationProblem *problem);

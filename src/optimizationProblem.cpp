@@ -118,8 +118,19 @@ OptimizationProblem::OptimizationProblem()
     initialParameters = NULL;
     parametersMin = NULL;
     parametersMax = NULL;
+
+    optimizationOptions = NULL;
+}
+
+OptimizationOptions::OptimizationOptions()
+{
     optimizer = OPTIMIZER_IPOPT;
     logFile = NULL;
     printToStdout = true;
     maxOptimizerIterations = 1000;
+}
+
+OptimizationOptions *OptimizationOptions::fromHDF5(const char *fileName)
+{
+
 }

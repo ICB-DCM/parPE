@@ -113,7 +113,7 @@ static IpoptProblem setupIpoptProblem(OptimizationProblem *problem)
                                               &Eval_F, &Eval_G, &Eval_Grad_F, &Eval_Jac_G, &Eval_H);
     assert(nlp != 0);
 
-    if(problem->printToStdout) {
+    if(problem->optimizationOptions-->printToStdout) {
         AddIpoptIntOption(nlp, "print_level", 5);
         AddIpoptStrOption(nlp, "print_user_options", "yes");
     } else {
@@ -128,7 +128,7 @@ static IpoptProblem setupIpoptProblem(OptimizationProblem *problem)
     AddIpoptStrOption(nlp, "hessian_approximation", "limited-memory");
     AddIpoptStrOption(nlp, "limited_memory_update_type", "bfgs");
 
-    AddIpoptIntOption(nlp, "max_iter", problem->maxOptimizerIterations);
+    AddIpoptIntOption(nlp, "max_iter", problem->optimizationOptions->maxOptimizerIterations);
     AddIpoptNumOption(nlp, "tol", 1e-9);
 
     //    AddIpoptIntOption(nlp, "acceptable_iter", 1);
