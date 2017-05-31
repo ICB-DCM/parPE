@@ -62,6 +62,8 @@ target_link_libraries(${PROJECT_NAME}
     ${SUITESPARSE_LIBRARIES}
     -lpthread
     pe
+    ${CERES_LIBRARIES}
+    ${BLAS_LIBRARIES}
 )
 # /example_steadystate executable
 
@@ -84,5 +86,7 @@ target_link_libraries(${PROJECT_NAME}
     ${SUITESPARSE_LIBRARIES}
     -lpthread
     pe
+    ${CERES_LIBRARIES}
+    ${BLAS_LIBRARIES}
 )
 # /example_steadystate_parallel executable

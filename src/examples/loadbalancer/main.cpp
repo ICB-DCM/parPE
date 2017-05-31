@@ -23,7 +23,7 @@ int master()
     int numJobs = NUM_JOBS;
     int numJobsFinished = 0;
 
-    JobData jobdata[numJobs] = {0};
+    JobData jobdata[numJobs];
 
     // mutex to wait for simulations to finish
     pthread_cond_t cond = PTHREAD_COND_INITIALIZER;

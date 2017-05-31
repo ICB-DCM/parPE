@@ -53,7 +53,7 @@ int SteadystateProblemParallel::evaluateParallel(const double *parameters, doubl
     // TODO: always computes gradient; ignores simulation status
 
     // create load balancer job for each simulation
-    JobData jobdata[numConditions] = {0};
+    JobData jobdata[numConditions];
 
     // mutex to wait for simulations to finish
     pthread_cond_t simulationsCond = PTHREAD_COND_INITIALIZER;
