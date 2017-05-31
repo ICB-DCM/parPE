@@ -4,16 +4,8 @@
 #include <stdio.h>
 
 #include "misc.h"
-#include "localOptimizationCeres.hpp"
+#include "localOptimizationCeres.h"
 #include "localOptimizationIpopt.h"
-
-OptimizationProblem *optimizationProblemNew()
-{
-    OptimizationProblem *problem = malloc(sizeof(*problem));
-    memset(problem, 0, sizeof(*problem));
-
-    return problem;
-}
 
 /**
  * @brief getLocalOptimum
@@ -29,7 +21,7 @@ int getLocalOptimum(OptimizationProblem *problem)
     case OPTIMIZER_IPOPT:
         return getLocalOptimumIpopt(problem);
     default:
-        abort();
+        return getLocalOptimumIpopt(problem);
     }
 }
 
@@ -42,7 +34,7 @@ int getLocalOptimum(OptimizationProblem *problem)
 void *getLocalOptimumThreadWrapper(void *optimizationProblemVp)
 {
     OptimizationProblem *problem = (OptimizationProblem *) optimizationProblemVp;
-    int *result = malloc(sizeof(*result));
+    int *result = new int;
     *result = getLocalOptimum(problem);
     return result;
 }
@@ -62,10 +54,10 @@ void optimizationProblemGradientCheck(OptimizationProblem *problem, const int pa
     double fc = 0; // f(theta)
     double *theta = problem->initialParameters;
 
-    double *gradient = malloc(sizeof(double) * problem->numOptimizationParameters);
-    problem->objectiveFunctionGradient(problem, theta, &fc, gradient);
+    double *gradient = new double[problem->numOptimizationParameters];
+    problem->evaluateObjectiveFunction(theta, &fc, gradient);
 
-    double *thetaTmp = malloc(sizeof(double) * problem->numOptimizationParameters);
+    double *thetaTmp = new double[problem->numOptimizationParameters];
     memcpy(thetaTmp, theta, sizeof(double) * problem->numOptimizationParameters);
 
     printf("Index\tGradient\tfd_f\t\t(delta)\t\tfd_c\t\t(delta)\t\tfd_b\t\t(delta)\n");
@@ -75,10 +67,10 @@ void optimizationProblemGradientCheck(OptimizationProblem *problem, const int pa
         double fb = 0, ff = 0; // f(theta + eps) , f(theta - eps)
 
         thetaTmp[curInd] = theta[curInd] + epsilon;
-        problem->objectiveFunction(problem, thetaTmp, &ff);
+        problem->evaluateObjectiveFunction(thetaTmp, &ff, NULL);
 
         thetaTmp[curInd] = theta[curInd] - epsilon;
-        problem->objectiveFunction(problem, thetaTmp, &fb);
+        problem->evaluateObjectiveFunction(thetaTmp, &fb, NULL);
 
         double fd_f = (ff - fc) / epsilon;
 
@@ -96,6 +88,49 @@ void optimizationProblemGradientCheck(OptimizationProblem *problem, const int pa
         printf("\t\tfb: %f\tfc: %f\tff: %f\t\n", fb, fc, ff);
     }
 
-    free(gradient);
-    free(thetaTmp);
+    delete[] gradient;
+    delete[] thetaTmp;
+}
+
+int OptimizationProblem::evaluateObjectiveFunction(const double *parameters, double *objFunVal, double *objFunGrad)
+{
+    return 0;
+}
+
+int OptimizationProblem::intermediateFunction(int alg_mod, int iter_count, double obj_value, double inf_pr, double inf_du, double mu, double d_norm, double regularization_size, double alpha_du, double alpha_pr, int ls_trials)
+{
+    return 0;
+}
+
+void OptimizationProblem::logObjectiveFunctionEvaluation(const double *parameters, double objectiveFunctionValue, const double *objectiveFunctionGradient, int numFunctionCalls, double timeElapsed)
+{
+
+}
+
+void OptimizationProblem::logOptimizerFinished(double optimalCost, const double *optimalParameters, double masterTime, int exitStatus)
+{
+
+}
+
+OptimizationProblem::OptimizationProblem()
+{
+    numOptimizationParameters = 0;
+    initialParameters = NULL;
+    parametersMin = NULL;
+    parametersMax = NULL;
+
+    optimizationOptions = NULL;
+}
+
+OptimizationOptions::OptimizationOptions()
+{
+    optimizer = OPTIMIZER_IPOPT;
+    logFile = NULL;
+    printToStdout = true;
+    maxOptimizerIterations = 1000;
+}
+
+OptimizationOptions *OptimizationOptions::fromHDF5(const char *fileName)
+{
+
 }

@@ -12,7 +12,7 @@
 #include <stdlib.h>
 
 #include <IpStdCInterface.h>
-
+#include <pthread.h>
 #include "logging.h"
 
 #define IPTOPT_LOG_FILE "/home/dweindl/src/CanPathProSSH/dw/ipopt.log"
@@ -20,6 +20,12 @@
 #ifdef INSTALL_SIGNAL_HANDLER
 extern volatile sig_atomic_t caughtTerminationSignal;
 #endif
+
+/**
+ * @brief ipoptMutex Ipopt seems not to be thread safe. Lock this mutex every time
+ * when control is passed to ipopt functions.
+ */
+static pthread_mutex_t ipoptMutex = PTHREAD_MUTEX_INITIALIZER;
 
 static IpoptProblem setupIpoptProblem(OptimizationProblem *problem);
 
@@ -64,6 +70,8 @@ int getLocalOptimumIpopt(OptimizationProblem *problem) {
 
     Number loglikelihood = INFINITY;
 
+    pthread_mutex_lock(&ipoptMutex);
+
     IpoptProblem ipoptProblem = setupIpoptProblem(problem);
 
     clock_t timeBegin = clock();
@@ -78,11 +86,12 @@ int getLocalOptimumIpopt(OptimizationProblem *problem) {
     clock_t timeEnd = clock();
     double timeElapsed = (double) (timeEnd - timeBegin) / CLOCKS_PER_SEC;
 
-    if(problem->logOptimizerFinished)
-        problem->logOptimizerFinished(problem, loglikelihood, parameters, timeElapsed, status);
+    problem->logOptimizerFinished(loglikelihood, parameters, timeElapsed, status);
 
     FreeIpoptProblem(ipoptProblem);
     free(parameters);
+
+    pthread_mutex_unlock(&ipoptMutex);
 
     return status < Maximum_Iterations_Exceeded;
 }
@@ -104,7 +113,7 @@ static IpoptProblem setupIpoptProblem(OptimizationProblem *problem)
                                               &Eval_F, &Eval_G, &Eval_Grad_F, &Eval_Jac_G, &Eval_H);
     assert(nlp != 0);
 
-    if(problem->printToStdout) {
+    if(problem->optimizationOptions-->printToStdout) {
         AddIpoptIntOption(nlp, "print_level", 5);
         AddIpoptStrOption(nlp, "print_user_options", "yes");
     } else {
@@ -119,7 +128,7 @@ static IpoptProblem setupIpoptProblem(OptimizationProblem *problem)
     AddIpoptStrOption(nlp, "hessian_approximation", "limited-memory");
     AddIpoptStrOption(nlp, "limited_memory_update_type", "bfgs");
 
-    AddIpoptIntOption(nlp, "max_iter", problem->maxOptimizerIterations);
+    AddIpoptIntOption(nlp, "max_iter", problem->optimizationOptions->maxOptimizerIterations);
     AddIpoptNumOption(nlp, "tol", 1e-9);
 
     //    AddIpoptIntOption(nlp, "acceptable_iter", 1);
@@ -147,20 +156,23 @@ static Bool Eval_F(Index n, Number *x, Bool new_x, Number *obj_value, UserDataPt
     ++numFunctionCalls;
     // logmessage(LOGLVL_DEBUG, "Eval_F (%d) #%d.", new_x, numFunctionCalls);
 
-    int status = 0;
+    pthread_mutex_unlock(&ipoptMutex);
+
+    int errors = 0;
 
     clock_t timeBegin = clock();
 
     OptimizationProblem *problem = (OptimizationProblem *) user_data;
-    problem->objectiveFunction(user_data, x, obj_value);
+    errors = problem->evaluateObjectiveFunction(x, obj_value, NULL);
 
     clock_t timeEnd = clock();
     double timeElapsed = (double) (timeEnd - timeBegin) / CLOCKS_PER_SEC;
 
-    if(problem->logObjectiveFunctionEvaluation)
-        problem->logObjectiveFunctionEvaluation(problem, x, *obj_value, numFunctionCalls, timeElapsed);
+    problem->logObjectiveFunctionEvaluation(x, *obj_value, NULL, numFunctionCalls, timeElapsed);
 
-    return !isnan(*obj_value) && status == 0;
+    pthread_mutex_lock(&ipoptMutex);
+
+    return errors == 0;
 }
 
 /** Type defining the callback function for evaluating the gradient of
@@ -173,21 +185,24 @@ static Bool Eval_Grad_F(Index n, Number *x, Bool new_x, Number *grad_f, UserData
     ++numFunctionCalls;
     // logmessage(LOGLVL_DEBUG, "Eval_Grad_F (%d) #%d", new_x, numFunctionCalls);
 
-    int status = 0;
+    pthread_mutex_unlock(&ipoptMutex);
+
+    int errors = 0;
 
     clock_t timeBegin = clock();
 
-    OptimizationProblem *problem = (OptimizationProblem *) user_data;
+    OptimizationProblem *problem = (OptimizationProblem *)user_data;
     double objectiveFunctionValue;
-    problem->objectiveFunctionGradient(user_data, x, &objectiveFunctionValue, grad_f);
+    errors = problem->evaluateObjectiveFunction(x, &objectiveFunctionValue, grad_f);
 
     clock_t timeEnd = clock();
     double timeElapsed = (double) (timeEnd - timeBegin) / CLOCKS_PER_SEC;
 
-    if(problem->logObjectiveFunctionGradientEvaluation)
-        problem->logObjectiveFunctionGradientEvaluation(problem, x, objectiveFunctionValue, grad_f, numFunctionCalls, timeElapsed);
+    problem->logObjectiveFunctionEvaluation(x, objectiveFunctionValue, grad_f, numFunctionCalls, timeElapsed);
 
-    return !isnan(objectiveFunctionValue) && status == 0;
+    pthread_mutex_lock(&ipoptMutex);
+
+    return errors == 0;
 }
 
 /** Type defining the callback function for evaluating the value of
@@ -263,8 +278,7 @@ static Bool Intermediate(Index alg_mod,
 
     int status = true;
 
-    if(problem->intermediateFunction)
-            status = problem->intermediateFunction(problem, alg_mod,
+    status = problem->intermediateFunction(alg_mod,
                                                iter_count, obj_value,
                                                inf_pr,  inf_du,
                                                mu, d_norm,
@@ -279,5 +293,5 @@ static Bool Intermediate(Index alg_mod,
     }
 #endif
 
-    return status;
+    return status == 0;
 }

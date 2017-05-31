@@ -51,6 +51,9 @@ void hdf5CreateOrExtendAndWriteToInt2DArray(hid_t file_id, const char *parentPat
 
 void hdf5CreateOrExtendAndWriteToDouble3DArray(hid_t file_id, const char *parentPath, const char *datasetName, const double *buffer, int stride1, int stride2);
 
+int hdf5Read2DDoubleHyperslab(hid_t file_id, const char* path, hsize_t size0, hsize_t size1, hsize_t offset0, hsize_t offset1, double *buffer);
+
+void hdf5GetDatasetDimensions2D(hid_t file_id, const char* path, int* d1, int* d2);
 #if defined (__cplusplus)
 }
 #endif

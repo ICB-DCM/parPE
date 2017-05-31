@@ -126,11 +126,18 @@ void hdf5Extend2ndDimensionAndWriteToDouble2DArray(hid_t file_id, const char *da
     hdf5LockMutex();
 
     hid_t dataset = H5Dopen2(file_id, datasetPath, H5P_DEFAULT);
+    if(dataset < 0) {
+        logmessage(LOGLVL_CRITICAL, "Failed to open dataset %s in hdf5Extend2ndDimensionAndWriteToDouble2DArray", datasetPath);
+        goto freturn1;
+    }
 
     // extend
     hid_t filespace = H5Dget_space(dataset);
     int rank = H5Sget_simple_extent_ndims(filespace);
-    assert(rank == 2);
+    if(rank != 2) {
+        logmessage(LOGLVL_CRITICAL, "Failed to write data in hdf5Extend2ndDimensionAndWriteToDouble2DArray: not of rank 2 (%d) when writing %s", rank, datasetPath);
+        goto freturn2;
+    }
 
     hsize_t currentDimensions[2];
     H5Sget_simple_extent_dims(filespace, currentDimensions, NULL);
@@ -151,10 +158,12 @@ void hdf5Extend2ndDimensionAndWriteToDouble2DArray(hid_t file_id, const char *da
     if(status < 0)
         error("Failed to write data in hdf5Extend2ndDimensionAndWriteToDouble2DArray");
 
-    H5Dclose(dataset);
-    H5Sclose(filespace);
     H5Sclose(memspace);
 
+freturn2:
+    H5Sclose(filespace);
+freturn1:
+    H5Dclose(dataset);
     hdf5UnlockMutex();
 }
 
@@ -254,6 +263,7 @@ void hdf5CreateOrExtendAndWriteToInt2DArray(hid_t file_id, const char *parentPat
         hdf5CreateExtendableInt2DArray(file_id, fullDatasetPath, stride);
     }
 
+
     hdf5Extend2ndDimensionAndWriteToInt2DArray(file_id, fullDatasetPath, buffer);
 
     hdf5UnlockMutex();
@@ -266,6 +276,10 @@ void hdf5Extend2ndDimensionAndWriteToInt2DArray(hid_t file_id, const char *datas
     hdf5LockMutex();
 
     hid_t dataset = H5Dopen2(file_id, datasetPath, H5P_DEFAULT);
+    if(dataset < 0) {
+        logmessage(LOGLVL_CRITICAL, "Unable to open dataset %s", datasetPath);
+        goto freturn1;
+    }
 
     // extend
     hid_t filespace = H5Dget_space(dataset);
@@ -291,9 +305,11 @@ void hdf5Extend2ndDimensionAndWriteToInt2DArray(hid_t file_id, const char *datas
     if(status < 0)
         error("Error writing data in hdf5Extend2ndDimensionAndWriteToInt2DArray.");
 
-    H5Dclose(dataset);
     H5Sclose(filespace);
     H5Sclose(memspace);
+
+freturn1:
+    H5Dclose(dataset);
 
     hdf5UnlockMutex();
 }
@@ -315,6 +331,7 @@ void hdf5CreateExtendableInt2DArray(hid_t file_id, const char *datasetPath, int 
 
     hid_t dataset = H5Dcreate2(file_id, datasetPath, H5T_NATIVE_INT, dataspace,
                                H5P_DEFAULT, datasetCreationProperty, H5P_DEFAULT);
+    assert(dataset >= 0);
 
     H5Dclose(dataset);
     H5Sclose(dataspace);
@@ -352,4 +369,51 @@ char *myStringCat(const char *first, const char *second)
     strcpy(concatenation, first);
     strcat(concatenation, second);
     return concatenation;
+}
+
+int hdf5Read2DDoubleHyperslab(hid_t file_id, const char* path, hsize_t size0, hsize_t size1, hsize_t offset0, hsize_t offset1, double *buffer) {
+    hid_t dataset   = H5Dopen2(file_id, path, H5P_DEFAULT);
+    hid_t dataspace = H5Dget_space(dataset);
+    hsize_t offset[]  = {offset0, offset1};
+    hsize_t count[]   = {size0, size1};
+
+    const int ndims = H5Sget_simple_extent_ndims(dataspace);
+    assert(ndims == 2);
+    hsize_t dims[ndims];
+    H5Sget_simple_extent_dims(dataspace, dims, NULL);
+    assert(dims[0] >= offset0 && dims[0] >= size0);
+    assert(dims[1] >= offset1 && dims[1] >= size1);
+
+    H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, offset, NULL, count, NULL);
+
+    hid_t memspace = H5Screate_simple(2, count, NULL);
+
+    H5Dread(dataset, H5T_NATIVE_DOUBLE, memspace, dataspace, H5P_DEFAULT, buffer);
+
+    H5Sclose(dataspace);
+    H5Dclose(dataset);
+
+    return 0;
+}
+
+
+void hdf5GetDatasetDimensions2D(hid_t file_id, const char *path, int *d1, int *d2)
+{
+    hdf5LockMutex();
+
+    hid_t dataset   = H5Dopen2(file_id, path, H5P_DEFAULT);
+    hid_t dataspace = H5Dget_space(dataset);
+
+    const int ndims = H5Sget_simple_extent_ndims(dataspace);
+    assert(ndims == 2);
+    hsize_t dims[ndims];
+    H5Sget_simple_extent_dims(dataspace, dims, NULL);
+
+    *d1 = dims[0];
+    *d2 = dims[1];
+
+    H5Sclose(dataspace);
+    H5Dclose(dataset);
+
+    hdf5UnlockMutex();
 }

@@ -16,7 +16,7 @@ TEST_GROUP_C_SETUP(queuemaster) {
     loadBalancer.lastJobId = 0;
     loadBalancer.mutexQueue = (pthread_mutex_t) PTHREAD_MUTEX_INITIALIZER;
     loadBalancer.sendRequests = 0;
-    loadBalancer.recvRequests = 0;
+    loadBalancer.workerIsBusy = 0;
     loadBalancer.sentJobsData = 0;
     memset(&loadBalancer.semQueue, 0, sizeof loadBalancer.semQueue);
     memset(&loadBalancer.queueThread, 0, sizeof loadBalancer.queueThread);

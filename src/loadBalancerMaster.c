@@ -7,6 +7,7 @@
 #include <string.h>
 #include <assert.h>
 #include <limits.h>
+#include <stdio.h>
 
 typedef struct LoadBalancer_tag {
     int numWorkers;
@@ -14,8 +15,8 @@ typedef struct LoadBalancer_tag {
     int lastJobId;
     // one for each worker, index is off by one from MPI rank
     // because no job is sent to master (rank 0)
-    MPI_Request *sendRequests;
-    MPI_Request *recvRequests;
+    bool *workerIsBusy;
+    MPI_Request *sendRequests; // TODO: option: free(sendbuffer)
     JobData **sentJobsData;
     pthread_mutex_t mutexQueue;
     sem_t semQueue;
@@ -36,9 +37,13 @@ static void sendToWorker(int workerIdx, JobData *queueElement);
 
 static void masterQueueAppendElement(JobData *queueElement);
 
-static void receiveFinished(int workerID, int jobID);
+static int handleReply(MPI_Status *mpiStatus);
 
-static void freeJobData(void *element);
+static void freeEmptiedSendBuffers();
+
+static int handleFinishedJobs();
+
+static int getNextFreeWorkerIndex();
 
 /**
  * @brief initLoadBalancerMaster Intialize load balancer.
@@ -52,14 +57,15 @@ void loadBalancerStartMaster() {
 
         int mpiCommSize;
         MPI_Comm_size(MPI_COMM_WORLD, &mpiCommSize);
+        assert(mpiCommSize > 1); // crashes otherwise
 
         loadBalancer.numWorkers = mpiCommSize - 1;
-        loadBalancer.sendRequests = malloc(loadBalancer.numWorkers * sizeof(MPI_Request));
-        loadBalancer.recvRequests = malloc(loadBalancer.numWorkers * sizeof(MPI_Request));
         loadBalancer.sentJobsData = malloc(loadBalancer.numWorkers * sizeof(JobData *));
-
+        loadBalancer.workerIsBusy = malloc(loadBalancer.numWorkers * sizeof(bool));
+        memset(loadBalancer.workerIsBusy, 0, loadBalancer.numWorkers * sizeof(bool));
+        loadBalancer.sendRequests = malloc(loadBalancer.numWorkers * sizeof(MPI_Request));
         for(int i = 0; i < loadBalancer.numWorkers; ++i) // have to initialize before can wait!
-            loadBalancer.recvRequests[i] = MPI_REQUEST_NULL;
+            loadBalancer.sendRequests[i] = MPI_REQUEST_NULL;
 
         // Create semaphore to limit queue length
         // and avoid huge memory allocation for all send and receive buffers
@@ -92,36 +98,16 @@ static void *loadBalancerRun(void *unusedArgument) {
     while(1) {
 
         // check if any job finished
-        MPI_Status status;
-        int finishedWorkerIdx = 0;
+        int lastFinishedWorkerIdx = handleFinishedJobs();
 
-        // handle all finished jobs, if any
-        while(1) {
-            // add cancellation point to avoid invalid reads in loadBalancer.recvRequests
-            pthread_testcancel();
-            int dummy;
-            MPI_Testany(loadBalancer.numWorkers, loadBalancer.recvRequests, &finishedWorkerIdx, &dummy, &status);
-
-            if(finishedWorkerIdx >= 0) {
-                // dummy == 1 despite finishedWorkerIdx == MPI_UNDEFINED
-                // some job is finished
-                receiveFinished(finishedWorkerIdx, status.MPI_TAG);
-            } else {
-                // there was nothing to be finished
-                break;
-            }
-        }
+        freeEmptiedSendBuffers();
 
         // getNextFreeWorker
-        int freeWorkerIndex = finishedWorkerIdx;
+        int freeWorkerIndex = lastFinishedWorkerIdx;
 
-        if(freeWorkerIndex < 0) { // no job finished recently, checked free slots
-            for(int i = 0; i < loadBalancer.numWorkers; ++i) {
-                if(loadBalancer.recvRequests[i] == MPI_REQUEST_NULL) {
-                    freeWorkerIndex = i;
-                    break;
-                }
-            }
+        if(freeWorkerIndex < 0) {
+            // no job finished recently, check free slots
+            freeWorkerIndex = getNextFreeWorkerIndex();
         }
 
         if(freeWorkerIndex < 0) {
@@ -130,12 +116,11 @@ static void *loadBalancerRun(void *unusedArgument) {
 
             // all workers are busy, wait for next one to finish
             MPI_Status status;
-            MPI_Waitany(loadBalancer.numWorkers, loadBalancer.recvRequests, &freeWorkerIndex, &status);
-
-            assert(freeWorkerIndex != MPI_UNDEFINED);
-            receiveFinished(freeWorkerIndex, status.MPI_TAG);
+            MPI_Probe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+            freeWorkerIndex = handleReply(&status);
         }
 
+        // found free worker, check for jobs to do
         JobData *currentQueueElement = getNextJob();
 
         if(currentQueueElement) {
@@ -147,6 +132,53 @@ static void *loadBalancerRun(void *unusedArgument) {
     };
 
     return 0;
+}
+
+static void freeEmptiedSendBuffers() {
+    // free any emptied send buffers
+    while(1) {
+        int emptiedBufferIdx = -1;
+        int anySendCompleted = 0;
+        MPI_Testany(loadBalancer.numWorkers, loadBalancer.sendRequests, &emptiedBufferIdx, &anySendCompleted, MPI_STATUS_IGNORE);
+
+        if(anySendCompleted && emptiedBufferIdx != MPI_UNDEFINED) {
+            free(loadBalancer.sentJobsData[emptiedBufferIdx]->sendBuffer);
+        } else {
+            break;
+        }
+    }
+}
+
+static int handleFinishedJobs() {
+    MPI_Status status;
+    int finishedWorkerIdx = -1;
+
+    // handle all finished jobs, if any
+    while(1) {
+        // add cancellation point to avoid invalid reads in loadBalancer.recvRequests
+        pthread_testcancel();
+
+        int messageWaiting;
+        MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &messageWaiting, &status);
+
+        if(messageWaiting) {
+            // some job is finished
+            finishedWorkerIdx = handleReply(&status);
+        } else {
+            // there was nothing to be finished
+            break;
+        }
+    }
+    return finishedWorkerIdx;
+}
+
+static int getNextFreeWorkerIndex() {
+    for(int i = 0; i < loadBalancer.numWorkers; ++i) {
+        if(loadBalancer.workerIsBusy[i] == false) {
+            return i;
+        }
+    }
+    return -1;
 }
 
 /**
@@ -170,16 +202,19 @@ static JobData *getNextJob() {
  * @param queueElement
  */
 static void sendToWorker(int workerIdx, JobData *data) {
+    assert(workerIdx >= 0);
+    assert(workerIdx < loadBalancer.numWorkers);
+
+    loadBalancer.workerIsBusy[workerIdx] = true;
+
     int tag = data->jobId;
     int workerRank = workerIdx + 1;
 
 #ifdef MASTER_QUEUE_H_SHOW_COMMUNICATION
-    printf("\x1b[36mSent job %d to %d.\x1b[0m\n", tag, workerRank);
+    printf("\x1b[36mSent job #%d to rank %d.\x1b[0m\n", tag, workerRank);
 #endif
 
     MPI_Isend(data->sendBuffer, data->lenSendBuffer, MPI_BYTE, workerRank, tag, MPI_COMM_WORLD, &loadBalancer.sendRequests[workerIdx]);
-
-    MPI_Irecv(data->recvBuffer, data->lenRecvBuffer, MPI_BYTE, workerRank, tag, MPI_COMM_WORLD, &loadBalancer.recvRequests[workerIdx]);
 
     sem_post(&loadBalancer.semQueue);
 }
@@ -209,6 +244,8 @@ void loadBalancerQueueJob(JobData *data) {
 
 void loadBalancerTerminate() {
     pthread_cancel(loadBalancer.queueThread);
+    pthread_join(loadBalancer.queueThread, NULL);
+
     pthread_mutex_destroy(&loadBalancer.mutexQueue);
     sem_destroy(&loadBalancer.semQueue);
 
@@ -216,8 +253,8 @@ void loadBalancerTerminate() {
         free(loadBalancer.sentJobsData);
     if(loadBalancer.sendRequests)
         free(loadBalancer.sendRequests);
-    if(loadBalancer.recvRequests)
-        free(loadBalancer.recvRequests);
+    if(loadBalancer.workerIsBusy)
+        free(loadBalancer.workerIsBusy);
 
     queueDestroy(loadBalancer.queue, 0);
     loadBalancer.queue = 0;
@@ -229,17 +266,55 @@ void loadBalancerTerminate() {
  * @param workerID
  * @param jobID
  */
-static void receiveFinished(int workerID, int jobID) {
+static int handleReply(MPI_Status *mpiStatus) {
+
+    int workerIdx = mpiStatus->MPI_SOURCE - 1;
+    JobData *data = loadBalancer.sentJobsData[workerIdx];
+
+    // allocate memory for result
+    MPI_Get_count(mpiStatus, MPI_BYTE, &data->lenRecvBuffer);
+    data->recvBuffer = malloc(data->lenRecvBuffer);
 
 #ifdef MASTER_QUEUE_H_SHOW_COMMUNICATION
-    printf("\x1b[32mReceived result for job %d from %d\x1b[0m\n", jobID, workerID + 1);
+    printf("\x1b[32mReceiving result for job %d from %d (%dB)\x1b[0m\n", mpiStatus->MPI_TAG, mpiStatus->MPI_SOURCE, data->lenRecvBuffer);
 #endif
 
-    JobData *data = loadBalancer.sentJobsData[workerID];
+    // receive
+    MPI_Recv(data->recvBuffer, data->lenRecvBuffer, MPI_BYTE, mpiStatus->MPI_SOURCE, mpiStatus->MPI_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+    loadBalancer.workerIsBusy[workerIdx] = false;
+
+#ifdef MASTER_QUEUE_H_SHOW_COMMUNICATION
+    printf("\x1b[32mReceived result for job %d from %d\x1b[0m\n", mpiStatus->MPI_TAG, mpiStatus->MPI_SOURCE);
+#endif
+
+    // signal job done
     ++(*data->jobDone);
     pthread_mutex_lock(data->jobDoneChangedMutex);
     pthread_cond_signal(data->jobDoneChangedCondition);
     pthread_mutex_unlock(data->jobDoneChangedMutex);
 
-    loadBalancer.recvRequests[workerID] = MPI_REQUEST_NULL;
+    return workerIdx;
+}
+
+void sendTerminationSignalToAllWorkers()
+{
+    int commSize;
+    MPI_Comm_size(MPI_COMM_WORLD, &commSize);
+
+    MPI_Request reqs[commSize - 1];
+
+    for(int i = 1; i < commSize; ++i) {
+        reqs[i - 1] =  MPI_REQUEST_NULL;
+        MPI_Isend(MPI_BOTTOM, 0, MPI_INT, i, 0, MPI_COMM_WORLD, &reqs[i - 1]);
+    }
+    MPI_Waitall(commSize - 1, reqs, MPI_STATUS_IGNORE);
+}
+
+JobData initJobData(int lenSendBuffer, char *sendBuffer, int *jobDone, pthread_cond_t *jobDoneChangedCondition, pthread_mutex_t *jobDoneChangedMutex)
+{
+    sendBuffer = sendBuffer ? sendBuffer : malloc(lenSendBuffer);
+    JobData data = {0, lenSendBuffer, sendBuffer, 0, NULL, jobDone, jobDoneChangedCondition, jobDoneChangedMutex};
+
+    return data;
 }
