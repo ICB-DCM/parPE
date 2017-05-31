@@ -34,6 +34,7 @@ include_directories(
     ${SUNDIALS_INCLUDE_DIRS}
 )
 
+
 # AMICI-generated model files
 add_subdirectory(model)
 
