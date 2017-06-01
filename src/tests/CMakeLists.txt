@@ -51,4 +51,5 @@ target_link_libraries(${PROJECT_NAME}_cpp
     ${SUITESPARSE_LIBRARIES}
     ${CPPUTEST_LIBRARY}
     -lpthread
+    ${BLAS_LIBRARIES}
 )
