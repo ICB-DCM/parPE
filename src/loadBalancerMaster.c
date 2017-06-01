@@ -243,6 +243,9 @@ void loadBalancerQueueJob(JobData *data) {
 }
 
 void loadBalancerTerminate() {
+    if(!loadBalancer.queue)
+        return;
+
     pthread_cancel(loadBalancer.queueThread);
     pthread_join(loadBalancer.queueThread, NULL);
 
