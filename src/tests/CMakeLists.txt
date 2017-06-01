@@ -3,9 +3,10 @@ project(unittests_pe)
 add_test (NAME ${PROJECT_NAME}_c COMMAND ${PROJECT_NAME}_c -c)
 add_test (NAME ${PROJECT_NAME}_cpp COMMAND ${PROJECT_NAME}_cpp -c)
 
-set(CPPUTEST_DIR "/home/dweindl/src/cpputest/")
+set(CPPUTEST_DIR "/home/dweindl/src/cpputest/" CACHE PATH "")
+
 set(CPPUTEST_INCLUDE_DIR "${CPPUTEST_DIR}/include")
-set(CPPUTEST_LIBRARY "${CPPUTEST_DIR}/build/src/CppUTest/libCppUTest.a" "${CPPUTEST_DIR}/build/src/CppUTestExt/libCppUTestExt.a")
+set(CPPUTEST_LIBRARY "${CPPUTEST_DIR}/cpputest_build/lib/libCppUTest.a" "${CPPUTEST_DIR}/cpputest_build/lib/libCppUTestExt.a")
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -include ${CPPUTEST_DIR}/include/CppUTest/MemoryLeakDetectorMallocMacros.h")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -include ${CPPUTEST_DIR}/include/CppUTest/MemoryLeakDetectorNewMacros.h")
