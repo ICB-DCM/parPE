@@ -3,7 +3,7 @@
 
 #include "localOptimizationIpopt.h"
 #include "testingMisc.h"
-#include "tests/quadraticTestProblem.h"
+#include "quadraticTestProblem.h"
 #include "multiStartOptimization.h"
 #include <stdio.h>
 

@@ -6,6 +6,7 @@
 #include "localOptimizationCeres.h"
 #include "localOptimizationIpopt.h"
 #include <hdf5Misc.h>
+#include "logging.h"
 /**
  * @brief getLocalOptimum
  * @param problem
@@ -145,11 +146,11 @@ OptimizationOptions *OptimizationOptions::fromHDF5(const char *fileName)
     }
 
     if(hdf5AttributeExists(fileId, hdf5path, "maxIter")) {
-        H5LTget_attribute_int(fileId, hdf5path, "maxIter", &maxOptimizerIterations);
+        H5LTget_attribute_int(fileId, hdf5path, "maxIter", &o->maxOptimizerIterations);
     }
 
     if(hdf5AttributeExists(fileId, hdf5path, "maxStarts")) {
-        H5LTget_attribute_int(fileId, hdf5path, "maxIter", &numStarts);
+        H5LTget_attribute_int(fileId, hdf5path, "maxIter", &o->numStarts);
     }
 
 

@@ -1,13 +1,11 @@
 #include "CppUTest/TestHarness.h"
 #include "CppUTestExt/MockSupport.h"
 
-#include "localOptimizationCeres.h"
+#include "localOptimizationIpopt.h"
 #include "testingMisc.h"
-#include "tests/quadraticTestProblem.h"
-#include <math.h>
+#include "quadraticTestProblem.h"
 
-
-TEST_GROUP(localOptimizationCeres)
+TEST_GROUP(localOptimizationIpopt)
 {
     void setup() {
 
@@ -20,14 +18,14 @@ TEST_GROUP(localOptimizationCeres)
 };
 
 
-TEST(localOptimizationCeres, testOptimization) {
+TEST(localOptimizationIpopt, testOptimization) {
     QuadraticTestProblem *problem = new QuadraticTestProblem();
 
     mock().expectOneCall("logFinish").withIntParameter("exitStatus", 0);
-    mock().expectNCalls(0, "testObj");
-    mock().expectNCalls(10, "testObjGrad");
+    mock().expectNCalls(11, "testObj");
+    mock().expectNCalls(12, "testObjGrad");
 
-    getLocalOptimumCeres(problem);
+    getLocalOptimumIpopt(problem);
 
     DOUBLES_EQUAL(42.0, problem->optimalCost, 1e-12);
     DOUBLES_EQUAL(-1.0, problem->optimalParameter, 1e-12);

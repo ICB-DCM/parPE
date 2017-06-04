@@ -60,7 +60,7 @@ find_package(HDF5 COMPONENTS C HL REQUIRED)
 find_package(Threads REQUIRED)
 
 include_directories(
-    src/
+    common/src/
     ${IPOPT_INCLUDE_DIRS}
     ${CERES_INCLUDE_DIRS}
     ${HDF5_INCLUDE_DIRS}
@@ -70,6 +70,17 @@ include_directories(
 
 if(${BUILD_TESTS})
     enable_testing ()
+
+    set(CPPUTEST_DIR "/home/dweindl/src/cpputest/" CACHE PATH "")
+
+    set(CPPUTEST_INCLUDE_DIR "${CPPUTEST_DIR}/include")
+    set(CPPUTEST_LIBRARY "${CPPUTEST_DIR}/cpputest_build/lib/libCppUTest.a" "${CPPUTEST_DIR}/cpputest_build/lib/libCppUTestExt.a")
+    include_directories(${CPPUTEST_INCLUDE_DIR})
+
+
+
 endif(${BUILD_TESTS})
 
-add_subdirectory(src)
+add_subdirectory(common)
+add_subdirectory(optimization)
+add_subdirectory(loadbalancer)
