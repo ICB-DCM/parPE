@@ -129,6 +129,7 @@ OptimizationOptions::OptimizationOptions()
     printToStdout = true;
     maxOptimizerIterations = 1000;
     numStarts = 1;
+    functionTolerance = 1e-18;
 }
 
 OptimizationOptions *OptimizationOptions::fromHDF5(const char *fileName)
@@ -153,6 +154,9 @@ OptimizationOptions *OptimizationOptions::fromHDF5(const char *fileName)
         H5LTget_attribute_int(fileId, hdf5path, "maxIter", &o->numStarts);
     }
 
+    if(hdf5AttributeExists(fileId, hdf5path, "functionTolerance")) {
+        H5LTget_attribute_double(fileId, hdf5path, "functionTolerance", &o->functionTolerance);
+    }
 
     return o;
 }

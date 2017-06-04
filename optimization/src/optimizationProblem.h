@@ -28,6 +28,9 @@ public:
     /** Number of starts for local optimization (only used for multi-start optimization */
     int numStarts;
 
+    /** Convergence criterium for relative change in subsequent objective function value change */
+    double functionTolerance;
+
 };
 
 class OptimizationProblem {

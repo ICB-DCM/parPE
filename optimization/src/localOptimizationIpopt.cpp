@@ -131,11 +131,12 @@ static IpoptProblem setupIpoptProblem(OptimizationProblem *problem)
     AddIpoptIntOption(nlp, "max_iter", problem->optimizationOptions->maxOptimizerIterations);
     AddIpoptNumOption(nlp, "tol", 1e-9);
 
-    //    AddIpoptIntOption(nlp, "acceptable_iter", 1);
-    //    AddIpoptNumOption(nlp, "acceptable_constr_viol_tol", 1e20);
-    //    AddIpoptNumOption(nlp, "acceptable_dual_inf_tol", 1e20);
-    //    AddIpoptNumOption(nlp, "acceptable_compl_inf_tol", 1e20);
-    //    AddIpoptNumOption(nlp, "acceptable_obj_change_tol", 1e20);
+    AddIpoptIntOption(nlp, "acceptable_iter", 1);
+    AddIpoptNumOption(nlp, "acceptable_tol", 1e20); // set ridiculously high, so only the acceptable_* options below matter
+    //AddIpoptNumOption(nlp, "acceptable_constr_viol_tol", 1e20);
+    //AddIpoptNumOption(nlp, "acceptable_dual_inf_tol", 1e20);
+    //AddIpoptNumOption(nlp, "acceptable_compl_inf_tol", 1e20);
+    AddIpoptNumOption(nlp, "acceptable_obj_change_tol", problem->optimizationOptions->functionTolerance);
 
     // TODO check further limited memory options http://www.coin-or.org/Ipopt/documentation/node53.html#opt:hessian_approximation
 
