@@ -396,6 +396,34 @@ int hdf5Read2DDoubleHyperslab(hid_t file_id, const char* path, hsize_t size0, hs
     return 0;
 }
 
+int hdf5Read3DDoubleHyperslab(hid_t file_id, const char* path, hsize_t size0, hsize_t size1, hsize_t size2, hsize_t offset0, hsize_t offset1, hsize_t offset2, double *buffer) {
+    const int rank = 3;
+    hid_t dataset   = H5Dopen2(file_id, path, H5P_DEFAULT);
+    hid_t dataspace = H5Dget_space(dataset);
+    hsize_t offset[]  = {offset0, offset1, offset2};
+    hsize_t count[]   = {size0, size1, size2};
+
+    const int ndims = H5Sget_simple_extent_ndims(dataspace);
+    assert(ndims == rank);
+    hsize_t dims[ndims];
+    H5Sget_simple_extent_dims(dataspace, dims, NULL);
+    assert(dims[0] >= offset0 && dims[0] >= size0);
+    assert(dims[1] >= offset1 && dims[1] >= size1);
+    assert(dims[2] >= offset2 && dims[2] >= size2);
+
+    H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, offset, NULL, count, NULL);
+
+    hid_t memspace = H5Screate_simple(rank, count, NULL);
+
+    H5Dread(dataset, H5T_NATIVE_DOUBLE, memspace, dataspace, H5P_DEFAULT, buffer);
+
+    H5Sclose(dataspace);
+    H5Dclose(dataset);
+
+    return 0;
+}
+
+
 
 void hdf5GetDatasetDimensions2D(hid_t file_id, const char *path, int *d1, int *d2)
 {

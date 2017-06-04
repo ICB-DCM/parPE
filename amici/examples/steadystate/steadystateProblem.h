@@ -3,6 +3,7 @@
 
 #include "optimizationProblem.h"
 #include "include/amici_interface_cpp.h"
+#include <hdf5.h>
 
 class SteadystateProblem : public OptimizationProblem
 {
@@ -35,12 +36,19 @@ public:
 
     ~SteadystateProblem();
 
-
-    void setupUserData();
-    void setupExpData();
+    void requireSensitivities(bool sensitivitiesRequired);
+    void readFixedParameters(int conditionIdx);
+    void readMeasurement(int conditionIdx);
 
     UserData *udata;
     ExpData *edata;
+
+protected:
+
+    void setupUserData(int conditionIdx);
+    void setupExpData(int conditionIdx);
+
+    hid_t fileId;
 
 };
 

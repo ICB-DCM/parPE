@@ -4,7 +4,7 @@
 #include <logging.h>
 #include <loadBalancerMaster.h>
 #include <loadBalancerWorker.h>
-
+#include "hdf5Misc.h"
 #include<unistd.h>
 /*
  * This example demonstrates the use of the loadbalancer / queue for parallel ODE simulation.
@@ -19,18 +19,23 @@ int main(int argc, char **argv)
     int status = 0;
 
     initMPI(&argc, &argv);
+    initHDF5Mutex();
 
-    SteadystateProblemParallel problem = SteadystateProblemParallel(1);
 
     int commSize;
     MPI_Comm_size(MPI_COMM_WORLD, &commSize);
 
     if(commSize == 1) {
         // run in serial mode
+        SteadystateProblemParallel problem = SteadystateProblemParallel();
         status = getLocalOptimum(&problem);
+
     } else {
+        SteadystateProblemParallel problem = SteadystateProblemParallel();
+
         int mpiRank;
         MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
+
         if(mpiRank == 0) {
             loadBalancerStartMaster();
 
@@ -42,6 +47,8 @@ int main(int argc, char **argv)
             loadBalancerWorkerRun(messageHandler, &problem);
         }
     }
+
+    destroyHDF5Mutex();
 
     MPI_Finalize();
 
@@ -67,18 +74,23 @@ void initMPI(int *argc, char ***argv) {
 
 void messageHandler(char** buffer, int *size, int jobId, void *userData)
 {
-//    logmessage(LOGLVL_DEBUG, "Job #%d received.", jobId);
+//    int mpiRank;
+//    MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
+//    logmessage(LOGLVL_DEBUG, "Worker #%d: Job #%d received.", mpiRank, jobId);
 
     SteadystateProblemParallel *problem = (SteadystateProblemParallel*) userData;
     UserData *udata = problem->udata;
 
-    // unpack data
-    double *doubleBuffer = (double *) *buffer;
-    for(int i = 0; i < udata->nk; ++i)
-        udata->k[i] = doubleBuffer[i];
-    for(int i = 0; i < udata->np; ++i)
-        udata->p[i] = doubleBuffer[i + udata->nk];
+    // unpack parameters
+    int conditionIdx = (int) **buffer;
+    int needGradient = (int) *(*buffer + sizeof(int));
+    memcpy(udata->p, *buffer + 2 * sizeof(int), sizeof(double) * udata->np);
     free(*buffer);
+
+    // read data for current conditions
+    problem->readFixedParameters(conditionIdx);
+    problem->readMeasurement(conditionIdx);
+    problem->requireSensitivities(needGradient);
 
     // run simulation
     ReturnData *rdata = getSimulationResults(udata, problem->edata);
@@ -86,11 +98,12 @@ void messageHandler(char** buffer, int *size, int jobId, void *userData)
     // pack results
     *size = sizeof(double) * (udata->nplist + 1);
     *buffer = (char*) malloc(*size);
-    doubleBuffer = (double*) *buffer;
+    double *doubleBuffer = (double*) *buffer;
 
     doubleBuffer[0] = rdata->llh[0];
-    for(int i = 0; i < udata->nplist; ++i)
-        doubleBuffer[1 + i] = rdata->sllh[i];
+    if(needGradient)
+        for(int i = 0; i < udata->nplist; ++i)
+            doubleBuffer[1 + i] = rdata->sllh[i];
 
     delete rdata;
 }

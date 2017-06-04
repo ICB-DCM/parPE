@@ -53,6 +53,8 @@ void hdf5CreateOrExtendAndWriteToDouble3DArray(hid_t file_id, const char *parent
 
 int hdf5Read2DDoubleHyperslab(hid_t file_id, const char* path, hsize_t size0, hsize_t size1, hsize_t offset0, hsize_t offset1, double *buffer);
 
+int hdf5Read3DDoubleHyperslab(hid_t file_id, const char* path, hsize_t size0, hsize_t size1, hsize_t size2, hsize_t offset0, hsize_t offset1, hsize_t offset2, double *buffer);
+
 void hdf5GetDatasetDimensions2D(hid_t file_id, const char* path, int* d1, int* d2);
 
 int hdf5AttributeExists(hid_t fileId, const char *datasetPath, const char *attributeName);

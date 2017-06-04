@@ -68,6 +68,7 @@ project(example_steadystate_parallel)
 
 set(SRC_LIST_EXE_PARALLEL
     main_parallel.cpp
+    steadystateProblem.cpp
     steadystateProblemParallel.cpp
 )
 
