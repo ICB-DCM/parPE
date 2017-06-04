@@ -2,11 +2,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-
 #include "misc.h"
 #include "localOptimizationCeres.h"
 #include "localOptimizationIpopt.h"
-
+#include <hdf5Misc.h>
 /**
  * @brief getLocalOptimum
  * @param problem
@@ -128,9 +127,31 @@ OptimizationOptions::OptimizationOptions()
     logFile = NULL;
     printToStdout = true;
     maxOptimizerIterations = 1000;
+    numStarts = 1;
 }
 
 OptimizationOptions *OptimizationOptions::fromHDF5(const char *fileName)
 {
-    return NULL; // TODO
+
+    OptimizationOptions *o = new OptimizationOptions();
+
+    const char *hdf5path = "optimizationOptions";
+
+    hid_t fileId = H5Fopen(fileName, H5F_ACC_RDONLY, H5P_DEFAULT);
+
+    if(fileId < 0) {
+        logmessage(LOGLVL_CRITICAL, "OptimizationOptions::fromHDF5 failed to open HDF5 file '%s'.", fileName);
+        printBacktrace(20);
+    }
+
+    if(hdf5AttributeExists(fileId, hdf5path, "maxIter")) {
+        H5LTget_attribute_int(fileId, hdf5path, "maxIter", &maxOptimizerIterations);
+    }
+
+    if(hdf5AttributeExists(fileId, hdf5path, "maxStarts")) {
+        H5LTget_attribute_int(fileId, hdf5path, "maxIter", &numStarts);
+    }
+
+
+    return o;
 }

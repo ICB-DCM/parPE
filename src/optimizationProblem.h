@@ -25,6 +25,9 @@ public:
 
     static OptimizationOptions* fromHDF5(const char* fileName);
 
+    /** Number of starts for local optimization (only used for multi-start optimization */
+    int numStarts;
+
 };
 
 class OptimizationProblem {
@@ -80,7 +83,7 @@ public:
     OptimizationOptions *optimizationOptions;
 };
 
-int getLocalOptimum(OptimizationProblem *problem);
+int getLocalOptimum(OptimizationProblem *problem, OptimizationOptions *options);
 
 void *getLocalOptimumThreadWrapper(void *optimizationProblemVp);
 
