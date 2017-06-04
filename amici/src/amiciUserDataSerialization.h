@@ -191,4 +191,5 @@ void serialize(Archive & ar, UserData & u, const unsigned int version)
 } // namespace serialization
 } // namespace boost
 
+
 #endif // AMICIUSERDATASERIALIZATION_H
