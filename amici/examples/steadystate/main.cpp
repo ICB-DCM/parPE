@@ -1,9 +1,10 @@
 #include <stdio.h>
+
+#include "optimizationProblem.h"
 #include "steadystateProblem.h"
 
 int main(int argc, char **argv)
 {
-
     SteadystateProblem problem = SteadystateProblem();
 
     printf("#########\n");

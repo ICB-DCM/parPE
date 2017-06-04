@@ -7,16 +7,16 @@ SteadystateProblem::SteadystateProblem()
     setupUserData();
     setupExpData();
 
-    numOptimizationParameters = udata->am_np;
+    numOptimizationParameters = udata->np;
 
     initialParameters = new double [numOptimizationParameters];
-    fillArray(initialParameters, udata->am_np, 0);
+    fillArray(initialParameters, udata->np, 0);
 
     parametersMin = new double [numOptimizationParameters];
-    fillArray(parametersMin, udata->am_np, -5);
+    fillArray(parametersMin, udata->np, -5);
 
     parametersMax = new double [numOptimizationParameters];
-    fillArray(parametersMax, udata->am_np, 5);
+    fillArray(parametersMax, udata->np, 5);
 
     optimizationOptions = new OptimizationOptions();
 
@@ -29,28 +29,28 @@ SteadystateProblem::SteadystateProblem()
 
 int SteadystateProblem::evaluateObjectiveFunction(const double *parameters, double *objFunVal, double *objFunGrad)
 {
-    int status = -1;
-    memcpy(udata->am_p, parameters, udata->am_np * sizeof(double));
+    memcpy(udata->p, parameters, udata->np * sizeof(double));
 
-//    printArray(parameters, udata->am_np);printf("\n");
+//    printArray(parameters, udata->np);printf("\n");
 
     if(objFunGrad) {
-        udata->am_sensi = AMI_SENSI_ORDER_FIRST;
-        udata->am_sensi_meth = AMI_SENSI_FSA;
+        udata->sensi = AMI_SENSI_ORDER_FIRST;
+        udata->sensi_meth = AMI_SENSI_FSA;
     } else {
-        udata->am_sensi = AMI_SENSI_ORDER_NONE;
-        udata->am_sensi_meth = AMI_SENSI_NONE;
+        udata->sensi = AMI_SENSI_ORDER_NONE;
+        udata->sensi_meth = AMI_SENSI_NONE;
     }
 
-    ReturnData *rdata = getSimulationResults(udata, edata, &status);
+    ReturnData *rdata = getSimulationResults(udata, edata);
+    int status = (int) *rdata->status;
 
-    *objFunVal = - *rdata->am_llhdata;
+    *objFunVal = - *rdata->llh;
 
     if(objFunGrad)
-        for(int i = 0; i < udata->am_np; ++i)
-            objFunGrad[i] = - rdata->am_sllhdata[i];
+        for(int i = 0; i < udata->np; ++i)
+            objFunGrad[i] = - rdata->sllh[i];
 
-    freeReturnData(rdata);
+    delete rdata;
 
     return status;
 }
@@ -68,7 +68,7 @@ void SteadystateProblem::logObjectiveFunctionEvaluation(const double *parameters
 void SteadystateProblem::logOptimizerFinished(double optimalCost, const double *optimalParameters, double masterTime, int exitStatus)
 {
     printf("Optimal parameters:\n\t");
-    printArray(optimalParameters, udata->am_np);
+    printArray(optimalParameters, udata->np);
     printf("\n");
     printf("Minimal cost: %f\n", optimalCost);
 }
@@ -77,7 +77,7 @@ SteadystateProblem::~SteadystateProblem(){
     delete[] initialParameters;
     delete[] parametersMin;
     delete[] parametersMax;
-    freeUserData(udata);
+    delete udata;
     freeExpData(edata);
 
     delete optimizationOptions;
@@ -85,51 +85,41 @@ SteadystateProblem::~SteadystateProblem(){
 
 void SteadystateProblem::setupUserData()
 {
-    udata = getDefaultUserData();
-    init_modeldims(udata);
+    udata = new UserData(getUserData());
 
-    udata->am_atol = 1e-8;
-    udata->am_rtol = 1e-8;
+    udata->nt = 1;
+    udata->ts = new double[udata->nt];
+    udata->ts[0] = 100;
 
-    udata->am_nt = 1;
-    udata->am_ts = new double[udata->am_nt];
-    udata->am_ts[0] = 100;
+    udata->idlist = new double[udata->nx];
+    fillArray(udata->idlist, udata->nx, 1);
+    udata->qpositivex = new double[udata->nx];
+    fillArray(udata->qpositivex, udata->nx, 1);
 
-    udata->am_idlist = new double[udata->am_nx];
-    fillArray(udata->am_idlist, udata->am_nx, 1);
-    udata->am_qpositivex = new double[udata->am_nx];
-    fillArray(udata->am_qpositivex, udata->am_nx, 1);
+    // calculate sensitivities for all parameters
+    udata->plist = new int[udata->np];
+    udata->nplist = udata->np;
+    for(int i = 0; i < udata->np; ++i) udata->plist[i] = i;
 
-    udata->am_plist = new int[udata->am_np];
-    udata->am_nplist = udata->am_np;
-    for(int i = 0; i < udata->am_np; ++i) udata->am_plist[i] = i;
+    udata->p = new double[udata->np];
 
-    udata->am_p = new double[udata->am_np];
+    // set model constants
+    udata->k = new double[udata->nk];
+    udata->k[0] = 0.1;
+    udata->k[1] = 0.4;
+    udata->k[2] = 0.7;
+    udata->k[3] = 1;
 
-    udata->am_k = new double[udata->am_nk];
-    udata->am_k[0] = 0.1;
-    udata->am_k[1] = 0.4;
-    udata->am_k[2] = 0.7;
-    udata->am_k[3] = 1;
-
-    udata->am_lmm = 1;
-    udata->am_iter = 1;
-    udata->am_linsol = AMI_KLU;
-
-    udata->am_maxsteps = 1e5;
-
-    udata->am_sensi = AMI_SENSI_ORDER_FIRST;
-    udata->am_sensi_meth = AMI_SENSI_FSA;
-
-    processUserData(udata);
+    udata->sensi = AMI_SENSI_ORDER_FIRST;
+    udata->sensi_meth = AMI_SENSI_FSA;
 }
 
 void SteadystateProblem::setupExpData()
 {
     edata = new ExpData();
-    edata->am_my = new double[udata->am_nytrue * udata->am_nt];
-    fillArray(edata->am_my, udata->am_nytrue * udata->am_nt, 1);
-    edata->am_ysigma = new double[udata->am_nytrue * udata->am_nt];
-    fillArray(edata->am_ysigma, udata->am_nytrue * udata->am_nt, 1);
+    edata->am_my = new double[udata->nytrue * udata->nt];
+    fillArray(edata->am_my, udata->nytrue * udata->nt, 1);
+    edata->am_ysigma = new double[udata->nytrue * udata->nt];
+    fillArray(edata->am_ysigma, udata->nytrue * udata->nt, 1);
 }
 

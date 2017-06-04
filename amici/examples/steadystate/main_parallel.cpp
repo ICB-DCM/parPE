@@ -74,24 +74,23 @@ void messageHandler(char** buffer, int *size, int jobId, void *userData)
 
     // unpack data
     double *doubleBuffer = (double *) *buffer;
-    for(int i = 0; i < udata->am_nk; ++i)
-        udata->am_k[i] = doubleBuffer[i];
-    for(int i = 0; i < udata->am_np; ++i)
-        udata->am_p[i] = doubleBuffer[i + udata->am_nk];
+    for(int i = 0; i < udata->nk; ++i)
+        udata->k[i] = doubleBuffer[i];
+    for(int i = 0; i < udata->np; ++i)
+        udata->p[i] = doubleBuffer[i + udata->nk];
     free(*buffer);
 
     // run simulation
-    int tmpStatus;
-    ReturnData *rdata = getSimulationResults(udata, problem->edata, &tmpStatus);
+    ReturnData *rdata = getSimulationResults(udata, problem->edata);
 
     // pack results
-    *size = sizeof(double) * (udata->am_nplist + 1);
+    *size = sizeof(double) * (udata->nplist + 1);
     *buffer = (char*) malloc(*size);
     doubleBuffer = (double*) *buffer;
 
-    doubleBuffer[0] = rdata->am_llhdata[0];
-    for(int i = 0; i < udata->am_nplist; ++i)
-        doubleBuffer[1 + i] = rdata->am_sllhdata[i];
+    doubleBuffer[0] = rdata->llh[0];
+    for(int i = 0; i < udata->nplist; ++i)
+        doubleBuffer[1 + i] = rdata->sllh[i];
 
-    freeReturnData(rdata);
+    delete rdata;
 }

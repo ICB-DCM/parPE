@@ -83,7 +83,7 @@ public:
     OptimizationOptions *optimizationOptions;
 };
 
-int getLocalOptimum(OptimizationProblem *problem, OptimizationOptions *options);
+int getLocalOptimum(OptimizationProblem *problem);
 
 void *getLocalOptimumThreadWrapper(void *optimizationProblemVp);
 

@@ -38,12 +38,6 @@ include_directories(
 # AMICI-generated model files
 add_subdirectory(model)
 
-# unit tests
-# if(${BUILD_TESTS})
-#     add_subdirectory(tests)
-# endif(${BUILD_TESTS})
-
-
 # example_steadystate executable
 project(example_steadystate)
 
@@ -61,10 +55,11 @@ target_link_libraries(${PROJECT_NAME}
     ${HDF5_HL_LIBRARIES}
     ${HDF5_C_LIBRARIES}
     ${SUITESPARSE_LIBRARIES}
-    -lpthread
-    pe
     ${CERES_LIBRARIES}
     ${BLAS_LIBRARIES}
+    parpeoptimization
+    parpeloadbalancer
+    Threads::Threads
 )
 # /example_steadystate executable
 
@@ -85,9 +80,10 @@ target_link_libraries(${PROJECT_NAME}
     ${HDF5_HL_LIBRARIES}
     ${HDF5_C_LIBRARIES}
     ${SUITESPARSE_LIBRARIES}
-    -lpthread
-    pe
     ${CERES_LIBRARIES}
     ${BLAS_LIBRARIES}
+    parpeoptimization
+    parpeloadbalancer
+    Threads::Threads
 )
 # /example_steadystate_parallel executable

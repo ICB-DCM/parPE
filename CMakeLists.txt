@@ -76,11 +76,9 @@ if(${BUILD_TESTS})
     set(CPPUTEST_INCLUDE_DIR "${CPPUTEST_DIR}/include")
     set(CPPUTEST_LIBRARY "${CPPUTEST_DIR}/cpputest_build/lib/libCppUTest.a" "${CPPUTEST_DIR}/cpputest_build/lib/libCppUTestExt.a")
     include_directories(${CPPUTEST_INCLUDE_DIR})
-
-
-
 endif(${BUILD_TESTS})
 
 add_subdirectory(common)
 add_subdirectory(optimization)
 add_subdirectory(loadbalancer)
+add_subdirectory(amici)
