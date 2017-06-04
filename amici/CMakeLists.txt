@@ -1,5 +1,7 @@
 set(AMICI_DIR "/home/dweindl/src/AMICI.github" CACHE PATH "AMICI root directory")
 
+find_package(Boost COMPONENTS serialization)
+
 include_directories(
     src
     ${AMICI_DIR}/include

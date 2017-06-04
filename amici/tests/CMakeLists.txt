@@ -2,11 +2,14 @@ project(unittests_amici)
 
 add_test (NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME} -c)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -include ${CPPUTEST_DIR}/include/CppUTest/MemoryLeakDetectorMallocMacros.h")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -include ${CPPUTEST_DIR}/include/CppUTest/MemoryLeakDetectorNewMacros.h")
+# Cannot use with boost serialization
+#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -include ${CPPUTEST_DIR}/include/CppUTest/MemoryLeakDetectorMallocMacros.h")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -include ${CPPUTEST_DIR}/include/CppUTest/MemoryLeakDetectorNewMacros.h")
 
 set(SRC_LIST_CPP
     main.cpp
+    ../src/serializationtest.cpp
+    ${AMICI_DIR}/src/udata.cpp
     # TODO fix __node does not name a type hdf/mpi../src/multiConditionProblemResultWriterTest.cpp
 )
 
