@@ -10,12 +10,17 @@ set(SRC_LIST_CPP
     main.cpp
     ../src/serializationtest.cpp
     ${AMICI_DIR}/src/udata.cpp
+    ${AMICI_DIR}/src/rdata.cpp
     # TODO fix __node does not name a type hdf/mpi../src/multiConditionProblemResultWriterTest.cpp
+    ../src/simulationWorkerAmiciTest.cpp
+    ../../common/src/testingMisc.c
 )
+set(SHARED_OBJECT_EXTENSION .so)
 
 add_executable(${PROJECT_NAME} ${SRC_LIST_CPP})
 
 target_link_libraries(${PROJECT_NAME}
+
     parpeoptimization
     parpecommon
     parpeamici
