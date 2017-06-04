@@ -17,6 +17,7 @@ function [ output_args ] = createExampleData(  )
     numK = 4;
     numY = 3;
     numT = numel(t);
+    sigmaY = 0.1;
     rng(0);
     hdfFile = '/home/dweindl/src/parPE/amici/examples/steadystate/data.h5';
     kAll = rand(numConditions, numK);
@@ -35,12 +36,13 @@ function [ output_args ] = createExampleData(  )
     h5write(hdfFile, '/data/k', kAll);
     h5writeatt(hdfFile, '/data/', 'ptrue', log10(p));
     h5writeatt(hdfFile, '/data/', 't', t);
+    h5writeatt(hdfFile, '/data/', 'sigmay', sigmaY);
 
     for i = 1:numConditions
         k = kAll(i, :);
         sol = simulate_model_steadystate(t,log10(p),k,[],options);
         h5write(hdfFile, '/data/ytrue', sol.y, [1, 1, i], [numT, numY, 1]);
-        h5write(hdfFile, '/data/ymeasured', sol.y * (1 + 0.2 * randn()), [1, 1, i], [numT, numY, 1]);
+        h5write(hdfFile, '/data/ymeasured', sol.y * (1 + sigmaY * randn()), [1, 1, i], [numT, numY, 1]);
     end
 end
 

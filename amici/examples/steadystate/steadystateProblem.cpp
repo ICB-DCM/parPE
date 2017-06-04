@@ -138,8 +138,9 @@ void SteadystateProblem::setupExpData(int conditionIdx)
     edata->am_my = new double[udata->nytrue * udata->nt];
     readMeasurement(conditionIdx);
 
+    double ysigma = AMI_HDF5_getDoubleScalarAttribute(fileId, "data", "sigmay");
     edata->am_ysigma = new double[udata->nytrue * udata->nt];
-    fillArray(edata->am_ysigma, udata->nytrue * udata->nt, 0.2);
+    fillArray(edata->am_ysigma, udata->nytrue * udata->nt, ysigma);
 }
 
 void SteadystateProblem::readFixedParameters(int conditionIdx)
