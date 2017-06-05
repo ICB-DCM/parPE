@@ -76,7 +76,7 @@ SteadyStateMultiConditionProblem::SteadyStateMultiConditionProblem(SteadyStateMu
     optimizationOptions = new OptimizationOptions();
     optimizationOptions->optimizer = OPTIMIZER_IPOPT;
     optimizationOptions->printToStdout = true;
-    optimizationOptions->maxOptimizerIterations = 10;
+    optimizationOptions->maxOptimizerIterations = 30;
 
 }
 

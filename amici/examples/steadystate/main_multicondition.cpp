@@ -36,15 +36,19 @@ int main(int argc, char **argv)
 
 //    } else
     {
+        int mpiRank;
+        MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
+
         const char *filename = "/home/dweindl/src/parPE/amici/examples/steadystate/data.h5";
-        initResultHDFFile("testResultWriter.h5", true);
+        const char *outfilename = "testResultWriter_rank%3d.h5";
+        char outfilefull[200];
+        sprintf(outfilefull, outfilename, mpiRank);
+        initResultHDFFile(outfilefull, true);
 
         SteadyStateMultiConditionDataProvider dataProvider =
                 SteadyStateMultiConditionDataProvider(filename);
         SteadyStateMultiConditionProblem problem(&dataProvider);
 
-        int mpiRank;
-        MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
 
         if(mpiRank == 0) {
             loadBalancerStartMaster();
