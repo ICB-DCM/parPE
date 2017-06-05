@@ -8,12 +8,12 @@ UserData getUserData();
 
 void printJobIdentifierifier(JobIdentifier id)
 {
-    printf("%d.%d.%d.%d\n", id.idxMultiStart, id.idxLocalOptimization, id.idxLocalOptimizationIteration, id.idxConditions);
+    printf("%d.%d.%d.%d", id.idxMultiStart, id.idxLocalOptimization, id.idxLocalOptimizationIteration, id.idxConditions);
 }
 
 void sprintJobIdentifier(char *buffer, JobIdentifier id)
 {
-    sprintf(buffer, "%d.%d.%d.%d\n", id.idxMultiStart, id.idxLocalOptimization, id.idxLocalOptimizationIteration, id.idxConditions);
+    sprintf(buffer, "%d.%d.%d.%d", id.idxMultiStart, id.idxLocalOptimization, id.idxLocalOptimizationIteration, id.idxConditions);
 }
 
 

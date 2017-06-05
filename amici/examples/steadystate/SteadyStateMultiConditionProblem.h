@@ -18,7 +18,7 @@ public:
         modelDims.nt = 20;
     }
 
-    int getNumberOfConditions() { return 6; }
+    int getNumberOfConditions() { return 12; }
 
     int getNumConditionSpecificParametersPerSimulation() { return 0; }
 
@@ -97,7 +97,7 @@ public:
         optimizationOptions = new OptimizationOptions();
         optimizationOptions->optimizer = OPTIMIZER_IPOPT;
         optimizationOptions->printToStdout = true;
-        optimizationOptions->maxOptimizerIterations = 2;
+        optimizationOptions->maxOptimizerIterations = 10;
 
     }
     void setSensitivityOptions(bool sensiRequired) {

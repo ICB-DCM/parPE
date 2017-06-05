@@ -94,7 +94,7 @@ void messageHandler(char** buffer, int *size, int jobId, void *userData)
 
     // run simulation
     ReturnData *rdata = getSimulationResults(udata, problem->edata);
-
+printf("Result for %d: %f\n", conditionIdx, *rdata->llh);
     // pack results
     *size = sizeof(double) * (udata->nplist + 1);
     *buffer = (char*) malloc(*size);
