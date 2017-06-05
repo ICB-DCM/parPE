@@ -15,9 +15,10 @@ public:
         : MultiConditionDataProvider(hdf5Filename){
         udata = new UserData(getModelDims());
         setupUserData(udata);
+        modelDims.nt = 20;
     }
 
-    int getNumberOfConditions() { return 2; }
+    int getNumberOfConditions() { return 6; }
 
     int getNumConditionSpecificParametersPerSimulation() { return 0; }
 
@@ -35,6 +36,7 @@ public:
         double ysigma = AMI_HDF5_getDoubleScalarAttribute(fileId, "data", "sigmay");
         edata->am_ysigma = new double[modelDims.nytrue * modelDims.nt];
         fillArray(edata->am_ysigma, modelDims.nytrue * modelDims.nt, ysigma);
+
         return edata;
     }
 

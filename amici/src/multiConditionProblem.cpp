@@ -28,6 +28,7 @@ void handleWorkPackage(char **buffer, int *msgSize, int jobId, void *userData)
 
     // unpack
     UserData udata = dataProvider->getModelDims(); // TODO get from buffer // TODO make sure this is full udata, not only model dins
+abort(); // Need proper userdata
     JobIdentifier path;
     JobAmiciSimulation::toUserData(*buffer, &udata, &path);
     free(*buffer);
@@ -182,7 +183,7 @@ ReturnData *MultiConditionProblem::runAndLogSimulation(UserData *udata, MultiCon
         abort();
     }
 
-    ReturnData *rdata = SteadystateSimulator::getSteadystateSolution(udata, edata, status, &iterationsUntilSteadystate);
+    ReturnData *rdata = getSimulationResults(udata, edata);
 
     freeExpData(edata);
 #else
