@@ -5,11 +5,13 @@
 #include <boost/archive/text_oarchive.hpp>
 #include <udata.h>
 
+char *serializeAmiciUserData(const UserData *udata, int *size);
+
+UserData deserializeAmiciUserData(const char *buffer, int size);
+
 namespace boost {
 namespace serialization {
 
-template<class Archive>
-void serialize(Archive & ar, UserData & u, const unsigned int version);
 template<class Archive>
 void serialize(Archive & ar, UserData & u, const unsigned int version)
 {
@@ -31,6 +33,7 @@ void serialize(Archive & ar, UserData & u, const unsigned int version)
     ar & const_cast<int &>(u.ng);
     ar & const_cast<int &>(u.ubw);
     ar & const_cast<int &>(u.lbw);
+    ar & u.pscale;
     ar & u.nmaxevent;
     ar & u.nplist;
     ar & u.nt;

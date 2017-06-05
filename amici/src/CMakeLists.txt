@@ -9,6 +9,7 @@ set(SRC_LIST
     multiConditionProblemResultWriterTest.cpp
     simulationWorkerAmici.cpp
     steadystateSimulator.cpp
+    amiciUserDataSerialization.cpp
 )
 
 add_library(${PROJECT_NAME} ${SRC_LIST})

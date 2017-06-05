@@ -15,7 +15,7 @@ TEST_GROUP(simulationWorkerAmici) {
     }
 };
 
-TEST(simulationWorkerAmici, testSerializeResultPackageMessage) {
+IGNORE_TEST(simulationWorkerAmici, testSerializeResultPackageMessage) {
     // serialize and deserialize resultpackage with random content
     int nTheta = randInt(0, 5000);
 
