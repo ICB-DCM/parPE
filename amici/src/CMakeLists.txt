@@ -1,0 +1,37 @@
+project(parpeamici)
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+
+set(SRC_LIST
+    MultiConditionDataProvider.cpp
+    multiConditionProblem.cpp
+    multiConditionProblemResultWriter.cpp
+    multiConditionProblemResultWriterTest.cpp
+    simulationWorkerAmici.cpp
+    steadystateSimulator.cpp
+)
+
+add_library(${PROJECT_NAME} ${SRC_LIST})
+
+set(SHARED_OBJECT_EXTENSION .so)
+
+target_link_libraries(${PROJECT_NAME}
+
+"${SUNDIALS_LIB_DIR}/libsundials_nvecserial${SHARED_OBJECT_EXTENSION}"
+"${SUNDIALS_LIB_DIR}/libsundials_cvodes${SHARED_OBJECT_EXTENSION}"
+"${SUITESPARSE_LIB_DIR}/libcolamd${SHARED_OBJECT_EXTENSION}"
+"${SUITESPARSE_LIB_DIR}/libklu${SHARED_OBJECT_EXTENSION}"
+"${SUITESPARSE_LIB_DIR}/libbtf${SHARED_OBJECT_EXTENSION}"
+"${SUITESPARSE_LIB_DIR}/libamd${SHARED_OBJECT_EXTENSION}"
+"${SUITESPARSE_LIB_DIR}/libsuitesparseconfig${SHARED_OBJECT_EXTENSION}"
+
+    parpecommon
+    ${IPOPT_LIBRARIES}
+    ${CERES_LIBRARIES}
+    ${SUNDIALS_LIBRARIES}
+    ${HDF5_HL_LIBRARIES}
+    ${HDF5_C_LIBRARIES}
+    ${SUITESPARSE_LIBRARIES}
+    ${Boost_SERIALIZATION_LIBRARY_RELEASE}
+    Threads::Threads
+)

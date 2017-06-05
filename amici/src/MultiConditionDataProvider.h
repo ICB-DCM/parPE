@@ -4,6 +4,7 @@
 #include <hdf5Misc.h>
 #include <udata.h>
 #include <edata.h>
+#include <string>
 
 /** Struct to tell simulation workers which dataset they are operating on
   */
@@ -27,7 +28,7 @@ void sprintJobIdentifier(char *buffer, JobIdentifier id);
 class MultiConditionDataProvider
 {
 public:
-    MultiConditionDataProvider(UserData udata, const char *hdf5Filename);
+    MultiConditionDataProvider(const char *hdf5Filename);
 
     virtual int getNumberOfConditions();
 
@@ -36,6 +37,8 @@ public:
     virtual int updateFixedSimulationParameters(int conditionIdx, UserData *udata);
 
     virtual ExpData *getExperimentalDataForExperimentAndUpdateUserData(int conditionIdx, UserData *udata);
+
+    virtual ExpData *getExperimentalDataForCondition(int conditionIdx);
 
     /**
      * @brief getOptimizationParametersLowerBounds Get lower parameter bounds
@@ -58,14 +61,19 @@ public:
 
     virtual UserData getModelDims();
 
+    virtual UserData *getUserDataForCondition(int conditionIdx);
+
     virtual int getIndexOfFirstConditionSpecificOptimizationParameter(int conditionIdx);
 
     virtual ~MultiConditionDataProvider();
 
+    std::string hdf5MeasurementPath;
+    std::string hdf5MeasurementSigmaPath;
+    std::string hdf5ConditionPath;
 
 protected:
     UserData modelDims;
-    hid_t file_id;
+    hid_t fileId;
 
 };
 

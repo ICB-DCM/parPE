@@ -88,3 +88,31 @@ target_link_libraries(${PROJECT_NAME}
     Threads::Threads
 )
 # /example_steadystate_parallel executable
+
+# example_steadystate_multi executable
+project(example_steadystate_multi)
+
+set(SRC_LIST_EXE_PARALLEL
+    main_multicondition.cpp
+    SteadyStateMultiConditionProblem.cpp
+    steadystateProblem.cpp
+    steadystateProblemParallel.cpp
+)
+
+add_executable(${PROJECT_NAME} ${SRC_LIST_EXE_PARALLEL})
+
+target_link_libraries(${PROJECT_NAME}
+    ${MODEL_LIBRARIES}
+    ${IPOPT_LIBRARIES}
+    ${SUNDIALS_LIBRARIES}
+    ${HDF5_HL_LIBRARIES}
+    ${HDF5_C_LIBRARIES}
+    ${SUITESPARSE_LIBRARIES}
+    ${CERES_LIBRARIES}
+    ${BLAS_LIBRARIES}
+    parpeoptimization
+    parpeloadbalancer
+    parpeamici
+    Threads::Threads
+)
+# /example_steadystate_multi executable

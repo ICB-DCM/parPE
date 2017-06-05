@@ -24,7 +24,7 @@ IGNORE_TEST(resultWriter, testResultWriter) {
 
     // TODO steadystate example
     UserData udata(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,AMI_SCALING_LN, AMI_O2MODE_NONE);
-    MultiConditionDataProvider dataprovider(udata, "********.h5") ;
+    MultiConditionDataProvider dataprovider("********.h5") ;
     OptimizationProblem *problem = new MultiConditionProblem(&dataprovider);
 
     double parameters[problem->numOptimizationParameters];
