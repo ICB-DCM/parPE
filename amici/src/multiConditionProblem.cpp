@@ -293,7 +293,7 @@ int MultiConditionProblem::aggregateLikelihood(JobData *data, double *logLikelih
     for(int simulationIdx = 0; simulationIdx < numJobsTotal; ++simulationIdx) {
         errors += unpackSimulationResult(&data[simulationIdx], sllhTmp, &llhTmp);
 
-        *logLikelihood += llhTmp;
+        *logLikelihood -= llhTmp;
 
         if(objectiveFunctionGradient)
             addSimulationGradientToObjectiveFunctionGradient(simulationIdx,
@@ -361,7 +361,7 @@ void MultiConditionProblem::addSimulationGradientToObjectiveFunctionGradient(int
 
     // global parameters: simply add
     for(int paramIdx = 0; paramIdx < numCommon; ++paramIdx)
-        objectiveFunctionGradient[paramIdx] += simulationGradient[paramIdx];
+        objectiveFunctionGradient[paramIdx] -= simulationGradient[paramIdx];
 
     int numConditionSpecificParams = dataProvider->getNumConditionSpecificParametersPerSimulation();
 
@@ -370,7 +370,7 @@ void MultiConditionProblem::addSimulationGradientToObjectiveFunctionGradient(int
     for(int paramIdx = 0; paramIdx < numConditionSpecificParams; ++paramIdx) {
         int idxGrad = firstIndexOfCurrentConditionsSpecificOptimizationParameters + paramIdx;
         int idxSim  = numCommon + paramIdx;
-        objectiveFunctionGradient[idxGrad] += simulationGradient[idxSim];
+        objectiveFunctionGradient[idxGrad] -= simulationGradient[idxSim];
     }
 }
 
