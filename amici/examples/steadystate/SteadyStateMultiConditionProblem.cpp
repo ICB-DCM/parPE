@@ -57,6 +57,13 @@ void SteadyStateMultiConditionDataProvider::setupUserData(UserData *udata) {
 
 }
 
+UserData *SteadyStateMultiConditionDataProvider::getUserData(UserData *udata)
+{
+    UserData *udata = new UserData(getUserData());
+    setupUserData(udata);
+    return udata;
+}
+
 SteadyStateMultiConditionProblem::SteadyStateMultiConditionProblem(SteadyStateMultiConditionDataProvider *dp) : MultiConditionProblem(dp) {
 
     udata = new UserData(getUserData());

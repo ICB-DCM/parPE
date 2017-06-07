@@ -23,6 +23,8 @@ public:
 
     void setupUserData(UserData *udata);
 
+    UserData *getUserData();
+
     UserData *udata;
 };
 
