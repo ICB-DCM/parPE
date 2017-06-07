@@ -11,7 +11,7 @@ include_directories(
     ../optimization/src
     ${SUITESPARSE_INCLUDE_DIRS}
     ${SUNDIALS_INCLUDE_DIRS}
-
+    ${Boost_INCLUDE_DIR}
 )
 
 add_subdirectory(examples)

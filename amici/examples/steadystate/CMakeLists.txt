@@ -49,6 +49,8 @@ set(SRC_LIST_EXE
 add_executable(${PROJECT_NAME} ${SRC_LIST_EXE})
 
 target_link_libraries(${PROJECT_NAME}
+    parpeoptimization
+    parpeloadbalancer
     ${MODEL_LIBRARIES}
     ${IPOPT_LIBRARIES}
     ${SUNDIALS_LIBRARIES}
@@ -57,8 +59,6 @@ target_link_libraries(${PROJECT_NAME}
     ${SUITESPARSE_LIBRARIES}
     ${CERES_LIBRARIES}
     ${BLAS_LIBRARIES}
-    parpeoptimization
-    parpeloadbalancer
     Threads::Threads
 )
 # /example_steadystate executable
@@ -75,6 +75,8 @@ set(SRC_LIST_EXE_PARALLEL
 add_executable(${PROJECT_NAME} ${SRC_LIST_EXE_PARALLEL})
 
 target_link_libraries(${PROJECT_NAME}
+    parpeoptimization
+    parpeloadbalancer
     ${MODEL_LIBRARIES}
     ${IPOPT_LIBRARIES}
     ${SUNDIALS_LIBRARIES}
@@ -83,13 +85,13 @@ target_link_libraries(${PROJECT_NAME}
     ${SUITESPARSE_LIBRARIES}
     ${CERES_LIBRARIES}
     ${BLAS_LIBRARIES}
-    parpeoptimization
-    parpeloadbalancer
     Threads::Threads
 )
 # /example_steadystate_parallel executable
 
+
 # example_steadystate_multi executable
+
 project(example_steadystate_multi)
 
 set(SRC_LIST_EXE_PARALLEL
@@ -102,6 +104,9 @@ set(SRC_LIST_EXE_PARALLEL
 add_executable(${PROJECT_NAME} ${SRC_LIST_EXE_PARALLEL})
 
 target_link_libraries(${PROJECT_NAME}
+    parpeoptimization
+    parpeloadbalancer
+    parpeamici
     ${MODEL_LIBRARIES}
     ${IPOPT_LIBRARIES}
     ${SUNDIALS_LIBRARIES}
@@ -110,9 +115,6 @@ target_link_libraries(${PROJECT_NAME}
     ${SUITESPARSE_LIBRARIES}
     ${CERES_LIBRARIES}
     ${BLAS_LIBRARIES}
-    parpeoptimization
-    parpeloadbalancer
-    parpeamici
     Threads::Threads
 )
 # /example_steadystate_multi executable

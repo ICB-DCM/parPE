@@ -30,5 +30,6 @@ target_link_libraries(${PROJECT_NAME}
     ${HDF5_C_LIBRARIES}
     ${SUITESPARSE_LIBRARIES}
     ${CPPUTEST_LIBRARY}
+    ${BLAS_LIBRARIES}
     Threads::Threads
 )

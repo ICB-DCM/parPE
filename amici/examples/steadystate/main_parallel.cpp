@@ -5,7 +5,8 @@
 #include <loadBalancerMaster.h>
 #include <loadBalancerWorker.h>
 #include "hdf5Misc.h"
-#include<unistd.h>
+#include <unistd.h>
+#include <string.h>
 /*
  * This example demonstrates the use of the loadbalancer / queue for parallel ODE simulation.
  */
