@@ -27,7 +27,7 @@ int main(int argc, char **argv)
 
     const char *filename;
     if(argc == 2) {
-        inputFile = argv[1];
+        filename = argv[1];
     } else {
         logmessage(LOGLVL_CRITICAL, "Must provide input file as first and only argument to %s.", argv[0]);
         return 1;
