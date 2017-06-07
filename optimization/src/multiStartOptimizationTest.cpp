@@ -1,3 +1,5 @@
+#include <bits/stl_tree.h>
+
 #include "CppUTest/TestHarness.h"
 #include "CppUTestExt/MockSupport.h"
 

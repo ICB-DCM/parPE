@@ -25,6 +25,14 @@ int main(int argc, char **argv)
     initMPI(&argc, &argv);
     initHDF5Mutex();
 
+    const char *filename;
+    if(argc == 2) {
+        inputFile = argv[1];
+    } else {
+        logmessage(LOGLVL_CRITICAL, "Must provide input file as first and only argument to %s.", argv[0]);
+        return 1;
+    }
+
 
     int commSize;
     MPI_Comm_size(MPI_COMM_WORLD, &commSize);
@@ -39,7 +47,6 @@ int main(int argc, char **argv)
         int mpiRank;
         MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
 
-        const char *filename = "/home/dweindl/src/parPE/amici/examples/steadystate/data.h5";
         const char *outfilename = "testResultWriter_rank%3d.h5";
         char outfilefull[200];
         sprintf(outfilefull, outfilename, mpiRank);

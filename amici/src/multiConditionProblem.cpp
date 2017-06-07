@@ -27,10 +27,9 @@ void handleWorkPackage(char **buffer, int *msgSize, int jobId, void *userData)
     MultiConditionDataProvider *dataProvider = problem->getDataProvider();
 
     // unpack
-    UserData udata = dataProvider->getModelDims(); // TODO get from buffer // TODO make sure this is full udata, not only model dins
-abort(); // Need proper userdata
+    UserData *udata = dataProvider->getUserData();
     JobIdentifier path;
-    JobAmiciSimulation::toUserData(*buffer, &udata, &path);
+    JobAmiciSimulation::toUserData(*buffer, udata, &path);
     free(*buffer);
 
 #if QUEUE_WORKER_H_VERBOSE >= 2
@@ -41,18 +40,19 @@ abort(); // Need proper userdata
 
     // work
     int status = 0;
-    ReturnData *rdata = MultiConditionProblem::runAndLogSimulation(&udata, dataProvider, path, jobId, &status);
+    ReturnData *rdata = MultiConditionProblem::runAndLogSimulation(udata, dataProvider, path, jobId, &status);
 
 #if QUEUE_WORKER_H_VERBOSE >= 2
     printf("[%d] Work done. ", mpiRank); printDatapath(path); fflush(stdout);
 #endif
 
     // pack & cleanup
-    *msgSize = JobResultAmiciSimulation::getLength(udata.np);
+    *msgSize = JobResultAmiciSimulation::getLength(udata->np);
     *buffer = (char*) malloc(*msgSize);
-    JobResultAmiciSimulation::serialize(rdata, &udata, status, *buffer);
+    JobResultAmiciSimulation::serialize(rdata, udata, status, *buffer);
 
     delete rdata;
+    delete udata;
 }
 
 ReturnData *getDummyRdata(UserData *udata, int *iterationsDone) {
@@ -82,7 +82,7 @@ MultiConditionProblem::MultiConditionProblem() : OptimizationProblem() // for te
 MultiConditionProblem::MultiConditionProblem(MultiConditionDataProvider *dataProvider) : MultiConditionProblem()
 {
     this->dataProvider = dataProvider;
-    udata = new UserData(dataProvider->getModelDims());
+    udata = dataProvider->getUserDataForCondition(0);
 
     if(udata == NULL)
         abort();
@@ -433,7 +433,7 @@ void MultiConditionProblem::setSensitivityOptions(bool sensiRequired)
     }
 }
 
-MultiConditionProblem *multiConditionProblemGeneratorForMultiStart(int currentStartIdx, void *userData)
+OptimizationProblem *multiConditionProblemGeneratorForMultiStart(int currentStartIdx, void *userData)
 {
     MultiConditionDataProvider *dp = (MultiConditionDataProvider*) userData;
 

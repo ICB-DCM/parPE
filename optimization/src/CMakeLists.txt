@@ -1,6 +1,6 @@
 project(parpeoptimization)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wno-write-strings")
 
 set(SRC_LIST
     localOptimizationIpopt.cpp

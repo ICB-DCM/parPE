@@ -5,6 +5,8 @@
 #include "ami_hdf5.h"
 
 UserData getUserData();
+// alias because getUserData is shadowed in MultiConditionDataProvider
+inline UserData getModelUserData() { return getUserData(); }
 
 void printJobIdentifierifier(JobIdentifier id)
 {
@@ -22,11 +24,10 @@ void sprintJobIdentifier(char *buffer, JobIdentifier id)
  * @param hdf5Filename Filename from where to read data
  */
 
-MultiConditionDataProvider::MultiConditionDataProvider(const char *hdf5Filename) : modelDims(getUserData())
+MultiConditionDataProvider::MultiConditionDataProvider(const char *hdf5Filename) : modelDims(getModelUserData())
 {
     H5_SAVE_ERROR_HANDLER;
     fileId = H5Fopen(hdf5Filename, H5F_ACC_RDONLY, H5P_DEFAULT);
-
     if(fileId < 0) {
         logmessage(LOGLVL_CRITICAL, "initDataProvider failed to open HDF5 file '%s'.", hdf5Filename);
         printBacktrace(20);
@@ -168,10 +169,56 @@ UserData MultiConditionDataProvider::getModelDims()
     return modelDims;
 }
 
+UserData *MultiConditionDataProvider::getUserData()
+{
+    // TODO: separate class for udata?
+    hdf5LockMutex();
+
+    const char* optionsObject = "/amiciOptions";
+
+    H5_SAVE_ERROR_HANDLER;
+    UserData *udata = AMI_HDF5_readSimulationUserDataFromFileObject(fileId, optionsObject);
+
+    if(H5Eget_num(H5E_DEFAULT)) {
+        error("Problem with reading udata\n");
+        printBacktrace(20);
+        H5Ewalk2(H5E_DEFAULT, H5E_WALK_DOWNWARD, hdf5ErrorStackWalker_cb, NULL);
+    }
+    H5_RESTORE_ERROR_HANDLER;
+
+    hdf5UnlockMutex();
+
+    if(udata == NULL)
+        return NULL;
+
+    // ensure parameter indices are within range //TODO: to ami_hdf
+    for(int i = 0; i < udata->nplist; ++i) {
+        assert(udata->plist[i] < udata->np);
+        assert(udata->plist[i] >= 0);
+    }
+
+    if(udata->p == NULL) {
+        udata->p = new double[udata->np];
+    }
+
+    if(udata->k == NULL) {
+        udata->k = new double[udata->nk];
+    }
+
+    // x0data is not written to HDF5 with proper dimensions
+    if(udata->x0data)
+        delete[] udata->x0data;
+    udata->x0data = new double[udata->nx]();
+
+    udata->pscale = AMI_SCALING_LOG10;
+
+    return(udata);
+}
+
 UserData *MultiConditionDataProvider::getUserDataForCondition(int conditionIdx)
 {
-    UserData *udata = new UserData(getModelDims());
-    // initialize
+    UserData *udata = getUserData();
+    updateFixedSimulationParameters(conditionIdx, udata);
     return udata;
 }
 

@@ -61,6 +61,8 @@ public:
 
     virtual UserData getModelDims();
 
+    virtual UserData *getUserData();
+
     virtual UserData *getUserDataForCondition(int conditionIdx);
 
     virtual int getIndexOfFirstConditionSpecificOptimizationParameter(int conditionIdx);
@@ -71,9 +73,10 @@ public:
     std::string hdf5MeasurementSigmaPath;
     std::string hdf5ConditionPath;
 
+    hid_t fileId;
+
 protected:
     UserData modelDims;
-    hid_t fileId;
 
 };
 

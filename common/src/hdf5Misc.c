@@ -448,12 +448,13 @@ void hdf5GetDatasetDimensions2D(hid_t file_id, const char *path, int *d1, int *d
 
 
 int hdf5AttributeExists(hid_t fileId, const char *datasetPath, const char *attributeName) {
+    H5_SAVE_ERROR_HANDLER;
     if(H5Lexists(fileId, datasetPath, H5P_DEFAULT)) {
         hid_t dataset = H5Dopen2(fileId, datasetPath, H5P_DEFAULT);
         if(H5LTfind_attribute(dataset, attributeName))
             return 1;
     }
-
+    H5_RESTORE_ERROR_HANDLER;
     return 0;
 }
 

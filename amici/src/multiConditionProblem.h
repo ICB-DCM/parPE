@@ -91,7 +91,7 @@ public:
 
 };
 
-MultiConditionProblem *multiConditionProblemGeneratorForMultiStart(int currentStartIdx, void *userData);
+OptimizationProblem *multiConditionProblemGeneratorForMultiStart(int currentStartIdx, void *userData);
 
 void handleWorkPackage(char **buffer, int *msgSize, int jobId, void *userData);
 

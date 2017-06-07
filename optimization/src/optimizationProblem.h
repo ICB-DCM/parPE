@@ -2,6 +2,7 @@
 #define OPTIMIZATION_PROBLEM_H
 
 #include <cstdlib>
+#include <hdf5.h>
 
 typedef enum optimizer_tag {OPTIMIZER_IPOPT, OPTIMIZER_CERES} optimizerEnum;
 
@@ -25,8 +26,13 @@ public:
 
     static OptimizationOptions* fromHDF5(const char* fileName);
 
+    static OptimizationOptions* fromHDF5(hid_t fileId);
+
     /** Number of starts for local optimization (only used for multi-start optimization */
     int numStarts;
+
+    /** Retry optimization in case of infeasibility (only used for multi-start optimization */
+    int retryOptimization;
 
     /** Convergence criterium for relative change in subsequent objective function value change */
     double functionTolerance;

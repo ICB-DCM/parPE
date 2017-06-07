@@ -134,11 +134,6 @@ OptimizationOptions::OptimizationOptions()
 
 OptimizationOptions *OptimizationOptions::fromHDF5(const char *fileName)
 {
-
-    OptimizationOptions *o = new OptimizationOptions();
-
-    const char *hdf5path = "optimizationOptions";
-
     hid_t fileId = H5Fopen(fileName, H5F_ACC_RDONLY, H5P_DEFAULT);
 
     if(fileId < 0) {
@@ -146,12 +141,29 @@ OptimizationOptions *OptimizationOptions::fromHDF5(const char *fileName)
         printBacktrace(20);
     }
 
+    OptimizationOptions *o = fromHDF5(fileId);
+
+    H5Fclose(fileId);
+
+    return o;
+}
+
+OptimizationOptions *OptimizationOptions::fromHDF5(hid_t fileId)
+{
+    const char *hdf5path = "optimizationOptions";
+
+    OptimizationOptions *o = new OptimizationOptions();
+
     if(hdf5AttributeExists(fileId, hdf5path, "maxIter")) {
         H5LTget_attribute_int(fileId, hdf5path, "maxIter", &o->maxOptimizerIterations);
     }
 
-    if(hdf5AttributeExists(fileId, hdf5path, "maxStarts")) {
-        H5LTget_attribute_int(fileId, hdf5path, "maxIter", &o->numStarts);
+    if(hdf5AttributeExists(fileId, hdf5path, "numStarts")) {
+        H5LTget_attribute_int(fileId, hdf5path, "numStarts", &o->numStarts);
+    }
+
+    if(hdf5AttributeExists(fileId, hdf5path, "retryOptimization")) {
+        H5LTget_attribute_int(fileId, hdf5path, "retryOptimization", &o->retryOptimization);
     }
 
     if(hdf5AttributeExists(fileId, hdf5path, "functionTolerance")) {
