@@ -1,5 +1,9 @@
 #include "SteadyStateMultiConditionProblem.h"
 
+UserData getUserData();
+// alias because getUserData is shadowed in MultiConditionDataProvider
+inline UserData getModelUserData() { return getUserData(); }
+
 
 SteadyStateMultiConditionDataProvider::SteadyStateMultiConditionDataProvider(const char *hdf5Filename)
     : MultiConditionDataProvider(hdf5Filename){
@@ -57,16 +61,16 @@ void SteadyStateMultiConditionDataProvider::setupUserData(UserData *udata) {
 
 }
 
-UserData *SteadyStateMultiConditionDataProvider::getUserData(UserData *udata)
+UserData *SteadyStateMultiConditionDataProvider::getUserData()
 {
-    UserData *udata = new UserData(getUserData());
+    UserData *udata = new UserData(getModelUserData());
     setupUserData(udata);
     return udata;
 }
 
 SteadyStateMultiConditionProblem::SteadyStateMultiConditionProblem(SteadyStateMultiConditionDataProvider *dp) : MultiConditionProblem(dp) {
 
-    udata = new UserData(getUserData());
+    udata = new UserData(getModelUserData());
     dp->setupUserData(udata);
     numOptimizationParameters = udata->np;
 
