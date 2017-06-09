@@ -47,7 +47,7 @@ int main(int argc, char **argv)
         int mpiRank;
         MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
 
-        const char *outfilename = "testResultWriter_rank%3d.h5";
+        const char *outfilename = "testResultWriter_rank%03d.h5";
         char outfilefull[200];
         sprintf(outfilefull, outfilename, mpiRank);
         initResultHDFFile(outfilefull, true);
