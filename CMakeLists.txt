@@ -1,6 +1,6 @@
 project(parPE)
 
-cmake_minimum_required(VERSION 3.1.0)
+cmake_minimum_required(VERSION 2.8.12)
 
 if(POLICY CMP0056) # for CMake 3.2 and above
    cmake_policy (SET CMP0056 OLD)
@@ -35,6 +35,7 @@ endif(${USE_MPI})
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
+
 
 set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -Wall -Wno-unused-function -fopenmp -D_GNU_SOURCE") # -D_GNU_SOURCE for pthread recursive mutex issues

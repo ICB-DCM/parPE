@@ -59,7 +59,7 @@ target_link_libraries(${PROJECT_NAME}
     ${SUITESPARSE_LIBRARIES}
     ${CERES_LIBRARIES}
     ${BLAS_LIBRARIES}
-    Threads::Threads
+    ${CMAKE_THREAD_LIBS_INIT}
 )
 # /example_steadystate executable
 
@@ -85,7 +85,7 @@ target_link_libraries(${PROJECT_NAME}
     ${SUITESPARSE_LIBRARIES}
     ${CERES_LIBRARIES}
     ${BLAS_LIBRARIES}
-    Threads::Threads
+    ${CMAKE_THREAD_LIBS_INIT}
 )
 # /example_steadystate_parallel executable
 
@@ -115,6 +115,6 @@ target_link_libraries(${PROJECT_NAME}
     ${SUITESPARSE_LIBRARIES}
     ${CERES_LIBRARIES}
     ${BLAS_LIBRARIES}
-    Threads::Threads
+    ${CMAKE_THREAD_LIBS_INIT}
 )
 # /example_steadystate_multi executable

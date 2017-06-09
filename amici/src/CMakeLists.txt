@@ -34,5 +34,5 @@ target_link_libraries(${PROJECT_NAME}
     ${HDF5_C_LIBRARIES}
     ${SUITESPARSE_LIBRARIES}
     ${Boost_SERIALIZATION_LIBRARY_RELEASE}
-    Threads::Threads
+    ${CMAKE_THREAD_LIBS_INIT}
 )

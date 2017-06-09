@@ -24,5 +24,5 @@ target_link_libraries(${PROJECT_NAME}
     ${SUITESPARSE_LIBRARIES}
     ${CPPUTEST_LIBRARY}
     ${BLAS_LIBRARIES}
-    Threads::Threads
+    ${CMAKE_THREAD_LIBS_INIT}
 )
