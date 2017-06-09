@@ -1,6 +1,7 @@
 #ifndef LOGGER_H
 #define LOGGER_H
 
+#include <hdf5.h>
 #include <hdf5_hl.h>
 #include <stdbool.h>
 #include "optimizationProblem.h"
