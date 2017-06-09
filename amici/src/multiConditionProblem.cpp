@@ -77,6 +77,7 @@ MultiConditionProblem::MultiConditionProblem() : OptimizationProblem() // for te
     lastOptimizationParameters = NULL;
     lastObjectiveFunctionGradient = NULL;
     lastObjectiveFunctionValue = NAN;
+    path = {0};
 }
 
 MultiConditionProblem::MultiConditionProblem(MultiConditionDataProvider *dataProvider) : MultiConditionProblem()
