@@ -1,20 +1,15 @@
 project(parpeamici)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-
 set(SRC_LIST
     MultiConditionDataProvider.cpp
     multiConditionProblem.cpp
     multiConditionProblemResultWriter.cpp
-    multiConditionProblemResultWriterTest.cpp
     simulationWorkerAmici.cpp
     steadystateSimulator.cpp
     amiciUserDataSerialization.cpp
 )
 
 add_library(${PROJECT_NAME} ${SRC_LIST})
-
-set(SHARED_OBJECT_EXTENSION .so)
 
 target_link_libraries(${PROJECT_NAME}
 
