@@ -9,7 +9,7 @@ CC=mpicc CXX=mpiCC cmake -DAMICI_DIR=`pwd`/../ThirdParty/AMICI-master \
       -DCPPUTEST_DIR=`pwd`/../ThirdParty/AMICI-master/ThirdParty/cpputest-3.8/ \
       -DMPI_INCLUDE_DIR=/usr/include/openmpi-x86_64/ \
       -DMPI_LIBRARY=/usr/lib64/openmpi/lib/libmpi_cxx.so \
-      -DBLAS_INCLUDE_DIRS=`pwd`/../ThirdParty/CBLAS/include \
-      -DBLAS_LIBRARIES=`pwd`/../ThirdParty/CBLAS/lib/cblas_LINUX.a \
+      -DBLAS_INCLUDE_DIRS="/usr/include/" \
+      -DBLAS_LIBRARIES=/usr/lib/libcblas.a \
       ..
 make -j12
