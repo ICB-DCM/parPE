@@ -22,10 +22,12 @@ TEST_GROUP(localOptimizationIpopt)
 
 TEST(localOptimizationIpopt, testOptimization) {
     QuadraticTestProblem *problem = new QuadraticTestProblem();
+    problem->optimizationOptions->functionTolerance = -1;
 
-    mock().expectOneCall("logFinish").withIntParameter("exitStatus", 0);
-    mock().expectNCalls(11, "testObj");
-    mock().expectNCalls(12, "testObjGrad");
+    mock().expectOneCall("logFinish").withIntParameter("exitStatus", 1);
+//    mock().expectNCalls(11, "testObj");
+//    mock().expectNCalls(12, "testObjGrad");
+    mock().ignoreOtherCalls();
 
     getLocalOptimumIpopt(problem);
 
