@@ -1,8 +1,9 @@
 #!/bin/bash
 mkdir build
 cd build
-CC=mpicc CXX=mpiCC cmake -DAMICI_DIR=$HOME/src/AMICI \
-      -DIPOPT_DIR=`pwd`/../ThirdParty/Ipopt-3.12.7/install \
+CC=mpicc CXX=mpiCC cmake -DAMICI_DIR=`pwd`/ThirdParty/AMICI-master \
+      -DIPOPT_INCLUDE_DIRS=/usr/include/coin/ \
+      -DIPOPT_LIBRARIES=/usr/lib/libipopt.a \
       -DCERES_LIBRARIES=`pwd`/../ThirdParty/ceres-solver-1.12.0/build/install/lib64/libceres.so \
       -DCERES_INCLUDE_DIRS="`pwd`/../ThirdParty/ceres-solver-1.12.0/build/install/include/;`pwd`/../ThirdParty/ceres-solver-1.12.0/build/install/include/ceres/internal/miniglog/;`pwd`/../ThirdParty/eigen-eigen-67e894c6cd8f/build/install/include/eigen3/" \
       -DCPPUTEST_DIR=`pwd`/../ThirdParty/cpputest-3.8/ \
