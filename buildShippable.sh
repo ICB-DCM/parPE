@@ -10,6 +10,6 @@ CC=mpicc CXX=mpiCC cmake -DAMICI_DIR=`pwd`/../ThirdParty/AMICI-master \
       -DMPI_INCLUDE_DIR=/usr/include/openmpi-x86_64/ \
       -DMPI_LIBRARY=/usr/lib64/openmpi/lib/libmpi_cxx.so \
       -DBLAS_INCLUDE_DIRS="/usr/include/" \
-      -DBLAS_LIBRARIES=/usr/lib/libcblas.a \
+      -DBLAS_LIBRARIES="/usr/lib/libcblas.a;/usr/lib/libatlas.a" \
       ..
 make -j12 VERBOSE=1
