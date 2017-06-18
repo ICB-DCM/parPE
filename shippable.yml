@@ -4,6 +4,7 @@ compiler: gcc
 
 build:
     ci:
+        - lsb_release -a
         - sudo apt-get update
         - sudo apt-get install build-essential gfortran libmpich-dev libatlas-dev libhdf5-dev cmake libceres-dev coinor-libipopt-dev libcpputest-dev
         - ./ThirdParty/installAMICI.sh
