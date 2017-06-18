@@ -11,10 +11,7 @@ build:
         - export PARPE_BASE=`pwd`
         # workaround for https://bugs.launchpad.net/ubuntu/+source/ceres-solver/+bug/1595692 :
         - wget -O /usr/include/ceres/internal/config.h "https://raw.githubusercontent.com/ceres-solver/ceres-solver/master/config/ceres/internal/config.h"
-        - cd ThirdParty
-        - ./installAMICI.sh
-        - cd $PARPE_BASE
-        - ls -R /root/src/github.com/dweindl/parPE/ThirdParty/AMICI-master/sundials/include
-        - ./buildShippable.sh
-        - make test
+        - cd $PARPE_BASE/ThirdParty && ./installAMICI.sh
+        - cd $PARPE_BASE && ./buildShippable.sh
+        - cd $PARPE_BASE/build && make test
 

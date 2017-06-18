@@ -1,7 +1,10 @@
 #!/bin/bash
+
 mkdir build
 cd build
-CC=mpicc CXX=mpiCC cmake -DAMICI_DIR=`pwd`/../ThirdParty/AMICI-master \
+
+CC=mpicc CXX=mpiCC cmake \
+      -DAMICI_DIR=`pwd`/../ThirdParty/AMICI-master \
       -DIPOPT_INCLUDE_DIRS=/usr/include/coin/ \
       -DIPOPT_LIBRARIES=/usr/lib/libipopt.so \
       -DCERES_LIBRARIES="/usr/lib/libceres.so;/usr/lib/x86_64-linux-gnu/libglog.so;/usr/lib/x86_64-linux-gnu/libgflags.so" \
@@ -12,4 +15,7 @@ CC=mpicc CXX=mpiCC cmake -DAMICI_DIR=`pwd`/../ThirdParty/AMICI-master \
       -DBLAS_INCLUDE_DIRS="/usr/include/" \
       -DBLAS_LIBRARIES="/usr/lib/libcblas.so;/usr/lib/libatlas.so;/usr/lib/libblas.so" \
       ..
+
 make -j12 VERBOSE=1
+
+cd ..
