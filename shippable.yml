@@ -5,12 +5,8 @@ compiler: gcc
 build:
     ci:
         - sudo apt-get update
-        - sudo apt-get install build-essential gfortran libmpich-dev libblas-dev libhdf5-dev cmake
-        - ./ThirdParty/downloadPackages.sh
-        - ./ThirdParty/installCBLAS.sh
-        - ./ThirdParty/installCeres.sh
-        - ./ThirdParty/installCpputest.sh
-        - ./ThirdParty/installIpopt.sh
-        - ./install.sh
+        - sudo apt-get install build-essential gfortran libmpich-dev libatlas-dev libhdf5-dev cmake libceres-dev coinor-libipopt-dev libcpputest-dev
+        - ./ThirdParty/installAMICI.sh
+        - ./buildShippable.sh
         - make test
 
