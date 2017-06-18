@@ -12,4 +12,4 @@ CC=mpicc CXX=mpiCC cmake -DAMICI_DIR=`pwd`/../ThirdParty/AMICI-master \
       -DBLAS_INCLUDE_DIRS="/usr/include/" \
       -DBLAS_LIBRARIES=/usr/lib/libcblas.a \
       ..
-make -j12
+make -j12 VERBOSE=1
