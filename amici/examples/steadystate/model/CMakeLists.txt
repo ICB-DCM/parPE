@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 2.8)
 
 set(CMAKE_BUILD_TYPE Debug)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wno-unused-function")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wno-unused-function -Wno-unused-variable -Wno-unused-but-set-variable")
 add_definitions(-DAMICI_WITHOUT_MATLAB)
 
 set(MODEL_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
