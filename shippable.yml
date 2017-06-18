@@ -12,6 +12,7 @@ build:
         - cd ThirdParty
         - ./installAMICI.sh
         - cd $PARPE_BASE
+        - ls -R /root/src/github.com/dweindl/parPE/ThirdParty/AMICI-master/sundials/include
         - ./buildShippable.sh
         - make test
 
