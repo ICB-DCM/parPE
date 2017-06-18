@@ -9,6 +9,8 @@ build:
         - sudo apt-get install gfortran libmpich-dev libatlas-base-dev
             libhdf5-dev cmake libceres-dev coinor-libipopt-dev libcpputest-dev
         - export PARPE_BASE=`pwd`
+        # workaround for https://bugs.launchpad.net/ubuntu/+source/ceres-solver/+bug/1595692 :
+        - wget -O /usr/include/ceres/internal/config.h "https://github.com/ceres-solver/ceres-solver/blob/master/config/ceres/internal/config.h"
         - cd ThirdParty
         - ./installAMICI.sh
         - cd $PARPE_BASE
