@@ -4,8 +4,6 @@ else()
     set(SHARED_OBJECT_EXTENSION .so)
 endif()
 
-
-set(AMICI_DIR "/home/dweindl/src/AMICI.github" CACHE PATH "AMICI root directory")
 set(MODEL_LIBRARIES "model_steadystate")
 set(MODEL_INCLUDE_DIRS "model")
 
