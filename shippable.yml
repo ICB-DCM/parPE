@@ -6,7 +6,8 @@ build:
     ci:
         - lsb_release -a
         - sudo apt-get update
-        - sudo apt-get install gfortran libmpich-dev libatlas-base-dev libhdf5-dev cmake libceres-dev coinor-libipopt-dev libcpputest-dev
+        - sudo apt-get install gfortran libmpich-dev libatlas-base-dev \
+            libhdf5-dev cmake libceres-dev coinor-libipopt-dev libcpputest-dev
         - export PARPE_BASE=`pwd`
         - ./ThirdParty/installAMICI.sh
         - ./buildShippable.sh

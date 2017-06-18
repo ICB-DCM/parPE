@@ -1,7 +1,7 @@
 #!/bin/bash
 mkdir build
 cd build
-CC=mpicc CXX=mpiCC cmake -DAMICI_DIR=`pwd`/ThirdParty/AMICI-master \
+CC=mpicc CXX=mpiCC cmake -DAMICI_DIR=`pwd`/../ThirdParty/AMICI-master \
       -DIPOPT_INCLUDE_DIRS=/usr/include/coin/ \
       -DIPOPT_LIBRARIES=/usr/lib/libipopt.a \
       -DCERES_LIBRARIES=/usr/lib/libceres.a \
