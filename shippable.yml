@@ -9,7 +9,9 @@ build:
         - sudo apt-get install gfortran libmpich-dev libatlas-base-dev
             libhdf5-dev cmake libceres-dev coinor-libipopt-dev libcpputest-dev
         - export PARPE_BASE=`pwd`
-        - ./ThirdParty/installAMICI.sh
+        - cd ThirdParty
+        - ./installAMICI.sh
+        - cd $PARPE_BASE
         - ./buildShippable.sh
         - make test
 
