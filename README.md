@@ -21,7 +21,7 @@ parPE offers the following features:
 
 ## Dependencies
 
-parPE requires the following libraries:
+For full functionality, parPE requires the following libraries:
 
 * MPI
 * PTHREADS
@@ -29,6 +29,7 @@ parPE requires the following libraries:
 * CERES (requires Eigen)
 * AMICI (requires SuiteSparse, Sundials)
 * BLAS (CBLAS / Intel MKL)
+* AMICI [https://github.com/ICB-DCM/AMICI](AMICI)
 
 Scripts to fetch and build those third-party libraries are provided in `/ThirdParty/` 
 
