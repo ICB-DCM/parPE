@@ -1,3 +1,6 @@
+# TODO: check if still used
+add_definitions(-DAMICI_WITHOUT_MATLAB)
+
 set(AMICI_DIR "/home/dweindl/src/AMICI.github" CACHE PATH "AMICI root directory")
 
 find_package(Boost COMPONENTS serialization)
@@ -8,6 +11,7 @@ else()
     set(SHARED_OBJECT_EXTENSION .so)
 endif()
 
+# AMICI dependencies
 set(SUITESPARSE_DIR "${AMICI_DIR}/SuiteSparse/" CACHE PATH "SuiteSparse root directory")
 set(SUITESPARSE_INCLUDE_DIRS "${AMICI_DIR}/SuiteSparse/include" CACHE PATH "SuiteSparse root directory")
 set(SUITESPARSE_LIB_DIR "${AMICI_DIR}/SuiteSparse/lib" CACHE PATH "SuiteSparse library directory")

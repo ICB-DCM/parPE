@@ -1,14 +1,7 @@
-if(APPLE)
-    set(SHARED_OBJECT_EXTENSION .dylib)
-else()
-    set(SHARED_OBJECT_EXTENSION .so)
-endif()
-
 set(MODEL_LIBRARIES "model_steadystate")
 set(MODEL_INCLUDE_DIRS "model")
 
 include_directories(${MODEL_INCLUDE_DIRS})
-
 
 # AMICI-generated model files
 add_subdirectory(model)
