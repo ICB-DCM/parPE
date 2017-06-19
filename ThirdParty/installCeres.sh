@@ -1,5 +1,5 @@
 # build EIGEN
-tar -xzf 3.3.3.tar.gz
+tar -xzf eigen-3.3.3.tar.gz
 cd eigen-eigen-67e894c6cd8f
 mkdir build
 cd build
