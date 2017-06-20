@@ -12,7 +12,7 @@ ReturnData *MultiConditionSteadyStateProblem::runAndLogSimulation(UserData *udat
 
     // run simulation
     int iterationsUntilSteadystate = 0;
-#ifndef EVALUATE_DUMMY_FUNCTION
+
     ExpData *edata = dataProvider->getExperimentalDataForExperimentAndUpdateUserData(path.idxConditions, udata);
 
     if(edata == NULL) {
@@ -23,9 +23,7 @@ ReturnData *MultiConditionSteadyStateProblem::runAndLogSimulation(UserData *udat
     ReturnData *rdata = SteadystateSimulator::getSteadystateSolution(udata, edata, status, &iterationsUntilSteadystate);
 
     freeExpData(edata);
-#else
-    ReturnData *rdata = getDummyRdata(udata, &iterationsUntilSteadystate);
-#endif
+
     double endTime = MPI_Wtime();
     double timeSeconds = (endTime - startTime);
 

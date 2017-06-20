@@ -9,8 +9,6 @@ TEST_GROUP_C_WRAPPER(queueworker)
     TEST_GROUP_C_SETUP_WRAPPER(queueworker)
     TEST_GROUP_C_TEARDOWN_WRAPPER(queueworker)
 };
-//TEST_C_WRAPPER(queueworker, test_serializeResultPackageMessage)
-//TEST_C_WRAPPER(queueworker, test_serializeWorkPackageMessage)
 
 TEST_GROUP_C_WRAPPER(queuemaster)
 {

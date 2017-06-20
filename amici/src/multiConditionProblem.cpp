@@ -15,8 +15,6 @@
 // For debugging:
 // skip objective function evaluation completely
 //#define NO_OBJ_FUN_EVAL
-// provide dummy simulation results
-//#define EVALUATE_DUMMY_FUNCTION
 
 ReturnData *getDummyRdata(UserData *udata, int *iterationsDone);
 
@@ -53,19 +51,6 @@ void handleWorkPackage(char **buffer, int *msgSize, int jobId, void *userData)
 
     delete rdata;
     delete udata;
-}
-
-ReturnData *getDummyRdata(UserData *udata, int *iterationsDone) {
-    *iterationsDone = 2;
-
-    ReturnData *rdata = new ReturnData(udata);
-    *rdata->llh = 1;
-
-    if(rdata->sllh)
-        for(int i = 0; i < udata->np; ++i)
-            rdata->sllh[i] = 0.2;
-
-    return rdata;
 }
 
 
@@ -176,7 +161,7 @@ ReturnData *MultiConditionProblem::runAndLogSimulation(UserData *udata, MultiCon
 
     // run simulation
     int iterationsUntilSteadystate = 0;
-#ifndef EVALUATE_DUMMY_FUNCTION
+
     ExpData *edata = dataProvider->getExperimentalDataForExperimentAndUpdateUserData(path.idxConditions, udata);
 
     if(edata == NULL) {
@@ -187,9 +172,7 @@ ReturnData *MultiConditionProblem::runAndLogSimulation(UserData *udata, MultiCon
     ReturnData *rdata = getSimulationResults(udata, edata);
 
     freeExpData(edata);
-#else
-    ReturnData *rdata = getDummyRdata(udata, &iterationsUntilSteadystate);
-#endif
+
     double endTime = MPI_Wtime();
     double timeSeconds = (endTime - startTime);
 
