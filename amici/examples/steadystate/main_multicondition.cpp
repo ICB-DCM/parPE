@@ -60,7 +60,16 @@ int main(int argc, char **argv)
         if(mpiRank == 0) {
             loadBalancerStartMaster();
 
-            status = getLocalOptimum(&problem);
+            // Single optimization
+            //status = getLocalOptimum(&problem);
+
+            // Multistart optimization
+            OptimizationOptions options;
+            options.maxOptimizerIterations = 1;
+            options.numStarts = 2;
+            std::pair<void *, void*> pair(&dataProvider, &options);
+            runParallelMultiStartOptimization(multiConditionProblemGeneratorForMultiStart,
+                                              options.numStarts, options.retryOptimization, &pair);
 
             loadBalancerTerminate();
             sendTerminationSignalToAllWorkers();

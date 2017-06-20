@@ -419,7 +419,9 @@ void MultiConditionProblem::setSensitivityOptions(bool sensiRequired)
 
 OptimizationProblem *multiConditionProblemGeneratorForMultiStart(int currentStartIdx, void *userData)
 {
-    MultiConditionDataProvider *dp = (MultiConditionDataProvider*) userData;
+    std::pair<void *, void*> *pair = (std::pair<void *, void*> *) userData;
+    MultiConditionDataProvider *dp = (MultiConditionDataProvider*) pair->first;
+    OptimizationOptions *options = (OptimizationOptions*) pair->second;
 
     int mpiCommSize = 1;
     int mpiInitialized = 0;
@@ -429,20 +431,14 @@ OptimizationProblem *multiConditionProblemGeneratorForMultiStart(int currentStar
         MPI_Comm_size(MPI_COMM_WORLD, &mpiCommSize);
 
     MultiConditionProblem *problem;
-    OptimizationOptions options;
-    options.optimizer = OPTIMIZER_IPOPT;
-    // TODO from file
-    options.maxOptimizerIterations = 1000;
 
     if(mpiCommSize == 1)
         problem = new MultiConditionProblemSerial(dp);
     else
         problem = new MultiConditionProblem(dp);
 
-    problem->optimizationOptions = new OptimizationOptions(options);
-
+    problem->optimizationOptions = new OptimizationOptions(*options);
     problem->path.idxLocalOptimization = currentStartIdx;
-//    problem->optimizer = OPTIMIZER_CERES;
 
     return problem;
 }
