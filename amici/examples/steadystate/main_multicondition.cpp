@@ -10,6 +10,7 @@
 #include "wrapfunctions.h"
 #include "simulationWorkerAmici.h"
 #include "multiConditionProblemResultWriter.h"
+#include "optimizationApplication.h"
 /*
  * This example demonstrates the use of the loadbalancer / queue for parallel ODE simulation.
  */
@@ -22,17 +23,15 @@ int main(int argc, char **argv)
 {
     int status = 0;
 
-    initMPI(&argc, &argv);
-    initHDF5Mutex();
+    const char *outfilename = "testResultWriter_rank%03d.h5";
 
-    const char *filename;
-    if(argc == 2) {
-        filename = argv[1];
-    } else {
-        logmessage(LOGLVL_CRITICAL, "Must provide input file as first and only argument to %s.", argv[0]);
-        return 1;
-    }
+    SteadyStateMultiConditionDataProvider dataProvider =
+            SteadyStateMultiConditionDataProvider(filename);
+    SteadyStateMultiConditionProblem problem(&dataProvider);
 
+    OptimizationApplication app(&problem, argc, argv);
+    app.resultFileName = outfilename;
+    app.run();
 
     int commSize;
     MPI_Comm_size(MPI_COMM_WORLD, &commSize);
@@ -46,15 +45,6 @@ int main(int argc, char **argv)
     {
         int mpiRank;
         MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
-
-        const char *outfilename = "testResultWriter_rank%03d.h5";
-        char outfilefull[200];
-        sprintf(outfilefull, outfilename, mpiRank);
-        initResultHDFFile(outfilefull, true);
-
-        SteadyStateMultiConditionDataProvider dataProvider =
-                SteadyStateMultiConditionDataProvider(filename);
-        SteadyStateMultiConditionProblem problem(&dataProvider);
 
 
         if(mpiRank == 0) {
@@ -79,29 +69,9 @@ int main(int argc, char **argv)
         closeResultHDFFile();
     }
 
-    destroyHDF5Mutex();
-
-    MPI_Finalize();
-
     return status;
 }
 
-void initMPI(int *argc, char ***argv) {
-    int mpiErr = MPI_Init(argc, argv);
-    if(mpiErr != MPI_SUCCESS) {
-        logmessage(LOGLVL_CRITICAL, "Problem initializing MPI. Exiting.");
-        exit(1);
-    }
-
-    int mpiRank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
-    if(mpiRank == 0) {
-        int commSize;
-        MPI_Comm_size(MPI_COMM_WORLD, &commSize);
-
-        logmessage(LOGLVL_INFO, "Running with %d MPI processes.", commSize);
-    }
-}
 
 void messageHandler(char** buffer, int *msgSize, int jobId, void *userData)
 {

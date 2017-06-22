@@ -7,6 +7,7 @@ set(SRC_LIST
     localOptimizationCeres.cpp
     optimizationProblem.cpp
     multiStartOptimization.cpp
+    optimizationApplication.cpp
 )
 
 add_library(${PROJECT_NAME} ${SRC_LIST})
