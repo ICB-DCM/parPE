@@ -8,11 +8,11 @@ add_test (NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME} -c)
 
 set(SRC_LIST_CPP
     main.cpp
-    ../src/amiciUserDataSerializationTest.cpp
     ${AMICI_DIR}/src/udata.cpp
     ${AMICI_DIR}/src/rdata.cpp
-    # TODO fix __node does not name a type hdf/mpi../src/multiConditionProblemResultWriterTest.cpp
+    ../src/amiciUserDataSerializationTest.cpp
     ../src/simulationWorkerAmiciTest.cpp
+    ../src/multiConditionProblemResultWriterTest.cpp
     ../../common/src/testingMisc.c
 )
 set(SHARED_OBJECT_EXTENSION .so)
