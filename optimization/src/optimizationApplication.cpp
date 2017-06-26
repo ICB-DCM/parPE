@@ -1,18 +1,17 @@
 #include "optimizationApplication.h"
-#include <mpi.h>
 #include "logging.h"
 #include "hdf5Misc.h"
+#include "loadBalancerMaster.h"
 #include <pthread.h>
+#include <mpi.h>
 
-OptimizationApplication::OptimizationApplication() : dataFileName(NULL), problem(NULL)
+OptimizationApplication::OptimizationApplication() : dataFileName(NULL), problem(NULL), resultWriter(NULL)
 {
 
 }
 
-OptimizationApplication::OptimizationApplication(OptimizationProblem *problem, int argc, char **argv) : OptimizationApplication()
+OptimizationApplication::OptimizationApplication(int argc, char **argv) : OptimizationApplication()
 {
-    this->problem = problem;
-
     // TODO: check if initialized already
     initMPI(&argc, &argv);
 
@@ -25,8 +24,6 @@ OptimizationApplication::OptimizationApplication(OptimizationProblem *problem, i
 
 void OptimizationApplication::initMPI(int *argc, char ***argv)
 {
-
-
     int mpiErr = MPI_Init(argc, argv);
     if(mpiErr != MPI_SUCCESS) {
         logmessage(LOGLVL_CRITICAL, "Problem initializing MPI. Exiting.");
@@ -43,28 +40,72 @@ void OptimizationApplication::initMPI(int *argc, char ***argv)
     }
 }
 
+
 int OptimizationApplication::run()
 {
+    int status = 0;
+
     if(!dataFileName) {
         logmessage(LOGLVL_CRITICAL, "No input file provided. Must provide input file as first and only argument or set OptimizationApplication::inputFileName manually.");
         return 1;
     }
+    initProblem(dataFileName, NULL); // TODO second argument
 
-    int mpiRank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
+    int commSize;
+    MPI_Comm_size(MPI_COMM_WORLD, &commSize);
 
-    char outfilefull[200];
-    sprintf(outfilefull, resultFileName, mpiRank);
-    initResultHDFFile(outfilefull, true); // option
+    if(getMpiRank() == 0) {
+        if(commSize > 1)
+            loadBalancerStartMaster();
 
+        status = runMaster();
 
-    return 0;
+        if(commSize > 1) {
+            loadBalancerTerminate();
+            sendTerminationSignalToAllWorkers();
+        }
+
+    } else {
+        runWorker();
+    }
+
+    return status;
 }
 
 OptimizationApplication::~OptimizationApplication()
 {
+    destroyProblem();
+
     destroyHDF5Mutex();
 
     MPI_Finalize();
+}
+
+int OptimizationApplication::getMpiRank()
+{
+    int mpiRank = -1;
+
+    int mpiInitialized = 0;
+    MPI_Initialized(&mpiInitialized);
+
+    if(mpiInitialized) {
+        MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
+    }
+
+    return mpiRank;
+}
+
+int OptimizationApplication::getMpiCommSize()
+{
+    int mpiCommSize = -1;
+
+    int mpiInitialized = 0;
+    MPI_Initialized(&mpiInitialized);
+
+    if(mpiInitialized) {
+        MPI_Comm_size(MPI_COMM_WORLD, &mpiCommSize);
+    }
+
+    return mpiCommSize;
 }
 

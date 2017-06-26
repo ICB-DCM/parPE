@@ -2,6 +2,7 @@
 #define OPTIMIZATIONAPPLICATION_H
 
 #include "optimizationProblem.h"
+#include "optimizationResultWriter.h"
 #include <string>
 
 /**
@@ -12,17 +13,29 @@ class OptimizationApplication
 {
 public:
     OptimizationApplication();
-    OptimizationApplication(OptimizationProblem *problem, int argc, char **argv);
+    OptimizationApplication(int argc, char **argv);
 
     static void initMPI(int *argc, char ***argv);
 
-    int run();
+    virtual void initProblem(const char *inFileArgument, const char *outFileArgument) = 0;
+
+    virtual void destroyProblem() {}
+
+    virtual int run();
+
+    virtual int runMaster() { return 0; }
+
+    virtual void runWorker() {}
 
     ~OptimizationApplication();
+
+    int getMpiRank();
+    int getMpiCommSize();
 
     const char *dataFileName;
     const char *resultFileName;
     OptimizationProblem *problem;
+    OptimizationResultWriter *resultWriter;
 
 
 };

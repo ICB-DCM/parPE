@@ -230,7 +230,7 @@ void MultiConditionProblem::updateUserData(const double *simulationParameters, c
 }
 
 int MultiConditionProblem::runSimulations(const double *optimizationVariables, double *logLikelihood, double *objectiveFunctionGradient)
-{
+{   
     JobIdentifier path = this->path;
 
     int numJobsTotal = dataProvider->getNumberOfConditions();
