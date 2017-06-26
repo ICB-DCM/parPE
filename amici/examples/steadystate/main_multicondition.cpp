@@ -44,40 +44,44 @@ int main(int argc, char **argv)
     char outfilefull[200];
     sprintf(outfilefull, outfilename, mpiRank);
 
-    SteadyStateMultiConditionDataProvider dataProvider =
-            SteadyStateMultiConditionDataProvider(filename);
-    SteadyStateMultiConditionProblem problem(&dataProvider);
-    JobIdentifier id = {0};
-    MultiConditionProblemResultWriter resultWriter(&problem, outfilefull, true, id);
-    problem.resultWriter = &resultWriter;
+    { // destroy objects before MPI_finalize();
+        SteadyStateMultiConditionDataProvider dataProvider =
+                SteadyStateMultiConditionDataProvider(filename);
+        SteadyStateMultiConditionProblem problem(&dataProvider);
+        JobIdentifier id = {0};
+        MultiConditionProblemResultWriter resultWriter(&problem, outfilefull, true, id);
+        problem.resultWriter = &resultWriter;
 
-    if(mpiRank == 0) {
-        if(commSize > 1)
-            loadBalancerStartMaster();
+        if(mpiRank == 0) {
+            if(commSize > 1)
+                loadBalancerStartMaster();
 
-        bool multi = true;
-        if(!multi) {
-            // Single optimization
-            status = getLocalOptimum(&problem);
+            bool multi = true;
+            if(!multi) {
+                // Single optimization
+                status = getLocalOptimum(&problem);
+            } else {
+
+                // Multistart optimization
+                OptimizationOptions options;
+                options.maxOptimizerIterations = 1;
+                options.numStarts = 1; // if numStarts > 1: need to use multiple MPI workers, otherwise simulation crashes due to CVODES threading issues
+
+                MultiConditionProblemGeneratorForMultiStart generator;
+                generator.options = &options;
+                generator.resultWriter = &resultWriter;
+                generator.dp = &dataProvider;
+                runParallelMultiStartOptimization(&generator, options.numStarts, options.retryOptimization);
+            }
+
+            if(commSize > 1) {
+                loadBalancerTerminate();
+                sendTerminationSignalToAllWorkers();
+            }
         } else {
-
-            // Multistart optimization
-            OptimizationOptions options;
-            options.maxOptimizerIterations = 1;
-            options.numStarts = 1; // if numStarts > 1: need to use multiple MPI workers, otherwise simulation crashes due to CVODES threading issues
-
-            MultiConditionProblemGeneratorForMultiStart generator;
-            generator.options = &options;
-            generator.resultWriter = &resultWriter;
-            generator.dp = &dataProvider;
-            runParallelMultiStartOptimization(&generator, options.numStarts, options.retryOptimization);
+            if(commSize > 1)
+                loadBalancerWorkerRun(messageHandler, &problem);
         }
-        if(commSize > 1)
-            loadBalancerTerminate();
-        sendTerminationSignalToAllWorkers();
-    } else {
-        if(commSize > 1)
-            loadBalancerWorkerRun(messageHandler, &problem);
     }
 
     destroyHDF5Mutex();
