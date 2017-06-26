@@ -95,15 +95,22 @@ void logProcessStats()
 }
 
 void printMPIInfo() {
-    int mpiCommSize, mpiRank;
-    MPI_Comm_size(MPI_COMM_WORLD, &mpiCommSize);
-    MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
+    int mpiInitialized = 0;
+    MPI_Initialized(&mpiInitialized);
 
-    char procName[MPI_MAX_PROCESSOR_NAME];
-    int procNameLen;
-    MPI_Get_processor_name(procName, &procNameLen);
+    if(mpiInitialized) {
+        int mpiCommSize, mpiRank;
+        MPI_Comm_size(MPI_COMM_WORLD, &mpiCommSize);
+        MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
 
-    logmessage(LOGLVL_DEBUG, "Rank %d/%d running on %s.", mpiRank, mpiCommSize, procName);
+        char procName[MPI_MAX_PROCESSOR_NAME];
+        int procNameLen;
+        MPI_Get_processor_name(procName, &procNameLen);
+
+        logmessage(LOGLVL_DEBUG, "Rank %d/%d running on %s.", mpiRank, mpiCommSize, procName);
+    } else {
+        logmessage(LOGLVL_DEBUG, "MPI not initialized.");
+    }
 }
 
 

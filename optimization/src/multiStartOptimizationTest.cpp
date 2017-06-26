@@ -27,7 +27,8 @@ TEST(multiStartOptimization, testMultiStartOptimization) {
     mock().expectNCalls(numStarts, "logFinish").withIntParameter("exitStatus", 0 );
     mock().ignoreOtherCalls();
 
-    runParallelMultiStartOptimization(quadraticOptimizationProblemGeneratorForMultiStart, numStarts, true, NULL);
+    QuadraticOptimizationProblemGeneratorForMultiStart generator;
+    runParallelMultiStartOptimization(&generator, numStarts, true);
     fflush(stdout);
     mock().checkExpectations();
     mock().clear();

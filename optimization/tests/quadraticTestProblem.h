@@ -2,6 +2,7 @@
 #define QUADRATIC_TEST_PROBLEM_H
 
 #include "optimizationProblem.h"
+#include "multiStartOptimization.h"
 
 class QuadraticTestProblem : public OptimizationProblem {
 public:
@@ -28,5 +29,9 @@ public:
     double optimalParameter;
 };
 
-OptimizationProblem *quadraticOptimizationProblemGeneratorForMultiStart(int currentStartIdx, void *userData);
+class QuadraticOptimizationProblemGeneratorForMultiStart : public OptimizationProblemGeneratorForMultiStart {
+public:
+    OptimizationProblem *getLocalProblemImpl(int multiStartIndex);
+};
+
 #endif

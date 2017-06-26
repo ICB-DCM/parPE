@@ -37,46 +37,51 @@ int main(int argc, char **argv)
     int commSize;
     MPI_Comm_size(MPI_COMM_WORLD, &commSize);
 
-//    if(commSize == 1) {
-//        // run in serial mode
-//        SteadystateProblemParallel problem = SteadystateProblemParallel();
-//        status = getLocalOptimum(&problem);
+    int mpiRank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
 
-//    } else
-    {
-        int mpiRank;
-        MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
+    const char *outfilename = "testResultWriter_rank%03d.h5";
+    char outfilefull[200];
+    sprintf(outfilefull, outfilename, mpiRank);
 
-        const char *outfilename = "testResultWriter_rank%03d.h5";
-        char outfilefull[200];
-        sprintf(outfilefull, outfilename, mpiRank);
-        initResultHDFFile(outfilefull, true);
-
+    { // destroy objects before MPI_finalize();
         SteadyStateMultiConditionDataProvider dataProvider =
                 SteadyStateMultiConditionDataProvider(filename);
         SteadyStateMultiConditionProblem problem(&dataProvider);
-
+        JobIdentifier id = {0};
+        MultiConditionProblemResultWriter resultWriter(&problem, outfilefull, true, id);
+        problem.resultWriter = &resultWriter;
 
         if(mpiRank == 0) {
-            loadBalancerStartMaster();
+            if(commSize > 1)
+                loadBalancerStartMaster();
 
-            // Single optimization
-            //status = getLocalOptimum(&problem);
+            bool multi = true;
+            if(!multi) {
+                // Single optimization
+                status = getLocalOptimum(&problem);
+            } else {
 
-            // Multistart optimization
-            OptimizationOptions options;
-            options.maxOptimizerIterations = 1;
-            options.numStarts = 2;
-            std::pair<void *, void*> pair(&dataProvider, &options);
-            runParallelMultiStartOptimization(multiConditionProblemGeneratorForMultiStart,
-                                              options.numStarts, options.retryOptimization, &pair);
+                // Multistart optimization
+                OptimizationOptions options;
+                options.maxOptimizerIterations = 1;
+                options.numStarts = 1; // if numStarts > 1: need to use multiple MPI workers, otherwise simulation crashes due to CVODES threading issues
 
-            loadBalancerTerminate();
-            sendTerminationSignalToAllWorkers();
+                MultiConditionProblemGeneratorForMultiStart generator;
+                generator.options = &options;
+                generator.resultWriter = &resultWriter;
+                generator.dp = &dataProvider;
+                runParallelMultiStartOptimization(&generator, options.numStarts, options.retryOptimization);
+            }
+
+            if(commSize > 1) {
+                loadBalancerTerminate();
+                sendTerminationSignalToAllWorkers();
+            }
         } else {
-            loadBalancerWorkerRun(messageHandler, &problem);
+            if(commSize > 1)
+                loadBalancerWorkerRun(messageHandler, &problem);
         }
-        closeResultHDFFile();
     }
 
     destroyHDF5Mutex();
@@ -122,7 +127,7 @@ void messageHandler(char** buffer, int *msgSize, int jobId, void *userData)
 
     // work
     int status = 0;
-    ReturnData *rdata = MultiConditionProblem::runAndLogSimulation(&udata, dataProvider, path, jobId, &status);
+    ReturnData *rdata = MultiConditionProblem::runAndLogSimulation(&udata, dataProvider, path, jobId, problem->resultWriter, &status);
 
     // pack & cleanup
     *msgSize = JobResultAmiciSimulation::getLength(udata.np);
