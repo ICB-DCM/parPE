@@ -1,3 +1,5 @@
+#include <bits/stl_tree.h>
+
 #include "multiConditionProblemResultWriter.h"
 #include "CppUTest/TestHarness.h"
 #include "CppUTestExt/MockSupport.h"

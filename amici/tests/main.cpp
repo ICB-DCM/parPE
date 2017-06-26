@@ -1,3 +1,5 @@
+#include <bits/stl_tree.h>
+
 #include "CppUTest/CommandLineTestRunner.h"
 #include "CppUTest/TestHarness.h"
 
