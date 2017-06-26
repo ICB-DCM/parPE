@@ -12,14 +12,65 @@ OptimizationApplication::OptimizationApplication() : dataFileName(NULL), problem
 
 OptimizationApplication::OptimizationApplication(int argc, char **argv) : OptimizationApplication()
 {
+    // Seed random number generator
+//    srand(1337);
+    srand(time(NULL)); // TODO to CLI
+
     // TODO: check if initialized already
     initMPI(&argc, &argv);
 
+    printMPIInfo();
+
     initHDF5Mutex();
 
-    if(argc == 2) {
-        dataFileName = argv[1];
+    parseOptions(argc, argv);
+}
+
+int OptimizationApplication::parseOptions(int argc, char **argv)
+{
+    int c;
+
+    while (1) {
+        int optionIndex = 0;
+        c = getopt_long (argc, argv, shortOptions, longOptions, &optionIndex);
+
+        if (c == -1)
+            break;
+
+        switch (c) {
+        case 'd':
+            printDebugInfoAndWait();
+            break;
+        case 't':
+            if(strcmp(optarg, "gradient_check") == 0)
+                opType = OP_TYPE_GRADIENT_CHECK;
+            break;
+        case 'v':
+            printf("Version: %s\n", GIT_VERSION);
+            return 1;
+        case 'h':
+            printf("Usage: %s [OPTION]... FILE\n", argv[0]);
+            printf("FILE: HDF5 data file");
+            printf("Options: \n"
+                   "  -o, --optimizer Which optimizer to use Ipopt (default) Ceres (not yet implemented)"
+                   "  -t, --task    What to do? Parameter estimation (default) or check gradient ('gradient_check')"
+                   "  -h, --help    Print this help text\n"
+                   "  -v, --version Print version info\n"
+                   );
+            return 1;
+        default:
+            printf("Unrecognized option: %c\n", c);
+        }
     }
+
+    if(optind < argc) {
+        dataFileName = argv[optind++];
+    } else {
+        logmessage(LOGLVL_CRITICAL, "Must provide input file as first and only argument to %s.", argv[0]);
+        return 1;
+    }
+
+    return 0;
 }
 
 void OptimizationApplication::initMPI(int *argc, char ***argv)
@@ -43,6 +94,8 @@ void OptimizationApplication::initMPI(int *argc, char ***argv)
 
 int OptimizationApplication::run()
 {
+    clock_t begin = clock();
+
     int status = 0;
 
     if(!dataFileName) {
@@ -54,22 +107,48 @@ int OptimizationApplication::run()
     int commSize;
     MPI_Comm_size(MPI_COMM_WORLD, &commSize);
 
-    if(getMpiRank() == 0) {
-        if(commSize > 1)
+    if(commSize > 1) {
+        if(getMpiRank() == 0) {
             loadBalancerStartMaster();
 
-        status = runMaster();
+            status = runMaster();
 
-        if(commSize > 1) {
             loadBalancerTerminate();
             sendTerminationSignalToAllWorkers();
-        }
+            finalizeTiming(begin);
+            logmessage(LOGLVL_INFO, "Sent termination signal to workers.");
 
+        } else {
+            runWorker();
+            finalizeTiming(begin);
+        }
     } else {
-        runWorker();
+        runSingleMpiProcess();
+
+        finalizeTiming(begin);
     }
 
     return status;
+}
+
+void OptimizationApplication::finalizeTiming(clock_t begin)
+{
+    // wall-time for current process
+    clock_t end = clock();
+    double wallTimeSeconds = (double)(end - begin) / CLOCKS_PER_SEC;
+
+    // total run-time
+    double totalTimeInSeconds = 0;
+    MPI_Reduce(&wallTimeSeconds, &totalTimeInSeconds, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+
+    int mpiRank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
+
+    if(mpiRank == 0) {
+        logmessage(LOGLVL_INFO, "Walltime: %fs, total compute time:%fs", wallTimeSeconds, totalTimeInSeconds);
+        if(resultWriter)
+            resultWriter->saveTotalWalltime(totalTimeInSeconds);
+    }
 }
 
 OptimizationApplication::~OptimizationApplication()
