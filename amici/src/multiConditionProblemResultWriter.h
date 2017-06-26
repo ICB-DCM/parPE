@@ -12,9 +12,17 @@ class MultiConditionProblemResultWriter : public OptimizationResultWriter {
 public:
     MultiConditionProblemResultWriter();
 
-    MultiConditionProblemResultWriter(OptimizationProblem *problem, hid_t file_id, JobIdentifier id);
+    MultiConditionProblemResultWriter(hid_t file_id, JobIdentifier id);
 
-    MultiConditionProblemResultWriter(OptimizationProblem *problem, const char *filename, bool overwrite, JobIdentifier id);
+    MultiConditionProblemResultWriter(const char *filename, bool overwrite, JobIdentifier id);
+
+    void logSimulation(const double *theta,
+                       double llh, const double *gradient,
+                       double timeElapsedInSeconds,
+                       int nTheta, int numStates,
+                       double *states, double *stateSensi,
+                       double *y, int jobId,
+                       int iterationsUntilSteadystate);
 
     JobIdentifier path;
 };

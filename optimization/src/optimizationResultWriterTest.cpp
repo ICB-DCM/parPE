@@ -18,21 +18,19 @@ TEST_GROUP(optimizationResultWriter)
 
 
 TEST(optimizationResultWriter, testResultWriter) {
-    OptimizationResultWriter w(NULL, "deleteme.h5", true);
+    OptimizationResultWriter w("deleteme.h5", true);
 
     w.rootPath = "/bla/";
 
-    w.saveTotalWalltime(100);
+    w.saveTotalCpuTime(100);
 
     w.flushResultWriter();
 
-    w.logLocalOptimizerIteration(1, NULL, 2, NULL, 1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12);
+    w.logLocalOptimizerIteration(1, NULL, 0, 0, NULL, 1, 2, 3, 4, 6, 7, 8, 9, 10, 11);
 
-    w.logLocalOptimizerObjectiveFunctionEvaluation(NULL, 1, NULL, 2, 3);
+    w.logLocalOptimizerObjectiveFunctionEvaluation(NULL, 0, 1, NULL, 2, 3);
 
-    w.logSimulation(NULL, 1, NULL, 1, 1, 2, NULL, NULL, NULL, 1, 2);
-
-    w.saveLocalOptimizerResults(1, NULL, 12, 0);
+    w.saveLocalOptimizerResults(1, NULL, 0, 12, 0);
 
     w.flushResultWriter();
 }

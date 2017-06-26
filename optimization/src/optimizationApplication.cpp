@@ -147,7 +147,7 @@ void OptimizationApplication::finalizeTiming(clock_t begin)
     if(mpiRank == 0) {
         logmessage(LOGLVL_INFO, "Walltime: %fs, total compute time:%fs", wallTimeSeconds, totalTimeInSeconds);
         if(resultWriter)
-            resultWriter->saveTotalWalltime(totalTimeInSeconds);
+            resultWriter->saveTotalCpuTime(totalTimeInSeconds);
     }
 }
 

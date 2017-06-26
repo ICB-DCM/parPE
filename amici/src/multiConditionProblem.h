@@ -41,7 +41,7 @@ public:
 
 
     static ReturnData *runAndLogSimulation(UserData *udata, MultiConditionDataProvider *dataProvider,
-                                           JobIdentifier path, int jobId, OptimizationResultWriter *resultWriter, int *status);
+                                           JobIdentifier path, int jobId, MultiConditionProblemResultWriter *resultWriter, int *status);
 
     virtual MultiConditionDataProvider *getDataProvider();
 

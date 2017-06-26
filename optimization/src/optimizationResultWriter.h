@@ -8,33 +8,69 @@
 
 class OptimizationProblem;
 
+/**
+ * @brief The OptimizationResultWriter class receives results during an optimizer run
+ */
 class OptimizationResultWriter
 {
 public:
+    /**
+     * @brief Default constructor, for testing only
+     */
     OptimizationResultWriter();
 
-    // TODO: remove problem here; only required for numParams
-    OptimizationResultWriter(OptimizationProblem *problem, hid_t file_id);
+    /**
+     * @brief Write to pre-opened HDF5 file
+     * @param problem
+     * @param file_id
+     */
+    OptimizationResultWriter(hid_t file_id);
 
-    OptimizationResultWriter(OptimizationProblem *problem, const char *filename, bool overwrite);
+    /**
+     * @brief Open HDF5 file and write there
+     * @param problem
+     * @param filename Name of the result file
+     * @param overwrite Overwrite output file if already exists
+     */
+    OptimizationResultWriter(const char *filename, bool overwrite);
 
-    int initResultHDFFile(const char *filename, bool overwrite);
-
-    void closeResultHDFFile();
-
-    void logLocalOptimizerObjectiveFunctionEvaluation(const double *parameters,
+    /**
+     * @brief Function to be called after each objective function f(x) or gradient f'(x) evaluation
+     * @param parameters Function parameters x
+     * @param objectiveFunctionValue  f(x)
+     * @param objectiveFunctionGradient f'(x) or NULL
+     * @param numFunctionCalls Number of times the objective function has been called (f(x) and f'(x) are counter individually (?))
+     * @param timeElapsedInSeconds CPU time for the last objective function evaluation (wall time)
+     */
+    void logLocalOptimizerObjectiveFunctionEvaluation(const double *parameters, int numParameters,
                                                       double objectiveFunctionValue,
                                                       const double *objectiveFunctionGradient,
                                                       int numFunctionCalls,
                                                       double timeElapsedInSeconds);
 
-    // TODO add likelihood for individual experiments
+    /**
+     * @brief Function to be called after each optimizer iteration. (For parameters, see above or IpOpt intermediate function)
+     * @param numIterations
+     * @param theta
+     * @param objectiveFunctionValue
+     * @param gradient
+     * @param timeElapsedInSeconds
+     * @param alg_mod
+     * @param inf_pr
+     * @param inf_du
+     * @param mu
+     * @param d_norm
+     * @param regularization_size
+     * @param alpha_du
+     * @param alpha_pr
+     * @param ls_trials
+     */
     void logLocalOptimizerIteration(int numIterations,
                                     double *theta,
+                                    int numParameters,
                                     double objectiveFunctionValue,
                                     const double *gradient,
                                     double timeElapsedInSeconds,
-                                    int nTheta,
                                     int alg_mod,
                                     double inf_pr, double inf_du,
                                     double mu,
@@ -43,28 +79,41 @@ public:
                                     double alpha_du, double alpha_pr,
                                     int ls_trials);
 
-    void logSimulation(const double *theta,
-                       double llh, const double *gradient,
-                       double timeElapsedInSeconds,
-                       int nTheta, int numStates,
-                       double *states, double *stateSensi,
-                       double *y, int jobId,
-                       int iterationsUntilSteadystate);
-
+    /**
+     * @brief Write buffered output to file
+     */
     void flushResultWriter();
 
-    void saveTotalWalltime(const double timeInSeconds);
+    /**
+     * @brief CPU time for whole application run
+     * @param timeInSeconds
+     */
+    void saveTotalCpuTime(const double timeInSeconds);
 
+    /**
+     * @brief Function to be called when local optimization is finished.
+     * @param finalNegLogLikelihood Final cost f(x)
+     * @param optimalParameters Final parameters x
+     * @param masterTime Wall time for this optimization
+     * @param exitStatus Exit status (cause of optimizer termination)
+     */
     void saveLocalOptimizerResults(double finalNegLogLikelihood,
                                    const double *optimalParameters,
+                                   int numParameters,
                                    double masterTime,
                                    int exitStatus);
 
     ~OptimizationResultWriter();
 
-    OptimizationProblem *problem;
     hid_t file_id;
     std::string rootPath = "/";
+
+protected:
+    int initResultHDFFile(const char *filename, bool overwrite);
+
+    void closeResultHDFFile();
+
+
 };
 
 #endif // OPTIMIZATIONRESULTWRITER_H

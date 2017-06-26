@@ -9,15 +9,14 @@ OptimizationResultWriter::OptimizationResultWriter()
 
 }
 
-OptimizationResultWriter::OptimizationResultWriter(OptimizationProblem *problem, hid_t file_id)
+OptimizationResultWriter::OptimizationResultWriter(hid_t file_id)
 {
-    this->problem = problem;
     this->file_id = file_id;
 }
 
-OptimizationResultWriter::OptimizationResultWriter(OptimizationProblem *problem, const char *filename, bool overwrite)
+OptimizationResultWriter::OptimizationResultWriter(const char *filename, bool overwrite)
 {
-    this->problem = problem;
+    //logmessage(LOGLVL_DEBUG, "Writing results to %s.", filename);
     initResultHDFFile(filename, overwrite);
 }
 
@@ -57,29 +56,29 @@ void OptimizationResultWriter::closeResultHDFFile()
     H5_RESTORE_ERROR_HANDLER;
 }
 
-void OptimizationResultWriter::logLocalOptimizerObjectiveFunctionEvaluation(const double *parameters, double objectiveFunctionValue, const double *objectiveFunctionGradient, int numFunctionCalls, double timeElapsedInSeconds)
+void OptimizationResultWriter::logLocalOptimizerObjectiveFunctionEvaluation(const double *parameters, int numParameters, double objectiveFunctionValue, const double *objectiveFunctionGradient, int numFunctionCalls, double timeElapsedInSeconds)
 {
     const char *fullGroupPath = rootPath.c_str();
     hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "negLogLikelihood", &objectiveFunctionValue, 1);
-    if(objectiveFunctionGradient && problem)
-        hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "negLogLikelihoodGradient", objectiveFunctionGradient, problem->numOptimizationParameters);
-    if(problem)
-        hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "p", parameters, problem->numOptimizationParameters);
+    if(objectiveFunctionGradient)
+        hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "negLogLikelihoodGradient", objectiveFunctionGradient, numParameters);
+    if(parameters)
+        hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "p", parameters, numParameters);
     hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "evalFTime", &timeElapsedInSeconds, 1);
 
     flushResultWriter();
 
 }
 
-void OptimizationResultWriter::logLocalOptimizerIteration(int numIterations, double *theta, double objectiveFunctionValue, const double *gradient, double timeElapsedInSeconds, int nTheta, int alg_mod, double inf_pr, double inf_du, double mu, double d_norm, double regularization_size, double alpha_du, double alpha_pr, int ls_trials)
+void OptimizationResultWriter::logLocalOptimizerIteration(int numIterations, double *theta, int numParameters, double objectiveFunctionValue, const double *gradient, double timeElapsedInSeconds, int alg_mod, double inf_pr, double inf_du, double mu, double d_norm, double regularization_size, double alpha_du, double alpha_pr, int ls_trials)
 {
     const char *fullGroupPath = rootPath.c_str();
 
     hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "negLogLikelihood", &objectiveFunctionValue, 1);
     if(gradient)
-        hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "negLogLikelihoodGradient", gradient, nTheta);
+        hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "negLogLikelihoodGradient", gradient, numParameters);
     if(theta)
-        hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "p", theta, nTheta);
+        hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "p", theta, numParameters);
     hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "iterationTime", &timeElapsedInSeconds, 1);
 
     hdf5CreateOrExtendAndWriteToInt2DArray(   file_id, fullGroupPath, "numIterations", &numIterations, 1);
@@ -96,35 +95,6 @@ void OptimizationResultWriter::logLocalOptimizerIteration(int numIterations, dou
     flushResultWriter();
 }
 
-void OptimizationResultWriter::logSimulation(const double *theta, double llh, const double *gradient, double timeElapsedInSeconds, int nTheta, int numStates, double *states, double *stateSensi, double *y, int jobId, int iterationsUntilSteadystate)
-{
-    const char *fullGroupPath = rootPath.c_str();
-
-    hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "negLogLikelihood", &llh, 1);
-    hdf5CreateOrExtendAndWriteToInt2DArray(file_id, fullGroupPath, "jobId", &jobId, 1);
-
-    if(gradient)
-        hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "negLogLikelihoodGradient", gradient, nTheta);
-
-    if(theta)
-        hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "p", theta, nTheta);
-
-    hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "evalFTime", &timeElapsedInSeconds, 1);
-
-    if(states)
-        hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "X", states, numStates);
-
-    if(y)
-        hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "Y", y, 1);
-
-    hdf5CreateOrExtendAndWriteToInt2DArray(file_id, fullGroupPath, "iterationsUntilSteadystate", &iterationsUntilSteadystate, 1);
-
-    if(stateSensi)
-        hdf5CreateOrExtendAndWriteToDouble3DArray(file_id, fullGroupPath, "sX", stateSensi, numStates, nTheta);
-
-    flushResultWriter();
-
-}
 
 void OptimizationResultWriter::flushResultWriter()
 {
@@ -136,7 +106,7 @@ void OptimizationResultWriter::flushResultWriter()
 
 }
 
-void OptimizationResultWriter::saveTotalWalltime(const double timeInSeconds)
+void OptimizationResultWriter::saveTotalCpuTime(const double timeInSeconds)
 {
     hsize_t dims[1] = {1};
 
@@ -149,7 +119,7 @@ void OptimizationResultWriter::saveTotalWalltime(const double timeInSeconds)
 
 }
 
-void OptimizationResultWriter::saveLocalOptimizerResults(double finalNegLogLikelihood, const double *optimalParameters, double masterTime, int exitStatus)
+void OptimizationResultWriter::saveLocalOptimizerResults(double finalNegLogLikelihood, const double *optimalParameters, int numParameters, double masterTime, int exitStatus)
 {
     //    hsize_t dimensions[1] = {1};
 

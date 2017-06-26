@@ -138,7 +138,7 @@ int MultiConditionProblem::intermediateFunction(int alg_mod, int iter_count, dou
     //               mu, d_norm, regularization_size, alpha_du, alpha_pr, ls_trials);
 
     if(resultWriter)
-        resultWriter->logLocalOptimizerIteration(iter_count, lastOptimizationParameters, obj_value, lastObjectiveFunctionGradient, 0, numOptimizationParameters,
+        resultWriter->logLocalOptimizerIteration(iter_count, lastOptimizationParameters, numOptimizationParameters, obj_value, lastObjectiveFunctionGradient, 0,
                                alg_mod, inf_pr, inf_du, mu, d_norm, regularization_size, alpha_du, alpha_pr, ls_trials);
     return stop;
 }
@@ -146,7 +146,7 @@ int MultiConditionProblem::intermediateFunction(int alg_mod, int iter_count, dou
 void MultiConditionProblem::logObjectiveFunctionEvaluation(const double *parameters, double objectiveFunctionValue, const double *objectiveFunctionGradient, int numFunctionCalls, double timeElapsed)
 {
     if(resultWriter)
-        resultWriter->logLocalOptimizerObjectiveFunctionEvaluation(parameters, objectiveFunctionValue, objectiveFunctionGradient, numFunctionCalls, timeElapsed);
+        resultWriter->logLocalOptimizerObjectiveFunctionEvaluation(parameters, numOptimizationParameters, objectiveFunctionValue, objectiveFunctionGradient, numFunctionCalls, timeElapsed);
 }
 
 void MultiConditionProblem::logOptimizerFinished(double optimalCost, const double *optimalParameters, double masterTime, int exitStatus)
@@ -158,7 +158,7 @@ void MultiConditionProblem::logOptimizerFinished(double optimalCost, const doubl
     //    saveLocalOptimizerResults(this, path, optimalCost, optimalParameters, masterTime, exitStatus);
 }
 
-ReturnData *MultiConditionProblem::runAndLogSimulation(UserData *udata, MultiConditionDataProvider *dataProvider, JobIdentifier path, int jobId, OptimizationResultWriter *resultWriter, int *status)
+ReturnData *MultiConditionProblem::runAndLogSimulation(UserData *udata, MultiConditionDataProvider *dataProvider, JobIdentifier path, int jobId, MultiConditionProblemResultWriter *resultWriter, int *status)
 {
     double startTime = MPI_Wtime();
 
