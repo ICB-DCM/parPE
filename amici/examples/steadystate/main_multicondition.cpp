@@ -1,11 +1,9 @@
 #include <stdio.h>
 #include "steadystateProblemParallel.h"
-#include <mpi.h>
 #include <logging.h>
-#include <loadBalancerMaster.h>
 #include <loadBalancerWorker.h>
 #include "hdf5Misc.h"
-#include<unistd.h>
+#include <unistd.h>
 #include "SteadyStateMultiConditionProblem.h"
 #include "wrapfunctions.h"
 #include "simulationWorkerAmici.h"
@@ -15,59 +13,81 @@
  * This example demonstrates the use of the loadbalancer / queue for parallel ODE simulation.
  */
 
-void initMPI(int *argc, char ***argv);
-
 void messageHandler(char **buffer, int *size, int jobId, void *userData);
+
+class SteadystateApplication : public OptimizationApplication {
+public:
+    SteadystateApplication(int argc, char **argv) : OptimizationApplication(argc, argv) {}
+
+    virtual void initProblem(const char *inFileArgument, const char *outFileArgument) {
+        dataProvider = new SteadyStateMultiConditionDataProvider(inFileArgument);
+        problem = new SteadyStateMultiConditionProblem(dataProvider);
+
+        const char *outfilename = "testResultWriter_rank%03d.h5";
+        char outfilefull[200];
+        sprintf(outfilefull, outfilename, getMpiRank());
+        JobIdentifier id = {0};
+        resultWriter = new MultiConditionProblemResultWriter(problem, outfilefull, true, id);
+        problem->resultWriter = resultWriter;
+    }
+
+    virtual void destroyProblem() {
+        delete resultWriter;
+        delete problem;
+        delete dataProvider;
+    }
+
+    virtual void runWorker() {
+        // TODO : move to base class; need wrapper; ParallelProblem interface?
+        if(getMpiCommSize() > 1)
+            loadBalancerWorkerRun(messageHandler, problem);
+    }
+
+    SteadyStateMultiConditionDataProvider *dataProvider;
+};
+
+class SteadystateLocalOptimizationApplication : public SteadystateApplication {
+public:
+    SteadystateLocalOptimizationApplication(int argc, char **argv) : SteadystateApplication(argc, argv) {}
+
+    virtual int runMaster() {
+            // Single optimization
+            return getLocalOptimum(problem);
+    }
+};
+
+class SteadystateMultiStartOptimizationApplication : public SteadystateApplication {
+public:
+    SteadystateMultiStartOptimizationApplication(int argc, char **argv) : SteadystateApplication(argc, argv) {}
+
+    virtual int runMaster() {
+        return getLocalOptimum(problem);
+
+        int status = 0;
+        // Multistart optimization
+        OptimizationOptions options;
+        options.maxOptimizerIterations = 1;
+        options.numStarts = 1; // if numStarts > 1: need to use multiple MPI workers, otherwise simulation crashes due to CVODES threading issues
+
+        MultiConditionProblemGeneratorForMultiStart generator;
+        generator.options = &options;
+        generator.resultWriter = reinterpret_cast<MultiConditionProblemResultWriter *>(problem->resultWriter);
+        generator.dp = dataProvider;
+
+        runParallelMultiStartOptimization(&generator, options.numStarts, options.retryOptimization);
+
+        return status;
+    }
+
+};
+
 
 int main(int argc, char **argv)
 {
     int status = 0;
 
-    const char *outfilename = "testResultWriter_rank%03d.h5";
-
-    SteadyStateMultiConditionDataProvider dataProvider =
-            SteadyStateMultiConditionDataProvider(filename);
-    SteadyStateMultiConditionProblem problem(&dataProvider);
-
-    OptimizationApplication app(&problem, argc, argv);
-    app.resultFileName = outfilename;
-    app.run();
-
-    int commSize;
-    MPI_Comm_size(MPI_COMM_WORLD, &commSize);
-
-//    if(commSize == 1) {
-//        // run in serial mode
-//        SteadystateProblemParallel problem = SteadystateProblemParallel();
-//        status = getLocalOptimum(&problem);
-
-//    } else
-    {
-        int mpiRank;
-        MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
-
-
-        if(mpiRank == 0) {
-            loadBalancerStartMaster();
-
-            // Single optimization
-            //status = getLocalOptimum(&problem);
-
-            // Multistart optimization
-            OptimizationOptions options;
-            options.maxOptimizerIterations = 1;
-            options.numStarts = 2;
-            std::pair<void *, void*> pair(&dataProvider, &options);
-            runParallelMultiStartOptimization(multiConditionProblemGeneratorForMultiStart,
-                                              options.numStarts, options.retryOptimization, &pair);
-
-            loadBalancerTerminate();
-            sendTerminationSignalToAllWorkers();
-        } else {
-            loadBalancerWorkerRun(messageHandler, &problem);
-        }
-        closeResultHDFFile();
-    }
+    SteadystateLocalOptimizationApplication app(argc, argv);
+    status = app.run();
 
     return status;
 }
@@ -75,9 +95,9 @@ int main(int argc, char **argv)
 
 void messageHandler(char** buffer, int *msgSize, int jobId, void *userData)
 {
-//    int mpiRank;
-//    MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
-//    logmessage(LOGLVL_DEBUG, "Worker #%d: Job #%d received.", mpiRank, jobId);
+    //    int mpiRank;
+    //    MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
+    //    logmessage(LOGLVL_DEBUG, "Worker #%d: Job #%d received.", mpiRank, jobId);
 
     SteadyStateMultiConditionProblem *problem = (SteadyStateMultiConditionProblem *) userData;
     SteadyStateMultiConditionDataProvider *dataProvider = (SteadyStateMultiConditionDataProvider *)problem->getDataProvider();
@@ -92,7 +112,7 @@ void messageHandler(char** buffer, int *msgSize, int jobId, void *userData)
 
     // work
     int status = 0;
-    ReturnData *rdata = MultiConditionProblem::runAndLogSimulation(&udata, dataProvider, path, jobId, &status);
+    ReturnData *rdata = MultiConditionProblem::runAndLogSimulation(&udata, dataProvider, path, jobId, problem->resultWriter, &status);
 
     // pack & cleanup
     *msgSize = JobResultAmiciSimulation::getLength(udata.np);
@@ -101,7 +121,7 @@ void messageHandler(char** buffer, int *msgSize, int jobId, void *userData)
 
     delete rdata;
 
-/*
+    /*
 
     SteadystateProblemParallel *problem = (SteadystateProblemParallel*) userData;
     UserData *udata = problem->udata;

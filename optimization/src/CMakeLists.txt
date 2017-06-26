@@ -8,6 +8,7 @@ set(SRC_LIST
     optimizationProblem.cpp
     multiStartOptimization.cpp
     optimizationApplication.cpp
+    optimizationResultWriter.cpp
 )
 
 add_library(${PROJECT_NAME} ${SRC_LIST})
