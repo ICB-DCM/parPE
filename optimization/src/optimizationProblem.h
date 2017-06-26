@@ -1,10 +1,13 @@
 #ifndef OPTIMIZATION_PROBLEM_H
 #define OPTIMIZATION_PROBLEM_H
 
+#include "optimizationResultWriter.h"
 #include <cstdlib>
 #include <hdf5.h>
 
 typedef enum optimizer_tag {OPTIMIZER_IPOPT, OPTIMIZER_CERES} optimizerEnum;
+
+class OptimizationResultWriter;
 
 /** Type to describe an optimization (minimization) problem */
 
@@ -90,6 +93,8 @@ public:
     double *parametersMax;
 
     OptimizationOptions *optimizationOptions;
+
+    OptimizationResultWriter *resultWriter;
 };
 
 int getLocalOptimum(OptimizationProblem *problem);

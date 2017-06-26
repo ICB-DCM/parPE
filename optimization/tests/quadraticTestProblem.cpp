@@ -64,7 +64,7 @@ QuadraticTestProblem::~QuadraticTestProblem()
     delete optimizationOptions;
 }
 
-OptimizationProblem *quadraticOptimizationProblemGeneratorForMultiStart(int currentStartIdx, void *userData)
+OptimizationProblem *QuadraticOptimizationProblemGeneratorForMultiStart::getLocalProblemImpl(int multiStartIndex)
 {
     OptimizationProblem *problem = new QuadraticTestProblem();
     // delete starting point, so random parameters will be chosen
@@ -73,7 +73,5 @@ OptimizationProblem *quadraticOptimizationProblemGeneratorForMultiStart(int curr
 
     problem->optimizationOptions->optimizer = OPTIMIZER_CERES;
     problem->optimizationOptions->optimizer = OPTIMIZER_IPOPT;
-
-
     return problem;
 }

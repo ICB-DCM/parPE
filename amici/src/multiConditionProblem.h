@@ -3,6 +3,7 @@
 
 #include "optimizationProblem.h"
 #include "multiStartOptimization.h"
+#include "multiConditionProblemResultWriter.h"
 #include "MultiConditionDataProvider.h"
 #include "amici_interface_cpp.h"
 #include "loadBalancerMaster.h"
@@ -40,7 +41,7 @@ public:
 
 
     static ReturnData *runAndLogSimulation(UserData *udata, MultiConditionDataProvider *dataProvider,
-                                           JobIdentifier path, int jobId, int *status);
+                                           JobIdentifier path, int jobId, OptimizationResultWriter *resultWriter, int *status);
 
     virtual MultiConditionDataProvider *getDataProvider();
 
@@ -91,7 +92,15 @@ public:
 
 };
 
-OptimizationProblem *multiConditionProblemGeneratorForMultiStart(int currentStartIdx, void *userData);
+class MultiConditionProblemGeneratorForMultiStart : public OptimizationProblemGeneratorForMultiStart {
+public:
+    OptimizationProblem *getLocalProblemImpl(int multiStartIndex);
+
+    MultiConditionDataProvider *dp;
+    OptimizationOptions *options;
+    MultiConditionProblemResultWriter *resultWriter;
+
+};
 
 void handleWorkPackage(char **buffer, int *msgSize, int jobId, void *userData);
 

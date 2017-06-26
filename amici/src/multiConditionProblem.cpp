@@ -35,10 +35,11 @@ void handleWorkPackage(char **buffer, int *msgSize, int jobId, void *userData)
     MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
     printf("[%d] Received work. ", mpiRank); printDatapath(path); fflush(stdout);
 #endif
+    //TODO: need resultwriter here
 
     // work
     int status = 0;
-    ReturnData *rdata = MultiConditionProblem::runAndLogSimulation(udata, dataProvider, path, jobId, &status);
+    ReturnData *rdata = MultiConditionProblem::runAndLogSimulation(udata, dataProvider, path, jobId, NULL, &status);
 
 #if QUEUE_WORKER_H_VERBOSE >= 2
     printf("[%d] Work done. ", mpiRank); printDatapath(path); fflush(stdout);
@@ -136,14 +137,16 @@ int MultiConditionProblem::intermediateFunction(int alg_mod, int iter_count, dou
     //               alg_mod, iter_count, obj_value, inf_pr, inf_du,
     //               mu, d_norm, regularization_size, alpha_du, alpha_pr, ls_trials);
 
-    logLocalOptimizerIteration(path, iter_count, lastOptimizationParameters, obj_value, lastObjectiveFunctionGradient, 0, numOptimizationParameters,
+    if(resultWriter)
+        resultWriter->logLocalOptimizerIteration(iter_count, lastOptimizationParameters, obj_value, lastObjectiveFunctionGradient, 0, numOptimizationParameters,
                                alg_mod, inf_pr, inf_du, mu, d_norm, regularization_size, alpha_du, alpha_pr, ls_trials);
     return stop;
 }
 
 void MultiConditionProblem::logObjectiveFunctionEvaluation(const double *parameters, double objectiveFunctionValue, const double *objectiveFunctionGradient, int numFunctionCalls, double timeElapsed)
 {
-    logLocalOptimizerObjectiveFunctionEvaluation(this, parameters, objectiveFunctionValue, objectiveFunctionGradient, numFunctionCalls, timeElapsed);
+    if(resultWriter)
+        resultWriter->logLocalOptimizerObjectiveFunctionEvaluation(parameters, objectiveFunctionValue, objectiveFunctionGradient, numFunctionCalls, timeElapsed);
 }
 
 void MultiConditionProblem::logOptimizerFinished(double optimalCost, const double *optimalParameters, double masterTime, int exitStatus)
@@ -155,7 +158,7 @@ void MultiConditionProblem::logOptimizerFinished(double optimalCost, const doubl
     //    saveLocalOptimizerResults(this, path, optimalCost, optimalParameters, masterTime, exitStatus);
 }
 
-ReturnData *MultiConditionProblem::runAndLogSimulation(UserData *udata, MultiConditionDataProvider *dataProvider, JobIdentifier path, int jobId,  int *status)
+ReturnData *MultiConditionProblem::runAndLogSimulation(UserData *udata, MultiConditionDataProvider *dataProvider, JobIdentifier path, int jobId, OptimizationResultWriter *resultWriter, int *status)
 {
     double startTime = MPI_Wtime();
 
@@ -196,7 +199,8 @@ ReturnData *MultiConditionProblem::runAndLogSimulation(UserData *udata, MultiCon
     // TODO write simulation results (set jobid as attribute)
 
     // TODO save Y
-    logSimulation(path, udata->p, rdata->llh[0], rdata->sllh,
+    if(resultWriter)
+        resultWriter->logSimulation(udata->p, rdata->llh[0], rdata->sllh,
             timeSeconds, udata->np, udata->nx, rdata->x, rdata->sx, rdata->y,
             jobId, iterationsUntilSteadystate);
 
@@ -417,12 +421,13 @@ void MultiConditionProblem::setSensitivityOptions(bool sensiRequired)
     }
 }
 
-OptimizationProblem *multiConditionProblemGeneratorForMultiStart(int currentStartIdx, void *userData)
+MultiConditionDataProvider *MultiConditionProblem::getDataProvider()
 {
-    std::pair<void *, void*> *pair = (std::pair<void *, void*> *) userData;
-    MultiConditionDataProvider *dp = (MultiConditionDataProvider*) pair->first;
-    OptimizationOptions *options = (OptimizationOptions*) pair->second;
+    return dataProvider;
+}
 
+OptimizationProblem *MultiConditionProblemGeneratorForMultiStart::getLocalProblemImpl(int multiStartIndex)
+{
     int mpiCommSize = 1;
     int mpiInitialized = 0;
 
@@ -438,12 +443,8 @@ OptimizationProblem *multiConditionProblemGeneratorForMultiStart(int currentStar
         problem = new MultiConditionProblem(dp);
 
     problem->optimizationOptions = new OptimizationOptions(*options);
-    problem->path.idxLocalOptimization = currentStartIdx;
+    problem->resultWriter = resultWriter;
+    problem->path.idxLocalOptimization = multiStartIndex;
 
     return problem;
-}
-
-MultiConditionDataProvider *MultiConditionProblem::getDataProvider()
-{
-    return dataProvider;
 }

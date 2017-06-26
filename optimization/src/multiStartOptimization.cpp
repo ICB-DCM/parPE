@@ -7,48 +7,20 @@
 
 #include "logging.h"
 
-
-OptimizationProblem *getLocalProblem(optimizationProblemGeneratorForMultiStartFp problemGenerator,
-                                     int multiStartIndex, void *userData) {
-    OptimizationProblem *problem = problemGenerator(multiStartIndex, userData);
-
-    if(!problem->initialParameters) {
-        problem->initialParameters = new double [problem->numOptimizationParameters];
-        getRandomStartingpoint(problem->parametersMin,
-                               problem->parametersMax,
-                               problem->numOptimizationParameters,
-                               problem->initialParameters);
-    }
-
-    return problem;
-}
-
-OptimizationProblem **createLocalOptimizationProblems(optimizationProblemGeneratorForMultiStartFp problemGenerator,
-                                                      int numLocalOptimizations, void *userData) {
-    OptimizationProblem **localProblems = new OptimizationProblem*[numLocalOptimizations];
-
-    for(int ms = 0; ms < numLocalOptimizations; ++ms) {
-        localProblems[ms] = getLocalProblem(problemGenerator, ms, userData);
-    }
-
-    return localProblems;
-}
-
-int runParallelMultiStartOptimization(optimizationProblemGeneratorForMultiStartFp problemGenerator,
-                                      int numberOfStarts, bool restartOnFailure, void *userData)
+int runParallelMultiStartOptimization(OptimizationProblemGeneratorForMultiStart *problemGenerator,
+                                      int numberOfStarts, bool restartOnFailure)
 {
     logmessage(LOGLVL_DEBUG, "Starting runParallelMultiStartOptimization with %d starts", numberOfStarts);
 
     pthread_t *localOptimizationThreads = (pthread_t *) alloca(numberOfStarts * sizeof(pthread_t));
 
-    OptimizationProblem **localProblems = createLocalOptimizationProblems(problemGenerator, numberOfStarts, userData);
+    OptimizationProblem **localProblems = problemGenerator->createLocalOptimizationProblems(numberOfStarts);
 
     pthread_attr_t threadAttr;
     pthread_attr_init(&threadAttr);
     pthread_attr_setdetachstate(&threadAttr, PTHREAD_CREATE_JOINABLE);
 
     int lastStartIdx = -1;
-
     // launch threads for required number of starts
     for(int ms = 0; ms < numberOfStarts; ++ms) {
         ++lastStartIdx;
@@ -82,7 +54,7 @@ int runParallelMultiStartOptimization(optimizationProblemGeneratorForMultiStartF
                     logmessage(LOGLVL_WARNING, "Thread ms #%d finished unsuccessfully... trying new starting point", ms);
                     ++lastStartIdx;
 
-                    localProblems[ms] = getLocalProblem(problemGenerator, lastStartIdx, userData);
+                    localProblems[ms] = problemGenerator->getLocalProblem(lastStartIdx);
                     logmessage(LOGLVL_DEBUG, "Spawning thread for local optimization #%d (%d)", lastStartIdx, ms);
                     pthread_create(&localOptimizationThreads[ms], &threadAttr, getLocalOptimumThreadWrapper, (void *)localProblems[ms]);
                 }
@@ -100,4 +72,34 @@ int runParallelMultiStartOptimization(optimizationProblemGeneratorForMultiStartF
 
     return 0;
 
+}
+
+OptimizationProblemGeneratorForMultiStart::OptimizationProblemGeneratorForMultiStart()
+{
+
+}
+
+OptimizationProblem *OptimizationProblemGeneratorForMultiStart::getLocalProblem(int multiStartIndex) {
+    OptimizationProblem *problem = getLocalProblemImpl(multiStartIndex);
+
+    if(!problem->initialParameters) {
+        problem->initialParameters = new double [problem->numOptimizationParameters];
+        getRandomStartingpoint(problem->parametersMin,
+                               problem->parametersMax,
+                               problem->numOptimizationParameters,
+                               problem->initialParameters);
+    }
+
+    return problem;
+}
+
+OptimizationProblem **OptimizationProblemGeneratorForMultiStart::createLocalOptimizationProblems(int numLocalOptimizations)
+{
+    OptimizationProblem **localProblems = new OptimizationProblem*[numLocalOptimizations];
+
+    for(int ms = 0; ms < numLocalOptimizations; ++ms) {
+        localProblems[ms] = getLocalProblem(ms);
+    }
+
+    return localProblems;
 }

@@ -72,9 +72,9 @@ set(SRC_LIST_EXE_PARALLEL
 add_executable(${PROJECT_NAME} ${SRC_LIST_EXE_PARALLEL})
 
 target_link_libraries(${PROJECT_NAME}
+    parpeamici
     parpeoptimization
     parpeloadbalancer
-    parpeamici
     ${MODEL_LIBRARIES}
     ${IPOPT_LIBRARIES}
     ${SUNDIALS_LIBRARIES}
