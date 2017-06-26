@@ -1,5 +1,6 @@
 include_directories(
     src/
+    ../loadbalancer/src
     tests/
     ${IPOPT_INCLUDE_DIRS}
     ${CERES_INCLUDE_DIRS}

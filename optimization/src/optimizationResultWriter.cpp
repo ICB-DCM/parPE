@@ -60,7 +60,6 @@ void OptimizationResultWriter::closeResultHDFFile()
 void OptimizationResultWriter::logLocalOptimizerObjectiveFunctionEvaluation(const double *parameters, double objectiveFunctionValue, const double *objectiveFunctionGradient, int numFunctionCalls, double timeElapsedInSeconds)
 {
     const char *fullGroupPath = rootPath.c_str();
-
     hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "negLogLikelihood", &objectiveFunctionValue, 1);
     if(objectiveFunctionGradient && problem)
         hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "negLogLikelihoodGradient", objectiveFunctionGradient, problem->numOptimizationParameters);
