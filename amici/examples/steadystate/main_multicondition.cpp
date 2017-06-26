@@ -127,7 +127,7 @@ void messageHandler(char** buffer, int *msgSize, int jobId, void *userData)
 
     // work
     int status = 0;
-    ReturnData *rdata = MultiConditionProblem::runAndLogSimulation(&udata, dataProvider, path, jobId, NULL, &status);
+    ReturnData *rdata = MultiConditionProblem::runAndLogSimulation(&udata, dataProvider, path, jobId, problem->resultWriter, &status);
 
     // pack & cleanup
     *msgSize = JobResultAmiciSimulation::getLength(udata.np);
