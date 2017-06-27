@@ -18,9 +18,9 @@ public:
 
     std::string getIterationPath();
 
-    std::string getSimulationPath();
+    std::string getSimulationPath(JobIdentifier id);
 
-    void logSimulation(const double *theta,
+    void logSimulation(JobIdentifier id, const double *theta,
                        double llh, const double *gradient,
                        double timeElapsedInSeconds,
                        int nTheta, int numStates,

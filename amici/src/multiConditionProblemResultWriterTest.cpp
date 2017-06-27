@@ -35,7 +35,7 @@ TEST(multiConditionProblemResultWriter, testResultWriter) {
 
     w.logLocalOptimizerObjectiveFunctionEvaluation(NULL, 0, 1, NULL, 2, 3);
 
-    w.logSimulation(NULL, 1, NULL, 1, 1, 2, NULL, NULL, NULL, 1, 2);
+    w.logSimulation(id, NULL, 1, NULL, 1, 1, 2, NULL, NULL, NULL, 1, 2);
 
     w.saveLocalOptimizerResults(1, NULL, 0, 12, 0);
 

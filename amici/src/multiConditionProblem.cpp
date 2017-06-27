@@ -200,7 +200,7 @@ ReturnData *MultiConditionProblem::runAndLogSimulation(UserData *udata, MultiCon
 
     // TODO save Y
     if(resultWriter)
-        resultWriter->logSimulation(udata->p, rdata->llh[0], rdata->sllh,
+        resultWriter->logSimulation(path, udata->p, rdata->llh[0], rdata->sllh,
             timeSeconds, udata->np, udata->nx, rdata->x, rdata->sx, rdata->y,
             jobId, iterationsUntilSteadystate);
 

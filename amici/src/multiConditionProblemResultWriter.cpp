@@ -28,17 +28,17 @@ std::string MultiConditionProblemResultWriter::getIterationPath()
     return std::string(fullGroupPath);
 }
 
-std::string MultiConditionProblemResultWriter::getSimulationPath()
+std::string MultiConditionProblemResultWriter::getSimulationPath(JobIdentifier id)
 {
     char fullGroupPath[1024];
-    sprintf(fullGroupPath, "/multistarts/%d/iteration/%d/genotype/%d/experiment/%d/",
-            id.idxLocalOptimization, id.idxLocalOptimizationIteration, 0, id.idxConditions);
+    sprintf(fullGroupPath, "/multistarts/%d/iteration/%d/condition/%d/",
+            id.idxLocalOptimization, id.idxLocalOptimizationIteration, id.idxConditions);
     return std::string(fullGroupPath);
 }
 
-void MultiConditionProblemResultWriter::logSimulation(const double *theta, double llh, const double *gradient, double timeElapsedInSeconds, int nTheta, int numStates, double *states, double *stateSensi, double *y, int jobId, int iterationsUntilSteadystate)
+void MultiConditionProblemResultWriter::logSimulation(JobIdentifier id, const double *theta, double llh, const double *gradient, double timeElapsedInSeconds, int nTheta, int numStates, double *states, double *stateSensi, double *y, int jobId, int iterationsUntilSteadystate)
 {
-    std::string pathStr = getSimulationPath();
+    std::string pathStr = getSimulationPath(id);
     const char *fullGroupPath = pathStr.c_str();
 
 
