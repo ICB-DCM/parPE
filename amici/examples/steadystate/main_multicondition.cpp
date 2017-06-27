@@ -15,8 +15,6 @@
  * To run, e.g.: mpiexec -np 4 ../parPE-build/amici/examples/steadystate/example_steadystate_multi -o steadystate_`date +%F` amici/examples/steadystate/data.h5
  */
 
-void messageHandler(char **buffer, int *size, int jobId, void *userData);
-
 class SteadystateApplication : public OptimizationApplication {
 public:
     SteadystateApplication(int argc, char **argv) : OptimizationApplication(argc, argv) {}
