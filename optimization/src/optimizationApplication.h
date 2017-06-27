@@ -40,18 +40,19 @@ public:
     int getMpiCommSize();
 
     const char *dataFileName;
-    const char *resultFileName;
+    char *resultFileName;
     OptimizationProblem *problem;
     OptimizationResultWriter *resultWriter;
 
     // command line option parsing
-    const char *shortOptions = "dhvt:";
-    struct option const longOptions[6] = {
+    const char *shortOptions = "dhvt:o:";
+    struct option const longOptions[7] = {
         {"debug", no_argument, NULL, 'd'},
         {"print-worklist", no_argument, NULL, 'p'},
         {"help", no_argument, NULL, 'h'},
         {"version", no_argument, NULL, 'v'},
         {"task", required_argument, NULL, 't'},
+        {"outfile-prefix", required_argument, NULL, 'o'},
         {NULL, 0, NULL, 0}
     };
 

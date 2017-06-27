@@ -3,6 +3,7 @@
 #include <assert.h>
 #include "hdf5Misc.h"
 #include <sys/stat.h>
+#include "misc.h"
 
 OptimizationResultWriter::OptimizationResultWriter()
 {
@@ -17,7 +18,8 @@ OptimizationResultWriter::OptimizationResultWriter(hid_t file_id)
 
 OptimizationResultWriter::OptimizationResultWriter(const char *filename, bool overwrite)
 {
-    //logmessage(LOGLVL_DEBUG, "Writing results to %s.", filename);
+    logmessage(LOGLVL_DEBUG, "Writing results to %s.", filename);
+    mkpathConstChar(filename, 0755);
     initResultHDFFile(filename, overwrite);
     logParPEVersion();
 }
