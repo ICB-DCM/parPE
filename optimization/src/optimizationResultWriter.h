@@ -34,7 +34,7 @@ public:
      */
     OptimizationResultWriter(const char *filename, bool overwrite);
 
-    void logParPEVersion();
+    virtual void logParPEVersion();
 
     /**
      * @brief Function to be called after each objective function f(x) or gradient f'(x) evaluation
@@ -44,7 +44,7 @@ public:
      * @param numFunctionCalls Number of times the objective function has been called (f(x) and f'(x) are counter individually (?))
      * @param timeElapsedInSeconds CPU time for the last objective function evaluation (wall time)
      */
-    void logLocalOptimizerObjectiveFunctionEvaluation(const double *parameters, int numParameters,
+    virtual void logLocalOptimizerObjectiveFunctionEvaluation(const double *parameters, int numParameters,
                                                       double objectiveFunctionValue,
                                                       const double *objectiveFunctionGradient,
                                                       int numFunctionCalls,
@@ -67,7 +67,7 @@ public:
      * @param alpha_pr
      * @param ls_trials
      */
-    void logLocalOptimizerIteration(int numIterations,
+    virtual void logLocalOptimizerIteration(int numIterations,
                                     double *theta,
                                     int numParameters,
                                     double objectiveFunctionValue,
@@ -84,13 +84,13 @@ public:
     /**
      * @brief Write buffered output to file
      */
-    void flushResultWriter();
+    virtual void flushResultWriter();
 
     /**
      * @brief CPU time for whole application run
      * @param timeInSeconds
      */
-    void saveTotalCpuTime(const double timeInSeconds);
+    virtual void saveTotalCpuTime(const double timeInSeconds);
 
     /**
      * @brief Function to be called when local optimization is finished.
@@ -99,7 +99,7 @@ public:
      * @param masterTime Wall time for this optimization
      * @param exitStatus Exit status (cause of optimizer termination)
      */
-    void saveLocalOptimizerResults(double finalNegLogLikelihood,
+    virtual void saveLocalOptimizerResults(double finalNegLogLikelihood,
                                    const double *optimalParameters,
                                    int numParameters,
                                    double masterTime,

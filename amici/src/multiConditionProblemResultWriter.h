@@ -20,6 +20,8 @@ public:
 
     std::string getSimulationPath(JobIdentifier id);
 
+    std::string getOptimizationPath();
+
     JobIdentifier getJobId();
 
     void setJobId(JobIdentifier id);
@@ -31,6 +33,8 @@ public:
                        double *states, double *stateSensi,
                        double *y, int jobId,
                        int iterationsUntilSteadystate);
+
+    void saveLocalOptimizerResults(double finalNegLogLikelihood, const double *optimalParameters, int numParameters, double masterTime, int exitStatus);
 
 protected:
     JobIdentifier id;

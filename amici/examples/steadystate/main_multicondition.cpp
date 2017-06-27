@@ -62,7 +62,7 @@ public:
         int status = 0;
         // Multistart optimization
         OptimizationOptions options;
-        options.maxOptimizerIterations = 1;
+        options.maxOptimizerIterations = 2;
         options.numStarts = 2; // if numStarts > 1: need to use multiple MPI workers, otherwise simulation crashes due to CVODES threading issues
 
         MultiConditionProblemGeneratorForMultiStart generator;

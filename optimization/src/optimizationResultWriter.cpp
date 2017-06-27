@@ -130,26 +130,27 @@ void OptimizationResultWriter::saveTotalCpuTime(const double timeInSeconds)
 
 void OptimizationResultWriter::saveLocalOptimizerResults(double finalNegLogLikelihood, const double *optimalParameters, int numParameters, double masterTime, int exitStatus)
 {
-    //    hsize_t dimensions[1] = {1};
+    std::string fullGroupPath;
+    hsize_t dimensions[1] = {1};
 
-    //    char fullPath[HDF5_PATH_BUFFER_MAX_LEN];
+    hdf5LockMutex();
 
-    //    hdf5LockMutex();
+    fullGroupPath = (rootPath + "/finalNegLogLikelihood");
+    H5LTmake_dataset(file_id, fullGroupPath.c_str(), 1, dimensions, H5T_NATIVE_DOUBLE, &finalNegLogLikelihood);
 
-    //    sprintf(fullPath, "/crossvalidations/%d/multistarts/%d/finalNegLogLikelihood", path.idxMultiStart, path.idxLocalOptimization);
-    //    H5LTmake_dataset(file_id, fullPath, 1, dimensions, H5T_NATIVE_DOUBLE, &finalNegLogLikelihood);
+    fullGroupPath = (rootPath + "/timeOnMaster");
+    H5LTmake_dataset(file_id, fullGroupPath.c_str(), 1, dimensions, H5T_NATIVE_DOUBLE, &masterTime);
 
-    //    sprintf(fullPath, "/crossvalidations/%d/multistarts/%d/timeOnMaster", path.idxMultiStart, path.idxLocalOptimization);
-    //    H5LTmake_dataset(file_id, fullPath, 1, dimensions, H5T_NATIVE_DOUBLE, &timeElapsed);
+    fullGroupPath = (rootPath + "/exitStatus");
+    H5LTmake_dataset(file_id, fullGroupPath.c_str(), 1, dimensions, H5T_NATIVE_INT, &exitStatus);
 
-    //    sprintf(fullPath, "/crossvalidations/%d/multistarts/%d/exitStatus", path.idxMultiStart, path.idxLocalOptimization);
-    //    H5LTmake_dataset(file_id, fullPath, 1, dimensions, H5T_NATIVE_INT, &exitStatus);
+    if(optimalParameters) {
+        fullGroupPath = (rootPath + "/optimalParameters");
+        dimensions[0] = numParameters;
+        H5LTmake_dataset(file_id, fullGroupPath.c_str(), 1, dimensions, H5T_NATIVE_DOUBLE, optimalParameters);
+    }
 
-    //    dimensions[0] = problem->numOptimizationParameters;
-    //    sprintf(fullPath, "/crossvalidations/%d/multistarts/%d/optimalParameters", path.idxMultiStart, path.idxLocalOptimization);
-    //    H5LTmake_dataset(file_id, fullPath, 1, dimensions, H5T_NATIVE_DOUBLE, &optimalParameters);
-
-    //    hdf5UnlockMutex();
+    hdf5UnlockMutex();
 
     flushResultWriter();
 }

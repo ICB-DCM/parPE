@@ -157,7 +157,8 @@ void MultiConditionProblem::logOptimizerFinished(double optimalCost, const doubl
     sprintJobIdentifier(strBuf, path);
     logmessage(LOGLVL_INFO, "%s: Ipopt status %d, final llh: %e, time: %f.", strBuf, exitStatus, optimalCost, masterTime);
 
-    //    saveLocalOptimizerResults(this, path, optimalCost, optimalParameters, masterTime, exitStatus);
+    if(resultWriter)
+        resultWriter->saveLocalOptimizerResults(optimalCost, optimalParameters, numOptimizationParameters, masterTime, exitStatus);
 }
 
 ReturnData *MultiConditionProblem::runAndLogSimulation(UserData *udata, MultiConditionDataProvider *dataProvider, JobIdentifier path, int jobId, MultiConditionProblemResultWriter *resultWriter, int *status)

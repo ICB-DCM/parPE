@@ -22,7 +22,7 @@ std::string MultiConditionProblemResultWriter::getIterationPath()
     char fullGroupPath[1024];
     sprintf(fullGroupPath, "/multistarts/%d/iteration/%d/",
             id.idxLocalOptimization, id.idxLocalOptimizationIteration);
-    return std::string(fullGroupPath);
+    return fullGroupPath;
 }
 
 std::string MultiConditionProblemResultWriter::getSimulationPath(JobIdentifier id)
@@ -30,7 +30,14 @@ std::string MultiConditionProblemResultWriter::getSimulationPath(JobIdentifier i
     char fullGroupPath[1024];
     sprintf(fullGroupPath, "/multistarts/%d/iteration/%d/condition/%d/",
             id.idxLocalOptimization, id.idxLocalOptimizationIteration, id.idxConditions);
-    return std::string(fullGroupPath);
+    return fullGroupPath;
+}
+
+std::string MultiConditionProblemResultWriter::getOptimizationPath()
+{
+    char fullGroupPath[1024];
+    sprintf(fullGroupPath, "/multistarts/%d/", id.idxLocalOptimization);
+    return fullGroupPath;
 }
 
 void MultiConditionProblemResultWriter::setJobId(JobIdentifier id)
@@ -74,4 +81,12 @@ void MultiConditionProblemResultWriter::logSimulation(JobIdentifier id, const do
 
     flushResultWriter();
 
+}
+
+void MultiConditionProblemResultWriter::saveLocalOptimizerResults(double finalNegLogLikelihood, const double *optimalParameters, int numParameters, double masterTime, int exitStatus)
+{
+    std::string oldPath = rootPath;
+    rootPath = getOptimizationPath();
+    OptimizationResultWriter::saveLocalOptimizerResults(finalNegLogLikelihood, optimalParameters, numParameters, masterTime, exitStatus);
+    rootPath = oldPath;
 }
