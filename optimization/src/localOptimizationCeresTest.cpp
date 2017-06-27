@@ -12,6 +12,7 @@
 TEST_GROUP(localOptimizationCeres)
 {
     void setup() {
+        mock().clear();
 
     }
 
@@ -25,11 +26,11 @@ TEST_GROUP(localOptimizationCeres)
 TEST(localOptimizationCeres, testOptimization) {
     QuadraticTestProblem *problem = new QuadraticTestProblem();
 
-    //TODO:
+    mock().expectOneCall("logFinish").withIntParameter("exitStatus", 0);
+    // CERES always requests gradient, this one call is for the workaround below.
+    mock().expectNCalls(1, "testObj");
+    //    mock().expectNCalls(10, "testObjGrad");
     mock().ignoreOtherCalls();
-    //mock().expectOneCall("logFinish").withIntParameter("exitStatus", 0);
-    //mock().expectNCalls(0, "testObj");
-    //mock().expectNCalls(10, "testObjGrad");
 
     getLocalOptimumCeres(problem);
 
