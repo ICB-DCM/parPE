@@ -7,31 +7,30 @@
 #include "testingMisc.h"
 #include "quadraticTestProblem.h"
 #include "multiStartOptimization.h"
-#include <stdio.h>
+
 
 TEST_GROUP(multiStartOptimization)
 {
     void setup() {
+        mock().clear();
     }
 
     void teardown() {
-
+        mock().checkExpectations();
+        mock().clear();
     }
 };
 
 
 TEST(multiStartOptimization, testMultiStartOptimization) {
-    mock().disable();
-    int numStarts = 10;
+    int numStarts = 4;
 
-    mock().expectNCalls(numStarts, "logFinish").withIntParameter("exitStatus", 0 );
+    // exit status may change depending on starting point -> ignore
+    mock().expectNCalls(numStarts, "logFinish").ignoreOtherParameters();
     mock().ignoreOtherCalls();
 
     QuadraticOptimizationProblemGeneratorForMultiStart generator;
     runParallelMultiStartOptimization(&generator, numStarts, true);
-    fflush(stdout);
-    mock().checkExpectations();
-    mock().clear();
 }
 
 
