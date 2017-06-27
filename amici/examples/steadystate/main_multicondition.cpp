@@ -60,17 +60,14 @@ public:
     virtual int runMaster() {
 
         int status = 0;
-        // Multistart optimization
-        OptimizationOptions options;
-        options.maxOptimizerIterations = 2;
-        options.numStarts = 2; // if numStarts > 1: need to use multiple MPI workers, otherwise simulation crashes due to CVODES threading issues
 
+        // Multistart optimization
         MultiConditionProblemGeneratorForMultiStart generator;
-        generator.options = &options;
+        generator.options = OptimizationOptions::fromHDF5(dataProvider->fileId); // if numStarts > 1: need to use multiple MPI workers, otherwise simulation crashes due to CVODES threading issues
         generator.resultWriter = reinterpret_cast<MultiConditionProblemResultWriter *>(problem->resultWriter);
         generator.dp = dataProvider;
 
-        runParallelMultiStartOptimization(&generator, options.numStarts, options.retryOptimization);
+        runParallelMultiStartOptimization(&generator, generator.options->numStarts, generator.options->retryOptimization);
 
         return status;
     }
