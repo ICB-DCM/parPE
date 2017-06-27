@@ -39,7 +39,7 @@ void handleWorkPackage(char **buffer, int *msgSize, int jobId, void *userData)
 
     // work
     int status = 0;
-    ReturnData *rdata = MultiConditionProblem::runAndLogSimulation(udata, dataProvider, path, jobId, NULL, &status);
+    ReturnData *rdata = MultiConditionProblem::runAndLogSimulation(udata, dataProvider, path, jobId, (MultiConditionProblemResultWriter*)problem->resultWriter, &status);
 
 #if QUEUE_WORKER_H_VERBOSE >= 2
     printf("[%d] Work done. ", mpiRank); printDatapath(path); fflush(stdout);

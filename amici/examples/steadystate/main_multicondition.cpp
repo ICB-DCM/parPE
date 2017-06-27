@@ -44,7 +44,7 @@ public:
     virtual void runWorker() {
         // TODO : move to base class; need wrapper; ParallelProblem interface?
         if(getMpiCommSize() > 1)
-            loadBalancerWorkerRun(messageHandler, problem);
+            loadBalancerWorkerRun(handleWorkPackage, problem);
     }
 
     SteadyStateMultiConditionDataProvider *dataProvider;
@@ -94,66 +94,4 @@ int main(int argc, char **argv)
     status = app.run();
 
     return status;
-}
-
-
-void messageHandler(char** buffer, int *msgSize, int jobId, void *userData)
-{
-    //    int mpiRank;
-    //    MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
-    //    logmessage(LOGLVL_DEBUG, "Worker #%d: Job #%d received.", mpiRank, jobId);
-
-    SteadyStateMultiConditionProblem *problem = (SteadyStateMultiConditionProblem *) userData;
-    SteadyStateMultiConditionDataProvider *dataProvider = (SteadyStateMultiConditionDataProvider *)problem->getDataProvider();
-
-    // unpack
-    UserData udata = dataProvider->getModelDims(); // TODO get from buffer // TODO make sure this is full udata, not only model dins
-    dataProvider->setupUserData(&udata);
-
-    JobIdentifier path;
-    JobAmiciSimulation::toUserData(*buffer, &udata, &path);
-    free(*buffer);
-
-    // work
-    int status = 0;
-    ReturnData *rdata = MultiConditionProblem::runAndLogSimulation(&udata, dataProvider, path, jobId, (MultiConditionProblemResultWriter*)problem->resultWriter, &status);
-
-    // pack & cleanup
-    *msgSize = JobResultAmiciSimulation::getLength(udata.np);
-    *buffer = (char*) malloc(*msgSize);
-    JobResultAmiciSimulation::serialize(rdata, &udata, status, *buffer);
-
-    delete rdata;
-
-    /*
-
-    SteadystateProblemParallel *problem = (SteadystateProblemParallel*) userData;
-    UserData *udata = problem->udata;
-
-    // unpack parameters
-    int conditionIdx = (int) **buffer;
-    int needGradient = (int) *(*buffer + sizeof(int));
-    memcpy(udata->p, *buffer + 2 * sizeof(int), sizeof(double) * udata->np);
-    free(*buffer);
-
-    // read data for current conditions
-    problem->readFixedParameters(conditionIdx);
-    problem->readMeasurement(conditionIdx);
-    problem->requireSensitivities(needGradient);
-
-    // run simulation
-    ReturnData *rdata = getSimulationResults(udata, problem->edata);
-
-    // pack results
-    *size = sizeof(double) * (udata->nplist + 1);
-    *buffer = (char*) malloc(*size);
-    double *doubleBuffer = (double*) *buffer;
-
-    doubleBuffer[0] = rdata->llh[0];
-    if(needGradient)
-        for(int i = 0; i < udata->nplist; ++i)
-            doubleBuffer[1 + i] = rdata->sllh[i];
-
-    delete rdata;
-    */
 }
