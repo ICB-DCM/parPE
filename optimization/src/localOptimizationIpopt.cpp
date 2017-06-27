@@ -278,7 +278,6 @@ static Bool Intermediate(Index alg_mod,
     OptimizationProblem *problem = (OptimizationProblem *) user_data;
 
     int status = true;
-
     status = problem->intermediateFunction(alg_mod,
                                                iter_count, obj_value,
                                                inf_pr,  inf_du,

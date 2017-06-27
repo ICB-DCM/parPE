@@ -137,9 +137,11 @@ int MultiConditionProblem::intermediateFunction(int alg_mod, int iter_count, dou
     //               alg_mod, iter_count, obj_value, inf_pr, inf_du,
     //               mu, d_norm, regularization_size, alpha_du, alpha_pr, ls_trials);
 
-    if(resultWriter)
+    if(resultWriter) {
+        ((MultiConditionProblemResultWriter*) resultWriter)->setJobId(path);
         resultWriter->logLocalOptimizerIteration(iter_count, lastOptimizationParameters, numOptimizationParameters, obj_value, lastObjectiveFunctionGradient, 0,
                                alg_mod, inf_pr, inf_du, mu, d_norm, regularization_size, alpha_du, alpha_pr, ls_trials);
+    }
     return stop;
 }
 
@@ -444,7 +446,7 @@ OptimizationProblem *MultiConditionProblemGeneratorForMultiStart::getLocalProble
 
     problem->optimizationOptions = new OptimizationOptions(*options);
 
-    JobIdentifier id = resultWriter->id;
+    JobIdentifier id = resultWriter->getJobId();
     id.idxLocalOptimization = multiStartIndex;
 
     problem->resultWriter = new MultiConditionProblemResultWriter(resultWriter->file_id, id);

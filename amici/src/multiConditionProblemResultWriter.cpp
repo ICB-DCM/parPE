@@ -8,15 +8,12 @@ MultiConditionProblemResultWriter::MultiConditionProblemResultWriter() : Optimiz
 
 MultiConditionProblemResultWriter::MultiConditionProblemResultWriter(hid_t file_id, JobIdentifier id) : OptimizationResultWriter(file_id)
 {
-    this->id = id;
-    rootPath = getIterationPath();
-
+    setJobId(id);
 }
 
 MultiConditionProblemResultWriter::MultiConditionProblemResultWriter( const char *filename, bool overwrite, JobIdentifier id) : OptimizationResultWriter(filename, overwrite)
 {
-    this->id = id;
-    rootPath = getIterationPath();
+    setJobId(id);
 }
 
 std::string MultiConditionProblemResultWriter::getIterationPath()
@@ -34,6 +31,17 @@ std::string MultiConditionProblemResultWriter::getSimulationPath(JobIdentifier i
     sprintf(fullGroupPath, "/multistarts/%d/iteration/%d/condition/%d/",
             id.idxLocalOptimization, id.idxLocalOptimizationIteration, id.idxConditions);
     return std::string(fullGroupPath);
+}
+
+void MultiConditionProblemResultWriter::setJobId(JobIdentifier id)
+{
+    this->id = id;
+    rootPath = getIterationPath();
+}
+
+JobIdentifier MultiConditionProblemResultWriter::getJobId()
+{
+    return id;
 }
 
 void MultiConditionProblemResultWriter::logSimulation(JobIdentifier id, const double *theta, double llh, const double *gradient, double timeElapsedInSeconds, int nTheta, int numStates, double *states, double *stateSensi, double *y, int jobId, int iterationsUntilSteadystate)

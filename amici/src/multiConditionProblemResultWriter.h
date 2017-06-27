@@ -20,6 +20,10 @@ public:
 
     std::string getSimulationPath(JobIdentifier id);
 
+    JobIdentifier getJobId();
+
+    void setJobId(JobIdentifier id);
+
     void logSimulation(JobIdentifier id, const double *theta,
                        double llh, const double *gradient,
                        double timeElapsedInSeconds,
@@ -28,6 +32,7 @@ public:
                        double *y, int jobId,
                        int iterationsUntilSteadystate);
 
+protected:
     JobIdentifier id;
 };
 
