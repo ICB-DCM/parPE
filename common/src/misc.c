@@ -53,6 +53,13 @@ int mkpath(char* file_path, mode_t mode) {
   return 0;
 }
 
+int mkpathConstChar(const char* file_path, mode_t mode) {
+  assert(file_path && *file_path);
+  char tmp[strlen(file_path) + 1];
+  strcpy(tmp, file_path);
+  return mkpath(tmp, mode);
+}
+
 void strFormatCurrentLocaltime(char *buffer, size_t bufferSize, const char *format) {
     time_t timer;
     time(&timer);

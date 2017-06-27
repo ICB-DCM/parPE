@@ -14,6 +14,8 @@
 
 EXTERNC int mkpath(char* file_path, mode_t mode);
 
+EXTERNC int mkpathConstChar(const char *file_path, mode_t mode);
+
 EXTERNC void createDirectoryIfNotExists(char *dirName);
 
 EXTERNC void strFormatCurrentLocaltime(char *buffer, size_t bufferSize, const char *format);
