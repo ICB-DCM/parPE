@@ -58,13 +58,12 @@ public:
     SteadystateMultiStartOptimizationApplication(int argc, char **argv) : SteadystateApplication(argc, argv) {}
 
     virtual int runMaster() {
-        return getLocalOptimum(problem);
 
         int status = 0;
         // Multistart optimization
         OptimizationOptions options;
         options.maxOptimizerIterations = 1;
-        options.numStarts = 1; // if numStarts > 1: need to use multiple MPI workers, otherwise simulation crashes due to CVODES threading issues
+        options.numStarts = 2; // if numStarts > 1: need to use multiple MPI workers, otherwise simulation crashes due to CVODES threading issues
 
         MultiConditionProblemGeneratorForMultiStart generator;
         generator.options = &options;
@@ -83,7 +82,8 @@ int main(int argc, char **argv)
 {
     int status = 0;
 
-    SteadystateLocalOptimizationApplication app(argc, argv);
+    //SteadystateLocalOptimizationApplication app(argc, argv);
+    SteadystateMultiStartOptimizationApplication app(argc, argv);
     status = app.run();
 
     return status;

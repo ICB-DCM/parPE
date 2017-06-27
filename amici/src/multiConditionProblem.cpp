@@ -443,7 +443,11 @@ OptimizationProblem *MultiConditionProblemGeneratorForMultiStart::getLocalProble
         problem = new MultiConditionProblem(dp);
 
     problem->optimizationOptions = new OptimizationOptions(*options);
-    problem->resultWriter = resultWriter;
+
+    JobIdentifier id = resultWriter->path;
+    id.idxLocalOptimization = multiStartIndex;
+
+    problem->resultWriter = new MultiConditionProblemResultWriter(resultWriter->file_id, id);
     problem->path.idxLocalOptimization = multiStartIndex;
 
     return problem;
