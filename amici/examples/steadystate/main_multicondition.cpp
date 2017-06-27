@@ -11,6 +11,8 @@
 #include "optimizationApplication.h"
 /*
  * This example demonstrates the use of the loadbalancer / queue for parallel ODE simulation.
+ *
+ * To run, e.g.: mpiexec -np 4 ../parPE-build/amici/examples/steadystate/example_steadystate_multi -o steadystate_`date +%F` amici/examples/steadystate/data.h5
  */
 
 void messageHandler(char **buffer, int *size, int jobId, void *userData);
@@ -24,14 +26,7 @@ public:
         problem = new SteadyStateMultiConditionProblem(dataProvider);
 
         JobIdentifier id = {0};
-        if(!outFileArgument) {
-            const char *outfilename = "testResultWriter_rank%03d.h5";
-            char outfilefull[200];
-            sprintf(outfilefull, outfilename, getMpiRank());
-            resultWriter = new MultiConditionProblemResultWriter(outfilefull, true, id);
-        } else {
-            resultWriter = new MultiConditionProblemResultWriter(outFileArgument, true, id);
-        }
+        resultWriter = new MultiConditionProblemResultWriter(outFileArgument, true, id);
         problem->resultWriter = resultWriter;
     }
 
