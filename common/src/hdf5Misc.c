@@ -91,7 +91,7 @@ void hdf5CreateGroup(hid_t file_id, const char *groupPath, bool recursively)
 
     hid_t group = H5Gcreate(file_id, groupPath, groupCreationPropertyList, H5P_DEFAULT, H5P_DEFAULT);
     if(group < 0)
-        error("Failed to create group in hdf5CreateGroup");
+        logmessage(LOGLVL_ERROR, "Failed to create group in hdf5CreateGroup: %s", groupPath);
     H5Gclose(group);
 
     hdf5UnlockMutex();
