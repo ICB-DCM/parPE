@@ -5,7 +5,7 @@
 #include <pthread.h>
 #include <mpi.h>
 
-OptimizationApplication::OptimizationApplication() : dataFileName(NULL), problem(NULL), resultWriter(NULL)
+OptimizationApplication::OptimizationApplication() : dataFileName(NULL), resultFileName(NULL), problem(NULL), resultWriter(NULL)
 {
 
 }
@@ -45,6 +45,10 @@ int OptimizationApplication::parseOptions(int argc, char **argv)
             if(strcmp(optarg, "gradient_check") == 0)
                 opType = OP_TYPE_GRADIENT_CHECK;
             break;
+        case 'o':
+            resultFileName = new char[strlen(optarg) + 20];
+            sprintf(resultFileName, "%s_rank%05d.h5", optarg, getMpiRank());
+            break;
         case 'v':
             printf("Version: %s\n", GIT_VERSION);
             return 1;
@@ -52,7 +56,7 @@ int OptimizationApplication::parseOptions(int argc, char **argv)
             printf("Usage: %s [OPTION]... FILE\n", argv[0]);
             printf("FILE: HDF5 data file");
             printf("Options: \n"
-                   "  -o, --optimizer Which optimizer to use Ipopt (default) Ceres (not yet implemented)"
+                   "  -o, --outfile-prefix Prefix for result files (path + filename)."
                    "  -t, --task    What to do? Parameter estimation (default) or check gradient ('gradient_check')"
                    "  -h, --help    Print this help text\n"
                    "  -v, --version Print version info\n"
@@ -102,7 +106,7 @@ int OptimizationApplication::run()
         logmessage(LOGLVL_CRITICAL, "No input file provided. Must provide input file as first and only argument or set OptimizationApplication::inputFileName manually.");
         return 1;
     }
-    initProblem(dataFileName, NULL); // TODO second argument
+    initProblem(dataFileName, resultFileName);
 
     int commSize;
     MPI_Comm_size(MPI_COMM_WORLD, &commSize);
@@ -154,6 +158,9 @@ void OptimizationApplication::finalizeTiming(clock_t begin)
 OptimizationApplication::~OptimizationApplication()
 {
     destroyProblem();
+
+    if(resultFileName)
+        delete[] resultFileName;
 
     destroyHDF5Mutex();
 

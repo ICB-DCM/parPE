@@ -8,8 +8,11 @@
 #include <unistd.h>
 #include <math.h>
 #include <sys/stat.h>
+#include <sys/types.h>
+#include <errno.h>
 #include "logging.h"
 #include <execinfo.h>
+#include <assert.h>
 
 //void printMatlabArray(const double *buffer, int len)
 //{
@@ -26,6 +29,35 @@ void createDirectoryIfNotExists(char *dirName)
     if (stat(dirName, &st) == -1) {
         mkdir(dirName, 0700);
     }
+}
+
+/**
+ * @brief Create the path to the given file. Does not error if path exists.
+ * @param file_path File name
+ * @param mode File mode
+ * @return 0 on success, -1 otherwise
+ */
+int mkpath(char* file_path, mode_t mode) {
+  assert(file_path && *file_path);
+
+  for (char *p = strchr(file_path + 1, '/'); p; p = strchr(p + 1, '/')) {
+      *p = '\0';
+      if (mkdir(file_path, mode) == -1) {
+          if (errno != EEXIST) {
+              *p = '/';
+              return -1;
+          }
+      }
+      *p = '/';
+  }
+  return 0;
+}
+
+int mkpathConstChar(const char* file_path, mode_t mode) {
+  assert(file_path && *file_path);
+  char tmp[strlen(file_path) + 1];
+  strcpy(tmp, file_path);
+  return mkpath(tmp, mode);
 }
 
 void strFormatCurrentLocaltime(char *buffer, size_t bufferSize, const char *format) {

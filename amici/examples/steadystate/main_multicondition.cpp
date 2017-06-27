@@ -23,11 +23,15 @@ public:
         dataProvider = new SteadyStateMultiConditionDataProvider(inFileArgument);
         problem = new SteadyStateMultiConditionProblem(dataProvider);
 
-        const char *outfilename = "testResultWriter_rank%03d.h5";
-        char outfilefull[200];
-        sprintf(outfilefull, outfilename, getMpiRank());
         JobIdentifier id = {0};
-        resultWriter = new MultiConditionProblemResultWriter(outfilefull, true, id);
+        if(!outFileArgument) {
+            const char *outfilename = "testResultWriter_rank%03d.h5";
+            char outfilefull[200];
+            sprintf(outfilefull, outfilename, getMpiRank());
+            resultWriter = new MultiConditionProblemResultWriter(outfilefull, true, id);
+        } else {
+            resultWriter = new MultiConditionProblemResultWriter(outFileArgument, true, id);
+        }
         problem->resultWriter = resultWriter;
     }
 
