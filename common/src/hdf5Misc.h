@@ -59,6 +59,8 @@ void hdf5GetDatasetDimensions2D(hid_t file_id, const char* path, int* d1, int* d
 
 int hdf5AttributeExists(hid_t fileId, const char *datasetPath, const char *attributeName);
 
+int hdf5WriteStringAttribute(hid_t fileId, const char *datasetPath, const char *attributeName, const char *attributeValue);
+
 #if defined (__cplusplus)
 }
 #endif

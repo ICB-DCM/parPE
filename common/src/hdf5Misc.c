@@ -458,3 +458,8 @@ int hdf5AttributeExists(hid_t fileId, const char *datasetPath, const char *attri
     return 0;
 }
 
+
+int hdf5WriteStringAttribute(hid_t fileId, const char *datasetPath, const char *attributeName, const char *attributeValue)
+{
+    return H5LTset_attribute_string(fileId, datasetPath, attributeName, attributeValue);
+}

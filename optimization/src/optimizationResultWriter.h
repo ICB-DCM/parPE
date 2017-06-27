@@ -34,6 +34,8 @@ public:
      */
     OptimizationResultWriter(const char *filename, bool overwrite);
 
+    void logParPEVersion();
+
     /**
      * @brief Function to be called after each objective function f(x) or gradient f'(x) evaluation
      * @param parameters Function parameters x

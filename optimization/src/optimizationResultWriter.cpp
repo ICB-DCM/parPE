@@ -12,12 +12,19 @@ OptimizationResultWriter::OptimizationResultWriter()
 OptimizationResultWriter::OptimizationResultWriter(hid_t file_id)
 {
     this->file_id = file_id;
+    logParPEVersion();
 }
 
 OptimizationResultWriter::OptimizationResultWriter(const char *filename, bool overwrite)
 {
     //logmessage(LOGLVL_DEBUG, "Writing results to %s.", filename);
     initResultHDFFile(filename, overwrite);
+    logParPEVersion();
+}
+
+void OptimizationResultWriter::logParPEVersion()
+{
+    hdf5WriteStringAttribute(file_id, rootPath.c_str(), "PARPE_VERSION", GIT_VERSION);
 }
 
 int OptimizationResultWriter::initResultHDFFile(const char *filename, bool overwrite)
