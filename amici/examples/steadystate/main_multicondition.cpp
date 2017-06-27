@@ -1,14 +1,15 @@
-#include <stdio.h>
-#include "steadystateProblemParallel.h"
+#include "wrapfunctions.h"
+#include "SteadyStateMultiConditionProblem.h"
+
 #include <logging.h>
 #include <loadBalancerWorker.h>
-#include "hdf5Misc.h"
+#include <hdf5Misc.h>
+#include <multiConditionProblemResultWriter.h>
+#include <optimizationApplication.h>
+
+#include <stdio.h>
 #include <unistd.h>
-#include "SteadyStateMultiConditionProblem.h"
-#include "wrapfunctions.h"
-#include "simulationWorkerAmici.h"
-#include "multiConditionProblemResultWriter.h"
-#include "optimizationApplication.h"
+
 /*
  * This example demonstrates the use of the loadbalancer / queue for parallel ODE simulation.
  *
@@ -35,7 +36,6 @@ public:
     }
 
     virtual void runWorker() {
-        // TODO : move to base class; need wrapper; ParallelProblem interface?
         if(getMpiCommSize() > 1)
             loadBalancerWorkerRun(handleWorkPackage, problem);
     }
