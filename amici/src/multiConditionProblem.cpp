@@ -444,7 +444,7 @@ OptimizationProblem *MultiConditionProblemGeneratorForMultiStart::getLocalProble
 
     problem->optimizationOptions = new OptimizationOptions(*options);
 
-    JobIdentifier id = resultWriter->path;
+    JobIdentifier id = resultWriter->id;
     id.idxLocalOptimization = multiStartIndex;
 
     problem->resultWriter = new MultiConditionProblemResultWriter(resultWriter->file_id, id);

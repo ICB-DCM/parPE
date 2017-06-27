@@ -8,25 +8,39 @@ MultiConditionProblemResultWriter::MultiConditionProblemResultWriter() : Optimiz
 
 MultiConditionProblemResultWriter::MultiConditionProblemResultWriter(hid_t file_id, JobIdentifier id) : OptimizationResultWriter(file_id)
 {
-    this->path = path;
-    char fullGroupPath[1024];
-    sprintf(fullGroupPath, "/multistarts/%d/iteration/%d/genotype/%d/experiment/%d/",
-            id.idxLocalOptimization, id.idxLocalOptimizationIteration, 0, id.idxConditions);
-    rootPath = fullGroupPath;
+    this->id = id;
+    rootPath = getIterationPath();
+
 }
 
 MultiConditionProblemResultWriter::MultiConditionProblemResultWriter( const char *filename, bool overwrite, JobIdentifier id) : OptimizationResultWriter(filename, overwrite)
 {
-    this->path = path;
+    this->id = id;
+    rootPath = getIterationPath();
+}
+
+std::string MultiConditionProblemResultWriter::getIterationPath()
+{
+
+    char fullGroupPath[1024];
+    sprintf(fullGroupPath, "/multistarts/%d/iteration/%d/",
+            id.idxLocalOptimization, id.idxLocalOptimizationIteration);
+    return std::string(fullGroupPath);
+}
+
+std::string MultiConditionProblemResultWriter::getSimulationPath()
+{
     char fullGroupPath[1024];
     sprintf(fullGroupPath, "/multistarts/%d/iteration/%d/genotype/%d/experiment/%d/",
             id.idxLocalOptimization, id.idxLocalOptimizationIteration, 0, id.idxConditions);
-    rootPath = fullGroupPath;
+    return std::string(fullGroupPath);
 }
 
 void MultiConditionProblemResultWriter::logSimulation(const double *theta, double llh, const double *gradient, double timeElapsedInSeconds, int nTheta, int numStates, double *states, double *stateSensi, double *y, int jobId, int iterationsUntilSteadystate)
 {
-    const char *fullGroupPath = rootPath.c_str();
+    std::string pathStr = getSimulationPath();
+    const char *fullGroupPath = pathStr.c_str();
+
 
     hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "negLogLikelihood", &llh, 1);
     hdf5CreateOrExtendAndWriteToInt2DArray(file_id, fullGroupPath, "jobId", &jobId, 1);

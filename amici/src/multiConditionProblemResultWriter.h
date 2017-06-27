@@ -16,6 +16,10 @@ public:
 
     MultiConditionProblemResultWriter(const char *filename, bool overwrite, JobIdentifier id);
 
+    std::string getIterationPath();
+
+    std::string getSimulationPath();
+
     void logSimulation(const double *theta,
                        double llh, const double *gradient,
                        double timeElapsedInSeconds,
@@ -24,7 +28,7 @@ public:
                        double *y, int jobId,
                        int iterationsUntilSteadystate);
 
-    JobIdentifier path;
+    JobIdentifier id;
 };
 
 #endif
