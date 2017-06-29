@@ -197,11 +197,10 @@ ReturnData *MultiConditionProblem::runAndLogSimulation(UserData *udata, MultiCon
             else if(isinf(rdata->sllh[i]))
                 logmessage(LOGLVL_DEBUG, "Result for %s: contains Inf at %d", pathStrBuf, i);
 
-    // assert(*status == 0);
     if(resultWriter)
         resultWriter->logSimulation(path, udata->p, rdata->llh[0], rdata->sllh,
             timeSeconds, udata->np, udata->nx, rdata->x, rdata->sx, rdata->y,
-            jobId, iterationsUntilSteadystate);
+            jobId, iterationsUntilSteadystate, *status);
 
     return rdata;
 }

@@ -32,7 +32,7 @@ public:
                        int nTheta, int numStates,
                        double *states, double *stateSensi,
                        double *y, int jobId,
-                       int iterationsUntilSteadystate);
+                       int iterationsUntilSteadystate, int status);
 
 protected:
     JobIdentifier id;
