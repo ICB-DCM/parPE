@@ -83,10 +83,3 @@ void MultiConditionProblemResultWriter::logSimulation(JobIdentifier id, const do
 
 }
 
-void MultiConditionProblemResultWriter::saveLocalOptimizerResults(double finalNegLogLikelihood, const double *optimalParameters, int numParameters, double masterTime, int exitStatus)
-{
-    std::string oldPath = rootPath;
-    rootPath = getOptimizationPath();
-    OptimizationResultWriter::saveLocalOptimizerResults(finalNegLogLikelihood, optimalParameters, numParameters, masterTime, exitStatus);
-    rootPath = oldPath;
-}

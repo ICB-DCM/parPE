@@ -34,8 +34,6 @@ public:
                        double *y, int jobId,
                        int iterationsUntilSteadystate);
 
-    void saveLocalOptimizerResults(double finalNegLogLikelihood, const double *optimalParameters, int numParameters, double masterTime, int exitStatus);
-
 protected:
     JobIdentifier id;
 };
