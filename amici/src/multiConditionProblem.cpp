@@ -182,8 +182,7 @@ ReturnData *MultiConditionProblem::runAndLogSimulation(UserData *udata, MultiCon
     double endTime = MPI_Wtime();
     double timeSeconds = (endTime - startTime);
 
-    if(isnan(rdata->llh[0]) && *status == 0)
-        *status = -1;
+    *status = (int) *rdata->status;
 
     char pathStrBuf[100];
     sprintJobIdentifier(pathStrBuf, path);
@@ -199,9 +198,6 @@ ReturnData *MultiConditionProblem::runAndLogSimulation(UserData *udata, MultiCon
                 logmessage(LOGLVL_DEBUG, "Result for %s: contains Inf at %d", pathStrBuf, i);
 
     // assert(*status == 0);
-    // TODO write simulation results (set jobid as attribute)
-
-    // TODO save Y
     if(resultWriter)
         resultWriter->logSimulation(path, udata->p, rdata->llh[0], rdata->sllh,
             timeSeconds, udata->np, udata->nx, rdata->x, rdata->sx, rdata->y,
