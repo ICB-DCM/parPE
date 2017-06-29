@@ -4,6 +4,7 @@
 #include "hdf5Misc.h"
 #include <sys/stat.h>
 #include "misc.h"
+#include <cmath>
 
 OptimizationResultWriter::OptimizationResultWriter()
 {
@@ -84,8 +85,13 @@ void OptimizationResultWriter::logLocalOptimizerObjectiveFunctionEvaluation(cons
 
     hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "costFunCost", &objectiveFunctionValue, 1);
 
-    if(objectiveFunctionGradient)
+    if(objectiveFunctionGradient) {
         hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "costFunGradient", objectiveFunctionGradient, numParameters);
+    } else {
+        double dummyGradient[numParameters];
+        std::fill_n(dummyGradient, numParameters, NAN);
+        hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "costFunGradient", dummyGradient, numParameters);
+    }
 
     if(parameters)
         hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "costFunParameters", parameters, numParameters);
