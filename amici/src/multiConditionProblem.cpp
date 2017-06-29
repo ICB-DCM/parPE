@@ -166,7 +166,7 @@ ReturnData *MultiConditionProblem::runAndLogSimulation(UserData *udata, MultiCon
     double startTime = MPI_Wtime();
 
     // run simulation
-    int iterationsUntilSteadystate = 0;
+    int iterationsUntilSteadystate = -1;
 
     ExpData *edata = dataProvider->getExperimentalDataForExperimentAndUpdateUserData(path.idxConditions, udata);
 
