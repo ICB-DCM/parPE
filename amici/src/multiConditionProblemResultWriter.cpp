@@ -1,5 +1,5 @@
 #include "multiConditionProblemResultWriter.h"
-
+#include <cmath>
 
 MultiConditionProblemResultWriter::MultiConditionProblemResultWriter() : OptimizationResultWriter()
 {
@@ -60,8 +60,13 @@ void MultiConditionProblemResultWriter::logSimulation(JobIdentifier id, const do
 
     hdf5CreateOrExtendAndWriteToInt2DArray(file_id, fullGroupPath, "jobId", &jobId, 1);
 
-    if(gradient)
+    if(gradient) {
         hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "simulationLogLikelihoodGradient", gradient, nTheta);
+    } else {
+        double dummyGradient[nTheta];
+        std::fill_n(dummyGradient, nTheta, NAN);
+        hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "simulationLogLikelihoodGradient", dummyGradient, nTheta);
+    }
 
     if(theta)
         hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "simulationParameters", theta, nTheta);
