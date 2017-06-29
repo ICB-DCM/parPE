@@ -56,28 +56,28 @@ void MultiConditionProblemResultWriter::logSimulation(JobIdentifier id, const do
     std::string pathStr = getSimulationPath(id);
     const char *fullGroupPath = pathStr.c_str();
 
+    hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "simulationLogLikelihood", &llh, 1);
 
-    hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "negLogLikelihood", &llh, 1);
     hdf5CreateOrExtendAndWriteToInt2DArray(file_id, fullGroupPath, "jobId", &jobId, 1);
 
     if(gradient)
-        hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "negLogLikelihoodGradient", gradient, nTheta);
+        hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "simulationLogLikelihoodGradient", gradient, nTheta);
 
     if(theta)
-        hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "p", theta, nTheta);
+        hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "simulationParameters", theta, nTheta);
 
-    hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "evalFTime", &timeElapsedInSeconds, 1);
+    hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "simulationWallTimeInSec", &timeElapsedInSeconds, 1);
 
     if(states)
-        hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "X", states, numStates);
+        hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "simulationStates", states, numStates);
 
     if(y)
-        hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "Y", y, 1);
+        hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "simulationObservables", y, 1);
 
     hdf5CreateOrExtendAndWriteToInt2DArray(file_id, fullGroupPath, "iterationsUntilSteadystate", &iterationsUntilSteadystate, 1);
 
     if(stateSensi)
-        hdf5CreateOrExtendAndWriteToDouble3DArray(file_id, fullGroupPath, "sX", stateSensi, numStates, nTheta);
+        hdf5CreateOrExtendAndWriteToDouble3DArray(file_id, fullGroupPath, "simulationStateSensitivities", stateSensi, numStates, nTheta);
 
     flushResultWriter();
 
