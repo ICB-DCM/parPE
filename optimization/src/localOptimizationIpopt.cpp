@@ -32,11 +32,16 @@ using namespace Ipopt;
 class MyNLP : public Ipopt::TNLP
 {
 public:
-    MyNLP(OptimizationProblem *problem) : problem(problem) {
+    MyNLP(OptimizationProblem *problem) : problem(problem)
+    {
         timeBegin = clock();
     }
 
-    virtual ~MyNLP() { }
+    virtual ~MyNLP()
+    {
+        if(lastGradient)
+            delete[] lastGradient;
+    }
 
     virtual bool get_nlp_info(Index& n, Index& m, Index& nnz_jac_g,
                               Index& nnz_h_lag, IndexStyleEnum& index_style)
@@ -98,7 +103,17 @@ public:
 
         clock_t timeBegin = clock();
 
-        errors = problem->evaluateObjectiveFunction(x, &obj_value, NULL);
+        if(new_x || !lastCostP) {
+            errors = problem->evaluateObjectiveFunction(x, &obj_value, NULL);
+            if(lastGradient) // invalidate
+                delete[] lastGradient;
+            lastGradient = NULL;
+            lastErrors = errors;
+            lastCost = obj_value;
+        } else {
+            errors = lastErrors;
+            obj_value = lastCost;
+        }
 
         clock_t timeEnd = clock();
         double timeElapsed = (double) (timeEnd - timeBegin) / CLOCKS_PER_SEC;
@@ -124,13 +139,21 @@ public:
 
         clock_t timeBegin = clock();
 
-        double objectiveFunctionValue;
-        errors = problem->evaluateObjectiveFunction(x, &objectiveFunctionValue, grad_f);
+        if(new_x || !lastCostP || !lastGradient) {
+            errors = problem->evaluateObjectiveFunction(x, &lastCost, grad_f);
+
+            lastGradient = new Number[problem->numOptimizationParameters];
+            memcpy(lastGradient, grad_f, sizeof(Number) * n);
+            lastErrors = errors;
+        } else {
+            memcpy(grad_f, lastGradient, sizeof(Number) * n);
+            errors = lastErrors;
+        }
 
         clock_t timeEnd = clock();
         double timeElapsed = (double) (timeEnd - timeBegin) / CLOCKS_PER_SEC;
 
-        problem->logObjectiveFunctionEvaluation(x, objectiveFunctionValue, grad_f, numFunctionCalls, timeElapsed);
+        problem->logObjectiveFunctionEvaluation(x, lastCost, grad_f, numFunctionCalls, timeElapsed);
 
         pthread_mutex_lock(&ipoptMutex);
 
@@ -152,6 +175,9 @@ public:
                             Index *jCol, Number* values)
     {
         // no constraints, nothing to do here, but will be called once
+
+        if(new_x)
+            lastCostP = NULL; // because next function will be called with new_x==false, but we didn't prepare anything
 
         return true;
     }
@@ -202,6 +228,12 @@ public:
 
     OptimizationProblem *problem;
     clock_t timeBegin;
+
+    // for caching
+    Number *lastGradient = NULL;
+    Number lastCost = INFINITY;
+    Number *lastCostP = &lastCost;
+    int lastErrors = 0;
 };
 
 
