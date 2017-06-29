@@ -122,7 +122,7 @@ void OptimizationResultWriter::saveTotalCpuTime(const double timeInSeconds)
     hdf5LockMutex();
     // TODO respect rootPath
     //H5LTmake_dataset(file_id, (rootPath + "/totalWallTimeInSec").c_str(), 1, dims, H5T_NATIVE_DOUBLE, &timeInSeconds);
-    H5LTmake_dataset(file_id, "/totalWallTimeInSec", 1, dims, H5T_NATIVE_DOUBLE, &timeInSeconds);
+    H5LTmake_dataset(file_id, "/totalTimeInSec", 1, dims, H5T_NATIVE_DOUBLE, &timeInSeconds);
 
     hdf5UnlockMutex();
 
