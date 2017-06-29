@@ -16,7 +16,7 @@ public:
 
     MultiConditionProblemResultWriter(const char *filename, bool overwrite, JobIdentifier id);
 
-    std::string getIterationPath();
+    std::string getIterationPath(int iterationIdx);
 
     std::string getSimulationPath(JobIdentifier id);
 

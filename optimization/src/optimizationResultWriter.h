@@ -34,6 +34,10 @@ public:
      */
     OptimizationResultWriter(const char *filename, bool overwrite);
 
+    virtual std::string getOptimizationPath();
+
+    virtual std::string getIterationPath(int iterationIdx);
+
     virtual void logParPEVersion();
 
     /**

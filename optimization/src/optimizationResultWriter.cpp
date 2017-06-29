@@ -18,10 +18,22 @@ OptimizationResultWriter::OptimizationResultWriter(hid_t file_id)
 
 OptimizationResultWriter::OptimizationResultWriter(const char *filename, bool overwrite)
 {
+    // TODO: Add root path to constructor and use as prefix
+
     logmessage(LOGLVL_DEBUG, "Writing results to %s.", filename);
     mkpathConstChar(filename, 0755);
     initResultHDFFile(filename, overwrite);
     logParPEVersion();
+}
+
+std::string OptimizationResultWriter::getOptimizationPath()
+{
+    return rootPath;
+}
+
+std::string OptimizationResultWriter::getIterationPath(int iterationIdx)
+{
+    return rootPath + "/" + std::to_string(iterationIdx) + "/";
 }
 
 void OptimizationResultWriter::logParPEVersion()
@@ -67,7 +79,8 @@ void OptimizationResultWriter::closeResultHDFFile()
 
 void OptimizationResultWriter::logLocalOptimizerObjectiveFunctionEvaluation(const double *parameters, int numParameters, double objectiveFunctionValue, const double *objectiveFunctionGradient, int numFunctionCalls, double timeElapsedInSeconds)
 {
-    const char *fullGroupPath = rootPath.c_str();
+    std::string pathStr = getIterationPath(0); // TODO: need as argument
+    const char *fullGroupPath = pathStr.c_str();
 
     hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "costFunCost", &objectiveFunctionValue, 1);
 
@@ -86,7 +99,8 @@ void OptimizationResultWriter::logLocalOptimizerObjectiveFunctionEvaluation(cons
 
 void OptimizationResultWriter::logLocalOptimizerIteration(int numIterations, double *theta, int numParameters, double objectiveFunctionValue, const double *gradient, double timeElapsedInSeconds, int alg_mod, double inf_pr, double inf_du, double mu, double d_norm, double regularization_size, double alpha_du, double alpha_pr, int ls_trials)
 {
-    const char *fullGroupPath = rootPath.c_str();
+    std::string pathStr = getOptimizationPath();
+    const char *fullGroupPath = pathStr.c_str();
 
     hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "iterCostFunCost", &objectiveFunctionValue, 1);
     if(gradient)
@@ -125,9 +139,8 @@ void OptimizationResultWriter::saveTotalCpuTime(const double timeInSeconds)
     hsize_t dims[1] = {1};
 
     hdf5LockMutex();
-    // TODO respect rootPath
-    //H5LTmake_dataset(file_id, (rootPath + "/totalWallTimeInSec").c_str(), 1, dims, H5T_NATIVE_DOUBLE, &timeInSeconds);
-    H5LTmake_dataset(file_id, "/totalTimeInSec", 1, dims, H5T_NATIVE_DOUBLE, &timeInSeconds);
+    std::string pathStr = rootPath + "/totalTimeInSec";
+    H5LTmake_dataset(file_id, pathStr.c_str(), 1, dims, H5T_NATIVE_DOUBLE, &timeInSeconds);
 
     hdf5UnlockMutex();
 
@@ -135,22 +148,23 @@ void OptimizationResultWriter::saveTotalCpuTime(const double timeInSeconds)
 
 void OptimizationResultWriter::saveLocalOptimizerResults(double finalNegLogLikelihood, const double *optimalParameters, int numParameters, double masterTime, int exitStatus)
 {
+    std::string optimPath = getOptimizationPath();
     std::string fullGroupPath;
     hsize_t dimensions[1] = {1};
 
     hdf5LockMutex();
 
-    fullGroupPath = (rootPath + "/finalCost");
+    fullGroupPath = (optimPath + "/finalCost");
     H5LTmake_dataset(file_id, fullGroupPath.c_str(), 1, dimensions, H5T_NATIVE_DOUBLE, &finalNegLogLikelihood);
 
-    fullGroupPath = (rootPath + "/wallTimeInSec");
+    fullGroupPath = (optimPath + "/wallTimeInSec");
     H5LTmake_dataset(file_id, fullGroupPath.c_str(), 1, dimensions, H5T_NATIVE_DOUBLE, &masterTime);
 
-    fullGroupPath = (rootPath + "/exitStatus");
+    fullGroupPath = (optimPath + "/exitStatus");
     H5LTmake_dataset(file_id, fullGroupPath.c_str(), 1, dimensions, H5T_NATIVE_INT, &exitStatus);
 
     if(optimalParameters) {
-        fullGroupPath = (rootPath + "/finalParameters");
+        fullGroupPath = (optimPath + "/finalParameters");
         dimensions[0] = numParameters;
         H5LTmake_dataset(file_id, fullGroupPath.c_str(), 1, dimensions, H5T_NATIVE_DOUBLE, optimalParameters);
     }

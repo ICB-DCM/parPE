@@ -16,7 +16,7 @@ MultiConditionProblemResultWriter::MultiConditionProblemResultWriter( const char
     setJobId(id);
 }
 
-std::string MultiConditionProblemResultWriter::getIterationPath()
+std::string MultiConditionProblemResultWriter::getIterationPath(int iterationIdx)
 {
 
     char fullGroupPath[1024];
@@ -43,7 +43,7 @@ std::string MultiConditionProblemResultWriter::getOptimizationPath()
 void MultiConditionProblemResultWriter::setJobId(JobIdentifier id)
 {
     this->id = id;
-    rootPath = getIterationPath();
+    rootPath = getIterationPath(id.idxLocalOptimizationIteration);
 }
 
 JobIdentifier MultiConditionProblemResultWriter::getJobId()
