@@ -79,6 +79,8 @@ void OptimizationResultWriter::logLocalOptimizerObjectiveFunctionEvaluation(cons
 
     hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "costFunWallTimeInSec", &timeElapsedInSeconds, 1);
 
+    hdf5CreateOrExtendAndWriteToInt2DArray(file_id, fullGroupPath, "costFunCallIndex", &numFunctionCalls, 1);
+
     flushResultWriter();
 }
 
