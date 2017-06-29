@@ -329,6 +329,7 @@ void hdf5CreateExtendableInt2DArray(hid_t file_id, const char *datasetPath, int 
     hid_t datasetCreationProperty = H5Pcreate(H5P_DATASET_CREATE);
     H5Pset_chunk(datasetCreationProperty, rank, chunkDimensions);
 
+    assert(H5Tget_size(H5T_NATIVE_INT) == sizeof(int));
     hid_t dataset = H5Dcreate2(file_id, datasetPath, H5T_NATIVE_INT, dataspace,
                                H5P_DEFAULT, datasetCreationProperty, H5P_DEFAULT);
     assert(dataset >= 0);
