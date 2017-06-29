@@ -68,38 +68,41 @@ void OptimizationResultWriter::closeResultHDFFile()
 void OptimizationResultWriter::logLocalOptimizerObjectiveFunctionEvaluation(const double *parameters, int numParameters, double objectiveFunctionValue, const double *objectiveFunctionGradient, int numFunctionCalls, double timeElapsedInSeconds)
 {
     const char *fullGroupPath = rootPath.c_str();
-    hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "negLogLikelihood", &objectiveFunctionValue, 1);
+
+    hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "costFunCost", &objectiveFunctionValue, 1);
+
     if(objectiveFunctionGradient)
-        hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "negLogLikelihoodGradient", objectiveFunctionGradient, numParameters);
+        hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "costFunGradient", objectiveFunctionGradient, numParameters);
+
     if(parameters)
-        hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "p", parameters, numParameters);
-    hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "evalFTime", &timeElapsedInSeconds, 1);
+        hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "costFunParameters", parameters, numParameters);
+
+    hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "costFunWallTimeInSec", &timeElapsedInSeconds, 1);
 
     flushResultWriter();
-
 }
 
 void OptimizationResultWriter::logLocalOptimizerIteration(int numIterations, double *theta, int numParameters, double objectiveFunctionValue, const double *gradient, double timeElapsedInSeconds, int alg_mod, double inf_pr, double inf_du, double mu, double d_norm, double regularization_size, double alpha_du, double alpha_pr, int ls_trials)
 {
     const char *fullGroupPath = rootPath.c_str();
 
-    hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "negLogLikelihood", &objectiveFunctionValue, 1);
+    hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "iterCostFunCost", &objectiveFunctionValue, 1);
     if(gradient)
-        hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "negLogLikelihoodGradient", gradient, numParameters);
+        hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "iterCostFunGradient", gradient, numParameters);
     if(theta)
-        hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "p", theta, numParameters);
-    hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "iterationTime", &timeElapsedInSeconds, 1);
+        hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "iterCostFunParameters", theta, numParameters);
+    hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "iterCostFunWallTimeInSec", &timeElapsedInSeconds, 1);
 
-    hdf5CreateOrExtendAndWriteToInt2DArray(   file_id, fullGroupPath, "numIterations", &numIterations, 1);
-    hdf5CreateOrExtendAndWriteToInt2DArray(   file_id, fullGroupPath, "alg_mod", &alg_mod, 1);
-    hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "inf_pr", &inf_pr, 1);
-    hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "inf_du", &inf_du, 1);
-    hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "mu", &mu, 1);
-    hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "d_norm", &d_norm, 1);
-    hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "regularization_size", &regularization_size, 1);
-    hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "alpha_du", &alpha_du, 1);
-    hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "alpha_pr", &alpha_pr, 1);
-    hdf5CreateOrExtendAndWriteToInt2DArray(   file_id, fullGroupPath, "ls_trials", &ls_trials, 1);
+    hdf5CreateOrExtendAndWriteToInt2DArray(   file_id, fullGroupPath, "iterIndex", &numIterations, 1);
+    hdf5CreateOrExtendAndWriteToInt2DArray(   file_id, fullGroupPath, "iterIpopt_alg_mod", &alg_mod, 1);
+    hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "iterIpopt_inf_pr", &inf_pr, 1);
+    hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "iterIpopt_inf_du", &inf_du, 1);
+    hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "iterIpopt_mu", &mu, 1);
+    hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "iterIpopt_d_norm", &d_norm, 1);
+    hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "iterIpopt_regularization_size", &regularization_size, 1);
+    hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "iterIpopt_alpha_du", &alpha_du, 1);
+    hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "iterIpopt_alpha_pr", &alpha_pr, 1);
+    hdf5CreateOrExtendAndWriteToInt2DArray(   file_id, fullGroupPath, "iterIpopt_ls_trials", &ls_trials, 1);
 
     flushResultWriter();
 }
@@ -135,17 +138,17 @@ void OptimizationResultWriter::saveLocalOptimizerResults(double finalNegLogLikel
 
     hdf5LockMutex();
 
-    fullGroupPath = (rootPath + "/finalNegLogLikelihood");
+    fullGroupPath = (rootPath + "/finalCost");
     H5LTmake_dataset(file_id, fullGroupPath.c_str(), 1, dimensions, H5T_NATIVE_DOUBLE, &finalNegLogLikelihood);
 
-    fullGroupPath = (rootPath + "/timeOnMaster");
+    fullGroupPath = (rootPath + "/wallTimeInSec");
     H5LTmake_dataset(file_id, fullGroupPath.c_str(), 1, dimensions, H5T_NATIVE_DOUBLE, &masterTime);
 
     fullGroupPath = (rootPath + "/exitStatus");
     H5LTmake_dataset(file_id, fullGroupPath.c_str(), 1, dimensions, H5T_NATIVE_INT, &exitStatus);
 
     if(optimalParameters) {
-        fullGroupPath = (rootPath + "/optimalParameters");
+        fullGroupPath = (rootPath + "/finalParameters");
         dimensions[0] = numParameters;
         H5LTmake_dataset(file_id, fullGroupPath.c_str(), 1, dimensions, H5T_NATIVE_DOUBLE, optimalParameters);
     }
