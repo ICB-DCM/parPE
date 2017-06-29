@@ -11,7 +11,11 @@
 #include <string.h>
 #include <stdlib.h>
 
+// This should fix `error "don't have header file for stddef"' with some IpOpt versions
+#define HAVE_CSTDDEF
 #include <IpTNLP.hpp>
+#undef HAVE_CSTDDEF
+
 #include <IpIpoptApplication.hpp>
 
 #include <pthread.h>
