@@ -35,9 +35,9 @@ int OptimizationResultWriter::initResultHDFFile(const char *filename, bool overw
 
     if(!overwrite) {
         struct stat st = {0};
-        bool fileExists = stat(filename, &st) == -1;
+        bool fileExists = stat(filename, &st) == 0;
 
-        assert(fileExists);
+        assert(!fileExists);
     }
 
     // overwrites TODO: backup
