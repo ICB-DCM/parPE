@@ -105,7 +105,7 @@ public:
                                    double masterTime,
                                    int exitStatus);
 
-    ~OptimizationResultWriter();
+    virtual ~OptimizationResultWriter();
 
     hid_t file_id;
     std::string rootPath = "/";
