@@ -33,7 +33,7 @@ void handleWorkPackage(char **buffer, int *msgSize, int jobId, void *userData)
 #if QUEUE_WORKER_H_VERBOSE >= 2
     int mpiRank;
     MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
-    printf("[%d] Received work. ", mpiRank); printDatapath(path); fflush(stdout);
+    printf("[%d] Received work. ", mpiRank); fflush(stdout);
 #endif
     //TODO: need resultwriter here
 
@@ -42,7 +42,7 @@ void handleWorkPackage(char **buffer, int *msgSize, int jobId, void *userData)
     ReturnData *rdata = MultiConditionProblem::runAndLogSimulation(udata, dataProvider, path, jobId, (MultiConditionProblemResultWriter*)problem->resultWriter, &status);
 
 #if QUEUE_WORKER_H_VERBOSE >= 2
-    printf("[%d] Work done. ", mpiRank); printDatapath(path); fflush(stdout);
+    printf("[%d] Work done. ", mpiRank); fflush(stdout);
 #endif
 
     // pack & cleanup
@@ -187,7 +187,7 @@ ReturnData *MultiConditionProblem::runAndLogSimulation(UserData *udata, MultiCon
 
     char pathStrBuf[100];
     sprintJobIdentifier(pathStrBuf, path);
-    logmessage(LOGLVL_DEBUG, "Result for %s: %e  (%d) (%.2fs)", pathStrBuf, rdata->llh[0], *status, timeSeconds);
+    logmessage(LOGLVL_DEBUG, "Result for %s (%d): %e  (%d) (%.2fs)", pathStrBuf, jobId, rdata->llh[0], *status, timeSeconds);
 
 
     // check for NaNs
