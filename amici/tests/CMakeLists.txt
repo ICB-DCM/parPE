@@ -20,7 +20,6 @@ set(SHARED_OBJECT_EXTENSION .so)
 add_executable(${PROJECT_NAME} ${SRC_LIST_CPP})
 
 target_link_libraries(${PROJECT_NAME}
-
     parpeoptimization
     parpecommon
     parpeamici
@@ -32,4 +31,5 @@ target_link_libraries(${PROJECT_NAME}
     ${CPPUTEST_LIBRARY}
     ${BLAS_LIBRARIES}
     ${CMAKE_THREAD_LIBS_INIT}
+    ${GCOV_LIBRARY}
 )

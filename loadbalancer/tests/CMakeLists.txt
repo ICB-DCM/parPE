@@ -20,4 +20,5 @@ target_link_libraries(${PROJECT_NAME}
     ${CPPUTEST_LIBRARY}
     ${CMAKE_THREAD_LIBS_INIT}
     parpeloadbalancer
+    ${GCOV_LIBRARY}
 )

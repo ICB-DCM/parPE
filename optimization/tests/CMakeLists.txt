@@ -26,4 +26,5 @@ target_link_libraries(${PROJECT_NAME}
     ${CPPUTEST_LIBRARY}
     ${BLAS_LIBRARIES}
     ${CMAKE_THREAD_LIBS_INIT}
+    ${GCOV_LIBRARY}
 )

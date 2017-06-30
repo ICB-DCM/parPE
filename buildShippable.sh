@@ -14,6 +14,7 @@ CC=mpicc CXX=mpiCC cmake \
       -DMPI_LIBRARY=/usr/lib64/openmpi/lib/libmpi_cxx.so \
       -DBLAS_INCLUDE_DIRS="/usr/include/" \
       -DBLAS_LIBRARIES="/usr/lib/libcblas.so;/usr/lib/libatlas.so;/usr/lib/libblas.so" \
+      -DGCOVR_REPORT=TRUE \
       ..
 
 make -j12 VERBOSE=1

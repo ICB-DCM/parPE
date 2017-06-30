@@ -96,6 +96,7 @@ target_link_libraries(${PROJECT_NAME}
 "${HDF5_HL_LIBRARIES}"
 "${HDF5_C_LIBRARIES}"
 ${BLAS_LIBRARIES}
+${GCOV_LIBRARY}
 "-lpthread -ldl -lz"
 "-lm"
 )
