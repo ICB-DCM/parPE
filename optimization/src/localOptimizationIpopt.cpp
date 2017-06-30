@@ -37,7 +37,7 @@ class MyNLP : public Ipopt::TNLP
 {
 public:
     MyNLP(OptimizationProblem *problem) : problem(problem)
-    {
+    {        
         timeBegin = clock();
     }
 
@@ -50,11 +50,15 @@ public:
     virtual bool get_nlp_info(Index& n, Index& m, Index& nnz_jac_g,
                               Index& nnz_h_lag, IndexStyleEnum& index_style)
     {
+        pthread_mutex_unlock(&ipoptMutex);
+
         n = problem->numOptimizationParameters;
         m = 0; // number of constrants
         nnz_jac_g = 0; // numNonZeroElementsConstraintJacobian
         nnz_h_lag = 0; // numNonZeroElementsLagrangianHessian
         index_style = TNLP::C_STYLE; // array layout for sparse matrices
+
+        pthread_mutex_lock(&ipoptMutex);
 
         return true;
     }
@@ -114,6 +118,7 @@ public:
             lastGradient = NULL;
             lastErrors = errors;
             lastCost = obj_value;
+            lastCostP = &lastCost;
         } else {
             errors = lastErrors;
             obj_value = lastCost;
@@ -146,9 +151,10 @@ public:
         if(new_x || !lastCostP || !lastGradient) {
             errors = problem->evaluateObjectiveFunction(x, &lastCost, grad_f);
 
-            if(lastGradient) delete[] lastGradient;
-            lastGradient = new Number[problem->numOptimizationParameters];
+            if(!lastGradient)
+                lastGradient = new Number[problem->numOptimizationParameters];
             memcpy(lastGradient, grad_f, sizeof(Number) * n);
+            lastCostP = &lastCost;
             lastErrors = errors;
         } else {
             memcpy(grad_f, lastGradient, sizeof(Number) * n);
@@ -198,6 +204,9 @@ public:
                                        const IpoptData* ip_data,
                                        IpoptCalculatedQuantities* ip_cq)
     {
+
+        pthread_mutex_unlock(&ipoptMutex);
+
         int status = true;
         status = problem->intermediateFunction((int)mode,
                                                    iter, obj_value,
@@ -214,6 +223,8 @@ public:
         }
     #endif
 
+        pthread_mutex_lock(&ipoptMutex);
+
         return status == 0;
 
     }
@@ -225,10 +236,14 @@ public:
                                    const IpoptData* ip_data,
                                    IpoptCalculatedQuantities* ip_cq)
     {
+        pthread_mutex_unlock(&ipoptMutex);
+
         clock_t timeEnd = clock();
         double timeElapsed = (double) (timeEnd - timeBegin) / CLOCKS_PER_SEC;
 
         problem->logOptimizerFinished(obj_value, x, timeElapsed, status);
+
+        pthread_mutex_lock(&ipoptMutex);
     }
 
     OptimizationProblem *problem;
