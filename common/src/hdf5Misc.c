@@ -78,6 +78,17 @@ bool hdf5GroupExists(hid_t file_id, const char *groupName)
     return status >= 0;
 }
 
+
+bool hdf5EnsureGroupExists(hid_t file_id, const char *groupName)
+{
+    if(!hdf5GroupExists(file_id, groupName)) {
+        hdf5CreateGroup(file_id, groupName, true);
+    }
+
+    return 0;
+}
+
+
 void hdf5CreateGroup(hid_t file_id, const char *groupPath, bool recursively)
 {
     hid_t groupCreationPropertyList = H5P_DEFAULT;
@@ -210,9 +221,7 @@ void hdf5CreateOrExtendAndWriteToDouble2DArray(hid_t file_id, const char *parent
 {
     hdf5LockMutex();
 
-    if(!hdf5GroupExists(file_id, parentPath)) {
-        hdf5CreateGroup(file_id, parentPath, true);
-    }
+    hdf5EnsureGroupExists(file_id, parentPath);
 
     char *fullDatasetPath = myStringCat(parentPath, datasetName);
 
@@ -231,9 +240,7 @@ void hdf5CreateOrExtendAndWriteToDouble3DArray(hid_t file_id, const char *parent
 {
     hdf5LockMutex();
 
-    if(!hdf5GroupExists(file_id, parentPath)) {
-        hdf5CreateGroup(file_id, parentPath, true);
-    }
+    hdf5EnsureGroupExists(file_id, parentPath);
 
     char *fullDatasetPath = myStringCat(parentPath, datasetName);
 
@@ -253,9 +260,7 @@ void hdf5CreateOrExtendAndWriteToInt2DArray(hid_t file_id, const char *parentPat
 {
     hdf5LockMutex();
 
-    if(!hdf5GroupExists(file_id, parentPath)) {
-        hdf5CreateGroup(file_id, parentPath, true);
-    }
+    hdf5EnsureGroupExists(file_id, parentPath);
 
     char *fullDatasetPath = myStringCat(parentPath, datasetName);
 

@@ -85,15 +85,15 @@ void OptimizationResultWriter::logLocalOptimizerObjectiveFunctionEvaluation(cons
 
     hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "costFunCost", &objectiveFunctionValue, 1);
 
-    if(objectiveFunctionGradient) {
+    if(objectiveFunctionGradient && numParameters) {
         hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "costFunGradient", objectiveFunctionGradient, numParameters);
-    } else {
+    } else if(numParameters) {
         double dummyGradient[numParameters];
         std::fill_n(dummyGradient, numParameters, NAN);
         hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "costFunGradient", dummyGradient, numParameters);
     }
 
-    if(parameters)
+    if(parameters && numParameters)
         hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "costFunParameters", parameters, numParameters);
 
     hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "costFunWallTimeInSec", &timeElapsedInSeconds, 1);
@@ -145,6 +145,9 @@ void OptimizationResultWriter::saveTotalCpuTime(const double timeInSeconds)
     hsize_t dims[1] = {1};
 
     hdf5LockMutex();
+
+    hdf5EnsureGroupExists(file_id, rootPath.c_str());
+
     std::string pathStr = rootPath + "/totalTimeInSec";
     H5LTmake_dataset(file_id, pathStr.c_str(), 1, dims, H5T_NATIVE_DOUBLE, &timeInSeconds);
 
@@ -155,6 +158,8 @@ void OptimizationResultWriter::saveTotalCpuTime(const double timeInSeconds)
 void OptimizationResultWriter::saveLocalOptimizerResults(double finalNegLogLikelihood, const double *optimalParameters, int numParameters, double masterTime, int exitStatus)
 {
     std::string optimPath = getOptimizationPath();
+    hdf5EnsureGroupExists(file_id, optimPath.c_str());
+
     std::string fullGroupPath;
     hsize_t dimensions[1] = {1};
 
