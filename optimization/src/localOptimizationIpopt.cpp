@@ -256,17 +256,7 @@ public:
     int lastErrors = 0;
 };
 
-
-
-int getLocalOptimumIpopt(OptimizationProblem *problem) {
-    pthread_mutex_lock(&ipoptMutex);
-
-    assert(sizeof(double) == sizeof(Number));
-
-    SmartPtr<TNLP> mynlp = new MyNLP(problem);
-    SmartPtr<IpoptApplication> app = IpoptApplicationFactory();
-
-
+void setIpOptOptions(SmartPtr<IpoptApplication> app, OptimizationProblem *problem) {
     if(problem->optimizationOptions->printToStdout) {
         app->Options()->SetIntegerValue("print_level", 5);
         app->Options()->SetStringValue("print_user_options", "yes");
@@ -293,11 +283,24 @@ int getLocalOptimumIpopt(OptimizationProblem *problem) {
     app->Options()->SetNumericValue("acceptable_obj_change_tol", problem->optimizationOptions->functionTolerance);
 
     // TODO check further limited memory options http://www.coin-or.org/Ipopt/documentation/node53.html#opt:hessian_approximation
+}
+
+int getLocalOptimumIpopt(OptimizationProblem *problem) {
+
+    assert(sizeof(double) == sizeof(Number));
 
     ApplicationReturnStatus status;
-    status = app->Initialize();
-    status = app->OptimizeTNLP(mynlp);
 
+    pthread_mutex_lock(&ipoptMutex);
+    { // ensure all IpOpt objects are destroyed before mutex is unlocked
+        SmartPtr<TNLP> mynlp = new MyNLP(problem);
+        SmartPtr<IpoptApplication> app = IpoptApplicationFactory();
+
+        setIpOptOptions(app, problem);
+
+        status = app->Initialize();
+        status = app->OptimizeTNLP(mynlp);
+    }
     pthread_mutex_unlock(&ipoptMutex);
 
     return (int)status < Maximum_Iterations_Exceeded;
