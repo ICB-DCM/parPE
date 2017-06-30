@@ -146,6 +146,7 @@ public:
         if(new_x || !lastCostP || !lastGradient) {
             errors = problem->evaluateObjectiveFunction(x, &lastCost, grad_f);
 
+            if(lastGradient) delete[] lastGradient;
             lastGradient = new Number[problem->numOptimizationParameters];
             memcpy(lastGradient, grad_f, sizeof(Number) * n);
             lastErrors = errors;
