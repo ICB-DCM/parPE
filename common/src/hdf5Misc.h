@@ -33,6 +33,8 @@ bool hdf5DatasetExists(hid_t file_id, const char *datasetName);
 
 bool hdf5GroupExists(hid_t file_id, const char *groupName);
 
+bool hdf5EnsureGroupExists(hid_t file_id, const char *groupName);
+
 void hdf5CreateGroup(hid_t file_id, const char *groupPath, bool recursively);
 
 void hdf5CreateExtendableDouble2DArray(hid_t file_id, const char* datasetPath, int stride);
