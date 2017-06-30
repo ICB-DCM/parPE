@@ -60,10 +60,6 @@ add_definitions(-DGIT_VERSION="${GIT_VERSION}")
 set(HDF5_PREFER_PARALLEL TRUE)
 find_package(HDF5 COMPONENTS C HL REQUIRED)
 
-
-find_package(Threads REQUIRED)
-
-
 include_directories(
     common/src/
     ${IPOPT_INCLUDE_DIRS}
