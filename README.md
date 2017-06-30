@@ -28,9 +28,9 @@ For full functionality, parPE requires the following libraries:
 * PTHREADS
 * IPOPT (requires coinhsl)
 * CERES (requires Eigen)
-* AMICI (requires SuiteSparse, Sundials)
+* HDF5
 * BLAS (CBLAS / Intel MKL)
-* AMICI [https://github.com/ICB-DCM/AMICI](AMICI)
+* AMICI [https://github.com/ICB-DCM/AMICI](AMICI) (requires SuiteSparse, Sundials)
 
 Scripts to fetch and build those third-party libraries are provided in `/ThirdParty/` 
 
@@ -58,6 +58,16 @@ and build using
 make -j8
 ```
 
-A sample build script is provided as `/install.sh`.
+Sample build scripts are provided as `/build*.sh`.
+
+## Tested compilers
+
+* GCC 4.8.3
+* GCC 5.4.0
+* Intel ...
 
 
+## Documentation & further information
+
+No extensive full-text documentation is available yet. See `*/examples` and `*/tests` for usage examples. 
+Little documentation is available in `doc` and among github issues. 
