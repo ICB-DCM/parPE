@@ -92,9 +92,9 @@ public:
     /** highest allowed parameter values */
     double *parametersMax;
 
-    OptimizationOptions *optimizationOptions;
+    OptimizationOptions *optimizationOptions = NULL;
 
-    OptimizationResultWriter *resultWriter;
+    OptimizationResultWriter *resultWriter = NULL;
 };
 
 int getLocalOptimum(OptimizationProblem *problem);
