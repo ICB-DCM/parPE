@@ -6,8 +6,8 @@
 The *parPE* library provides functionality for solving large-scale parameter optimization
 problems requiring thousands of simulations per objective function evaluation on HPC systems.
 
-Currently, parPE provides interfaces to IpOpt and Ceres optimizers. parPE offers easy integration with
-AMICI-generated ordinary differential equation (ODE) models.
+Currently, parPE provides interfaces to [IpOpt](http://www.coin-or.org/Ipopt/) and [Ceres](http://ceres-solver.org/) optimizers. parPE offers easy integration with
+[AMICI](https://github.com/ICB-DCM/AMICI)-generated ordinary differential equation (ODE) models.
 
 ## Features
 
@@ -30,7 +30,7 @@ For full functionality, parPE requires the following libraries:
 * CERES (requires Eigen)
 * HDF5
 * BLAS (CBLAS / Intel MKL)
-* AMICI [https://github.com/ICB-DCM/AMICI](AMICI) (requires SuiteSparse, Sundials)
+* [AMICI](https://github.com/ICB-DCM/AMICI) (requires SuiteSparse, Sundials)
 
 Scripts to fetch and build those third-party libraries are provided in `/ThirdParty/` 
 
@@ -64,7 +64,7 @@ Sample build scripts are provided as `/build*.sh`.
 
 * GCC 4.8.3
 * GCC 5.4.0
-* Intel ...
+* Intel 16.0.4
 
 
 ## Documentation & further information
