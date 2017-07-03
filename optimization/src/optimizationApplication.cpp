@@ -2,6 +2,7 @@
 #include "logging.h"
 #include "hdf5Misc.h"
 #include "loadBalancerMaster.h"
+#include <cstring>
 #include <pthread.h>
 #include <mpi.h>
 
