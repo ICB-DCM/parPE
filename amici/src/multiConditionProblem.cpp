@@ -177,7 +177,7 @@ ReturnData *MultiConditionProblem::runAndLogSimulation(UserData *udata, MultiCon
 
     ReturnData *rdata = getSimulationResults(udata, edata);
 
-    freeExpData(edata);
+    delete edata;
 
     double endTime = MPI_Wtime();
     double timeSeconds = (endTime - startTime);
@@ -190,7 +190,7 @@ ReturnData *MultiConditionProblem::runAndLogSimulation(UserData *udata, MultiCon
 
 
     // check for NaNs
-    if(udata->sensi >= AMI_SENSI_ORDER_FIRST)
+    if(udata->sensi >= AMICI_SENSI_ORDER_FIRST)
         for(int i = 0; i < udata->np; ++i)
             if(isnan(rdata->sllh[i]))
                 logmessage(LOGLVL_DEBUG, "Result for %s: contains NaN at %d", pathStrBuf, i);
@@ -411,11 +411,11 @@ void MultiConditionProblem::setSensitivityOptions(bool sensiRequired)
 {
     // sensitivities requested?
     if(sensiRequired) {
-        udata->sensi = AMI_SENSI_ORDER_FIRST;
-        udata->sensi_meth = AMI_SENSI_ASA;
+        udata->sensi = AMICI_SENSI_ORDER_FIRST;
+        udata->sensi_meth = AMICI_SENSI_ASA;
     } else {
-        udata->sensi = AMI_SENSI_ORDER_NONE;
-        udata->sensi_meth = AMI_SENSI_NONE;
+        udata->sensi = AMICI_SENSI_ORDER_NONE;
+        udata->sensi_meth = AMICI_SENSI_NONE;
     }
 }
 

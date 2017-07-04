@@ -7,8 +7,8 @@ void JobAmiciSimulation::toUserData(const char* buffer, UserData *udata, void *u
     work.simulationParameters = udata->p;
     work.deserialize(buffer);
 
-    udata->sensi_meth = (AMI_sensi_meth) work.sensitivityMethod;
-    udata->sensi = work.sensitivityMethod > 0 ? AMI_SENSI_ORDER_FIRST : AMI_SENSI_ORDER_NONE;
+    udata->sensi_meth = (AMICI_sensi_meth) work.sensitivityMethod;
+    udata->sensi = work.sensitivityMethod > 0 ? AMICI_SENSI_ORDER_FIRST : AMICI_SENSI_ORDER_NONE;
 }
 
 int JobAmiciSimulation::getLength(int numSimulationParameters, int sizeOfData)

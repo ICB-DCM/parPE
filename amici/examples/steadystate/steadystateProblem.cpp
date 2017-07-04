@@ -84,7 +84,7 @@ SteadystateProblem::~SteadystateProblem(){
     delete[] parametersMin;
     delete[] parametersMax;
     delete udata;
-    freeExpData(edata);
+    delete edata;
 
     delete optimizationOptions;
 }
@@ -92,11 +92,11 @@ SteadystateProblem::~SteadystateProblem(){
 void SteadystateProblem::requireSensitivities(bool sensitivitiesRequired)
 {
     if(sensitivitiesRequired) {
-        udata->sensi = AMI_SENSI_ORDER_FIRST;
-        udata->sensi_meth = AMI_SENSI_FSA;
+        udata->sensi = AMICI_SENSI_ORDER_FIRST;
+        udata->sensi_meth = AMICI_SENSI_FSA;
     } else {
-        udata->sensi = AMI_SENSI_ORDER_NONE;
-        udata->sensi_meth = AMI_SENSI_NONE;
+        udata->sensi = AMICI_SENSI_ORDER_NONE;
+        udata->sensi_meth = AMICI_SENSI_NONE;
     }
 }
 
@@ -133,14 +133,11 @@ void SteadystateProblem::setupUserData(int conditionIdx)
 
 void SteadystateProblem::setupExpData(int conditionIdx)
 {
-    edata = new ExpData();
-
-    edata->am_my = new double[udata->nytrue * udata->nt];
+    edata = new ExpData(udata);
     readMeasurement(conditionIdx);
 
     double ysigma = AMI_HDF5_getDoubleScalarAttribute(fileId, "data", "sigmay");
-    edata->am_ysigma = new double[udata->nytrue * udata->nt];
-    fillArray(edata->am_ysigma, udata->nytrue * udata->nt, ysigma);
+    fillArray(edata->sigmay, udata->nytrue * udata->nt, ysigma);
 }
 
 void SteadystateProblem::readFixedParameters(int conditionIdx)
@@ -150,6 +147,6 @@ void SteadystateProblem::readFixedParameters(int conditionIdx)
 
 void SteadystateProblem::readMeasurement(int conditionIdx)
 {
-    hdf5Read3DDoubleHyperslab(fileId, "/data/ymeasured", 1, udata->ny, udata->nt, conditionIdx, 0, 0, edata->am_my);
+    hdf5Read3DDoubleHyperslab(fileId, "/data/ymeasured", 1, udata->ny, udata->nt, conditionIdx, 0, 0, edata->my);
 }
 

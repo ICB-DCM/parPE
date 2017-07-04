@@ -91,12 +91,12 @@ int SteadystateProblemParallel::evaluateSerial(const double *parameters, double 
     *objFunVal = 0;
 
     if(objFunGrad) {
-        udata->sensi = AMI_SENSI_ORDER_FIRST;
-        udata->sensi_meth = AMI_SENSI_FSA;
+        udata->sensi = AMICI_SENSI_ORDER_FIRST;
+        udata->sensi_meth = AMICI_SENSI_FSA;
         fillArray(objFunGrad, numOptimizationParameters, 0.0);
     } else {
-        udata->sensi = AMI_SENSI_ORDER_NONE;
-        udata->sensi_meth = AMI_SENSI_NONE;
+        udata->sensi = AMICI_SENSI_ORDER_NONE;
+        udata->sensi_meth = AMICI_SENSI_NONE;
     }
 
 

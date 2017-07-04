@@ -25,7 +25,7 @@ void checkUserDataEqual(UserData u, UserData v) {
     CHECK_EQUAL(u.nx, v.nx);
     CHECK_EQUAL(u.nztrue, v.nztrue);
     CHECK_EQUAL(u.ne, v.ne);
-    CHECK_EQUAL(u.ng, v.ng);
+    CHECK_EQUAL(u.nJ, v.nJ);
     CHECK_EQUAL(u.nw, v.nw);
     CHECK_EQUAL(u.ndwdx, v.ndwdx);
     CHECK_EQUAL(u.ndwdp, v.ndwdp);
@@ -71,7 +71,7 @@ TEST_GROUP(serialization)
 
 TEST(serialization, test) {
 
-    UserData u(1,2,3,4,5,6,7,0,0,0,0,0,0,0,0,0,AMI_SCALING_LN, AMI_O2MODE_FULL);
+    UserData u(1,2,3,4,5,6,7,0,0,0,0,0,0,0,0,0,AMICI_SCALING_LN, AMICI_O2MODE_FULL);
 //    printUserData(&u);
     {
         std::ofstream ofs( "sstore.dat" );
@@ -92,7 +92,7 @@ TEST(serialization, test) {
 
 TEST(serialization, test2) {
 
-    UserData u(1,2,3,4,5,6,7,0,0,0,0,0,0,0,0,0,AMI_SCALING_LN, AMI_O2MODE_FULL);
+    UserData u(1,2,3,4,5,6,7,0,0,0,0,0,0,0,0,0,AMICI_SCALING_LN, AMICI_O2MODE_FULL);
 //    printUserData(&u);printf("\n");
 
     std::string serialized;
@@ -117,7 +117,7 @@ TEST(serialization, test2) {
 
 TEST(serialization, test3) {
 
-    UserData u(1,2,3,4,5,6,7,0,0,0,0,0,0,0,0,0,AMI_SCALING_LN, AMI_O2MODE_FULL);
+    UserData u(1,2,3,4,5,6,7,0,0,0,0,0,0,0,0,0,AMICI_SCALING_LN, AMICI_O2MODE_FULL);
     printUserData(&u);printf("\n");
 
     int length;

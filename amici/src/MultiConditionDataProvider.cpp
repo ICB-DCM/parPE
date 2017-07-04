@@ -120,15 +120,11 @@ ExpData *MultiConditionDataProvider::getExperimentalDataForCondition(int conditi
 {
     hdf5LockMutex();
 
-    ExpData *edata = new ExpData;
-    edata->am_my = new double[modelDims.ny];
-    edata->am_ysigma = new double[modelDims.ny];
+    ExpData *edata = new ExpData(&modelDims);
 
-    // no events
-    edata->am_mz = 0; edata->am_zsigma = 0;
+    hdf5Read2DDoubleHyperslab(fileId, hdf5MeasurementPath.c_str(),      modelDims.ny, 1, 0, conditionIdx, edata->my);
+    hdf5Read2DDoubleHyperslab(fileId, hdf5MeasurementSigmaPath.c_str(), modelDims.ny, 1, 0, conditionIdx, edata->sigmay);
 
-    hdf5Read2DDoubleHyperslab(fileId, hdf5MeasurementPath.c_str(),      modelDims.ny, 1, 0, conditionIdx, edata->am_my);
-    hdf5Read2DDoubleHyperslab(fileId, hdf5MeasurementSigmaPath.c_str(), modelDims.ny, 1, 0, conditionIdx, edata->am_ysigma);
     hdf5UnlockMutex();
 
     return edata;
@@ -210,7 +206,7 @@ UserData *MultiConditionDataProvider::getUserData()
         delete[] udata->x0data;
     udata->x0data = new double[udata->nx]();
 
-    udata->pscale = AMI_SCALING_LOG10;
+    udata->pscale = AMICI_SCALING_LOG10;
 
     return(udata);
 }

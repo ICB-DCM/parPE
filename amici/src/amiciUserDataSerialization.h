@@ -29,8 +29,8 @@ void serialize(Archive & ar, UserData & u, const unsigned int version)
     ar & const_cast<int &>(u.ndwdx);
     ar & const_cast<int &>(u.ndwdp);
     ar & const_cast<int &>(u.nnz);
-    ar & const_cast<AMI_o2mode &>(u.o2mode);
-    ar & const_cast<int &>(u.ng);
+    ar & const_cast<AMICI_o2mode &>(u.o2mode);
+    ar & const_cast<int &>(u.nJ);
     ar & const_cast<int &>(u.ubw);
     ar & const_cast<int &>(u.lbw);
     ar & u.pscale;

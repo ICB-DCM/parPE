@@ -14,7 +14,8 @@ class OptimizationApplication
 {
 public:
     OptimizationApplication();
-    OptimizationApplication(int argc, char **argv);
+
+    virtual int init(int argc, char **argv);
 
     virtual int parseOptions(int argc, char **argv);
 

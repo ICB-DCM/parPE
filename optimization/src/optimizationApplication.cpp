@@ -11,10 +11,10 @@ OptimizationApplication::OptimizationApplication() : dataFileName(NULL), resultF
 
 }
 
-OptimizationApplication::OptimizationApplication(int argc, char **argv) : OptimizationApplication()
+int OptimizationApplication::init(int argc, char **argv)
 {
     // Seed random number generator
-//    srand(1337);
+    //    srand(1337);
     srand(time(NULL)); // TODO to CLI
 
     // TODO: check if initialized already
@@ -25,6 +25,8 @@ OptimizationApplication::OptimizationApplication(int argc, char **argv) : Optimi
     initHDF5Mutex();
 
     parseOptions(argc, argv);
+
+    return 0;
 }
 
 int OptimizationApplication::parseOptions(int argc, char **argv)

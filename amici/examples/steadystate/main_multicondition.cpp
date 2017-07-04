@@ -18,7 +18,7 @@
 
 class SteadystateApplication : public OptimizationApplication {
 public:
-    SteadystateApplication(int argc, char **argv) : OptimizationApplication(argc, argv) {}
+    SteadystateApplication() : OptimizationApplication() {}
 
     virtual void initProblem(const char *inFileArgument, const char *outFileArgument) {
         dataProvider = new SteadyStateMultiConditionDataProvider(inFileArgument);
@@ -45,7 +45,7 @@ public:
 
 class SteadystateLocalOptimizationApplication : public SteadystateApplication {
 public:
-    SteadystateLocalOptimizationApplication(int argc, char **argv) : SteadystateApplication(argc, argv) {}
+    SteadystateLocalOptimizationApplication() : SteadystateApplication() {}
 
     virtual int runMaster() {
             // Single optimization
@@ -55,7 +55,7 @@ public:
 
 class SteadystateMultiStartOptimizationApplication : public SteadystateApplication {
 public:
-    SteadystateMultiStartOptimizationApplication(int argc, char **argv) : SteadystateApplication(argc, argv) {}
+    SteadystateMultiStartOptimizationApplication() : SteadystateApplication() {}
 
     virtual int runMaster() {
 
@@ -80,7 +80,8 @@ int main(int argc, char **argv)
     int status = 0;
 
     //SteadystateLocalOptimizationApplication app(argc, argv);
-    SteadystateMultiStartOptimizationApplication app(argc, argv);
+    SteadystateMultiStartOptimizationApplication app;
+    app.init(argc, argv);
     status = app.run();
 
     return status;

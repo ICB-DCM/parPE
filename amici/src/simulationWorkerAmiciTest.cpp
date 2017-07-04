@@ -20,9 +20,9 @@ IGNORE_TEST(simulationWorkerAmici, testSerializeResultPackageMessage) {
     int nTheta = randInt(0, 5000);
 
     // generate random data
-    UserData udataExp(nTheta,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,AMI_SCALING_LN, AMI_O2MODE_FULL);
-    udataExp.sensi_meth = AMI_SENSI_ASA;
-    udataExp.sensi = AMI_SENSI_ORDER_FIRST;
+    UserData udataExp(nTheta,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,AMICI_SCALING_LN, AMICI_O2MODE_FULL);
+    udataExp.sensi_meth = AMICI_SENSI_ASA;
+    udataExp.sensi = AMICI_SENSI_ORDER_FIRST;
 
     ReturnData rdataExp;
     int statusExp = randInt(INT_MIN, INT_MAX);
@@ -64,7 +64,7 @@ TEST(simulationWorkerAmici, testSerializeWorkPackageMessage) {
     expWp.data = alloca(expWp.lenData);
     for(int i = 0; i < lenDataElements; ++i)
         ((double *)expWp.data)[i] = randDouble(-1e-8, 1e8);
-    expWp.sensitivityMethod = AMI_SENSI_ASA;
+    expWp.sensitivityMethod = AMICI_SENSI_ASA;
     expWp.numSimulationParameters = nTheta;
     expWp.simulationParameters = new double [nTheta];
     for(int i = 0; i < nTheta; ++i) {

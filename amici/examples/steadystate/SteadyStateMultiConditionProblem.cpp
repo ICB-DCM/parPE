@@ -18,14 +18,12 @@ int SteadyStateMultiConditionDataProvider::updateFixedSimulationParameters(int c
 }
 
 ExpData *SteadyStateMultiConditionDataProvider::getExperimentalDataForCondition(int conditionIdx) {
-    ExpData *edata = new ExpData();
+    ExpData *edata = new ExpData(&modelDims);
 
-    edata->am_my = new double[modelDims.nytrue * modelDims.nt];
-    hdf5Read3DDoubleHyperslab(fileId, "/data/ymeasured", 1, modelDims.ny, modelDims.nt, conditionIdx, 0, 0, edata->am_my);
+    hdf5Read3DDoubleHyperslab(fileId, "/data/ymeasured", 1, modelDims.ny, modelDims.nt, conditionIdx, 0, 0, edata->my);
 
     double ysigma = AMI_HDF5_getDoubleScalarAttribute(fileId, "data", "sigmay");
-    edata->am_ysigma = new double[modelDims.nytrue * modelDims.nt];
-    fillArray(edata->am_ysigma, modelDims.nytrue * modelDims.nt, ysigma);
+    fillArray(edata->sigmay, modelDims.nytrue * modelDims.nt, ysigma);
 
     return edata;
 }
@@ -56,8 +54,8 @@ void SteadyStateMultiConditionDataProvider::setupUserData(UserData *udata) {
 
     udata->maxsteps = 1e5;
 
-    udata->sensi = AMI_SENSI_ORDER_FIRST;
-    udata->sensi_meth = AMI_SENSI_FSA;
+    udata->sensi = AMICI_SENSI_ORDER_FIRST;
+    udata->sensi_meth = AMICI_SENSI_FSA;
 
 }
 
@@ -94,11 +92,11 @@ SteadyStateMultiConditionProblem::SteadyStateMultiConditionProblem(SteadyStateMu
 void SteadyStateMultiConditionProblem::setSensitivityOptions(bool sensiRequired) {
     // sensitivities requested?
     if(sensiRequired) {
-        udata->sensi = AMI_SENSI_ORDER_FIRST;
-        udata->sensi_meth = AMI_SENSI_FSA;
+        udata->sensi = AMICI_SENSI_ORDER_FIRST;
+        udata->sensi_meth = AMICI_SENSI_FSA;
     } else {
-        udata->sensi = AMI_SENSI_ORDER_NONE;
-        udata->sensi_meth = AMI_SENSI_NONE;
+        udata->sensi = AMICI_SENSI_ORDER_NONE;
+        udata->sensi_meth = AMICI_SENSI_NONE;
     }
 
 }
