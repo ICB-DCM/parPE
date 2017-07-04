@@ -2,7 +2,7 @@
 
 #include "CppUTest/TestHarness.h"
 #include "CppUTestExt/MockSupport.h"
-
+#include "optimizationOptions.h"
 #include "quadraticTestProblem.h"
 #include <math.h>
 #include <stdio.h>

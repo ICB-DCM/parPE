@@ -6,6 +6,7 @@
 #include "localOptimizationIpopt.h"
 #include "testingMisc.h"
 #include "quadraticTestProblem.h"
+#include "optimizationOptions.h"
 
 TEST_GROUP(localOptimizationIpopt)
 {

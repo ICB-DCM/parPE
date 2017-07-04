@@ -1,5 +1,6 @@
 #include "wrapfunctions.h"
 #include "SteadyStateMultiConditionProblem.h"
+#include "optimizationOptions.h"
 
 #include <logging.h>
 #include <loadBalancerWorker.h>

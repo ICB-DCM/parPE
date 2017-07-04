@@ -1,4 +1,5 @@
 #include "SteadyStateMultiConditionProblem.h"
+#include "optimizationOptions.h"
 
 UserData getUserData();
 // alias because getUserData is shadowed in MultiConditionDataProvider

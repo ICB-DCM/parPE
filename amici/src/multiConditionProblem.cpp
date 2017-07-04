@@ -1,6 +1,7 @@
 #include "multiConditionProblem.h"
 #include "simulationWorkerAmici.h"
 #include "multiConditionProblemResultWriter.h"
+#include "optimizationOptions.h"
 
 #include <math.h>
 #include <string.h>

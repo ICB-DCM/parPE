@@ -4,6 +4,7 @@
 #include "hdf5Misc.h"
 #include "include/ami_hdf5.h"
 #include <cassert>
+#include "optimizationOptions.h"
 
 SteadystateProblem::SteadystateProblem()
 {

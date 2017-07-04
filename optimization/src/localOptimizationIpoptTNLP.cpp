@@ -7,7 +7,7 @@
 #include <IpTNLP.hpp>
 #undef HAVE_CSTDDEF
 
-LocalOptimizationIpoptTNLP::LocalOptimizationIpoptTNLP(OptimizationProblem *problem, pthread_mutex_t *ipoptMutex) : problem(problem)
+LocalOptimizationIpoptTNLP::LocalOptimizationIpoptTNLP(OptimizationProblem *problem, pthread_mutex_t *ipoptMutex) : problem(problem), ipoptMutex(ipoptMutex)
 {
     timeBegin = clock();
 }

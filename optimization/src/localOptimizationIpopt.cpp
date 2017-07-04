@@ -1,6 +1,7 @@
 #include "localOptimizationIpopt.h"
 #include "optimizationProblem.h"
 #include "localOptimizationIpoptTNLP.h"
+#include "optimizationOptions.h"
 #include <stdbool.h>
 #include <stdio.h>
 #include <assert.h>

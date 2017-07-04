@@ -11,6 +11,7 @@ set(SRC_LIST
     optimizationApplication.cpp
     optimizationResultWriter.cpp
     optimizer.cpp
+    optimizationOptions.cpp
 )
 
 add_library(${PROJECT_NAME} ${SRC_LIST})

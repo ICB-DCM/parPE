@@ -2,6 +2,7 @@
 
 #include "optimizationProblem.h"
 #include "steadystateProblem.h"
+#include "optimizationOptions.h"
 
 int main(int argc, char **argv)
 {
