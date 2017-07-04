@@ -6,6 +6,7 @@
 #include <IpIpoptApplication.hpp>
 #undef HAVE_CSTDDEF
 
+#include <math.h>
 #include <pthread.h>
 
 using namespace Ipopt;
