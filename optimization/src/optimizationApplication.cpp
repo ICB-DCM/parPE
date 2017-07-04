@@ -57,8 +57,8 @@ int OptimizationApplication::parseOptions(int argc, char **argv)
             printf("Usage: %s [OPTION]... FILE\n", argv[0]);
             printf("FILE: HDF5 data file");
             printf("Options: \n"
-                   "  -o, --outfile-prefix Prefix for result files (path + filename)."
-                   "  -t, --task    What to do? Parameter estimation (default) or check gradient ('gradient_check')"
+                   "  -o, --outfile-prefix Prefix for result files (path + filename)\n"
+                   "  -t, --task    What to do? Parameter estimation (default) or check gradient ('gradient_check')\n"
                    "  -h, --help    Print this help text\n"
                    "  -v, --version Print version info\n"
                    );
