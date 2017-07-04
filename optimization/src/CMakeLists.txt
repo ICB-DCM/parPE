@@ -4,11 +4,13 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wno-write-strings")
 
 set(SRC_LIST
     localOptimizationIpopt.cpp
+    localOptimizationIpoptTNLP.cpp
     localOptimizationCeres.cpp
     optimizationProblem.cpp
     multiStartOptimization.cpp
     optimizationApplication.cpp
     optimizationResultWriter.cpp
+    optimizer.cpp
 )
 
 add_library(${PROJECT_NAME} ${SRC_LIST})
