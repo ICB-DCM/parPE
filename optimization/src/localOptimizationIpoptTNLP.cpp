@@ -1,6 +1,7 @@
 #include "localOptimizationIpoptTNLP.h"
 #include "optimizationProblem.h"
-#include <assert.h>
+#include <cassert>
+#include <cstring>
 
 LocalOptimizationIpoptTNLP::LocalOptimizationIpoptTNLP(OptimizationProblem *problem, pthread_mutex_t *ipoptMutex) : problem(problem), ipoptMutex(ipoptMutex)
 {
