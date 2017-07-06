@@ -16,7 +16,9 @@ public:
 
     MultiConditionProblem(MultiConditionDataProvider *dataProvider);
 
-    virtual int evaluateObjectiveFunction(const double *optimiziationVariables, double *objFunVal, double *objectiveFunctionGradient);
+    virtual int evaluateObjectiveFunction(const double *optimiziationVariables, double *objectiveFunctionValue, double *objectiveFunctionGradient);
+
+    virtual int evaluateObjectiveFunction(const double *optimiziationVariables, double *objectiveFunctionValue, double *objectiveFunctionGradient, int *dataIndices, int numDataIndices);
 
     virtual int intermediateFunction(int alg_mod,
                              int iter_count,
@@ -55,9 +57,9 @@ protected:
 
     void updateUserData(const double *simulationParameters, const double *objectiveFunctionGradient);
 
-    virtual int runSimulations(const double *optimizationVariables, double *logLikelihood, double *objectiveFunctionGradient);
+    virtual int runSimulations(const double *optimizationVariables, double *logLikelihood, double *objectiveFunctionGradient, int *dataIndices, int numDataIndices);
 
-    int aggregateLikelihood(JobData *data, double *logLikelihood, double *objectiveFunctionGradient);
+    int aggregateLikelihood(JobData *data, double *logLikelihood, double *objectiveFunctionGradient, int *dataIndices, int numDataIndices);
 
     void printObjectiveFunctionFailureMessage();
 
@@ -88,7 +90,7 @@ public:
 
     MultiConditionProblemSerial(MultiConditionDataProvider *dataProvider) : MultiConditionProblem(dataProvider) {}
 
-    int runSimulations(const double *optimizationVariables, double *logLikelihood, double *objectiveFunctionGradient);
+    int runSimulations(const double *optimizationVariables, double *logLikelihood, double *objectiveFunctionGradient,  int *dataIndices, int numDataIndices);
 
 };
 

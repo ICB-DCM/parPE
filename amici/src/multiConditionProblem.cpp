@@ -96,6 +96,17 @@ int MultiConditionProblem::evaluateObjectiveFunction(const double *optimiziation
                                                 double *objectiveFunctionValue,
                                                 double *objectiveFunctionGradient)
 {
+    // run on all data
+    int numDataIndices = dataProvider->getNumberOfConditions();
+    int dataIndices[numDataIndices];
+    for(int i = 0; i < numDataIndices; ++i)
+        dataIndices[i] = i;
+
+    return evaluateObjectiveFunction(optimiziationVariables, objectiveFunctionValue, objectiveFunctionGradient, dataIndices, numDataIndices);
+}
+
+int MultiConditionProblem::evaluateObjectiveFunction(const double *optimiziationVariables, double *objectiveFunctionValue, double *objectiveFunctionGradient, int *dataIndices, int numDataIndices)
+{
 #ifdef NO_OBJ_FUN_EVAL
     if(objectiveFunctionGradient)
         for(int i = 0; i < numOptimizationParameters; ++i)
@@ -111,7 +122,7 @@ int MultiConditionProblem::evaluateObjectiveFunction(const double *optimiziation
         zeros(objectiveFunctionGradient, numOptimizationParameters);
 
 
-    int errors = runSimulations(optimiziationVariables, objectiveFunctionValue, objectiveFunctionGradient);
+    int errors = runSimulations(optimiziationVariables, objectiveFunctionValue, objectiveFunctionGradient, dataIndices, numDataIndices);
 
     if(errors) {
         printObjectiveFunctionFailureMessage();
@@ -228,15 +239,15 @@ void MultiConditionProblem::updateUserData(const double *simulationParameters, c
 
 }
 
-int MultiConditionProblem::runSimulations(const double *optimizationVariables, double *logLikelihood, double *objectiveFunctionGradient)
+int MultiConditionProblem::runSimulations(const double *optimizationVariables, double *logLikelihood, double *objectiveFunctionGradient, int *dataIndices, int numDataIndices)
 {   
     JobIdentifier path = this->path;
 
-    int numJobsTotal = dataProvider->getNumberOfConditions();
+    int numJobsTotal = numDataIndices;
     int numJobsFinished = 0;
 
     // TODO: allocate and free piecewise or according to max queue length
-    JobData *data = new JobData[numJobsTotal];
+    JobData *jobs = new JobData[numJobsTotal];
 
     // TODO: need to send previous steadystate as initial conditions
     int lenSendBuffer = JobAmiciSimulation::getLength(udata->np, sizeof(JobIdentifier));
@@ -247,8 +258,8 @@ int MultiConditionProblem::runSimulations(const double *optimizationVariables, d
 
     for(int simulationIdx = 0; simulationIdx < numJobsTotal; ++simulationIdx) {
         path.idxConditions = simulationIdx;
-        updateUserDataConditionSpecificParameters(simulationIdx, optimizationVariables);
-        queueSimulation(path, &data[simulationIdx],  &numJobsFinished,
+        updateUserDataConditionSpecificParameters(dataIndices[simulationIdx], optimizationVariables);
+        queueSimulation(path, &jobs[simulationIdx],  &numJobsFinished,
                         &simulationsCond, &simulationsMutex,
                         lenSendBuffer);
         // printf("Queued work: "); printDatapath(path);
@@ -263,14 +274,14 @@ int MultiConditionProblem::runSimulations(const double *optimizationVariables, d
     pthread_cond_destroy(&simulationsCond);
 
     // unpack
-    int errors = aggregateLikelihood(data, logLikelihood, objectiveFunctionGradient);;
-    delete[] data;
+    int errors = aggregateLikelihood(jobs, logLikelihood, objectiveFunctionGradient, dataIndices, numDataIndices);
+    delete[] jobs;
 
     return errors;
 
 }
 
-int MultiConditionProblem::aggregateLikelihood(JobData *data, double *logLikelihood, double *objectiveFunctionGradient)
+int MultiConditionProblem::aggregateLikelihood(JobData *data, double *logLikelihood, double *objectiveFunctionGradient, int *dataIndices, int numDataIndices)
 {
     int errors = 0;
     double llhTmp;
@@ -283,18 +294,18 @@ int MultiConditionProblem::aggregateLikelihood(JobData *data, double *logLikelih
         *logLikelihood -= llhTmp;
 
         if(objectiveFunctionGradient)
-            addSimulationGradientToObjectiveFunctionGradient(simulationIdx,
+            addSimulationGradientToObjectiveFunctionGradient(dataIndices[simulationIdx],
                         sllhTmp, objectiveFunctionGradient);
     }
 
     return errors;
 }
 
-int MultiConditionProblemSerial::runSimulations(const double *optimizationVariables, double *logLikelihood, double *objectiveFunctionGradient)
+int MultiConditionProblemSerial::runSimulations(const double *optimizationVariables, double *logLikelihood, double *objectiveFunctionGradient, int *dataIndices, int numDataIndices)
 {
     JobIdentifier path = this->path;
 
-    int numJobsTotal = dataProvider->getNumberOfConditions();
+    int numJobsTotal = numDataIndices;
 
     // TODO: allocate and free piecewise or according to max queue length
     JobData *data = new JobData[numJobsTotal];
@@ -305,7 +316,7 @@ int MultiConditionProblemSerial::runSimulations(const double *optimizationVariab
     for(int simulationIdx = 0; simulationIdx < numJobsTotal; ++simulationIdx) {
         path.idxConditions = simulationIdx;
 
-        updateUserDataConditionSpecificParameters(simulationIdx, optimizationVariables);
+        updateUserDataConditionSpecificParameters(dataIndices[simulationIdx], optimizationVariables);
 
         data[simulationIdx].lenSendBuffer = lenSendBuffer;
         data[simulationIdx].sendBuffer = (char *) malloc(lenSendBuffer); // malloc, because will be free()'d by queue
@@ -325,13 +336,11 @@ int MultiConditionProblemSerial::runSimulations(const double *optimizationVariab
     }
 
     // unpack
-    int errors = aggregateLikelihood(data, logLikelihood, objectiveFunctionGradient);;
+    int errors = aggregateLikelihood(data, logLikelihood, objectiveFunctionGradient, dataIndices, numDataIndices);
 
     delete[] data;
 
-
     return errors;
-
 }
 
 void MultiConditionProblem::printObjectiveFunctionFailureMessage()
