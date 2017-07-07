@@ -2,6 +2,7 @@
 #include "logging.h"
 #include "misc.h"
 #include <string>
+#include <iostream>
 
 OptimizationOptions::OptimizationOptions()
 {
