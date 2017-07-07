@@ -36,6 +36,8 @@ public:
 
     /** Convergence criterium for relative change in subsequent objective function value change */
     double functionTolerance;
+
+    std::string toString();
 };
 
 #endif // OPTIMIZATIONOPTIONS_H

@@ -68,6 +68,8 @@ public:
         generator.resultWriter = reinterpret_cast<MultiConditionProblemResultWriter *>(problem->resultWriter);
         generator.dp = dataProvider;
 
+        std::cout<<generator.options->toString();
+
         runParallelMultiStartOptimization(&generator, generator.options->numStarts, generator.options->retryOptimization);
 
         return status;
