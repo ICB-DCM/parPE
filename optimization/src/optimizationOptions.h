@@ -3,6 +3,8 @@
 
 #include <hdf5Misc.h>
 
+#include <string>
+
 typedef enum optimizer_tag {OPTIMIZER_IPOPT, OPTIMIZER_CERES} optimizerEnum;
 
 /** Type to describe an optimization (minimization) problem */
