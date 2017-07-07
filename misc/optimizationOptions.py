@@ -24,7 +24,7 @@ def setOption(filename, option, value):
     options = getOptionsDataset(f)
 
     if options:
-        options.attrs[option] = value
+        options.attrs[option] = int(value)
     else:
         exit(1)
 
@@ -58,7 +58,13 @@ def printUsage():
     optimizationOptions.py              -> print All
     optimizationOptions.py key          -> print key
     optimizationOptions.py -s key value -> set key to value
-    optimizationOptions.py -s key       -> remove key""")
+    optimizationOptions.py -s key       -> remove key
+    
+    Options currently supported are 
+              numStarts
+                maxIter
+              optimizer
+       retryOptimization""")
 
 
 if __name__ == "__main__":
