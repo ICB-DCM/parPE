@@ -47,6 +47,10 @@ OptimizationOptions *OptimizationOptions::fromHDF5(hid_t fileId)
 
     OptimizationOptions *o = new OptimizationOptions();
 
+    if(hdf5AttributeExists(fileId, hdf5path, "optimizer")) {
+        H5LTget_attribute_int(fileId, hdf5path, "optimizer", (int *) &o->optimizer);
+    }
+
     if(hdf5AttributeExists(fileId, hdf5path, "maxIter")) {
         H5LTget_attribute_int(fileId, hdf5path, "maxIter", &o->maxOptimizerIterations);
     }
@@ -62,8 +66,6 @@ OptimizationOptions *OptimizationOptions::fromHDF5(hid_t fileId)
     if(hdf5AttributeExists(fileId, hdf5path, "functionTolerance")) {
         H5LTget_attribute_double(fileId, hdf5path, "functionTolerance", &o->functionTolerance);
     }
-
-    std::cout<<o->toString();
 
     return o;
 }
