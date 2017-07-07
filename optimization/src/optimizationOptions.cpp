@@ -4,6 +4,17 @@
 #include <iostream>
 #include <sstream>
 
+// Workaround for missing to_string on some systems
+namespace patch
+{
+    template < typename T > std::string to_string( const T& n )
+    {
+        std::ostringstream stm ;
+        stm << n ;
+        return stm.str() ;
+    }
+}
+
 OptimizationOptions::OptimizationOptions()
 {
     optimizer = OPTIMIZER_IPOPT;
@@ -60,10 +71,10 @@ OptimizationOptions *OptimizationOptions::fromHDF5(hid_t fileId)
 std::string OptimizationOptions::toString()
 {
     std::string s;
-    s += "optimizer: " + std::to_string(optimizer) + "\n";
-    s += "maxIter: " + std::to_string(maxOptimizerIterations) + "\n";
-    s += "printToStdout: " + std::to_string(printToStdout) + "\n";
-    s += "numStarts: " + std::to_string(numStarts) + "\n";
-    s += "functionTolerance: " + std::to_string(functionTolerance) + "\n";
+    s += "optimizer: " + patch::to_string(optimizer) + "\n";
+    s += "maxIter: " + patch::to_string(maxOptimizerIterations) + "\n";
+    s += "printToStdout: " + patch::to_string(printToStdout) + "\n";
+    s += "numStarts: " + patch::to_string(numStarts) + "\n";
+    s += "functionTolerance: " + patch::to_string(functionTolerance) + "\n";
     return s;
 }
