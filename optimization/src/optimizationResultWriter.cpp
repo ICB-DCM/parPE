@@ -5,6 +5,7 @@
 #include <sys/stat.h>
 #include "misc.h"
 #include <cmath>
+#include <sstream>
 
 OptimizationResultWriter::OptimizationResultWriter()
 {
@@ -34,7 +35,10 @@ std::string OptimizationResultWriter::getOptimizationPath()
 
 std::string OptimizationResultWriter::getIterationPath(int iterationIdx)
 {
-    return rootPath + "/" + std::to_string(iterationIdx) + "/";
+    std::ostringstream ss;
+    ss << rootPath << "/" << iterationIdx << "/";
+    //return rootPath + "/" + std::to_string(iterationIdx) + "/";
+    return ss.str();
 }
 
 void OptimizationResultWriter::logParPEVersion()
