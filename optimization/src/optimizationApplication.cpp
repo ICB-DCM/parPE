@@ -5,6 +5,7 @@
 #include <cstring>
 #include <pthread.h>
 #include <mpi.h>
+#include <ctime>
 
 OptimizationApplication::OptimizationApplication() : dataFileName(NULL), resultFileName(NULL), problem(NULL), resultWriter(NULL)
 {
@@ -13,10 +14,6 @@ OptimizationApplication::OptimizationApplication() : dataFileName(NULL), resultF
 
 int OptimizationApplication::init(int argc, char **argv)
 {
-    // Seed random number generator
-    //    srand(1337);
-    srand(time(NULL)); // TODO to CLI
-
     // TODO: check if initialized already
     initMPI(&argc, &argv);
 
@@ -25,6 +22,12 @@ int OptimizationApplication::init(int argc, char **argv)
     initHDF5Mutex();
 
     parseOptions(argc, argv);
+
+    // Seed random number generator
+    //    srand(1337);
+    unsigned int seed = time(NULL);
+    logmessage(LOGLVL_DEBUG, "Seeding RNG with %u", seed);
+    srand(seed); // TODO to CLI
 
     return 0;
 }
