@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 """
 Script for modifying parPE optimization options in an HDF5 file
@@ -17,6 +17,7 @@ def getOptionsDataset(f):
     print("Error: file does not contain /optimizationOptions")
     
     return None
+
 
 def setOption(filename, option, value):
     f = h5py.File(filename, "r+")
@@ -38,6 +39,7 @@ def printOptions(filename):
     else:
         exit(1)    
 
+
 def unsetOption(filename, option):
     f = h5py.File(filename, "r+")
     
@@ -57,6 +59,7 @@ def printUsage():
     optimizationOptions.py key          -> print key
     optimizationOptions.py -s key value -> set key to value
     optimizationOptions.py -s key       -> remove key""")
+
 
 if __name__ == "__main__":
     
