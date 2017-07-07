@@ -1,8 +1,8 @@
 #include "optimizationOptions.h"
 #include "logging.h"
 #include "misc.h"
-#include <string>
 #include <iostream>
+#include <sstream>
 
 OptimizationOptions::OptimizationOptions()
 {
