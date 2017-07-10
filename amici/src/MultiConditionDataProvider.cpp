@@ -26,6 +26,8 @@ void sprintJobIdentifier(char *buffer, JobIdentifier id)
 
 MultiConditionDataProvider::MultiConditionDataProvider(const char *hdf5Filename) : modelDims(getModelUserData())
 {
+    hdf5LockMutex();
+
     H5_SAVE_ERROR_HANDLER;
     fileId = H5Fopen(hdf5Filename, H5F_ACC_RDONLY, H5P_DEFAULT);
     if(fileId < 0) {
@@ -34,6 +36,8 @@ MultiConditionDataProvider::MultiConditionDataProvider(const char *hdf5Filename)
         H5Ewalk2(H5E_DEFAULT, H5E_WALK_DOWNWARD, hdf5ErrorStackWalker_cb, NULL);
     }
     H5_RESTORE_ERROR_HANDLER;
+
+    hdf5UnlockMutex();
 
     hdf5MeasurementPath = "/measurements/y";
     hdf5MeasurementSigmaPath = "/measurements/ysigma";
@@ -52,6 +56,8 @@ int MultiConditionDataProvider::getNumberOfConditions()
     // -> won't need different file for testing/validation splits
     // TODO: cache
 
+    hdf5LockMutex();
+
     hid_t dset = H5Dopen(fileId, hdf5MeasurementPath.c_str(), H5P_DEFAULT);
     hid_t dspace = H5Dget_space(dset);
     const int ndims = H5Sget_simple_extent_ndims(dspace);
@@ -59,12 +65,20 @@ int MultiConditionDataProvider::getNumberOfConditions()
     hsize_t dims[ndims];
     H5Sget_simple_extent_dims(dspace, dims, NULL);
 
+    hdf5UnlockMutex();
+
     return dims[1];
 }
 
 int MultiConditionDataProvider::getNumConditionSpecificParametersPerSimulation()
 {
-    return AMI_HDF5_getIntScalarAttribute(fileId, "/parameters", "numConditionSpecificParameters");
+    hdf5LockMutex();
+
+    int num = AMI_HDF5_getIntScalarAttribute(fileId, "/parameters", "numConditionSpecificParameters");
+
+    hdf5UnlockMutex();
+
+    return num;
 }
 
 
