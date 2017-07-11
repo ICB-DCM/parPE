@@ -149,14 +149,14 @@ ExpData *MultiConditionDataProvider::getExperimentalDataForCondition(int conditi
 void MultiConditionDataProvider::getOptimizationParametersLowerBounds(double *buffer)
 {
     // TODO to HDF5
-    fillArray(buffer, modelDims.np, -2);
+    fillArray(buffer, getNumOptimizationParameters(), -2);
 }
 
 
 void MultiConditionDataProvider::getOptimizationParametersUpperBounds(double *buffer)
 {
     // TODO to HDF5
-    fillArray(buffer, modelDims.np, 2);
+    fillArray(buffer, getNumOptimizationParameters(), 2);
 
 }
 
