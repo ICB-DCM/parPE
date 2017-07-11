@@ -8,6 +8,13 @@ class CeresWrapper : public ceres::FirstOrderFunction {
 public:
     CeresWrapper(OptimizationProblem *problem) : problem(problem) {}
 
+    /**
+     * @brief Evaluate cost function
+     * @param parameters
+     * @param cost
+     * @param gradient If not NULL, evaluate gradient
+     * @return true on success, false otherwise
+     */
     virtual bool Evaluate(const double* parameters,
                           double* cost,
                           double* gradient) const {
@@ -38,6 +45,10 @@ int getLocalOptimumCeres(OptimizationProblem *problem)
 //    options.gradient_tolerance = 1e-18;
     options.function_tolerance = problem->optimizationOptions->functionTolerance;
 
+    // Use quadratic approximation to not require gradient for line search
+    // NOTE: WOLFE line_search_type will always require gradient
+    // options.line_search_interpolation_type = ceres::QUADRATIC;
+
     ceres::GradientProblemSolver::Summary summary;
 
     ceres::GradientProblem ceresProblem(new CeresWrapper(problem));
@@ -49,5 +60,5 @@ int getLocalOptimumCeres(OptimizationProblem *problem)
 
     free(parameters);
 
-    return summary.termination_type > 0;
+    return summary.termination_type != ceres::FAILURE && summary.termination_type != ceres::USER_FAILURE;
 }
