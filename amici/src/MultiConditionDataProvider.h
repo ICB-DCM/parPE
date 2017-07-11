@@ -22,13 +22,15 @@ void sprintJobIdentifier(char *buffer, JobIdentifier id);
 
 
 /**
- * @brief The MultiConditionDataProvider class reads data for MultiConditionOptimizationProblem from a HDF5 file.
+ * @brief The MultiConditionDataProvider class reads simulation data for MultiConditionOptimizationProblem from a HDF5 file.
  */
 
 class MultiConditionDataProvider
 {
 public:
     MultiConditionDataProvider(const char *hdf5Filename);
+
+    MultiConditionDataProvider(const char *hdf5Filename, std::string rootPath);
 
     virtual int getNumberOfConditions();
 
@@ -59,6 +61,7 @@ public:
 
     virtual int getNumCommonParameters();
 
+    // TODO remove, since always need more info than pure model dimensions (e.g. nt)
     virtual UserData getModelDims();
 
     virtual UserData *getUserData();
@@ -72,6 +75,8 @@ public:
     std::string hdf5MeasurementPath;
     std::string hdf5MeasurementSigmaPath;
     std::string hdf5ConditionPath;
+    std::string hdf5AmiciOptionPath;
+    std::string hdf5ParameterPath;
 
     hid_t fileId;
 

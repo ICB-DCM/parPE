@@ -24,7 +24,12 @@ void sprintJobIdentifier(char *buffer, JobIdentifier id)
  * @param hdf5Filename Filename from where to read data
  */
 
-MultiConditionDataProvider::MultiConditionDataProvider(const char *hdf5Filename) : modelDims(getModelUserData())
+MultiConditionDataProvider::MultiConditionDataProvider(const char *hdf5Filename) : MultiConditionDataProvider(hdf5Filename, "")
+{
+
+}
+
+MultiConditionDataProvider::MultiConditionDataProvider(const char *hdf5Filename, std::string rootPath) : modelDims(getModelUserData())
 {
     hdf5LockMutex();
 
@@ -39,9 +44,12 @@ MultiConditionDataProvider::MultiConditionDataProvider(const char *hdf5Filename)
 
     hdf5UnlockMutex();
 
-    hdf5MeasurementPath = "/measurements/y";
-    hdf5MeasurementSigmaPath = "/measurements/ysigma";
-    hdf5ConditionPath = "/fixedParameters/k";
+    hdf5MeasurementPath = rootPath + "/measurements/y";
+    hdf5MeasurementSigmaPath = rootPath + "/measurements/ysigma";
+    hdf5ConditionPath = rootPath + "/fixedParameters/k";
+    hdf5AmiciOptionPath = rootPath + "/amiciOptions";
+    hdf5ParameterPath = rootPath + "/parameters";
+
 }
 
 
@@ -74,7 +82,7 @@ int MultiConditionDataProvider::getNumConditionSpecificParametersPerSimulation()
 {
     hdf5LockMutex();
 
-    int num = AMI_HDF5_getIntScalarAttribute(fileId, "/parameters", "numConditionSpecificParameters");
+    int num = AMI_HDF5_getIntScalarAttribute(fileId, hdf5ParameterPath.c_str(), "numConditionSpecificParameters");
 
     hdf5UnlockMutex();
 
@@ -184,7 +192,7 @@ UserData *MultiConditionDataProvider::getUserData()
     // TODO: separate class for udata?
     hdf5LockMutex();
 
-    const char* optionsObject = "/amiciOptions";
+    const char* optionsObject = hdf5AmiciOptionPath.c_str();
 
     H5_SAVE_ERROR_HANDLER;
     UserData *udata = AMI_HDF5_readSimulationUserDataFromFileObject(fileId, optionsObject);
