@@ -46,6 +46,8 @@ public:
 
     virtual ~OptimizationProblem(){}
 
+    void setRandomInitialParameters();
+
     /** number of optimization parameters */
     int numOptimizationParameters;
 

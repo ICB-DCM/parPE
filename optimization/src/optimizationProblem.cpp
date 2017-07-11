@@ -113,6 +113,16 @@ void OptimizationProblem::logOptimizerFinished(double optimalCost, const double 
 
 }
 
+void OptimizationProblem::setRandomInitialParameters()
+{
+    initialParameters = new double [numOptimizationParameters];
+    getRandomStartingpoint(parametersMin,
+                           parametersMax,
+                           numOptimizationParameters,
+                           initialParameters);
+
+}
+
 OptimizationProblem::OptimizationProblem()
 {
     numOptimizationParameters = 0;

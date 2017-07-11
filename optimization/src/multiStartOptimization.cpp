@@ -34,15 +34,16 @@ int runParallelMultiStartOptimization(OptimizationProblemGeneratorForMultiStart 
 
     while(numCompleted < numberOfStarts) {
         for(int ms = 0; ms < numberOfStarts; ++ms) {
-            if(!localOptimizationThreads[ms])
+            // problem still running?
+            if(!localProblems[ms])
                 continue;
 
             int *threadStatus = 0;
             int joinStatus = pthread_tryjoin_np(localOptimizationThreads[ms], (void**) &threadStatus);
 
             if(joinStatus == 0) { // joined successful
-                localOptimizationThreads[ms] = 0;
                 delete localProblems[ms];
+                localProblems[ms] = NULL;
 
                 if(*threadStatus == 0 || !restartOnFailure) {
                     if(*threadStatus == 0)
@@ -83,11 +84,7 @@ OptimizationProblem *OptimizationProblemGeneratorForMultiStart::getLocalProblem(
     OptimizationProblem *problem = getLocalProblemImpl(multiStartIndex);
 
     if(!problem->initialParameters) {
-        problem->initialParameters = new double [problem->numOptimizationParameters];
-        getRandomStartingpoint(problem->parametersMin,
-                               problem->parametersMax,
-                               problem->numOptimizationParameters,
-                               problem->initialParameters);
+        problem->setRandomInitialParameters();
     }
 
     return problem;
