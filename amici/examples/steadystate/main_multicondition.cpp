@@ -8,7 +8,7 @@
 #include <multiConditionProblemResultWriter.h>
 #include <optimizationApplication.h>
 
-#include <stdio.h>
+#include <iostream>
 #include <unistd.h>
 
 /*
