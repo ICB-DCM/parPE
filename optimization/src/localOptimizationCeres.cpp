@@ -29,6 +29,11 @@ private:
     OptimizationProblem *problem;
 };
 
+/**
+ * @brief getLocalOptimumCeres
+ * @param problem
+ * @return 1 on failure, 0 on success
+ */
 int getLocalOptimumCeres(OptimizationProblem *problem)
 {
     double *parameters = (double *) malloc(sizeof(*parameters) * problem->numOptimizationParameters);
@@ -60,5 +65,5 @@ int getLocalOptimumCeres(OptimizationProblem *problem)
 
     free(parameters);
 
-    return summary.termination_type != ceres::FAILURE && summary.termination_type != ceres::USER_FAILURE;
+    return summary.termination_type == ceres::FAILURE || summary.termination_type == ceres::USER_FAILURE;
 }
