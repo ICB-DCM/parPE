@@ -72,7 +72,10 @@ OptimizationOptions *OptimizationOptions::fromHDF5(hid_t fileId)
 }
 
 /**
- * @brief Reads a column from a matrix with random starting points. The size is determined from the dataset.
+ * @brief Read pre-generated random starting points from data file.
+ * This is used to ensure that the same random starting points
+ * are used on different systems where RNG initialization might yield different results.
+ * Reads a column from a matrix with random starting points. The size is determined from the dataset.
  * @param fileId
  * @param index Column to read
  * @return The selected starting point or NULL if the dataset did not exist or had less columns than `ìndex`
@@ -89,19 +92,20 @@ double *OptimizationOptions::getStartingPoint(hid_t fileId, int index)
     if(dataset < 0)
         return NULL;
 
+    // read dimensions
     hid_t dataspace = H5Dget_space(dataset);
     const int ndims = H5Sget_simple_extent_ndims(dataspace);
     assert(ndims == 2);
     hsize_t dims[ndims];
     H5Sget_simple_extent_dims(dataspace, dims, NULL);
-    if(dims[1] < index)
+    if(dims[1] < (unsigned) index)
         return NULL;
 
     double *buffer = new double[dims[0]];
     hdf5Read2DDoubleHyperslab(fileId, path, dims[0], 1, 0, index, buffer);
 
     if(H5Eget_num(H5E_DEFAULT)) {
-        error("Problem in getRandomInitialThetaFromFile\n");
+        error("Problem in OptimizationOptions::getStartingPoint\n");
         H5Ewalk2(H5E_DEFAULT, H5E_WALK_DOWNWARD, hdf5ErrorStackWalker_cb, NULL);
     }
 
