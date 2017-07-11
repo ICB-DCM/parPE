@@ -30,6 +30,8 @@ public:
 
     static OptimizationOptions* fromHDF5(hid_t fileId);
 
+    static double *getStartingPoint(hid_t fileId, int index);
+
     /** Number of starts for local optimization (only used for multi-start optimization */
     int numStarts;
 
