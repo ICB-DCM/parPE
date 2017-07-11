@@ -139,6 +139,10 @@ int MultiConditionProblem::evaluateObjectiveFunction(const double *optimiziation
 
 int MultiConditionProblem::intermediateFunction(int alg_mod, int iter_count, double obj_value, double inf_pr, double inf_du, double mu, double d_norm, double regularization_size, double alpha_du, double alpha_pr, int ls_trials)
 {
+    static double startTime = 0;
+    // Wall time on master. NOTE: This also includes waiting time for the job being sent to workers.
+    double duration = startTime ? (MPI_Wtime() - startTime) : 0;
+
     bool stop = false;
 
     path.idxLocalOptimizationIteration = iter_count;
@@ -151,9 +155,12 @@ int MultiConditionProblem::intermediateFunction(int alg_mod, int iter_count, dou
 
     if(resultWriter) {
         ((MultiConditionProblemResultWriter*) resultWriter)->setJobId(path);
-        resultWriter->logLocalOptimizerIteration(iter_count, lastOptimizationParameters, numOptimizationParameters, obj_value, lastObjectiveFunctionGradient, 0,
-                               alg_mod, inf_pr, inf_du, mu, d_norm, regularization_size, alpha_du, alpha_pr, ls_trials);
+        resultWriter->logLocalOptimizerIteration(iter_count, lastOptimizationParameters, numOptimizationParameters, obj_value, lastObjectiveFunctionGradient, duration,
+                                                 alg_mod, inf_pr, inf_du, mu, d_norm, regularization_size, alpha_du, alpha_pr, ls_trials);
     }
+
+    startTime = MPI_Wtime();
+
     return stop;
 }
 
