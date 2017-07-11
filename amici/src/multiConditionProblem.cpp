@@ -174,7 +174,7 @@ void MultiConditionProblem::logOptimizerFinished(double optimalCost, const doubl
 {
     char strBuf[100];
     sprintJobIdentifier(strBuf, path);
-    logmessage(LOGLVL_INFO, "%s: Ipopt status %d, final llh: %e, time: %f.", strBuf, exitStatus, optimalCost, masterTime);
+    logmessage(LOGLVL_INFO, "%s: Optimizer status %d, final llh: %e, time: %f.", strBuf, exitStatus, optimalCost, masterTime);
 
     if(resultWriter)
         resultWriter->saveLocalOptimizerResults(optimalCost, optimalParameters, numOptimizationParameters, masterTime, exitStatus);
