@@ -32,15 +32,15 @@ public:
 
     MultiConditionDataProvider(const char *hdf5Filename, std::string rootPath);
 
-    virtual int getNumberOfConditions();
+    virtual int getNumberOfConditions() const;
 
-    virtual int getNumConditionSpecificParametersPerSimulation();
+    virtual int getNumConditionSpecificParametersPerSimulation() const;
 
-    virtual int updateFixedSimulationParameters(int conditionIdx, UserData *udata);
+    virtual int updateFixedSimulationParameters(int conditionIdx, UserData *udata) const;
 
-    virtual ExpData *getExperimentalDataForExperimentAndUpdateUserData(int conditionIdx, UserData *udata);
+    virtual ExpData *getExperimentalDataForExperimentAndUpdateUserData(int conditionIdx, UserData *udata) const;
 
-    virtual ExpData *getExperimentalDataForCondition(int conditionIdx);
+    virtual ExpData *getExperimentalDataForCondition(int conditionIdx) const;
 
     /**
      * @brief getOptimizationParametersLowerBounds Get lower parameter bounds
@@ -48,27 +48,27 @@ public:
      * @param dataPath (not yet used)
      * @param buffer allocated memory to write parameter bounds
      */
-    virtual void getOptimizationParametersLowerBounds(double *buffer);
+    virtual void getOptimizationParametersLowerBounds(double *buffer) const;
 
     /**
      * @brief getOptimizationParametersUpperBounds Get upper parameter bounds
      * @param dataPath (not yet used)
      * @param buffer allocated memory to write parameter bounds
      */
-    virtual void getOptimizationParametersUpperBounds(double *buffer);
+    virtual void getOptimizationParametersUpperBounds(double *buffer) const;
 
-    virtual int getNumOptimizationParameters();
+    virtual int getNumOptimizationParameters() const;
 
-    virtual int getNumCommonParameters();
+    virtual int getNumCommonParameters() const;
 
     // TODO remove, since always need more info than pure model dimensions (e.g. nt)
-    virtual UserData getModelDims();
+    virtual UserData getModelDims() const;
 
-    virtual UserData *getUserData();
+    virtual UserData *getUserData() const;
 
-    virtual UserData *getUserDataForCondition(int conditionIdx);
+    virtual UserData *getUserDataForCondition(int conditionIdx) const;
 
-    virtual int getIndexOfFirstConditionSpecificOptimizationParameter(int conditionIdx);
+    virtual int getIndexOfFirstConditionSpecificOptimizationParameter(int conditionIdx) const;
 
     virtual ~MultiConditionDataProvider();
 

@@ -58,7 +58,7 @@ MultiConditionDataProvider::MultiConditionDataProvider(const char *hdf5Filename,
  * of conditions present in the data.
  * @return
  */
-int MultiConditionDataProvider::getNumberOfConditions()
+int MultiConditionDataProvider::getNumberOfConditions() const
 {
     // TODO: add additional layer for selecten of condition indices (for testing and later for minibatch)
     // -> won't need different file for testing/validation splits
@@ -78,7 +78,7 @@ int MultiConditionDataProvider::getNumberOfConditions()
     return dims[1];
 }
 
-int MultiConditionDataProvider::getNumConditionSpecificParametersPerSimulation()
+int MultiConditionDataProvider::getNumConditionSpecificParametersPerSimulation() const
 {
     hdf5LockMutex();
 
@@ -97,7 +97,7 @@ int MultiConditionDataProvider::getNumConditionSpecificParametersPerSimulation()
  * @param udata The object to be updated.
  * @return
  */
-int MultiConditionDataProvider::updateFixedSimulationParameters(int conditionIdx, UserData *udata)
+int MultiConditionDataProvider::updateFixedSimulationParameters(int conditionIdx, UserData *udata) const
 {
     hdf5LockMutex();
 
@@ -128,7 +128,7 @@ int MultiConditionDataProvider::updateFixedSimulationParameters(int conditionIdx
  * @return
  */
 
-ExpData *MultiConditionDataProvider::getExperimentalDataForExperimentAndUpdateUserData(int conditionIdx, UserData *udata)
+ExpData *MultiConditionDataProvider::getExperimentalDataForExperimentAndUpdateUserData(int conditionIdx, UserData *udata) const
 {
 
     updateFixedSimulationParameters(conditionIdx, udata);
@@ -138,7 +138,7 @@ ExpData *MultiConditionDataProvider::getExperimentalDataForExperimentAndUpdateUs
 
 }
 
-ExpData *MultiConditionDataProvider::getExperimentalDataForCondition(int conditionIdx)
+ExpData *MultiConditionDataProvider::getExperimentalDataForCondition(int conditionIdx) const
 {
     hdf5LockMutex();
 
@@ -154,14 +154,14 @@ ExpData *MultiConditionDataProvider::getExperimentalDataForCondition(int conditi
 }
 
 
-void MultiConditionDataProvider::getOptimizationParametersLowerBounds(double *buffer)
+void MultiConditionDataProvider::getOptimizationParametersLowerBounds(double *buffer) const
 {
     // TODO to HDF5
     fillArray(buffer, getNumOptimizationParameters(), -2);
 }
 
 
-void MultiConditionDataProvider::getOptimizationParametersUpperBounds(double *buffer)
+void MultiConditionDataProvider::getOptimizationParametersUpperBounds(double *buffer) const
 {
     // TODO to HDF5
     fillArray(buffer, getNumOptimizationParameters(), 2);
@@ -169,25 +169,25 @@ void MultiConditionDataProvider::getOptimizationParametersUpperBounds(double *bu
 }
 
 
-int MultiConditionDataProvider::getNumOptimizationParameters()
+int MultiConditionDataProvider::getNumOptimizationParameters() const
 {
     return getNumCommonParameters() + getNumberOfConditions() * getNumConditionSpecificParametersPerSimulation();
 
 }
 
 
-int MultiConditionDataProvider::getNumCommonParameters()
+int MultiConditionDataProvider::getNumCommonParameters() const
 {
     return modelDims.np - getNumConditionSpecificParametersPerSimulation();
 
 }
 
-UserData MultiConditionDataProvider::getModelDims()
+UserData MultiConditionDataProvider::getModelDims() const
 {
     return modelDims;
 }
 
-UserData *MultiConditionDataProvider::getUserData()
+UserData *MultiConditionDataProvider::getUserData() const
 {
     // TODO: separate class for udata?
     hdf5LockMutex();
@@ -233,14 +233,14 @@ UserData *MultiConditionDataProvider::getUserData()
     return(udata);
 }
 
-UserData *MultiConditionDataProvider::getUserDataForCondition(int conditionIdx)
+UserData *MultiConditionDataProvider::getUserDataForCondition(int conditionIdx) const
 {
     UserData *udata = getUserData();
     updateFixedSimulationParameters(conditionIdx, udata);
     return udata;
 }
 
-int MultiConditionDataProvider::getIndexOfFirstConditionSpecificOptimizationParameter(int conditionIdx)
+int MultiConditionDataProvider::getIndexOfFirstConditionSpecificOptimizationParameter(int conditionIdx) const
 {
     return getNumCommonParameters() + conditionIdx * getNumConditionSpecificParametersPerSimulation();
 }
