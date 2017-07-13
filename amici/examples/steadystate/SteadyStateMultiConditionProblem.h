@@ -13,17 +13,17 @@ class SteadyStateMultiConditionDataProvider : public MultiConditionDataProvider
 public:
     SteadyStateMultiConditionDataProvider(const char *hdf5Filename);
 
-    int getNumberOfConditions() { return 12; }
+    int getNumberOfConditions() const { return 12; }
 
-    int getNumConditionSpecificParametersPerSimulation() { return 0; }
+    int getNumConditionSpecificParametersPerSimulation() const { return 0; }
 
-    int updateFixedSimulationParameters(int conditionIdx, UserData *udata);
+    int updateFixedSimulationParameters(int conditionIdx, UserData *udata) const;
 
-    ExpData *getExperimentalDataForCondition(int conditionIdx);
+    ExpData *getExperimentalDataForCondition(int conditionIdx) const;
 
-    void setupUserData(UserData *udata);
+    void setupUserData(UserData *udata) const;
 
-    UserData *getUserData();
+    UserData *getUserData() const;
 
     UserData *udata;
 };

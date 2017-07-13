@@ -13,12 +13,12 @@ SteadyStateMultiConditionDataProvider::SteadyStateMultiConditionDataProvider(con
     modelDims.nt = 20;
 }
 
-int SteadyStateMultiConditionDataProvider::updateFixedSimulationParameters(int conditionIdx, UserData *udata) {
+int SteadyStateMultiConditionDataProvider::updateFixedSimulationParameters(int conditionIdx, UserData *udata) const {
     hdf5Read2DDoubleHyperslab(fileId, "/data/k", udata->nk, 1, 0, conditionIdx, udata->k);
     return 0;
 }
 
-ExpData *SteadyStateMultiConditionDataProvider::getExperimentalDataForCondition(int conditionIdx) {
+ExpData *SteadyStateMultiConditionDataProvider::getExperimentalDataForCondition(int conditionIdx) const {
     ExpData *edata = new ExpData(&modelDims);
 
     hdf5Read3DDoubleHyperslab(fileId, "/data/ymeasured", 1, modelDims.ny, modelDims.nt, conditionIdx, 0, 0, edata->my);
@@ -29,7 +29,7 @@ ExpData *SteadyStateMultiConditionDataProvider::getExperimentalDataForCondition(
     return edata;
 }
 
-void SteadyStateMultiConditionDataProvider::setupUserData(UserData *udata) {
+void SteadyStateMultiConditionDataProvider::setupUserData(UserData *udata) const {
 
     udata->nt = 20;
 
@@ -60,7 +60,7 @@ void SteadyStateMultiConditionDataProvider::setupUserData(UserData *udata) {
 
 }
 
-UserData *SteadyStateMultiConditionDataProvider::getUserData()
+UserData *SteadyStateMultiConditionDataProvider::getUserData() const
 {
     UserData *udata = new UserData(getModelUserData());
     setupUserData(udata);
