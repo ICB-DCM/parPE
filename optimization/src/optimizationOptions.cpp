@@ -82,33 +82,39 @@ OptimizationOptions *OptimizationOptions::fromHDF5(hid_t fileId)
  */
 double *OptimizationOptions::getStartingPoint(hid_t fileId, int index)
 {
+    double *buffer = NULL;
+
     const char *path = "/randomstarts";
-    logmessage(LOGLVL_INFO, "Reading random initial theta %d from %s", index, path);
 
     hdf5LockMutex();
     H5_SAVE_ERROR_HANDLER;
 
     hid_t dataset = H5Dopen2(fileId, path, H5P_DEFAULT);
     if(dataset < 0)
-        return NULL;
+        goto freturn;
 
-    // read dimensions
-    hid_t dataspace = H5Dget_space(dataset);
-    const int ndims = H5Sget_simple_extent_ndims(dataspace);
-    assert(ndims == 2);
-    hsize_t dims[ndims];
-    H5Sget_simple_extent_dims(dataspace, dims, NULL);
-    if(dims[1] < (unsigned) index)
-        return NULL;
+    {
+        // read dimensions
+        hid_t dataspace = H5Dget_space(dataset);
+        const int ndims = H5Sget_simple_extent_ndims(dataspace);
+        assert(ndims == 2);
+        hsize_t dims[ndims];
+        H5Sget_simple_extent_dims(dataspace, dims, NULL);
+        if(dims[1] < (unsigned) index)
+            goto freturn;
 
-    double *buffer = new double[dims[0]];
-    hdf5Read2DDoubleHyperslab(fileId, path, dims[0], 1, 0, index, buffer);
+        logmessage(LOGLVL_INFO, "Reading random initial theta %d from %s", index, path);
+
+        buffer = new double[dims[0]];
+        hdf5Read2DDoubleHyperslab(fileId, path, dims[0], 1, 0, index, buffer);
+    }
 
     if(H5Eget_num(H5E_DEFAULT)) {
         error("Problem in OptimizationOptions::getStartingPoint\n");
         H5Ewalk2(H5E_DEFAULT, H5E_WALK_DOWNWARD, hdf5ErrorStackWalker_cb, NULL);
     }
 
+freturn:
     H5_RESTORE_ERROR_HANDLER;
 
     hdf5UnlockMutex();
