@@ -43,8 +43,9 @@ bool LocalOptimizationIpoptTNLP::get_bounds_info(Index n, Number *x_l, Number *x
 bool LocalOptimizationIpoptTNLP::get_starting_point(Index n, bool init_x, Number *x, bool init_z, Number *z_L, Number *z_U, Index m, bool init_lambda, Number *lambda)
 {
     if(init_x) {
-        if(problem->initialParameters) {
-            memcpy(x, problem->initialParameters, sizeof(Number) * n);
+        double *startingPoint = problem->getInitialParameters();
+        if(startingPoint) {
+            memcpy(x, startingPoint, sizeof(Number) * n);
         } else {
             getRandomStartingpoint(problem->parametersMin, problem->parametersMax, problem->numOptimizationParameters, x);
         }

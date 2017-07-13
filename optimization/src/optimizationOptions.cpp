@@ -88,7 +88,7 @@ double *OptimizationOptions::getStartingPoint(hid_t fileId, int index)
     hdf5LockMutex();
     H5_SAVE_ERROR_HANDLER;
 
-    hid_t dataset   = H5Dopen2(fileId, path, H5P_DEFAULT);
+    hid_t dataset = H5Dopen2(fileId, path, H5P_DEFAULT);
     if(dataset < 0)
         return NULL;
 

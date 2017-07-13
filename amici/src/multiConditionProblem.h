@@ -51,6 +51,8 @@ public:
 
     JobIdentifier path;
 
+    virtual double *getInitialParameters(int multiStartIndex) const;
+
 protected:
 
     void init();

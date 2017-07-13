@@ -53,7 +53,7 @@ void getRandomStartingpoint(const double *min, const double *max, int numParamet
 void optimizationProblemGradientCheck(OptimizationProblem *problem, const int parameterIndices[], int numParameterIndices, double epsilon)
 {
     double fc = 0; // f(theta)
-    double *theta = problem->initialParameters;
+    double *theta = problem->getInitialParameters();
 
     double *gradient = new double[problem->numOptimizationParameters];
     problem->evaluateObjectiveFunction(theta, &fc, gradient);
@@ -113,23 +113,39 @@ void OptimizationProblem::logOptimizerFinished(double optimalCost, const double 
 
 }
 
-void OptimizationProblem::setRandomInitialParameters()
+double *OptimizationProblem::getRandomInitialParameters() const
 {
-    initialParameters = new double [numOptimizationParameters];
+    double *initialParameters = new double [numOptimizationParameters];
     getRandomStartingpoint(parametersMin,
                            parametersMax,
                            numOptimizationParameters,
                            initialParameters);
 
+    return initialParameters;
 }
+
+double *OptimizationProblem::getInitialParameters(int multiStartIndex) const
+{
+    return getRandomInitialParameters();
+}
+
+double *OptimizationProblem::getInitialParameters() const
+{
+    return initialParameters;
+}
+
+void OptimizationProblem::setInitialParameters(double *initialParameters)
+{
+    this->initialParameters = initialParameters;
+}
+
 
 OptimizationProblem::OptimizationProblem()
 {
     numOptimizationParameters = 0;
-    initialParameters = NULL;
     parametersMin = NULL;
     parametersMax = NULL;
-
+    initialParameters = NULL;
     optimizationOptions = NULL;
 }
 

@@ -46,13 +46,17 @@ public:
 
     virtual ~OptimizationProblem(){}
 
-    void setRandomInitialParameters();
+    /** random starting points are drawn from [parametersMin, parametersMax] */
+    double *getRandomInitialParameters() const;
+
+    virtual double *getInitialParameters(int multiStartIndex) const;
+
+    virtual double *getInitialParameters() const;
+
+    void setInitialParameters(double *initialParameters);
 
     /** number of optimization parameters */
     int numOptimizationParameters;
-
-    /** starting point for optimization. If 0, random starting points are drawn from [parametersMin, parametersMax] */
-    double *initialParameters;
 
     /** lowest allowed parameter values */
     double *parametersMin;
@@ -63,6 +67,9 @@ public:
     OptimizationOptions *optimizationOptions = NULL;
 
     OptimizationResultWriter *resultWriter = NULL;
+
+protected:
+    double *initialParameters;
 };
 
 int getLocalOptimum(OptimizationProblem *problem);

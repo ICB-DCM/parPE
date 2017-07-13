@@ -83,10 +83,6 @@ OptimizationProblemGeneratorForMultiStart::OptimizationProblemGeneratorForMultiS
 OptimizationProblem *OptimizationProblemGeneratorForMultiStart::getLocalProblem(int multiStartIndex) {
     OptimizationProblem *problem = getLocalProblemImpl(multiStartIndex);
 
-    if(!problem->initialParameters) {
-        problem->setRandomInitialParameters();
-    }
-
     return problem;
 }
 

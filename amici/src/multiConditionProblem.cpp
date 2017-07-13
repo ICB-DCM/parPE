@@ -81,12 +81,12 @@ MultiConditionProblem::MultiConditionProblem(MultiConditionDataProvider *dataPro
 void MultiConditionProblem::init()
 {  
     numOptimizationParameters = dataProvider->getNumOptimizationParameters();
+
     parametersMin = new double[numOptimizationParameters];
     dataProvider->getOptimizationParametersLowerBounds(parametersMin);
+
     parametersMax = new double[numOptimizationParameters];
     dataProvider->getOptimizationParametersUpperBounds(parametersMax);
-    initialParameters = new double[numOptimizationParameters];
-    getRandomStartingpoint(parametersMin, parametersMax, numOptimizationParameters, initialParameters);
 
     lastOptimizationParameters = new double[numOptimizationParameters];
     lastObjectiveFunctionGradient = new double[numOptimizationParameters];
@@ -234,6 +234,11 @@ MultiConditionProblem::~MultiConditionProblem()
     delete[] parametersMin;
     delete[] lastObjectiveFunctionGradient;
     delete[] lastOptimizationParameters;
+}
+
+double *MultiConditionProblem::getInitialParameters(int multiStartIndex) const
+{
+    return OptimizationOptions::getStartingPoint(dataProvider->fileId, multiStartIndex);
 }
 
 void MultiConditionProblem::updateUserData(const double *simulationParameters, const double *objectiveFunctionGradient)
@@ -465,5 +470,6 @@ OptimizationProblem *MultiConditionProblemGeneratorForMultiStart::getLocalProble
     problem->resultWriter = new MultiConditionProblemResultWriter(resultWriter->file_id, id);
     problem->path.idxLocalOptimization = multiStartIndex;
 
+    problem->setInitialParameters(problem->getInitialParameters(multiStartIndex));
     return problem;
 }

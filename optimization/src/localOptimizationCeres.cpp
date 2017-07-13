@@ -37,9 +37,10 @@ private:
 int getLocalOptimumCeres(OptimizationProblem *problem)
 {
     double *parameters = (double *) malloc(sizeof(*parameters) * problem->numOptimizationParameters);
-    if(problem->initialParameters) {
+    double *startingPoint = problem->getInitialParameters();
+    if(startingPoint) {
         // copy, because will be update each iteration
-        memcpy(parameters, problem->initialParameters, sizeof(*parameters) * problem->numOptimizationParameters);
+        memcpy(parameters, startingPoint, sizeof(*parameters) * problem->numOptimizationParameters);
     } else {
         getRandomStartingpoint(problem->parametersMin, problem->parametersMax, problem->numOptimizationParameters, parameters);
     }

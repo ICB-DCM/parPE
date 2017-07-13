@@ -19,7 +19,6 @@ QuadraticTestProblem::QuadraticTestProblem()
 
     optimizationOptions->optimizer = OPTIMIZER_IPOPT;
 
-    initialParameters[0] = -100;
     parametersMin[0] = -1e5;
     parametersMax[0] = 1e5;
 }
@@ -67,11 +66,6 @@ QuadraticTestProblem::~QuadraticTestProblem()
 OptimizationProblem *QuadraticOptimizationProblemGeneratorForMultiStart::getLocalProblemImpl(int multiStartIndex)
 {
     OptimizationProblem *problem = new QuadraticTestProblem();
-    // delete starting point, so random parameters will be chosen
-    delete[] problem->initialParameters;
-    problem->initialParameters = NULL;
 
-    problem->optimizationOptions->optimizer = OPTIMIZER_CERES;
-    problem->optimizationOptions->optimizer = OPTIMIZER_IPOPT;
     return problem;
 }
