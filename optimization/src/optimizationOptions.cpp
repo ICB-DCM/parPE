@@ -84,7 +84,7 @@ double *OptimizationOptions::getStartingPoint(hid_t fileId, int index)
 {
     double *buffer = NULL;
 
-    const char *path = "/optimizationOptions/randomstarts";
+    const char *path = "/optimizationOptions/randomStarts";
 
     hdf5LockMutex();
     H5_SAVE_ERROR_HANDLER;
@@ -116,6 +116,8 @@ double *OptimizationOptions::getStartingPoint(hid_t fileId, int index)
 
 freturn:
     H5_RESTORE_ERROR_HANDLER;
+
+    logmessage(LOGLVL_DEBUG, "No initial parameters found in %s", path);
 
     hdf5UnlockMutex();
 
