@@ -84,7 +84,7 @@ double *OptimizationOptions::getStartingPoint(hid_t fileId, int index)
 {
     double *buffer = NULL;
 
-    const char *path = "/randomstarts";
+    const char *path = "/optimizationOptions/randomstarts";
 
     hdf5LockMutex();
     H5_SAVE_ERROR_HANDLER;
