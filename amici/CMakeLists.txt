@@ -41,8 +41,11 @@ include_directories(
     ${Boost_INCLUDE_DIR}
 )
 
-add_subdirectory(examples)
 add_subdirectory(src)
+
+if(${BUILD_EXAMPLES})
+    add_subdirectory(examples)
+endif(${BUILD_EXAMPLES})
 
 if(${BUILD_TESTS})
     add_subdirectory(tests)

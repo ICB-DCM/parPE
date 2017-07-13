@@ -1,8 +1,11 @@
 include_directories(src/)
 
+add_subdirectory(src/)
+
 if(${BUILD_TESTS})
     add_subdirectory(tests)
 endif(${BUILD_TESTS})
 
-add_subdirectory(src/)
-add_subdirectory(examples/loadbalancer)
+if(${BUILD_EXAMPLES})
+    add_subdirectory(examples/loadbalancer)
+endif(${BUILD_EXAMPLES})
