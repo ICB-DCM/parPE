@@ -15,7 +15,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wno-unused-function -f
 # Build options
 set(BUILD_TESTS TRUE CACHE BOOL "Build tests?")
 set(BUILD_EXAMPLES TRUE CACHE BOOL "Build examples?")
-set(BUILD_DOCS TRUE CACHE BOOL "Generate documentation?")
+set(BUILD_DOCS FALSE CACHE BOOL "Generate documentation?")
 set(BLAS "CBLAS" CACHE STRING "BLAS library to use")
 set_property(CACHE BLAS PROPERTY STRINGS "CBLAS" "MKL")
 set(USE_MPI TRUE CACHE BOOL "Use MPI?")
