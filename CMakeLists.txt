@@ -15,6 +15,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wno-unused-function -f
 # Build options
 set(BUILD_TESTS TRUE CACHE BOOL "Build tests?")
 set(BUILD_EXAMPLES TRUE CACHE BOOL "Build examples?")
+set(BUILD_DOCS TRUE CACHE BOOL "Generate documentation?")
 set(BLAS "CBLAS" CACHE STRING "BLAS library to use")
 set_property(CACHE BLAS PROPERTY STRINGS "CBLAS" "MKL")
 set(USE_MPI TRUE CACHE BOOL "Use MPI?")
@@ -97,6 +98,23 @@ if(${CMAKE_COMPILER_IS_GNUCXX})
     endif()
 else()
     message("Not creating coverage report, because compiler is not GCC but ${CMAKE_CXX_COMPILER_ID}.")
+endif()
+
+if(BUILD_DOCS)
+    find_package(Doxygen)
+    if(NOT DOXYGEN_FOUND)
+         message(FATAL_ERROR "Doxygen is needed to build the documentation.")
+    endif()
+
+    set(doxyfile_in ${CMAKE_CURRENT_LIST_DIR}/doc/Doxyfile.in)
+    set(doxyfile ${CMAKE_CURRENT_LIST_DIR}/doc/Doxyfile)
+    configure_file(${doxyfile_in} ${doxyfile} @ONLY)
+
+    add_custom_target(doc
+                      COMMAND ${DOXYGEN_EXECUTABLE} ${doxyfile}
+                      WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
+                      COMMENT "Generating API documentation with Doxygen"
+                      VERBATIM)
 endif()
 
 add_subdirectory(common)
