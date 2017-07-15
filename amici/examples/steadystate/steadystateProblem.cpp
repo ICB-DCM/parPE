@@ -2,7 +2,7 @@
 #include "wrapfunctions.h"
 #include <cstring>
 #include "hdf5Misc.h"
-#include "include/ami_hdf5.h"
+#include <amici_hdf5.h>
 #include <cassert>
 #include "optimizationOptions.h"
 

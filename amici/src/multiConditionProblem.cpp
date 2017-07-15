@@ -3,7 +3,7 @@
 #include "multiConditionProblemResultWriter.h"
 #include "optimizationOptions.h"
 
-#include <math.h>
+#include <cmath>
 #include <string.h>
 #include <assert.h>
 
@@ -211,9 +211,9 @@ ReturnData *MultiConditionProblem::runAndLogSimulation(UserData *udata, MultiCon
     // check for NaNs
     if(udata->sensi >= AMICI_SENSI_ORDER_FIRST)
         for(int i = 0; i < udata->np; ++i)
-            if(isnan(rdata->sllh[i]))
+            if(std::isnan(rdata->sllh[i]))
                 logmessage(LOGLVL_DEBUG, "Result for %s: contains NaN at %d", pathStrBuf, i);
-            else if(isinf(rdata->sllh[i]))
+            else if(std::isinf(rdata->sllh[i]))
                 logmessage(LOGLVL_DEBUG, "Result for %s: contains Inf at %d", pathStrBuf, i);
 
     if(resultWriter)

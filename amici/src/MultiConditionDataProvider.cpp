@@ -1,8 +1,9 @@
 #include "MultiConditionDataProvider.h"
 #include "logging.h"
 #include "misc.h"
-#include <assert.h>
-#include "ami_hdf5.h"
+#include <cassert>
+#include <amici_hdf5.h>"
+#include <amici_misc.h>
 
 UserData getUserData();
 // alias because getUserData is shadowed in MultiConditionDataProvider

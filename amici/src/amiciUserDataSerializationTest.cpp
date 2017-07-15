@@ -118,7 +118,7 @@ TEST(serialization, test2) {
 TEST(serialization, test3) {
 
     UserData u(1,2,3,4,5,6,7,0,0,0,0,0,0,0,0,0,AMICI_SCALING_LN, AMICI_O2MODE_FULL);
-    printUserData(&u);printf("\n");
+    u.print();printf("\n");
 
     int length;
     char *buf = serializeAmiciUserData(&u, &length);
@@ -126,7 +126,7 @@ TEST(serialization, test3) {
     UserData v = deserializeAmiciUserData(buf, length);
 
     free(buf);
-    printUserData(&v);
+    v.print();
     checkUserDataEqual(u, v);
 }
 

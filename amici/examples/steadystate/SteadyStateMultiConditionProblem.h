@@ -4,7 +4,7 @@
 #include "multiConditionProblem.h"
 #include "MultiConditionDataProvider.h"
 #include "steadystateProblem.h"
-#include "ami_hdf5.h"
+#include <amici_hdf5.h>
 #include "wrapfunctions.h"
 #include "assert.h"
 
