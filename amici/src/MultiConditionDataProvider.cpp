@@ -2,7 +2,7 @@
 #include "logging.h"
 #include "misc.h"
 #include <cassert>
-#include <amici_hdf5.h>"
+#include <amici_hdf5.h>
 #include <amici_misc.h>
 
 UserData getUserData();
