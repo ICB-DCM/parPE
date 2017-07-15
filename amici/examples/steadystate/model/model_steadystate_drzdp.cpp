@@ -2,14 +2,19 @@
 #include <include/symbolic_functions.h>
 #include <string.h>
 #include <include/udata.h>
+#include <include/tdata.h>
 #include "model_steadystate_w.h"
 
-int dJydp_model_steadystate(realtype t, int it, realtype *dJydp, realtype *y, N_Vector x, realtype *dydp, realtype *my, realtype *sigma_y, realtype *dsigma_ydp, void *user_data) {
+int drzdp_model_steadystate(realtype t, int ie, N_Vector x, void *user_data, TempData *tdata) {
 int status = 0;
 UserData *udata = (UserData*) user_data;
 realtype *x_tmp = N_VGetArrayPointer(x);
-memset(dJydp,0,sizeof(realtype)*udata->nytrue*udata->nplist*udata->nJ);
+int ip;
 status = w_model_steadystate(t,x,NULL,user_data);
+for(ip = 0; ip<udata->nplist; ip++) {
+switch (udata->plist[ip]) {
+}
+}
 return(status);
 
 }
