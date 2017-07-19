@@ -53,7 +53,7 @@ int SteadystateProblem::evaluateObjectiveFunction(const double *parameters, doub
 }
 
 int SteadystateProblem::intermediateFunction(int alg_mod, int iter_count, double obj_value, double inf_pr, double inf_du, double mu, double d_norm, double regularization_size, double alpha_du, double alpha_pr, int ls_trials)
-{
+{    
     return 0;
 }
 

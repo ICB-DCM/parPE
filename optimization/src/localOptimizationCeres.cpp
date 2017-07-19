@@ -29,6 +29,28 @@ private:
     OptimizationProblem *problem;
 };
 
+
+class MyIterationCallback : public ceres::IterationCallback {
+ public:
+    MyIterationCallback(OptimizationProblem *problem) : problem(problem) {}
+
+    virtual ceres::CallbackReturnType operator()(const ceres::IterationSummary& summary)
+    {
+        switch(problem->intermediateFunction(0, summary.iteration, summary.cost, 0, 0, 0, 0, 0, 0, 0, 0)) {
+        case 0:
+            return ceres::SOLVER_CONTINUE;
+        default:
+            return ceres::SOLVER_ABORT;
+        }
+
+    }
+
+private:
+    OptimizationProblem *problem = NULL;
+};
+
+
+
 /**
  * @brief getLocalOptimumCeres
  * @param problem
@@ -50,6 +72,10 @@ int getLocalOptimumCeres(OptimizationProblem *problem)
     options.max_num_iterations = problem->optimizationOptions->maxOptimizerIterations;
 //    options.gradient_tolerance = 1e-18;
     options.function_tolerance = problem->optimizationOptions->functionTolerance;
+
+
+    MyIterationCallback callback(problem);
+    options.callbacks.push_back(&callback);
 
     // Use quadratic approximation to not require gradient for line search
     // NOTE: WOLFE line_search_type will always require gradient

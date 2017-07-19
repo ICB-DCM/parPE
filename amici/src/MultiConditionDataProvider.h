@@ -23,6 +23,21 @@ void sprintJobIdentifier(char *buffer, JobIdentifier id);
 
 /**
  * @brief The MultiConditionDataProvider class reads simulation data for MultiConditionOptimizationProblem from a HDF5 file.
+ *
+ * This class assumes a certain layout of the underlying HDF5 file. Der dataset names can be modified in hdf5*Path members.
+ * Required dimensions:
+ * * hdf5MeasurementPath, hdf5MeasurementSigmaPath: numObservables x numConditions
+ * * hdf5ConditionPath: numFixedParameters x numConditions
+ * * hdf5AmiciOptionPath:
+ * * hdf5ParameterPath:
+ *
+ * NOTE: The following dimensions are determined by the used AMICI model:
+ * * numObservables := UserData::ny
+ * * numFixedParameters := UserData::mk
+ *
+ * The vector of optimization variables is assumed to be [x_0, ..., x_(numCommonParameter-1), conditionSpecificParameters].
+ * conditionSpecificParameters := [cond0par0, cond0par1, ..., cond0_par_(numConditionSpecificParametersPerSimulation-1),
+ * cond_(numConditions-1)_(numConditionSpecificParametersPerSimulation-1) ]
  */
 
 class MultiConditionDataProvider
@@ -32,7 +47,17 @@ public:
 
     MultiConditionDataProvider(const char *hdf5Filename, std::string rootPath);
 
+    /**
+     * @brief Provides the number of conditions for which data is available and simulations need to be run.
+     * This is determined from the dimensions of the hdf5MeasurementPath dataset.
+     * @return
+     */
     virtual int getNumberOfConditions() const;
+
+    /**
+     * @brief Number of model- oder optimization-parameters that are different between the different conditions.
+     * @return
+     */
 
     virtual int getNumConditionSpecificParametersPerSimulation() const;
 

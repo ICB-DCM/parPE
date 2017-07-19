@@ -93,8 +93,8 @@ void MultiConditionProblem::init()
 }
 
 int MultiConditionProblem::evaluateObjectiveFunction(const double *optimiziationVariables,
-                                                double *objectiveFunctionValue,
-                                                double *objectiveFunctionGradient)
+                                                     double *objectiveFunctionValue,
+                                                     double *objectiveFunctionGradient)
 {
     // run on all data
     int numDataIndices = dataProvider->getNumberOfConditions();
@@ -209,17 +209,18 @@ ReturnData *MultiConditionProblem::runAndLogSimulation(UserData *udata, MultiCon
 
 
     // check for NaNs
-    if(udata->sensi >= AMICI_SENSI_ORDER_FIRST)
+    if(udata->sensi >= AMICI_SENSI_ORDER_FIRST) {
         for(int i = 0; i < udata->np; ++i)
             if(std::isnan(rdata->sllh[i]))
                 logmessage(LOGLVL_DEBUG, "Result for %s: contains NaN at %d", pathStrBuf, i);
             else if(std::isinf(rdata->sllh[i]))
                 logmessage(LOGLVL_DEBUG, "Result for %s: contains Inf at %d", pathStrBuf, i);
+    }
 
     if(resultWriter)
         resultWriter->logSimulation(path, udata->p, rdata->llh[0], rdata->sllh,
-            timeSeconds, udata->np, udata->nx, rdata->x, rdata->sx, rdata->y,
-            jobId, iterationsUntilSteadystate, *status);
+                timeSeconds, udata->np, udata->nx, rdata->x, rdata->sx, rdata->y,
+                jobId, iterationsUntilSteadystate, *status);
 
     return rdata;
 }
@@ -307,7 +308,7 @@ int MultiConditionProblem::aggregateLikelihood(JobData *data, double *logLikelih
 
         if(objectiveFunctionGradient)
             addSimulationGradientToObjectiveFunctionGradient(dataIndices[simulationIdx],
-                        sllhTmp, objectiveFunctionGradient);
+                                                             sllhTmp, objectiveFunctionGradient);
     }
 
     return errors;
@@ -373,7 +374,7 @@ void MultiConditionProblem::addSimulationGradientToObjectiveFunctionGradient(int
 
     int numConditionSpecificParams = dataProvider->getNumConditionSpecificParametersPerSimulation();
 
-    // cellline specific parameters: map simulation to optimization parameters
+    // condition specific parameters: map simulation to optimization parameters
     int firstIndexOfCurrentConditionsSpecificOptimizationParameters = dataProvider->getIndexOfFirstConditionSpecificOptimizationParameter(conditionIdx);
     for(int paramIdx = 0; paramIdx < numConditionSpecificParams; ++paramIdx) {
         int idxGrad = firstIndexOfCurrentConditionsSpecificOptimizationParameters + paramIdx;
@@ -417,6 +418,7 @@ void MultiConditionProblem::updateUserDataConditionSpecificParameters(int condit
      * Simulation parameters are [commonParameters, currentCelllineSpecificParameter]
      */
 
+    // TODO: need to recopy common variables? amici unscale?
     const int numCommonParams = dataProvider->getNumCommonParameters();
     const int numSpecificParams = dataProvider->getNumConditionSpecificParametersPerSimulation();
 

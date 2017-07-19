@@ -11,8 +11,9 @@
 #include <iostream>
 #include <unistd.h>
 
-/*
- * This example demonstrates the use of the loadbalancer / queue for parallel ODE simulation.
+/** @brief This example demonstrates the use of the loadbalancer / queue for parallel ODE simulation.
+ * The example is based on the `steadystate` example included in AMICI.
+ *
  *
  * To run, e.g.: mpiexec -np 4 ../parPE-build/amici/examples/steadystate/example_steadystate_multi -o steadystate_`date +%F` amici/examples/steadystate/data.h5
  */
@@ -23,6 +24,8 @@ public:
 
     virtual void initProblem(const char *inFileArgument, const char *outFileArgument) {
         dataProvider = new SteadyStateMultiConditionDataProvider(inFileArgument);
+        dataProvider->hdf5MeasurementPath = "/data/ytrue";
+
         problem = new SteadyStateMultiConditionProblem(dataProvider);
 
         JobIdentifier id = {0};
@@ -65,6 +68,7 @@ public:
         // Multistart optimization
         MultiConditionProblemGeneratorForMultiStart generator;
         generator.options = OptimizationOptions::fromHDF5(dataProvider->fileId); // if numStarts > 1: need to use multiple MPI workers, otherwise simulation crashes due to CVODES threading issues
+        generator.options->numStarts = 1;
         generator.resultWriter = reinterpret_cast<MultiConditionProblemResultWriter *>(problem->resultWriter);
         generator.dp = dataProvider;
 
