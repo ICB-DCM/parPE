@@ -43,6 +43,22 @@ include_directories(
 
 add_subdirectory(src)
 
+set(SRC_LIST
+    ${AMICI_DIR}/src/symbolic_functions.cpp
+    ${AMICI_DIR}/src/amici_interface_cpp.cpp
+    ${AMICI_DIR}/src/amici_model_functions.cpp
+    ${AMICI_DIR}/src/amici.cpp
+    ${AMICI_DIR}/src/amici_misc.cpp
+    ${AMICI_DIR}/src/udata.cpp
+    ${AMICI_DIR}/src/rdata.cpp
+    ${AMICI_DIR}/src/tdata.cpp
+    ${AMICI_DIR}/src/edata.cpp
+    ${AMICI_DIR}/src/amici_hdf5.cpp
+    ${AMICI_DIR}/src/spline.cpp
+)
+
+add_library(amici ${SRC_LIST})
+
 if(${BUILD_EXAMPLES})
     add_subdirectory(examples)
 endif(${BUILD_EXAMPLES})

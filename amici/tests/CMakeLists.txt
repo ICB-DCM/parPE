@@ -8,20 +8,10 @@ add_test (NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME} -c)
 
 set(SRC_LIST_CPP
     main.cpp
-    # TODO: create libamici
-    ${AMICI_DIR}/src/symbolic_functions.cpp
-#    ${AMICI_DIR}/src/amici_interface_cpp.cpp
-#    ${AMICI_DIR}/src/amici.cpp
-    ${AMICI_DIR}/src/amici_misc.cpp
-    ${AMICI_DIR}/src/udata.cpp
-    ${AMICI_DIR}/src/rdata.cpp
-#    ${AMICI_DIR}/src/tdata.cpp
-#    ${AMICI_DIR}/src/edata.cpp
-#    ${AMICI_DIR}/src/amici_hdf5.cpp
-    ${AMICI_DIR}/src/spline.cpp
     ../src/amiciUserDataSerializationTest.cpp
     ../src/simulationWorkerAmiciTest.cpp
     ../src/multiConditionProblemResultWriterTest.cpp
+    ../src/multiConditionDataProviderTest.cpp
     ../../common/src/testingMisc.c
 )
 set(SHARED_OBJECT_EXTENSION .so)
@@ -32,6 +22,7 @@ target_link_libraries(${PROJECT_NAME}
     parpeoptimization
     parpecommon
     parpeamici
+    amici
     ${IPOPT_LIBRARIES}
     ${CERES_LIBRARIES}
     ${HDF5_HL_LIBRARIES}
