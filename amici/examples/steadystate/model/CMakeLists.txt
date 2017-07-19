@@ -27,6 +27,7 @@ else()
 endif()
 
 include_directories("${AMICI_DIR}")
+include_directories("${MODEL_DIR}")
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}")
 include_directories("${HDF5_INCLUDE_DIRS}")
 include_directories("${AMICI_DIR}/sundials/include")

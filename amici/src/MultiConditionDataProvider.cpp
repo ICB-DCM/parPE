@@ -4,6 +4,8 @@
 #include <cassert>
 #include <amici_hdf5.h>
 #include <amici_misc.h>
+#include <edata.h>
+
 
 UserData getUserData();
 // alias because getUserData is shadowed in MultiConditionDataProvider
@@ -75,6 +77,8 @@ int MultiConditionDataProvider::getNumberOfConditions() const
     H5Sget_simple_extent_dims(dspace, dims, NULL);
 
     hdf5UnlockMutex();
+
+    assert(dims[1] >= 0);
 
     return dims[1];
 }
@@ -249,13 +253,20 @@ int MultiConditionDataProvider::getIndexOfFirstConditionSpecificOptimizationPara
 
 MultiConditionDataProvider::~MultiConditionDataProvider()
 {
-    H5_SAVE_ERROR_HANDLER;
-    herr_t status = H5Fclose(fileId);
+    if(fileId > 0) {
+        H5_SAVE_ERROR_HANDLER;
+        herr_t status = H5Fclose(fileId);
 
-    if(status< 0) {
-        error("closeDataProvider failed to close HDF5 file.");
-        printBacktrace(20);
-        H5Ewalk2(H5E_DEFAULT, H5E_WALK_DOWNWARD, hdf5ErrorStackWalker_cb, NULL);
+        if(status< 0) {
+            error("closeDataProvider failed to close HDF5 file.");
+            printBacktrace(20);
+            H5Ewalk2(H5E_DEFAULT, H5E_WALK_DOWNWARD, hdf5ErrorStackWalker_cb, NULL);
+        }
+        H5_RESTORE_ERROR_HANDLER;
     }
-    H5_RESTORE_ERROR_HANDLER;
+}
+
+MultiConditionDataProvider::MultiConditionDataProvider()
+{
+
 }

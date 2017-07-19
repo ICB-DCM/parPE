@@ -14,6 +14,7 @@
 /** @brief This example demonstrates the use of the loadbalancer / queue for parallel ODE simulation.
  * The example is based on the `steadystate` example included in AMICI.
  *
+ * This model has 5 parameters, 3 states, 4 condition specific fixed parameters.
  *
  * To run, e.g.: mpiexec -np 4 ../parPE-build/amici/examples/steadystate/example_steadystate_multi -o steadystate_`date +%F` amici/examples/steadystate/data.h5
  */

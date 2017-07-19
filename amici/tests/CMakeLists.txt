@@ -12,6 +12,7 @@ set(SRC_LIST_CPP
     ../src/simulationWorkerAmiciTest.cpp
     ../src/multiConditionProblemResultWriterTest.cpp
     ../src/multiConditionDataProviderTest.cpp
+    ../src/multiConditionProblemTest.cpp
     ../../common/src/testingMisc.c
 )
 set(SHARED_OBJECT_EXTENSION .so)
@@ -19,9 +20,10 @@ set(SHARED_OBJECT_EXTENSION .so)
 add_executable(${PROJECT_NAME} ${SRC_LIST_CPP})
 
 target_link_libraries(${PROJECT_NAME}
-    parpeoptimization
-    parpecommon
     parpeamici
+    parpeoptimization
+    parpeloadbalancer
+    parpecommon
     amici
     ${IPOPT_LIBRARIES}
     ${CERES_LIBRARIES}

@@ -308,7 +308,8 @@ int MultiConditionProblem::aggregateLikelihood(JobData *data, double *logLikelih
 
         if(objectiveFunctionGradient)
             addSimulationGradientToObjectiveFunctionGradient(dataIndices[simulationIdx],
-                                                             sllhTmp, objectiveFunctionGradient);
+                                                             sllhTmp, objectiveFunctionGradient,
+                                                             dataProvider->getNumCommonParameters());
     }
 
     return errors;
@@ -364,18 +365,21 @@ void MultiConditionProblem::printObjectiveFunctionFailureMessage()
 
 }
 
-void MultiConditionProblem::addSimulationGradientToObjectiveFunctionGradient(int conditionIdx, const double *simulationGradient, double *objectiveFunctionGradient)
+void MultiConditionProblem::addSimulationGradientToObjectiveFunctionGradient(int conditionIdx, const double *simulationGradient, double *objectiveFunctionGradient, int numCommon)
 {
-    int numCommon = dataProvider->getNumCommonParameters();
-
     // global parameters: simply add
     for(int paramIdx = 0; paramIdx < numCommon; ++paramIdx)
         objectiveFunctionGradient[paramIdx] -= simulationGradient[paramIdx];
 
-    int numConditionSpecificParams = dataProvider->getNumConditionSpecificParametersPerSimulation();
+    addSimulationGradientToObjectiveFunctionGradientConditionSpecificParameters(simulationGradient, objectiveFunctionGradient, numCommon,
+                                                                                dataProvider->getNumConditionSpecificParametersPerSimulation(),
+                                                                                dataProvider->getIndexOfFirstConditionSpecificOptimizationParameter(conditionIdx));
+}
 
+void MultiConditionProblem::addSimulationGradientToObjectiveFunctionGradientConditionSpecificParameters(const double *simulationGradient, double *objectiveFunctionGradient, int numCommon,
+                                                                                                        int numConditionSpecificParams, int firstIndexOfCurrentConditionsSpecificOptimizationParameters)
+{
     // condition specific parameters: map simulation to optimization parameters
-    int firstIndexOfCurrentConditionsSpecificOptimizationParameters = dataProvider->getIndexOfFirstConditionSpecificOptimizationParameter(conditionIdx);
     for(int paramIdx = 0; paramIdx < numConditionSpecificParams; ++paramIdx) {
         int idxGrad = firstIndexOfCurrentConditionsSpecificOptimizationParameters + paramIdx;
         int idxSim  = numCommon + paramIdx;

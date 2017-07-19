@@ -65,7 +65,9 @@ protected:
 
     void printObjectiveFunctionFailureMessage();
 
-    void addSimulationGradientToObjectiveFunctionGradient(int conditionIdx, const double *simulationGradient, double *objectiveFunctionGradient);
+    void addSimulationGradientToObjectiveFunctionGradient(int conditionIdx, const double *simulationGradient, double *objectiveFunctionGradient, int numCommon);
+
+    void addSimulationGradientToObjectiveFunctionGradientConditionSpecificParameters(const double *simulationGradient, double *objectiveFunctionGradient, int numCommon, int numConditionSpecificParams, int firstIndexOfCurrentConditionsSpecificOptimizationParameters);
 
     int unpackSimulationResult(JobData *d, double *sllhBuffer, double *llh);
 

@@ -2,9 +2,10 @@
 #define MULTICONDITIONDATAPROVIDER_H
 
 #include <hdf5Misc.h>
-#include <udata.h>
-#include <edata.h>
 #include <string>
+#include <udata.h>
+
+class ExpData;
 
 /** Struct to tell simulation workers which dataset they are operating on
   */
@@ -103,11 +104,11 @@ public:
     std::string hdf5AmiciOptionPath;
     std::string hdf5ParameterPath;
 
-    hid_t fileId;
+    hid_t fileId = 0;
 
 protected:
+    MultiConditionDataProvider();
     UserData modelDims;
-
 };
 
 #endif // MULTICONDITIONDATAPROVIDER_H
