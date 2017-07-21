@@ -36,7 +36,7 @@ TEST_GROUP(multiConditionProblem)
 };
 
 /**
- * @brief
+* @brief Check gradient aggregation
  */
 TEST(multiConditionProblem, testAggregateGradientAllCommon) {
     MultiConditionProblemTest p;
@@ -63,15 +63,14 @@ TEST(multiConditionProblem, testAggregateGradientAllCommon) {
 
 
 /**
- * @brief
+ * @brief Check gradient aggregation
  */
 TEST(multiConditionProblem, testAggregateGradientSpecific) {
     MultiConditionProblemTest p;
 
-    const double simulationGradient[] = {1.0, 2.0, 3.0, 4.0};
-    const double objectiveFunctionGradientExpected [] = {-1, -1, -1, -1, -1, -1};
-    double objectiveFunctionGradient [] = {-1, -1, -1, -1, 2.0, 3.0};
-
+    double objectiveFunctionGradient []               = {-1.0, -1.0, -1.0, -1.0,  2.0,  3.0};
+    const double simulationGradient[]                 = { 1.0,  2.0,              3.0,  4.0};
+    const double objectiveFunctionGradientExpected [] = {-1.0, -1.0, -1.0, -1.0, -1.0, -1.0};
     int numCommon = 2;
     int numConditionSpecificParams = 2;
     int firstIndexOfCurrentConditionsSpecificOptimizationParameters = 4;

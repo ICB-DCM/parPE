@@ -11,22 +11,21 @@ set(CMAKE_DEBUG_POSTFIX "-dbg")
 set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -Wall -Wno-unused-function -fopenmp -D_GNU_SOURCE") # -D_GNU_SOURCE for pthread recursive mutex issues
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wno-unused-function -fopenmp -D_GNU_SOURCE") # -D_GNU_SOURCE for pthread recursive mutex issues
+set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/CMakeModules)
+
 
 # Build options
-set(BUILD_TESTS TRUE CACHE BOOL "Build tests?")
+set(BUILD_TESTS TRUE CACHE BOOL "Build tests? (requires cppUTest)")
 set(BUILD_EXAMPLES TRUE CACHE BOOL "Build examples?")
 set(BUILD_DOCS FALSE CACHE BOOL "Generate documentation?")
 set(BLAS "CBLAS" CACHE STRING "BLAS library to use")
 set_property(CACHE BLAS PROPERTY STRINGS "CBLAS" "MKL")
 set(USE_MPI TRUE CACHE BOOL "Use MPI?")
-set(IPOPT_DIR "/home/dweindl/src/_libs/Ipopt-3.12.6/" CACHE PATH "IpOpt root directory")
+set(IPOPT_DIR "" CACHE PATH "IpOpt root directory")
 set(IPOPT_INCLUDE_DIRS "${IPOPT_DIR}/include/coin/"  CACHE PATH "IpOpt include directory")
 set(IPOPT_LIBRARIES "${IPOPT_DIR}/lib/libipopt.so"  CACHE FILEPATH "IpOpt library")
-set(CERES_INCLUDE_DIRS "/home/dweindl/src/_libs/ceres-solver/build/install/include/" "/usr/include/eigen3" CACHE PATH "CERES include directories")
-set(CERES_LIBRARIES "/home/dweindl/src/_libs/ceres-solver/build/install/lib/libceres.so" CACHE FILEPATH "CERES libraries")
-set(GCOV_REPORT FALSE CACHE BOOL "Create GCOV report?")
-set(GCOVR_REPORT FALSE CACHE BOOL "Create GCOVR report?")
-
+set(CERES_INCLUDE_DIRS "" "/usr/include/eigen3" CACHE PATH "CERES include directories")
+set(CERES_LIBRARIES "" CACHE FILEPATH "CERES libraries")
 
 # Which BLAS to use?
 if(${BLAS} STREQUAL "MKL")
@@ -40,15 +39,14 @@ else()
 endif()
 
 
+# Enable MPI? Currently mandatory.
 if(${USE_MPI})
     find_package(MPI REQUIRED)
     add_definitions(-DUSE_MPI)
-
-    #FIXME
-    #execute_process(COMMAND "${MPI_C_COMPILER} --showme:incdirs" OUTPUT_VARIABLE MPI_INCLUDE_DIR)
     set(MPI_INCLUDE_DIR "/usr/lib/openmpi/include/" CACHE PATH "MPI include directory")
 endif(${USE_MPI})
 
+# PThreads
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
@@ -59,8 +57,10 @@ message(STATUS "Building version ${GIT_VERSION}")
 add_definitions(-DGIT_VERSION="${GIT_VERSION}")
 
 
+# HDF5
 set(HDF5_PREFER_PARALLEL TRUE)
 find_package(HDF5 COMPONENTS C HL REQUIRED)
+
 
 include_directories(
     common/src/
@@ -71,35 +71,47 @@ include_directories(
     ${BLAS_INCLUDE_DIRS}
 )
 
+
+# Build tests?
 if(${BUILD_TESTS})
     enable_testing ()
 
-    set(CPPUTEST_DIR "/home/dweindl/src/cpputest/" CACHE PATH "")
-
+    set(CPPUTEST_DIR "" CACHE PATH "cppUTest base directory")
     set(CPPUTEST_INCLUDE_DIR "${CPPUTEST_DIR}/include")
     set(CPPUTEST_LIBRARY "${CPPUTEST_DIR}/cpputest_build/lib/libCppUTest.a" "${CPPUTEST_DIR}/cpputest_build/lib/libCppUTestExt.a")
     include_directories(${CPPUTEST_INCLUDE_DIR})
+
+    # Create test coverage reports?
+    set(GCOV_REPORT FALSE CACHE BOOL "Create GCOV report?")
+    set(GCOVR_REPORT FALSE CACHE BOOL "Create GCOVR report?")
+
+    if(${CMAKE_COMPILER_IS_GNUCXX})
+        set(COVERAGE_EXCLUDES 'boost/*' '/usr/include/*' 'cxx/*', 'ThirdParty/*')
+        if(${GCOV_REPORT})
+            set(GCOV_LIBRARY gcov)
+            include(CodeCoverage)
+            APPEND_COVERAGE_COMPILER_FLAGS()
+            setup_target_for_coverage(
+                NAME ${PROJECT_NAME}_coverage
+                EXECUTABLE ctest
+                DEPENDENCIES parpeoptimization)
+        endif()
+        if(${GCOVR_REPORT})
+            set(GCOV_LIBRARY gcov)
+            include(CodeCoverage)
+            APPEND_COVERAGE_COMPILER_FLAGS()
+            setup_target_for_coverage_cobertura(
+                NAME ${PROJECT_NAME}_coverage_cobertura
+                EXECUTABLE ctest
+                DEPENDENCIES parpeoptimization)
+        endif()
+    else()
+        message("Not creating coverage report, because compiler is not GCC but ${CMAKE_CXX_COMPILER_ID}.")
+    endif()
 endif(${BUILD_TESTS})
 
-set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/CMakeModules)
-set(COVERAGE_EXCLUDES 'boost/*' '/usr/include/*' 'cxx/*', 'ThirdParty/*')
-if(${CMAKE_COMPILER_IS_GNUCXX})
-    if(${GCOV_REPORT})
-        set(GCOV_LIBRARY gcov)
-        include(CodeCoverage)
-        APPEND_COVERAGE_COMPILER_FLAGS()
-        setup_target_for_coverage(NAME ${PROJECT_NAME}_coverage EXECUTABLE ctest DEPENDENCIES parpeoptimization)
-    endif()
-    if(${GCOVR_REPORT})
-        set(GCOV_LIBRARY gcov)
-        include(CodeCoverage)
-        APPEND_COVERAGE_COMPILER_FLAGS()
-        setup_target_for_coverage_cobertura(NAME ${PROJECT_NAME}_coverage_cobertura EXECUTABLE ctest DEPENDENCIES parpeoptimization)
-    endif()
-else()
-    message("Not creating coverage report, because compiler is not GCC but ${CMAKE_CXX_COMPILER_ID}.")
-endif()
 
+# Documentation (doxygen)
 if(BUILD_DOCS)
     find_package(Doxygen)
     if(NOT DOXYGEN_FOUND)
@@ -116,6 +128,7 @@ if(BUILD_DOCS)
                       COMMENT "Generating API documentation with Doxygen"
                       VERBATIM)
 endif()
+
 
 add_subdirectory(common)
 add_subdirectory(optimization)
