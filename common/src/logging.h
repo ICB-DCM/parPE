@@ -17,6 +17,10 @@ typedef enum loglevel_tag {LOGLVL_CRITICAL = 1, LOGLVL_ERROR, LOGLVL_WARNING, LO
 
 void logmessage(loglevel lvl, const char *format, ...);
 
+/**
+ * @brief Print process statistics from /proc/self/status
+ */
+
 void logProcessStats();
 
 void printMPIInfo();

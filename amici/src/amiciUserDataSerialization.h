@@ -5,7 +5,24 @@
 #include <boost/archive/text_oarchive.hpp>
 #include <udata.h>
 
+/** This files provides boost::serialization support for AMICI UserData,
+ * e.g. to allow sending UserData from MPI master to MPI workers */
+
+/**
+ * @brief Serialize AMICI::UserData
+ * @param udata In: Pointer to object to serialize
+ * @param size Out: The size of the serialzed object in bytes. Can be NULL.
+ * @return The serialized object
+ */
+
 char *serializeAmiciUserData(const UserData *udata, int *size);
+
+/**
+ * @brief Deserialize AMICI::UserData that has been serialized using serializeAmiciUserData
+ * @param buffer
+ * @param size
+ * @return The deserialized object
+ */
 
 UserData deserializeAmiciUserData(const char *buffer, int size);
 

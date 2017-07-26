@@ -21,7 +21,7 @@ ReturnData *getDummyRdata(UserData *udata, int *iterationsDone);
 
 
 void handleWorkPackage(char **buffer, int *msgSize, int jobId, void *userData)
-{    
+{
     MultiConditionProblem *problem = (MultiConditionProblem *) userData;
     MultiConditionDataProvider *dataProvider = problem->getDataProvider();
 
@@ -36,9 +36,8 @@ void handleWorkPackage(char **buffer, int *msgSize, int jobId, void *userData)
     MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
     printf("[%d] Received work. ", mpiRank); fflush(stdout);
 #endif
-    //TODO: need resultwriter here
 
-    // work
+    // do work
     int status = 0;
     ReturnData *rdata = MultiConditionProblem::runAndLogSimulation(udata, dataProvider, path, jobId, (MultiConditionProblemResultWriter*)problem->resultWriter, &status);
 
@@ -180,14 +179,21 @@ void MultiConditionProblem::logOptimizerFinished(double optimalCost, const doubl
         resultWriter->saveLocalOptimizerResults(optimalCost, optimalParameters, numOptimizationParameters, masterTime, exitStatus);
 }
 
-ReturnData *MultiConditionProblem::runAndLogSimulation(UserData *udata, MultiConditionDataProvider *dataProvider, JobIdentifier path, int jobId, MultiConditionProblemResultWriter *resultWriter, int *status)
+ReturnData *MultiConditionProblem::runAndLogSimulation(UserData *udata,
+                                                       MultiConditionDataProvider *dataProvider,
+                                                       JobIdentifier path,
+                                                       int jobId,
+                                                       MultiConditionProblemResultWriter *resultWriter,
+                                                       int *status)
 {
     double startTime = MPI_Wtime();
 
     // run simulation
     int iterationsUntilSteadystate = -1;
 
-    ExpData *edata = dataProvider->getExperimentalDataForExperimentAndUpdateUserData(path.idxConditions, udata);
+    // update UserData::k for condition-specific variables (no parameter mapping necessary here,
+    // this has been done by master)
+    ExpData *edata = dataProvider->getExperimentalDataForExperimentAndUpdateFixedParameters(path.idxConditions, udata);
 
     if(edata == NULL) {
         logmessage(LOGLVL_CRITICAL, "Failed to get experiment data. Check data file. Aborting.");
@@ -245,11 +251,9 @@ double *MultiConditionProblem::getInitialParameters(int multiStartIndex) const
 void MultiConditionProblem::updateUserData(const double *simulationParameters, const double *objectiveFunctionGradient)
 {
     setSensitivityOptions(objectiveFunctionGradient);
-    // update common parameters in UserData, cell-line specific ones are updated later
-    for(int i = 0; i < udata->np; ++i) {
-        udata->p[i] = simulationParameters[i];
-    }
 
+    // update common parameters in UserData, cell-line specific ones are updated later
+    memcpy(udata->p, simulationParameters, sizeof(double) * udata->np);
 }
 
 int MultiConditionProblem::runSimulations(const double *optimizationVariables, double *logLikelihood, double *objectiveFunctionGradient, int *dataIndices, int numDataIndices)
@@ -270,8 +274,13 @@ int MultiConditionProblem::runSimulations(const double *optimizationVariables, d
     pthread_mutex_t simulationsMutex = PTHREAD_MUTEX_INITIALIZER;
 
     for(int simulationIdx = 0; simulationIdx < numJobsTotal; ++simulationIdx) {
+        // tell worker with condition to work on, for logging and reading proper UserData::k
         path.idxConditions = simulationIdx;
+
+        // extract parameters for simulation of current condition, instead of sending whole
+        // optimization parameter vector to worker
         updateUserDataConditionSpecificParameters(dataIndices[simulationIdx], optimizationVariables);
+
         queueSimulation(path, &jobs[simulationIdx],  &numJobsFinished,
                         &simulationsCond, &simulationsMutex,
                         lenSendBuffer);
@@ -297,13 +306,18 @@ int MultiConditionProblem::runSimulations(const double *optimizationVariables, d
 int MultiConditionProblem::aggregateLikelihood(JobData *data, double *logLikelihood, double *objectiveFunctionGradient, int *dataIndices, int numDataIndices)
 {
     int errors = 0;
+
+    // temporary variables for deserialization
     double llhTmp;
     double sllhTmp[udata->np];
+
     int numJobsTotal = dataProvider->getNumberOfConditions();
 
     for(int simulationIdx = 0; simulationIdx < numJobsTotal; ++simulationIdx) {
+        // deserialize
         errors += unpackSimulationResult(&data[simulationIdx], sllhTmp, &llhTmp);
 
+        // sum up
         *logLikelihood -= llhTmp;
 
         if(objectiveFunctionGradient)
@@ -330,6 +344,7 @@ int MultiConditionProblemSerial::runSimulations(const double *optimizationVariab
     for(int simulationIdx = 0; simulationIdx < numJobsTotal; ++simulationIdx) {
         path.idxConditions = simulationIdx;
 
+        // update condition specific simulation parameters
         updateUserDataConditionSpecificParameters(dataIndices[simulationIdx], optimizationVariables);
 
         data[simulationIdx].lenSendBuffer = lenSendBuffer;
@@ -371,6 +386,7 @@ void MultiConditionProblem::addSimulationGradientToObjectiveFunctionGradient(int
     for(int paramIdx = 0; paramIdx < numCommon; ++paramIdx)
         objectiveFunctionGradient[paramIdx] -= simulationGradient[paramIdx];
 
+    // map condition-specific parameters
     addSimulationGradientToObjectiveFunctionGradientConditionSpecificParameters(simulationGradient, objectiveFunctionGradient, numCommon,
                                                                                 dataProvider->getNumConditionSpecificParametersPerSimulation(),
                                                                                 dataProvider->getIndexOfFirstConditionSpecificOptimizationParameter(conditionIdx));
@@ -381,9 +397,9 @@ void MultiConditionProblem::addSimulationGradientToObjectiveFunctionGradientCond
 {
     // condition specific parameters: map simulation to optimization parameters
     for(int paramIdx = 0; paramIdx < numConditionSpecificParams; ++paramIdx) {
-        int idxGrad = firstIndexOfCurrentConditionsSpecificOptimizationParameters + paramIdx;
+        int idxOpt = firstIndexOfCurrentConditionsSpecificOptimizationParameters + paramIdx;
         int idxSim  = numCommon + paramIdx;
-        objectiveFunctionGradient[idxGrad] -= simulationGradient[idxSim];
+        objectiveFunctionGradient[idxOpt] -= simulationGradient[idxSim];
     }
 }
 
@@ -422,14 +438,13 @@ void MultiConditionProblem::updateUserDataConditionSpecificParameters(int condit
      * Simulation parameters are [commonParameters, currentCelllineSpecificParameter]
      */
 
-    // TODO: need to recopy common variables? amici unscale?
     const int numCommonParams = dataProvider->getNumCommonParameters();
     const int numSpecificParams = dataProvider->getNumConditionSpecificParametersPerSimulation();
 
-    // beginning of condiftion specific simulation parameters within optimization parameters
+    // beginning of condition specific simulation parameters within optimization parameters
     const double *pConditionSpecificOptimization = &optimizationParams[dataProvider->getIndexOfFirstConditionSpecificOptimizationParameter(conditionIndex)];
 
-    // beginning of condiftion specific simulation parameters within simulation parameters
+    // beginning of condition specific simulation parameters within simulation parameters
     double *pConditionSpecificSimulation = &(udata->p[numCommonParams]);
 
     memcpy(pConditionSpecificSimulation, pConditionSpecificOptimization, numSpecificParams * sizeof(double));

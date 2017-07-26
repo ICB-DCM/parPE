@@ -34,7 +34,7 @@ void sprintJobIdentifier(char *buffer, JobIdentifier id);
  *
  * NOTE: The following dimensions are determined by the used AMICI model:
  * * numObservables := UserData::ny
- * * numFixedParameters := UserData::mk
+ * * numFixedParameters := UserData::nk
  *
  * The vector of optimization variables is assumed to be [x_0, ..., x_(numCommonParameter-1), conditionSpecificParameters].
  * conditionSpecificParameters := [cond0par0, cond0par1, ..., cond0_par_(numConditionSpecificParametersPerSimulation-1),
@@ -64,7 +64,7 @@ public:
 
     virtual int updateFixedSimulationParameters(int conditionIdx, UserData *udata) const;
 
-    virtual ExpData *getExperimentalDataForExperimentAndUpdateUserData(int conditionIdx, UserData *udata) const;
+    virtual ExpData *getExperimentalDataForExperimentAndUpdateFixedParameters(int conditionIdx, UserData *udata) const;
 
     virtual ExpData *getExperimentalDataForCondition(int conditionIdx) const;
 

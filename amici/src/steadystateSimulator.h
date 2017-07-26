@@ -5,14 +5,16 @@
 #include <edata.h>
 #include <rdata.h>
 
-
+/**
+ * @brief The SteadystateSimulator class runs an AMICI simulation until a steady-state is reached.
+ */
 class SteadystateSimulator
 {
 public:
 
     /**
      * @brief SteadystateSimulator::getSteadystateSolution
-     * @param udata Note: udata->x0 will be overwritten.
+     * @param udata Note: Content of udata->x0 will be overwritten.
      * @param edata
      * @param status
      * @param iterationDone
@@ -33,6 +35,12 @@ public:
     static bool reachedSteadyState(const double *xdot, const double *x, int numTimepoints, int numStates, double tolerance);
 
 protected:
+    /**
+     * @brief Replace old UserData::x0 by result of last simulation
+     * @param destination
+     * @param src
+     * @param count
+     */
     static void updateInitialConditions(double destination[], const double src[], int count);
 
 };

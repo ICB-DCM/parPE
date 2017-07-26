@@ -133,11 +133,11 @@ int MultiConditionDataProvider::updateFixedSimulationParameters(int conditionIdx
  * @return
  */
 
-ExpData *MultiConditionDataProvider::getExperimentalDataForExperimentAndUpdateUserData(int conditionIdx, UserData *udata) const
+ExpData *MultiConditionDataProvider::getExperimentalDataForExperimentAndUpdateFixedParameters(int conditionIdx, UserData *udata) const
 {
-
     updateFixedSimulationParameters(conditionIdx, udata);
 
+    // TODO update condition-specific parameters
 
     return getExperimentalDataForCondition(conditionIdx);
 

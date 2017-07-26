@@ -5,12 +5,16 @@
 #include <string.h>
 #include <logging.h>
 #include <cassert>
+#include <parpeException.h>
 
 #define XDOT_REL_TOLERANCE 1e-6
 
 ReturnData *SteadystateSimulator::getSteadystateSolution(UserData *udata, ExpData *edata, int *status, int *iterationDone)
 {
-    ReturnData *rdata = 0;
+    if(udata->nt > 1)
+        throw(ParPEException("SteadystateSimulator::getSteadystateSolution works only with nt == 1"));
+
+    ReturnData *rdata = NULL;
     bool inSteadyState = FALSE;
     int iterations = 0;
 
