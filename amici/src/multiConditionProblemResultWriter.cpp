@@ -51,7 +51,7 @@ JobIdentifier MultiConditionProblemResultWriter::getJobId()
     return id;
 }
 
-void MultiConditionProblemResultWriter::logSimulation(JobIdentifier id, const double *theta, double llh, const double *gradient, double timeElapsedInSeconds, int nTheta, int numStates, double *states, double *stateSensi, double *y, int jobId, int iterationsUntilSteadystate, int status)
+void MultiConditionProblemResultWriter::logSimulation(JobIdentifier id, const double *theta, double llh, const double *gradient, double timeElapsedInSeconds, int nTheta, int numStates, double *states, double *stateSensi, int numY, double *y, int jobId, int iterationsUntilSteadystate, int status)
 {
     std::string pathStr = getSimulationPath(id);
     const char *fullGroupPath = pathStr.c_str();
@@ -77,7 +77,7 @@ void MultiConditionProblemResultWriter::logSimulation(JobIdentifier id, const do
         hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "simulationStates", states, numStates);
 
     if(y)
-        hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "simulationObservables", y, 1);
+        hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "simulationObservables", y, numY);
 
     hdf5CreateOrExtendAndWriteToInt2DArray(file_id, fullGroupPath, "iterationsUntilSteadystate", &iterationsUntilSteadystate, 1);
 

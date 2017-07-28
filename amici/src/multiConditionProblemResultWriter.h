@@ -30,12 +30,15 @@ public:
                        double llh, const double *gradient,
                        double timeElapsedInSeconds,
                        int nTheta, int numStates,
-                       double *states, double *stateSensi,
+                       double *states, double *stateSensi, int numY,
                        double *y, int jobId,
                        int iterationsUntilSteadystate, int status);
 
+    bool logLineSearch = false;
+
 protected:
     JobIdentifier id;
+
 };
 
 #endif
