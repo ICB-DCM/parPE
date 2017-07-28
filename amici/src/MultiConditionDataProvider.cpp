@@ -5,7 +5,7 @@
 #include <amici_hdf5.h>
 #include <amici_misc.h>
 #include <edata.h>
-
+#include <cstring>
 
 UserData getUserData();
 // alias because getUserData is shadowed in MultiConditionDataProvider
