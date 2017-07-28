@@ -53,7 +53,8 @@ void getRandomStartingpoint(const double *min, const double *max, int numParamet
 void optimizationProblemGradientCheck(OptimizationProblem *problem, const int parameterIndices[], int numParameterIndices, double epsilon)
 {
     double fc = 0; // f(theta)
-    double *theta = problem->getInitialParameters();
+    double theta[problem->numOptimizationParameters];
+    getRandomStartingpoint(problem->parametersMin, problem->parametersMax, problem->numOptimizationParameters, theta);
 
     double *gradient = new double[problem->numOptimizationParameters];
     problem->evaluateObjectiveFunction(theta, &fc, gradient);
