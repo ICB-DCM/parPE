@@ -53,6 +53,9 @@ JobIdentifier MultiConditionProblemResultWriter::getJobId()
 
 void MultiConditionProblemResultWriter::logSimulation(JobIdentifier id, const double *theta, double llh, const double *gradient, double timeElapsedInSeconds, int nTheta, int numStates, double *states, double *stateSensi, int numY, double *y, int jobId, int iterationsUntilSteadystate, int status)
 {
+    if(!gradient && !logLineSearch)
+        return;
+
     std::string pathStr = getSimulationPath(id);
     const char *fullGroupPath = pathStr.c_str();
 
