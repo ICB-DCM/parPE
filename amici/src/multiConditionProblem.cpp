@@ -113,7 +113,8 @@ int MultiConditionProblem::evaluateObjectiveFunction(const double *optimiziation
     *objectiveFunctionValue = 1;
     return 0;
 #endif
-    updateUserData(optimiziationVariables, objectiveFunctionGradient);
+    // update parameters that are identical for all simulations
+    updateUserDataCommon(optimiziationVariables, objectiveFunctionGradient);
 
     *objectiveFunctionValue = 0;
 
@@ -225,7 +226,7 @@ ReturnData *MultiConditionProblem::runAndLogSimulation(UserData *udata,
 
     if(resultWriter)
         resultWriter->logSimulation(path, udata->p, rdata->llh[0], rdata->sllh,
-                timeSeconds, udata->np, udata->nx, rdata->x, rdata->sx, rdata->y,
+                timeSeconds, udata->np, udata->nx, rdata->x, rdata->sx, udata->ny, rdata->y,
                 jobId, iterationsUntilSteadystate, *status);
 
     return rdata;
@@ -248,7 +249,7 @@ double *MultiConditionProblem::getInitialParameters(int multiStartIndex) const
     return OptimizationOptions::getStartingPoint(dataProvider->fileId, multiStartIndex);
 }
 
-void MultiConditionProblem::updateUserData(const double *simulationParameters, const double *objectiveFunctionGradient)
+void MultiConditionProblem::updateUserDataCommon(const double *simulationParameters, const double *objectiveFunctionGradient)
 {
     setSensitivityOptions(objectiveFunctionGradient);
 
@@ -279,7 +280,7 @@ int MultiConditionProblem::runSimulations(const double *optimizationVariables, d
 
         // extract parameters for simulation of current condition, instead of sending whole
         // optimization parameter vector to worker
-        updateUserDataConditionSpecificParameters(dataIndices[simulationIdx], optimizationVariables);
+        dataProvider->updateConditionSpecificSimulationParameters(dataIndices[simulationIdx], optimizationVariables, udata);
 
         queueSimulation(path, &jobs[simulationIdx],  &numJobsFinished,
                         &simulationsCond, &simulationsMutex,
@@ -345,7 +346,7 @@ int MultiConditionProblemSerial::runSimulations(const double *optimizationVariab
         path.idxConditions = simulationIdx;
 
         // update condition specific simulation parameters
-        updateUserDataConditionSpecificParameters(dataIndices[simulationIdx], optimizationVariables);
+        dataProvider->updateConditionSpecificSimulationParameters(dataIndices[simulationIdx], optimizationVariables, udata);
 
         data[simulationIdx].lenSendBuffer = lenSendBuffer;
         data[simulationIdx].sendBuffer = (char *) malloc(lenSendBuffer); // malloc, because will be free()'d by queue
@@ -431,24 +432,6 @@ void MultiConditionProblem::queueSimulation(JobIdentifier path, JobData *d, int 
     loadBalancerQueueJob(d);
 }
 
-void MultiConditionProblem::updateUserDataConditionSpecificParameters(int conditionIndex, const double *optimizationParams)
-{
-    /* Optimization parameters are [commonParameters, condition1SpecificParameters, condition2SpecificParameters, ...]
-     * number of condition specific parameters is the same for all cell lines.
-     * Simulation parameters are [commonParameters, currentCelllineSpecificParameter]
-     */
-
-    const int numCommonParams = dataProvider->getNumCommonParameters();
-    const int numSpecificParams = dataProvider->getNumConditionSpecificParametersPerSimulation();
-
-    // beginning of condition specific simulation parameters within optimization parameters
-    const double *pConditionSpecificOptimization = &optimizationParams[dataProvider->getIndexOfFirstConditionSpecificOptimizationParameter(conditionIndex)];
-
-    // beginning of condition specific simulation parameters within simulation parameters
-    double *pConditionSpecificSimulation = &(udata->p[numCommonParams]);
-
-    memcpy(pConditionSpecificSimulation, pConditionSpecificOptimization, numSpecificParams * sizeof(double));
-}
 
 void MultiConditionProblem::setSensitivityOptions(bool sensiRequired)
 {

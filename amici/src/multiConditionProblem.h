@@ -106,7 +106,7 @@ protected:
 
     void init();
 
-    void updateUserData(const double *simulationParameters, const double *objectiveFunctionGradient);
+    void updateUserDataCommon(const double *simulationParameters, const double *objectiveFunctionGradient);
 
     /**
      * @brief Run AMICI simulations for conditions with the given indices
@@ -150,8 +150,6 @@ protected:
     void queueSimulation(JobIdentifier path, JobData *d, int *jobDone,
                          pthread_cond_t *jobDoneChangedCondition, pthread_mutex_t *jobDoneChangedMutex,
                          int lenSendBuffer);
-
-    void updateUserDataConditionSpecificParameters(int celllineIdx, const double *optimizationParams);
 
     virtual void setSensitivityOptions(bool sensiRequired);
 

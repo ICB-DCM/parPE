@@ -96,6 +96,8 @@ public:
 
     virtual int getIndexOfFirstConditionSpecificOptimizationParameter(int conditionIdx) const;
 
+    virtual void updateConditionSpecificSimulationParameters(int conditionIndex, const double *optimizationParams, UserData *udata) const;
+
     virtual ~MultiConditionDataProvider();
 
     std::string hdf5MeasurementPath;

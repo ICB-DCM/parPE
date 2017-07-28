@@ -241,13 +241,35 @@ UserData *MultiConditionDataProvider::getUserData() const
 UserData *MultiConditionDataProvider::getUserDataForCondition(int conditionIdx) const
 {
     UserData *udata = getUserData();
+
     updateFixedSimulationParameters(conditionIdx, udata);
+
     return udata;
 }
 
 int MultiConditionDataProvider::getIndexOfFirstConditionSpecificOptimizationParameter(int conditionIdx) const
 {
     return getNumCommonParameters() + conditionIdx * getNumConditionSpecificParametersPerSimulation();
+}
+
+void MultiConditionDataProvider::updateConditionSpecificSimulationParameters(int conditionIndex, const double *optimizationParams, UserData *udata) const
+{
+    /* Optimization parameters are [commonParameters, condition1SpecificParameters, condition2SpecificParameters, ...]
+     * number of condition specific parameters is the same for all cell lines.
+     * Simulation parameters are [commonParameters, currentCelllineSpecificParameter]
+     */
+
+    const int numCommonParams = getNumCommonParameters();
+    const int numSpecificParams = getNumConditionSpecificParametersPerSimulation();
+
+    // beginning of condition specific simulation parameters within optimization parameters
+    const double *pConditionSpecificOptimization = &optimizationParams[getIndexOfFirstConditionSpecificOptimizationParameter(conditionIndex)];
+
+    // beginning of condition specific simulation parameters within simulation parameters
+    double *pConditionSpecificSimulation = &(udata->p[numCommonParams]);
+
+    memcpy(pConditionSpecificSimulation, pConditionSpecificOptimization, numSpecificParams * sizeof(double));
+
 }
 
 
