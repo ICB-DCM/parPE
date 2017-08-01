@@ -12,6 +12,7 @@
 #include <misc.h>
 #include <logging.h>
 #include "steadystateSimulator.h"
+#include <udata.h>
 
 // For debugging:
 // skip objective function evaluation completely
