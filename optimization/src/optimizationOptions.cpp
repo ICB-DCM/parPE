@@ -90,8 +90,10 @@ double *OptimizationOptions::getStartingPoint(hid_t fileId, int index)
     H5_SAVE_ERROR_HANDLER;
 
     hid_t dataset = H5Dopen2(fileId, path, H5P_DEFAULT);
-    if(dataset < 0)
+    if(dataset < 0) {
+        logmessage(LOGLVL_DEBUG, "No initial parameters found in %s", path);
         goto freturn;
+    }
 
     {
         // read dimensions
@@ -109,16 +111,13 @@ double *OptimizationOptions::getStartingPoint(hid_t fileId, int index)
         hdf5Read2DDoubleHyperslab(fileId, path, dims[0], 1, 0, index, buffer);
     }
 
+freturn:
     if(H5Eget_num(H5E_DEFAULT)) {
         error("Problem in OptimizationOptions::getStartingPoint\n");
         H5Ewalk2(H5E_DEFAULT, H5E_WALK_DOWNWARD, hdf5ErrorStackWalker_cb, NULL);
     }
 
-freturn:
     H5_RESTORE_ERROR_HANDLER;
-
-    logmessage(LOGLVL_DEBUG, "No initial parameters found in %s", path);
-
     hdf5UnlockMutex();
 
     return buffer;
