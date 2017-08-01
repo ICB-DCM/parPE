@@ -37,8 +37,8 @@ void setIpOptOptions(SmartPtr<IpoptApplication> app, OptimizationProblem *proble
         app->Options()->SetStringValue("sb", "yes"); // suppress copyright message
     }
 
-    //    AddIpoptStrOption(nlp, "derivative_test", "first-order");
-    //    AddIpoptIntOption(nlp, "derivative_test_first_index", 4130);
+    //    app->Options()->SetStringValue("derivative_test", "first-order");
+    //    app->Options()->SetIntegerValue("derivative_test_first_index", 4266);
 
     app->Options()->SetStringValue("hessian_approximation", "limited-memory");
     app->Options()->SetStringValue("limited_memory_update_type", "bfgs");
