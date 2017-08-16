@@ -1,7 +1,7 @@
 #include "optimizationResultWriter.h"
 #include "hdf5Misc.h"
 #include "misc.h"
-#include <assert.h>
+#include <cassert>
 #include <cmath>
 #include <logging.h>
 #include <sstream>

@@ -2,10 +2,10 @@
 #include <amici_interface_cpp.h>
 #include <cassert>
 #include <logging.h>
-#include <math.h>
+#include <cmath>
 #include <mpi.h>
 #include <parpeException.h>
-#include <string.h>
+#include <cstring>
 
 #define XDOT_REL_TOLERANCE 1e-6
 

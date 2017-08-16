@@ -3,14 +3,16 @@
 #include "optimizationOptions.h"
 #include "simulationWorkerAmici.h"
 #include "steadystateSimulator.h"
+#include <cassert>
+#include <cmath>
 #include <loadBalancerMaster.h>
 #include <loadBalancerWorker.h>
 #include <logging.h>
 #include <misc.h>
+#include <cstring>
 #include <udata.h>
-#include <assert.h>
-#include <cmath>
-#include <string.h>
+#include <rdata.h>
+#include <amici_interface_cpp.h>
 
 // For debugging:
 // skip objective function evaluation completely

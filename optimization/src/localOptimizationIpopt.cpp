@@ -4,15 +4,15 @@
 #include "optimizationOptions.h"
 #include "optimizationProblem.h"
 #include <alloca.h>
-#include <assert.h>
-#include <math.h>
+#include <cassert>
+#include <cmath>
 #include <pthread.h>
-#include <signal.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
+#include <csignal>
+#include <cstdbool>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
 
 #ifdef INSTALL_SIGNAL_HANDLER
 extern volatile sig_atomic_t caughtTerminationSignal;

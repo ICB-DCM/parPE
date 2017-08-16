@@ -1,10 +1,8 @@
 #include "multiStartOptimization.h"
-
 #include <pthread.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdlib>
+#include <cstring>
 #include <unistd.h>
-
 #include "logging.h"
 
 int runParallelMultiStartOptimization(

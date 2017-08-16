@@ -1,5 +1,5 @@
 #include "simulationWorkerAmici.h"
-#include <string.h>
+#include <cstring>
 
 void JobAmiciSimulation::toUserData(const char *buffer, UserData *udata,
                                     void *userData) {

@@ -2,12 +2,12 @@
 #define PROBLEM_H
 
 #include "MultiConditionDataProvider.h"
-#include "amici_interface_cpp.h"
 #include "loadBalancerMaster.h"
 #include "multiConditionProblemResultWriter.h"
 #include "multiStartOptimization.h"
 #include "optimizationProblem.h"
-#include "rdata.h"
+
+class ReturnData;
 
 class MultiConditionProblem : public OptimizationProblem {
 
