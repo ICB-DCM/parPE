@@ -2,17 +2,15 @@
 #include "multiConditionProblemResultWriter.h"
 #include "optimizationOptions.h"
 #include "simulationWorkerAmici.h"
-
-#include <assert.h>
-#include <cmath>
-#include <string.h>
-
 #include "steadystateSimulator.h"
 #include <loadBalancerMaster.h>
 #include <loadBalancerWorker.h>
 #include <logging.h>
 #include <misc.h>
 #include <udata.h>
+#include <assert.h>
+#include <cmath>
+#include <string.h>
 
 // For debugging:
 // skip objective function evaluation completely
@@ -149,6 +147,7 @@ int MultiConditionProblem::intermediateFunction(
     int alg_mod, int iter_count, double obj_value, double inf_pr, double inf_du,
     double mu, double d_norm, double regularization_size, double alpha_du,
     double alpha_pr, int ls_trials) {
+
     static double startTime = 0;
     // Wall time on master. NOTE: This also includes waiting time for the job
     // being sent to workers.
@@ -193,6 +192,7 @@ void MultiConditionProblem::logObjectiveFunctionEvaluation(
 void MultiConditionProblem::logOptimizerFinished(
     double optimalCost, const double *optimalParameters, double masterTime,
     int exitStatus) {
+
     char strBuf[100];
     sprintJobIdentifier(strBuf, path);
     logmessage(LOGLVL_INFO, "%s: Optimizer status %d, final llh: %e, time: %f.",
@@ -208,14 +208,14 @@ ReturnData *MultiConditionProblem::runAndLogSimulation(
     UserData *udata, MultiConditionDataProvider *dataProvider,
     JobIdentifier path, int jobId,
     MultiConditionProblemResultWriter *resultWriter, int *status) {
+
     double startTime = MPI_Wtime();
 
     // run simulation
     int iterationsUntilSteadystate = -1;
 
     // update UserData::k for condition-specific variables (no parameter mapping
-    // necessary here,
-    // this has been done by master)
+    // necessary here, this has been done by master)
     ExpData *edata =
         dataProvider->getExperimentalDataForExperimentAndUpdateFixedParameters(
             path.idxConditions, udata);
@@ -312,8 +312,7 @@ int MultiConditionProblem::runSimulations(const double *optimizationVariables,
         path.idxConditions = simulationIdx;
 
         // extract parameters for simulation of current condition, instead of
-        // sending whole
-        // optimization parameter vector to worker
+        // sending whole  optimization parameter vector to worker
         dataProvider->updateConditionSpecificSimulationParameters(
             dataIndices[simulationIdx], optimizationVariables, udata);
 
@@ -531,5 +530,6 @@ MultiConditionProblemGeneratorForMultiStart::getLocalProblemImpl(
 
     problem->setInitialParameters(
         problem->getInitialParameters(multiStartIndex));
+
     return problem;
 }
