@@ -24,7 +24,7 @@ target_link_libraries(${PROJECT_NAME}
     parpeoptimization
     parpeloadbalancer
     parpecommon
-    amici
+    ${AMICI_LIBRARIES}
     ${IPOPT_LIBRARIES}
     ${CERES_LIBRARIES}
     ${HDF5_HL_LIBRARIES}

@@ -44,6 +44,7 @@ ${MODEL_DIR}/model_steadystate_JBandB.cpp
 ${MODEL_DIR}/model_steadystate_JSparse.cpp
 ${MODEL_DIR}/model_steadystate_JSparseB.cpp
 ${MODEL_DIR}/model_steadystate_Jrz.cpp
+${MODEL_DIR}/model_steadystate_JDiag.cpp
 ${MODEL_DIR}/model_steadystate_Jv.cpp
 ${MODEL_DIR}/model_steadystate_JvB.cpp
 ${MODEL_DIR}/model_steadystate_Jy.cpp
@@ -87,17 +88,7 @@ ${MODEL_DIR}/model_steadystate_y.cpp
 ${MODEL_DIR}/model_steadystate_z.cpp
 
 ${MODEL_DIR}/wrapfunctions.cpp
-${AMICI_DIR}/src/symbolic_functions.cpp
-${AMICI_DIR}/src/amici_interface_cpp.cpp
-${AMICI_DIR}/src/amici_model_functions.cpp
-${AMICI_DIR}/src/amici.cpp
-${AMICI_DIR}/src/amici_misc.cpp
-${AMICI_DIR}/src/udata.cpp
-${AMICI_DIR}/src/rdata.cpp
-${AMICI_DIR}/src/tdata.cpp
-${AMICI_DIR}/src/edata.cpp
-${AMICI_DIR}/src/amici_hdf5.cpp
-${AMICI_DIR}/src/spline.cpp)
+)
     
 add_library(${PROJECT_NAME} ${SRC_LIST_LIB})
 
@@ -108,6 +99,7 @@ else()
 endif()
     
 target_link_libraries(${PROJECT_NAME}
+    ${AMICI_LIBRARIES}
     ${SUNDIALS_LIB_DIR}/libsundials_nvecserial${SHARED_OBJECT_EXTENSION}
     ${SUNDIALS_LIB_DIR}/libsundials_cvodes${SHARED_OBJECT_EXTENSION}
     ${SUITESPARSE_LIB_DIR}/libcolamd${SHARED_OBJECT_EXTENSION}
@@ -125,4 +117,4 @@ set(SRC_LIST_EXE main.cpp)
 
 add_executable(simulate_${PROJECT_NAME} ${SRC_LIST_EXE})
     
-target_link_libraries(simulate_${PROJECT_NAME} ${PROJECT_NAME})
+target_link_libraries(simulate_${PROJECT_NAME} ${AMICI_LIBRARIES} ${PROJECT_NAME})

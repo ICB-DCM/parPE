@@ -20,6 +20,7 @@ target_link_libraries(${PROJECT_NAME}
     parpeoptimization
     parpeloadbalancer
     ${MODEL_LIBRARIES}
+    ${AMICI_LIBRARIES}
     ${IPOPT_LIBRARIES}
     ${SUNDIALS_LIBRARIES}
     ${HDF5_HL_LIBRARIES}

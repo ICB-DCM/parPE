@@ -129,7 +129,6 @@ if(BUILD_DOCS)
                       VERBATIM)
 endif()
 
-
 add_subdirectory(common)
 add_subdirectory(optimization)
 add_subdirectory(loadbalancer)
