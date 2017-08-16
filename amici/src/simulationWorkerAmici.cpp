@@ -1,27 +1,27 @@
 #include "simulationWorkerAmici.h"
 #include <string.h>
 
-void JobAmiciSimulation::toUserData(const char* buffer, UserData *udata, void *userData) {
+void JobAmiciSimulation::toUserData(const char *buffer, UserData *udata,
+                                    void *userData) {
     JobAmiciSimulation work;
     work.data = userData;
     work.simulationParameters = udata->p;
     work.deserialize(buffer);
 
-    udata->sensi_meth = (AMICI_sensi_meth) work.sensitivityMethod;
-    udata->sensi = work.sensitivityMethod > 0 ? AMICI_SENSI_ORDER_FIRST : AMICI_SENSI_ORDER_NONE;
+    udata->sensi_meth = (AMICI_sensi_meth)work.sensitivityMethod;
+    udata->sensi = work.sensitivityMethod > 0 ? AMICI_SENSI_ORDER_FIRST
+                                              : AMICI_SENSI_ORDER_NONE;
 }
 
-int JobAmiciSimulation::getLength(int numSimulationParameters, int sizeOfData)
-{
-    return sizeof(int) // user data size
-            + sizeOfData // userdata
-            + sizeof(int) // numTheta
-            + sizeof(double) * numSimulationParameters // theta
-            + sizeof(int); // sensi
+int JobAmiciSimulation::getLength(int numSimulationParameters, int sizeOfData) {
+    return sizeof(int)                                // user data size
+           + sizeOfData                               // userdata
+           + sizeof(int)                              // numTheta
+           + sizeof(double) * numSimulationParameters // theta
+           + sizeof(int);                             // sensi
 }
 
-void JobAmiciSimulation::serialize(char *buffer)
-{
+void JobAmiciSimulation::serialize(char *buffer) {
     size_t size = 0;
 
     size = sizeof(lenData);
@@ -43,15 +43,13 @@ void JobAmiciSimulation::serialize(char *buffer)
     size = sizeof(int);
     memcpy(buffer, &sensitivityMethod, size);
     buffer += size;
-
 }
 
-void JobAmiciSimulation::deserialize(const char *msg)
-{
+void JobAmiciSimulation::deserialize(const char *msg) {
     size_t size;
 
     size = sizeof(lenData);
-    lenData = *(int *) msg;
+    lenData = *(int *)msg;
     msg += size;
 
     size = lenData;
@@ -59,20 +57,21 @@ void JobAmiciSimulation::deserialize(const char *msg)
     msg += size;
 
     size = sizeof(numSimulationParameters);
-    numSimulationParameters = *(int *) msg;
+    numSimulationParameters = *(int *)msg;
     msg += size;
 
     size = numSimulationParameters * sizeof(double);
     memcpy(simulationParameters, msg, size);
     msg += size;
 
-    sensitivityMethod = *(int *) msg;
+    sensitivityMethod = *(int *)msg;
     size = sizeof(int);
     msg += size;
 }
 
-void JobResultAmiciSimulation::serialize(const ReturnData *rdata, const UserData *udata, int status, char *buffer)
-{
+void JobResultAmiciSimulation::serialize(const ReturnData *rdata,
+                                         const UserData *udata, int status,
+                                         char *buffer) {
     size_t size = 0;
 
     size = sizeof(int);
@@ -92,45 +91,43 @@ void JobResultAmiciSimulation::serialize(const ReturnData *rdata, const UserData
     memcpy(buffer, &sensiSize, size);
     buffer += size;
 
-    if(sensiSize) {
+    if (sensiSize) {
         size = sensiSize * sizeof(double);
         memcpy(buffer, rdata->sllh, size);
         buffer += size;
     }
 }
 
-void JobResultAmiciSimulation::deserialize(char *buffer)
-{
+void JobResultAmiciSimulation::deserialize(char *buffer) {
     size_t size;
 
-    numSimulationParameters = *(int *) buffer;
+    numSimulationParameters = *(int *)buffer;
     size = sizeof(int);
     buffer += size;
 
-    status = *(int *) buffer;
+    status = *(int *)buffer;
     size = sizeof(int);
     buffer += size;
 
-    llh = *(double *) buffer;
+    llh = *(double *)buffer;
     size = sizeof(double);
     buffer += size;
 
-    int sensiSize = *(int *) buffer;
+    int sensiSize = *(int *)buffer;
     size = sizeof(int);
     buffer += size;
 
-    if(sensiSize) {
+    if (sensiSize) {
         size = sensiSize * sizeof(double);
         memcpy(sllh, buffer, size);
         buffer += size;
     }
 }
 
-int JobResultAmiciSimulation::getLength(int numSimulationParameters)
-{
-    return sizeof(int) // num Theta
-            + sizeof(int) // status
-            + sizeof(double) // llh
-            + sizeof(int) // lenSensi
-            + sizeof(double) * numSimulationParameters; // sensitivites
+int JobResultAmiciSimulation::getLength(int numSimulationParameters) {
+    return sizeof(int)                                 // num Theta
+           + sizeof(int)                               // status
+           + sizeof(double)                            // llh
+           + sizeof(int)                               // lenSensi
+           + sizeof(double) * numSimulationParameters; // sensitivites
 }
