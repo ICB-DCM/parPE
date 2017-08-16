@@ -1,45 +1,45 @@
 #include "MultiConditionDataProvider.h"
 #include "logging.h"
 #include "misc.h"
-#include <cassert>
 #include <amici_hdf5.h>
 #include <amici_misc.h>
-#include <edata.h>
+#include <cassert>
 #include <cstring>
+#include <edata.h>
 
 UserData getUserData();
 // alias because getUserData is shadowed in MultiConditionDataProvider
 inline UserData getModelUserData() { return getUserData(); }
 
-void printJobIdentifierifier(JobIdentifier id)
-{
-    printf("%d.%d.%d.%d", id.idxMultiStart, id.idxLocalOptimization, id.idxLocalOptimizationIteration, id.idxConditions);
+void printJobIdentifierifier(JobIdentifier id) {
+    printf("%d.%d.%d.%d", id.idxMultiStart, id.idxLocalOptimization,
+           id.idxLocalOptimizationIteration, id.idxConditions);
 }
 
-void sprintJobIdentifier(char *buffer, JobIdentifier id)
-{
-    sprintf(buffer, "%d.%d.%d.%d", id.idxMultiStart, id.idxLocalOptimization, id.idxLocalOptimizationIteration, id.idxConditions);
+void sprintJobIdentifier(char *buffer, JobIdentifier id) {
+    sprintf(buffer, "%d.%d.%d.%d", id.idxMultiStart, id.idxLocalOptimization,
+            id.idxLocalOptimizationIteration, id.idxConditions);
 }
-
 
 /**
  * @brief
  * @param hdf5Filename Filename from where to read data
  */
 
-MultiConditionDataProvider::MultiConditionDataProvider(const char *hdf5Filename) : MultiConditionDataProvider(hdf5Filename, "")
-{
+MultiConditionDataProvider::MultiConditionDataProvider(const char *hdf5Filename)
+    : MultiConditionDataProvider(hdf5Filename, "") {}
 
-}
-
-MultiConditionDataProvider::MultiConditionDataProvider(const char *hdf5Filename, std::string rootPath) : modelDims(getModelUserData())
-{
+MultiConditionDataProvider::MultiConditionDataProvider(const char *hdf5Filename,
+                                                       std::string rootPath)
+    : modelDims(getModelUserData()) {
     hdf5LockMutex();
 
     H5_SAVE_ERROR_HANDLER;
     fileId = H5Fopen(hdf5Filename, H5F_ACC_RDONLY, H5P_DEFAULT);
-    if(fileId < 0) {
-        logmessage(LOGLVL_CRITICAL, "initDataProvider failed to open HDF5 file '%s'.", hdf5Filename);
+    if (fileId < 0) {
+        logmessage(LOGLVL_CRITICAL,
+                   "initDataProvider failed to open HDF5 file '%s'.",
+                   hdf5Filename);
         printBacktrace(20);
         H5Ewalk2(H5E_DEFAULT, H5E_WALK_DOWNWARD, hdf5ErrorStackWalker_cb, NULL);
     }
@@ -52,18 +52,17 @@ MultiConditionDataProvider::MultiConditionDataProvider(const char *hdf5Filename,
     hdf5ConditionPath = rootPath + "/fixedParameters/k";
     hdf5AmiciOptionPath = rootPath + "/amiciOptions";
     hdf5ParameterPath = rootPath + "/parameters";
-
 }
 
-
 /**
- * @brief Get the number of simulations required for objective function evaluation. Currently, this amounts to the number
+ * @brief Get the number of simulations required for objective function
+ * evaluation. Currently, this amounts to the number
  * of conditions present in the data.
  * @return
  */
-int MultiConditionDataProvider::getNumberOfConditions() const
-{
-    // TODO: add additional layer for selecten of condition indices (for testing and later for minibatch)
+int MultiConditionDataProvider::getNumberOfConditions() const {
+    // TODO: add additional layer for selecten of condition indices (for testing
+    // and later for minibatch)
     // -> won't need different file for testing/validation splits
     // TODO: cache
 
@@ -83,35 +82,40 @@ int MultiConditionDataProvider::getNumberOfConditions() const
     return dims[1];
 }
 
-int MultiConditionDataProvider::getNumConditionSpecificParametersPerSimulation() const
-{
+int MultiConditionDataProvider::getNumConditionSpecificParametersPerSimulation()
+    const {
     hdf5LockMutex();
 
-    int num = AMI_HDF5_getIntScalarAttribute(fileId, hdf5ParameterPath.c_str(), "numConditionSpecificParameters");
+    int num = AMI_HDF5_getIntScalarAttribute(fileId, hdf5ParameterPath.c_str(),
+                                             "numConditionSpecificParameters");
 
     hdf5UnlockMutex();
 
     return num;
 }
 
-
 /**
- * @brief Update the contstants in AMICI UserData object. Reads a slab for the given experimental conditions
+ * @brief Update the contstants in AMICI UserData object. Reads a slab for the
+ * given experimental conditions
  * from fixed parameters matrix.
- * @param conditionIdx Index of the experimental condition for which the parameters should be taken.
+ * @param conditionIdx Index of the experimental condition for which the
+ * parameters should be taken.
  * @param udata The object to be updated.
  * @return
  */
-int MultiConditionDataProvider::updateFixedSimulationParameters(int conditionIdx, UserData *udata) const
-{
+int MultiConditionDataProvider::updateFixedSimulationParameters(
+    int conditionIdx, UserData *udata) const {
     hdf5LockMutex();
 
     H5_SAVE_ERROR_HANDLER;
 
-    hdf5Read2DDoubleHyperslab(fileId, hdf5ConditionPath.c_str(), udata->nk, 1, 0, conditionIdx, udata->k);
+    hdf5Read2DDoubleHyperslab(fileId, hdf5ConditionPath.c_str(), udata->nk, 1,
+                              0, conditionIdx, udata->k);
 
-    if(H5Eget_num(H5E_DEFAULT)) {
-        logmessage(LOGLVL_CRITICAL, "Problem in readFixedParameters (row %d, nk %d)\n", conditionIdx, udata->nk);
+    if (H5Eget_num(H5E_DEFAULT)) {
+        logmessage(LOGLVL_CRITICAL,
+                   "Problem in readFixedParameters (row %d, nk %d)\n",
+                   conditionIdx, udata->nk);
         printBacktrace(20);
         H5Ewalk2(H5E_DEFAULT, H5E_WALK_DOWNWARD, hdf5ErrorStackWalker_cb, NULL);
         abort();
@@ -122,87 +126,77 @@ int MultiConditionDataProvider::updateFixedSimulationParameters(int conditionIdx
     hdf5UnlockMutex();
 
     return H5Eget_num(H5E_DEFAULT);
-
 }
 
-
 /**
- * @brief Reads data required for simulation of a specific experimental condition. Creates ExpData and updates UserData object.
+ * @brief Reads data required for simulation of a specific experimental
+ * condition. Creates ExpData and updates UserData object.
  * @param dpath
  * @param udata
  * @return
  */
 
-ExpData *MultiConditionDataProvider::getExperimentalDataForExperimentAndUpdateFixedParameters(int conditionIdx, UserData *udata) const
-{
+ExpData *MultiConditionDataProvider::
+    getExperimentalDataForExperimentAndUpdateFixedParameters(
+        int conditionIdx, UserData *udata) const {
     updateFixedSimulationParameters(conditionIdx, udata);
 
     // TODO update condition-specific parameters
 
     return getExperimentalDataForCondition(conditionIdx);
-
 }
 
-ExpData *MultiConditionDataProvider::getExperimentalDataForCondition(int conditionIdx) const
-{
+ExpData *MultiConditionDataProvider::getExperimentalDataForCondition(
+    int conditionIdx) const {
     hdf5LockMutex();
 
     ExpData *edata = new ExpData(&modelDims);
 
-    hdf5Read2DDoubleHyperslab(fileId, hdf5MeasurementPath.c_str(),      modelDims.ny, 1, 0, conditionIdx, edata->my);
-    hdf5Read2DDoubleHyperslab(fileId, hdf5MeasurementSigmaPath.c_str(), modelDims.ny, 1, 0, conditionIdx, edata->sigmay);
+    hdf5Read2DDoubleHyperslab(fileId, hdf5MeasurementPath.c_str(), modelDims.ny,
+                              1, 0, conditionIdx, edata->my);
+    hdf5Read2DDoubleHyperslab(fileId, hdf5MeasurementSigmaPath.c_str(),
+                              modelDims.ny, 1, 0, conditionIdx, edata->sigmay);
 
     hdf5UnlockMutex();
 
     return edata;
-
 }
 
-
-void MultiConditionDataProvider::getOptimizationParametersLowerBounds(double *buffer) const
-{
+void MultiConditionDataProvider::getOptimizationParametersLowerBounds(
+    double *buffer) const {
     // TODO to HDF5
     fillArray(buffer, getNumOptimizationParameters(), -2);
 }
 
-
-void MultiConditionDataProvider::getOptimizationParametersUpperBounds(double *buffer) const
-{
+void MultiConditionDataProvider::getOptimizationParametersUpperBounds(
+    double *buffer) const {
     // TODO to HDF5
     fillArray(buffer, getNumOptimizationParameters(), 2);
-
 }
 
-
-int MultiConditionDataProvider::getNumOptimizationParameters() const
-{
-    return getNumCommonParameters() + getNumberOfConditions() * getNumConditionSpecificParametersPerSimulation();
-
+int MultiConditionDataProvider::getNumOptimizationParameters() const {
+    return getNumCommonParameters() +
+           getNumberOfConditions() *
+               getNumConditionSpecificParametersPerSimulation();
 }
 
-
-int MultiConditionDataProvider::getNumCommonParameters() const
-{
+int MultiConditionDataProvider::getNumCommonParameters() const {
     return modelDims.np - getNumConditionSpecificParametersPerSimulation();
-
 }
 
-UserData MultiConditionDataProvider::getModelDims() const
-{
-    return modelDims;
-}
+UserData MultiConditionDataProvider::getModelDims() const { return modelDims; }
 
-UserData *MultiConditionDataProvider::getUserData() const
-{
+UserData *MultiConditionDataProvider::getUserData() const {
     // TODO: separate class for udata?
     hdf5LockMutex();
 
-    const char* optionsObject = hdf5AmiciOptionPath.c_str();
+    const char *optionsObject = hdf5AmiciOptionPath.c_str();
 
     H5_SAVE_ERROR_HANDLER;
-    UserData *udata = AMI_HDF5_readSimulationUserDataFromFileObject(fileId, optionsObject);
+    UserData *udata =
+        AMI_HDF5_readSimulationUserDataFromFileObject(fileId, optionsObject);
 
-    if(H5Eget_num(H5E_DEFAULT)) {
+    if (H5Eget_num(H5E_DEFAULT)) {
         error("Problem with reading udata\n");
         printBacktrace(20);
         H5Ewalk2(H5E_DEFAULT, H5E_WALK_DOWNWARD, hdf5ErrorStackWalker_cb, NULL);
@@ -211,35 +205,35 @@ UserData *MultiConditionDataProvider::getUserData() const
 
     hdf5UnlockMutex();
 
-    if(udata == NULL)
+    if (udata == NULL)
         return NULL;
 
     // ensure parameter indices are within range //TODO: to ami_hdf
-    for(int i = 0; i < udata->nplist; ++i) {
+    for (int i = 0; i < udata->nplist; ++i) {
         assert(udata->plist[i] < udata->np);
         assert(udata->plist[i] >= 0);
     }
 
-    if(udata->p == NULL) {
+    if (udata->p == NULL) {
         udata->p = new double[udata->np];
     }
 
-    if(udata->k == NULL) {
+    if (udata->k == NULL) {
         udata->k = new double[udata->nk];
     }
 
     // x0data is not written to HDF5 with proper dimensions
-    if(udata->x0data)
+    if (udata->x0data)
         delete[] udata->x0data;
     udata->x0data = new double[udata->nx]();
 
     udata->pscale = AMICI_SCALING_LOG10;
 
-    return(udata);
+    return (udata);
 }
 
-UserData *MultiConditionDataProvider::getUserDataForCondition(int conditionIdx) const
-{
+UserData *
+MultiConditionDataProvider::getUserDataForCondition(int conditionIdx) const {
     UserData *udata = getUserData();
 
     updateFixedSimulationParameters(conditionIdx, udata);
@@ -247,48 +241,55 @@ UserData *MultiConditionDataProvider::getUserDataForCondition(int conditionIdx) 
     return udata;
 }
 
-int MultiConditionDataProvider::getIndexOfFirstConditionSpecificOptimizationParameter(int conditionIdx) const
-{
-    return getNumCommonParameters() + conditionIdx * getNumConditionSpecificParametersPerSimulation();
+int MultiConditionDataProvider::
+    getIndexOfFirstConditionSpecificOptimizationParameter(
+        int conditionIdx) const {
+    return getNumCommonParameters() +
+           conditionIdx * getNumConditionSpecificParametersPerSimulation();
 }
 
-void MultiConditionDataProvider::updateConditionSpecificSimulationParameters(int conditionIndex, const double *optimizationParams, UserData *udata) const
-{
-    /* Optimization parameters are [commonParameters, condition1SpecificParameters, condition2SpecificParameters, ...]
+void MultiConditionDataProvider::updateConditionSpecificSimulationParameters(
+    int conditionIndex, const double *optimizationParams,
+    UserData *udata) const {
+    /* Optimization parameters are [commonParameters,
+     * condition1SpecificParameters, condition2SpecificParameters, ...]
      * number of condition specific parameters is the same for all cell lines.
-     * Simulation parameters are [commonParameters, currentCelllineSpecificParameter]
+     * Simulation parameters are [commonParameters,
+     * currentCelllineSpecificParameter]
      */
 
     const int numCommonParams = getNumCommonParameters();
-    const int numSpecificParams = getNumConditionSpecificParametersPerSimulation();
+    const int numSpecificParams =
+        getNumConditionSpecificParametersPerSimulation();
 
-    // beginning of condition specific simulation parameters within optimization parameters
-    const double *pConditionSpecificOptimization = &optimizationParams[getIndexOfFirstConditionSpecificOptimizationParameter(conditionIndex)];
+    // beginning of condition specific simulation parameters within optimization
+    // parameters
+    const double *pConditionSpecificOptimization =
+        &optimizationParams
+            [getIndexOfFirstConditionSpecificOptimizationParameter(
+                conditionIndex)];
 
-    // beginning of condition specific simulation parameters within simulation parameters
+    // beginning of condition specific simulation parameters within simulation
+    // parameters
     double *pConditionSpecificSimulation = &(udata->p[numCommonParams]);
 
-    memcpy(pConditionSpecificSimulation, pConditionSpecificOptimization, numSpecificParams * sizeof(double));
-
+    memcpy(pConditionSpecificSimulation, pConditionSpecificOptimization,
+           numSpecificParams * sizeof(double));
 }
 
-
-MultiConditionDataProvider::~MultiConditionDataProvider()
-{
-    if(fileId > 0) {
+MultiConditionDataProvider::~MultiConditionDataProvider() {
+    if (fileId > 0) {
         H5_SAVE_ERROR_HANDLER;
         herr_t status = H5Fclose(fileId);
 
-        if(status< 0) {
+        if (status < 0) {
             error("closeDataProvider failed to close HDF5 file.");
             printBacktrace(20);
-            H5Ewalk2(H5E_DEFAULT, H5E_WALK_DOWNWARD, hdf5ErrorStackWalker_cb, NULL);
+            H5Ewalk2(H5E_DEFAULT, H5E_WALK_DOWNWARD, hdf5ErrorStackWalker_cb,
+                     NULL);
         }
         H5_RESTORE_ERROR_HANDLER;
     }
 }
 
-MultiConditionDataProvider::MultiConditionDataProvider()
-{
-
-}
+MultiConditionDataProvider::MultiConditionDataProvider() {}

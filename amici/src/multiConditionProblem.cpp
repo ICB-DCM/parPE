@@ -1,17 +1,17 @@
 #include "multiConditionProblem.h"
-#include "simulationWorkerAmici.h"
 #include "multiConditionProblemResultWriter.h"
 #include "optimizationOptions.h"
+#include "simulationWorkerAmici.h"
 
+#include <assert.h>
 #include <cmath>
 #include <string.h>
-#include <assert.h>
 
+#include "steadystateSimulator.h"
 #include <loadBalancerMaster.h>
 #include <loadBalancerWorker.h>
-#include <misc.h>
 #include <logging.h>
-#include "steadystateSimulator.h"
+#include <misc.h>
 #include <udata.h>
 
 // For debugging:
@@ -20,10 +20,8 @@
 
 ReturnData *getDummyRdata(UserData *udata, int *iterationsDone);
 
-
-void handleWorkPackage(char **buffer, int *msgSize, int jobId, void *userData)
-{
-    MultiConditionProblem *problem = (MultiConditionProblem *) userData;
+void handleWorkPackage(char **buffer, int *msgSize, int jobId, void *userData) {
+    MultiConditionProblem *problem = (MultiConditionProblem *)userData;
     MultiConditionDataProvider *dataProvider = problem->getDataProvider();
 
     // unpack
@@ -35,28 +33,32 @@ void handleWorkPackage(char **buffer, int *msgSize, int jobId, void *userData)
 #if QUEUE_WORKER_H_VERBOSE >= 2
     int mpiRank;
     MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
-    printf("[%d] Received work. ", mpiRank); fflush(stdout);
+    printf("[%d] Received work. ", mpiRank);
+    fflush(stdout);
 #endif
 
     // do work
     int status = 0;
-    ReturnData *rdata = MultiConditionProblem::runAndLogSimulation(udata, dataProvider, path, jobId, (MultiConditionProblemResultWriter*)problem->resultWriter, &status);
+    ReturnData *rdata = MultiConditionProblem::runAndLogSimulation(
+        udata, dataProvider, path, jobId,
+        (MultiConditionProblemResultWriter *)problem->resultWriter, &status);
 
 #if QUEUE_WORKER_H_VERBOSE >= 2
-    printf("[%d] Work done. ", mpiRank); fflush(stdout);
+    printf("[%d] Work done. ", mpiRank);
+    fflush(stdout);
 #endif
 
     // pack & cleanup
     *msgSize = JobResultAmiciSimulation::getLength(udata->np);
-    *buffer = (char*) malloc(*msgSize);
+    *buffer = (char *)malloc(*msgSize);
     JobResultAmiciSimulation::serialize(rdata, udata, status, *buffer);
 
     delete rdata;
     delete udata;
 }
 
-
-MultiConditionProblem::MultiConditionProblem() : OptimizationProblem() // for testing only
+MultiConditionProblem::MultiConditionProblem()
+    : OptimizationProblem() // for testing only
 {
     udata = NULL;
     dataProvider = NULL;
@@ -67,19 +69,19 @@ MultiConditionProblem::MultiConditionProblem() : OptimizationProblem() // for te
     path = {0};
 }
 
-MultiConditionProblem::MultiConditionProblem(MultiConditionDataProvider *dataProvider) : MultiConditionProblem()
-{
+MultiConditionProblem::MultiConditionProblem(
+    MultiConditionDataProvider *dataProvider)
+    : MultiConditionProblem() {
     this->dataProvider = dataProvider;
     udata = dataProvider->getUserDataForCondition(0);
 
-    if(udata == NULL)
+    if (udata == NULL)
         abort();
 
     init();
 }
 
-void MultiConditionProblem::init()
-{  
+void MultiConditionProblem::init() {
     numOptimizationParameters = dataProvider->getNumOptimizationParameters();
 
     parametersMin = new double[numOptimizationParameters];
@@ -92,24 +94,26 @@ void MultiConditionProblem::init()
     lastObjectiveFunctionGradient = new double[numOptimizationParameters];
 }
 
-int MultiConditionProblem::evaluateObjectiveFunction(const double *optimiziationVariables,
-                                                     double *objectiveFunctionValue,
-                                                     double *objectiveFunctionGradient)
-{
+int MultiConditionProblem::evaluateObjectiveFunction(
+    const double *optimiziationVariables, double *objectiveFunctionValue,
+    double *objectiveFunctionGradient) {
     // run on all data
     int numDataIndices = dataProvider->getNumberOfConditions();
     int dataIndices[numDataIndices];
-    for(int i = 0; i < numDataIndices; ++i)
+    for (int i = 0; i < numDataIndices; ++i)
         dataIndices[i] = i;
 
-    return evaluateObjectiveFunction(optimiziationVariables, objectiveFunctionValue, objectiveFunctionGradient, dataIndices, numDataIndices);
+    return evaluateObjectiveFunction(
+        optimiziationVariables, objectiveFunctionValue,
+        objectiveFunctionGradient, dataIndices, numDataIndices);
 }
 
-int MultiConditionProblem::evaluateObjectiveFunction(const double *optimiziationVariables, double *objectiveFunctionValue, double *objectiveFunctionGradient, int *dataIndices, int numDataIndices)
-{
+int MultiConditionProblem::evaluateObjectiveFunction(
+    const double *optimiziationVariables, double *objectiveFunctionValue,
+    double *objectiveFunctionGradient, int *dataIndices, int numDataIndices) {
 #ifdef NO_OBJ_FUN_EVAL
-    if(objectiveFunctionGradient)
-        for(int i = 0; i < numOptimizationParameters; ++i)
+    if (objectiveFunctionGradient)
+        for (int i = 0; i < numOptimizationParameters; ++i)
             objectiveFunctionGradient = 0;
     *objectiveFunctionValue = 1;
     return 0;
@@ -119,29 +123,35 @@ int MultiConditionProblem::evaluateObjectiveFunction(const double *optimiziation
 
     *objectiveFunctionValue = 0;
 
-    if(objectiveFunctionGradient)
+    if (objectiveFunctionGradient)
         zeros(objectiveFunctionGradient, numOptimizationParameters);
 
+    int errors =
+        runSimulations(optimiziationVariables, objectiveFunctionValue,
+                       objectiveFunctionGradient, dataIndices, numDataIndices);
 
-    int errors = runSimulations(optimiziationVariables, objectiveFunctionValue, objectiveFunctionGradient, dataIndices, numDataIndices);
-
-    if(errors) {
+    if (errors) {
         printObjectiveFunctionFailureMessage();
         *objectiveFunctionValue = INFINITY;
     }
 
     lastObjectiveFunctionValue = *objectiveFunctionValue;
-    memcpy(lastOptimizationParameters, optimiziationVariables, sizeof(double) * numOptimizationParameters);
-    if(objectiveFunctionGradient)
-        memcpy(lastObjectiveFunctionGradient, objectiveFunctionGradient, sizeof(double) * numOptimizationParameters);
+    memcpy(lastOptimizationParameters, optimiziationVariables,
+           sizeof(double) * numOptimizationParameters);
+    if (objectiveFunctionGradient)
+        memcpy(lastObjectiveFunctionGradient, objectiveFunctionGradient,
+               sizeof(double) * numOptimizationParameters);
 
     return errors;
 }
 
-int MultiConditionProblem::intermediateFunction(int alg_mod, int iter_count, double obj_value, double inf_pr, double inf_du, double mu, double d_norm, double regularization_size, double alpha_du, double alpha_pr, int ls_trials)
-{
+int MultiConditionProblem::intermediateFunction(
+    int alg_mod, int iter_count, double obj_value, double inf_pr, double inf_du,
+    double mu, double d_norm, double regularization_size, double alpha_du,
+    double alpha_pr, int ls_trials) {
     static double startTime = 0;
-    // Wall time on master. NOTE: This also includes waiting time for the job being sent to workers.
+    // Wall time on master. NOTE: This also includes waiting time for the job
+    // being sent to workers.
     double duration = startTime ? (MPI_Wtime() - startTime) : 0;
 
     bool stop = false;
@@ -150,14 +160,19 @@ int MultiConditionProblem::intermediateFunction(int alg_mod, int iter_count, dou
 
     char strBuf[50];
     sprintJobIdentifier(strBuf, path);
-    //    logmessage(LOGLVL_INFO, "%s: %d %d %e %e %e %e %e %e %e %e %d", strBuf,
+    //    logmessage(LOGLVL_INFO, "%s: %d %d %e %e %e %e %e %e %e %e %d",
+    //    strBuf,
     //               alg_mod, iter_count, obj_value, inf_pr, inf_du,
-    //               mu, d_norm, regularization_size, alpha_du, alpha_pr, ls_trials);
+    //               mu, d_norm, regularization_size, alpha_du, alpha_pr,
+    //               ls_trials);
 
-    if(resultWriter) {
-        ((MultiConditionProblemResultWriter*) resultWriter)->setJobId(path);
-        resultWriter->logLocalOptimizerIteration(iter_count, lastOptimizationParameters, numOptimizationParameters, obj_value, lastObjectiveFunctionGradient, duration,
-                                                 alg_mod, inf_pr, inf_du, mu, d_norm, regularization_size, alpha_du, alpha_pr, ls_trials);
+    if (resultWriter) {
+        ((MultiConditionProblemResultWriter *)resultWriter)->setJobId(path);
+        resultWriter->logLocalOptimizerIteration(
+            iter_count, lastOptimizationParameters, numOptimizationParameters,
+            obj_value, lastObjectiveFunctionGradient, duration, alg_mod, inf_pr,
+            inf_du, mu, d_norm, regularization_size, alpha_du, alpha_pr,
+            ls_trials);
     }
 
     startTime = MPI_Wtime();
@@ -165,40 +180,49 @@ int MultiConditionProblem::intermediateFunction(int alg_mod, int iter_count, dou
     return stop;
 }
 
-void MultiConditionProblem::logObjectiveFunctionEvaluation(const double *parameters, double objectiveFunctionValue, const double *objectiveFunctionGradient, int numFunctionCalls, double timeElapsed)
-{
-    if(resultWriter)
-        resultWriter->logLocalOptimizerObjectiveFunctionEvaluation(parameters, numOptimizationParameters, objectiveFunctionValue, objectiveFunctionGradient, numFunctionCalls, timeElapsed);
+void MultiConditionProblem::logObjectiveFunctionEvaluation(
+    const double *parameters, double objectiveFunctionValue,
+    const double *objectiveFunctionGradient, int numFunctionCalls,
+    double timeElapsed) {
+    if (resultWriter)
+        resultWriter->logLocalOptimizerObjectiveFunctionEvaluation(
+            parameters, numOptimizationParameters, objectiveFunctionValue,
+            objectiveFunctionGradient, numFunctionCalls, timeElapsed);
 }
 
-void MultiConditionProblem::logOptimizerFinished(double optimalCost, const double *optimalParameters, double masterTime, int exitStatus)
-{
+void MultiConditionProblem::logOptimizerFinished(
+    double optimalCost, const double *optimalParameters, double masterTime,
+    int exitStatus) {
     char strBuf[100];
     sprintJobIdentifier(strBuf, path);
-    logmessage(LOGLVL_INFO, "%s: Optimizer status %d, final llh: %e, time: %f.", strBuf, exitStatus, optimalCost, masterTime);
+    logmessage(LOGLVL_INFO, "%s: Optimizer status %d, final llh: %e, time: %f.",
+               strBuf, exitStatus, optimalCost, masterTime);
 
-    if(resultWriter)
-        resultWriter->saveLocalOptimizerResults(optimalCost, optimalParameters, numOptimizationParameters, masterTime, exitStatus);
+    if (resultWriter)
+        resultWriter->saveLocalOptimizerResults(optimalCost, optimalParameters,
+                                                numOptimizationParameters,
+                                                masterTime, exitStatus);
 }
 
-ReturnData *MultiConditionProblem::runAndLogSimulation(UserData *udata,
-                                                       MultiConditionDataProvider *dataProvider,
-                                                       JobIdentifier path,
-                                                       int jobId,
-                                                       MultiConditionProblemResultWriter *resultWriter,
-                                                       int *status)
-{
+ReturnData *MultiConditionProblem::runAndLogSimulation(
+    UserData *udata, MultiConditionDataProvider *dataProvider,
+    JobIdentifier path, int jobId,
+    MultiConditionProblemResultWriter *resultWriter, int *status) {
     double startTime = MPI_Wtime();
 
     // run simulation
     int iterationsUntilSteadystate = -1;
 
-    // update UserData::k for condition-specific variables (no parameter mapping necessary here,
+    // update UserData::k for condition-specific variables (no parameter mapping
+    // necessary here,
     // this has been done by master)
-    ExpData *edata = dataProvider->getExperimentalDataForExperimentAndUpdateFixedParameters(path.idxConditions, udata);
+    ExpData *edata =
+        dataProvider->getExperimentalDataForExperimentAndUpdateFixedParameters(
+            path.idxConditions, udata);
 
-    if(edata == NULL) {
-        logmessage(LOGLVL_CRITICAL, "Failed to get experiment data. Check data file. Aborting.");
+    if (edata == NULL) {
+        logmessage(LOGLVL_CRITICAL,
+                   "Failed to get experiment data. Check data file. Aborting.");
         abort();
     }
 
@@ -209,33 +233,34 @@ ReturnData *MultiConditionProblem::runAndLogSimulation(UserData *udata,
     double endTime = MPI_Wtime();
     double timeSeconds = (endTime - startTime);
 
-    *status = (int) *rdata->status;
+    *status = (int)*rdata->status;
 
     char pathStrBuf[100];
     sprintJobIdentifier(pathStrBuf, path);
-    logmessage(LOGLVL_DEBUG, "Result for %s (%d): %e  (%d) (%.2fs)", pathStrBuf, jobId, rdata->llh[0], *status, timeSeconds);
-
+    logmessage(LOGLVL_DEBUG, "Result for %s (%d): %e  (%d) (%.2fs)", pathStrBuf,
+               jobId, rdata->llh[0], *status, timeSeconds);
 
     // check for NaNs
-    if(udata->sensi >= AMICI_SENSI_ORDER_FIRST) {
-        for(int i = 0; i < udata->np; ++i)
-            if(std::isnan(rdata->sllh[i]))
-                logmessage(LOGLVL_DEBUG, "Result for %s: contains NaN at %d", pathStrBuf, i);
-            else if(std::isinf(rdata->sllh[i]))
-                logmessage(LOGLVL_DEBUG, "Result for %s: contains Inf at %d", pathStrBuf, i);
+    if (udata->sensi >= AMICI_SENSI_ORDER_FIRST) {
+        for (int i = 0; i < udata->np; ++i)
+            if (std::isnan(rdata->sllh[i]))
+                logmessage(LOGLVL_DEBUG, "Result for %s: contains NaN at %d",
+                           pathStrBuf, i);
+            else if (std::isinf(rdata->sllh[i]))
+                logmessage(LOGLVL_DEBUG, "Result for %s: contains Inf at %d",
+                           pathStrBuf, i);
     }
 
-    if(resultWriter)
+    if (resultWriter)
         resultWriter->logSimulation(path, udata->p, rdata->llh[0], rdata->sllh,
-                timeSeconds, udata->np, udata->nx, rdata->x, rdata->sx, udata->ny, rdata->y,
-                jobId, iterationsUntilSteadystate, *status);
+                                    timeSeconds, udata->np, udata->nx, rdata->x,
+                                    rdata->sx, udata->ny, rdata->y, jobId,
+                                    iterationsUntilSteadystate, *status);
 
     return rdata;
 }
 
-
-MultiConditionProblem::~MultiConditionProblem()
-{
+MultiConditionProblem::~MultiConditionProblem() {
     delete udata;
 
     delete[] initialParameters;
@@ -245,21 +270,26 @@ MultiConditionProblem::~MultiConditionProblem()
     delete[] lastOptimizationParameters;
 }
 
-double *MultiConditionProblem::getInitialParameters(int multiStartIndex) const
-{
-    return OptimizationOptions::getStartingPoint(dataProvider->fileId, multiStartIndex);
+double *MultiConditionProblem::getInitialParameters(int multiStartIndex) const {
+    return OptimizationOptions::getStartingPoint(dataProvider->fileId,
+                                                 multiStartIndex);
 }
 
-void MultiConditionProblem::updateUserDataCommon(const double *simulationParameters, const double *objectiveFunctionGradient)
-{
+void MultiConditionProblem::updateUserDataCommon(
+    const double *simulationParameters,
+    const double *objectiveFunctionGradient) {
     setSensitivityOptions(objectiveFunctionGradient);
 
-    // update common parameters in UserData, cell-line specific ones are updated later
+    // update common parameters in UserData, cell-line specific ones are updated
+    // later
     memcpy(udata->p, simulationParameters, sizeof(double) * udata->np);
 }
 
-int MultiConditionProblem::runSimulations(const double *optimizationVariables, double *logLikelihood, double *objectiveFunctionGradient, int *dataIndices, int numDataIndices)
-{   
+int MultiConditionProblem::runSimulations(const double *optimizationVariables,
+                                          double *logLikelihood,
+                                          double *objectiveFunctionGradient,
+                                          int *dataIndices,
+                                          int numDataIndices) {
     JobIdentifier path = this->path;
 
     int numJobsTotal = numDataIndices;
@@ -269,44 +299,52 @@ int MultiConditionProblem::runSimulations(const double *optimizationVariables, d
     JobData *jobs = new JobData[numJobsTotal];
 
     // TODO: need to send previous steadystate as initial conditions
-    int lenSendBuffer = JobAmiciSimulation::getLength(udata->np, sizeof(JobIdentifier));
+    int lenSendBuffer =
+        JobAmiciSimulation::getLength(udata->np, sizeof(JobIdentifier));
 
     // mutex to wait for simulations to finish
     pthread_cond_t simulationsCond = PTHREAD_COND_INITIALIZER;
     pthread_mutex_t simulationsMutex = PTHREAD_MUTEX_INITIALIZER;
 
-    for(int simulationIdx = 0; simulationIdx < numJobsTotal; ++simulationIdx) {
-        // tell worker with condition to work on, for logging and reading proper UserData::k
+    for (int simulationIdx = 0; simulationIdx < numJobsTotal; ++simulationIdx) {
+        // tell worker with condition to work on, for logging and reading proper
+        // UserData::k
         path.idxConditions = simulationIdx;
 
-        // extract parameters for simulation of current condition, instead of sending whole
+        // extract parameters for simulation of current condition, instead of
+        // sending whole
         // optimization parameter vector to worker
-        dataProvider->updateConditionSpecificSimulationParameters(dataIndices[simulationIdx], optimizationVariables, udata);
+        dataProvider->updateConditionSpecificSimulationParameters(
+            dataIndices[simulationIdx], optimizationVariables, udata);
 
-        queueSimulation(path, &jobs[simulationIdx],  &numJobsFinished,
-                        &simulationsCond, &simulationsMutex,
-                        lenSendBuffer);
+        queueSimulation(path, &jobs[simulationIdx], &numJobsFinished,
+                        &simulationsCond, &simulationsMutex, lenSendBuffer);
         // printf("Queued work: "); printDatapath(path);
     }
 
     // wait for simulations to finish
     pthread_mutex_lock(&simulationsMutex);
-    while(numJobsFinished < numJobsTotal) // TODO handle finished simulations here, don't wait for all to complete; stop early if errors occured
+    while (numJobsFinished < numJobsTotal) // TODO handle finished simulations
+                                           // here, don't wait for all to
+                                           // complete; stop early if errors
+                                           // occured
         pthread_cond_wait(&simulationsCond, &simulationsMutex);
     pthread_mutex_unlock(&simulationsMutex);
     pthread_mutex_destroy(&simulationsMutex);
     pthread_cond_destroy(&simulationsCond);
 
     // unpack
-    int errors = aggregateLikelihood(jobs, logLikelihood, objectiveFunctionGradient, dataIndices, numDataIndices);
+    int errors =
+        aggregateLikelihood(jobs, logLikelihood, objectiveFunctionGradient,
+                            dataIndices, numDataIndices);
     delete[] jobs;
 
     return errors;
-
 }
 
-int MultiConditionProblem::aggregateLikelihood(JobData *data, double *logLikelihood, double *objectiveFunctionGradient, int *dataIndices, int numDataIndices)
-{
+int MultiConditionProblem::aggregateLikelihood(
+    JobData *data, double *logLikelihood, double *objectiveFunctionGradient,
+    int *dataIndices, int numDataIndices) {
     int errors = 0;
 
     // temporary variables for deserialization
@@ -315,24 +353,26 @@ int MultiConditionProblem::aggregateLikelihood(JobData *data, double *logLikelih
 
     int numJobsTotal = dataProvider->getNumberOfConditions();
 
-    for(int simulationIdx = 0; simulationIdx < numJobsTotal; ++simulationIdx) {
+    for (int simulationIdx = 0; simulationIdx < numJobsTotal; ++simulationIdx) {
         // deserialize
-        errors += unpackSimulationResult(&data[simulationIdx], sllhTmp, &llhTmp);
+        errors +=
+            unpackSimulationResult(&data[simulationIdx], sllhTmp, &llhTmp);
 
         // sum up
         *logLikelihood -= llhTmp;
 
-        if(objectiveFunctionGradient)
-            addSimulationGradientToObjectiveFunctionGradient(dataIndices[simulationIdx],
-                                                             sllhTmp, objectiveFunctionGradient,
-                                                             dataProvider->getNumCommonParameters());
+        if (objectiveFunctionGradient)
+            addSimulationGradientToObjectiveFunctionGradient(
+                dataIndices[simulationIdx], sllhTmp, objectiveFunctionGradient,
+                dataProvider->getNumCommonParameters());
     }
 
     return errors;
 }
 
-int MultiConditionProblemSerial::runSimulations(const double *optimizationVariables, double *logLikelihood, double *objectiveFunctionGradient, int *dataIndices, int numDataIndices)
-{
+int MultiConditionProblemSerial::runSimulations(
+    const double *optimizationVariables, double *logLikelihood,
+    double *objectiveFunctionGradient, int *dataIndices, int numDataIndices) {
     JobIdentifier path = this->path;
 
     int numJobsTotal = numDataIndices;
@@ -341,16 +381,19 @@ int MultiConditionProblemSerial::runSimulations(const double *optimizationVariab
     JobData *data = new JobData[numJobsTotal];
 
     // TODO: need to send previous steadystate as initial conditions
-    int lenSendBuffer = JobAmiciSimulation::getLength(udata->np, sizeof(JobIdentifier));
+    int lenSendBuffer =
+        JobAmiciSimulation::getLength(udata->np, sizeof(JobIdentifier));
 
-    for(int simulationIdx = 0; simulationIdx < numJobsTotal; ++simulationIdx) {
+    for (int simulationIdx = 0; simulationIdx < numJobsTotal; ++simulationIdx) {
         path.idxConditions = simulationIdx;
 
         // update condition specific simulation parameters
-        dataProvider->updateConditionSpecificSimulationParameters(dataIndices[simulationIdx], optimizationVariables, udata);
+        dataProvider->updateConditionSpecificSimulationParameters(
+            dataIndices[simulationIdx], optimizationVariables, udata);
 
         data[simulationIdx].lenSendBuffer = lenSendBuffer;
-        data[simulationIdx].sendBuffer = (char *) malloc(lenSendBuffer); // malloc, because will be free()'d by queue
+        data[simulationIdx].sendBuffer = (char *)malloc(
+            lenSendBuffer); // malloc, because will be free()'d by queue
 
         JobAmiciSimulation work;
         work.data = &path;
@@ -361,52 +404,61 @@ int MultiConditionProblemSerial::runSimulations(const double *optimizationVariab
 
         work.serialize(data[simulationIdx].sendBuffer);
         int sizeDummy;
-        handleWorkPackage(&data[simulationIdx].sendBuffer, &sizeDummy, simulationIdx, this);
+        handleWorkPackage(&data[simulationIdx].sendBuffer, &sizeDummy,
+                          simulationIdx, this);
         data[simulationIdx].recvBuffer = data[simulationIdx].sendBuffer;
-
     }
 
     // unpack
-    int errors = aggregateLikelihood(data, logLikelihood, objectiveFunctionGradient, dataIndices, numDataIndices);
+    int errors =
+        aggregateLikelihood(data, logLikelihood, objectiveFunctionGradient,
+                            dataIndices, numDataIndices);
 
     delete[] data;
 
     return errors;
 }
 
-void MultiConditionProblem::printObjectiveFunctionFailureMessage()
-{
+void MultiConditionProblem::printObjectiveFunctionFailureMessage() {
     char strBuf[100];
     sprintJobIdentifier(strBuf, path);
-    logmessage(LOGLVL_ERROR, "%s: Objective function evaluation failed!", strBuf);
-
+    logmessage(LOGLVL_ERROR, "%s: Objective function evaluation failed!",
+               strBuf);
 }
 
-void MultiConditionProblem::addSimulationGradientToObjectiveFunctionGradient(int conditionIdx, const double *simulationGradient, double *objectiveFunctionGradient, int numCommon)
-{
+void MultiConditionProblem::addSimulationGradientToObjectiveFunctionGradient(
+    int conditionIdx, const double *simulationGradient,
+    double *objectiveFunctionGradient, int numCommon) {
     // global parameters: simply add
-    for(int paramIdx = 0; paramIdx < numCommon; ++paramIdx)
+    for (int paramIdx = 0; paramIdx < numCommon; ++paramIdx)
         objectiveFunctionGradient[paramIdx] -= simulationGradient[paramIdx];
 
     // map condition-specific parameters
-    addSimulationGradientToObjectiveFunctionGradientConditionSpecificParameters(simulationGradient, objectiveFunctionGradient, numCommon,
-                                                                                dataProvider->getNumConditionSpecificParametersPerSimulation(),
-                                                                                dataProvider->getIndexOfFirstConditionSpecificOptimizationParameter(conditionIdx));
+    addSimulationGradientToObjectiveFunctionGradientConditionSpecificParameters(
+        simulationGradient, objectiveFunctionGradient, numCommon,
+        dataProvider->getNumConditionSpecificParametersPerSimulation(),
+        dataProvider->getIndexOfFirstConditionSpecificOptimizationParameter(
+            conditionIdx));
 }
 
-void MultiConditionProblem::addSimulationGradientToObjectiveFunctionGradientConditionSpecificParameters(const double *simulationGradient, double *objectiveFunctionGradient, int numCommon,
-                                                                                                        int numConditionSpecificParams, int firstIndexOfCurrentConditionsSpecificOptimizationParameters)
-{
+void MultiConditionProblem::
+    addSimulationGradientToObjectiveFunctionGradientConditionSpecificParameters(
+        const double *simulationGradient, double *objectiveFunctionGradient,
+        int numCommon, int numConditionSpecificParams,
+        int firstIndexOfCurrentConditionsSpecificOptimizationParameters) {
     // condition specific parameters: map simulation to optimization parameters
-    for(int paramIdx = 0; paramIdx < numConditionSpecificParams; ++paramIdx) {
-        int idxOpt = firstIndexOfCurrentConditionsSpecificOptimizationParameters + paramIdx;
-        int idxSim  = numCommon + paramIdx;
+    for (int paramIdx = 0; paramIdx < numConditionSpecificParams; ++paramIdx) {
+        int idxOpt =
+            firstIndexOfCurrentConditionsSpecificOptimizationParameters +
+            paramIdx;
+        int idxSim = numCommon + paramIdx;
         objectiveFunctionGradient[idxOpt] -= simulationGradient[idxSim];
     }
 }
 
-int MultiConditionProblem::unpackSimulationResult(JobData *d, double *sllhBuffer, double *llh)
-{
+int MultiConditionProblem::unpackSimulationResult(JobData *d,
+                                                  double *sllhBuffer,
+                                                  double *llh) {
     JobResultAmiciSimulation result;
     result.sllh = sllhBuffer;
 
@@ -418,9 +470,12 @@ int MultiConditionProblem::unpackSimulationResult(JobData *d, double *sllhBuffer
     return result.status != 0;
 }
 
-void MultiConditionProblem::queueSimulation(JobIdentifier path, JobData *d, int *jobDone, pthread_cond_t *jobDoneChangedCondition, pthread_mutex_t *jobDoneChangedMutex, int lenSendBuffer)
-{
-    *d = initJobData(lenSendBuffer, NULL, jobDone, jobDoneChangedCondition, jobDoneChangedMutex);
+void MultiConditionProblem::queueSimulation(
+    JobIdentifier path, JobData *d, int *jobDone,
+    pthread_cond_t *jobDoneChangedCondition,
+    pthread_mutex_t *jobDoneChangedMutex, int lenSendBuffer) {
+    *d = initJobData(lenSendBuffer, NULL, jobDone, jobDoneChangedCondition,
+                     jobDoneChangedMutex);
 
     JobAmiciSimulation work;
     work.data = &path;
@@ -433,11 +488,9 @@ void MultiConditionProblem::queueSimulation(JobIdentifier path, JobData *d, int 
     loadBalancerQueueJob(d);
 }
 
-
-void MultiConditionProblem::setSensitivityOptions(bool sensiRequired)
-{
+void MultiConditionProblem::setSensitivityOptions(bool sensiRequired) {
     // sensitivities requested?
-    if(sensiRequired) {
+    if (sensiRequired) {
         udata->sensi = AMICI_SENSI_ORDER_FIRST;
         udata->sensi_meth = AMICI_SENSI_ASA;
     } else {
@@ -446,23 +499,23 @@ void MultiConditionProblem::setSensitivityOptions(bool sensiRequired)
     }
 }
 
-MultiConditionDataProvider *MultiConditionProblem::getDataProvider()
-{
+MultiConditionDataProvider *MultiConditionProblem::getDataProvider() {
     return dataProvider;
 }
 
-OptimizationProblem *MultiConditionProblemGeneratorForMultiStart::getLocalProblemImpl(int multiStartIndex)
-{
+OptimizationProblem *
+MultiConditionProblemGeneratorForMultiStart::getLocalProblemImpl(
+    int multiStartIndex) {
     int mpiCommSize = 1;
     int mpiInitialized = 0;
 
     MPI_Initialized(&mpiInitialized);
-    if(mpiInitialized)
+    if (mpiInitialized)
         MPI_Comm_size(MPI_COMM_WORLD, &mpiCommSize);
 
     MultiConditionProblem *problem;
 
-    if(mpiCommSize == 1)
+    if (mpiCommSize == 1)
         problem = new MultiConditionProblemSerial(dp);
     else
         problem = new MultiConditionProblem(dp);
@@ -472,9 +525,11 @@ OptimizationProblem *MultiConditionProblemGeneratorForMultiStart::getLocalProble
     JobIdentifier id = resultWriter->getJobId();
     id.idxLocalOptimization = multiStartIndex;
 
-    problem->resultWriter = new MultiConditionProblemResultWriter(resultWriter->file_id, id);
+    problem->resultWriter =
+        new MultiConditionProblemResultWriter(resultWriter->file_id, id);
     problem->path.idxLocalOptimization = multiStartIndex;
 
-    problem->setInitialParameters(problem->getInitialParameters(multiStartIndex));
+    problem->setInitialParameters(
+        problem->getInitialParameters(multiStartIndex));
     return problem;
 }

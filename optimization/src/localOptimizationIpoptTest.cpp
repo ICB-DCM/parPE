@@ -4,30 +4,27 @@
 #include "CppUTestExt/MockSupport.h"
 
 #include "localOptimizationIpopt.h"
-#include "testingMisc.h"
-#include "quadraticTestProblem.h"
 #include "optimizationOptions.h"
+#include "quadraticTestProblem.h"
+#include "testingMisc.h"
 
-TEST_GROUP(localOptimizationIpopt)
-{
-    void setup() {
+TEST_GROUP(localOptimizationIpopt){void setup(){
 
-    }
+}
 
-    void teardown() {
-        mock().checkExpectations();
-        mock().clear();
-    }
-};
-
+                                   void teardown(){mock().checkExpectations();
+mock().clear();
+}
+}
+;
 
 TEST(localOptimizationIpopt, testOptimization) {
     QuadraticTestProblem *problem = new QuadraticTestProblem();
     problem->optimizationOptions->functionTolerance = 1;
 
     mock().expectOneCall("logFinish").withIntParameter("exitStatus", 4);
-//    mock().expectNCalls(11, "testObj");
-//    mock().expectNCalls(12, "testObjGrad");
+    //    mock().expectNCalls(11, "testObj");
+    //    mock().expectNCalls(12, "testObjGrad");
     mock().ignoreOtherCalls();
 
     getLocalOptimumIpopt(problem);
@@ -37,5 +34,3 @@ TEST(localOptimizationIpopt, testOptimization) {
 
     delete problem;
 }
-
-

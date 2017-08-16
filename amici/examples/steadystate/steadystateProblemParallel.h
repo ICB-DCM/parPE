@@ -3,25 +3,25 @@
 
 #include "steadystateProblem.h"
 
-class SteadystateProblemParallel : public SteadystateProblem
-{
-public:
+class SteadystateProblemParallel : public SteadystateProblem {
+  public:
     SteadystateProblemParallel();
 
-    int evaluateObjectiveFunction(const double *parameters, double *objFunVal, double *objFunGrad);
+    int evaluateObjectiveFunction(const double *parameters, double *objFunVal,
+                                  double *objFunGrad);
 
-    int evaluateParallel(const double *parameters, double *objFunVal, double *objFunGrad);
+    int evaluateParallel(const double *parameters, double *objFunVal,
+                         double *objFunGrad);
 
-    int evaluateSerial(const double *parameters, double *objFunVal, double *objFunGrad);
+    int evaluateSerial(const double *parameters, double *objFunVal,
+                       double *objFunGrad);
 
     ~SteadystateProblemParallel();
 
-
-protected:
+  protected:
     int commSize;
 
     int numConditions;
-
 };
 
 #endif // STEADYSTATEPROBLEM_PARALLEL_H

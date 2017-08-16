@@ -1,17 +1,17 @@
 #ifndef PROBLEM_H
 #define PROBLEM_H
 
-#include "optimizationProblem.h"
-#include "multiStartOptimization.h"
-#include "multiConditionProblemResultWriter.h"
 #include "MultiConditionDataProvider.h"
 #include "amici_interface_cpp.h"
 #include "loadBalancerMaster.h"
+#include "multiConditionProblemResultWriter.h"
+#include "multiStartOptimization.h"
+#include "optimizationProblem.h"
 #include "rdata.h"
 
 class MultiConditionProblem : public OptimizationProblem {
 
-public:
+  public:
     MultiConditionProblem();
 
     MultiConditionProblem(MultiConditionDataProvider *dataProvider);
@@ -20,15 +20,22 @@ public:
      * @brief Evaluate cost function at `optimiziationVariables`
      * @param optimiziationVariables Current parameters
      * @param objectiveFunctionValue Out: cost at `optimiziationVariables`
-     * @param objectiveFunctionGradient Out: cost gradient at `optimiziationVariables`
+     * @param objectiveFunctionGradient Out: cost gradient at
+     * `optimiziationVariables`
      * @return status code, non-zero on failure
      */
-    virtual int evaluateObjectiveFunction(const double *optimiziationVariables, double *objectiveFunctionValue, double *objectiveFunctionGradient);
+    virtual int evaluateObjectiveFunction(const double *optimiziationVariables,
+                                          double *objectiveFunctionValue,
+                                          double *objectiveFunctionGradient);
 
-    virtual int evaluateObjectiveFunction(const double *optimiziationVariables, double *objectiveFunctionValue, double *objectiveFunctionGradient, int *dataIndices, int numDataIndices);
+    virtual int evaluateObjectiveFunction(const double *optimiziationVariables,
+                                          double *objectiveFunctionValue,
+                                          double *objectiveFunctionGradient,
+                                          int *dataIndices, int numDataIndices);
 
     /**
-     * @brief This function is called after each iteration. See IpOpt for arguments.
+     * @brief This function is called after each iteration. See IpOpt for
+     * arguments.
      * Only some are passed for CERES.
      * @param alg_mod
      * @param iter_count
@@ -43,15 +50,12 @@ public:
      * @param ls_trials
      * @return status code, non-zero to abort optimization
      */
-    virtual int intermediateFunction(int alg_mod,
-                             int iter_count,
-                             double obj_value,
-                             double inf_pr, double inf_du,
-                             double mu,
-                             double d_norm,
-                             double regularization_size,
-                             double alpha_du, double alpha_pr,
-                             int ls_trials);
+    virtual int intermediateFunction(int alg_mod, int iter_count,
+                                     double obj_value, double inf_pr,
+                                     double inf_du, double mu, double d_norm,
+                                     double regularization_size,
+                                     double alpha_du, double alpha_pr,
+                                     int ls_trials);
 
     /**
      * @brief Called after each cost function evaluation for logging results.
@@ -61,11 +65,11 @@ public:
      * @param numFunctionCalls
      * @param timeElapsed
      */
-    virtual void logObjectiveFunctionEvaluation(const double *parameters,
-                                                double objectiveFunctionValue,
-                                                const double *objectiveFunctionGradient,
-                                                int numFunctionCalls,
-                                                double timeElapsed);
+    virtual void
+    logObjectiveFunctionEvaluation(const double *parameters,
+                                   double objectiveFunctionValue,
+                                   const double *objectiveFunctionGradient,
+                                   int numFunctionCalls, double timeElapsed);
 
     /**
      * @brief Called at the end of an optimization for logging results
@@ -75,13 +79,14 @@ public:
      * @param exitStatus
      */
     virtual void logOptimizerFinished(double optimalCost,
-                                const double *optimalParameters,
-                                double masterTime,
-                                int exitStatus);
+                                      const double *optimalParameters,
+                                      double masterTime, int exitStatus);
 
     /**
-     * @brief Is called by worker processes to run a simulation for the given condition
-     * @param udata UserData for simulation. Model dimensions, sensitivity options and UserData::p is set, others are not.
+     * @brief Is called by worker processes to run a simulation for the given
+     * condition
+     * @param udata UserData for simulation. Model dimensions, sensitivity
+     * options and UserData::p is set, others are not.
      * E.g. UserData::k has to be update if applicable.
      * @param dataProvider
      * @param path
@@ -90,8 +95,10 @@ public:
      * @param status
      * @return
      */
-    static ReturnData *runAndLogSimulation(UserData *udata, MultiConditionDataProvider *dataProvider,
-                                           JobIdentifier path, int jobId, MultiConditionProblemResultWriter *resultWriter, int *status);
+    static ReturnData *runAndLogSimulation(
+        UserData *udata, MultiConditionDataProvider *dataProvider,
+        JobIdentifier path, int jobId,
+        MultiConditionProblemResultWriter *resultWriter, int *status);
 
     virtual MultiConditionDataProvider *getDataProvider();
 
@@ -99,14 +106,13 @@ public:
 
     ~MultiConditionProblem();
 
-
     JobIdentifier path;
 
-protected:
-
+  protected:
     void init();
 
-    void updateUserDataCommon(const double *simulationParameters, const double *objectiveFunctionGradient);
+    void updateUserDataCommon(const double *simulationParameters,
+                              const double *objectiveFunctionGradient);
 
     /**
      * @brief Run AMICI simulations for conditions with the given indices
@@ -117,7 +123,10 @@ protected:
      * @param numDataIndices
      * @return Simulation status, != 0 indicates failure
      */
-    virtual int runSimulations(const double *optimizationVariables, double *logLikelihood, double *objectiveFunctionGradient, int *dataIndices, int numDataIndices);
+    virtual int runSimulations(const double *optimizationVariables,
+                               double *logLikelihood,
+                               double *objectiveFunctionGradient,
+                               int *dataIndices, int numDataIndices);
 
     /**
      * @brief Aggregates loglikelihood received from workers.
@@ -129,7 +138,9 @@ protected:
      * @return *Negative* log likelihood.
      */
 
-    int aggregateLikelihood(JobData *data, double *logLikelihood, double *objectiveFunctionGradient, int *dataIndices, int numDataIndices);
+    int aggregateLikelihood(JobData *data, double *logLikelihood,
+                            double *objectiveFunctionGradient, int *dataIndices,
+                            int numDataIndices);
 
     void printObjectiveFunctionFailureMessage();
 
@@ -141,61 +152,69 @@ protected:
      * @param Gradient of the *negative* log likelihood.
      */
 
-    void addSimulationGradientToObjectiveFunctionGradient(int conditionIdx, const double *simulationGradient, double *objectiveFunctionGradient, int numCommon);
+    void addSimulationGradientToObjectiveFunctionGradient(
+        int conditionIdx, const double *simulationGradient,
+        double *objectiveFunctionGradient, int numCommon);
 
-    void addSimulationGradientToObjectiveFunctionGradientConditionSpecificParameters(const double *simulationGradient, double *objectiveFunctionGradient, int numCommon, int numConditionSpecificParams, int firstIndexOfCurrentConditionsSpecificOptimizationParameters);
+    void
+    addSimulationGradientToObjectiveFunctionGradientConditionSpecificParameters(
+        const double *simulationGradient, double *objectiveFunctionGradient,
+        int numCommon, int numConditionSpecificParams,
+        int firstIndexOfCurrentConditionsSpecificOptimizationParameters);
 
     int unpackSimulationResult(JobData *d, double *sllhBuffer, double *llh);
 
     void queueSimulation(JobIdentifier path, JobData *d, int *jobDone,
-                         pthread_cond_t *jobDoneChangedCondition, pthread_mutex_t *jobDoneChangedMutex,
+                         pthread_cond_t *jobDoneChangedCondition,
+                         pthread_mutex_t *jobDoneChangedMutex,
                          int lenSendBuffer);
 
     virtual void setSensitivityOptions(bool sensiRequired);
-
 
     UserData *udata;
 
     MultiConditionDataProvider *dataProvider;
 
-    // keep track of previous results to avoid re-evaluation at the same parameters (using IpOpt new_x)
+    // keep track of previous results to avoid re-evaluation at the same
+    // parameters (using IpOpt new_x)
     double *lastOptimizationParameters;
     double *lastObjectiveFunctionGradient;
     double lastObjectiveFunctionValue;
 };
 
-
-
 /**
- * @brief The MultiConditionProblemSerial class does the same as its base class, but runs simulations
+ * @brief The MultiConditionProblemSerial class does the same as its base class,
+ * but runs simulations
  * by itself within the same thread. Mostly intended for debugging.
  */
 
 class MultiConditionProblemSerial : public MultiConditionProblem {
 
-public:
+  public:
     MultiConditionProblemSerial() {}
 
-    MultiConditionProblemSerial(MultiConditionDataProvider *dataProvider) : MultiConditionProblem(dataProvider) {}
+    MultiConditionProblemSerial(MultiConditionDataProvider *dataProvider)
+        : MultiConditionProblem(dataProvider) {}
 
-    int runSimulations(const double *optimizationVariables, double *logLikelihood, double *objectiveFunctionGradient,  int *dataIndices, int numDataIndices);
-
+    int runSimulations(const double *optimizationVariables,
+                       double *logLikelihood, double *objectiveFunctionGradient,
+                       int *dataIndices, int numDataIndices);
 };
 
-
 /**
- * @brief The MultiConditionProblemGeneratorForMultiStart class generates new MultiConditionProblem instances
+ * @brief The MultiConditionProblemGeneratorForMultiStart class generates new
+ * MultiConditionProblem instances
  * with proper DataProviders for multi-start optimization
  */
 
-class MultiConditionProblemGeneratorForMultiStart : public OptimizationProblemGeneratorForMultiStart {
-public:
+class MultiConditionProblemGeneratorForMultiStart
+    : public OptimizationProblemGeneratorForMultiStart {
+  public:
     OptimizationProblem *getLocalProblemImpl(int multiStartIndex);
 
     MultiConditionDataProvider *dp;
     OptimizationOptions *options;
     MultiConditionProblemResultWriter *resultWriter;
-
 };
 
 /**

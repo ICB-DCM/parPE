@@ -1,11 +1,10 @@
 #include <stdio.h>
 
+#include "optimizationOptions.h"
 #include "optimizationProblem.h"
 #include "steadystateProblem.h"
-#include "optimizationOptions.h"
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
     SteadystateProblem problem = SteadystateProblem();
 
     printf("#########\n");

@@ -1,20 +1,20 @@
 #ifndef LOGGER_H
 #define LOGGER_H
 
-#include <stdbool.h>
-#include "optimizationProblem.h"
 #include "MultiConditionDataProvider.h"
+#include "optimizationProblem.h"
 #include "optimizationResultWriter.h"
-
+#include <stdbool.h>
 
 class MultiConditionProblemResultWriter : public OptimizationResultWriter {
 
-public:
+  public:
     MultiConditionProblemResultWriter();
 
     MultiConditionProblemResultWriter(hid_t file_id, JobIdentifier id);
 
-    MultiConditionProblemResultWriter(const char *filename, bool overwrite, JobIdentifier id);
+    MultiConditionProblemResultWriter(const char *filename, bool overwrite,
+                                      JobIdentifier id);
 
     std::string getIterationPath(int iterationIdx);
 
@@ -26,19 +26,16 @@ public:
 
     void setJobId(JobIdentifier id);
 
-    void logSimulation(JobIdentifier id, const double *theta,
-                       double llh, const double *gradient,
-                       double timeElapsedInSeconds,
-                       int nTheta, int numStates,
-                       double *states, double *stateSensi, int numY,
-                       double *y, int jobId,
+    void logSimulation(JobIdentifier id, const double *theta, double llh,
+                       const double *gradient, double timeElapsedInSeconds,
+                       int nTheta, int numStates, double *states,
+                       double *stateSensi, int numY, double *y, int jobId,
                        int iterationsUntilSteadystate, int status);
 
     bool logLineSearch = false;
 
-protected:
+  protected:
     JobIdentifier id;
-
 };
 
 #endif

@@ -1,9 +1,9 @@
-#include <iostream>
-#include <fstream>
-#include <boost/archive/text_iarchive.hpp>
-#include <boost/archive/text_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/text_oarchive.hpp>
+#include <fstream>
+#include <iostream>
 
 #include <boost/iostreams/device/back_inserter.hpp>
 #include <boost/iostreams/stream.hpp>
@@ -57,78 +57,74 @@ void checkUserDataEqual(UserData u, UserData v) {
     CHECK_EQUAL(u.nan_xdot, v.nan_xdot);
     CHECK_EQUAL(u.nan_xBdot, v.nan_xBdot);
     CHECK_EQUAL(u.nan_qBdot, v.nan_qBdot);
-
 }
 
-TEST_GROUP(serialization)
-{
-    void setup() {
-    }
+TEST_GROUP(serialization){void setup(){}
 
-    void teardown() {
-    }
-};
+                          void teardown(){}};
 
 TEST(serialization, test) {
 
-    UserData u(1,2,3,4,5,6,7,0,0,0,0,0,0,0,0,0,AMICI_SCALING_LN, AMICI_O2MODE_FULL);
-//    printUserData(&u);
+    UserData u(1, 2, 3, 4, 5, 6, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, AMICI_SCALING_LN,
+               AMICI_O2MODE_FULL);
+    //    printUserData(&u);
     {
-        std::ofstream ofs( "sstore.dat" );
+        std::ofstream ofs("sstore.dat");
         boost::archive::text_oarchive oar(ofs);
-        oar & u;
+        oar &u;
     }
     {
-        std::ifstream ifs( "sstore.dat" );
+        std::ifstream ifs("sstore.dat");
         boost::archive::text_iarchive iar(ifs);
         UserData v;
-        iar & v;
+        iar &v;
         checkUserDataEqual(u, v);
-//        printUserData(&v);
-
+        //        printUserData(&v);
     }
-
 }
 
 TEST(serialization, test2) {
 
-    UserData u(1,2,3,4,5,6,7,0,0,0,0,0,0,0,0,0,AMICI_SCALING_LN, AMICI_O2MODE_FULL);
-//    printUserData(&u);printf("\n");
+    UserData u(1, 2, 3, 4, 5, 6, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, AMICI_SCALING_LN,
+               AMICI_O2MODE_FULL);
+    //    printUserData(&u);printf("\n");
 
     std::string serialized;
 
     {
         boost::iostreams::back_insert_device<std::string> inserter(serialized);
-        boost::iostreams::stream<boost::iostreams::back_insert_device<std::string> > s(inserter);
+        boost::iostreams::stream<
+            boost::iostreams::back_insert_device<std::string>>
+            s(inserter);
         boost::archive::binary_oarchive oar(s);
         oar << u;
         s.flush();
     }
     {
-        boost::iostreams::basic_array_source<char> device(serialized.data(), serialized.size());
-        boost::iostreams::stream<boost::iostreams::basic_array_source<char> > s(device);
+        boost::iostreams::basic_array_source<char> device(serialized.data(),
+                                                          serialized.size());
+        boost::iostreams::stream<boost::iostreams::basic_array_source<char>> s(
+            device);
         boost::archive::binary_iarchive iar(s);
         UserData v;
         iar >> v;
-//        printUserData(&v);
+        //        printUserData(&v);
         checkUserDataEqual(u, v);
     }
 }
 
 TEST(serialization, test3) {
 
-    UserData u(1,2,3,4,5,6,7,0,0,0,0,0,0,0,0,0,AMICI_SCALING_LN, AMICI_O2MODE_FULL);
-    //u.print();printf("\n");
+    UserData u(1, 2, 3, 4, 5, 6, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, AMICI_SCALING_LN,
+               AMICI_O2MODE_FULL);
+    // u.print();printf("\n");
 
     int length;
     char *buf = serializeAmiciUserData(&u, &length);
-    
+
     UserData v = deserializeAmiciUserData(buf, length);
 
     free(buf);
-    //v.print();
+    // v.print();
     checkUserDataEqual(u, v);
 }
-
-
-

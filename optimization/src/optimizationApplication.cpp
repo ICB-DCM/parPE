@@ -1,19 +1,17 @@
 #include "optimizationApplication.h"
-#include "logging.h"
 #include "hdf5Misc.h"
 #include "loadBalancerMaster.h"
+#include "logging.h"
 #include <cstring>
-#include <pthread.h>
-#include <mpi.h>
 #include <ctime>
+#include <mpi.h>
+#include <pthread.h>
 
-OptimizationApplication::OptimizationApplication() : dataFileName(NULL), resultFileName(NULL), problem(NULL), resultWriter(NULL)
-{
+OptimizationApplication::OptimizationApplication()
+    : dataFileName(NULL), resultFileName(NULL), problem(NULL),
+      resultWriter(NULL) {}
 
-}
-
-int OptimizationApplication::init(int argc, char **argv)
-{
+int OptimizationApplication::init(int argc, char **argv) {
     // TODO: check if initialized already
     initMPI(&argc, &argv);
 
@@ -32,13 +30,12 @@ int OptimizationApplication::init(int argc, char **argv)
     return 0;
 }
 
-int OptimizationApplication::parseOptions(int argc, char **argv)
-{
+int OptimizationApplication::parseOptions(int argc, char **argv) {
     int c;
 
     while (1) {
         int optionIndex = 0;
-        c = getopt_long (argc, argv, shortOptions, longOptions, &optionIndex);
+        c = getopt_long(argc, argv, shortOptions, longOptions, &optionIndex);
 
         if (c == -1)
             break;
@@ -48,7 +45,7 @@ int OptimizationApplication::parseOptions(int argc, char **argv)
             printDebugInfoAndWait();
             break;
         case 't':
-            if(strcmp(optarg, "gradient_check") == 0)
+            if (strcmp(optarg, "gradient_check") == 0)
                 opType = OP_TYPE_GRADIENT_CHECK;
             break;
         case 'o':
@@ -62,38 +59,40 @@ int OptimizationApplication::parseOptions(int argc, char **argv)
             printf("Usage: %s [OPTION]... FILE\n", argv[0]);
             printf("FILE: HDF5 data file");
             printf("Options: \n"
-                   "  -o, --outfile-prefix Prefix for result files (path + filename)\n"
-                   "  -t, --task    What to do? Parameter estimation (default) or check gradient ('gradient_check')\n"
+                   "  -o, --outfile-prefix Prefix for result files (path + "
+                   "filename)\n"
+                   "  -t, --task    What to do? Parameter estimation (default) "
+                   "or check gradient ('gradient_check')\n"
                    "  -h, --help    Print this help text\n"
-                   "  -v, --version Print version info\n"
-                   );
+                   "  -v, --version Print version info\n");
             return 1;
         default:
             printf("Unrecognized option: %c\n", c);
         }
     }
 
-    if(optind < argc) {
+    if (optind < argc) {
         dataFileName = argv[optind++];
     } else {
-        logmessage(LOGLVL_CRITICAL, "Must provide input file as first and only argument to %s.", argv[0]);
+        logmessage(LOGLVL_CRITICAL,
+                   "Must provide input file as first and only argument to %s.",
+                   argv[0]);
         return 1;
     }
 
     return 0;
 }
 
-void OptimizationApplication::initMPI(int *argc, char ***argv)
-{
+void OptimizationApplication::initMPI(int *argc, char ***argv) {
     int mpiErr = MPI_Init(argc, argv);
-    if(mpiErr != MPI_SUCCESS) {
+    if (mpiErr != MPI_SUCCESS) {
         logmessage(LOGLVL_CRITICAL, "Problem initializing MPI. Exiting.");
         exit(1);
     }
 
     int mpiRank;
     MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
-    if(mpiRank == 0) {
+    if (mpiRank == 0) {
         int commSize;
         MPI_Comm_size(MPI_COMM_WORLD, &commSize);
 
@@ -101,15 +100,16 @@ void OptimizationApplication::initMPI(int *argc, char ***argv)
     }
 }
 
-
-int OptimizationApplication::run()
-{
+int OptimizationApplication::run() {
     clock_t begin = clock();
 
     int status = 0;
 
-    if(!dataFileName) {
-        logmessage(LOGLVL_CRITICAL, "No input file provided. Must provide input file as first and only argument or set OptimizationApplication::inputFileName manually.");
+    if (!dataFileName) {
+        logmessage(LOGLVL_CRITICAL,
+                   "No input file provided. Must provide input file as first "
+                   "and only argument or set "
+                   "OptimizationApplication::inputFileName manually.");
         return 1;
     }
     initProblem(dataFileName, resultFileName);
@@ -117,8 +117,8 @@ int OptimizationApplication::run()
     int commSize;
     MPI_Comm_size(MPI_COMM_WORLD, &commSize);
 
-    if(commSize > 1) {
-        if(getMpiRank() == 0) {
+    if (commSize > 1) {
+        if (getMpiRank() == 0) {
             loadBalancerStartMaster();
 
             status = runMaster();
@@ -141,31 +141,31 @@ int OptimizationApplication::run()
     return status;
 }
 
-void OptimizationApplication::finalizeTiming(clock_t begin)
-{
+void OptimizationApplication::finalizeTiming(clock_t begin) {
     // wall-time for current process
     clock_t end = clock();
     double wallTimeSeconds = (double)(end - begin) / CLOCKS_PER_SEC;
 
     // total run-time
     double totalTimeInSeconds = 0;
-    MPI_Reduce(&wallTimeSeconds, &totalTimeInSeconds, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+    MPI_Reduce(&wallTimeSeconds, &totalTimeInSeconds, 1, MPI_DOUBLE, MPI_SUM, 0,
+               MPI_COMM_WORLD);
 
     int mpiRank;
     MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
 
-    if(mpiRank == 0) {
-        logmessage(LOGLVL_INFO, "Walltime: %fs, total compute time:%fs", wallTimeSeconds, totalTimeInSeconds);
-        if(resultWriter)
+    if (mpiRank == 0) {
+        logmessage(LOGLVL_INFO, "Walltime: %fs, total compute time:%fs",
+                   wallTimeSeconds, totalTimeInSeconds);
+        if (resultWriter)
             resultWriter->saveTotalCpuTime(totalTimeInSeconds);
     }
 }
 
-OptimizationApplication::~OptimizationApplication()
-{
+OptimizationApplication::~OptimizationApplication() {
     destroyProblem();
 
-    if(resultFileName)
+    if (resultFileName)
         delete[] resultFileName;
 
     destroyHDF5Mutex();
@@ -173,31 +173,28 @@ OptimizationApplication::~OptimizationApplication()
     MPI_Finalize();
 }
 
-int OptimizationApplication::getMpiRank()
-{
+int OptimizationApplication::getMpiRank() {
     int mpiRank = -1;
 
     int mpiInitialized = 0;
     MPI_Initialized(&mpiInitialized);
 
-    if(mpiInitialized) {
+    if (mpiInitialized) {
         MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
     }
 
     return mpiRank;
 }
 
-int OptimizationApplication::getMpiCommSize()
-{
+int OptimizationApplication::getMpiCommSize() {
     int mpiCommSize = -1;
 
     int mpiInitialized = 0;
     MPI_Initialized(&mpiInitialized);
 
-    if(mpiInitialized) {
+    if (mpiInitialized) {
         MPI_Comm_size(MPI_COMM_WORLD, &mpiCommSize);
     }
 
     return mpiCommSize;
 }
-

@@ -51,7 +51,8 @@ EXTERNC void loadBalancerStartMaster();
 EXTERNC void loadBalancerQueueJob(JobData *data);
 
 /**
- * @brief loadBalancerTerminate Cancel the queue thread and clean up. Do not wait for finish.
+ * @brief loadBalancerTerminate Cancel the queue thread and clean up. Do not
+ * wait for finish.
  */
 
 EXTERNC void loadBalancerTerminate();
@@ -59,6 +60,7 @@ EXTERNC void loadBalancerTerminate();
 EXTERNC void sendTerminationSignalToAllWorkers();
 
 EXTERNC JobData initJobData(int lenSendBuffer, char *sendBuffer, int *jobDone,
-                            pthread_cond_t *jobDoneChangedCondition, pthread_mutex_t *jobDoneChangedMutex);
+                            pthread_cond_t *jobDoneChangedCondition,
+                            pthread_mutex_t *jobDoneChangedMutex);
 
 #endif

@@ -5,10 +5,10 @@
 #include <include/udata.h>
 
 class JobAmiciSimulation {
-public:
+  public:
     /** Simulation data or dataset Id */
     int lenData;
-    void* data;
+    void *data;
 
     /** number of simulation parameters */
     int numSimulationParameters;
@@ -24,11 +24,11 @@ public:
 
     static int getLength(int numSimulationParameters, int sizeOfData);
 
-    static void toUserData(const char* buffer, UserData *udata, void *userData);
+    static void toUserData(const char *buffer, UserData *udata, void *userData);
 };
 
 class JobResultAmiciSimulation {
-public:
+  public:
     /** number of simulation parameters */
     int numSimulationParameters;
 
@@ -41,11 +41,10 @@ public:
     /** log likelihood gradient*/
     double *sllh;
 
-    static void serialize(const ReturnData *rdata, const UserData *udata, int status, char *buffer);
+    static void serialize(const ReturnData *rdata, const UserData *udata,
+                          int status, char *buffer);
     void deserialize(char *buffer);
 
-
     static int getLength(int numSimulationParameters);
-
 };
 #endif

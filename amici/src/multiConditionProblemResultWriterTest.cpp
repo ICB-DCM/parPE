@@ -1,25 +1,20 @@
 #include <bits/stl_tree.h>
 
-#include "multiConditionProblemResultWriter.h"
 #include "CppUTest/TestHarness.h"
 #include "CppUTestExt/MockSupport.h"
-#include "testingMisc.h"
-#include "multiConditionProblem.h"
 #include "MultiConditionDataProvider.h"
+#include "multiConditionProblem.h"
+#include "multiConditionProblemResultWriter.h"
+#include "testingMisc.h"
 
 #include "hdf5Misc.h"
 
-TEST_GROUP(multiConditionProblemResultWriter)
-{
-    void setup() {
-        initHDF5Mutex();
-    }
+TEST_GROUP(multiConditionProblemResultWriter){void setup(){initHDF5Mutex();
+}
 
-    void teardown() {
-        destroyHDF5Mutex();
-    }
-};
-
+void teardown() { destroyHDF5Mutex(); }
+}
+;
 
 TEST(multiConditionProblemResultWriter, testResultWriter) {
     JobIdentifier id = {0};
@@ -31,7 +26,8 @@ TEST(multiConditionProblemResultWriter, testResultWriter) {
 
     w.flushResultWriter();
 
-    w.logLocalOptimizerIteration(1, NULL, 0, 2, NULL, 1, 2, 3, 4, 6, 7, 8, 9, 10, 11);
+    w.logLocalOptimizerIteration(1, NULL, 0, 2, NULL, 1, 2, 3, 4, 6, 7, 8, 9,
+                                 10, 11);
 
     w.logLocalOptimizerObjectiveFunctionEvaluation(NULL, 0, 1, NULL, 2, 3);
 
@@ -40,16 +36,13 @@ TEST(multiConditionProblemResultWriter, testResultWriter) {
     w.saveLocalOptimizerResults(1, NULL, 0, 12, 0);
 
     w.flushResultWriter();
-
 }
 
-
-
-
-//IGNORE_TEST(multiConditionProblemResultWriter, testResultWriter) {
+// IGNORE_TEST(multiConditionProblemResultWriter, testResultWriter) {
 
 //    // TODO steadys tate example
-//    UserData udata(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,AMI_SCALING_LN, AMI_O2MODE_NONE);
+//    UserData udata(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,AMI_SCALING_LN,
+//    AMI_O2MODE_NONE);
 //    MultiConditionDataProvider dataprovider("********.h5") ;
 //    OptimizationProblem *problem = new MultiConditionProblem(&dataprovider);
 
@@ -58,17 +51,19 @@ TEST(multiConditionProblemResultWriter, testResultWriter) {
 //    int numFunctionCalls = 12;
 //    double timeElapsed = 123.4;
 
-//    logLocalOptimizerObjectiveFunctionEvaluation(problem, parameters, objectiveFunctionValue, NULL, numFunctionCalls, timeElapsed);
+//    logLocalOptimizerObjectiveFunctionEvaluation(problem, parameters,
+//    objectiveFunctionValue, NULL, numFunctionCalls, timeElapsed);
 
 //    // TODO check
 
 //    double objectiveFunctionGradient[problem->numOptimizationParameters];
 
-//    logLocalOptimizerObjectiveFunctionEvaluation(problem, parameters, objectiveFunctionValue, objectiveFunctionGradient,
-//                                                                  numFunctionCalls, timeElapsed);
+//    logLocalOptimizerObjectiveFunctionEvaluation(problem, parameters,
+//    objectiveFunctionValue, objectiveFunctionGradient,
+//                                                                  numFunctionCalls,
+//                                                                  timeElapsed);
 
 //    // TODO check
-
 
 //    flushResultWriter();
 
@@ -87,8 +82,10 @@ TEST(multiConditionProblemResultWriter, testResultWriter) {
 //                                    1,1,//double alpha_du, double alpha_pr,
 //                                    1);//int ls_trials);
 
-//    logSimulation(path, parameters, objectiveFunctionValue, objectiveFunctionGradient,
-//                       timeElapsed, problem->numOptimizationParameters, 0, NULL, NULL, NULL, 1, 10);
+//    logSimulation(path, parameters, objectiveFunctionValue,
+//    objectiveFunctionGradient,
+//                       timeElapsed, problem->numOptimizationParameters, 0,
+//                       NULL, NULL, NULL, 1, 10);
 
 //    double totalTime = 1234;
 //    saveTotalWalltime(totalTime);

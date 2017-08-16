@@ -1,28 +1,21 @@
-#include "testingMisc.h"
 #include "MultiConditionDataProvider.h"
+#include "testingMisc.h"
 
 #include "CppUTest/TestHarness.h"
 #include "CppUTestExt/MockSupport.h"
 
 /** @brief Dummy function so we don't need to link against an AMICI model.
  */
-UserData getUserData() {
-    return UserData();
-}
+UserData getUserData() { return UserData(); }
 
 /**
  * @brief Mock MultiConditionDataProvider
  */
 class MultiConditionDataProviderTest : public MultiConditionDataProvider {
-public:
-    MultiConditionDataProviderTest()
-    {
-        *const_cast<int*>(&modelDims.np) = 10;
-    }
+  public:
+    MultiConditionDataProviderTest() { *const_cast<int *>(&modelDims.np) = 10; }
 
-    int getNumberOfConditions() const {
-        return numConditions;
-    }
+    int getNumberOfConditions() const { return numConditions; }
 
     int getNumConditionSpecificParametersPerSimulation() const {
         return numCondSpecParamPerSim;
@@ -35,20 +28,16 @@ public:
     ~MultiConditionDataProviderTest() {}
 };
 
+TEST_GROUP(multiConditionDataProvider){void setup(){initHDF5Mutex();
+}
 
-TEST_GROUP(multiConditionDataProvider)
-{
-    void setup() {
-        initHDF5Mutex();
-    }
-
-    void teardown() {
-        destroyHDF5Mutex();
-    }
-};
+void teardown() { destroyHDF5Mutex(); }
+}
+;
 
 /**
- * @brief Test mapping simulation<->optimization parameters with no condition-specific parameters
+ * @brief Test mapping simulation<->optimization parameters with no
+ * condition-specific parameters
  */
 TEST(multiConditionDataProvider, testDataProviderParameterMapping) {
     MultiConditionDataProviderTest dp;
@@ -59,16 +48,19 @@ TEST(multiConditionDataProvider, testDataProviderParameterMapping) {
 
     CHECK_EQUAL(10, dp.getNumOptimizationParameters());
 
-    CHECK_EQUAL(10, dp.getIndexOfFirstConditionSpecificOptimizationParameter(0));
+    CHECK_EQUAL(10,
+                dp.getIndexOfFirstConditionSpecificOptimizationParameter(0));
 
-    CHECK_EQUAL(10, dp.getIndexOfFirstConditionSpecificOptimizationParameter(1));
+    CHECK_EQUAL(10,
+                dp.getIndexOfFirstConditionSpecificOptimizationParameter(1));
 }
 
-
 /**
- * @brief Test mapping simulation<->optimization parameters with condition-specific parameters
+ * @brief Test mapping simulation<->optimization parameters with
+ * condition-specific parameters
  */
-TEST(multiConditionDataProvider, testDataProviderParameterMappingConditionSpec) {
+TEST(multiConditionDataProvider,
+     testDataProviderParameterMappingConditionSpec) {
     MultiConditionDataProviderTest dp;
     dp.numConditions = 3;
     dp.numCondSpecParamPerSim = 2;
@@ -79,5 +71,6 @@ TEST(multiConditionDataProvider, testDataProviderParameterMappingConditionSpec) 
 
     CHECK_EQUAL(8, dp.getIndexOfFirstConditionSpecificOptimizationParameter(0));
 
-    CHECK_EQUAL(10, dp.getIndexOfFirstConditionSpecificOptimizationParameter(1));
+    CHECK_EQUAL(10,
+                dp.getIndexOfFirstConditionSpecificOptimizationParameter(1));
 }

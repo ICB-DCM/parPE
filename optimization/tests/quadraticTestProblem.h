@@ -1,12 +1,11 @@
 #ifndef QUADRATIC_TEST_PROBLEM_H
 #define QUADRATIC_TEST_PROBLEM_H
 
-#include "optimizationProblem.h"
 #include "multiStartOptimization.h"
+#include "optimizationProblem.h"
 
 class QuadraticTestProblem : public OptimizationProblem {
-public:
-
+  public:
     QuadraticTestProblem();
     /*
      * Test Problem for minimization
@@ -15,22 +14,22 @@ public:
      * f(-1) = 42
      */
 
-    int evaluateObjectiveFunction(const double *parameters, double *objFunVal, double *objFunGrad);
+    int evaluateObjectiveFunction(const double *parameters, double *objFunVal,
+                                  double *objFunGrad);
 
     void logOptimizerFinished(double optimalCost,
-                                const double *optimalParameters,
-                                double masterTime,
-                                int exitStatus);
+                              const double *optimalParameters,
+                              double masterTime, int exitStatus);
 
     ~QuadraticTestProblem();
-
 
     double optimalCost;
     double optimalParameter;
 };
 
-class QuadraticOptimizationProblemGeneratorForMultiStart : public OptimizationProblemGeneratorForMultiStart {
-public:
+class QuadraticOptimizationProblemGeneratorForMultiStart
+    : public OptimizationProblemGeneratorForMultiStart {
+  public:
     OptimizationProblem *getLocalProblemImpl(int multiStartIndex);
 };
 

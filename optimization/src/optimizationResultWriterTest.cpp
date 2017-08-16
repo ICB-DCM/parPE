@@ -2,20 +2,15 @@
 
 #include "CppUTest/TestHarness.h"
 #include "CppUTestExt/MockSupport.h"
-#include "optimizationResultWriter.h"
 #include "hdf5Misc.h"
+#include "optimizationResultWriter.h"
 
-TEST_GROUP(optimizationResultWriter)
-{
-    void setup() {
-        initHDF5Mutex();
-    }
+TEST_GROUP(optimizationResultWriter){void setup(){initHDF5Mutex();
+}
 
-    void teardown() {
-        destroyHDF5Mutex();
-    }
-};
-
+void teardown() { destroyHDF5Mutex(); }
+}
+;
 
 TEST(optimizationResultWriter, testResultWriter) {
     OptimizationResultWriter w("deleteme.h5", true);
@@ -26,7 +21,8 @@ TEST(optimizationResultWriter, testResultWriter) {
 
     w.flushResultWriter();
 
-    w.logLocalOptimizerIteration(1, NULL, 0, 0, NULL, 1, 2, 3, 4, 6, 7, 8, 9, 10, 11);
+    w.logLocalOptimizerIteration(1, NULL, 0, 0, NULL, 1, 2, 3, 4, 6, 7, 8, 9,
+                                 10, 11);
 
     w.logLocalOptimizerObjectiveFunctionEvaluation(NULL, 0, 1, NULL, 2, 3);
 
@@ -34,5 +30,3 @@ TEST(optimizationResultWriter, testResultWriter) {
 
     w.flushResultWriter();
 }
-
-

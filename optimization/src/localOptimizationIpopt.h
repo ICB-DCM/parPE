@@ -1,11 +1,11 @@
 #ifndef LOCAL_OPTIMIZATION_H
 #define LOCAL_OPTIMIZATION_H
 
-#include "optimizer.h"
 #include "optimizationProblem.h"
+#include "optimizer.h"
 
 class OptimizerIpOpt : public Optimizer {
-public:
+  public:
     OptimizerIpOpt();
 
     int optimize(OptimizationProblem *problem);

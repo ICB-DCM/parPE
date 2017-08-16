@@ -4,23 +4,19 @@
 #include "CppUTestExt/MockSupport.h"
 
 #include "localOptimizationIpopt.h"
-#include "testingMisc.h"
-#include "quadraticTestProblem.h"
 #include "multiStartOptimization.h"
+#include "quadraticTestProblem.h"
+#include "testingMisc.h"
 
+TEST_GROUP(multiStartOptimization){void setup(){mock().clear();
+}
 
-TEST_GROUP(multiStartOptimization)
-{
-    void setup() {
-        mock().clear();
-    }
-
-    void teardown() {
-        mock().checkExpectations();
-        mock().clear();
-    }
-};
-
+void teardown() {
+    mock().checkExpectations();
+    mock().clear();
+}
+}
+;
 
 TEST(multiStartOptimization, testMultiStartOptimization) {
     int numStarts = 4;
@@ -32,5 +28,3 @@ TEST(multiStartOptimization, testMultiStartOptimization) {
     QuadraticOptimizationProblemGeneratorForMultiStart generator;
     runParallelMultiStartOptimization(&generator, numStarts, true);
 }
-
-

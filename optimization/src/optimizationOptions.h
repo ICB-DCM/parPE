@@ -5,13 +5,12 @@
 
 #include <string>
 
-typedef enum optimizer_tag {OPTIMIZER_IPOPT, OPTIMIZER_CERES} optimizerEnum;
+typedef enum optimizer_tag { OPTIMIZER_IPOPT, OPTIMIZER_CERES } optimizerEnum;
 
 /** Type to describe an optimization (minimization) problem */
 
-class OptimizationOptions
-{
-public:
+class OptimizationOptions {
+  public:
     OptimizationOptions();
 
     /** Optimizer to use */
@@ -26,19 +25,22 @@ public:
     /** Maximum number of optimizer iterations*/
     int maxOptimizerIterations;
 
-    static OptimizationOptions* fromHDF5(const char* fileName);
+    static OptimizationOptions *fromHDF5(const char *fileName);
 
-    static OptimizationOptions* fromHDF5(hid_t fileId);
+    static OptimizationOptions *fromHDF5(hid_t fileId);
 
     static double *getStartingPoint(hid_t fileId, int index);
 
-    /** Number of starts for local optimization (only used for multi-start optimization */
+    /** Number of starts for local optimization (only used for multi-start
+     * optimization */
     int numStarts;
 
-    /** Retry optimization in case of infeasibility (only used for multi-start optimization */
+    /** Retry optimization in case of infeasibility (only used for multi-start
+     * optimization */
     int retryOptimization;
 
-    /** Convergence criterium for relative change in subsequent objective function value change */
+    /** Convergence criterium for relative change in subsequent objective
+     * function value change */
     double functionTolerance;
 
     std::string toString();

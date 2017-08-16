@@ -4,15 +4,13 @@
 class OptimizationProblem;
 class OptimizationOptions;
 
-class Optimizer
-{
-public:
+class Optimizer {
+  public:
     Optimizer() {}
 
     virtual int optimize(OptimizationProblem *) = 0;
 
     OptimizationOptions *options = nullptr;
-
 };
 
 #endif // OPTIMIZER_H

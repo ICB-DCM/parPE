@@ -3,16 +3,17 @@
 
 #include "optimizationProblem.h"
 #include "optimizationResultWriter.h"
-#include <string>
 #include <getopt.h>
+#include <string>
 
 /**
- * @brief The OptimizationApplication class parses command line arguments, initializes MPI in required, opens data and results files and starts an optimization
+ * @brief The OptimizationApplication class parses command line arguments,
+ * initializes MPI in required, opens data and results files and starts an
+ * optimization
  */
 
-class OptimizationApplication
-{
-public:
+class OptimizationApplication {
+  public:
     OptimizationApplication();
 
     virtual int init(int argc, char **argv);
@@ -21,7 +22,8 @@ public:
 
     static void initMPI(int *argc, char ***argv);
 
-    virtual void initProblem(const char *inFileArgument, const char *outFileArgument) = 0;
+    virtual void initProblem(const char *inFileArgument,
+                             const char *outFileArgument) = 0;
 
     virtual void destroyProblem() {}
 
@@ -54,13 +56,14 @@ public:
         {"version", no_argument, NULL, 'v'},
         {"task", required_argument, NULL, 't'},
         {"outfile-prefix", required_argument, NULL, 'o'},
-        {NULL, 0, NULL, 0}
-    };
+        {NULL, 0, NULL, 0}};
 
-    typedef enum operationType_tag {OP_TYPE_PARAMETER_ESTIMATION, OP_TYPE_GRADIENT_CHECK} operationTypeEnum;
+    typedef enum operationType_tag {
+        OP_TYPE_PARAMETER_ESTIMATION,
+        OP_TYPE_GRADIENT_CHECK
+    } operationTypeEnum;
 
     operationTypeEnum opType = OP_TYPE_PARAMETER_ESTIMATION;
-
 };
 
 #endif // OPTIMIZATIONAPPLICATION_H

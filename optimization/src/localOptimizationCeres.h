@@ -9,9 +9,9 @@
 #define EXTERNC
 #endif
 
-
 /**
- * @brief getLocalOptimumCeres determines the local optimum for the provided optimization problem using the Google Ceres optimizer
+ * @brief getLocalOptimumCeres determines the local optimum for the provided
+ * optimization problem using the Google Ceres optimizer
  * @param problem the optimization problem
  * @return Returns 0 on success.
  */
