@@ -76,7 +76,8 @@ bool SteadystateSimulator::reachedSteadyState(const double *xdot,
                                               const double *x,
                                               int numTimepoints, int numStates,
                                               double tolerance) {
-    assert(numTimepoints == 1);
+    assert(numTimepoints == 1 &&
+           "SteadystateSimulator currently only supports one timepoint!");
     for (int state = 0; state < numStates; ++state) {
         double sensitivity = fabs(xdot[state]) / (fabs(x[state]) + tolerance);
         if (sensitivity > tolerance) {
