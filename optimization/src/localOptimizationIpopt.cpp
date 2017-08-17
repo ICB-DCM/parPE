@@ -6,13 +6,13 @@
 #include <alloca.h>
 #include <cassert>
 #include <cmath>
-#include <pthread.h>
 #include <csignal>
 #include <cstdbool>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
+#include <pthread.h>
 
 #ifdef INSTALL_SIGNAL_HANDLER
 extern volatile sig_atomic_t caughtTerminationSignal;

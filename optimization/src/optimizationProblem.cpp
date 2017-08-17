@@ -1,9 +1,9 @@
 #include "optimizationProblem.h"
 #include "localOptimizationCeres.h"
 #include "localOptimizationIpopt.h"
-#include "optimizationOptions.h"
 #include "logging.h"
 #include "misc.h"
+#include "optimizationOptions.h"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>

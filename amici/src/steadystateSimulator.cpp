@@ -1,11 +1,11 @@
 #include "steadystateSimulator.h"
 #include <amici_interface_cpp.h>
 #include <cassert>
-#include <logging.h>
 #include <cmath>
+#include <cstring>
+#include <logging.h>
 #include <mpi.h>
 #include <parpeException.h>
-#include <cstring>
 
 #define XDOT_REL_TOLERANCE 1e-6
 

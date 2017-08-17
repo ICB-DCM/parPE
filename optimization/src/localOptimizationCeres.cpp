@@ -1,6 +1,6 @@
 #include "localOptimizationCeres.h"
-#include <ceres/ceres.h>
 #include "optimizationOptions.h"
+#include <ceres/ceres.h>
 
 class CeresWrapper : public ceres::FirstOrderFunction {
 

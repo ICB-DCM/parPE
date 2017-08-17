@@ -1,9 +1,9 @@
 #include "multiStartOptimization.h"
-#include <pthread.h>
+#include "logging.h"
 #include <cstdlib>
 #include <cstring>
+#include <pthread.h>
 #include <unistd.h>
-#include "logging.h"
 
 int runParallelMultiStartOptimization(
     OptimizationProblemGeneratorForMultiStart *problemGenerator,
