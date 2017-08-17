@@ -1,4 +1,7 @@
-build/
+/build/*
+/build
 CMakeLists.txt.user
-data/
-ThirdParty/
+/data/*
+/ThirdParty/*
+/doc/Doxyfile
+/doc/doxy/*
