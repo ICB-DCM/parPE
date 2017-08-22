@@ -9,7 +9,8 @@
 
 #define XDOT_REL_TOLERANCE 1e-6
 
-ReturnData *SteadystateSimulator::getSteadystateSolution(Model *model, UserData *udata,
+ReturnData *SteadystateSimulator::getSteadystateSolution(Model *model,
+                                                         UserData *udata,
                                                          ExpData *edata,
                                                          int *status,
                                                          int *iterationDone) {

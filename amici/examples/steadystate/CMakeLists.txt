@@ -40,9 +40,6 @@ target_link_libraries(${PROJECT_NAME}
     ${MODEL_LIBRARIES}
     parpeoptimization
     parpeloadbalancer
-    ${IPOPT_LIBRARIES}
-    amici
-    ${CMAKE_THREAD_LIBS_INIT}
 )
 # /example_steadystate_parallel executable
 
@@ -62,16 +59,6 @@ add_executable(${PROJECT_NAME} ${SRC_LIST_EXE_PARALLEL})
 
 target_link_libraries(${PROJECT_NAME}
     ${MODEL_LIBRARIES}
-    amici
     parpeamici
-    parpeoptimization
-    parpeloadbalancer
-    ${IPOPT_LIBRARIES}
-    ${SUNDIALS_LIBRARIES}
-    ${HDF5_HL_LIBRARIES}
-    ${HDF5_C_LIBRARIES}
-    ${SUITESPARSE_LIBRARIES}
-    ${CERES_LIBRARIES}
-    ${CMAKE_THREAD_LIBS_INIT}
-)
+    )
 # /example_steadystate_multi executable

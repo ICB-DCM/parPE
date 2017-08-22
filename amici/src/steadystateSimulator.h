@@ -20,8 +20,9 @@ class SteadystateSimulator {
      * @return
      */
 
-    static ReturnData *getSteadystateSolution(Model *model, UserData *udata, ExpData *edata,
-                                              int *status, int *iterationDone);
+    static ReturnData *getSteadystateSolution(Model *model, UserData *udata,
+                                              ExpData *edata, int *status,
+                                              int *iterationDone);
 
     /**
      * @brief getSteadystateSolution Simulate the model until steady state

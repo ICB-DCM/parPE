@@ -99,17 +99,7 @@ else()
 endif()
     
 target_link_libraries(${PROJECT_NAME}
-    ${AMICI_LIBRARIES}
-    ${SUNDIALS_LIB_DIR}/libsundials_nvecserial${SHARED_OBJECT_EXTENSION}
-    ${SUNDIALS_LIB_DIR}/libsundials_cvodes${SHARED_OBJECT_EXTENSION}
-    ${SUITESPARSE_LIB_DIR}/libcolamd${SHARED_OBJECT_EXTENSION}
-    ${SUITESPARSE_LIB_DIR}/libklu${SHARED_OBJECT_EXTENSION}
-    ${SUITESPARSE_LIB_DIR}/libbtf${SHARED_OBJECT_EXTENSION}
-    ${SUITESPARSE_LIB_DIR}/libamd${SHARED_OBJECT_EXTENSION}
-    ${SUITESPARSE_LIB_DIR}/libsuitesparseconfig${SHARED_OBJECT_EXTENSION}
-    ${HDF5_HL_LIBRARIES}
-    ${HDF5_C_LIBRARIES}
-    ${BLAS_LIBRARIES}
+    amici
     -lpthread -ldl -lz -lm
 )
 

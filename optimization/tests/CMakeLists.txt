@@ -18,13 +18,6 @@ add_executable(${PROJECT_NAME} ${SRC_LIST_CPP})
 target_link_libraries(${PROJECT_NAME}
     parpeoptimization
     parpecommon
-    ${IPOPT_LIBRARIES}
-    ${CERES_LIBRARIES}
-    ${HDF5_HL_LIBRARIES}
-    ${HDF5_C_LIBRARIES}
-    ${SUITESPARSE_LIBRARIES}
     ${CPPUTEST_LIBRARY}
-    ${BLAS_LIBRARIES}
-    ${CMAKE_THREAD_LIBS_INIT}
     ${GCOV_LIBRARY}
 )

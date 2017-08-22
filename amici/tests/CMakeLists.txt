@@ -21,15 +21,6 @@ add_executable(${PROJECT_NAME} ${SRC_LIST_CPP})
 
 target_link_libraries(${PROJECT_NAME}
     parpeamici
-    parpeoptimization
-    parpeloadbalancer
-    parpecommon
-    amici
-    ${IPOPT_LIBRARIES}
-    ${CERES_LIBRARIES}
-    ${HDF5_HL_LIBRARIES}
-    ${HDF5_C_LIBRARIES}
     ${CPPUTEST_LIBRARY}
-    ${CMAKE_THREAD_LIBS_INIT}
     ${GCOV_LIBRARY}
 )
