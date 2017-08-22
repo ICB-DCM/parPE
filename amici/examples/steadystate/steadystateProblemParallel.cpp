@@ -108,7 +108,7 @@ int SteadystateProblemParallel::evaluateSerial(const double *parameters,
         readFixedParameters(i);
         readMeasurement(i);
 
-        ReturnData *rdata = getSimulationResults(udata, edata);
+        ReturnData *rdata = getSimulationResults(model, udata, edata);
         status += (int)*rdata->status;
 
         *objFunVal -= *rdata->llh;

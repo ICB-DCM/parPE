@@ -230,7 +230,7 @@ ReturnData *MultiConditionProblem::runAndLogSimulation(
         abort();
     }
 
-    ReturnData *rdata = getSimulationResults(udata, edata);
+    ReturnData *rdata = getSimulationResults(model, udata, edata);
 
     delete edata;
 

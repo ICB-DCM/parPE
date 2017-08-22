@@ -20,7 +20,7 @@ class SteadystateSimulator {
      * @return
      */
 
-    static ReturnData *getSteadystateSolution(UserData *udata, ExpData *edata,
+    static ReturnData *getSteadystateSolution(Model *model, UserData *udata, ExpData *edata,
                                               int *status, int *iterationDone);
 
     /**

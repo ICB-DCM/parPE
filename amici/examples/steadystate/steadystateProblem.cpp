@@ -41,7 +41,7 @@ int ExampleSteadystateProblem::evaluateObjectiveFunction(
 
     requireSensitivities(objFunGrad);
 
-    ReturnData *rdata = getSimulationResults(udata, edata);
+    ReturnData *rdata = getSimulationResults(model, udata, edata);
     int status = (int)*rdata->status;
 
     *objFunVal = -*rdata->llh;

@@ -96,7 +96,7 @@ void messageHandler(char **buffer, int *size, int jobId, void *userData) {
     problem->requireSensitivities(needGradient);
 
     // run simulation
-    ReturnData *rdata = getSimulationResults(udata, problem->edata);
+    ReturnData *rdata = getSimulationResults(model, udata, problem->edata);
     // printf("Result for %d: %f\n", conditionIdx, *rdata->llh);
     // pack results
     *size = sizeof(double) * (udata->nplist + 1);

@@ -9,7 +9,7 @@
 
 #define XDOT_REL_TOLERANCE 1e-6
 
-ReturnData *SteadystateSimulator::getSteadystateSolution(UserData *udata,
+ReturnData *SteadystateSimulator::getSteadystateSolution(Model *model, UserData *udata,
                                                          ExpData *edata,
                                                          int *status,
                                                          int *iterationDone) {
@@ -24,7 +24,7 @@ ReturnData *SteadystateSimulator::getSteadystateSolution(UserData *udata,
     while (!inSteadyState) {
         ++iterations;
 
-        rdata = getSimulationResults(udata, edata);
+        rdata = getSimulationResults(model, udata, edata);
 
         if (*rdata->status < 0) {
             error("Failed to integrate."); // TODO add dataset info,
