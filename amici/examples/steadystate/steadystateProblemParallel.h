@@ -3,7 +3,7 @@
 
 #include "steadystateProblem.h"
 
-class SteadystateProblemParallel : public SteadystateProblem {
+class SteadystateProblemParallel : public ExampleSteadystateProblem {
   public:
     SteadystateProblemParallel();
 

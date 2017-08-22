@@ -171,9 +171,9 @@ class MultiConditionProblem : public OptimizationProblem {
 
     virtual void setSensitivityOptions(bool sensiRequired);
 
-    UserData *udata;
-
-    MultiConditionDataProvider *dataProvider;
+    UserData *udata = nullptr;
+    Model *model = nullptr;
+    MultiConditionDataProvider *dataProvider = nullptr;
 
     // keep track of previous results to avoid re-evaluation at the same
     // parameters (using IpOpt new_x)
@@ -212,9 +212,10 @@ class MultiConditionProblemGeneratorForMultiStart
   public:
     OptimizationProblem *getLocalProblemImpl(int multiStartIndex);
 
-    MultiConditionDataProvider *dp;
-    OptimizationOptions *options;
-    MultiConditionProblemResultWriter *resultWriter;
+    MultiConditionDataProvider *dp = nullptr;
+    OptimizationOptions *options = nullptr;
+    MultiConditionProblemResultWriter *resultWriter = nullptr;
+    Model *model = nullptr;
 };
 
 /**

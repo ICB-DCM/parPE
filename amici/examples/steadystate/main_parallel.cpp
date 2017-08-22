@@ -1,5 +1,6 @@
 #include "hdf5Misc.h"
 #include "steadystateProblemParallel.h"
+#include <amici_model.h>
 #include <loadBalancerMaster.h>
 #include <loadBalancerWorker.h>
 #include <logging.h>
@@ -81,11 +82,12 @@ void messageHandler(char **buffer, int *size, int jobId, void *userData) {
     SteadystateProblemParallel *problem =
         (SteadystateProblemParallel *)userData;
     UserData *udata = problem->udata;
+    Model *model = problem->model;
 
     // unpack parameters
     int conditionIdx = (int)**buffer;
     int needGradient = (int)*(*buffer + sizeof(int));
-    memcpy(udata->p, *buffer + 2 * sizeof(int), sizeof(double) * udata->np);
+    memcpy(udata->p, *buffer + 2 * sizeof(int), sizeof(double) * model->np);
     free(*buffer);
 
     // read data for current conditions

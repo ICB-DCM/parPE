@@ -28,8 +28,9 @@ class SteadystateApplication : public OptimizationApplication {
 
     virtual void initProblem(const char *inFileArgument,
                              const char *outFileArgument) {
+        model = getModel();
         dataProvider =
-            new SteadyStateMultiConditionDataProvider(inFileArgument);
+            new SteadyStateMultiConditionDataProvider(model, inFileArgument);
         dataProvider->hdf5MeasurementPath = "/data/ytrue";
 
         problem = new SteadyStateMultiConditionProblem(dataProvider);
@@ -40,10 +41,11 @@ class SteadystateApplication : public OptimizationApplication {
         problem->resultWriter = resultWriter;
     }
 
-    virtual void destroyProblem() {
+    virtual ~SteadystateApplication() {
         delete resultWriter;
         delete problem;
         delete dataProvider;
+        delete model;
     }
 
     virtual void runWorker() {
@@ -52,6 +54,7 @@ class SteadystateApplication : public OptimizationApplication {
     }
 
     SteadyStateMultiConditionDataProvider *dataProvider;
+    Model *model;
 };
 
 class SteadystateLocalOptimizationApplication : public SteadystateApplication {
@@ -90,6 +93,8 @@ class SteadystateMultiStartOptimizationApplication
         runParallelMultiStartOptimization(&generator,
                                           generator.options->numStarts,
                                           generator.options->retryOptimization);
+
+        delete generator.options;
 
         return status;
     }

@@ -163,8 +163,6 @@ void OptimizationApplication::finalizeTiming(clock_t begin) {
 }
 
 OptimizationApplication::~OptimizationApplication() {
-    destroyProblem();
-
     if (resultFileName)
         delete[] resultFileName;
 

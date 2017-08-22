@@ -32,8 +32,8 @@ ReturnData *SteadystateSimulator::getSteadystateSolution(UserData *udata,
             return rdata;
         }
 
-        inSteadyState = reachedSteadyState(rdata->xdot, rdata->x, udata->nt,
-                                           udata->nx, XDOT_REL_TOLERANCE);
+        inSteadyState = reachedSteadyState(rdata->xdot, rdata->x, rdata->nt,
+                                           rdata->nx, XDOT_REL_TOLERANCE);
 
         if (inSteadyState) {
             break;
@@ -54,7 +54,7 @@ ReturnData *SteadystateSimulator::getSteadystateSolution(UserData *udata,
         }
 
         // use previous solution as initial conditions
-        updateInitialConditions(udata->x0data, rdata->x, udata->nx);
+        updateInitialConditions(udata->x0data, rdata->x, rdata->nx);
 
         delete rdata;
     }

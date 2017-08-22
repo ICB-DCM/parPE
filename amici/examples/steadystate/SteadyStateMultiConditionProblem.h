@@ -11,7 +11,8 @@
 class SteadyStateMultiConditionDataProvider
     : public MultiConditionDataProvider {
   public:
-    SteadyStateMultiConditionDataProvider(const char *hdf5Filename);
+    SteadyStateMultiConditionDataProvider(Model *model,
+                                          const char *hdf5Filename);
 
     int getNumberOfConditions() const { return 12; }
 
@@ -20,11 +21,14 @@ class SteadyStateMultiConditionDataProvider
     int updateFixedSimulationParameters(int conditionIdx,
                                         UserData *udata) const;
 
-    ExpData *getExperimentalDataForCondition(int conditionIdx) const;
+    ExpData *getExperimentalDataForCondition(int conditionIdx,
+                                             const UserData *udata) const;
 
     void setupUserData(UserData *udata) const;
 
     UserData *getUserData() const;
+
+    ~SteadyStateMultiConditionDataProvider();
 
     UserData *udata;
 };
@@ -34,6 +38,8 @@ class SteadyStateMultiConditionProblem : public MultiConditionProblem {
     SteadyStateMultiConditionProblem(SteadyStateMultiConditionDataProvider *dp);
 
     void setSensitivityOptions(bool sensiRequired);
+
+    ~SteadyStateMultiConditionProblem();
 };
 
 #endif // STEADYSTATEMULTICONDITIONPROBLEM_H

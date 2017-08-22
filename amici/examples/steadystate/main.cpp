@@ -5,7 +5,7 @@
 #include "steadystateProblem.h"
 
 int main(int argc, char **argv) {
-    SteadystateProblem problem = SteadystateProblem();
+    ExampleSteadystateProblem problem = ExampleSteadystateProblem();
 
     printf("#########\n");
     printf("# IpOpt #\n");

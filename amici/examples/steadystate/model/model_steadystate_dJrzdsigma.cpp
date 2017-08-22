@@ -1,6 +1,7 @@
 
 #include "model_steadystate_w.h"
 #include <include/amici.h>
+#include <include/amici_model.h>
 #include <include/edata.h>
 #include <include/rdata.h>
 #include <include/symbolic_functions.h>
@@ -9,13 +10,14 @@
 #include <string.h>
 
 int dJrzdsigma_model_steadystate(realtype t, int ie, N_Vector x,
-                                 void *user_data, TempData *tdata,
-                                 const ExpData *edata, ReturnData *rdata) {
+                                 TempData *tdata, const ExpData *edata,
+                                 ReturnData *rdata) {
     int status = 0;
-    UserData *udata = (UserData *)user_data;
+    Model *model = (Model *)tdata->model;
+    UserData *udata = (UserData *)tdata->udata;
     realtype *x_tmp = N_VGetArrayPointer(x);
     memset(tdata->dJrzdsigma, 0,
-           sizeof(realtype) * udata->nztrue * udata->nz * udata->nJ);
-    status = w_model_steadystate(t, x, NULL, user_data);
+           sizeof(realtype) * model->nztrue * model->nz * model->nJ);
+    status = w_model_steadystate(t, x, NULL, tdata);
     return (status);
 }

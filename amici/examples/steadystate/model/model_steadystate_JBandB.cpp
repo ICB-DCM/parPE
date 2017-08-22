@@ -2,7 +2,9 @@
 #include "model_steadystate_JB.h"
 #include "model_steadystate_w.h"
 #include <include/amici.h>
+#include <include/amici_model.h>
 #include <include/symbolic_functions.h>
+#include <include/tdata.h>
 #include <include/udata.h>
 #include <string.h>
 

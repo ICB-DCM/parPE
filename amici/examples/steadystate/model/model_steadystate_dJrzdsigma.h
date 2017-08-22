@@ -12,7 +12,7 @@ class TempData;
 class ExpData;
 
 int dJrzdsigma_model_steadystate(realtype t, int ie, N_Vector x,
-                                 void *user_data, TempData *tdata,
-                                 const ExpData *edata, ReturnData *rdata);
+                                 TempData *tdata, const ExpData *edata,
+                                 ReturnData *rdata);
 
 #endif /* _am_model_steadystate_dJrzdsigma_h */

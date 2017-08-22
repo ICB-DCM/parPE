@@ -25,8 +25,6 @@ class OptimizationApplication {
     virtual void initProblem(const char *inFileArgument,
                              const char *outFileArgument) = 0;
 
-    virtual void destroyProblem() {}
-
     virtual int run();
 
     virtual int runMaster() { return 0; }

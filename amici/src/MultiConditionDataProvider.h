@@ -3,9 +3,10 @@
 
 #include <hdf5Misc.h>
 #include <string>
-#include <udata.h>
 
 class ExpData;
+class UserData;
+class Model;
 
 /** Struct to tell simulation workers which dataset they are operating on
   */
@@ -17,7 +18,7 @@ typedef struct JobIdentifier_tag {
                                           for minibatch */
     // TODO int idxMiniBatch           /** current minibatch index */
     int idxConditions;
-        /** experiment index */ // TODO Only this one is used for the moment
+    /** experiment index */ // TODO Only this one is used for the moment
 } JobIdentifier;
 
 void printJobIdentifier(JobIdentifier id);
@@ -50,9 +51,10 @@ void sprintJobIdentifier(char *buffer, JobIdentifier id);
 
 class MultiConditionDataProvider {
   public:
-    MultiConditionDataProvider(const char *hdf5Filename);
+    MultiConditionDataProvider(Model *model, const char *hdf5Filename);
 
-    MultiConditionDataProvider(const char *hdf5Filename, std::string rootPath);
+    MultiConditionDataProvider(Model *model, const char *hdf5Filename,
+                               std::string rootPath);
 
     /**
      * @brief Provides the number of conditions for which data is available and
@@ -77,7 +79,9 @@ class MultiConditionDataProvider {
     virtual ExpData *getExperimentalDataForExperimentAndUpdateFixedParameters(
         int conditionIdx, UserData *udata) const;
 
-    virtual ExpData *getExperimentalDataForCondition(int conditionIdx) const;
+    virtual ExpData *
+    getExperimentalDataForCondition(int conditionIdx,
+                                    const UserData *udata) const;
 
     /**
      * @brief getOptimizationParametersLowerBounds Get lower parameter bounds
@@ -99,9 +103,7 @@ class MultiConditionDataProvider {
 
     virtual int getNumCommonParameters() const;
 
-    // TODO remove, since always need more info than pure model dimensions (e.g.
-    // nt)
-    virtual UserData getModelDims() const;
+    virtual Model *getModel() const;
 
     virtual UserData *getUserData() const;
 
@@ -124,9 +126,10 @@ class MultiConditionDataProvider {
 
     hid_t fileId = 0;
 
+    Model *model = nullptr;
+
   protected:
     MultiConditionDataProvider();
-    UserData modelDims;
 };
 
 #endif // MULTICONDITIONDATAPROVIDER_H

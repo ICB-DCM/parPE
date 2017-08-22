@@ -5,9 +5,11 @@
 #include "optimizationProblem.h"
 #include <hdf5.h>
 
-class SteadystateProblem : public OptimizationProblem {
+class Model;
+
+class ExampleSteadystateProblem : public OptimizationProblem {
   public:
-    SteadystateProblem();
+    ExampleSteadystateProblem();
 
     int evaluateObjectiveFunction(const double *parameters, double *objFunVal,
                                   double *objFunGrad);
@@ -27,7 +29,7 @@ class SteadystateProblem : public OptimizationProblem {
                               const double *optimalParameters,
                               double masterTime, int exitStatus);
 
-    ~SteadystateProblem();
+    ~ExampleSteadystateProblem();
 
     void requireSensitivities(bool sensitivitiesRequired);
     void readFixedParameters(int conditionIdx);
@@ -35,6 +37,7 @@ class SteadystateProblem : public OptimizationProblem {
 
     UserData *udata;
     ExpData *edata;
+    Model *model = nullptr;
 
   protected:
     void setupUserData(int conditionIdx);

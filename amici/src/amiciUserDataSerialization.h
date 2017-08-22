@@ -36,20 +36,7 @@ void serialize(Archive &ar, UserData &u, const unsigned int version) {
     ar &const_cast<int &>(u.np);
     ar &const_cast<int &>(u.nk);
     ar &const_cast<int &>(u.ny);
-    ar &const_cast<int &>(u.nytrue);
     ar &const_cast<int &>(u.nx);
-    ar &const_cast<int &>(u.nxtrue);
-    ar &const_cast<int &>(u.nz);
-    ar &const_cast<int &>(u.nztrue);
-    ar &const_cast<int &>(u.ne);
-    ar &const_cast<int &>(u.nw);
-    ar &const_cast<int &>(u.ndwdx);
-    ar &const_cast<int &>(u.ndwdp);
-    ar &const_cast<int &>(u.nnz);
-    ar &const_cast<AMICI_o2mode &>(u.o2mode);
-    ar &const_cast<int &>(u.nJ);
-    ar &const_cast<int &>(u.ubw);
-    ar &const_cast<int &>(u.lbw);
     ar &u.pscale;
     ar &u.nmaxevent;
     ar &u.nplist;
@@ -67,12 +54,6 @@ void serialize(Archive &ar, UserData &u, const unsigned int version) {
     ar &u.iter;
     ar &u.stldet;
     ar &u.ordering;
-    ar &u.nan_dxdotdp;
-    ar &u.nan_J;
-    ar &u.nan_JSparse;
-    ar &u.nan_xdot;
-    ar &u.nan_xBdot;
-    ar &u.nan_qBdot;
 
     if (Archive::is_loading::value) {
         assert(u.qpositivex == NULL);
@@ -164,17 +145,6 @@ void serialize(Archive &ar, UserData &u, const unsigned int version) {
     ar &make_array<double>(u.x0data, size);
 
     if (Archive::is_loading::value) {
-        assert(u.idlist == NULL);
-        ar &size;
-        if (size)
-            u.idlist = new double[size];
-    } else {
-        size = u.idlist == NULL ? 0 : u.nx;
-        ar &size;
-    }
-    ar &make_array<double>(u.idlist, size);
-
-    if (Archive::is_loading::value) {
         assert(u.sx0data == NULL);
         ar &size;
         if (size)
@@ -184,28 +154,6 @@ void serialize(Archive &ar, UserData &u, const unsigned int version) {
         ar &size;
     }
     ar &make_array<double>(u.sx0data, size);
-
-    if (Archive::is_loading::value) {
-        assert(u.z2event == NULL);
-        ar &size;
-        if (size)
-            u.z2event = new double[size];
-    } else {
-        size = u.ts == NULL ? 0 : u.nz;
-        ar &size;
-    }
-    ar &make_array<double>(u.z2event, size);
-
-    if (Archive::is_loading::value) {
-        assert(u.h == NULL);
-        ar &size;
-        if (size)
-            u.h = new double[size];
-    } else {
-        size = u.h == NULL ? 0 : u.ne;
-        ar &size;
-    }
-    ar &make_array<double>(u.h, size);
 }
 
 } // namespace serialization

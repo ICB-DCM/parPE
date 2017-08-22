@@ -12,7 +12,7 @@ class TempData;
 class ExpData;
 
 int deltaxB_model_steadystate(realtype t, int ie, N_Vector x, N_Vector xB,
-                              N_Vector xdot, N_Vector xdot_old, void *user_data,
+                              N_Vector xdot, N_Vector xdot_old,
                               TempData *tdata);
 
 #endif /* _am_model_steadystate_deltaxB_h */

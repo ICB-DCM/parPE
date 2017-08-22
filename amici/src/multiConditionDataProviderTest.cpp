@@ -3,17 +3,17 @@
 
 #include "CppUTest/TestHarness.h"
 #include "CppUTestExt/MockSupport.h"
-
-/** @brief Dummy function so we don't need to link against an AMICI model.
- */
-UserData getUserData() { return UserData(); }
+#include <amici_model.h>
 
 /**
  * @brief Mock MultiConditionDataProvider
  */
 class MultiConditionDataProviderTest : public MultiConditionDataProvider {
   public:
-    MultiConditionDataProviderTest() { *const_cast<int *>(&modelDims.np) = 10; }
+    MultiConditionDataProviderTest() {
+        model = new Model(10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22,
+                          23, 24, 25, AMICI_O2MODE_NONE);
+    }
 
     int getNumberOfConditions() const { return numConditions; }
 
@@ -25,7 +25,7 @@ class MultiConditionDataProviderTest : public MultiConditionDataProvider {
 
     int numCondSpecParamPerSim = 0;
 
-    ~MultiConditionDataProviderTest() {}
+    ~MultiConditionDataProviderTest() { delete model; }
 };
 
 TEST_GROUP(multiConditionDataProvider){void setup(){initHDF5Mutex();

@@ -63,21 +63,23 @@ TEST(multiConditionProblem, testAggregateGradientAllCommon) {
 TEST(multiConditionProblem, testAggregateGradientSpecific) {
     MultiConditionProblemTest p;
 
+    const int numCommon = 2;
+    const int numConditionSpecificParams = 2;
+    const int numConditions = 2;
+    const int firstIndexOfCurrentConditionsSpecificOptimizationParameters = 4;
+
     double objectiveFunctionGradient[] = {-1.0, -1.0, -1.0, -1.0, 2.0, 3.0};
     const double simulationGradient[] = {1.0, 2.0, 3.0, 4.0};
     const double objectiveFunctionGradientExpected[] = {-1.0, -1.0, -1.0,
                                                         -1.0, -1.0, -1.0};
-    int numCommon = 2;
-    int numConditionSpecificParams = 2;
-    int firstIndexOfCurrentConditionsSpecificOptimizationParameters = 4;
-
     // should not alter objectiveFunctionGradient
     p.addSimulationGradientToObjectiveFunctionGradient(
         simulationGradient, objectiveFunctionGradient, numCommon,
         numConditionSpecificParams,
         firstIndexOfCurrentConditionsSpecificOptimizationParameters);
 
-    for (int i = 0; i < 6; ++i)
+    for (int i = 0; i < numCommon + numConditions * numConditionSpecificParams;
+         ++i)
         CHECK_EQUAL(objectiveFunctionGradientExpected[i],
                     objectiveFunctionGradient[i]);
 }

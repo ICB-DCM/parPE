@@ -118,6 +118,16 @@ void OptimizationProblem::logOptimizerFinished(double optimalCost,
                                                double masterTime,
                                                int exitStatus) {}
 
+OptimizationProblem::~OptimizationProblem() {
+    if (optimizationOptions) {
+        delete optimizationOptions;
+    }
+
+    if (resultWriter) {
+        delete resultWriter;
+    }
+}
+
 double *OptimizationProblem::getRandomInitialParameters() const {
     double *initialParameters = new double[numOptimizationParameters];
     getRandomStartingpoint(parametersMin, parametersMax,

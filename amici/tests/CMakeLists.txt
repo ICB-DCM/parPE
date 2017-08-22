@@ -8,7 +8,7 @@ add_test (NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME} -c)
 
 set(SRC_LIST_CPP
     main.cpp
-    ../src/amiciUserDataSerializationTest.cpp
+#    ../src/amiciUserDataSerializationTest.cpp
     ../src/simulationWorkerAmiciTest.cpp
     ../src/multiConditionProblemResultWriterTest.cpp
     ../src/multiConditionDataProviderTest.cpp

@@ -75,7 +75,7 @@ void JobResultAmiciSimulation::serialize(const ReturnData *rdata,
     size_t size = 0;
 
     size = sizeof(int);
-    memcpy(buffer, &udata->np, size);
+    memcpy(buffer, &rdata->np, size);
     buffer += size;
 
     size = sizeof(int);
@@ -87,7 +87,7 @@ void JobResultAmiciSimulation::serialize(const ReturnData *rdata,
     buffer += size;
 
     size = sizeof(int);
-    int sensiSize = udata->sensi_meth > 0 ? udata->np : 0;
+    int sensiSize = rdata->sensi_meth > 0 ? rdata->np : 0;
     memcpy(buffer, &sensiSize, size);
     buffer += size;
 

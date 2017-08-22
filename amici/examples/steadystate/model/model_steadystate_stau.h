@@ -12,6 +12,6 @@ class TempData;
 class ExpData;
 
 int stau_model_steadystate(realtype t, int ie, N_Vector x, N_Vector *sx,
-                           void *user_data, TempData *tdata);
+                           TempData *tdata);
 
 #endif /* _am_model_steadystate_stau_h */

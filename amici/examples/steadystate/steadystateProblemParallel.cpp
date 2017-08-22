@@ -40,7 +40,7 @@ int SteadystateProblemParallel::evaluateParallel(const double *parameters,
         job->jobDone = &numJobsFinished;
         job->jobDoneChangedCondition = &simulationsCond;
         job->jobDoneChangedMutex = &simulationsMutex;
-        job->lenSendBuffer = sizeof(double) * udata->np + 2 * sizeof(int);
+        job->lenSendBuffer = sizeof(double) * model->np + 2 * sizeof(int);
         job->sendBuffer = (char *)malloc(job->lenSendBuffer);
 
         readFixedParameters(i);
@@ -49,7 +49,7 @@ int SteadystateProblemParallel::evaluateParallel(const double *parameters,
         memcpy(job->sendBuffer, &i, sizeof(int));
         memcpy(job->sendBuffer + sizeof(int), &needGradient, sizeof(int));
         memcpy(job->sendBuffer + 2 * sizeof(int), parameters,
-               udata->np * sizeof(double));
+               model->np * sizeof(double));
 
         loadBalancerQueueJob(job);
     }
@@ -75,7 +75,7 @@ int SteadystateProblemParallel::evaluateParallel(const double *parameters,
         *objFunVal -= buffer[0];
 
         if (objFunGrad)
-            for (int ip = 0; ip < udata->np; ++ip)
+            for (int ip = 0; ip < model->np; ++ip)
                 objFunGrad[ip] -= buffer[1 + ip];
         free(buffer);
     }
@@ -89,7 +89,7 @@ int SteadystateProblemParallel::evaluateSerial(const double *parameters,
                                                double *objFunVal,
                                                double *objFunGrad) {
     int status = 0;
-    memcpy(udata->p, parameters, udata->np * sizeof(double));
+    memcpy(udata->p, parameters, model->np * sizeof(double));
 
     //    printArray(parameters, udata->np);printf("\n");
 
@@ -114,7 +114,7 @@ int SteadystateProblemParallel::evaluateSerial(const double *parameters,
         *objFunVal -= *rdata->llh;
 
         if (objFunGrad)
-            for (int ip = 0; ip < udata->np; ++ip)
+            for (int ip = 0; ip < model->np; ++ip)
                 objFunGrad[ip] -= rdata->sllh[ip];
 
         delete rdata;

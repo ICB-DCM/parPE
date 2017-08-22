@@ -4,6 +4,7 @@
 #include "simulationWorkerAmici.h"
 #include "steadystateSimulator.h"
 #include <amici_interface_cpp.h>
+#include <amici_model.h>
 #include <cassert>
 #include <cmath>
 #include <cstring>
@@ -23,6 +24,7 @@ ReturnData *getDummyRdata(UserData *udata, int *iterationsDone);
 void handleWorkPackage(char **buffer, int *msgSize, int jobId, void *userData) {
     MultiConditionProblem *problem = (MultiConditionProblem *)userData;
     MultiConditionDataProvider *dataProvider = problem->getDataProvider();
+    Model *model = dataProvider->getModel();
 
     // unpack
     UserData *udata = dataProvider->getUserData();
@@ -49,7 +51,7 @@ void handleWorkPackage(char **buffer, int *msgSize, int jobId, void *userData) {
 #endif
 
     // pack & cleanup
-    *msgSize = JobResultAmiciSimulation::getLength(udata->np);
+    *msgSize = JobResultAmiciSimulation::getLength(model->np);
     *buffer = (char *)malloc(*msgSize);
     JobResultAmiciSimulation::serialize(rdata, udata, status, *buffer);
 
@@ -60,9 +62,6 @@ void handleWorkPackage(char **buffer, int *msgSize, int jobId, void *userData) {
 MultiConditionProblem::MultiConditionProblem()
     : OptimizationProblem() // for testing only
 {
-    udata = NULL;
-    dataProvider = NULL;
-
     lastOptimizationParameters = NULL;
     lastObjectiveFunctionGradient = NULL;
     lastObjectiveFunctionValue = NAN;
@@ -73,6 +72,7 @@ MultiConditionProblem::MultiConditionProblem(
     MultiConditionDataProvider *dataProvider)
     : MultiConditionProblem() {
     this->dataProvider = dataProvider;
+    model = dataProvider->getModel();
     udata = dataProvider->getUserDataForCondition(0);
 
     if (udata == NULL)
@@ -213,6 +213,8 @@ ReturnData *MultiConditionProblem::runAndLogSimulation(
 
     double startTime = MPI_Wtime();
 
+    Model *model = dataProvider->getModel();
+
     // run simulation
     int iterationsUntilSteadystate = -1;
 
@@ -244,7 +246,7 @@ ReturnData *MultiConditionProblem::runAndLogSimulation(
 
     // check for NaNs
     if (udata->sensi >= AMICI_SENSI_ORDER_FIRST) {
-        for (int i = 0; i < udata->np; ++i)
+        for (int i = 0; i < model->np; ++i)
             if (std::isnan(rdata->sllh[i]))
                 logmessage(LOGLVL_DEBUG, "Result for %s: contains NaN at %d",
                            pathStrBuf, i);
@@ -255,8 +257,8 @@ ReturnData *MultiConditionProblem::runAndLogSimulation(
 
     if (resultWriter)
         resultWriter->logSimulation(path, udata->p, rdata->llh[0], rdata->sllh,
-                                    timeSeconds, udata->np, udata->nx, rdata->x,
-                                    rdata->sx, udata->ny, rdata->y, jobId,
+                                    timeSeconds, model->np, model->nx, rdata->x,
+                                    rdata->sx, model->ny, rdata->y, jobId,
                                     iterationsUntilSteadystate, *status);
 
     return rdata;
@@ -284,7 +286,7 @@ void MultiConditionProblem::updateUserDataCommon(
 
     // update common parameters in UserData, cell-line specific ones are updated
     // later
-    memcpy(udata->p, simulationParameters, sizeof(double) * udata->np);
+    memcpy(udata->p, simulationParameters, sizeof(double) * model->np);
 }
 
 int MultiConditionProblem::runSimulations(const double *optimizationVariables,
@@ -302,7 +304,7 @@ int MultiConditionProblem::runSimulations(const double *optimizationVariables,
 
     // TODO: need to send previous steadystate as initial conditions
     int lenSendBuffer =
-        JobAmiciSimulation::getLength(udata->np, sizeof(JobIdentifier));
+        JobAmiciSimulation::getLength(model->np, sizeof(JobIdentifier));
 
     // mutex to wait for simulations to finish
     pthread_cond_t simulationsCond = PTHREAD_COND_INITIALIZER;
@@ -348,13 +350,12 @@ int MultiConditionProblem::aggregateLikelihood(
     int *dataIndices, int numDataIndices) {
     int errors = 0;
 
-    // temporary variables for deserialization
+    // temporary variables for deserialization of simulation results
     double llhTmp;
-    double sllhTmp[udata->np];
+    double sllhTmp[model->np];
 
-    int numJobsTotal = dataProvider->getNumberOfConditions();
-
-    for (int simulationIdx = 0; simulationIdx < numJobsTotal; ++simulationIdx) {
+    for (int simulationIdx = 0; simulationIdx < numDataIndices;
+         ++simulationIdx) {
         // deserialize
         errors +=
             unpackSimulationResult(&data[simulationIdx], sllhTmp, &llhTmp);
@@ -383,7 +384,7 @@ int MultiConditionProblemSerial::runSimulations(
 
     // TODO: need to send previous steadystate as initial conditions
     int lenSendBuffer =
-        JobAmiciSimulation::getLength(udata->np, sizeof(JobIdentifier));
+        JobAmiciSimulation::getLength(model->np, sizeof(JobIdentifier));
 
     for (int simulationIdx = 0; simulationIdx < numJobsTotal; ++simulationIdx) {
         path.idxConditions = simulationIdx;
@@ -400,7 +401,7 @@ int MultiConditionProblemSerial::runSimulations(
         work.data = &path;
         work.lenData = sizeof(path);
         work.sensitivityMethod = udata->sensi_meth;
-        work.numSimulationParameters = udata->np;
+        work.numSimulationParameters = model->np;
         work.simulationParameters = udata->p;
 
         work.serialize(data[simulationIdx].sendBuffer);
@@ -482,7 +483,7 @@ void MultiConditionProblem::queueSimulation(
     work.data = &path;
     work.lenData = sizeof(path);
     work.sensitivityMethod = udata->sensi_meth;
-    work.numSimulationParameters = udata->np;
+    work.numSimulationParameters = model->np;
     work.simulationParameters = udata->p;
     work.serialize(d->sendBuffer);
 
@@ -507,6 +508,11 @@ MultiConditionDataProvider *MultiConditionProblem::getDataProvider() {
 OptimizationProblem *
 MultiConditionProblemGeneratorForMultiStart::getLocalProblemImpl(
     int multiStartIndex) {
+    // generate new OptimizationProblem with data from dp
+
+    assert(dp != nullptr);
+    assert(dp->model != nullptr);
+
     int mpiCommSize = 1;
     int mpiInitialized = 0;
 

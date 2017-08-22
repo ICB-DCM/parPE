@@ -17,8 +17,7 @@ IGNORE_TEST(simulationWorkerAmici, testSerializeResultPackageMessage) {
     int nTheta = randInt(0, 5000);
 
     // generate random data
-    UserData udataExp(nTheta, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                      AMICI_SCALING_LN, AMICI_O2MODE_FULL);
+    UserData udataExp;
     udataExp.sensi_meth = AMICI_SENSI_ASA;
     udataExp.sensi = AMICI_SENSI_ORDER_FIRST;
 

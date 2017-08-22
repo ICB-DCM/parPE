@@ -1,6 +1,7 @@
 
 #include "model_steadystate_w.h"
 #include <include/amici.h>
+#include <include/amici_model.h>
 #include <include/rdata.h>
 #include <include/symbolic_functions.h>
 #include <include/tdata.h>
@@ -8,13 +9,14 @@
 #include <string.h>
 
 int srz_model_steadystate(realtype t, int ie, N_Vector x, N_Vector *sx,
-                          void *user_data, TempData *tdata, ReturnData *rdata) {
+                          TempData *tdata, ReturnData *rdata) {
     int status = 0;
-    UserData *udata = (UserData *)user_data;
+    Model *model = (Model *)tdata->model;
+    UserData *udata = (UserData *)tdata->udata;
     realtype *x_tmp = N_VGetArrayPointer(x);
     realtype *sx_tmp;
     int ip;
-    status = w_model_steadystate(t, x, NULL, user_data);
+    status = w_model_steadystate(t, x, NULL, tdata);
     for (ip = 0; ip < udata->nplist; ip++) {
         sx_tmp = N_VGetArrayPointer(sx[ip]);
         switch (udata->plist[ip]) {}

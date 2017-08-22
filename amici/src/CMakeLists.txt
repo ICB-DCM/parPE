@@ -6,7 +6,7 @@ set(SRC_LIST
     multiConditionProblemResultWriter.cpp
     simulationWorkerAmici.cpp
     steadystateSimulator.cpp
-    amiciUserDataSerialization.cpp
+    #amiciUserDataSerialization.cpp
 )
 
 add_library(${PROJECT_NAME} ${SRC_LIST})

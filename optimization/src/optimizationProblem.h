@@ -44,7 +44,7 @@ class OptimizationProblem {
                                       const double *optimalParameters,
                                       double masterTime, int exitStatus);
 
-    virtual ~OptimizationProblem() {}
+    virtual ~OptimizationProblem();
 
     /** random starting points are drawn from [parametersMin, parametersMax] */
     double *getRandomInitialParameters() const;
