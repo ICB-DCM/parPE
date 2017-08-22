@@ -129,6 +129,8 @@ if(BUILD_DOCS)
                       VERBATIM)
 endif()
 
+include(CMakeModules/clang-tools.cmake)
+
 add_subdirectory(common)
 add_subdirectory(optimization)
 add_subdirectory(loadbalancer)
