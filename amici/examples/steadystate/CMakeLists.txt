@@ -17,17 +17,10 @@ set(SRC_LIST_EXE
 add_executable(${PROJECT_NAME} ${SRC_LIST_EXE})
 
 target_link_libraries(${PROJECT_NAME}
+    ${MODEL_LIBRARIES}
+    amici
     parpeoptimization
     parpeloadbalancer
-    ${MODEL_LIBRARIES}
-    ${AMICI_LIBRARIES}
-    ${IPOPT_LIBRARIES}
-    ${SUNDIALS_LIBRARIES}
-    ${HDF5_HL_LIBRARIES}
-    ${HDF5_C_LIBRARIES}
-    ${SUITESPARSE_LIBRARIES}
-    ${CERES_LIBRARIES}
-    ${BLAS_LIBRARIES}
     ${CMAKE_THREAD_LIBS_INIT}
 )
 # /example_steadystate executable
@@ -44,16 +37,11 @@ set(SRC_LIST_EXE_PARALLEL
 add_executable(${PROJECT_NAME} ${SRC_LIST_EXE_PARALLEL})
 
 target_link_libraries(${PROJECT_NAME}
+    ${MODEL_LIBRARIES}
     parpeoptimization
     parpeloadbalancer
-    ${MODEL_LIBRARIES}
     ${IPOPT_LIBRARIES}
-    ${SUNDIALS_LIBRARIES}
-    ${HDF5_HL_LIBRARIES}
-    ${HDF5_C_LIBRARIES}
-    ${SUITESPARSE_LIBRARIES}
-    ${CERES_LIBRARIES}
-    ${BLAS_LIBRARIES}
+    amici
     ${CMAKE_THREAD_LIBS_INIT}
 )
 # /example_steadystate_parallel executable
@@ -73,17 +61,17 @@ set(SRC_LIST_EXE_PARALLEL
 add_executable(${PROJECT_NAME} ${SRC_LIST_EXE_PARALLEL})
 
 target_link_libraries(${PROJECT_NAME}
+    ${MODEL_LIBRARIES}
+    amici
     parpeamici
     parpeoptimization
     parpeloadbalancer
-    ${MODEL_LIBRARIES}
     ${IPOPT_LIBRARIES}
     ${SUNDIALS_LIBRARIES}
     ${HDF5_HL_LIBRARIES}
     ${HDF5_C_LIBRARIES}
     ${SUITESPARSE_LIBRARIES}
     ${CERES_LIBRARIES}
-    ${BLAS_LIBRARIES}
     ${CMAKE_THREAD_LIBS_INIT}
 )
 # /example_steadystate_multi executable

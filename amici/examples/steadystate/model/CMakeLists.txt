@@ -117,4 +117,4 @@ set(SRC_LIST_EXE main.cpp)
 
 add_executable(simulate_${PROJECT_NAME} ${SRC_LIST_EXE})
     
-target_link_libraries(simulate_${PROJECT_NAME} ${AMICI_LIBRARIES} ${PROJECT_NAME})
+target_link_libraries(simulate_${PROJECT_NAME} ${PROJECT_NAME} amici)

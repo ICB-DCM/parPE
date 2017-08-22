@@ -2,7 +2,6 @@
 add_definitions(-DAMICI_WITHOUT_MATLAB)
 
 set(AMICI_DIR "/home/dweindl/src/AMICI.github" CACHE PATH "AMICI root directory")
-set(AMICI_LIBRARIES "${AMICI_DIR}/build/libamici.a")
 
 find_package(Boost COMPONENTS serialization)
 
@@ -29,6 +28,23 @@ set(SUNDIALS_INCLUDE_DIRS "${AMICI_DIR}/sundials/include" CACHE PATH "Sundials i
 set(SUNDIALS_LIBRARIES "${SUNDIALS_LIB_DIR}/libsundials_nvecserial.so"
                        "${SUNDIALS_LIB_DIR}/libsundials_cvodes.so"
 )
+
+add_library(amici STATIC IMPORTED)
+set_property(TARGET amici PROPERTY IMPORTED_LOCATION "${AMICI_DIR}/build/libamici.a")
+set_property(TARGET amici PROPERTY INTERFACE_LINK_LIBRARIES
+    "${SUNDIALS_LIB_DIR}/libsundials_nvecserial${SHARED_OBJECT_EXTENSION}"
+    "${SUNDIALS_LIB_DIR}/libsundials_cvodes${SHARED_OBJECT_EXTENSION}"
+    "${SUITESPARSE_LIB_DIR}/libcolamd${SHARED_OBJECT_EXTENSION}"
+    "${SUITESPARSE_LIB_DIR}/libklu${SHARED_OBJECT_EXTENSION}"
+    "${SUITESPARSE_LIB_DIR}/libbtf${SHARED_OBJECT_EXTENSION}"
+    "${SUITESPARSE_LIB_DIR}/libamd${SHARED_OBJECT_EXTENSION}"
+    "${SUITESPARSE_LIB_DIR}/libsuitesparseconfig${SHARED_OBJECT_EXTENSION}"
+    "${HDF5_HL_LIBRARIES}"
+    "${HDF5_C_LIBRARIES}"
+    "${BLAS_LIBRARIES}"
+    "-lpthread -ldl -lz"
+    "-lm"
+    )
 
 include_directories(
     src
