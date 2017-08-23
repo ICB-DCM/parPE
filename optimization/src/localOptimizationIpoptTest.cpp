@@ -8,9 +8,7 @@
 #include "quadraticTestProblem.h"
 #include "testingMisc.h"
 
-TEST_GROUP(localOptimizationIpopt){void setup(){
-
-}
+TEST_GROUP(localOptimizationIpopt){void setup(){}
 
                                    void teardown(){mock().checkExpectations();
 mock().clear();

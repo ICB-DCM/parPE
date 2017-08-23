@@ -53,16 +53,17 @@ void optimizationProblemGradientCheck(OptimizationProblem *problem,
                                       const int parameterIndices[],
                                       int numParameterIndices, double epsilon) {
     double fc = 0; // f(theta)
-    double theta[problem->numOptimizationParameters];
-    getRandomStartingpoint(problem->parametersMin, problem->parametersMax,
-                           problem->numOptimizationParameters, theta);
+    double theta[problem->getNumOptimizationParameters()];
+    getRandomStartingpoint(problem->getParametersMin(),
+                           problem->getParametersMax(),
+                           problem->getNumOptimizationParameters(), theta);
 
-    double *gradient = new double[problem->numOptimizationParameters];
+    double *gradient = new double[problem->getNumOptimizationParameters()];
     problem->evaluateObjectiveFunction(theta, &fc, gradient);
 
-    double *thetaTmp = new double[problem->numOptimizationParameters];
+    double *thetaTmp = new double[problem->getNumOptimizationParameters()];
     memcpy(thetaTmp, theta,
-           sizeof(double) * problem->numOptimizationParameters);
+           sizeof(double) * problem->getNumOptimizationParameters());
 
     printf("Index\tGradient\tfd_f\t\t(delta)\t\tfd_c\t\t(delta)\t\tfd_b\t\t("
            "delta)\n");
@@ -93,12 +94,6 @@ void optimizationProblemGradientCheck(OptimizationProblem *problem,
 
     delete[] gradient;
     delete[] thetaTmp;
-}
-
-int OptimizationProblem::evaluateObjectiveFunction(const double *parameters,
-                                                   double *objFunVal,
-                                                   double *objFunGrad) {
-    return 0;
 }
 
 int OptimizationProblem::intermediateFunction(
@@ -148,10 +143,10 @@ void OptimizationProblem::setInitialParameters(double *initialParameters) {
     this->initialParameters = initialParameters;
 }
 
-OptimizationProblem::OptimizationProblem() {
-    numOptimizationParameters = 0;
-    parametersMin = NULL;
-    parametersMax = NULL;
-    initialParameters = NULL;
-    optimizationOptions = NULL;
+int OptimizationProblem::getNumOptimizationParameters() {
+    return numOptimizationParameters;
 }
+
+double *OptimizationProblem::getParametersMin() { return parametersMin; }
+
+double *OptimizationProblem::getParametersMax() { return parametersMax; }

@@ -23,7 +23,7 @@ class CeresWrapper : public ceres::FirstOrderFunction {
     }
 
     virtual int NumParameters() const {
-        return problem->numOptimizationParameters;
+        return problem->getNumOptimizationParameters();
     }
 
   private:
@@ -55,16 +55,16 @@ class MyIterationCallback : public ceres::IterationCallback {
  * @return 1 on failure, 0 on success
  */
 int getLocalOptimumCeres(OptimizationProblem *problem) {
-    double *parameters = (double *)malloc(sizeof(*parameters) *
-                                          problem->numOptimizationParameters);
+    double *parameters = new double[problem->getNumOptimizationParameters()];
     double *startingPoint = problem->getInitialParameters();
     if (startingPoint) {
         // copy, because will be update each iteration
         memcpy(parameters, startingPoint,
-               sizeof(*parameters) * problem->numOptimizationParameters);
+               sizeof(*parameters) * problem->getNumOptimizationParameters());
     } else {
-        getRandomStartingpoint(problem->parametersMin, problem->parametersMax,
-                               problem->numOptimizationParameters, parameters);
+        getRandomStartingpoint(
+            problem->getParametersMin(), problem->getParametersMax(),
+            problem->getNumOptimizationParameters(), parameters);
     }
 
     ceres::GradientProblemSolver::Options options;
@@ -94,7 +94,7 @@ int getLocalOptimumCeres(OptimizationProblem *problem) {
                                   summary.total_time_in_seconds,
                                   summary.termination_type);
 
-    free(parameters);
+    delete[] parameters;
 
     return summary.termination_type == ceres::FAILURE ||
            summary.termination_type == ceres::USER_FAILURE;

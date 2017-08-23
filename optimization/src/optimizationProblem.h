@@ -8,11 +8,12 @@
 class OptimizationOptions;
 class OptimizationResultWriter;
 
+/**
+ * @brief The OptimizationProblem class describes an optimization problem
+ */
 class OptimizationProblem {
 
   public:
-    OptimizationProblem();
-
     /**
      * Callback function for objective function gradient evaluation at
      * parameters.
@@ -21,7 +22,7 @@ class OptimizationProblem {
      */
     virtual int evaluateObjectiveFunction(const double *parameters,
                                           double *objFunVal,
-                                          double *objFunGrad);
+                                          double *objFunGrad) = 0;
 
     /**
      * Callback function which is called after each optimizer iteration.
@@ -55,21 +56,27 @@ class OptimizationProblem {
 
     void setInitialParameters(double *initialParameters);
 
-    /** number of optimization parameters */
-    int numOptimizationParameters;
+    int getNumOptimizationParameters();
 
-    /** lowest allowed parameter values */
-    double *parametersMin;
+    double *getParametersMin();
 
-    /** highest allowed parameter values */
-    double *parametersMax;
+    double *getParametersMax();
 
-    OptimizationOptions *optimizationOptions = NULL;
+    OptimizationOptions *optimizationOptions = nullptr;
 
-    OptimizationResultWriter *resultWriter = NULL;
+    OptimizationResultWriter *resultWriter = nullptr;
 
   protected:
-    double *initialParameters;
+    /** number of optimization parameters */
+    int numOptimizationParameters = 0;
+
+    /** lowest allowed parameter values */
+    double *parametersMin = nullptr;
+
+    /** highest allowed parameter values */
+    double *parametersMax = nullptr;
+
+    double *initialParameters = nullptr;
 };
 
 int getLocalOptimum(OptimizationProblem *problem);

@@ -20,7 +20,7 @@ bool LocalOptimizationIpoptTNLP::get_nlp_info(Index &n, Index &m,
                                               IndexStyleEnum &index_style) {
     pthread_mutex_unlock(ipoptMutex);
 
-    n = problem->numOptimizationParameters;
+    n = problem->getNumOptimizationParameters();
     m = 0;                       // number of constrants
     nnz_jac_g = 0;               // numNonZeroElementsConstraintJacobian
     nnz_h_lag = 0;               // numNonZeroElementsLagrangianHessian
@@ -35,8 +35,8 @@ bool LocalOptimizationIpoptTNLP::get_bounds_info(Index n, Number *x_l,
                                                  Number *x_u, Index m,
                                                  Number *g_l, Number *g_u) {
     // parameter bounds
-    memcpy(x_l, problem->parametersMin, sizeof(Number) * n);
-    memcpy(x_u, problem->parametersMax, sizeof(Number) * n);
+    memcpy(x_l, problem->getParametersMin(), sizeof(Number) * n);
+    memcpy(x_u, problem->getParametersMax(), sizeof(Number) * n);
 
     // no constraints -> no constraint bounds
 
@@ -53,9 +53,9 @@ bool LocalOptimizationIpoptTNLP::get_starting_point(Index n, bool init_x,
         if (startingPoint) {
             memcpy(x, startingPoint, sizeof(Number) * n);
         } else {
-            getRandomStartingpoint(problem->parametersMin,
-                                   problem->parametersMax,
-                                   problem->numOptimizationParameters, x);
+            getRandomStartingpoint(problem->getParametersMin(),
+                                   problem->getParametersMax(),
+                                   problem->getNumOptimizationParameters(), x);
         }
     }
 
@@ -118,7 +118,7 @@ bool LocalOptimizationIpoptTNLP::eval_grad_f(Index n, const Number *x,
         errors = problem->evaluateObjectiveFunction(x, &lastCost, grad_f);
 
         if (!lastGradient)
-            lastGradient = new Number[problem->numOptimizationParameters];
+            lastGradient = new Number[problem->getNumOptimizationParameters()];
         memcpy(lastGradient, grad_f, sizeof(Number) * n);
         lastCostP = &lastCost;
         lastErrors = errors;
