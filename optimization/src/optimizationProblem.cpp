@@ -7,6 +7,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <optimizer.h>
 /**
  * @brief getLocalOptimum
  * @param problem
@@ -14,14 +15,10 @@
  */
 
 int getLocalOptimum(OptimizationProblem *problem) {
-    switch (problem->optimizationOptions->optimizer) {
-    case OPTIMIZER_CERES:
-        return getLocalOptimumCeres(problem);
-    case OPTIMIZER_IPOPT:
-        return getLocalOptimumIpopt(problem);
-    default:
-        return getLocalOptimumIpopt(problem);
-    }
+    Optimizer *optimizer = problem->optimizationOptions->createOptimizer();
+    int status = optimizer->optimize(problem);
+    delete optimizer;
+    return status;
 }
 
 /**

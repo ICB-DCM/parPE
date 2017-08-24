@@ -25,7 +25,8 @@ TEST(localOptimizationIpopt, testOptimization) {
     //    mock().expectNCalls(12, "testObjGrad");
     mock().ignoreOtherCalls();
 
-    getLocalOptimumIpopt(problem);
+    OptimizerIpOpt optimizer;
+    optimizer.optimize(problem);
 
     DOUBLES_EQUAL(42.0, problem->optimalCost, 1e-12);
     DOUBLES_EQUAL(-1.0, problem->optimalParameter, 1e-12);

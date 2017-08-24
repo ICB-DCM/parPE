@@ -18,10 +18,12 @@
 extern volatile sig_atomic_t caughtTerminationSignal;
 #endif
 
+static_assert(sizeof(double) == sizeof(Number),
+              "Sizeof IpOpt::Number != sizeof double");
+
 /**
  * @brief ipoptMutex Ipopt seems not to be thread safe. Lock this mutex every
- * time
- * when control is passed to ipopt functions.
+ * time that control is passed to ipopt functions.
  */
 static pthread_mutex_t ipoptMutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -64,9 +66,9 @@ void setIpOptOptions(SmartPtr<IpoptApplication> app,
     // http://www.coin-or.org/Ipopt/documentation/node53.html#opt:hessian_approximation
 }
 
-int getLocalOptimumIpopt(OptimizationProblem *problem) {
+OptimizerIpOpt::OptimizerIpOpt() {}
 
-    assert(sizeof(double) == sizeof(Number));
+int OptimizerIpOpt::optimize(OptimizationProblem *problem) {
 
     ApplicationReturnStatus status;
 
@@ -84,10 +86,4 @@ int getLocalOptimumIpopt(OptimizationProblem *problem) {
     pthread_mutex_unlock(&ipoptMutex);
 
     return (int)status < Maximum_Iterations_Exceeded;
-}
-
-OptimizerIpOpt::OptimizerIpOpt() {}
-
-int OptimizerIpOpt::optimize(OptimizationProblem *problem) {
-    return getLocalOptimumIpopt(problem);
 }

@@ -1,5 +1,6 @@
 #include "localOptimizationCeres.h"
 #include "optimizationOptions.h"
+#include "optimizationProblem.h"
 #include <ceres/ceres.h>
 
 class CeresWrapper : public ceres::FirstOrderFunction {
@@ -49,12 +50,9 @@ class MyIterationCallback : public ceres::IterationCallback {
     OptimizationProblem *problem = NULL;
 };
 
-/**
- * @brief getLocalOptimumCeres
- * @param problem
- * @return 1 on failure, 0 on success
- */
-int getLocalOptimumCeres(OptimizationProblem *problem) {
+OptimizerCeres::OptimizerCeres() {}
+
+int OptimizerCeres::optimize(OptimizationProblem *problem) {
     double *parameters = new double[problem->getNumOptimizationParameters()];
     double *startingPoint = problem->getInitialParameters();
     if (startingPoint) {

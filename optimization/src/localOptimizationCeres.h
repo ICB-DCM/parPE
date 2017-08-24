@@ -1,21 +1,22 @@
 #ifndef LOCAL_OPTIMIZATION_CERES_H
 #define LOCAL_OPTIMIZATION_CERES_H
 
-#include "optimizationProblem.h"
+#include "optimizer.h"
 
-#ifdef __cplusplus
-#define EXTERNC extern "C"
-#else
-#define EXTERNC
-#endif
+class OptimizationProblem;
 
-/**
- * @brief getLocalOptimumCeres determines the local optimum for the provided
- * optimization problem using the Google Ceres optimizer
- * @param problem the optimization problem
- * @return Returns 0 on success.
- */
+class OptimizerCeres : public Optimizer {
+  public:
+    OptimizerCeres();
 
-EXTERNC int getLocalOptimumCeres(OptimizationProblem *problem);
+    /**
+     * @brief Determines the local optimum for the provided
+     * optimization problem using the Google Ceres optimizer
+     * @param problem the optimization problem
+     * @return Returns 0 on success.
+
+     */
+    int optimize(OptimizationProblem *problem);
+};
 
 #endif

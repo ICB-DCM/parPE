@@ -4,6 +4,7 @@
 #include <hdf5Misc.h>
 
 #include <string>
+class Optimizer;
 
 typedef enum optimizer_tag { OPTIMIZER_IPOPT, OPTIMIZER_CERES } optimizerEnum;
 
@@ -12,6 +13,9 @@ typedef enum optimizer_tag { OPTIMIZER_IPOPT, OPTIMIZER_CERES } optimizerEnum;
 class OptimizationOptions {
   public:
     OptimizationOptions();
+
+    /** Optimizer factory method depending on OptimizationOptions::optimizer */
+    Optimizer *createOptimizer();
 
     /** Optimizer to use */
     optimizerEnum optimizer;

@@ -1,4 +1,6 @@
 #include "optimizationOptions.h"
+#include "localOptimizationCeres.h"
+#include "localOptimizationIpopt.h"
 #include "logging.h"
 #include "misc.h"
 #include <cassert>
@@ -21,6 +23,17 @@ OptimizationOptions::OptimizationOptions() {
     maxOptimizerIterations = 1000;
     numStarts = 1;
     functionTolerance = 1e-18;
+}
+
+Optimizer *OptimizationOptions::createOptimizer() {
+    switch (optimizer) {
+    case OPTIMIZER_IPOPT:
+        return new OptimizerIpOpt();
+    case OPTIMIZER_CERES:
+        return new OptimizerCeres();
+    }
+
+    return nullptr;
 }
 
 OptimizationOptions *OptimizationOptions::fromHDF5(const char *fileName) {

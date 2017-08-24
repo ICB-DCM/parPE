@@ -6,11 +6,13 @@ class OptimizationOptions;
 
 class Optimizer {
   public:
-    Optimizer() {}
+    Optimizer();
 
     virtual int optimize(OptimizationProblem *) = 0;
 
     OptimizationOptions *options = nullptr;
+
+    virtual ~Optimizer();
 };
 
 #endif // OPTIMIZER_H

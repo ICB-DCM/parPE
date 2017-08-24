@@ -8,14 +8,13 @@ class OptimizerIpOpt : public Optimizer {
   public:
     OptimizerIpOpt();
 
+    /**
+     * @brief getLocalOptimum Get local optimum using Ipopt Optimizer
+     * @param problem
+     * @return Returns 0 on success.
+     */
+
     int optimize(OptimizationProblem *problem);
 };
-
-/**
- * @brief getLocalOptimum Get local optimum using Ipopt Optimizer
- * @param dataPath
- * @return Returns 0 on success.
- */
-int getLocalOptimumIpopt(OptimizationProblem *problem);
 
 #endif
