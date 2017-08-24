@@ -26,8 +26,8 @@ class SteadystateApplication : public OptimizationApplication {
   public:
     SteadystateApplication() : OptimizationApplication() {}
 
-    virtual void initProblem(const char *inFileArgument,
-                             const char *outFileArgument) {
+    virtual void initProblem(std::string inFileArgument,
+                             std::string outFileArgument) {
         model = getModel();
         dataProvider =
             new SteadyStateMultiConditionDataProvider(model, inFileArgument);
@@ -48,9 +48,13 @@ class SteadystateApplication : public OptimizationApplication {
         delete model;
     }
 
-    virtual void runWorker() {
-        if (getMpiCommSize() > 1)
+    virtual int runWorker() {
+        if (getMpiCommSize() > 1) {
             loadBalancerWorkerRun(handleWorkPackage, problem);
+            return 0;
+        } else {
+            return 1;
+        }
     }
 
     SteadyStateMultiConditionDataProvider *dataProvider;

@@ -7,9 +7,7 @@
 #include <mpi.h>
 #include <pthread.h>
 
-OptimizationApplication::OptimizationApplication()
-    : dataFileName(NULL), resultFileName(NULL), problem(NULL),
-      resultWriter(NULL) {}
+OptimizationApplication::OptimizationApplication() {}
 
 int OptimizationApplication::init(int argc, char **argv) {
     // TODO: check if initialized already
@@ -49,8 +47,7 @@ int OptimizationApplication::parseOptions(int argc, char **argv) {
                 opType = OP_TYPE_GRADIENT_CHECK;
             break;
         case 'o':
-            resultFileName = new char[strlen(optarg) + 20];
-            sprintf(resultFileName, "%s_rank%05d.h5", optarg, getMpiRank());
+            setResultFilename(optarg);
             break;
         case 'v':
             printf("Version: %s\n", GIT_VERSION);
@@ -90,12 +87,10 @@ void OptimizationApplication::initMPI(int *argc, char ***argv) {
         exit(1);
     }
 
-    int mpiRank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
-    if (mpiRank == 0) {
-        int commSize;
-        MPI_Comm_size(MPI_COMM_WORLD, &commSize);
+    int mpiRank = getMpiRank();
 
+    if (mpiRank == 0) {
+        int commSize = getMpiCommSize();
         logmessage(LOGLVL_INFO, "Running with %d MPI processes.", commSize);
     }
 }
@@ -105,7 +100,7 @@ int OptimizationApplication::run() {
 
     int status = 0;
 
-    if (!dataFileName) {
+    if (!dataFileName.size()) {
         logmessage(LOGLVL_CRITICAL,
                    "No input file provided. Must provide input file as first "
                    "and only argument or set "
@@ -114,8 +109,7 @@ int OptimizationApplication::run() {
     }
     initProblem(dataFileName, resultFileName);
 
-    int commSize;
-    MPI_Comm_size(MPI_COMM_WORLD, &commSize);
+    int commSize = getMpiCommSize();
 
     if (commSize > 1) {
         if (getMpiRank() == 0) {
@@ -129,7 +123,7 @@ int OptimizationApplication::run() {
             logmessage(LOGLVL_INFO, "Sent termination signal to workers.");
 
         } else {
-            runWorker();
+            status = runWorker();
             finalizeTiming(begin);
         }
     } else {
@@ -162,10 +156,15 @@ void OptimizationApplication::finalizeTiming(clock_t begin) {
     }
 }
 
-OptimizationApplication::~OptimizationApplication() {
-    if (resultFileName)
-        delete[] resultFileName;
+void OptimizationApplication::setResultFilename(const char *commandLineArg) {
+    std::size_t bufSize = 1024;
+    char tmpFileName[bufSize];
+    snprintf(tmpFileName, bufSize, "%s_rank%05d.h5", commandLineArg,
+             getMpiRank());
+    resultFileName = tmpFileName;
+}
 
+OptimizationApplication::~OptimizationApplication() {
     destroyHDF5Mutex();
 
     MPI_Finalize();

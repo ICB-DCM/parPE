@@ -13,7 +13,7 @@ class MultiConditionProblemResultWriter : public OptimizationResultWriter {
 
     MultiConditionProblemResultWriter(hid_t file_id, JobIdentifier id);
 
-    MultiConditionProblemResultWriter(const char *filename, bool overwrite,
+    MultiConditionProblemResultWriter(std::string filename, bool overwrite,
                                       JobIdentifier id);
 
     std::string getIterationPath(int iterationIdx);

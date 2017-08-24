@@ -14,13 +14,13 @@ OptimizationResultWriter::OptimizationResultWriter(hid_t file_id) {
     logParPEVersion();
 }
 
-OptimizationResultWriter::OptimizationResultWriter(const char *filename,
+OptimizationResultWriter::OptimizationResultWriter(const std::string &filename,
                                                    bool overwrite) {
     // TODO: Add root path to constructor and use as prefix
 
     logmessage(LOGLVL_DEBUG, "Writing results to %s.", filename);
-    mkpathConstChar(filename, 0755);
-    initResultHDFFile(filename, overwrite);
+    mkpathConstChar(filename.c_str(), 0755);
+    initResultHDFFile(filename.c_str(), overwrite);
     logParPEVersion();
 }
 

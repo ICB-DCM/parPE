@@ -25,17 +25,17 @@ void sprintJobIdentifier(char *buffer, JobIdentifier id) {
  */
 
 MultiConditionDataProvider::MultiConditionDataProvider(Model *model,
-                                                       const char *hdf5Filename)
+                                                       std::string hdf5Filename)
     : MultiConditionDataProvider(model, hdf5Filename, "") {}
 
 MultiConditionDataProvider::MultiConditionDataProvider(Model *model,
-                                                       const char *hdf5Filename,
+                                                       std::string hdf5Filename,
                                                        std::string rootPath)
     : model(model) {
     hdf5LockMutex();
 
     H5_SAVE_ERROR_HANDLER;
-    fileId = H5Fopen(hdf5Filename, H5F_ACC_RDONLY, H5P_DEFAULT);
+    fileId = H5Fopen(hdf5Filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
     if (fileId < 0) {
         logmessage(LOGLVL_CRITICAL,
                    "initDataProvider failed to open HDF5 file '%s'.",

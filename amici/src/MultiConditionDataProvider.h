@@ -51,9 +51,9 @@ void sprintJobIdentifier(char *buffer, JobIdentifier id);
 
 class MultiConditionDataProvider {
   public:
-    MultiConditionDataProvider(Model *model, const char *hdf5Filename);
+    MultiConditionDataProvider(Model *model, std::string hdf5Filename);
 
-    MultiConditionDataProvider(Model *model, const char *hdf5Filename,
+    MultiConditionDataProvider(Model *model, std::string hdf5Filename,
                                std::string rootPath);
 
     /**

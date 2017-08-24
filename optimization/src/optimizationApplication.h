@@ -16,34 +16,80 @@ class OptimizationApplication {
   public:
     OptimizationApplication();
 
+    /**
+     * @brief init
+     * @param argc
+     * @param argv
+     * @return
+     */
     virtual int init(int argc, char **argv);
 
-    virtual int parseOptions(int argc, char **argv);
+    /**
+     * @brief User-provided problem initialization
+     * @param inFileArgument
+     * @param outFileArgument
+     */
+    virtual void initProblem(std::string inFileArgument,
+                             std::string outFileArgument) = 0;
 
-    static void initMPI(int *argc, char ***argv);
+    /**
+     * @brief Start the optimization run
+     * @return
+     */
+    int run();
 
-    virtual void initProblem(const char *inFileArgument,
-                             const char *outFileArgument) = 0;
-
-    virtual int run();
-
+    /**
+     * @brief Code to be run on master. Does nothing by default
+     * @return
+     */
     virtual int runMaster() { return 0; }
 
-    virtual void runWorker() {}
+    /**
+     * @brief Code to be run on worker processes. Does nothing by default.
+     */
+    virtual int runWorker() { return 0; }
 
+    /**
+     * @brief Code to be run if the application is running on only 1 process
+     */
     virtual void runSingleMpiProcess() {}
 
+    /**
+     * @brief Writes the total programm runtime
+     * @param begin
+     */
     virtual void finalizeTiming(clock_t begin);
+
+    virtual void setResultFilename(const char *commandLineArg);
 
     ~OptimizationApplication();
 
-    int getMpiRank();
-    int getMpiCommSize();
+    static int getMpiRank();
 
-    const char *dataFileName;
-    char *resultFileName;
-    OptimizationProblem *problem;
-    OptimizationResultWriter *resultWriter;
+    static int getMpiCommSize();
+
+  protected:
+    /**
+     * @brief Initialize MPI
+     * @param argc
+     * @param argv
+     */
+    static void initMPI(int *argc, char ***argv);
+
+    /**
+     * @brief Parse command line Options.
+     * Must be called before any other functions. Initializes MPI if not already
+     * done.
+     * @param argc
+     * @param argv
+     * @return
+     */
+    virtual int parseOptions(int argc, char **argv);
+
+    std::string dataFileName;
+    std::string resultFileName;
+    OptimizationProblem *problem = nullptr;
+    OptimizationResultWriter *resultWriter = nullptr;
 
     // command line option parsing
     const char *shortOptions = "dhvt:o:";

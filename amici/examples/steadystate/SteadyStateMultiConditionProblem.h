@@ -12,7 +12,7 @@ class SteadyStateMultiConditionDataProvider
     : public MultiConditionDataProvider {
   public:
     SteadyStateMultiConditionDataProvider(Model *model,
-                                          const char *hdf5Filename);
+                                          std::string hdf5Filename);
 
     int getNumberOfConditions() const { return 12; }
 

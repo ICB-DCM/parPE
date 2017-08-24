@@ -11,7 +11,7 @@ MultiConditionProblemResultWriter::MultiConditionProblemResultWriter(
 }
 
 MultiConditionProblemResultWriter::MultiConditionProblemResultWriter(
-    const char *filename, bool overwrite, JobIdentifier id)
+    std::string filename, bool overwrite, JobIdentifier id)
     : OptimizationResultWriter(filename, overwrite) {
     setJobId(id);
 }

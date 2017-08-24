@@ -32,7 +32,7 @@ class OptimizationResultWriter {
      * @param filename Name of the result file
      * @param overwrite Overwrite output file if already exists
      */
-    OptimizationResultWriter(const char *filename, bool overwrite);
+    OptimizationResultWriter(const std::string &filename, bool overwrite);
 
     virtual std::string getOptimizationPath();
 
