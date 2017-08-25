@@ -5,7 +5,7 @@
 #include "optimizationResultWriter.h"
 #include <getopt.h>
 #include <string>
-
+#include <LoadBalancerMaster.h>
 /**
  * @brief The OptimizationApplication class parses command line arguments,
  * initializes MPI in required, opens data and results files and starts an
@@ -108,6 +108,8 @@ class OptimizationApplication {
     } operationTypeEnum;
 
     operationTypeEnum opType = OP_TYPE_PARAMETER_ESTIMATION;
+
+    LoadBalancerMaster loadBalancer;
 };
 
 #endif // OPTIMIZATIONAPPLICATION_H

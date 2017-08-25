@@ -1,12 +1,12 @@
 #include "steadystateProblemParallel.h"
 #include "wrapfunctions.h"
 #include <cstring>
-#include <loadBalancerMaster.h>
+#include <LoadBalancerMaster.h>
 #include <mpi.h>
 #include <pthread.h>
 #include <unistd.h>
 
-SteadystateProblemParallel::SteadystateProblemParallel() {
+SteadystateProblemParallel::SteadystateProblemParallel(LoadBalancerMaster *loadBalancer) : loadBalancer(loadBalancer) {
     MPI_Comm_size(MPI_COMM_WORLD, &commSize);
 
     numConditions = 12;
@@ -51,7 +51,7 @@ int SteadystateProblemParallel::evaluateParallel(const double *parameters,
         memcpy(job->sendBuffer + 2 * sizeof(int), parameters,
                model->np * sizeof(double));
 
-        loadBalancerQueueJob(job);
+        loadBalancer->queueJob(job);
     }
 
     // wait for simulations to finish

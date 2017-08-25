@@ -2,10 +2,11 @@
 #define STEADYSTATEPROBLEM_PARALLEL_H
 
 #include "steadystateProblem.h"
+#include <LoadBalancerMaster.h>
 
 class SteadystateProblemParallel : public ExampleSteadystateProblem {
   public:
-    SteadystateProblemParallel();
+    SteadystateProblemParallel(LoadBalancerMaster *loadBalancer);
 
     int evaluateObjectiveFunction(const double *parameters, double *objFunVal,
                                   double *objFunGrad);
@@ -18,10 +19,13 @@ class SteadystateProblemParallel : public ExampleSteadystateProblem {
 
     ~SteadystateProblemParallel();
 
+    LoadBalancerMaster *loadBalancer;
+
   protected:
     int commSize;
 
     int numConditions;
+
 };
 
 #endif // STEADYSTATEPROBLEM_PARALLEL_H

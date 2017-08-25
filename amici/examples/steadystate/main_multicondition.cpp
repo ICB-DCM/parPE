@@ -33,7 +33,7 @@ class SteadystateApplication : public OptimizationApplication {
             new SteadyStateMultiConditionDataProvider(model, inFileArgument);
         dataProvider->hdf5MeasurementPath = "/data/ytrue";
 
-        problem = new SteadyStateMultiConditionProblem(dataProvider);
+        problem = new SteadyStateMultiConditionProblem(dataProvider, &loadBalancer);
 
         JobIdentifier id = {0};
         resultWriter =
@@ -91,6 +91,7 @@ class SteadystateMultiStartOptimizationApplication
             reinterpret_cast<MultiConditionProblemResultWriter *>(
                 problem->resultWriter);
         generator.dp = dataProvider;
+        generator.loadBalancer = &loadBalancer;
 
         std::cout << generator.options->toString();
 

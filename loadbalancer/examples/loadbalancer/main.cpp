@@ -1,4 +1,4 @@
-#include "loadBalancerMaster.h"
+#include "LoadBalancerMaster.h"
 #include "loadBalancerWorker.h"
 #include <cstdlib>
 #include <mpi.h>
@@ -18,7 +18,8 @@
  * @return number of errors
  */
 int master() {
-    loadBalancerStartMaster();
+    LoadBalancerMaster lbm;
+    lbm.run();
 
     int numJobs = NUM_JOBS;
     int numJobsFinished = 0;
@@ -37,7 +38,7 @@ int master() {
         job->lenSendBuffer = sizeof(double);
         job->sendBuffer = (char *)malloc(job->lenSendBuffer);
         *(double *)job->sendBuffer = i;
-        loadBalancerQueueJob(job);
+        lbm.queueJob(job);
     }
 
     // wait for simulations to finish
@@ -58,8 +59,8 @@ int master() {
         free(buffer);
     }
 
-    loadBalancerTerminate();
-    sendTerminationSignalToAllWorkers();
+    lbm.terminate();
+    lbm.sendTerminationSignalToAllWorkers();
 
     return errors;
 }
@@ -79,6 +80,7 @@ void messageHandler(char **buffer, int *size, int jobId, void *userData) {
 
     // read message
     double value = **((double **)buffer);
+//    printf("Received %f\n", value);
     free(*buffer);
 
     // sleep(1);
@@ -88,6 +90,7 @@ void messageHandler(char **buffer, int *size, int jobId, void *userData) {
     *buffer = (char *)malloc(*size);
     double *result = (double *)*buffer;
     *result = value * 2;
+//    printf("Sending %f\n", *result);
 }
 
 void worker() { loadBalancerWorkerRun(messageHandler, NULL); }

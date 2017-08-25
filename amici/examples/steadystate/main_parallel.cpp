@@ -1,7 +1,7 @@
 #include "hdf5Misc.h"
 #include "steadystateProblemParallel.h"
 #include <amici_model.h>
-#include <loadBalancerMaster.h>
+#include <LoadBalancerMaster.h>
 #include <loadBalancerWorker.h>
 #include <logging.h>
 #include <mpi.h>
@@ -28,22 +28,25 @@ int main(int argc, char **argv) {
 
     if (commSize == 1) {
         // run in serial mode
-        SteadystateProblemParallel problem = SteadystateProblemParallel();
+        SteadystateProblemParallel problem = SteadystateProblemParallel(NULL);
         status = getLocalOptimum(&problem);
 
     } else {
-        SteadystateProblemParallel problem = SteadystateProblemParallel();
+        SteadystateProblemParallel problem = SteadystateProblemParallel(NULL);
 
         int mpiRank;
         MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
 
         if (mpiRank == 0) {
-            loadBalancerStartMaster();
+            LoadBalancerMaster lbm;
+            problem.loadBalancer = &lbm;
+
+            lbm.run();
 
             status = getLocalOptimum(&problem);
 
-            loadBalancerTerminate();
-            sendTerminationSignalToAllWorkers();
+            lbm.terminate();
+            lbm.sendTerminationSignalToAllWorkers();
         } else {
             loadBalancerWorkerRun(messageHandler, &problem);
         }

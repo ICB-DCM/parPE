@@ -6,9 +6,8 @@
 #include <amici_interface_cpp.h>
 #include <amici_model.h>
 #include <cassert>
-#include <cmath>
 #include <cstring>
-#include <loadBalancerMaster.h>
+#include <LoadBalancerMaster.h>
 #include <loadBalancerWorker.h>
 #include <logging.h>
 #include <misc.h>
@@ -18,8 +17,6 @@
 // For debugging:
 // skip objective function evaluation completely
 //#define NO_OBJ_FUN_EVAL
-
-ReturnData *getDummyRdata(UserData *udata, int *iterationsDone);
 
 void handleWorkPackage(char **buffer, int *msgSize, int jobId, void *userData) {
     MultiConditionProblem *problem = (MultiConditionProblem *)userData;
@@ -59,19 +56,15 @@ void handleWorkPackage(char **buffer, int *msgSize, int jobId, void *userData) {
     delete udata;
 }
 
-MultiConditionProblem::MultiConditionProblem()
-    : OptimizationProblem() // for testing only
+MultiConditionProblem::MultiConditionProblem() // for testing only
 {
-    lastOptimizationParameters = NULL;
-    lastObjectiveFunctionGradient = NULL;
-    lastObjectiveFunctionValue = NAN;
-    path = {0};
+
 }
 
-MultiConditionProblem::MultiConditionProblem(
-    MultiConditionDataProvider *dataProvider)
+MultiConditionProblem::MultiConditionProblem(MultiConditionDataProvider *dataProvider, LoadBalancerMaster *loadBalancer)
     : MultiConditionProblem() {
     this->dataProvider = dataProvider;
+    this->loadBalancer = loadBalancer;
     model = dataProvider->getModel();
     udata = dataProvider->getUserDataForCondition(0);
 
@@ -372,9 +365,14 @@ int MultiConditionProblem::aggregateLikelihood(
     return errors;
 }
 
+MultiConditionProblemSerial::MultiConditionProblemSerial() {}
+
+MultiConditionProblemSerial::MultiConditionProblemSerial(MultiConditionDataProvider *dataProvider)
+    : MultiConditionProblem(dataProvider, NULL) {}
+
 int MultiConditionProblemSerial::runSimulations(
-    const double *optimizationVariables, double *logLikelihood,
-    double *objectiveFunctionGradient, int *dataIndices, int numDataIndices) {
+        const double *optimizationVariables, double *logLikelihood,
+        double *objectiveFunctionGradient, int *dataIndices, int numDataIndices) {
     JobIdentifier path = this->path;
 
     int numJobsTotal = numDataIndices;
@@ -476,7 +474,7 @@ void MultiConditionProblem::queueSimulation(
     JobIdentifier path, JobData *d, int *jobDone,
     pthread_cond_t *jobDoneChangedCondition,
     pthread_mutex_t *jobDoneChangedMutex, int lenSendBuffer) {
-    *d = initJobData(lenSendBuffer, NULL, jobDone, jobDoneChangedCondition,
+    *d = loadBalancer->initJobData(lenSendBuffer, NULL, jobDone, jobDoneChangedCondition,
                      jobDoneChangedMutex);
 
     JobAmiciSimulation work;
@@ -487,7 +485,7 @@ void MultiConditionProblem::queueSimulation(
     work.simulationParameters = udata->p;
     work.serialize(d->sendBuffer);
 
-    loadBalancerQueueJob(d);
+    loadBalancer->queueJob(d);
 }
 
 void MultiConditionProblem::setSensitivityOptions(bool sensiRequired) {
@@ -525,7 +523,7 @@ MultiConditionProblemGeneratorForMultiStart::getLocalProblemImpl(
     if (mpiCommSize == 1)
         problem = new MultiConditionProblemSerial(dp);
     else
-        problem = new MultiConditionProblem(dp);
+        problem = new MultiConditionProblem(dp, loadBalancer);
 
     problem->optimizationOptions = new OptimizationOptions(*options);
 
