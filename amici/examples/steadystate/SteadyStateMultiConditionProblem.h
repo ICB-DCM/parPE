@@ -35,7 +35,8 @@ class SteadyStateMultiConditionDataProvider
 
 class SteadyStateMultiConditionProblem : public MultiConditionProblem {
   public:
-    SteadyStateMultiConditionProblem(SteadyStateMultiConditionDataProvider *dp, LoadBalancerMaster *loadBalancer);
+    SteadyStateMultiConditionProblem(SteadyStateMultiConditionDataProvider *dp,
+                                     LoadBalancerMaster *loadBalancer);
 
     void setSensitivityOptions(bool sensiRequired);
 

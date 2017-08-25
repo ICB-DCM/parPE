@@ -1,5 +1,5 @@
 #include "LoadBalancerMaster.h"
-#include "loadBalancerWorker.h"
+#include "LoadBalancerWorker.h"
 #include <cstdlib>
 #include <mpi.h>
 #include <stdio.h>
@@ -65,35 +65,42 @@ int master() {
     return errors;
 }
 
-/**
- * @brief messageHandler On the worker side, take the received value, multiply
- * by 2, return
- * @param buffer
- * @param size
- * @param jobId
- * @param userData
- */
-void messageHandler(char **buffer, int *size, int jobId, void *userData) {
-    // reuse allocated memory
-    //    double *result = (double*) *buffer;
-    //    *result *= 2;
+class DuplicatingLoadBalancerWorker : public LoadBalancerWorker {
+    /**
+     * @brief messageHandler On the worker side, take the received value,
+     * multiply
+     * by 2, return
+     * @param buffer
+     * @param size
+     * @param jobId
+     * @param userData
+     */
 
-    // read message
-    double value = **((double **)buffer);
-//    printf("Received %f\n", value);
-    free(*buffer);
+    void messageHandler(char **buffer, int *size, int jobId) {
+        // reuse allocated memory
+        //    double *result = (double*) *buffer;
+        //    *result *= 2;
 
-    // sleep(1);
+        // read message
+        double value = **((double **)buffer);
+        //    printf("Received %f\n", value);
+        free(*buffer);
 
-    // prepare result
-    *size = sizeof(double);
-    *buffer = (char *)malloc(*size);
-    double *result = (double *)*buffer;
-    *result = value * 2;
-//    printf("Sending %f\n", *result);
+        // sleep(1);
+
+        // prepare result
+        *size = sizeof(double);
+        *buffer = (char *)malloc(*size);
+        double *result = (double *)*buffer;
+        *result = value * 2;
+        //    printf("Sending %f\n", *result);
+    }
+};
+
+void worker() {
+    DuplicatingLoadBalancerWorker w;
+    w.run();
 }
-
-void worker() { loadBalancerWorkerRun(messageHandler, NULL); }
 
 int main(int argc, char **argv) {
     int status = 0;

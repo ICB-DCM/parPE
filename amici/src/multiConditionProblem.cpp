@@ -3,12 +3,11 @@
 #include "optimizationOptions.h"
 #include "simulationWorkerAmici.h"
 #include "steadystateSimulator.h"
+#include <LoadBalancerMaster.h>
 #include <amici_interface_cpp.h>
 #include <amici_model.h>
 #include <cassert>
 #include <cstring>
-#include <LoadBalancerMaster.h>
-#include <loadBalancerWorker.h>
 #include <logging.h>
 #include <misc.h>
 #include <rdata.h>
@@ -18,50 +17,11 @@
 // skip objective function evaluation completely
 //#define NO_OBJ_FUN_EVAL
 
-void handleWorkPackage(char **buffer, int *msgSize, int jobId, void *userData) {
-    MultiConditionProblem *problem = (MultiConditionProblem *)userData;
-    MultiConditionDataProvider *dataProvider = problem->getDataProvider();
-    Model *model = dataProvider->getModel();
-
-    // unpack
-    UserData *udata = dataProvider->getUserData();
-    JobIdentifier path;
-    JobAmiciSimulation::toUserData(*buffer, udata, &path);
-    free(*buffer);
-
-#if QUEUE_WORKER_H_VERBOSE >= 2
-    int mpiRank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
-    printf("[%d] Received work. ", mpiRank);
-    fflush(stdout);
-#endif
-
-    // do work
-    int status = 0;
-    ReturnData *rdata = MultiConditionProblem::runAndLogSimulation(
-        udata, dataProvider, path, jobId,
-        (MultiConditionProblemResultWriter *)problem->resultWriter, &status);
-
-#if QUEUE_WORKER_H_VERBOSE >= 2
-    printf("[%d] Work done. ", mpiRank);
-    fflush(stdout);
-#endif
-
-    // pack & cleanup
-    *msgSize = JobResultAmiciSimulation::getLength(model->np);
-    *buffer = (char *)malloc(*msgSize);
-    JobResultAmiciSimulation::serialize(rdata, udata, status, *buffer);
-
-    delete rdata;
-    delete udata;
-}
-
 MultiConditionProblem::MultiConditionProblem() // for testing only
-{
+{}
 
-}
-
-MultiConditionProblem::MultiConditionProblem(MultiConditionDataProvider *dataProvider, LoadBalancerMaster *loadBalancer)
+MultiConditionProblem::MultiConditionProblem(
+    MultiConditionDataProvider *dataProvider, LoadBalancerMaster *loadBalancer)
     : MultiConditionProblem() {
     this->dataProvider = dataProvider;
     this->loadBalancer = loadBalancer;
@@ -267,6 +227,43 @@ MultiConditionProblem::~MultiConditionProblem() {
     delete[] lastOptimizationParameters;
 }
 
+void MultiConditionProblem::messageHandler(char **buffer, int *msgSize,
+                                           int jobId) {
+    Model *model = dataProvider->getModel();
+
+    // unpack
+    UserData *udata = dataProvider->getUserData();
+    JobIdentifier path;
+    JobAmiciSimulation::toUserData(*buffer, udata, &path);
+    free(*buffer);
+
+#if QUEUE_WORKER_H_VERBOSE >= 2
+    int mpiRank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
+    printf("[%d] Received work. ", mpiRank);
+    fflush(stdout);
+#endif
+
+    // do work
+    int status = 0;
+    ReturnData *rdata = runAndLogSimulation(
+        udata, dataProvider, path, jobId,
+        (MultiConditionProblemResultWriter *)resultWriter, &status);
+
+#if QUEUE_WORKER_H_VERBOSE >= 2
+    printf("[%d] Work done. ", mpiRank);
+    fflush(stdout);
+#endif
+
+    // pack & cleanup
+    *msgSize = JobResultAmiciSimulation::getLength(model->np);
+    *buffer = (char *)malloc(*msgSize);
+    JobResultAmiciSimulation::serialize(rdata, udata, status, *buffer);
+
+    delete rdata;
+    delete udata;
+}
+
 double *MultiConditionProblem::getInitialParameters(int multiStartIndex) const {
     return OptimizationOptions::getStartingPoint(dataProvider->fileId,
                                                  multiStartIndex);
@@ -367,12 +364,13 @@ int MultiConditionProblem::aggregateLikelihood(
 
 MultiConditionProblemSerial::MultiConditionProblemSerial() {}
 
-MultiConditionProblemSerial::MultiConditionProblemSerial(MultiConditionDataProvider *dataProvider)
+MultiConditionProblemSerial::MultiConditionProblemSerial(
+    MultiConditionDataProvider *dataProvider)
     : MultiConditionProblem(dataProvider, NULL) {}
 
 int MultiConditionProblemSerial::runSimulations(
-        const double *optimizationVariables, double *logLikelihood,
-        double *objectiveFunctionGradient, int *dataIndices, int numDataIndices) {
+    const double *optimizationVariables, double *logLikelihood,
+    double *objectiveFunctionGradient, int *dataIndices, int numDataIndices) {
     JobIdentifier path = this->path;
 
     int numJobsTotal = numDataIndices;
@@ -404,8 +402,8 @@ int MultiConditionProblemSerial::runSimulations(
 
         work.serialize(data[simulationIdx].sendBuffer);
         int sizeDummy;
-        handleWorkPackage(&data[simulationIdx].sendBuffer, &sizeDummy,
-                          simulationIdx, this);
+        messageHandler(&data[simulationIdx].sendBuffer, &sizeDummy,
+                       simulationIdx);
         data[simulationIdx].recvBuffer = data[simulationIdx].sendBuffer;
     }
 
@@ -474,8 +472,9 @@ void MultiConditionProblem::queueSimulation(
     JobIdentifier path, JobData *d, int *jobDone,
     pthread_cond_t *jobDoneChangedCondition,
     pthread_mutex_t *jobDoneChangedMutex, int lenSendBuffer) {
-    *d = loadBalancer->initJobData(lenSendBuffer, NULL, jobDone, jobDoneChangedCondition,
-                     jobDoneChangedMutex);
+    *d =
+        loadBalancer->initJobData(lenSendBuffer, NULL, jobDone,
+                                  jobDoneChangedCondition, jobDoneChangedMutex);
 
     JobAmiciSimulation work;
     work.data = &path;

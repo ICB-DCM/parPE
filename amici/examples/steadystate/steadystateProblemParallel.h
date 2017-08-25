@@ -3,8 +3,10 @@
 
 #include "steadystateProblem.h"
 #include <LoadBalancerMaster.h>
+#include <LoadBalancerWorker.h>
 
-class SteadystateProblemParallel : public ExampleSteadystateProblem {
+class SteadystateProblemParallel : public ExampleSteadystateProblem,
+                                   public LoadBalancerWorker {
   public:
     SteadystateProblemParallel(LoadBalancerMaster *loadBalancer);
 
@@ -17,6 +19,8 @@ class SteadystateProblemParallel : public ExampleSteadystateProblem {
     int evaluateSerial(const double *parameters, double *objFunVal,
                        double *objFunGrad);
 
+    void messageHandler(char **buffer, int *size, int jobId);
+
     ~SteadystateProblemParallel();
 
     LoadBalancerMaster *loadBalancer;
@@ -25,7 +29,6 @@ class SteadystateProblemParallel : public ExampleSteadystateProblem {
     int commSize;
 
     int numConditions;
-
 };
 
 #endif // STEADYSTATEPROBLEM_PARALLEL_H

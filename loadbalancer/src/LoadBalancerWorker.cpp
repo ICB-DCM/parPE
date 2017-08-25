@@ -1,23 +1,23 @@
-#include <string.h>
-#include <mpi.h>
-#include <assert.h>
+#include "LoadBalancerWorker.h"
+
 #include <alloca.h>
 #include <assert.h>
+#include <mpi.h>
 #include <stdbool.h>
 #include <stdlib.h>
-#include "loadBalancerWorker.h"
+#include <string.h>
 
-static bool waitForAndHandleJobs(messageHandlerFp msgHandler, void *userData);
+LoadBalancerWorker::LoadBalancerWorker() {}
 
-void loadBalancerWorkerRun(messageHandlerFp msgHandler, void *userData) {
+void LoadBalancerWorker::run() {
     bool terminate = false;
 
-    while(!terminate) {
-        terminate = waitForAndHandleJobs(msgHandler, userData);
+    while (!terminate) {
+        terminate = waitForAndHandleJobs();
     }
 }
 
-bool waitForAndHandleJobs(messageHandlerFp msgHandler, void *userData) {
+bool LoadBalancerWorker::waitForAndHandleJobs() {
     int rank, err;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
@@ -30,24 +30,25 @@ bool waitForAndHandleJobs(messageHandlerFp msgHandler, void *userData) {
     MPI_Probe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &mpiStatus);
     int msgSize;
     MPI_Get_count(&mpiStatus, MPI_BYTE, &msgSize);
-    char *buffer = malloc(msgSize);
+    char *buffer = (char *)malloc(msgSize);
 
     // receive message
     int source = 0;
-    err = MPI_Recv(buffer, msgSize, MPI_BYTE, source, MPI_ANY_TAG, MPI_COMM_WORLD, &mpiStatus);
+    err = MPI_Recv(buffer, msgSize, MPI_BYTE, source, MPI_ANY_TAG,
+                   MPI_COMM_WORLD, &mpiStatus);
 
 #if QUEUE_WORKER_H_VERBOSE >= 3
     printf("W%d: Received job %d\n", rank, mpiStatus.MPI_TAG);
 #endif
-    if(err != MPI_SUCCESS)
+    if (err != MPI_SUCCESS)
         abort();
 
-    if(mpiStatus.MPI_TAG == MPI_TAG_EXIT_SIGNAL) {
+    if (mpiStatus.MPI_TAG == MPI_TAG_EXIT_SIGNAL) {
         free(buffer);
         return 1;
     }
 
-    msgHandler(&buffer, &msgSize, mpiStatus.MPI_TAG, userData);
+    messageHandler(&buffer, &msgSize, mpiStatus.MPI_TAG);
 
 #if QUEUE_WORKER_H_VERBOSE >= 2
     printf("[%d] Job done, sending results, %dB.\n", rank, msgSize);

@@ -1,12 +1,14 @@
 #include "steadystateProblemParallel.h"
 #include "wrapfunctions.h"
-#include <cstring>
 #include <LoadBalancerMaster.h>
+#include <cstring>
 #include <mpi.h>
 #include <pthread.h>
 #include <unistd.h>
 
-SteadystateProblemParallel::SteadystateProblemParallel(LoadBalancerMaster *loadBalancer) : loadBalancer(loadBalancer) {
+SteadystateProblemParallel::SteadystateProblemParallel(
+    LoadBalancerMaster *loadBalancer)
+    : loadBalancer(loadBalancer) {
     MPI_Comm_size(MPI_COMM_WORLD, &commSize);
 
     numConditions = 12;
@@ -120,6 +122,40 @@ int SteadystateProblemParallel::evaluateSerial(const double *parameters,
         delete rdata;
     }
     return status;
+}
+
+void SteadystateProblemParallel::messageHandler(char **buffer, int *size,
+                                                int jobId) {
+    //    int mpiRank;
+    //    MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
+    //    logmessage(LOGLVL_DEBUG, "Worker #%d: Job #%d received.", mpiRank,
+    //    jobId);
+
+    // unpack parameters
+    int conditionIdx = (int)**buffer;
+    int needGradient = (int)*(*buffer + sizeof(int));
+    memcpy(udata->p, *buffer + 2 * sizeof(int), sizeof(double) * model->np);
+    free(*buffer);
+
+    // read data for current conditions
+    readFixedParameters(conditionIdx);
+    readMeasurement(conditionIdx);
+    requireSensitivities(needGradient);
+
+    // run simulation
+    ReturnData *rdata = getSimulationResults(model, udata, edata);
+    // printf("Result for %d: %f\n", conditionIdx, *rdata->llh);
+    // pack results
+    *size = sizeof(double) * (udata->nplist + 1);
+    *buffer = (char *)malloc(*size);
+    double *doubleBuffer = (double *)*buffer;
+
+    doubleBuffer[0] = rdata->llh[0];
+    if (needGradient)
+        for (int i = 0; i < udata->nplist; ++i)
+            doubleBuffer[1 + i] = rdata->sllh[i];
+
+    delete rdata;
 }
 
 SteadystateProblemParallel::~SteadystateProblemParallel() {}

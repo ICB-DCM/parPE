@@ -6,6 +6,7 @@ set(SRC_LIST
     multiConditionProblemResultWriter.cpp
     simulationWorkerAmici.cpp
     steadystateSimulator.cpp
+    optimizationApplication.cpp
     #amiciUserDataSerialization.cpp
 )
 

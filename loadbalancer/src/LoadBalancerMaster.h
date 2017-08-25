@@ -1,9 +1,9 @@
 #ifndef LOADBALANCERMASTER_H
 #define LOADBALANCERMASTER_H
 
-#include <queue>
 #include <mpi.h>
 #include <pthread.h>
+#include <queue>
 #include <semaphore.h>
 
 //#define MASTER_QUEUE_H_SHOW_COMMUNICATION
@@ -32,20 +32,17 @@ typedef struct JobData_tag {
     pthread_mutex_t *jobDoneChangedMutex;
 } JobData;
 
-
-class LoadBalancerMaster
-{
-public:
-
+class LoadBalancerMaster {
+  public:
     /**
      * @brief Start the load balancer using all available MPI processes.
      * Requires MPI to be initialized.
      */
     void run();
 
-    #ifndef QUEUE_MASTER_TEST
+#ifndef QUEUE_MASTER_TEST
     static void assertMPIInitialized();
-    #endif
+#endif
 
     /**
      * @brief Assign job ID and append to queue for sending to workers.
@@ -59,12 +56,13 @@ public:
      */
     void terminate();
 
-
     void sendTerminationSignalToAllWorkers();
 
-    JobData initJobData(int lenSendBuffer, char *sendBuffer, int *jobDone, pthread_cond_t *jobDoneChangedCondition, pthread_mutex_t *jobDoneChangedMutex);
+    JobData initJobData(int lenSendBuffer, char *sendBuffer, int *jobDone,
+                        pthread_cond_t *jobDoneChangedCondition,
+                        pthread_mutex_t *jobDoneChangedMutex);
 
-protected:
+  protected:
     /**
      * @brief Thread entry point. This is run from run()
      * @param "this"
@@ -87,13 +85,12 @@ protected:
     JobData *getNextJob();
 
     /**
-     * @brief sendToWorker Send the given work package to the given worker and track requests
+     * @brief sendToWorker Send the given work package to the given worker and
+     * track requests
      * @param workerIdx
      * @param queueElement
      */
     void sendToWorker(int workerIdx, JobData *data);
-
-
 
     /**
      * @brief receiveFinished Message received from worker, mark job as done.
@@ -101,7 +98,6 @@ protected:
      * @param jobID
      */
     int handleReply(MPI_Status *mpiStatus);
-
 
     bool isRunning = false;
 

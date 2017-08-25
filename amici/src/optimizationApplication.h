@@ -1,17 +1,18 @@
 #ifndef OPTIMIZATIONAPPLICATION_H
 #define OPTIMIZATIONAPPLICATION_H
 
-#include "optimizationProblem.h"
+#include "multiConditionProblem.h"
 #include "optimizationResultWriter.h"
+#include <LoadBalancerMaster.h>
+#include <LoadBalancerWorker.h>
 #include <getopt.h>
 #include <string>
-#include <LoadBalancerMaster.h>
 /**
  * @brief The OptimizationApplication class parses command line arguments,
  * initializes MPI in required, opens data and results files and starts an
  * optimization
  */
-
+// TODO: DistributedOptimizationApplication
 class OptimizationApplication {
   public:
     OptimizationApplication();
@@ -45,9 +46,14 @@ class OptimizationApplication {
     virtual int runMaster() { return 0; }
 
     /**
-     * @brief Code to be run on worker processes. Does nothing by default.
+     * @brief Code to be run on worker processes. Waits for jobs to be sent to
+     * messageHandler()
      */
-    virtual int runWorker() { return 0; }
+    virtual int runWorker() {
+        problem->run();
+
+        return 0;
+    }
 
     /**
      * @brief Code to be run if the application is running on only 1 process
@@ -88,7 +94,7 @@ class OptimizationApplication {
 
     std::string dataFileName;
     std::string resultFileName;
-    OptimizationProblem *problem = nullptr;
+    MultiConditionProblem *problem = nullptr;
     OptimizationResultWriter *resultWriter = nullptr;
 
     // command line option parsing

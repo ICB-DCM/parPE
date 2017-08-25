@@ -1,7 +1,7 @@
 project(parpeloadbalancer)
 
 set(SRC_LIST
-    loadBalancerWorker.c
+    LoadBalancerWorker.cpp
     LoadBalancerMaster.cpp
 )
 
