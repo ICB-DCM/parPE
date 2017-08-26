@@ -4,14 +4,8 @@ cmake_minimum_required(VERSION 2.8)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wno-unused-function -Wno-unused-variable -Wno-unused-but-set-variable")
 
-add_definitions(-DAMICI_WITHOUT_MATLAB)
-
 set(MODEL_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 set(SUITESPARSE_DIR "${AMICI_DIR}/SuiteSparse/")
-set(SUITESPARSE_LIB_DIR "${AMICI_DIR}/SuiteSparse/lib")
-set(SUNDIALS_LIB_DIR "${AMICI_DIR}/sundials/build/lib")
-
-find_package(HDF5 COMPONENTS C HL REQUIRED)
 
 set(BLAS "CBLAS" CACHE STRING "BLAS library to use")
 set_property(CACHE BLAS PROPERTY STRINGS "CBLAS" "MKL")
@@ -28,7 +22,6 @@ endif()
 
 include_directories("${AMICI_DIR}")
 include_directories("${MODEL_DIR}")
-include_directories("${CMAKE_CURRENT_SOURCE_DIR}")
 include_directories("${HDF5_INCLUDE_DIRS}")
 include_directories("${AMICI_DIR}/sundials/include")
 include_directories("${SUITESPARSE_DIR}/include")
