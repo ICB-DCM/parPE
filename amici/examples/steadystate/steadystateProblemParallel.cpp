@@ -43,7 +43,7 @@ int SteadystateProblemParallel::evaluateParallel(const double *parameters,
         job->jobDoneChangedCondition = &simulationsCond;
         job->jobDoneChangedMutex = &simulationsMutex;
         job->lenSendBuffer = sizeof(double) * model->np + 2 * sizeof(int);
-        job->sendBuffer = (char *)malloc(job->lenSendBuffer);
+        job->sendBuffer = new char[job->lenSendBuffer];
 
         readFixedParameters(i);
         int needGradient = objFunGrad ? 1 : 0;
@@ -79,7 +79,7 @@ int SteadystateProblemParallel::evaluateParallel(const double *parameters,
         if (objFunGrad)
             for (int ip = 0; ip < model->np; ++ip)
                 objFunGrad[ip] -= buffer[1 + ip];
-        free(buffer);
+        delete[] buffer;
     }
 
     sleep(1e-10);
@@ -135,7 +135,7 @@ void SteadystateProblemParallel::messageHandler(char **buffer, int *size,
     int conditionIdx = (int)**buffer;
     int needGradient = (int)*(*buffer + sizeof(int));
     memcpy(udata->p, *buffer + 2 * sizeof(int), sizeof(double) * model->np);
-    free(*buffer);
+    delete[] * buffer;
 
     // read data for current conditions
     readFixedParameters(conditionIdx);
@@ -147,7 +147,7 @@ void SteadystateProblemParallel::messageHandler(char **buffer, int *size,
     // printf("Result for %d: %f\n", conditionIdx, *rdata->llh);
     // pack results
     *size = sizeof(double) * (udata->nplist + 1);
-    *buffer = (char *)malloc(*size);
+    *buffer = new char[*size];
     double *doubleBuffer = (double *)*buffer;
 
     doubleBuffer[0] = rdata->llh[0];

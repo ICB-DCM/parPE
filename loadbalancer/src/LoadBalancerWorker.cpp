@@ -30,7 +30,7 @@ bool LoadBalancerWorker::waitForAndHandleJobs() {
     MPI_Probe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &mpiStatus);
     int msgSize;
     MPI_Get_count(&mpiStatus, MPI_BYTE, &msgSize);
-    char *buffer = (char *)malloc(msgSize);
+    char *buffer = new char[msgSize];
 
     // receive message
     int source = 0;
@@ -44,7 +44,7 @@ bool LoadBalancerWorker::waitForAndHandleJobs() {
         abort();
 
     if (mpiStatus.MPI_TAG == MPI_TAG_EXIT_SIGNAL) {
-        free(buffer);
+        delete[] buffer;
         return 1;
     }
 
@@ -54,7 +54,7 @@ bool LoadBalancerWorker::waitForAndHandleJobs() {
     printf("[%d] Job done, sending results, %dB.\n", rank, msgSize);
 #endif
     MPI_Send(buffer, msgSize, MPI_BYTE, 0, mpiStatus.MPI_TAG, MPI_COMM_WORLD);
-    free(buffer);
+    delete[] buffer;
 
     return 0;
 }

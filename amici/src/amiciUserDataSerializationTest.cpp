@@ -124,7 +124,7 @@ TEST(serialization, test3) {
 
     UserData v = deserializeAmiciUserData(buf, length);
 
-    free(buf);
+    delete[] buf;
     // v.print();
     checkUserDataEqual(u, v);
 }

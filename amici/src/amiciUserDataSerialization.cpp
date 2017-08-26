@@ -15,7 +15,7 @@ char *serializeAmiciUserData(const UserData *udata, int *size) {
     oar << *udata;
     s.flush();
 
-    char *charBuffer = (char *)malloc(serialized.size());
+    char *charBuffer = new char[serialized.size()];
     memcpy(charBuffer, serialized.data(), serialized.size());
 
     if (size)

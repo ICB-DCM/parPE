@@ -36,7 +36,7 @@ int master() {
         job->jobDoneChangedCondition = &cond;
         job->jobDoneChangedMutex = &mutex;
         job->lenSendBuffer = sizeof(double);
-        job->sendBuffer = (char *)malloc(job->lenSendBuffer);
+        job->sendBuffer = new char[job->lenSendBuffer];
         *(double *)job->sendBuffer = i;
         lbm.queueJob(job);
     }
@@ -56,7 +56,7 @@ int master() {
 
         if (*buffer != 2 * i)
             printf("ERROR: %d was %f\n", i, *buffer);
-        free(buffer);
+        delete[] buffer;
     }
 
     lbm.terminate();
@@ -84,13 +84,13 @@ class DuplicatingLoadBalancerWorker : public LoadBalancerWorker {
         // read message
         double value = **((double **)buffer);
         //    printf("Received %f\n", value);
-        free(*buffer);
+        delete[] * buffer;
 
         // sleep(1);
 
         // prepare result
         *size = sizeof(double);
-        *buffer = (char *)malloc(*size);
+        *buffer = new char[*size];
         double *result = (double *)*buffer;
         *result = value * 2;
         //    printf("Sending %f\n", *result);

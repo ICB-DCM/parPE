@@ -235,7 +235,7 @@ void MultiConditionProblem::messageHandler(char **buffer, int *msgSize,
     UserData *udata = dataProvider->getUserData();
     JobIdentifier path;
     JobAmiciSimulation::toUserData(*buffer, udata, &path);
-    free(*buffer);
+    delete[] * buffer;
 
 #if QUEUE_WORKER_H_VERBOSE >= 2
     int mpiRank;
@@ -257,7 +257,7 @@ void MultiConditionProblem::messageHandler(char **buffer, int *msgSize,
 
     // pack & cleanup
     *msgSize = JobResultAmiciSimulation::getLength(model->np);
-    *buffer = (char *)malloc(*msgSize);
+    *buffer = new char[*msgSize];
     JobResultAmiciSimulation::serialize(rdata, udata, status, *buffer);
 
     delete rdata;
@@ -390,8 +390,7 @@ int MultiConditionProblemSerial::runSimulations(
             dataIndices[simulationIdx], optimizationVariables, udata);
 
         data[simulationIdx].lenSendBuffer = lenSendBuffer;
-        data[simulationIdx].sendBuffer = (char *)malloc(
-            lenSendBuffer); // malloc, because will be free()'d by queue
+        data[simulationIdx].sendBuffer = new char[lenSendBuffer];
 
         JobAmiciSimulation work;
         work.data = &path;
@@ -463,7 +462,7 @@ int MultiConditionProblem::unpackSimulationResult(JobData *d,
     result.deserialize(d->recvBuffer);
     *llh = result.llh;
 
-    free(d->recvBuffer);
+    delete[] d->recvBuffer;
 
     return result.status != 0;
 }

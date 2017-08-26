@@ -4,7 +4,7 @@
 #include <climits>
 
 void LoadBalancerMaster::run() {
-    if(isRunning)
+    if (isRunning)
         return;
 
     assertMPIInitialized();
@@ -15,10 +15,9 @@ void LoadBalancerMaster::run() {
            "Need multiple MPI processes!"); // crashes otherwise
 
     numWorkers = mpiCommSize - 1;
-    sentJobsData = (JobData **)malloc(numWorkers * sizeof(JobData *));
-    workerIsBusy = (bool *)malloc(numWorkers * sizeof(bool));
-    memset(workerIsBusy, 0, numWorkers * sizeof(bool));
-    sendRequests = (MPI_Request *)malloc(numWorkers * sizeof(MPI_Request));
+    sentJobsData = new JobData *[numWorkers];
+    workerIsBusy = new bool[numWorkers]();
+    sendRequests = new MPI_Request[numWorkers];
     for (int i = 0; i < numWorkers; ++i) // have to initialize before can wait!
         sendRequests[i] = MPI_REQUEST_NULL;
 
@@ -100,7 +99,7 @@ void LoadBalancerMaster::freeEmptiedSendBuffers() {
                     &anySendCompleted, MPI_STATUS_IGNORE);
 
         if (anySendCompleted && emptiedBufferIdx != MPI_UNDEFINED) {
-            free(sentJobsData[emptiedBufferIdx]->sendBuffer);
+            delete[] sentJobsData[emptiedBufferIdx]->sendBuffer;
         } else {
             break;
         }
@@ -203,11 +202,11 @@ void LoadBalancerMaster::terminate() {
     sem_destroy(&semQueue);
 
     if (sentJobsData)
-        free(sentJobsData);
+        delete[] sentJobsData;
     if (sendRequests)
-        free(sendRequests);
+        delete[] sendRequests;
     if (workerIsBusy)
-        free(workerIsBusy);
+        delete[] workerIsBusy;
 
     isRunning = false;
 }
@@ -219,7 +218,7 @@ int LoadBalancerMaster::handleReply(MPI_Status *mpiStatus) {
 
     // allocate memory for result
     MPI_Get_count(mpiStatus, MPI_BYTE, &data->lenRecvBuffer);
-    data->recvBuffer = (char *)malloc(data->lenRecvBuffer);
+    data->recvBuffer = new char[data->lenRecvBuffer];
 
 #ifdef MASTER_QUEUE_H_SHOW_COMMUNICATION
     printf("\x1b[32mReceiving result for job %d from %d (%dB)\x1b[0m\n",
@@ -264,7 +263,7 @@ JobData LoadBalancerMaster::initJobData(int lenSendBuffer, char *sendBuffer,
                                         int *jobDone,
                                         pthread_cond_t *jobDoneChangedCondition,
                                         pthread_mutex_t *jobDoneChangedMutex) {
-    sendBuffer = sendBuffer ? sendBuffer : (char *)malloc(lenSendBuffer);
+    sendBuffer = sendBuffer ? sendBuffer : new char[lenSendBuffer];
     JobData data = {
         0,       lenSendBuffer,           sendBuffer,         0, NULL,
         jobDone, jobDoneChangedCondition, jobDoneChangedMutex};
