@@ -15,9 +15,9 @@ class MultiConditionDataProviderTest : public MultiConditionDataProvider {
                           23, 24, 25, AMICI_O2MODE_NONE);
     }
 
-    int getNumberOfConditions() const { return numConditions; }
+    int getNumberOfConditions() const override { return numConditions; }
 
-    int getNumConditionSpecificParametersPerSimulation() const {
+    int getNumConditionSpecificParametersPerSimulation() const override {
         return numCondSpecParamPerSim;
     }
 

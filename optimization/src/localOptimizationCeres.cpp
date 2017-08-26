@@ -17,14 +17,14 @@ class MyCeresFirstOrderFunction : public ceres::FirstOrderFunction {
      * @return true on success, false otherwise
      */
     virtual bool Evaluate(const double *parameters, double *cost,
-                          double *gradient) const {
+                          double *gradient) const override {
         bool status =
             problem->evaluateObjectiveFunction(parameters, cost, gradient);
 
         return status == 0;
     }
 
-    virtual int NumParameters() const {
+    virtual int NumParameters() const override {
         return problem->getNumOptimizationParameters();
     }
 
@@ -37,7 +37,7 @@ class MyIterationCallback : public ceres::IterationCallback {
     MyIterationCallback(OptimizationProblem *problem) : problem(problem) {}
 
     virtual ceres::CallbackReturnType
-    operator()(const ceres::IterationSummary &summary) {
+    operator()(const ceres::IterationSummary &summary) override {
         switch (problem->intermediateFunction(
             0, summary.iteration, summary.cost, 0, 0, 0, 0, 0, 0, 0, 0)) {
         case 0:

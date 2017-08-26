@@ -27,7 +27,7 @@ class SteadystateApplication : public OptimizationApplication {
     SteadystateApplication() : OptimizationApplication() {}
 
     virtual void initProblem(std::string inFileArgument,
-                             std::string outFileArgument) {
+                             std::string outFileArgument) override {
         model = getModel();
         dataProvider =
             new SteadyStateMultiConditionDataProvider(model, inFileArgument);
@@ -57,7 +57,7 @@ class SteadystateLocalOptimizationApplication : public SteadystateApplication {
   public:
     SteadystateLocalOptimizationApplication() : SteadystateApplication() {}
 
-    virtual int runMaster() {
+    virtual int runMaster() override {
         // Single optimization
         return getLocalOptimum(problem);
     }
@@ -68,7 +68,7 @@ class SteadystateMultiStartOptimizationApplication
   public:
     SteadystateMultiStartOptimizationApplication() : SteadystateApplication() {}
 
-    virtual int runMaster() {
+    virtual int runMaster() override {
 
         int status = 0;
 

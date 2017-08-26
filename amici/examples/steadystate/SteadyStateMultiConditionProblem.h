@@ -14,19 +14,22 @@ class SteadyStateMultiConditionDataProvider
     SteadyStateMultiConditionDataProvider(Model *model,
                                           std::string hdf5Filename);
 
-    int getNumberOfConditions() const { return 12; }
+    int getNumberOfConditions() const override { return 12; }
 
-    int getNumConditionSpecificParametersPerSimulation() const { return 0; }
+    int getNumConditionSpecificParametersPerSimulation() const override {
+        return 0;
+    }
 
     int updateFixedSimulationParameters(int conditionIdx,
-                                        UserData *udata) const;
+                                        UserData *udata) const override;
 
-    ExpData *getExperimentalDataForCondition(int conditionIdx,
-                                             const UserData *udata) const;
+    ExpData *
+    getExperimentalDataForCondition(int conditionIdx,
+                                    const UserData *udata) const override;
 
     void setupUserData(UserData *udata) const;
 
-    UserData *getUserData() const;
+    UserData *getUserData() const override;
 
     ~SteadyStateMultiConditionDataProvider();
 
@@ -38,7 +41,7 @@ class SteadyStateMultiConditionProblem : public MultiConditionProblem {
     SteadyStateMultiConditionProblem(SteadyStateMultiConditionDataProvider *dp,
                                      LoadBalancerMaster *loadBalancer);
 
-    void setSensitivityOptions(bool sensiRequired);
+    void setSensitivityOptions(bool sensiRequired) override;
 
     ~SteadyStateMultiConditionProblem();
 };

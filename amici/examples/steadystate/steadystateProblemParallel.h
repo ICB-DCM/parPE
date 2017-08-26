@@ -11,7 +11,7 @@ class SteadystateProblemParallel : public ExampleSteadystateProblem,
     SteadystateProblemParallel(LoadBalancerMaster *loadBalancer);
 
     int evaluateObjectiveFunction(const double *parameters, double *objFunVal,
-                                  double *objFunGrad);
+                                  double *objFunGrad) override;
 
     int evaluateParallel(const double *parameters, double *objFunVal,
                          double *objFunGrad);
@@ -19,7 +19,7 @@ class SteadystateProblemParallel : public ExampleSteadystateProblem,
     int evaluateSerial(const double *parameters, double *objFunVal,
                        double *objFunGrad);
 
-    void messageHandler(char **buffer, int *size, int jobId);
+    void messageHandler(char **buffer, int *size, int jobId) override;
 
     ~SteadystateProblemParallel();
 

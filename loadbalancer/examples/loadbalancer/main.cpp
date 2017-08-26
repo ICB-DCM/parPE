@@ -76,7 +76,7 @@ class DuplicatingLoadBalancerWorker : public LoadBalancerWorker {
      * @param userData
      */
 
-    void messageHandler(char **buffer, int *size, int jobId) {
+    void messageHandler(char **buffer, int *size, int jobId) override {
         // reuse allocated memory
         //    double *result = (double*) *buffer;
         //    *result *= 2;

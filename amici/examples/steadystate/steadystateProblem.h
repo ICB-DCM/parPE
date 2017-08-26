@@ -12,22 +12,23 @@ class ExampleSteadystateProblem : public OptimizationProblem {
     ExampleSteadystateProblem();
 
     int evaluateObjectiveFunction(const double *parameters, double *objFunVal,
-                                  double *objFunGrad);
+                                  double *objFunGrad) override;
 
     int intermediateFunction(int alg_mod, int iter_count, double obj_value,
                              double inf_pr, double inf_du, double mu,
                              double d_norm, double regularization_size,
-                             double alpha_du, double alpha_pr, int ls_trials);
+                             double alpha_du, double alpha_pr,
+                             int ls_trials) override;
 
     void logObjectiveFunctionEvaluation(const double *parameters,
                                         double objectiveFunctionValue,
                                         const double *objectiveFunctionGradient,
                                         int numFunctionCalls,
-                                        double timeElapsed);
+                                        double timeElapsed) override;
 
     void logOptimizerFinished(double optimalCost,
                               const double *optimalParameters,
-                              double masterTime, int exitStatus);
+                              double masterTime, int exitStatus) override;
 
     ~ExampleSteadystateProblem();
 

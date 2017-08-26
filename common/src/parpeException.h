@@ -12,7 +12,7 @@ class ParPEException : public std::exception {
 
     virtual ~ParPEException() throw() {}
 
-    virtual const char *what() const noexcept;
+    virtual const char *what() const noexcept override;
 
   protected:
     std::string message;

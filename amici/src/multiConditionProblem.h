@@ -29,9 +29,10 @@ class MultiConditionProblem : public OptimizationProblem,
      * `optimiziationVariables`
      * @return status code, non-zero on failure
      */
-    virtual int evaluateObjectiveFunction(const double *optimiziationVariables,
-                                          double *objectiveFunctionValue,
-                                          double *objectiveFunctionGradient);
+    virtual int
+    evaluateObjectiveFunction(const double *optimiziationVariables,
+                              double *objectiveFunctionValue,
+                              double *objectiveFunctionGradient) override;
 
     virtual int evaluateObjectiveFunction(const double *optimiziationVariables,
                                           double *objectiveFunctionValue,
@@ -60,7 +61,7 @@ class MultiConditionProblem : public OptimizationProblem,
                                      double inf_du, double mu, double d_norm,
                                      double regularization_size,
                                      double alpha_du, double alpha_pr,
-                                     int ls_trials);
+                                     int ls_trials) override;
 
     /**
      * @brief Called after each cost function evaluation for logging results.
@@ -70,11 +71,10 @@ class MultiConditionProblem : public OptimizationProblem,
      * @param numFunctionCalls
      * @param timeElapsed
      */
-    virtual void
-    logObjectiveFunctionEvaluation(const double *parameters,
-                                   double objectiveFunctionValue,
-                                   const double *objectiveFunctionGradient,
-                                   int numFunctionCalls, double timeElapsed);
+    virtual void logObjectiveFunctionEvaluation(
+        const double *parameters, double objectiveFunctionValue,
+        const double *objectiveFunctionGradient, int numFunctionCalls,
+        double timeElapsed) override;
 
     /**
      * @brief Called at the end of an optimization for logging results
@@ -85,7 +85,8 @@ class MultiConditionProblem : public OptimizationProblem,
      */
     virtual void logOptimizerFinished(double optimalCost,
                                       const double *optimalParameters,
-                                      double masterTime, int exitStatus);
+                                      double masterTime,
+                                      int exitStatus) override;
 
     /**
      * @brief Is called by worker processes to run a simulation for the given
@@ -116,10 +117,11 @@ class MultiConditionProblem : public OptimizationProblem,
     /**
      * @brief Callback function for loadbalancer
      * @param buffer In/out: message buffer
-     * @param msgSize In/out: size (bytes) of buffer
+     * @param msgSize In/out: size (bytes) of bufferobjFunVal
      * @param jobId: In: Identifier of the job (unique up to INT_MAX)
      */
-    virtual void messageHandler(char **buffer, int *msgSize, int jobId);
+    virtual void messageHandler(char **buffer, int *msgSize,
+                                int jobId) override;
 
   protected:
     void init();
@@ -210,7 +212,7 @@ class MultiConditionProblemSerial : public MultiConditionProblem {
 
     int runSimulations(const double *optimizationVariables,
                        double *logLikelihood, double *objectiveFunctionGradient,
-                       int *dataIndices, int numDataIndices);
+                       int *dataIndices, int numDataIndices) override;
 };
 
 /**
@@ -222,7 +224,7 @@ class MultiConditionProblemSerial : public MultiConditionProblem {
 class MultiConditionProblemGeneratorForMultiStart
     : public OptimizationProblemGeneratorForMultiStart {
   public:
-    OptimizationProblem *getLocalProblemImpl(int multiStartIndex);
+    OptimizationProblem *getLocalProblemImpl(int multiStartIndex) override;
 
     MultiConditionDataProvider *dp = nullptr;
     OptimizationOptions *options = nullptr;

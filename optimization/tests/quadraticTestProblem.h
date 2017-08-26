@@ -15,11 +15,11 @@ class QuadraticTestProblem : public OptimizationProblem {
      */
 
     int evaluateObjectiveFunction(const double *parameters, double *objFunVal,
-                                  double *objFunGrad);
+                                  double *objFunGrad) override;
 
     void logOptimizerFinished(double optimalCost,
                               const double *optimalParameters,
-                              double masterTime, int exitStatus);
+                              double masterTime, int exitStatus) override;
 
     ~QuadraticTestProblem();
 
@@ -30,7 +30,7 @@ class QuadraticTestProblem : public OptimizationProblem {
 class QuadraticOptimizationProblemGeneratorForMultiStart
     : public OptimizationProblemGeneratorForMultiStart {
   public:
-    OptimizationProblem *getLocalProblemImpl(int multiStartIndex);
+    OptimizationProblem *getLocalProblemImpl(int multiStartIndex) override;
 };
 
 #endif

@@ -16,7 +16,7 @@ class OptimizerCeres : public Optimizer {
      * @return Returns 0 on success.
 
      */
-    int optimize(OptimizationProblem *problem);
+    int optimize(OptimizationProblem *problem) override;
 };
 
 #endif
