@@ -8,7 +8,6 @@ set(SRC_LIST
     localOptimizationCeres.cpp
     optimizationProblem.cpp
     multiStartOptimization.cpp
-    optimizationApplication.cpp
     optimizationResultWriter.cpp
     optimizer.cpp
     optimizationOptions.cpp

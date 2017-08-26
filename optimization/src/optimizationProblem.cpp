@@ -111,10 +111,6 @@ void OptimizationProblem::logOptimizerFinished(double optimalCost,
                                                int exitStatus) {}
 
 OptimizationProblem::~OptimizationProblem() {
-    if (optimizationOptions) {
-        delete optimizationOptions;
-    }
-
     if (resultWriter) {
         delete resultWriter;
     }

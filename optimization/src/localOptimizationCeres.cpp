@@ -3,10 +3,11 @@
 #include "optimizationProblem.h"
 #include <ceres/ceres.h>
 
-class CeresWrapper : public ceres::FirstOrderFunction {
+class MyCeresFirstOrderFunction : public ceres::FirstOrderFunction {
 
   public:
-    CeresWrapper(OptimizationProblem *problem) : problem(problem) {}
+    MyCeresFirstOrderFunction(OptimizationProblem *problem)
+        : problem(problem) {}
 
     /**
      * @brief Evaluate cost function
@@ -81,9 +82,9 @@ int OptimizerCeres::optimize(OptimizationProblem *problem) {
     // NOTE: WOLFE line_search_type will always require gradient
     // options.line_search_interpolation_type = ceres::QUADRATIC;
 
-    ceres::GradientProblemSolver::Summary summary;
+    ceres::GradientProblem ceresProblem(new MyCeresFirstOrderFunction(problem));
 
-    ceres::GradientProblem ceresProblem(new CeresWrapper(problem));
+    ceres::GradientProblemSolver::Summary summary;
     ceres::Solve(options, ceresProblem, parameters, &summary);
 
     //    std::cout<<summary.FullReport();

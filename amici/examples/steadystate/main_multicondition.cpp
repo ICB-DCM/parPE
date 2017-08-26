@@ -2,8 +2,8 @@
 #include "optimizationOptions.h"
 #include "wrapfunctions.h"
 
+#include <LoadBalancerWorker.h>
 #include <hdf5Misc.h>
-#include <loadBalancerWorker.h>
 #include <logging.h>
 #include <multiConditionProblemResultWriter.h>
 #include <optimizationApplication.h>
@@ -33,7 +33,8 @@ class SteadystateApplication : public OptimizationApplication {
             new SteadyStateMultiConditionDataProvider(model, inFileArgument);
         dataProvider->hdf5MeasurementPath = "/data/ytrue";
 
-        problem = new SteadyStateMultiConditionProblem(dataProvider);
+        problem =
+            new SteadyStateMultiConditionProblem(dataProvider, &loadBalancer);
 
         JobIdentifier id = {0};
         resultWriter =
@@ -46,15 +47,6 @@ class SteadystateApplication : public OptimizationApplication {
         delete problem;
         delete dataProvider;
         delete model;
-    }
-
-    virtual int runWorker() {
-        if (getMpiCommSize() > 1) {
-            loadBalancerWorkerRun(handleWorkPackage, problem);
-            return 0;
-        } else {
-            return 1;
-        }
     }
 
     SteadyStateMultiConditionDataProvider *dataProvider;
@@ -91,6 +83,7 @@ class SteadystateMultiStartOptimizationApplication
             reinterpret_cast<MultiConditionProblemResultWriter *>(
                 problem->resultWriter);
         generator.dp = dataProvider;
+        generator.loadBalancer = &loadBalancer;
 
         std::cout << generator.options->toString();
 

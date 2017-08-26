@@ -1,6 +1,6 @@
 #include "optimizationApplication.h"
+#include "LoadBalancerMaster.h"
 #include "hdf5Misc.h"
-#include "loadBalancerMaster.h"
 #include "logging.h"
 #include <cstring>
 #include <ctime>
@@ -113,12 +113,11 @@ int OptimizationApplication::run() {
 
     if (commSize > 1) {
         if (getMpiRank() == 0) {
-            loadBalancerStartMaster();
-
+            loadBalancer.run();
             status = runMaster();
 
-            loadBalancerTerminate();
-            sendTerminationSignalToAllWorkers();
+            loadBalancer.terminate();
+            loadBalancer.sendTerminationSignalToAllWorkers();
             finalizeTiming(begin);
             logmessage(LOGLVL_INFO, "Sent termination signal to workers.");
 

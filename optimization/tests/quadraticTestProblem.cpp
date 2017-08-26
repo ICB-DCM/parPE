@@ -9,9 +9,9 @@
 
 QuadraticTestProblem::QuadraticTestProblem() {
     numOptimizationParameters = 1;
-    initialParameters = new double[numOptimizationParameters];
-    parametersMin = new double[numOptimizationParameters];
-    parametersMax = new double[numOptimizationParameters];
+    initialParameters = new double[numOptimizationParameters]();
+    parametersMin = new double[numOptimizationParameters]();
+    parametersMax = new double[numOptimizationParameters]();
 
     optimizationOptions = new OptimizationOptions();
     optimizationOptions->maxOptimizerIterations = 12;

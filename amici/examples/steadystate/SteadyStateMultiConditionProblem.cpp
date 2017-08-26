@@ -75,8 +75,8 @@ SteadyStateMultiConditionDataProvider::
 }
 
 SteadyStateMultiConditionProblem::SteadyStateMultiConditionProblem(
-    SteadyStateMultiConditionDataProvider *dp)
-    : MultiConditionProblem(dp) {
+    SteadyStateMultiConditionDataProvider *dp, LoadBalancerMaster *loadBalancer)
+    : MultiConditionProblem(dp, loadBalancer) {
 
     numOptimizationParameters = model->np;
 

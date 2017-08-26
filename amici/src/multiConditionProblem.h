@@ -1,20 +1,25 @@
 #ifndef PROBLEM_H
 #define PROBLEM_H
 
+#include "LoadBalancerMaster.h"
 #include "MultiConditionDataProvider.h"
-#include "loadBalancerMaster.h"
-#include "multiConditionProblemResultWriter.h"
 #include "multiStartOptimization.h"
 #include "optimizationProblem.h"
+#include <LoadBalancerWorker.h>
+#include <cmath> //NAN
 
 class ReturnData;
+class MultiConditionDataProvider;
+class MultiConditionProblemResultWriter;
 
-class MultiConditionProblem : public OptimizationProblem {
+class MultiConditionProblem : public OptimizationProblem,
+                              public LoadBalancerWorker {
 
   public:
     MultiConditionProblem();
 
-    MultiConditionProblem(MultiConditionDataProvider *dataProvider);
+    MultiConditionProblem(MultiConditionDataProvider *dataProvider,
+                          LoadBalancerMaster *loadBalancer);
 
     /**
      * @brief Evaluate cost function at `optimiziationVariables`
@@ -100,13 +105,21 @@ class MultiConditionProblem : public OptimizationProblem {
         JobIdentifier path, int jobId,
         MultiConditionProblemResultWriter *resultWriter, int *status);
 
-    virtual MultiConditionDataProvider *getDataProvider();
-
+    MultiConditionDataProvider *getDataProvider();
+    LoadBalancerMaster *loadBalancer = nullptr;
     virtual double *getInitialParameters(int multiStartIndex) const;
 
     ~MultiConditionProblem();
 
-    JobIdentifier path;
+    JobIdentifier path = {0};
+
+    /**
+     * @brief Callback function for loadbalancer
+     * @param buffer In/out: message buffer
+     * @param msgSize In/out: size (bytes) of buffer
+     * @param jobId: In: Identifier of the job (unique up to INT_MAX)
+     */
+    virtual void messageHandler(char **buffer, int *msgSize, int jobId);
 
   protected:
     void init();
@@ -177,24 +190,23 @@ class MultiConditionProblem : public OptimizationProblem {
 
     // keep track of previous results to avoid re-evaluation at the same
     // parameters (using IpOpt new_x)
-    double *lastOptimizationParameters;
-    double *lastObjectiveFunctionGradient;
-    double lastObjectiveFunctionValue;
+    double *lastOptimizationParameters = nullptr;
+    double *lastObjectiveFunctionGradient = nullptr;
+    double lastObjectiveFunctionValue = NAN;
 };
 
 /**
  * @brief The MultiConditionProblemSerial class does the same as its base class,
- * but runs simulations
- * by itself within the same thread. Mostly intended for debugging.
+ * but runs simulations by itself within the same thread. Mostly intended for
+ * debugging.
  */
 
 class MultiConditionProblemSerial : public MultiConditionProblem {
 
   public:
-    MultiConditionProblemSerial() {}
+    MultiConditionProblemSerial();
 
-    MultiConditionProblemSerial(MultiConditionDataProvider *dataProvider)
-        : MultiConditionProblem(dataProvider) {}
+    MultiConditionProblemSerial(MultiConditionDataProvider *dataProvider);
 
     int runSimulations(const double *optimizationVariables,
                        double *logLikelihood, double *objectiveFunctionGradient,
@@ -203,8 +215,8 @@ class MultiConditionProblemSerial : public MultiConditionProblem {
 
 /**
  * @brief The MultiConditionProblemGeneratorForMultiStart class generates new
- * MultiConditionProblem instances
- * with proper DataProviders for multi-start optimization
+ * MultiConditionProblem instances with proper DataProviders for multi-start
+ * optimization
  */
 
 class MultiConditionProblemGeneratorForMultiStart
@@ -216,15 +228,7 @@ class MultiConditionProblemGeneratorForMultiStart
     OptimizationOptions *options = nullptr;
     MultiConditionProblemResultWriter *resultWriter = nullptr;
     Model *model = nullptr;
+    LoadBalancerMaster *loadBalancer = nullptr;
 };
-
-/**
- * @brief Callback function for loadbalancer
- * @param buffer In/out: message buffer
- * @param msgSize In/out: size (bytes) of buffer
- * @param jobId: In: Identifier of the job (unique up to INT_MAX)
- * @param userData In: Pointer to MultiConditionProblem
- */
-void handleWorkPackage(char **buffer, int *msgSize, int jobId, void *userData);
 
 #endif
