@@ -39,7 +39,7 @@ MultiConditionDataProvider::MultiConditionDataProvider(Model *model,
     if (fileId < 0) {
         logmessage(LOGLVL_CRITICAL,
                    "initDataProvider failed to open HDF5 file '%s'.",
-                   hdf5Filename);
+                   hdf5Filename.c_str());
         printBacktrace(20);
         H5Ewalk2(H5E_DEFAULT, H5E_WALK_DOWNWARD, hdf5ErrorStackWalker_cb, NULL);
     }
