@@ -4,6 +4,9 @@
 #include <climits>
 
 void LoadBalancerMaster::run() {
+    if(isRunning)
+        return;
+
     assertMPIInitialized();
 
     int mpiCommSize;
