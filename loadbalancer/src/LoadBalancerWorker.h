@@ -6,7 +6,7 @@
 
 class LoadBalancerWorker {
   public:
-    LoadBalancerWorker();
+    LoadBalancerWorker() = default;
 
     /**
      * messageHandler is called by run when a message is received. The
@@ -21,6 +21,10 @@ class LoadBalancerWorker {
     void run();
 
   private:
+    /**
+     * @brief waitForAndHandleJobs
+     * @return true: received termination signal
+     */
     bool waitForAndHandleJobs();
 };
 

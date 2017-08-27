@@ -3,8 +3,8 @@
 #include "CppUTest/TestHarness.h"
 #include "CppUTestExt/MockSupport.h"
 
+#include <cstdio>
 #include <mpi.h>
-#include <stdio.h>
 #include <unistd.h>
 
 #define QUEUE_MASTER_TEST

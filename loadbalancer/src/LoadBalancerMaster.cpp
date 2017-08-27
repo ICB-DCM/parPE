@@ -43,14 +43,14 @@ void LoadBalancerMaster::assertMPIInitialized() {
 #endif
 
 void *LoadBalancerMaster::threadEntryPoint(void *vpLoadBalancerMaster) {
-    LoadBalancerMaster *master = (LoadBalancerMaster *)vpLoadBalancerMaster;
+    auto master = static_cast<LoadBalancerMaster *>(vpLoadBalancerMaster);
     return master->loadBalancerThreadRun();
 }
 
 void *LoadBalancerMaster::loadBalancerThreadRun() {
 
     // dispatch queued work packages
-    while (1) {
+    while (true) {
 
         // check if any job finished
         int lastFinishedWorkerIdx = handleFinishedJobs();
@@ -87,12 +87,12 @@ void *LoadBalancerMaster::loadBalancerThreadRun() {
         pthread_yield();
     };
 
-    return 0;
+    return nullptr;
 }
 
 void LoadBalancerMaster::freeEmptiedSendBuffers() {
     // free any emptied send buffers
-    while (1) {
+    while (true) {
         int emptiedBufferIdx = -1;
         int anySendCompleted = 0;
         MPI_Testany(numWorkers, sendRequests, &emptiedBufferIdx,
@@ -111,7 +111,7 @@ int LoadBalancerMaster::handleFinishedJobs() {
     int finishedWorkerIdx = -1;
 
     // handle all finished jobs, if any
-    while (1) {
+    while (true) {
         // add cancellation point to avoid invalid reads in
         // loadBalancer.recvRequests
         pthread_testcancel();
@@ -196,7 +196,7 @@ void LoadBalancerMaster::terminate() {
         return;
 
     pthread_cancel(queueThread);
-    pthread_join(queueThread, NULL);
+    pthread_join(queueThread, nullptr);
 
     pthread_mutex_destroy(&mutexQueue);
     sem_destroy(&semQueue);

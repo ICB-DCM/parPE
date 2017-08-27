@@ -1,5 +1,5 @@
 ---
-Checks:          '*,-readability-*,-cppcoreguidelines-pro-bounds-pointer-arithmetic'
+Checks:          '*,-*readability-*,-cppcoreguidelines-pro-bounds-pointer-arithmetic'
 WarningsAsErrors: ''
 HeaderFilterRegex: ''
 AnalyzeTemporaryDtors: false

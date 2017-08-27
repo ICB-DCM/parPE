@@ -1,13 +1,10 @@
 #include "LoadBalancerWorker.h"
 
 #include <alloca.h>
-#include <assert.h>
+#include <cassert>
+#include <cstdlib>
+#include <cstring>
 #include <mpi.h>
-#include <stdbool.h>
-#include <stdlib.h>
-#include <string.h>
-
-LoadBalancerWorker::LoadBalancerWorker() {}
 
 void LoadBalancerWorker::run() {
     bool terminate = false;
@@ -30,7 +27,7 @@ bool LoadBalancerWorker::waitForAndHandleJobs() {
     MPI_Probe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &mpiStatus);
     int msgSize;
     MPI_Get_count(&mpiStatus, MPI_BYTE, &msgSize);
-    char *buffer = new char[msgSize];
+    auto buffer = new char[msgSize];
 
     // receive message
     int source = 0;
@@ -45,7 +42,7 @@ bool LoadBalancerWorker::waitForAndHandleJobs() {
 
     if (mpiStatus.MPI_TAG == MPI_TAG_EXIT_SIGNAL) {
         delete[] buffer;
-        return 1;
+        return true;
     }
 
     messageHandler(&buffer, &msgSize, mpiStatus.MPI_TAG);
@@ -56,5 +53,5 @@ bool LoadBalancerWorker::waitForAndHandleJobs() {
     MPI_Send(buffer, msgSize, MPI_BYTE, 0, mpiStatus.MPI_TAG, MPI_COMM_WORLD);
     delete[] buffer;
 
-    return 0;
+    return false;
 }
