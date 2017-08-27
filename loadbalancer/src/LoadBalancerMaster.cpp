@@ -258,15 +258,3 @@ void LoadBalancerMaster::sendTerminationSignalToAllWorkers() {
     }
     MPI_Waitall(commSize - 1, reqs, MPI_STATUS_IGNORE);
 }
-
-JobData LoadBalancerMaster::initJobData(int lenSendBuffer, char *sendBuffer,
-                                        int *jobDone,
-                                        pthread_cond_t *jobDoneChangedCondition,
-                                        pthread_mutex_t *jobDoneChangedMutex) {
-    sendBuffer = sendBuffer ? sendBuffer : new char[lenSendBuffer];
-    JobData data = {
-        0,       lenSendBuffer,           sendBuffer,         0, NULL,
-        jobDone, jobDoneChangedCondition, jobDoneChangedMutex};
-
-    return data;
-}

@@ -470,9 +470,8 @@ void MultiConditionProblem::queueSimulation(
     JobIdentifier path, JobData *d, int *jobDone,
     pthread_cond_t *jobDoneChangedCondition,
     pthread_mutex_t *jobDoneChangedMutex, int lenSendBuffer) {
-    *d =
-        loadBalancer->initJobData(lenSendBuffer, NULL, jobDone,
-                                  jobDoneChangedCondition, jobDoneChangedMutex);
+    *d = JobData(lenSendBuffer, NULL, jobDone, jobDoneChangedCondition,
+                 jobDoneChangedMutex);
 
     JobAmiciSimulation work;
     work.data = &path;

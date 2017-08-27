@@ -9,28 +9,39 @@
 //#define MASTER_QUEUE_H_SHOW_COMMUNICATION
 
 /** data to be sent to workers */
-typedef struct JobData_tag {
+struct JobData {
+    JobData() = default;
+
+    JobData(int lenSendBuffer, char *sendBuffer, int *jobDone,
+            pthread_cond_t *jobDoneChangedCondition,
+            pthread_mutex_t *jobDoneChangedMutex)
+        : lenSendBuffer(lenSendBuffer), sendBuffer(sendBuffer),
+          jobDone(jobDone), jobDoneChangedCondition(jobDoneChangedCondition),
+          jobDoneChangedMutex(jobDoneChangedMutex) {
+        sendBuffer = sendBuffer ? sendBuffer : new char[lenSendBuffer];
+    }
+
     /** auto-assigned (unique number up to MAX_INT) */
     int jobId;
 
     /** size of data to send */
-    int lenSendBuffer;
+    int lenSendBuffer = 0;
     /** data to send */
-    char *sendBuffer;
+    char *sendBuffer = nullptr;
 
     /** size of data to receive (set when job finished) */
-    int lenRecvBuffer;
+    int lenRecvBuffer = 0;
     /** data to receive (set when job finished) */
-    char *recvBuffer;
+    char *recvBuffer = nullptr;
 
     /** incremented by one, once the results have been received */
-    int *jobDone;
+    int *jobDone = nullptr;
 
     /** is signaled after jobDone has been incremented */
-    pthread_cond_t *jobDoneChangedCondition;
+    pthread_cond_t *jobDoneChangedCondition = nullptr;
     /** is locked to signal jobDoneChangedCondition condition  */
-    pthread_mutex_t *jobDoneChangedMutex;
-} JobData;
+    pthread_mutex_t *jobDoneChangedMutex = nullptr;
+};
 
 class LoadBalancerMaster {
   public:
@@ -57,10 +68,6 @@ class LoadBalancerMaster {
     void terminate();
 
     void sendTerminationSignalToAllWorkers();
-
-    JobData initJobData(int lenSendBuffer, char *sendBuffer, int *jobDone,
-                        pthread_cond_t *jobDoneChangedCondition,
-                        pthread_mutex_t *jobDoneChangedMutex);
 
   protected:
     /**
@@ -102,15 +109,23 @@ class LoadBalancerMaster {
     bool isRunning = false;
 
     int numWorkers = 0;
+
     std::queue<JobData *> queue;
+
     int lastJobId = 0;
+
     // one for each worker, index is off by one from MPI rank
     // because no job is sent to master (rank 0)
     bool *workerIsBusy = nullptr;
+
     MPI_Request *sendRequests = nullptr; // TODO: option: free(sendbuffer)
+
     JobData **sentJobsData = nullptr;
+
     pthread_mutex_t mutexQueue = PTHREAD_MUTEX_INITIALIZER;
+
     sem_t semQueue = {};
+
     pthread_t queueThread = 0;
 };
 
