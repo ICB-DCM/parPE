@@ -19,9 +19,7 @@ target_link_libraries(${PROJECT_NAME}
     parpecommon
     ${IPOPT_LIBRARIES}
     ${CERES_LIBRARIES}
-    ${SUNDIALS_LIBRARIES}
     ${HDF5_HL_LIBRARIES}
     ${HDF5_C_LIBRARIES}
-    ${SUITESPARSE_LIBRARIES}
     ${CMAKE_THREAD_LIBS_INIT}
 )

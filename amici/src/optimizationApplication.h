@@ -2,7 +2,7 @@
 #define OPTIMIZATIONAPPLICATION_H
 
 #include "multiConditionProblem.h"
-#include "optimizationResultWriter.h"
+#include "multiConditionProblemResultWriter.h"
 #include <LoadBalancerMaster.h>
 #include <LoadBalancerWorker.h>
 #include <getopt.h>
@@ -95,7 +95,7 @@ class OptimizationApplication {
     std::string dataFileName;
     std::string resultFileName;
     MultiConditionProblem *problem = nullptr;
-    OptimizationResultWriter *resultWriter = nullptr;
+    MultiConditionProblemResultWriter *resultWriter = nullptr;
 
     // command line option parsing
     const char *shortOptions = "dhvt:o:";

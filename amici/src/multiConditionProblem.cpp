@@ -246,9 +246,8 @@ void MultiConditionProblem::messageHandler(char **buffer, int *msgSize,
 
     // do work
     int status = 0;
-    ReturnData *rdata = runAndLogSimulation(
-        udata, dataProvider, path, jobId,
-        (MultiConditionProblemResultWriter *)resultWriter, &status);
+    ReturnData *rdata = runAndLogSimulation(udata, dataProvider, path, jobId,
+                                            resultWriter, &status);
 
 #if QUEUE_WORKER_H_VERBOSE >= 2
     printf("[%d] Work done. ", mpiRank);
@@ -525,12 +524,14 @@ MultiConditionProblemGeneratorForMultiStart::getLocalProblemImpl(
 
     problem->optimizationOptions = new OptimizationOptions(*options);
 
-    JobIdentifier id = resultWriter->getJobId();
-    id.idxLocalOptimization = multiStartIndex;
+    if (resultWriter) {
+        JobIdentifier id = resultWriter->getJobId();
+        id.idxLocalOptimization = multiStartIndex;
 
-    problem->resultWriter =
-        new MultiConditionProblemResultWriter(resultWriter->file_id, id);
-    problem->path.idxLocalOptimization = multiStartIndex;
+        problem->resultWriter =
+            new MultiConditionProblemResultWriter(resultWriter->file_id, id);
+        problem->path.idxLocalOptimization = multiStartIndex;
+    }
 
     problem->setInitialParameters(
         problem->getInitialParameters(multiStartIndex));

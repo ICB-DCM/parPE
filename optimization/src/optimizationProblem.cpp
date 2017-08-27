@@ -110,11 +110,7 @@ void OptimizationProblem::logOptimizerFinished(double optimalCost,
                                                double masterTime,
                                                int exitStatus) {}
 
-OptimizationProblem::~OptimizationProblem() {
-    if (resultWriter) {
-        delete resultWriter;
-    }
-}
+OptimizationProblem::~OptimizationProblem() {}
 
 double *OptimizationProblem::getRandomInitialParameters() const {
     double *initialParameters = new double[numOptimizationParameters];

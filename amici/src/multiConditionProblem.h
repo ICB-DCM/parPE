@@ -123,6 +123,8 @@ class MultiConditionProblem : public OptimizationProblem,
     virtual void messageHandler(char **buffer, int *msgSize,
                                 int jobId) override;
 
+    MultiConditionProblemResultWriter *resultWriter = nullptr;
+
   protected:
     void init();
 

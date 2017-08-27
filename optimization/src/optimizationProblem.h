@@ -64,8 +64,6 @@ class OptimizationProblem {
 
     OptimizationOptions *optimizationOptions = nullptr;
 
-    OptimizationResultWriter *resultWriter = nullptr;
-
   protected:
     /** number of optimization parameters */
     int numOptimizationParameters = 0;
