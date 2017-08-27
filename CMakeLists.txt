@@ -78,7 +78,7 @@ if(${BUILD_TESTS})
 
     set(CPPUTEST_DIR "" CACHE PATH "cppUTest base directory")
     set(CPPUTEST_INCLUDE_DIR "${CPPUTEST_DIR}/include")
-    set(CPPUTEST_LIBRARY "${CPPUTEST_DIR}/cpputest_build/lib/libCppUTest.a" "${CPPUTEST_DIR}/cpputest_build/lib/libCppUTestExt.a")
+    set(CPPUTEST_LIBRARY "${CPPUTEST_DIR}/lib/libCppUTest.a" "${CPPUTEST_DIR}/lib/libCppUTestExt.a")
     include_directories(${CPPUTEST_INCLUDE_DIR})
 
     # Create test coverage reports?
