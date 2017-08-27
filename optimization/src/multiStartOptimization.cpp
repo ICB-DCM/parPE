@@ -14,10 +14,10 @@ int MultiStartOptimization::run() {
                "Starting runParallelMultiStartOptimization with %d starts",
                numberOfStarts);
 
-    pthread_t *localOptimizationThreads =
-        (pthread_t *)alloca(numberOfStarts * sizeof(pthread_t));
+    std::vector<pthread_t> localOptimizationThreads(numberOfStarts);
 
-    OptimizationProblem **localProblems = createLocalOptimizationProblems();
+    std::vector<OptimizationProblem *> localProblems =
+        createLocalOptimizationProblems();
 
     pthread_attr_t threadAttr;
     pthread_attr_init(&threadAttr);
@@ -32,7 +32,7 @@ int MultiStartOptimization::run() {
                    "Spawning thread for local optimization #%d (%d)",
                    lastStartIdx, ms);
 
-        pthread_create(&localOptimizationThreads[ms], &threadAttr,
+        pthread_create(&localOptimizationThreads.at(ms), &threadAttr,
                        getLocalOptimumThreadWrapper, (void *)localProblems[ms]);
     }
 
@@ -87,7 +87,6 @@ int MultiStartOptimization::run() {
 
     logmessage(LOGLVL_DEBUG, "runParallelMultiStartOptimization finished");
 
-    delete[] localProblems;
     pthread_attr_destroy(&threadAttr);
 
     return 0;
@@ -100,10 +99,9 @@ MultiStartOptimization::getLocalProblem(int multiStartIndex) {
     return problem;
 }
 
-OptimizationProblem **
+std::vector<OptimizationProblem *>
 MultiStartOptimization::createLocalOptimizationProblems() {
-    OptimizationProblem **localProblems =
-        new OptimizationProblem *[numberOfStarts];
+    std::vector<OptimizationProblem *> localProblems(numberOfStarts);
 
     for (int ms = 0; ms < numberOfStarts; ++ms) {
         localProblems[ms] = getLocalProblem(ms);

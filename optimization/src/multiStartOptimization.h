@@ -2,6 +2,7 @@
 #define MULTI_START_OPTIMIZATION_H
 
 #include "optimizationProblem.h"
+#include <vector>
 
 class MultiStartOptimization {
 
@@ -20,7 +21,7 @@ class MultiStartOptimization {
   protected:
     OptimizationProblem *getLocalProblem(int multiStartIndex);
 
-    OptimizationProblem **createLocalOptimizationProblems();
+    std::vector<OptimizationProblem *> createLocalOptimizationProblems();
 
     virtual OptimizationProblem *getLocalProblemImpl(int multiStartIndex) = 0;
 
