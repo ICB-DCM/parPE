@@ -41,19 +41,12 @@ void runOptimizationsParallel(const OptimizationProblem **problems,
                                   (void **)problems, numProblems);
 }
 
-void getRandomStartingpoint(const double *min, const double *max,
-                            int numParameters, double *buffer) {
-    fillArrayRandomDoubleIndividualInterval(min, max, numParameters, buffer);
-}
-
 void optimizationProblemGradientCheck(OptimizationProblem *problem,
                                       const int parameterIndices[],
                                       int numParameterIndices, double epsilon) {
     double fc = 0; // f(theta)
     double theta[problem->getNumOptimizationParameters()];
-    getRandomStartingpoint(problem->getParametersMin(),
-                           problem->getParametersMax(),
-                           problem->getNumOptimizationParameters(), theta);
+    problem->fillInitialParameters(theta);
 
     double *gradient = new double[problem->getNumOptimizationParameters()];
     problem->evaluateObjectiveFunction(theta, &fc, gradient);
@@ -112,16 +105,10 @@ void OptimizationProblem::logOptimizerFinished(double optimalCost,
 
 OptimizationProblem::~OptimizationProblem() {}
 
-double *OptimizationProblem::getRandomInitialParameters() const {
-    double *initialParameters = new double[numOptimizationParameters];
-    getRandomStartingpoint(parametersMin, parametersMax,
-                           numOptimizationParameters, initialParameters);
-
-    return initialParameters;
-}
-
 double *OptimizationProblem::getInitialParameters(int multiStartIndex) const {
-    return getRandomInitialParameters();
+    double *buf = new double[getNumOptimizationParameters()];
+    fillInitialParameters(buf);
+    return buf;
 }
 
 double *OptimizationProblem::getInitialParameters() const {
@@ -129,13 +116,30 @@ double *OptimizationProblem::getInitialParameters() const {
 }
 
 void OptimizationProblem::setInitialParameters(double *initialParameters) {
+    // TODO should copy
     this->initialParameters = initialParameters;
 }
 
-int OptimizationProblem::getNumOptimizationParameters() {
+int OptimizationProblem::getNumOptimizationParameters() const {
     return numOptimizationParameters;
 }
 
-double *OptimizationProblem::getParametersMin() { return parametersMin; }
+const double *OptimizationProblem::getParametersMin() const {
+    return parametersMin;
+}
 
-double *OptimizationProblem::getParametersMax() { return parametersMax; }
+const double *OptimizationProblem::getParametersMax() const {
+    return parametersMax;
+}
+
+void OptimizationProblem::fillInitialParameters(double *buffer) const {
+    getRandomStartingpoint(getParametersMin(), getParametersMax(),
+                           getNumOptimizationParameters(), buffer);
+}
+
+void OptimizationProblem::getRandomStartingpoint(const double *min,
+                                                 const double *max,
+                                                 int numParameters,
+                                                 double *buffer) {
+    fillArrayRandomDoubleIndividualInterval(min, max, numParameters, buffer);
+}

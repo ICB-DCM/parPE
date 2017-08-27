@@ -61,9 +61,7 @@ int OptimizerCeres::optimize(OptimizationProblem *problem) {
         memcpy(parameters, startingPoint,
                sizeof(*parameters) * problem->getNumOptimizationParameters());
     } else {
-        getRandomStartingpoint(
-            problem->getParametersMin(), problem->getParametersMax(),
-            problem->getNumOptimizationParameters(), parameters);
+        problem->fillInitialParameters(parameters);
     }
 
     ceres::GradientProblemSolver::Options options;

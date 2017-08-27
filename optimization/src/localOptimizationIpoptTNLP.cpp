@@ -53,9 +53,7 @@ bool LocalOptimizationIpoptTNLP::get_starting_point(Index n, bool init_x,
         if (startingPoint) {
             memcpy(x, startingPoint, sizeof(Number) * n);
         } else {
-            getRandomStartingpoint(problem->getParametersMin(),
-                                   problem->getParametersMax(),
-                                   problem->getNumOptimizationParameters(), x);
+            problem->fillInitialParameters(x);
         }
     }
 

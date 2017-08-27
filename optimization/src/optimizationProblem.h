@@ -47,20 +47,24 @@ class OptimizationProblem {
 
     virtual ~OptimizationProblem();
 
-    /** random starting points are drawn from [parametersMin, parametersMax] */
-    double *getRandomInitialParameters() const;
-
     virtual double *getInitialParameters(int multiStartIndex) const;
 
     virtual double *getInitialParameters() const;
 
+    /** random starting points are drawn from [parametersMin, parametersMax] */
+
+    void fillInitialParameters(double *buffer) const;
+
+    static void getRandomStartingpoint(const double *min, const double *max,
+                                       int numParameters, double *buffer);
+
     void setInitialParameters(double *initialParameters);
 
-    int getNumOptimizationParameters();
+    int getNumOptimizationParameters() const;
 
-    double *getParametersMin();
+    const double *getParametersMin() const;
 
-    double *getParametersMax();
+    const double *getParametersMax() const;
 
     OptimizationOptions *optimizationOptions = nullptr;
 
@@ -83,9 +87,6 @@ void *getLocalOptimumThreadWrapper(void *optimizationProblemVp);
 
 void runOptimizationsParallel(const OptimizationProblem **problems,
                               int numProblems);
-
-void getRandomStartingpoint(const double *min, const double *max,
-                            int numParameters, double *buffer);
 
 void optimizationProblemGradientCheck(OptimizationProblem *problem,
                                       const int parameterIndices[],
