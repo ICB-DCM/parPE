@@ -27,9 +27,9 @@ class QuadraticTestProblem : public OptimizationProblem {
     double optimalParameter;
 };
 
-class QuadraticOptimizationProblemGeneratorForMultiStart
-    : public OptimizationProblemGeneratorForMultiStart {
+class QuadraticOptimizationMultiStartProblem : public MultiStartOptimization {
   public:
+    using MultiStartOptimization::MultiStartOptimization;
     OptimizationProblem *getLocalProblemImpl(int multiStartIndex) override;
 };
 

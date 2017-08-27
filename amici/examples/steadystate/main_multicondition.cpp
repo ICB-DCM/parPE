@@ -73,25 +73,22 @@ class SteadystateMultiStartOptimizationApplication
         int status = 0;
 
         // Multistart optimization
-        MultiConditionProblemGeneratorForMultiStart generator;
-        generator.options = OptimizationOptions::fromHDF5(
+        OptimizationOptions *options = OptimizationOptions::fromHDF5(
             dataProvider->fileId); // if numStarts > 1: need to use multiple MPI
                                    // workers, otherwise simulation crashes due
                                    // to CVODES threading issues
-        generator.options->numStarts = 1;
-        generator.resultWriter =
-            reinterpret_cast<MultiConditionProblemResultWriter *>(
-                problem->resultWriter);
-        generator.dp = dataProvider;
-        generator.loadBalancer = &loadBalancer;
 
-        std::cout << generator.options->toString();
+        MultiConditionProblemMultiStartOptimization multiStartOptimization(
+            options->numStarts, options->retryOptimization);
+        multiStartOptimization.options = options;
+        multiStartOptimization.resultWriter = problem->resultWriter;
+        multiStartOptimization.dp = dataProvider;
+        multiStartOptimization.loadBalancer = &loadBalancer;
 
-        runParallelMultiStartOptimization(&generator,
-                                          generator.options->numStarts,
-                                          generator.options->retryOptimization);
+        std::cout << multiStartOptimization.options->toString();
 
-        delete generator.options;
+        multiStartOptimization.run();
+        delete options;
 
         return status;
     }

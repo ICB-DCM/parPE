@@ -3,26 +3,29 @@
 
 #include "optimizationProblem.h"
 
-class OptimizationProblemGeneratorForMultiStart {
+class MultiStartOptimization {
 
   public:
-    OptimizationProblemGeneratorForMultiStart();
+    MultiStartOptimization() = default;
 
+    MultiStartOptimization(int numberOfStarts, bool restartOnFailure);
+
+    /**
+     * @brief Start multi-start optimization
+     * @return always returns 0
+     */
+
+    int run();
+
+  protected:
     OptimizationProblem *getLocalProblem(int multiStartIndex);
 
-    OptimizationProblem **
-    createLocalOptimizationProblems(int numLocalOptimizations);
+    OptimizationProblem **createLocalOptimizationProblems();
 
     virtual OptimizationProblem *getLocalProblemImpl(int multiStartIndex) = 0;
+
+    int numberOfStarts = 1;
+    bool restartOnFailure = false;
 };
-
-/**
- * @brief runParallelMultiStartOptimization
- * @return always returns 0
- */
-
-int runParallelMultiStartOptimization(
-    OptimizationProblemGeneratorForMultiStart *problemGenerator,
-    int numberOfStarts, bool restartOnFailure);
 
 #endif

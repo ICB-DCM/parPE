@@ -223,9 +223,11 @@ class MultiConditionProblemSerial : public MultiConditionProblem {
  * optimization
  */
 
-class MultiConditionProblemGeneratorForMultiStart
-    : public OptimizationProblemGeneratorForMultiStart {
+class MultiConditionProblemMultiStartOptimization
+    : public MultiStartOptimization {
   public:
+    using MultiStartOptimization::MultiStartOptimization;
+
     OptimizationProblem *getLocalProblemImpl(int multiStartIndex) override;
 
     MultiConditionDataProvider *dp = nullptr;

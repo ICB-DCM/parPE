@@ -501,16 +501,17 @@ MultiConditionDataProvider *MultiConditionProblem::getDataProvider() {
 }
 
 OptimizationProblem *
-MultiConditionProblemGeneratorForMultiStart::getLocalProblemImpl(
+MultiConditionProblemMultiStartOptimization::getLocalProblemImpl(
     int multiStartIndex) {
     // generate new OptimizationProblem with data from dp
 
     assert(dp != nullptr);
     assert(dp->model != nullptr);
 
+    // Create parallel or serial problem depending on how many processes we are
+    // running
     int mpiCommSize = 1;
     int mpiInitialized = 0;
-
     MPI_Initialized(&mpiInitialized);
     if (mpiInitialized)
         MPI_Comm_size(MPI_COMM_WORLD, &mpiCommSize);

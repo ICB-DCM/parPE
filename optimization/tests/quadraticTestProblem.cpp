@@ -64,7 +64,7 @@ QuadraticTestProblem::~QuadraticTestProblem() {
 }
 
 OptimizationProblem *
-QuadraticOptimizationProblemGeneratorForMultiStart::getLocalProblemImpl(
+QuadraticOptimizationMultiStartProblem::getLocalProblemImpl(
     int multiStartIndex) {
     OptimizationProblem *problem = new QuadraticTestProblem();
 

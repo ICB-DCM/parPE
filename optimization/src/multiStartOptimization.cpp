@@ -5,9 +5,11 @@
 #include <pthread.h>
 #include <unistd.h>
 
-int runParallelMultiStartOptimization(
-    OptimizationProblemGeneratorForMultiStart *problemGenerator,
-    int numberOfStarts, bool restartOnFailure) {
+MultiStartOptimization::MultiStartOptimization(int numberOfStarts,
+                                               bool restartOnFailure)
+    : numberOfStarts(numberOfStarts), restartOnFailure(restartOnFailure) {}
+
+int MultiStartOptimization::run() {
     logmessage(LOGLVL_DEBUG,
                "Starting runParallelMultiStartOptimization with %d starts",
                numberOfStarts);
@@ -15,8 +17,7 @@ int runParallelMultiStartOptimization(
     pthread_t *localOptimizationThreads =
         (pthread_t *)alloca(numberOfStarts * sizeof(pthread_t));
 
-    OptimizationProblem **localProblems =
-        problemGenerator->createLocalOptimizationProblems(numberOfStarts);
+    OptimizationProblem **localProblems = createLocalOptimizationProblems();
 
     pthread_attr_t threadAttr;
     pthread_attr_init(&threadAttr);
@@ -68,8 +69,7 @@ int runParallelMultiStartOptimization(
                                ms);
                     ++lastStartIdx;
 
-                    localProblems[ms] =
-                        problemGenerator->getLocalProblem(lastStartIdx);
+                    localProblems[ms] = getLocalProblem(lastStartIdx);
                     logmessage(
                         LOGLVL_DEBUG,
                         "Spawning thread for local optimization #%d (%d)",
@@ -93,23 +93,19 @@ int runParallelMultiStartOptimization(
     return 0;
 }
 
-OptimizationProblemGeneratorForMultiStart::
-    OptimizationProblemGeneratorForMultiStart() {}
-
-OptimizationProblem *OptimizationProblemGeneratorForMultiStart::getLocalProblem(
-    int multiStartIndex) {
+OptimizationProblem *
+MultiStartOptimization::getLocalProblem(int multiStartIndex) {
     OptimizationProblem *problem = getLocalProblemImpl(multiStartIndex);
 
     return problem;
 }
 
 OptimizationProblem **
-OptimizationProblemGeneratorForMultiStart::createLocalOptimizationProblems(
-    int numLocalOptimizations) {
+MultiStartOptimization::createLocalOptimizationProblems() {
     OptimizationProblem **localProblems =
-        new OptimizationProblem *[numLocalOptimizations];
+        new OptimizationProblem *[numberOfStarts];
 
-    for (int ms = 0; ms < numLocalOptimizations; ++ms) {
+    for (int ms = 0; ms < numberOfStarts; ++ms) {
         localProblems[ms] = getLocalProblem(ms);
     }
 
