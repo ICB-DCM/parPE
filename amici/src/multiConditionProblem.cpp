@@ -305,7 +305,7 @@ int MultiConditionProblem::runSimulations(const double *optimizationVariables,
     for (int simulationIdx = 0; simulationIdx < numJobsTotal; ++simulationIdx) {
         // tell worker with condition to work on, for logging and reading proper
         // UserData::k
-        path.idxConditions = simulationIdx;
+        path.idxConditions = dataIndices[simulationIdx];
 
         // extract parameters for simulation of current condition, instead of
         // sending whole  optimization parameter vector to worker
@@ -385,7 +385,7 @@ int MultiConditionProblemSerial::runSimulations(
         JobAmiciSimulation::getLength(model->np, sizeof(JobIdentifier));
 
     for (int simulationIdx = 0; simulationIdx < numJobsTotal; ++simulationIdx) {
-        path.idxConditions = simulationIdx;
+        path.idxConditions = dataIndices[simulationIdx];
 
         // update condition specific simulation parameters
         dataProvider->updateConditionSpecificSimulationParameters(
