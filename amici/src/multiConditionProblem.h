@@ -123,6 +123,8 @@ class MultiConditionProblem : public OptimizationProblem,
     virtual void messageHandler(char **buffer, int *msgSize,
                                 int jobId) override;
 
+    virtual double getTime() const;
+
     MultiConditionProblemResultWriter *resultWriter = nullptr;
 
   protected:
@@ -215,6 +217,8 @@ class MultiConditionProblemSerial : public MultiConditionProblem {
     int runSimulations(const double *optimizationVariables,
                        double *logLikelihood, double *objectiveFunctionGradient,
                        int *dataIndices, int numDataIndices) override;
+
+    virtual double getTime() const override;
 };
 
 /**

@@ -8,6 +8,7 @@
 #include <amici_model.h>
 #include <cassert>
 #include <cstring>
+#include <ctime>
 #include <logging.h>
 #include <misc.h>
 #include <rdata.h>
@@ -106,7 +107,7 @@ int MultiConditionProblem::intermediateFunction(
     static double startTime = 0;
     // Wall time on master. NOTE: This also includes waiting time for the job
     // being sent to workers.
-    double duration = startTime ? (MPI_Wtime() - startTime) : 0;
+    double duration = startTime ? (getTime() - startTime) : 0;
 
     bool stop = false;
 
@@ -129,7 +130,7 @@ int MultiConditionProblem::intermediateFunction(
             ls_trials);
     }
 
-    startTime = MPI_Wtime();
+    startTime = getTime();
 
     return stop;
 }
@@ -262,6 +263,8 @@ void MultiConditionProblem::messageHandler(char **buffer, int *msgSize,
     delete rdata;
     delete udata;
 }
+
+double MultiConditionProblem::getTime() const { return MPI_Wtime(); }
 
 double *MultiConditionProblem::getInitialParameters(int multiStartIndex) const {
     return OptimizationOptions::getStartingPoint(dataProvider->fileId,
@@ -413,6 +416,11 @@ int MultiConditionProblemSerial::runSimulations(
     delete[] data;
 
     return errors;
+}
+
+double MultiConditionProblemSerial::getTime() const {
+    std::time_t result = std::time(nullptr);
+    return result;
 }
 
 void MultiConditionProblem::printObjectiveFunctionFailureMessage() {
