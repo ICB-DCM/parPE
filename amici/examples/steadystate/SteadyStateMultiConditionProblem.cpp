@@ -9,7 +9,7 @@ SteadyStateMultiConditionDataProvider::SteadyStateMultiConditionDataProvider(
     Model *model, std::string hdf5Filename)
     : MultiConditionDataProvider(model, hdf5Filename) {
 
-    udata = new UserData();
+    udata = model->getNewUserData();
 
     setupUserData(udata);
 }
@@ -64,7 +64,7 @@ void SteadyStateMultiConditionDataProvider::setupUserData(
 }
 
 UserData *SteadyStateMultiConditionDataProvider::getUserData() const {
-    UserData *udata = new UserData();
+    UserData *udata = model->getNewUserData();
     setupUserData(udata);
     return udata;
 }

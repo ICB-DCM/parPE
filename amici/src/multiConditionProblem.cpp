@@ -478,8 +478,8 @@ void MultiConditionProblem::queueSimulation(
     JobIdentifier path, JobData *d, int *jobDone,
     pthread_cond_t *jobDoneChangedCondition,
     pthread_mutex_t *jobDoneChangedMutex, int lenSendBuffer) {
-    *d = JobData(lenSendBuffer, new char[lenSendBuffer], jobDone, jobDoneChangedCondition,
-                 jobDoneChangedMutex);
+    *d = JobData(lenSendBuffer, new char[lenSendBuffer], jobDone,
+                 jobDoneChangedCondition, jobDoneChangedMutex);
 
     JobAmiciSimulation work;
     work.data = &path;
