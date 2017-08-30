@@ -112,7 +112,7 @@ void ExampleSteadystateProblem::requireSensitivities(
 }
 
 void ExampleSteadystateProblem::setupUserData(int conditionIdx) {
-    udata = new UserData();
+    udata = model->getNewUserData();
 
     udata->nt = 20;
 
@@ -137,6 +137,7 @@ void ExampleSteadystateProblem::setupUserData(int conditionIdx) {
 
     udata->maxsteps = 1e5;
 
+    udata->pscale = AMICI_SCALING_LOG10;
     requireSensitivities(true);
 }
 
