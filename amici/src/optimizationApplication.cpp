@@ -2,15 +2,17 @@
 #include "LoadBalancerMaster.h"
 #include "hdf5Misc.h"
 #include "logging.h"
+#include "misc.h"
 #include <cstring>
 #include <ctime>
 #include <mpi.h>
+#include <optimizationOptions.h>
 #include <pthread.h>
 
-OptimizationApplication::OptimizationApplication() : OptimizationApplication(0, nullptr){}
+OptimizationApplication::OptimizationApplication()
+    : OptimizationApplication(0, nullptr) {}
 
-OptimizationApplication::OptimizationApplication(int argc, char **argv)
-{
+OptimizationApplication::OptimizationApplication(int argc, char **argv) {
     // TODO: check if initialized already
     initMPI(&argc, &argv);
 
@@ -46,7 +48,7 @@ int OptimizationApplication::parseOptions(int argc, char **argv) {
                 opType = OP_TYPE_GRADIENT_CHECK;
             break;
         case 'o':
-            setResultFilename(optarg);
+            resultFileName = processResultFilenameCommandLineArgument(optarg);
             break;
         case 'v':
             printf("Version: %s\n", GIT_VERSION);
@@ -133,6 +135,47 @@ int OptimizationApplication::run() {
     return status;
 }
 
+int OptimizationApplication::runMaster() {
+    switch (opType) {
+    case OP_TYPE_GRADIENT_CHECK: {
+        // startObjectiveFunctionGradientCheck(&problem);
+
+        const int numParameterIndicesToCheck = 50;
+        const double epsilon = 1e-6;
+
+        // choose random parameters to check
+        int *parameterIndices =
+            new int[problem->getNumOptimizationParameters()];
+        for (int i = 0; i < problem->getNumOptimizationParameters(); ++i)
+            parameterIndices[i] = i;
+        shuffle(parameterIndices, problem->getNumOptimizationParameters());
+
+        optimizationProblemGradientCheck(problem, parameterIndices,
+                                         numParameterIndicesToCheck, epsilon);
+        delete[] parameterIndices;
+        break;
+    }
+    case OP_TYPE_PARAMETER_ESTIMATION:
+    default:
+        // startParameterEstimation(&dataProvider);
+
+        if (problem->optimizationOptions->numStarts > 0) {
+            MultiConditionProblemMultiStartOptimization ms(
+                problem->optimizationOptions->numStarts,
+                problem->optimizationOptions->retryOptimization);
+            ms.options = problem->optimizationOptions;
+            ms.resultWriter = problem->resultWriter;
+            ms.dp = problem->getDataProvider();
+            ms.loadBalancer = &loadBalancer;
+            ms.run();
+        }
+
+        break;
+    }
+
+    return 0;
+}
+
 void OptimizationApplication::finalizeTiming(clock_t begin) {
     // wall-time for current process
     clock_t end = clock();
@@ -154,12 +197,36 @@ void OptimizationApplication::finalizeTiming(clock_t begin) {
     }
 }
 
-void OptimizationApplication::setResultFilename(const char *commandLineArg) {
+std::string OptimizationApplication::processResultFilenameCommandLineArgument(
+    const char *commandLineArg) {
     std::size_t bufSize = 1024;
     char tmpFileName[bufSize];
     snprintf(tmpFileName, bufSize, "%s_rank%05d.h5", commandLineArg,
              getMpiRank());
-    resultFileName = tmpFileName;
+    return tmpFileName;
+
+    /*
+        // create directory for each compute node
+        char procName[MPI_MAX_PROCESSOR_NAME];
+        int procNameLen;
+        MPI_Get_processor_name(procName, &procNameLen);
+
+        createDirectoryIfNotExists(procName);
+
+        char tmpFileName[200];
+        strFormatCurrentLocaltime(tmpFileName, 200,
+       "%%s/%Y-%m-%d_%H%M%S_%%05d.h5");
+
+        int mpiRank;
+        MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
+
+        char *fileName = new char[MPI_MAX_PROCESSOR_NAME + 32];
+        sprintf(fileName, tmpFileName, procName, mpiRank);
+        std::string strFileName(fileName);
+        delete[] fileName;
+
+        return strFileName;
+    */
 }
 
 OptimizationApplication::~OptimizationApplication() {

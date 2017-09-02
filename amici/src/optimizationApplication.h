@@ -34,10 +34,11 @@ class OptimizationApplication {
     int run();
 
     /**
-     * @brief Code to be run on master. Does nothing by default
+     * @brief This is run by the MPI rank 0 process when started with multiple
+     * processes.
      * @return
      */
-    virtual int runMaster() { return 0; }
+    virtual int runMaster();
 
     /**
      * @brief Code to be run on worker processes. Waits for jobs to be sent to
@@ -61,7 +62,8 @@ class OptimizationApplication {
      */
     virtual void finalizeTiming(clock_t begin);
 
-    virtual void setResultFilename(const char *commandLineArg);
+    std::string
+    processResultFilenameCommandLineArgument(const char *commandLineArg);
 
     ~OptimizationApplication();
 

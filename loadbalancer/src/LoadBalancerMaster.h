@@ -15,8 +15,8 @@ struct JobData {
     JobData(int lenSendBuffer, char *sendBuffer, int *jobDone,
             pthread_cond_t *jobDoneChangedCondition,
             pthread_mutex_t *jobDoneChangedMutex)
-        : lenSendBuffer(lenSendBuffer),
-          jobDone(jobDone), jobDoneChangedCondition(jobDoneChangedCondition),
+        : lenSendBuffer(lenSendBuffer), jobDone(jobDone),
+          jobDoneChangedCondition(jobDoneChangedCondition),
           jobDoneChangedMutex(jobDoneChangedMutex) {
         this->sendBuffer = sendBuffer ? sendBuffer : new char[lenSendBuffer];
     }

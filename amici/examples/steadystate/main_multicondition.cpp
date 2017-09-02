@@ -106,4 +106,6 @@ int main(int argc, char **argv) {
     return status;
 }
 
-int SteadystateApplication::runSingleMpiProcess() { return getLocalOptimum(problem); }
+int SteadystateApplication::runSingleMpiProcess() {
+    return getLocalOptimum(problem);
+}
