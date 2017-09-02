@@ -19,6 +19,8 @@ class OptimizationApplication {
 
     OptimizationApplication(int argc, char **argv);
 
+    ~OptimizationApplication();
+
     /**
      * @brief User-provided problem initialization
      * @param inFileArgument
@@ -65,7 +67,9 @@ class OptimizationApplication {
     std::string
     processResultFilenameCommandLineArgument(const char *commandLineArg);
 
-    ~OptimizationApplication();
+    bool isMaster();
+
+    bool isWorker();
 
     static int getMpiRank();
 

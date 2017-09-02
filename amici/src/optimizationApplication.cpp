@@ -247,6 +247,10 @@ std::string OptimizationApplication::processResultFilenameCommandLineArgument(
     */
 }
 
+bool OptimizationApplication::isMaster() { return getMpiRank() == 0; }
+
+bool OptimizationApplication::isWorker() { return getMpiRank() > 0; }
+
 OptimizationApplication::~OptimizationApplication() {
     destroyHDF5Mutex();
 
