@@ -28,7 +28,8 @@ ExpData *SteadyStateMultiConditionDataProvider::getExperimentalDataForCondition(
     hdf5Read3DDoubleHyperslab(fileId, "/data/ymeasured", 1, model->ny,
                               udata->nt, conditionIdx, 0, 0, edata->my);
 
-    double ysigma = AMI_HDF5_getDoubleScalarAttribute(fileId, "data", "sigmay");
+    double ysigma = NAN;
+    AMI_HDF5_getDoubleScalarAttribute(fileId, "data", "sigmay", &ysigma);
     fillArray(edata->sigmay, model->nytrue * udata->nt, ysigma);
 
     return edata;

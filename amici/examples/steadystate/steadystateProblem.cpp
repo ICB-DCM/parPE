@@ -145,7 +145,8 @@ void ExampleSteadystateProblem::setupExpData(int conditionIdx) {
     edata = new ExpData(udata, model);
     readMeasurement(conditionIdx);
 
-    double ysigma = AMI_HDF5_getDoubleScalarAttribute(fileId, "data", "sigmay");
+    double ysigma = NAN;
+    AMI_HDF5_getDoubleScalarAttribute(fileId, "data", "sigmay", &ysigma);
     fillArray(edata->sigmay, model->nytrue * udata->nt, ysigma);
 }
 
