@@ -44,6 +44,7 @@ class OptimizationApplication {
      * messageHandler()
      */
     virtual int runWorker() {
+        // TODO: Move out of here
         problem->run();
 
         return 0;
@@ -52,7 +53,7 @@ class OptimizationApplication {
     /**
      * @brief Code to be run if the application is running on only 1 process
      */
-    virtual void runSingleMpiProcess() {}
+    virtual int runSingleMpiProcess() { return 0; }
 
     /**
      * @brief Writes the total programm runtime

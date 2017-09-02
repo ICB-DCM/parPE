@@ -42,7 +42,7 @@ class SteadystateApplication : public OptimizationApplication {
         problem->resultWriter = resultWriter;
     }
 
-    virtual void runSingleMpiProcess() override;
+    virtual int runSingleMpiProcess() override;
 
     virtual ~SteadystateApplication() {
         delete resultWriter;
@@ -106,4 +106,4 @@ int main(int argc, char **argv) {
     return status;
 }
 
-void SteadystateApplication::runSingleMpiProcess() { getLocalOptimum(problem); }
+int SteadystateApplication::runSingleMpiProcess() { return getLocalOptimum(problem); }
