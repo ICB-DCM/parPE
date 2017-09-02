@@ -176,6 +176,24 @@ int OptimizationApplication::runMaster() {
     return 0;
 }
 
+int OptimizationApplication::runSingleMpiProcess() {
+    // TODO: also for gradientCheck
+    // run serially
+    if (problem->optimizationOptions->numStarts > 0) {
+        MultiConditionProblemMultiStartOptimization ms(
+            problem->optimizationOptions->numStarts,
+            problem->optimizationOptions->retryOptimization);
+        ms.options = problem->optimizationOptions;
+        ms.resultWriter = problem->resultWriter;
+        ms.dp = problem->getDataProvider();
+        return ms.run();
+    } else {
+        MultiConditionProblemSerial problem(this->problem->getDataProvider());
+        problem.optimizationOptions = this->problem->optimizationOptions;
+        return getLocalOptimum(&problem);
+    }
+}
+
 void OptimizationApplication::finalizeTiming(clock_t begin) {
     // wall-time for current process
     clock_t end = clock();

@@ -54,7 +54,7 @@ class OptimizationApplication {
     /**
      * @brief Code to be run if the application is running on only 1 process
      */
-    virtual int runSingleMpiProcess() { return 0; }
+    virtual int runSingleMpiProcess();
 
     /**
      * @brief Writes the total programm runtime
@@ -89,11 +89,6 @@ class OptimizationApplication {
      */
     virtual int parseOptions(int argc, char **argv);
 
-    std::string dataFileName;
-    std::string resultFileName;
-    MultiConditionProblem *problem = nullptr;
-    MultiConditionProblemResultWriter *resultWriter = nullptr;
-
     // command line option parsing
     const char *shortOptions = "dhvt:o:";
     struct option const longOptions[7] = {
@@ -110,8 +105,11 @@ class OptimizationApplication {
         OP_TYPE_GRADIENT_CHECK
     } operationTypeEnum;
 
+    std::string dataFileName;
+    std::string resultFileName;
+    MultiConditionProblem *problem = nullptr;
+    MultiConditionProblemResultWriter *resultWriter = nullptr;
     operationTypeEnum opType = OP_TYPE_PARAMETER_ESTIMATION;
-
     LoadBalancerMaster loadBalancer;
 };
 
