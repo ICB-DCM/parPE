@@ -1,6 +1,3 @@
-# TODO: check if still used
-add_definitions(-DAMICI_WITHOUT_MATLAB)
-
 set(AMICI_DIR "/home/dweindl/src/AMICI.github" CACHE PATH "AMICI root directory")
 
 find_package(Boost COMPONENTS serialization)
