@@ -31,7 +31,6 @@ class SteadystateApplication : public OptimizationApplication {
         model = getModel();
         dataProvider =
             new SteadyStateMultiConditionDataProvider(model, inFileArgument);
-        dataProvider->hdf5MeasurementPath = "/data/ytrue";
 
         problem =
             new SteadyStateMultiConditionProblem(dataProvider, &loadBalancer);
@@ -76,9 +75,10 @@ class SteadystateMultiStartOptimizationApplication
 
         // Multistart optimization
         OptimizationOptions *options = OptimizationOptions::fromHDF5(
-            dataProvider->fileId); // if numStarts > 1: need to use multiple MPI
-                                   // workers, otherwise simulation crashes due
-                                   // to CVODES threading issues
+            dataProvider->getHdf5FileId()); // if numStarts > 1: need to use
+                                            // multiple MPI
+        // workers, otherwise simulation crashes due
+        // to CVODES threading issues
 
         MultiConditionProblemMultiStartOptimization multiStartOptimization(
             options->numStarts, options->retryOptimization);

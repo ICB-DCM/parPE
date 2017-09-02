@@ -9,16 +9,6 @@
 #include <edata.h>
 #include <udata.h>
 
-void printJobIdentifierifier(JobIdentifier id) {
-    printf("%d.%d.%d.%d", id.idxMultiStart, id.idxLocalOptimization,
-           id.idxLocalOptimizationIteration, id.idxConditions);
-}
-
-void sprintJobIdentifier(char *buffer, JobIdentifier id) {
-    sprintf(buffer, "%d.%d.%d.%d", id.idxMultiStart, id.idxLocalOptimization,
-            id.idxLocalOptimizationIteration, id.idxConditions);
-}
-
 /**
  * @brief
  * @param hdf5Filename Filename from where to read data
@@ -128,24 +118,6 @@ int MultiConditionDataProvider::updateFixedSimulationParameters(
     hdf5UnlockMutex();
 
     return H5Eget_num(H5E_DEFAULT);
-}
-
-/**
- * @brief Reads data required for simulation of a specific experimental
- * condition. Creates ExpData and updates UserData object.
- * @param dpath
- * @param udata
- * @return
- */
-
-ExpData *MultiConditionDataProvider::
-    getExperimentalDataForExperimentAndUpdateFixedParameters(
-        int conditionIdx, UserData *udata) const {
-    updateFixedSimulationParameters(conditionIdx, udata);
-
-    // TODO update condition-specific parameters
-
-    return getExperimentalDataForCondition(conditionIdx, udata);
 }
 
 ExpData *MultiConditionDataProvider::getExperimentalDataForCondition(
@@ -279,6 +251,8 @@ void MultiConditionDataProvider::updateConditionSpecificSimulationParameters(
            numSpecificParams * sizeof(double));
 }
 
+hid_t MultiConditionDataProvider::getHdf5FileId() const { return fileId; }
+
 MultiConditionDataProvider::~MultiConditionDataProvider() {
     if (fileId > 0) {
         H5_SAVE_ERROR_HANDLER;
@@ -294,4 +268,12 @@ MultiConditionDataProvider::~MultiConditionDataProvider() {
     }
 }
 
-MultiConditionDataProvider::MultiConditionDataProvider() {}
+void JobIdentifier::print() {
+    printf("%d.%d.%d.%d", idxMultiStart, idxLocalOptimization,
+           idxLocalOptimizationIteration, idxConditions);
+}
+
+void JobIdentifier::sprint(char *buffer) {
+    sprintf(buffer, "%d.%d.%d.%d", idxMultiStart, idxLocalOptimization,
+            idxLocalOptimizationIteration, idxConditions);
+}

@@ -16,7 +16,7 @@ class MultiConditionProblem : public OptimizationProblem,
                               public LoadBalancerWorker {
 
   public:
-    MultiConditionProblem();
+    MultiConditionProblem() = default;
 
     MultiConditionProblem(MultiConditionDataProvider *dataProvider,
                           LoadBalancerMaster *loadBalancer);
@@ -107,7 +107,6 @@ class MultiConditionProblem : public OptimizationProblem,
         MultiConditionProblemResultWriter *resultWriter, int *status);
 
     MultiConditionDataProvider *getDataProvider();
-    LoadBalancerMaster *loadBalancer = nullptr;
     virtual double *getInitialParameters(int multiStartIndex) const;
 
     ~MultiConditionProblem();
@@ -190,9 +189,10 @@ class MultiConditionProblem : public OptimizationProblem,
 
     virtual void setSensitivityOptions(bool sensiRequired);
 
-    UserData *udata = nullptr;
-    Model *model = nullptr;
     MultiConditionDataProvider *dataProvider = nullptr;
+    LoadBalancerMaster *loadBalancer = nullptr;
+    Model *model = nullptr;
+    UserData *udata = nullptr;
 
     // keep track of previous results to avoid re-evaluation at the same
     // parameters (using IpOpt new_x)

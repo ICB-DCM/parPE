@@ -8,22 +8,28 @@ class ExpData;
 class UserData;
 class Model;
 
-/** Struct to tell simulation workers which dataset they are operating on
+/** Struct to tell simulation workers which dataset they are operating on.
   */
-typedef struct JobIdentifier_tag {
-    int idxMultiStart; /** current multistart batch (e.g. for crossvalidation)
-                          */
-    int idxLocalOptimization; /** current start index in multistart run */
-    int idxLocalOptimizationIteration; /** iteration of local solver or epoch
-                                          for minibatch */
+struct JobIdentifier {
+    /** current multistart batch (e.g. for crossvalidation) */
+    int idxMultiStart;
+
+    /** current start index in multistart run */
+    int idxLocalOptimization;
+
+    /** iteration of local solver or epoch for minibatch */
+    int idxLocalOptimizationIteration;
+
     // TODO int idxMiniBatch           /** current minibatch index */
+
+    /** condition index (current data record) */
+    // TODO Only this one is used for the moment
     int idxConditions;
-    /** experiment index */ // TODO Only this one is used for the moment
-} JobIdentifier;
 
-void printJobIdentifier(JobIdentifier id);
+    void print();
 
-void sprintJobIdentifier(char *buffer, JobIdentifier id);
+    void sprint(char *buffer);
+};
 
 /**
  * @brief The MultiConditionDataProvider class reads simulation data for
@@ -39,8 +45,8 @@ void sprintJobIdentifier(char *buffer, JobIdentifier id);
  * * hdf5ParameterPath:
  *
  * NOTE: The following dimensions are determined by the used AMICI model:
- * * numObservables := UserData::ny
- * * numFixedParameters := UserData::nk
+ * * numObservables := Model::ny
+ * * numFixedParameters := Model::nk
  *
  * The vector of optimization variables is assumed to be [x_0, ...,
  * x_(numCommonParameter-1), conditionSpecificParameters].
@@ -56,28 +62,33 @@ class MultiConditionDataProvider {
     MultiConditionDataProvider(Model *model, std::string hdf5Filename,
                                std::string rootPath);
 
+    virtual ~MultiConditionDataProvider();
+
     /**
      * @brief Provides the number of conditions for which data is available and
      * simulations need to be run.
      * This is determined from the dimensions of the hdf5MeasurementPath
      * dataset.
-     * @return
+     * @return Number of conditions
      */
     virtual int getNumberOfConditions() const;
 
     /**
      * @brief Number of model- oder optimization-parameters that are different
      * between the different conditions.
-     * @return
+     * @return That number
      */
-
     virtual int getNumConditionSpecificParametersPerSimulation() const;
 
+    /**
+     * @brief Update fixed model parameters in of the passed UserData object for
+     * the specified condition.
+     * @param conditionIdx
+     * @param udata The UserData instance to be updated
+     * @return Status, 0 on success, non-zero otherwise
+     */
     virtual int updateFixedSimulationParameters(int conditionIdx,
                                                 UserData *udata) const;
-
-    virtual ExpData *getExperimentalDataForExperimentAndUpdateFixedParameters(
-        int conditionIdx, UserData *udata) const;
 
     virtual ExpData *
     getExperimentalDataForCondition(int conditionIdx,
@@ -99,14 +110,39 @@ class MultiConditionDataProvider {
      */
     virtual void getOptimizationParametersUpperBounds(double *buffer) const;
 
+    /**
+     * @brief Returns the number of optimization parameters of this problem
+     * @return Number of parameters
+     */
     virtual int getNumOptimizationParameters() const;
 
+    /**
+     * @brief Get number of parameters common to all conditions.
+     * @return Number of parameters
+     */
     virtual int getNumCommonParameters() const;
 
+    /**
+     * @brief Returns a pointer to the underlying AMICI model
+     * @return The model
+     */
     virtual Model *getModel() const;
 
+    /**
+     * @brief Returns a new UserData instance with options read from the HDF5
+     * file.
+     * Fixed and variable parameters are for no particular condition.
+     * @return A new UserData instance.
+     */
     virtual UserData *getUserData() const;
 
+    /**
+     * @brief Returns a new UserData instance with options read from the HDF5
+     * file.
+     * Fixed parameters are set for the specified condition (variable parameters
+     * are not).
+     * @return A new UserData instance.
+     */
     virtual UserData *getUserDataForCondition(int conditionIdx) const;
 
     virtual int getIndexOfFirstConditionSpecificOptimizationParameter(
@@ -116,7 +152,10 @@ class MultiConditionDataProvider {
         int conditionIndex, const double *optimizationParams,
         UserData *udata) const;
 
-    virtual ~MultiConditionDataProvider();
+    hid_t getHdf5FileId() const;
+
+  protected:
+    MultiConditionDataProvider() = default;
 
     std::string hdf5MeasurementPath;
     std::string hdf5MeasurementSigmaPath;
@@ -127,9 +166,6 @@ class MultiConditionDataProvider {
     hid_t fileId = 0;
 
     Model *model = nullptr;
-
-  protected:
-    MultiConditionDataProvider();
 };
 
 #endif // MULTICONDITIONDATAPROVIDER_H

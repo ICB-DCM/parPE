@@ -9,6 +9,7 @@ SteadyStateMultiConditionDataProvider::SteadyStateMultiConditionDataProvider(
     Model *model, std::string hdf5Filename)
     : MultiConditionDataProvider(model, hdf5Filename) {
 
+    hdf5MeasurementPath = "/data/ytrue";
     udata = model->getNewUserData();
 
     setupUserData(udata);

@@ -18,16 +18,11 @@
 // skip objective function evaluation completely
 //#define NO_OBJ_FUN_EVAL
 
-MultiConditionProblem::MultiConditionProblem() // for testing only
-{}
-
 MultiConditionProblem::MultiConditionProblem(
     MultiConditionDataProvider *dataProvider, LoadBalancerMaster *loadBalancer)
-    : MultiConditionProblem() {
-    this->dataProvider = dataProvider;
-    this->loadBalancer = loadBalancer;
-    model = dataProvider->getModel();
-    udata = dataProvider->getUserDataForCondition(0);
+    : dataProvider(dataProvider), loadBalancer(loadBalancer),
+      model(dataProvider->getModel()),
+      udata(dataProvider->getUserDataForCondition(0)) {
 
     if (udata == NULL)
         abort();
@@ -114,7 +109,7 @@ int MultiConditionProblem::intermediateFunction(
     path.idxLocalOptimizationIteration = iter_count;
 
     char strBuf[50];
-    sprintJobIdentifier(strBuf, path);
+    path.sprint(strBuf);
     //    logmessage(LOGLVL_INFO, "%s: %d %d %e %e %e %e %e %e %e %e %d",
     //    strBuf,
     //               alg_mod, iter_count, obj_value, inf_pr, inf_du,
@@ -150,7 +145,7 @@ void MultiConditionProblem::logOptimizerFinished(
     int exitStatus) {
 
     char strBuf[100];
-    sprintJobIdentifier(strBuf, path);
+    path.sprint(strBuf);
     logmessage(LOGLVL_INFO, "%s: Optimizer status %d, final llh: %e, time: %f.",
                strBuf, exitStatus, optimalCost, masterTime);
 
@@ -174,9 +169,9 @@ ReturnData *MultiConditionProblem::runAndLogSimulation(
 
     // update UserData::k for condition-specific variables (no parameter mapping
     // necessary here, this has been done by master)
-    ExpData *edata =
-        dataProvider->getExperimentalDataForExperimentAndUpdateFixedParameters(
-            path.idxConditions, udata);
+    dataProvider->updateFixedSimulationParameters(path.idxConditions, udata);
+    ExpData *edata = dataProvider->getExperimentalDataForCondition(
+        path.idxConditions, udata);
 
     if (edata == NULL) {
         logmessage(LOGLVL_CRITICAL,
@@ -194,7 +189,7 @@ ReturnData *MultiConditionProblem::runAndLogSimulation(
     *status = (int)*rdata->status;
 
     char pathStrBuf[100];
-    sprintJobIdentifier(pathStrBuf, path);
+    path.sprint(pathStrBuf);
     logmessage(LOGLVL_DEBUG, "Result for %s (%d): %e  (%d) (%.2fs)", pathStrBuf,
                jobId, rdata->llh[0], *status, timeSeconds);
 
@@ -267,7 +262,7 @@ void MultiConditionProblem::messageHandler(char **buffer, int *msgSize,
 double MultiConditionProblem::getTime() const { return MPI_Wtime(); }
 
 double *MultiConditionProblem::getInitialParameters(int multiStartIndex) const {
-    return OptimizationOptions::getStartingPoint(dataProvider->fileId,
+    return OptimizationOptions::getStartingPoint(dataProvider->getHdf5FileId(),
                                                  multiStartIndex);
 }
 
@@ -364,8 +359,6 @@ int MultiConditionProblem::aggregateLikelihood(
     return errors;
 }
 
-MultiConditionProblemSerial::MultiConditionProblemSerial() {}
-
 MultiConditionProblemSerial::MultiConditionProblemSerial(
     MultiConditionDataProvider *dataProvider)
     : MultiConditionProblem(dataProvider, NULL) {}
@@ -425,7 +418,7 @@ double MultiConditionProblemSerial::getTime() const {
 
 void MultiConditionProblem::printObjectiveFunctionFailureMessage() {
     char strBuf[100];
-    sprintJobIdentifier(strBuf, path);
+    path.sprint(strBuf);
     logmessage(LOGLVL_ERROR, "%s: Objective function evaluation failed!",
                strBuf);
 }
@@ -513,7 +506,7 @@ MultiConditionProblemMultiStartOptimization::getLocalProblemImpl(
     // generate new OptimizationProblem with data from dp
 
     assert(dp != nullptr);
-    assert(dp->model != nullptr);
+    assert(dp->getModel() != nullptr);
 
     // Create parallel or serial problem depending on how many processes we are
     // running
