@@ -86,9 +86,10 @@ int MultiConditionDataProvider::getNumConditionSpecificParametersPerSimulation()
     const {
     hdf5LockMutex();
 
-    int num = AMI_HDF5_getIntScalarAttribute(fileId, hdf5ParameterPath.c_str(),
-                                             "numConditionSpecificParameters");
-
+    int num = 0;
+    int status = AMI_HDF5_getIntScalarAttribute(fileId, hdf5ParameterPath.c_str(),
+                                             "numConditionSpecificParameters", &num);
+    assert(status >= 0);
     hdf5UnlockMutex();
 
     return num;
