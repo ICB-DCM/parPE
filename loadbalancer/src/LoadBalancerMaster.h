@@ -15,10 +15,10 @@ struct JobData {
     JobData(int lenSendBuffer, char *sendBuffer, int *jobDone,
             pthread_cond_t *jobDoneChangedCondition,
             pthread_mutex_t *jobDoneChangedMutex)
-        : lenSendBuffer(lenSendBuffer), sendBuffer(sendBuffer),
+        : lenSendBuffer(lenSendBuffer),
           jobDone(jobDone), jobDoneChangedCondition(jobDoneChangedCondition),
           jobDoneChangedMutex(jobDoneChangedMutex) {
-        sendBuffer = sendBuffer ? sendBuffer : new char[lenSendBuffer];
+        this->sendBuffer = sendBuffer ? sendBuffer : new char[lenSendBuffer];
     }
 
     /** auto-assigned (unique number up to MAX_INT) */
