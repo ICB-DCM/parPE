@@ -24,7 +24,7 @@
 
 class SteadystateApplication : public OptimizationApplication {
   public:
-    SteadystateApplication() : OptimizationApplication() {}
+    using OptimizationApplication::OptimizationApplication;
 
     virtual void initProblem(std::string inFileArgument,
                              std::string outFileArgument) override {
@@ -68,7 +68,7 @@ class SteadystateLocalOptimizationApplication : public SteadystateApplication {
 class SteadystateMultiStartOptimizationApplication
     : public SteadystateApplication {
   public:
-    SteadystateMultiStartOptimizationApplication() : SteadystateApplication() {}
+    using SteadystateApplication::SteadystateApplication;
 
     virtual int runMaster() override {
 
@@ -100,8 +100,7 @@ int main(int argc, char **argv) {
     int status = 0;
 
     // SteadystateLocalOptimizationApplication app(argc, argv);
-    SteadystateMultiStartOptimizationApplication app;
-    app.init(argc, argv);
+    SteadystateMultiStartOptimizationApplication app(argc, argv);
     status = app.run();
 
     return status;

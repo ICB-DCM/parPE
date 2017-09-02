@@ -17,13 +17,7 @@ class OptimizationApplication {
   public:
     OptimizationApplication();
 
-    /**
-     * @brief init
-     * @param argc
-     * @param argv
-     * @return
-     */
-    virtual int init(int argc, char **argv);
+    OptimizationApplication(int argc, char **argv);
 
     /**
      * @brief User-provided problem initialization

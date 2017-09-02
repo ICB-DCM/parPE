@@ -7,9 +7,10 @@
 #include <mpi.h>
 #include <pthread.h>
 
-OptimizationApplication::OptimizationApplication() {}
+OptimizationApplication::OptimizationApplication() : OptimizationApplication(0, nullptr){}
 
-int OptimizationApplication::init(int argc, char **argv) {
+OptimizationApplication::OptimizationApplication(int argc, char **argv)
+{
     // TODO: check if initialized already
     initMPI(&argc, &argv);
 
@@ -24,8 +25,6 @@ int OptimizationApplication::init(int argc, char **argv) {
     unsigned int seed = time(NULL);
     logmessage(LOGLVL_DEBUG, "Seeding RNG with %u", seed);
     srand(seed); // TODO to CLI
-
-    return 0;
 }
 
 int OptimizationApplication::parseOptions(int argc, char **argv) {
