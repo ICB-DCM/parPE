@@ -89,6 +89,12 @@ class MultiConditionProblem : public OptimizationProblem,
                                       int exitStatus) override;
 
     /**
+     * @brief earlyStopping
+     * @return stop the optimization run
+     */
+    virtual int earlyStopping();
+
+    /**
      * @brief Is called by worker processes to run a simulation for the given
      * condition
      * @param udata UserData for simulation. Model dimensions, sensitivity
@@ -101,10 +107,8 @@ class MultiConditionProblem : public OptimizationProblem,
      * @param status
      * @return
      */
-    static ReturnData *runAndLogSimulation(
-        UserData *udata, MultiConditionDataProvider *dataProvider,
-        JobIdentifier path, int jobId,
-        MultiConditionProblemResultWriter *resultWriter, int *status);
+    ReturnData *runAndLogSimulation(UserData *udata, JobIdentifier path,
+                                    int jobId, int *status);
 
     MultiConditionDataProvider *getDataProvider();
     virtual double *getInitialParameters(int multiStartIndex) const;
@@ -188,6 +192,18 @@ class MultiConditionProblem : public OptimizationProblem,
                          int lenSendBuffer);
 
     virtual void setSensitivityOptions(bool sensiRequired);
+
+    /**
+     * @brief Keep information from last evaluation to avoid recomputation for
+     * same parameters
+     * @param optimizationParameters
+     * @param objectiveFunctionValue
+     * @param objectiveFunctionGradient
+     */
+    void
+    storeCurrentFunctionEvaluation(const double *optimizationParameters,
+                                   double objectiveFunctionValue,
+                                   const double *objectiveFunctionGradient);
 
     MultiConditionDataProvider *dataProvider = nullptr;
     LoadBalancerMaster *loadBalancer = nullptr;

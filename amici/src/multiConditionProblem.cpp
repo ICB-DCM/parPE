@@ -84,12 +84,9 @@ int MultiConditionProblem::evaluateObjectiveFunction(
         *objectiveFunctionValue = INFINITY;
     }
 
-    lastObjectiveFunctionValue = *objectiveFunctionValue;
-    memcpy(lastOptimizationParameters, optimiziationVariables,
-           sizeof(double) * numOptimizationParameters);
-    if (objectiveFunctionGradient)
-        memcpy(lastObjectiveFunctionGradient, objectiveFunctionGradient,
-               sizeof(double) * numOptimizationParameters);
+    storeCurrentFunctionEvaluation(optimiziationVariables,
+                                   *objectiveFunctionValue,
+                                   objectiveFunctionGradient);
 
     return errors;
 }
@@ -106,6 +103,7 @@ int MultiConditionProblem::intermediateFunction(
 
     bool stop = false;
 
+    // update iteration counter for logging
     path.idxLocalOptimizationIteration = iter_count;
 
     char strBuf[50];
@@ -125,7 +123,10 @@ int MultiConditionProblem::intermediateFunction(
             ls_trials);
     }
 
+    // save start time of the following iteration
     startTime = getTime();
+
+    stop = stop || earlyStopping();
 
     return stop;
 }
@@ -155,10 +156,23 @@ void MultiConditionProblem::logOptimizerFinished(
                                                 masterTime, exitStatus);
 }
 
-ReturnData *MultiConditionProblem::runAndLogSimulation(
-    UserData *udata, MultiConditionDataProvider *dataProvider,
-    JobIdentifier path, int jobId,
-    MultiConditionProblemResultWriter *resultWriter, int *status) {
+int MultiConditionProblem::earlyStopping() {
+    bool stop = false;
+
+    /* TODO evaluate objective function on test set and see if prediction
+     * performance increases
+     * costValidation <- validationProblem.evaluate();
+     * costValidation.append()
+     * if no decrease during last 3 rounds, return stop
+     *
+     */
+
+    return stop;
+}
+
+ReturnData *MultiConditionProblem::runAndLogSimulation(UserData *udata,
+                                                       JobIdentifier path,
+                                                       int jobId, int *status) {
 
     double startTime = MPI_Wtime();
 
@@ -170,17 +184,11 @@ ReturnData *MultiConditionProblem::runAndLogSimulation(
     // update UserData::k for condition-specific variables (no parameter mapping
     // necessary here, this has been done by master)
     dataProvider->updateFixedSimulationParameters(path.idxConditions, udata);
+
     ExpData *edata = dataProvider->getExperimentalDataForCondition(
         path.idxConditions, udata);
 
-    if (edata == NULL) {
-        logmessage(LOGLVL_CRITICAL,
-                   "Failed to get experiment data. Check data file. Aborting.");
-        abort();
-    }
-
     ReturnData *rdata = getSimulationResults(model, udata, edata);
-
     delete edata;
 
     double endTime = MPI_Wtime();
@@ -242,8 +250,7 @@ void MultiConditionProblem::messageHandler(char **buffer, int *msgSize,
 
     // do work
     int status = 0;
-    ReturnData *rdata = runAndLogSimulation(udata, dataProvider, path, jobId,
-                                            resultWriter, &status);
+    ReturnData *rdata = runAndLogSimulation(udata, path, jobId, &status);
 
 #if QUEUE_WORKER_H_VERBOSE >= 2
     printf("[%d] Work done. ", mpiRank);
@@ -494,6 +501,17 @@ void MultiConditionProblem::setSensitivityOptions(bool sensiRequired) {
         udata->sensi = AMICI_SENSI_ORDER_NONE;
         udata->sensi_meth = AMICI_SENSI_NONE;
     }
+}
+
+void MultiConditionProblem::storeCurrentFunctionEvaluation(
+    const double *optimizationParameters, double objectiveFunctionValue,
+    const double *objectiveFunctionGradient) {
+    lastObjectiveFunctionValue = objectiveFunctionValue;
+    memcpy(lastOptimizationParameters, optimizationParameters,
+           sizeof(double) * numOptimizationParameters);
+    if (objectiveFunctionGradient)
+        memcpy(lastObjectiveFunctionGradient, objectiveFunctionGradient,
+               sizeof(double) * numOptimizationParameters);
 }
 
 MultiConditionDataProvider *MultiConditionProblem::getDataProvider() {
