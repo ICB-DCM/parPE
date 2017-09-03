@@ -41,7 +41,6 @@ void OptimizationResultWriter::logParPEVersion() {
 int OptimizationResultWriter::initResultHDFFile(const char *filename,
                                                 bool overwrite) {
     H5_SAVE_ERROR_HANDLER;
-    ;
 
     if (!overwrite) {
         struct stat st = {0};
@@ -58,7 +57,6 @@ int OptimizationResultWriter::initResultHDFFile(const char *filename,
     }
 
     H5_RESTORE_ERROR_HANDLER;
-    ;
 
     return file_id < 0;
 }
