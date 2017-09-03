@@ -27,17 +27,6 @@ set(IPOPT_LIBRARIES "${IPOPT_DIR}/lib/libipopt.so"  CACHE FILEPATH "IpOpt librar
 set(CERES_INCLUDE_DIRS "" "/usr/include/eigen3" CACHE PATH "CERES include directories")
 set(CERES_LIBRARIES "" CACHE FILEPATH "CERES libraries")
 
-# Which BLAS to use?
-if(${BLAS} STREQUAL "MKL")
-    add_definitions(-DAMICI_BLAS_MKL)
-    set(BLAS_LIBRARIES -lmkl CACHE STRING "")
-    set(BLAS_INCLUDE_DIRS "" CACHE STRING "")
-else()
-    add_definitions(-DAMICI_BLAS_CBLAS)
-    set(BLAS_INCLUDE_DIRS "" CACHE STRING "")
-    set(BLAS_LIBRARIES -lcblas CACHE STRING "")
-endif()
-
 
 # Enable MPI? Currently mandatory.
 if(${USE_MPI})
@@ -68,7 +57,6 @@ include_directories(
     ${CERES_INCLUDE_DIRS}
     ${HDF5_INCLUDE_DIRS}
     ${MPI_INCLUDE_DIR}
-    ${BLAS_INCLUDE_DIRS}
 )
 
 

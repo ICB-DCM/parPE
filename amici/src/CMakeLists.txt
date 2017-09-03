@@ -16,7 +16,7 @@ target_link_libraries(${PROJECT_NAME}
     parpeoptimization
     parpeloadbalancer
     parpecommon
-    amici
+    Upstream::amici
     ${Boost_SERIALIZATION_LIBRARY_RELEASE}
     ${CMAKE_THREAD_LIBS_INIT}
 )
