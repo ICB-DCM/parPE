@@ -18,6 +18,8 @@ class MultiConditionProblem : public OptimizationProblem,
   public:
     MultiConditionProblem() = default;
 
+    MultiConditionProblem(MultiConditionDataProvider *dataProvider);
+
     MultiConditionProblem(MultiConditionDataProvider *dataProvider,
                           LoadBalancerMaster *loadBalancer);
 
@@ -215,26 +217,6 @@ class MultiConditionProblem : public OptimizationProblem,
     double *lastOptimizationParameters = nullptr;
     double *lastObjectiveFunctionGradient = nullptr;
     double lastObjectiveFunctionValue = NAN;
-};
-
-/**
- * @brief The MultiConditionProblemSerial class does the same as its base class,
- * but runs simulations by itself within the same thread. Mostly intended for
- * debugging.
- */
-
-class MultiConditionProblemSerial : public MultiConditionProblem {
-
-  public:
-    MultiConditionProblemSerial();
-
-    MultiConditionProblemSerial(MultiConditionDataProvider *dataProvider);
-
-    int runSimulations(const double *optimizationVariables,
-                       double *logLikelihood, double *objectiveFunctionGradient,
-                       int *dataIndices, int numDataIndices) override;
-
-    virtual double getTime() const override;
 };
 
 /**

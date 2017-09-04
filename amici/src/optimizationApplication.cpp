@@ -188,9 +188,7 @@ int OptimizationApplication::runSingleMpiProcess() {
         ms.dp = problem->getDataProvider();
         return ms.run();
     } else {
-        MultiConditionProblemSerial problem(this->problem->getDataProvider());
-        problem.optimizationOptions = this->problem->optimizationOptions;
-        return getLocalOptimum(&problem);
+        return getLocalOptimum(problem);
     }
 }
 

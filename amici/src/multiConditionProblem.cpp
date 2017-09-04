@@ -4,6 +4,7 @@
 #include "simulationWorkerAmici.h"
 #include "steadystateSimulator.h"
 #include <LoadBalancerMaster.h>
+#include <SimulationRunner.h>
 #include <amici_interface_cpp.h>
 #include <amici_model.h>
 #include <cassert>
@@ -13,11 +14,14 @@
 #include <misc.h>
 #include <rdata.h>
 #include <udata.h>
-#include <SimulationRunner.h>
 
 // For debugging:
 // skip objective function evaluation completely
 //#define NO_OBJ_FUN_EVAL
+
+MultiConditionProblem::MultiConditionProblem(
+    MultiConditionDataProvider *dataProvider)
+    : MultiConditionProblem(dataProvider, nullptr) {}
 
 MultiConditionProblem::MultiConditionProblem(
     MultiConditionDataProvider *dataProvider, LoadBalancerMaster *loadBalancer)
@@ -267,7 +271,12 @@ void MultiConditionProblem::messageHandler(char **buffer, int *msgSize,
     delete udata;
 }
 
-double MultiConditionProblem::getTime() const { return MPI_Wtime(); }
+double MultiConditionProblem::getTime() const {
+    std::time_t result = std::time(nullptr);
+    return result;
+
+    // return MPI_Wtime();
+}
 
 double *MultiConditionProblem::getInitialParameters(int multiStartIndex) const {
     return OptimizationOptions::getStartingPoint(dataProvider->getHdf5FileId(),
@@ -292,18 +301,40 @@ int MultiConditionProblem::runSimulations(const double *optimizationVariables,
 
     JobIdentifier path = this->path;
 
-    SimulationRunner simRunner(loadBalancer);
-    int errors = simRunner.run(numDataIndices, JobAmiciSimulation::getLength(model->np, sizeof(JobIdentifier)),
-                               [&](int simulationIdx){
-        // extract parameters for simulation of current condition, instead of
-        // sending whole  optimization parameter vector to worker
-        dataProvider->updateConditionSpecificSimulationParameters(
-                    dataIndices[simulationIdx], optimizationVariables, udata);
-        return udata;
-    },
-    [&](int simulationIdx){ path.idxConditions = dataIndices[simulationIdx]; return path; },
-    [&](JobData *jobs, int numJobsTotal){ return aggregateLikelihood(jobs, logLikelihood, objectiveFunctionGradient,
-                                                                     dataIndices, numDataIndices); });
+    SimulationRunner simRunner(
+        [&](int simulationIdx) {
+            // extract parameters for simulation of current condition, instead
+            // of
+            // sending whole  optimization parameter vector to worker
+            dataProvider->updateConditionSpecificSimulationParameters(
+                dataIndices[simulationIdx], optimizationVariables, udata);
+            return udata;
+        },
+        [&](int simulationIdx) {
+            path.idxConditions = dataIndices[simulationIdx];
+            return path;
+        },
+        [&](JobData *jobs, int numJobsTotal) {
+            return aggregateLikelihood(jobs, logLikelihood,
+                                       objectiveFunctionGradient, dataIndices,
+                                       numDataIndices);
+        });
+
+    int errors;
+
+    if (loadBalancer) {
+        errors = simRunner.run(
+            numDataIndices,
+            JobAmiciSimulation::getLength(model->np, sizeof(JobIdentifier)),
+            loadBalancer);
+    } else {
+        errors = simRunner.runSerial(
+            numDataIndices,
+            JobAmiciSimulation::getLength(model->np, sizeof(JobIdentifier)),
+            [&](char **buffer, int *msgSize, int jobId) {
+                messageHandler(buffer, msgSize, jobId);
+            });
+    }
 
     return errors;
 }
@@ -333,63 +364,6 @@ int MultiConditionProblem::aggregateLikelihood(
     }
 
     return errors;
-}
-
-MultiConditionProblemSerial::MultiConditionProblemSerial(
-    MultiConditionDataProvider *dataProvider)
-    : MultiConditionProblem(dataProvider, NULL) {}
-
-int MultiConditionProblemSerial::runSimulations(
-    const double *optimizationVariables, double *logLikelihood,
-    double *objectiveFunctionGradient, int *dataIndices, int numDataIndices) {
-    JobIdentifier path = this->path;
-
-    int numJobsTotal = numDataIndices;
-
-    // TODO: allocate and free piecewise or according to max queue length
-    JobData *data = new JobData[numJobsTotal];
-
-    // TODO: need to send previous steadystate as initial conditions
-    int lenSendBuffer =
-        JobAmiciSimulation::getLength(model->np, sizeof(JobIdentifier));
-
-    for (int simulationIdx = 0; simulationIdx < numJobsTotal; ++simulationIdx) {
-        path.idxConditions = dataIndices[simulationIdx];
-
-        // update condition specific simulation parameters
-        dataProvider->updateConditionSpecificSimulationParameters(
-            dataIndices[simulationIdx], optimizationVariables, udata);
-
-        data[simulationIdx].lenSendBuffer = lenSendBuffer;
-        data[simulationIdx].sendBuffer = new char[lenSendBuffer];
-
-        JobAmiciSimulation work;
-        work.data = &path;
-        work.lenData = sizeof(path);
-        work.sensitivityMethod = udata->sensi_meth;
-        work.numSimulationParameters = model->np;
-        work.simulationParameters = udata->p;
-
-        work.serialize(data[simulationIdx].sendBuffer);
-        int sizeDummy;
-        messageHandler(&data[simulationIdx].sendBuffer, &sizeDummy,
-                       simulationIdx);
-        data[simulationIdx].recvBuffer = data[simulationIdx].sendBuffer;
-    }
-
-    // unpack
-    int errors =
-        aggregateLikelihood(data, logLikelihood, objectiveFunctionGradient,
-                            dataIndices, numDataIndices);
-
-    delete[] data;
-
-    return errors;
-}
-
-double MultiConditionProblemSerial::getTime() const {
-    std::time_t result = std::time(nullptr);
-    return result;
 }
 
 void MultiConditionProblem::printObjectiveFunctionFailureMessage() {
@@ -443,8 +417,6 @@ int MultiConditionProblem::unpackSimulationResult(JobData *d,
     return result.status != 0;
 }
 
-
-
 void MultiConditionProblem::setSensitivityOptions(bool sensiRequired) {
     // sensitivities requested?
     if (sensiRequired) {
@@ -487,12 +459,8 @@ MultiConditionProblemMultiStartOptimization::getLocalProblemImpl(
     if (mpiInitialized)
         MPI_Comm_size(MPI_COMM_WORLD, &mpiCommSize);
 
-    MultiConditionProblem *problem;
-
-    if (mpiCommSize == 1)
-        problem = new MultiConditionProblemSerial(dp);
-    else
-        problem = new MultiConditionProblem(dp, loadBalancer);
+    MultiConditionProblem *problem =
+        new MultiConditionProblem(dp, loadBalancer);
 
     problem->optimizationOptions = new OptimizationOptions(*options);
 
