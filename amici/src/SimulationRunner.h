@@ -13,7 +13,7 @@ class LoadBalancerMaster;
  * results and calls a user-provided aggregation function
  */
 class SimulationRunner {
-public:
+  public:
     SimulationRunner(std::function<UserData *(int)> getUserData,
                      std::function<JobIdentifier(int)> getJobIdentifier,
                      std::function<int(JobData *jobs, int numJobs)> aggregate);
@@ -25,7 +25,8 @@ public:
      * @param loadBalancer
      * @return
      */
-    int run(int numJobsTotal, int lenSendBuffer, LoadBalancerMaster *loadBalancer);
+    int run(int numJobsTotal, int lenSendBuffer,
+            LoadBalancerMaster *loadBalancer);
 
     /**
      * @brief Runs simulations within the same thread. Mostly intended for
@@ -36,15 +37,16 @@ public:
      * @return
      */
     int runSerial(int numJobsTotal, int lenSendBuffer,
-                  std::function<void(char **buffer, int *msgSize,
-                                     int jobId)> messageHandler);
+                  std::function<void(char **buffer, int *msgSize, int jobId)>
+                      messageHandler);
 
-    void queueSimulation(LoadBalancerMaster *loadBalancer, JobIdentifier path, JobData *d, UserData *udata,
-                         int *jobDone, pthread_cond_t *jobDoneChangedCondition,
+    void queueSimulation(LoadBalancerMaster *loadBalancer, JobIdentifier path,
+                         JobData *d, UserData *udata, int *jobDone,
+                         pthread_cond_t *jobDoneChangedCondition,
                          pthread_mutex_t *jobDoneChangedMutex,
                          int lenSendBuffer);
 
-private:
+  private:
     std::function<UserData *(int)> getUserData = nullptr;
     std::function<JobIdentifier(int)> getJobIdentifier = nullptr;
     std::function<int(JobData *jobs, int numJobs)> aggregate = nullptr;

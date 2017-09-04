@@ -10,9 +10,7 @@ SteadyStateMultiConditionDataProvider::SteadyStateMultiConditionDataProvider(
     : MultiConditionDataProvider(model, hdf5Filename) {
 
     hdf5MeasurementPath = "/data/ytrue";
-    udata = model->getNewUserData();
-
-    setupUserData(udata);
+    udata = getUserData();
 }
 
 int SteadyStateMultiConditionDataProvider::updateFixedSimulationParameters(
@@ -39,28 +37,21 @@ ExpData *SteadyStateMultiConditionDataProvider::getExperimentalDataForCondition(
 void SteadyStateMultiConditionDataProvider::setupUserData(
     UserData *udata) const {
 
-    udata->nt = 20;
-
     hsize_t length;
     AMI_HDF5_getDoubleArrayAttribute(fileId, "data", "t", &udata->ts, &length);
-    assert(length == (unsigned)udata->nt);
+    udata->nt = length;
     udata->qpositivex = new double[model->nx];
     fillArray(udata->qpositivex, model->nx, 1);
 
     // calculate sensitivities for all parameters
-    udata->plist = new int[model->np];
-    udata->nplist = model->np;
-    for (int i = 0; i < model->np; ++i)
-        udata->plist[i] = i;
+    udata->requireSensitivitiesForAllParameters();
     udata->p = new double[model->np];
 
     // set model constants
     udata->k = new double[model->nk];
     updateFixedSimulationParameters(0, udata);
-    udata->maxsteps = 1e5;
 
     udata->pscale = AMICI_SCALING_LOG10;
-
     udata->sensi = AMICI_SENSI_ORDER_FIRST;
     udata->sensi_meth = AMICI_SENSI_FSA;
 }
@@ -111,4 +102,9 @@ void SteadyStateMultiConditionProblem::setSensitivityOptions(
     }
 }
 
-SteadyStateMultiConditionProblem::~SteadyStateMultiConditionProblem() {}
+SteadyStateMultiConditionProblem::~SteadyStateMultiConditionProblem() {
+    delete[] initialParameters;
+    delete[] parametersMin;
+    delete[] parametersMax;
+    delete optimizationOptions;
+}

@@ -114,28 +114,21 @@ void ExampleSteadystateProblem::requireSensitivities(
 void ExampleSteadystateProblem::setupUserData(int conditionIdx) {
     udata = model->getNewUserData();
 
-    udata->nt = 20;
-
     hsize_t length;
     AMI_HDF5_getDoubleArrayAttribute(fileId, "data", "t", &udata->ts, &length);
-    assert(length == (unsigned)udata->nt);
+    udata->nt = length;
 
     udata->qpositivex = new double[model->nx];
     fillArray(udata->qpositivex, model->nx, 1);
 
     // calculate sensitivities for all parameters
-    udata->plist = new int[model->np];
-    udata->nplist = model->np;
-    for (int i = 0; i < model->np; ++i)
-        udata->plist[i] = i;
+    udata->requireSensitivitiesForAllParameters();
 
     udata->p = new double[model->np];
 
     // set model constants
     udata->k = new double[model->nk];
     readFixedParameters(conditionIdx);
-
-    udata->maxsteps = 1e5;
 
     udata->pscale = AMICI_SCALING_LOG10;
     requireSensitivities(true);

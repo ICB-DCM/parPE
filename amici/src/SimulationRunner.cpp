@@ -2,14 +2,15 @@
 #include "simulationWorkerAmici.h"
 #include <LoadBalancerMaster.h>
 
-SimulationRunner::SimulationRunner(std::function<UserData *(int)> getUserData,
-                                   std::function<JobIdentifier(int)> getJobIdentifier,
-                                   std::function<int(JobData *jobs, int numJobs)> aggregate) : getUserData(getUserData), getJobIdentifier(getJobIdentifier), aggregate(aggregate) {
-
-}
+SimulationRunner::SimulationRunner(
+    std::function<UserData *(int)> getUserData,
+    std::function<JobIdentifier(int)> getJobIdentifier,
+    std::function<int(JobData *jobs, int numJobs)> aggregate)
+    : getUserData(getUserData), getJobIdentifier(getJobIdentifier),
+      aggregate(aggregate) {}
 
 int SimulationRunner::run(int numJobsTotal, int lenSendBuffer,
-    LoadBalancerMaster *loadBalancer) {
+                          LoadBalancerMaster *loadBalancer) {
     int numJobsFinished = 0;
 
     // TODO: allocate and free piecewise or according to max queue length
@@ -26,8 +27,9 @@ int SimulationRunner::run(int numJobsTotal, int lenSendBuffer,
 
         UserData *udata = getUserData(simulationIdx);
 
-        queueSimulation(loadBalancer, path, &jobs[simulationIdx], udata, &numJobsFinished,
-                        &simulationsCond, &simulationsMutex, lenSendBuffer);
+        queueSimulation(loadBalancer, path, &jobs[simulationIdx], udata,
+                        &numJobsFinished, &simulationsCond, &simulationsMutex,
+                        lenSendBuffer);
         // printf("Queued work: "); printDatapath(path);
     }
 
@@ -50,10 +52,10 @@ int SimulationRunner::run(int numJobsTotal, int lenSendBuffer,
     return errors;
 }
 
-int SimulationRunner::runSerial(int numJobsTotal, int lenSendBuffer,
-                                std::function<void(char **buffer, int *msgSize,
-                                                   int jobId)> messageHandler)
-{
+int SimulationRunner::runSerial(
+    int numJobsTotal, int lenSendBuffer,
+    std::function<void(char **buffer, int *msgSize, int jobId)>
+        messageHandler) {
     JobData *jobs = new JobData[numJobsTotal];
 
     for (int simulationIdx = 0; simulationIdx < numJobsTotal; ++simulationIdx) {
@@ -84,10 +86,10 @@ int SimulationRunner::runSerial(int numJobsTotal, int lenSendBuffer,
     delete[] jobs;
 
     return errors;
-
 }
 
-void SimulationRunner::queueSimulation(LoadBalancerMaster *loadBalancer, JobIdentifier path, JobData *d,
+void SimulationRunner::queueSimulation(LoadBalancerMaster *loadBalancer,
+                                       JobIdentifier path, JobData *d,
                                        UserData *udata, int *jobDone,
                                        pthread_cond_t *jobDoneChangedCondition,
                                        pthread_mutex_t *jobDoneChangedMutex,
