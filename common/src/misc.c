@@ -1,20 +1,20 @@
 #include "misc.h"
+#include "logging.h"
+#include <alloca.h>
+#include <assert.h>
+#include <errno.h>
+#include <execinfo.h>
+#include <math.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdarg.h>
-#include <time.h>
-#include <alloca.h>
-#include <unistd.h>
-#include <math.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <errno.h>
-#include "logging.h"
-#include <execinfo.h>
-#include <assert.h>
+#include <time.h>
+#include <unistd.h>
 
-//void printMatlabArray(const double *buffer, int len)
+// void printMatlabArray(const double *buffer, int len)
 //{
 //    printf("[");
 //    printfArray(buffer, len - 1, "%e, ");
@@ -23,12 +23,11 @@
 //}
 
 bool fileExists(const char *name) {
-  struct stat buffer;
-  return (stat (name, &buffer) == 0);
+    struct stat buffer;
+    return (stat(name, &buffer) == 0);
 }
 
-void createDirectoryIfNotExists(char *dirName)
-{
+void createDirectoryIfNotExists(char *dirName) {
     struct stat st = {0};
 
     if (stat(dirName, &st) == -1) {
@@ -42,41 +41,41 @@ void createDirectoryIfNotExists(char *dirName)
  * @param mode File mode
  * @return 0 on success, -1 otherwise
  */
-int mkpath(char* file_path, mode_t mode) {
-  assert(file_path && *file_path);
+int mkpath(char *file_path, mode_t mode) {
+    assert(file_path && *file_path);
 
-  for (char *p = strchr(file_path + 1, '/'); p; p = strchr(p + 1, '/')) {
-      *p = '\0';
-      if (mkdir(file_path, mode) == -1) {
-          if (errno != EEXIST) {
-              *p = '/';
-              return -1;
-          }
-      }
-      *p = '/';
-  }
-  return 0;
+    for (char *p = strchr(file_path + 1, '/'); p; p = strchr(p + 1, '/')) {
+        *p = '\0';
+        if (mkdir(file_path, mode) == -1) {
+            if (errno != EEXIST) {
+                *p = '/';
+                return -1;
+            }
+        }
+        *p = '/';
+    }
+    return 0;
 }
 
-int mkpathConstChar(const char* file_path, mode_t mode) {
-  assert(file_path && *file_path);
-  char tmp[strlen(file_path) + 1];
-  strcpy(tmp, file_path);
-  return mkpath(tmp, mode);
+int mkpathConstChar(const char *file_path, mode_t mode) {
+    assert(file_path && *file_path);
+    char tmp[strlen(file_path) + 1];
+    strcpy(tmp, file_path);
+    return mkpath(tmp, mode);
 }
 
-void strFormatCurrentLocaltime(char *buffer, size_t bufferSize, const char *format) {
+void strFormatCurrentLocaltime(char *buffer, size_t bufferSize,
+                               const char *format) {
     time_t timer;
     time(&timer);
 
-    struct tm* tm_info;
+    struct tm *tm_info;
     tm_info = localtime(&timer);
 
     strftime(buffer, bufferSize, format, tm_info);
 }
 
-void shuffle(int *array, size_t numElements)
-{
+void shuffle(int *array, size_t numElements) {
     size_t i;
     for (i = 0; i < numElements - 1; ++i) {
         size_t j = numElements * rand() / RAND_MAX;
@@ -86,10 +85,10 @@ void shuffle(int *array, size_t numElements)
     }
 }
 
-
 #include <pthread.h>
 
-void runInParallelAndWaitForFinish(void *(*function)(void *), void **args, int numArgs) {
+void runInParallelAndWaitForFinish(void *(*function)(void *), void **args,
+                                   int numArgs) {
     // create threads
     pthread_attr_t threadAttr;
     pthread_attr_init(&threadAttr);
@@ -97,13 +96,13 @@ void runInParallelAndWaitForFinish(void *(*function)(void *), void **args, int n
 
     pthread_t *threads = alloca(numArgs * sizeof(pthread_t));
 
-    for(int i = 0; i < numArgs; ++i) {
+    for (int i = 0; i < numArgs; ++i) {
         pthread_create(&threads[i], &threadAttr, function, args[i]);
     }
     pthread_attr_destroy(&threadAttr);
 
     // wait for finish
-    for(int i = 0; i < numArgs; ++i) {
+    for (int i = 0; i < numArgs; ++i) {
         pthread_join(threads[i], NULL);
         logmessage(LOGLVL_DEBUG, "Thread i %d finished", i);
     }
@@ -118,17 +117,18 @@ void printBacktrace(int depth) {
 }
 
 double randDouble(double min, double max) {
-    return min + rand() / (double) RAND_MAX * (max - min);
+    return min + rand() / (double)RAND_MAX * (max - min);
 }
 
-void fillArrayRandomDoubleIndividualInterval(const double *min, const double *max, int length, double *buffer)
-{
-    for(int i = 0; i < length; ++i)
+void fillArrayRandomDoubleIndividualInterval(const double *min,
+                                             const double *max, int length,
+                                             double *buffer) {
+    for (int i = 0; i < length; ++i)
         buffer[i] = randDouble(min[i], max[i]);
 }
 
-void fillArrayRandomDoubleSameInterval(double min, double max, int length, double *buffer)
-{
-    for(int i = 0; i < length; ++i)
+void fillArrayRandomDoubleSameInterval(double min, double max, int length,
+                                       double *buffer) {
+    for (int i = 0; i < length; ++i)
         buffer[i] = randDouble(min, max);
 }
