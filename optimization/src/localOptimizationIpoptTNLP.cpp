@@ -138,9 +138,8 @@ bool LocalOptimizationIpoptTNLP::eval_grad_f(Index n, const Number *x,
 
 bool LocalOptimizationIpoptTNLP::eval_g(Index n, const Number *x, bool new_x,
                                         Index m, Number *g) {
-    // no constraints, should never get here
-    assert(false);
-    return true;
+    assert(false && "no constraints, should never get here");
+    return false;
 }
 
 bool LocalOptimizationIpoptTNLP::eval_jac_g(Index n, const Number *x,
