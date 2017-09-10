@@ -12,6 +12,13 @@
 
 // void printMatlabArray(const double *buffer, int len);
 
+/**
+ * @brief Check if file or directory exists
+ * @param name
+ * @return True if exists, false if not
+ */
+EXTERNC bool fileExists(const char *name);
+
 EXTERNC int mkpath(char *file_path, mode_t mode);
 
 EXTERNC int mkpathConstChar(const char *file_path, mode_t mode);

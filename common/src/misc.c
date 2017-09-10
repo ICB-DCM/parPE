@@ -22,6 +22,11 @@
 //    fflush(stdout);
 //}
 
+bool fileExists(const char *name) {
+  struct stat buffer;
+  return (stat (name, &buffer) == 0);
+}
+
 void createDirectoryIfNotExists(char *dirName)
 {
     struct stat st = {0};
