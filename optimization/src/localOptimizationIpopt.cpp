@@ -62,6 +62,10 @@ void setIpOptOptions(SmartPtr<IpoptApplication> app,
         "acceptable_obj_change_tol",
         problem->optimizationOptions->functionTolerance);
 
+    app->Options()->SetIntegerValue("accept_every_trial_step", problem->optimizationOptions->accept_every_trial_step);
+    app->Options()->SetIntegerValue("watchdog_shortened_iter_trigger", problem->optimizationOptions->watchdog_shortened_iter_trigger);
+
+
     // TODO check further limited memory options
     // http://www.coin-or.org/Ipopt/documentation/node53.html#opt:hessian_approximation
 }

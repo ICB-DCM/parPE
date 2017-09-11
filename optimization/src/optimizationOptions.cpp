@@ -16,14 +16,7 @@ template <typename T> std::string to_string(const T &n) {
 }
 }
 
-OptimizationOptions::OptimizationOptions() {
-    optimizer = OPTIMIZER_IPOPT;
-    logFile = NULL;
-    printToStdout = true;
-    maxOptimizerIterations = 1000;
-    numStarts = 1;
-    functionTolerance = 1e-18;
-}
+
 
 Optimizer *OptimizationOptions::createOptimizer() {
     switch (optimizer) {
@@ -82,6 +75,22 @@ OptimizationOptions *OptimizationOptions::fromHDF5(hid_t fileId) {
         H5LTget_attribute_double(fileId, hdf5path, "functionTolerance",
                                  &o->functionTolerance);
     }
+
+    if (hdf5AttributeExists(fileId, hdf5path, "maxIter")) {
+        H5LTget_attribute_int(fileId, hdf5path, "maxIter",
+                              &o->maxOptimizerIterations);
+    }
+
+    if (hdf5AttributeExists(fileId, hdf5path, "watchdog_shortened_iter_trigger")) {
+        H5LTget_attribute_int(fileId, hdf5path, "watchdog_shortened_iter_trigger",
+                              &o->watchdog_shortened_iter_trigger);
+    }
+
+    if (hdf5AttributeExists(fileId, hdf5path, "accept_every_trial_step")) {
+        H5LTget_attribute_int(fileId, hdf5path, "accept_every_trial_step",
+                              &o->accept_every_trial_step);
+    }
+
 
     return o;
 }

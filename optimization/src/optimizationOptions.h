@@ -12,22 +12,22 @@ typedef enum optimizer_tag { OPTIMIZER_IPOPT, OPTIMIZER_CERES } optimizerEnum;
 
 class OptimizationOptions {
   public:
-    OptimizationOptions();
+    OptimizationOptions() = default;
 
     /** Optimizer factory method depending on OptimizationOptions::optimizer */
     Optimizer *createOptimizer();
 
     /** Optimizer to use */
-    optimizerEnum optimizer;
+    optimizerEnum optimizer = OPTIMIZER_IPOPT;
 
     /** Optimizer log file */
-    char *logFile;
+    char *logFile = nullptr;
 
     /** Print progress to stdout */
-    bool printToStdout;
+    bool printToStdout = true;
 
     /** Maximum number of optimizer iterations*/
-    int maxOptimizerIterations;
+    int maxOptimizerIterations = 1000;
 
     static OptimizationOptions *fromHDF5(const char *fileName);
 
@@ -37,15 +37,21 @@ class OptimizationOptions {
 
     /** Number of starts for local optimization (only used for multi-start
      * optimization */
-    int numStarts;
+    int numStarts = 1;
 
     /** Retry optimization in case of infeasibility (only used for multi-start
      * optimization */
-    int retryOptimization;
+    int retryOptimization = false;
 
-    /** Convergence criterium for relative change in subsequent objective
+    /** Convergence criterion for relative change in subsequent objective
      * function value change */
-    double functionTolerance;
+    double functionTolerance = 1e-18;
+
+    /** see IpOpt */
+    int watchdog_shortened_iter_trigger = 10;
+
+    /** see IpOpt */
+    bool accept_every_trial_step = false;
 
     std::string toString();
 };
