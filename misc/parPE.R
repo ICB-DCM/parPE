@@ -24,7 +24,7 @@ plotParameterTrajectory <- function(trajectory) {
 getCostTrajectory <- function(file, starts=getStarts(file)) {
   cost <- NULL
   for(start in starts) {
-    newCost <- tryCatch(h5read(optimizationResultFile, paste0("/multistarts/", start, "/iterCostFunCost")), error=function(cond) {NULL})
+    newCost <- tryCatch(h5read(file, paste0("/multistarts/", start, "/iterCostFunCost")), error=function(cond) {NULL})
     if(is.null(newCost))
       newCost <- as.matrix(rep(NA, nrow(cost)))
     maxIter <- max(nrow(cost), nrow(newCost))
@@ -41,7 +41,7 @@ getCostTrajectory <- function(file, starts=getStarts(file)) {
 getExitCodes <- function(file, starts=getStarts(file)) {
   status <- NULL
   for(start in starts) {
-    newStatus <- tryCatch(h5read(optimizationResultFile, paste0("/multistarts/", start, "/exitStatus")), error=function(cond) {NULL})
+    newStatus <- tryCatch(h5read(file, paste0("/multistarts/", start, "/exitStatus")), error=function(cond) {NULL})
     status <- c(status, newStatus)
     #colnames(cost)[ncol(status)] <- start
   }
@@ -108,3 +108,7 @@ getCorrelationByObservable <- function(simulationResultFile, starts) {
 }
 #######################################################
 #######################################################
+
+getParameterTrajectory <- function(file, start) {
+    return(h5read(file, paste0("/multistarts/", start, "/iterCostFunParameters")))
+}
