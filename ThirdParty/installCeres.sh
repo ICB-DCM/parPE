@@ -15,6 +15,8 @@ mkdir build
 cd build
 cmake -DCMAKE_INSTALL_PREFIX=`pwd`/install \
       -DBUILD_SHARED_LIBS=ON \
+      -DBUILD_TESTING=OFF \
+      -DGFLAGS=OFF \
       -DEIGEN_INCLUDE_DIR=`pwd`/../../eigen-eigen-67e894c6cd8f/ \
       -DMINIGLOG=ON \
       ..
