@@ -88,7 +88,7 @@ OptimizationOptions *OptimizationOptions::fromHDF5(hid_t fileId) {
 
     if (hdf5AttributeExists(fileId, hdf5path, "accept_every_trial_step")) {
         H5LTget_attribute_int(fileId, hdf5path, "accept_every_trial_step",
-                              &o->accept_every_trial_step);
+                              (int*)&o->accept_every_trial_step);
     }
 
 
