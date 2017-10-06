@@ -24,6 +24,7 @@ parPE offers the following features:
 
 For full functionality, parPE requires the following libraries:
 
+* CMAKE
 * MPI
 * PTHREADS
 * IPOPT (requires coinhsl)
@@ -32,33 +33,29 @@ For full functionality, parPE requires the following libraries:
 * BLAS (CBLAS / Intel MKL)
 * [AMICI](https://github.com/ICB-DCM/AMICI) (requires SuiteSparse, Sundials)
 
-Scripts to fetch and build those third-party libraries are provided in `/ThirdParty/` 
-
 On Debian-based systems, dependencies can be installed via:
 ```
 sudo apt-get install build-essential gfortran libmpich-dev libblas-dev libhdf5-dev cmake \
     libceres-dev coinor-libipopt-dev libcpputest-dev
 ```
 
+Scripts to fetch and build the remaining dependencies are provided in `/ThirdParty/` :
+
+```
+cd ThirdParty
+./downloadPackages.sh
+./installDeps.sh
+```
+
 ## Building
 
-Create a clean build folder
+After having taken care of the dependencies listed above, parPE can be built: 
 
 ```
-rm -rf build/; mkdir build ; cd build
+./build.sh
 ```
 
-To configure with MPI support rum cmake as
-```
-CC=mpicc CXX=mpiCC cmake ..
-```
-and build using 
-
-```
-make -j8
-```
-
-Sample build scripts are provided as `/build*.sh`.
+Other sample build scripts are provided as `/build*.sh`.
 
 ## Tested compilers
 
