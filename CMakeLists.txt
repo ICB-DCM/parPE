@@ -1,4 +1,4 @@
-project(parPE)
+project(parpe)
 
 # Stick to version 2.8.12 for now to work on ICB servers
 cmake_minimum_required(VERSION 2.8.12)
@@ -123,3 +123,34 @@ add_subdirectory(common)
 add_subdirectory(optimization)
 add_subdirectory(loadbalancer)
 add_subdirectory(amici)
+
+# create single library
+add_library(${PROJECT_NAME} "")
+target_link_libraries(${PROJECT_NAME} parpeamici)
+
+# <Export cmake configuration>
+include(GenerateExportHeader)
+generate_export_header(parpe)
+install(TARGETS ${PROJECT_NAME} EXPORT ParPETargets
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+  RUNTIME DESTINATION bin
+  INCLUDES DESTINATION include
+)
+export(EXPORT ParPETargets
+  FILE "${CMAKE_CURRENT_BINARY_DIR}/ParPETargets.cmake"
+  NAMESPACE Upstream::
+)
+get_property(ParPEConfigIncludes DIRECTORY PROPERTY INCLUDE_DIRECTORIES)
+get_property(ParPEConfigIncludesCommon GLOBAL PROPERTY PARPECOMMON_INCLUDE_DIRS)
+get_property(ParPEConfigIncludesLoadbalancer GLOBAL PROPERTY PARPELOADBALANCER_INCLUDE_DIRS)
+get_property(ParPEConfigIncludesOptimization GLOBAL PROPERTY PARPEOPTIMIZATION_INCLUDE_DIRS)
+get_property(ParPEConfigIncludesAmici GLOBAL PROPERTY PARPEAMICI_INCLUDE_DIRS)
+
+configure_file(CMakeModules/ParPEConfig.cmake
+  "${CMAKE_CURRENT_BINARY_DIR}/ParPEConfig.cmake"
+  @ONLY
+)
+# Register package
+export(PACKAGE ParPE)
+# </Export cmake configuration>

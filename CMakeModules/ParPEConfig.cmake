@@ -1,0 +1,8 @@
+include("${CMAKE_CURRENT_LIST_DIR}/ParPETargets.cmake")
+set_property(TARGET Upstream::parpe PROPERTY INCLUDE_DIRECTORIES @ParPEConfigIncludes@ @ParPEConfigIncludesCommon@ @ParPEConfigIncludesLoadbalancer@ @ParPEConfigIncludesOptimization@ @ParPEConfigIncludesAmici@)
+set_property(TARGET Upstream::parpecommon PROPERTY INCLUDE_DIRECTORIES @ParPEConfigIncludesCommon@)
+set_property(TARGET Upstream::parpeloadbalancer PROPERTY INCLUDE_DIRECTORIES @ParPEConfigIncludesLoadbalancer@)
+set_property(TARGET Upstream::parpeoptimization PROPERTY INCLUDE_DIRECTORIES @ParPEConfigIncludesOptimization@)
+set_property(TARGET Upstream::parpeamici PROPERTY INCLUDE_DIRECTORIES @ParPEConfigIncludesAmici@)
+get_property(ParPE_INCLUDE_DIRS TARGET Upstream::parpe PROPERTY INCLUDE_DIRECTORIES)
+set(ParPE_LIBRARIES Upstream::parpe)

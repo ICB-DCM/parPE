@@ -9,7 +9,7 @@ set -e
 
 ./installCBLAS.sh
  
-./installCpputest.sh
+#./installCpputest.sh
  
 ./installCeres.sh
  
