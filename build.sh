@@ -22,7 +22,7 @@ CC=mpicc CXX=mpiCC cmake -DAMICI_DIR=$AMICI_DIR \
       -DMPI_LIBRARY=/usr/lib64/openmpi/lib/libmpi_cxx.so \
       -DBLAS_INCLUDE_DIRS=${PARPE_ROOT}/ThirdParty/CBLAS/include \
       -DBLAS_LIBRARIES=${PARPE_ROOT}/ThirdParty/CBLAS/lib/cblas_LINUX.a \
-      ..
+      $PARPE_ROOT
 make -j12
 
 
