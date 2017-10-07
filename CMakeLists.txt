@@ -126,7 +126,7 @@ add_subdirectory(amici)
 
 # create single library
 add_library(${PROJECT_NAME} "")
-target_link_libraries(${PROJECT_NAME} parpeamici)
+target_link_libraries(${PROJECT_NAME} parpecommon parpeloadbalancer parpeoptimization parpeamici)
 
 # <Export cmake configuration>
 include(GenerateExportHeader)
