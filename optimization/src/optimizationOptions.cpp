@@ -5,7 +5,12 @@
 #include "misc.h"
 #include <cassert>
 #include <iostream>
+#include <iomanip>
+#include <algorithm>
 #include <sstream>
+#include <limits>
+#include <hdf5.h>
+#include <H5Cpp.h>
 
 // Workaround for missing to_string on some systems
 namespace patch {
@@ -19,14 +24,7 @@ template <typename T> std::string to_string(const T &n) {
 
 
 Optimizer *OptimizationOptions::createOptimizer() {
-    switch (optimizer) {
-    case OPTIMIZER_IPOPT:
-        return new OptimizerIpOpt();
-    case OPTIMIZER_CERES:
-        return new OptimizerCeres();
-    }
-
-    return nullptr;
+    return optimizerFactory(optimizer);
 }
 
 OptimizationOptions *OptimizationOptions::fromHDF5(const char *fileName) {
@@ -48,9 +46,47 @@ OptimizationOptions *OptimizationOptions::fromHDF5(const char *fileName) {
 }
 
 OptimizationOptions *OptimizationOptions::fromHDF5(hid_t fileId) {
-    const char *hdf5path = "optimizationOptions";
-
     OptimizationOptions *o = new OptimizationOptions();
+
+    const char *hdf5path = "/optimizationOptions";
+
+    hid_t attributeGroup = H5Gopen1(fileId, hdf5path);
+    if(attributeGroup < 0)
+        return o;
+
+    //    int numAttributes = H5Aget_num_attrs(attributeGroup);
+
+    H5Aiterate2(attributeGroup, H5_INDEX_NAME, H5_ITER_NATIVE, 0,
+                [](hid_t location_id/*in*/,
+                const char *attr_name/*in*/,
+                const H5A_info_t *ainfo/*in*/,
+                void *op_data/*in,out*/) -> herr_t {
+
+        auto *o = static_cast<OptimizationOptions*>(op_data);
+
+        hid_t a = H5Aopen(location_id, attr_name, H5P_DEFAULT);
+        hid_t type = H5Aget_type(a);
+        hid_t typeClass = H5Tget_class(type);
+        hid_t nativeType = H5Tget_native_type(type, H5T_DIR_ASCEND);
+        char buf[ainfo->data_size];
+        H5Aread(a, nativeType, buf);
+        H5Tclose(nativeType);
+        H5Aclose(a);
+
+        if (typeClass == H5T_STRING) {
+            o->setOption(attr_name, buf);
+        } else if (typeClass == H5T_FLOAT) {
+            o->setOption(attr_name, *reinterpret_cast<double*>(buf));
+        } else if (typeClass == H5T_INTEGER) {
+            o->setOption(attr_name, *reinterpret_cast<int*>(buf));
+        } else {
+            // invalid option type
+            abort();
+        }
+
+        return 0; // continue
+    }, o);
+
 
     if (hdf5AttributeExists(fileId, hdf5path, "optimizer")) {
         H5LTget_attribute_int(fileId, hdf5path, "optimizer",
@@ -86,12 +122,12 @@ OptimizationOptions *OptimizationOptions::fromHDF5(hid_t fileId) {
                               &o->watchdog_shortened_iter_trigger);
     }
 
-    if (hdf5AttributeExists(fileId, hdf5path, "accept_every_trial_step")) {
-        H5LTget_attribute_int(fileId, hdf5path, "accept_every_trial_step",
-                              (int*)&o->accept_every_trial_step);
-    }
+//    if (hdf5AttributeExists(fileId, hdf5path, "accept_every_trial_step")) {
+//        H5LTget_attribute_int(fileId, hdf5path, "accept_every_trial_step",
+//                              (int*)&o->accept_every_trial_step);
+//    }
 
-
+    H5Gclose(attributeGroup);
     return o;
 }
 
@@ -158,4 +194,54 @@ std::string OptimizationOptions::toString() {
     s += "numStarts: " + patch::to_string(numStarts) + "\n";
     s += "functionTolerance: " + patch::to_string(functionTolerance) + "\n";
     return s;
+}
+
+int OptimizationOptions::getIntOption(std::string key)
+{
+    return std::stoi(options[key]);
+}
+
+double OptimizationOptions::getDoubleOption(std::string key)
+{
+    return std::stod(options[key]);
+}
+
+std::string OptimizationOptions::getStringOption(std::string key)
+{
+    return options[key];
+}
+
+void OptimizationOptions::setOption(std::string key, int value)
+{
+    options[key] = std::to_string(value);
+}
+
+void OptimizationOptions::setOption(std::string key, double value)
+{
+    std::ostringstream out;
+    out << std::setprecision(std::numeric_limits<double>::max_digits10) << value;
+    options[key] = out.str();
+}
+
+void OptimizationOptions::setOption(std::string key, std::string value)
+{
+    options[key] = value;
+}
+
+void OptimizationOptions::for_each(std::function< void (const std::pair<const std::string, const std::string>, void*)> f, void* arg)
+{
+    std::for_each(options.begin(), options.end(),
+                  std::bind2nd(f, arg));
+}
+
+Optimizer* optimizerFactory(optimizerEnum optimizer)
+{
+    switch (optimizer) {
+    case OPTIMIZER_IPOPT:
+        return new OptimizerIpOpt();
+    case OPTIMIZER_CERES:
+        return new OptimizerCeres();
+    }
+
+    return nullptr;
 }

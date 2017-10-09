@@ -2,8 +2,10 @@
 #define OPTIMIZATIONOPTIONS_H
 
 #include <hdf5Misc.h>
-
+#include <map>
 #include <string>
+#include <functional>
+
 class Optimizer;
 
 typedef enum optimizer_tag { OPTIMIZER_IPOPT, OPTIMIZER_CERES } optimizerEnum;
@@ -50,10 +52,21 @@ class OptimizationOptions {
     /** see IpOpt */
     int watchdog_shortened_iter_trigger = 10;
 
-    /** see IpOpt */
-    bool accept_every_trial_step = false;
-
     std::string toString();
+
+    int getIntOption(std::string key);
+    double getDoubleOption(std::string key);
+    std::string getStringOption(std::string key);
+
+    void setOption(std::string key, int value);
+    void setOption(std::string key, double value);
+    void setOption(std::string key, std::string value);
+
+    void for_each(std::function<void (std::pair<const std::string, const std::string>, void*)> f, void* arg);
+private:
+    std::map<std::string, std::string> options;
 };
+
+Optimizer* optimizerFactory(optimizerEnum optimizer);
 
 #endif // OPTIMIZATIONOPTIONS_H
