@@ -64,13 +64,6 @@ ceres::GradientProblemSolver::Options getCeresOptions(
         problem->optimizationOptions->printToStdout;
     options.max_num_iterations =
         problem->optimizationOptions->maxOptimizerIterations;
-    //    options.gradient_tolerance = 1e-18;
-    options.function_tolerance =
-        problem->optimizationOptions->functionTolerance;
-
-    // Use quadratic approximation to not require gradient for line search
-    // NOTE: WOLFE line_search_type will always require gradient
-    // options.line_search_interpolation_type = ceres::QUADRATIC;
 
     problem->optimizationOptions->for_each<ceres::GradientProblemSolver::Options*>(setCeresOption, &options);
 

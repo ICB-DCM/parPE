@@ -46,13 +46,6 @@ class OptimizationOptions {
      * optimization */
     int retryOptimization = false;
 
-    /** Convergence criterion for relative change in subsequent objective
-     * function value change */
-    double functionTolerance = 1e-18;
-
-    /** see IpOpt */
-    int watchdog_shortened_iter_trigger = 10;
-
     std::string toString();
 
     int getIntOption(std::string key);

@@ -374,18 +374,6 @@ void setIpOptOptions(SmartPtr<OptionsList> optionsIpOpt,
 
     optionsIpOpt->SetIntegerValue(
         "max_iter", problem->optimizationOptions->maxOptimizerIterations);
-    optionsIpOpt->SetNumericValue("tol", 1e-9);
-
-    optionsIpOpt->SetIntegerValue("acceptable_iter", 1);
-    optionsIpOpt->SetNumericValue("acceptable_tol",
-                                    1e20); // set ridiculously high, so only the
-                                           // acceptable_* options below matter
-    optionsIpOpt->SetNumericValue(
-        "acceptable_obj_change_tol",
-        problem->optimizationOptions->functionTolerance);
-
-    optionsIpOpt->SetIntegerValue("watchdog_shortened_iter_trigger", problem->optimizationOptions->watchdog_shortened_iter_trigger);
-
 
     // set IpOpt options from OptimizationOptions
     problem->optimizationOptions->for_each<SmartPtr<OptionsList> *>(setIpOptOption, &optionsIpOpt);
