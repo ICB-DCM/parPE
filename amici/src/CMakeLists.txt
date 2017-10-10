@@ -7,7 +7,6 @@ set(SRC_LIST
     simulationWorkerAmici.cpp
     steadystateSimulator.cpp
     optimizationApplication.cpp
-    amiciUserDataSerialization.cpp
     SimulationRunner.cpp
 )
 

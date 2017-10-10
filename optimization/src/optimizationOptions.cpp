@@ -41,6 +41,7 @@ herr_t optimizationOptionsFromAttribute(hid_t location_id/*in*/,
 
     std::cout<<attr_name<<" "<< ainfo->data_size<<std::endl;
     if (typeClass == H5T_STRING) {
+        // NOTE: only works for (fixed-length?) ASCII strings, no unicode -> in python use np.string_("bla")
         o->setOption(attr_name, buf);
     } else if (typeClass == H5T_FLOAT) {
         o->setOption(attr_name, *reinterpret_cast<double*>(buf));

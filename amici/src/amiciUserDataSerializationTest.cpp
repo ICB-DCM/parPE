@@ -92,9 +92,9 @@ TEST(userDataSerialization, testChar) {
     UserData u(1, 2, 3);
 
     int length;
-    char *buf = serializeAmiciUserData(&u, &length);
+    char *buf = serializeToChar(&u, &length);
 
-    UserData v = deserializeAmiciUserData(buf, length);
+    UserData v = deserializeFromChar<UserData>(buf, length);
 
     delete[] buf;
     checkUserDataEqual(u, v);
