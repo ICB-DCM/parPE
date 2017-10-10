@@ -9,4 +9,5 @@ mpirun -np 5 amici/examples/steadystate/example_steadystate
 
 mpirun -np 5 amici/examples/steadystate/example_steadystate_parallel
 
-mpirun -np 5 amici/examples/steadystate/example_steadystate_multi
+mpirun -np 5 amici/examples/steadystate/example_steadystate_multi -o deleteme ../amici/examples/steadystate/data.h5
+

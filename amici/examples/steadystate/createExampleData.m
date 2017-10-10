@@ -53,7 +53,7 @@ function [ output_args ] = createExampleData(  )
     H5F.close(fid);
 
     h5writeatt(hdfFile, '/optimizationOptions/', 'optimizer', 0);
-    h5writeatt(hdfFile, '/optimizationOptions/', 'test', 'test');
+    h5writeatt(hdfFile, '/optimizationOptions/', 'max_iter', 80);
 
 end
 

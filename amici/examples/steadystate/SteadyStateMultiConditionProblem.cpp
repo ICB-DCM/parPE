@@ -54,6 +54,8 @@ void SteadyStateMultiConditionDataProvider::setupUserData(
     udata->pscale = AMICI_SCALING_LOG10;
     udata->sensi = AMICI_SENSI_ORDER_FIRST;
     udata->sensi_meth = AMICI_SENSI_FSA;
+
+    udata->maxsteps = 1e4;
 }
 
 UserData *SteadyStateMultiConditionDataProvider::getUserData() const {

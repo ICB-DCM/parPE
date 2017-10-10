@@ -34,6 +34,11 @@ void LoadBalancerMaster::run() {
     isRunning = true;
 }
 
+LoadBalancerMaster::~LoadBalancerMaster()
+{
+    terminate();
+}
+
 #ifndef QUEUE_MASTER_TEST
 void LoadBalancerMaster::assertMPIInitialized() {
     int mpiInitialized = 0;
@@ -196,6 +201,7 @@ void LoadBalancerMaster::terminate() {
         return;
 
     pthread_cancel(queueThread);
+    // wait until canceled
     pthread_join(queueThread, nullptr);
 
     pthread_mutex_destroy(&mutexQueue);
