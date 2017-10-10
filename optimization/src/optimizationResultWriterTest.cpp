@@ -15,7 +15,7 @@ void teardown() { destroyHDF5Mutex(); }
 TEST(optimizationResultWriter, testResultWriter) {
     OptimizationResultWriter w("deleteme.h5", true);
 
-    w.rootPath = "/bla/";
+    w.setRootPath("/bla/");
 
     w.saveTotalCpuTime(100);
 

@@ -6,7 +6,6 @@
 #include <logging.h>
 #include <sstream>
 #include <iostream>
-#include <sys/stat.h>
 
 OptimizationResultWriter::OptimizationResultWriter() {}
 
@@ -21,7 +20,12 @@ OptimizationResultWriter::OptimizationResultWriter(const std::string &filename,
 
     logmessage(LOGLVL_DEBUG, "Writing results to %s.", filename.c_str());
     mkpathConstChar(filename.c_str(), 0755);
-    initResultHDFFile(filename.c_str(), overwrite);
+    file_id = hdf5OpenFile(filename.c_str(), overwrite);
+
+    if(file_id < 0)
+        throw(HDF5Exception());
+
+    hdf5EnsureGroupExists(file_id, rootPath.c_str());
     logParPEVersion();
 }
 
@@ -37,30 +41,6 @@ std::string OptimizationResultWriter::getIterationPath(int iterationIdx) {
 void OptimizationResultWriter::logParPEVersion() {
     hdf5WriteStringAttribute(file_id, rootPath.c_str(), "PARPE_VERSION",
                              GIT_VERSION);
-}
-
-int OptimizationResultWriter::initResultHDFFile(const char *filename,
-                                                bool overwrite) {
-    if (!overwrite) {
-        struct stat st = {0};
-        bool fileExists = stat(filename, &st) == 0;
-
-        throw HDF5Exception("Result file exists");
-        assert(!fileExists);
-    }
-
-    H5_SAVE_ERROR_HANDLER;
-    file_id = H5Fcreate(filename, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
-
-    if (file_id < 0) {
-        H5Eprint(H5E_DEFAULT, stderr);
-        throw HDF5Exception();
-    }
-    H5_RESTORE_ERROR_HANDLER;
-
-    hdf5EnsureGroupExists(file_id, rootPath.c_str());
-
-    return file_id < 0;
 }
 
 void OptimizationResultWriter::closeResultHDFFile() {
@@ -212,6 +192,12 @@ void OptimizationResultWriter::saveLocalOptimizerResults(
     hdf5UnlockMutex();
 
     flushResultWriter();
+}
+
+void OptimizationResultWriter::setRootPath(const std::string &path)
+{
+    rootPath = path;
+    hdf5EnsureGroupExists(file_id, rootPath.c_str());
 }
 
 OptimizationResultWriter::~OptimizationResultWriter() { closeResultHDFFile(); }

@@ -20,7 +20,7 @@ TEST(multiConditionProblemResultWriter, testResultWriter) {
     JobIdentifier id = {0};
     MultiConditionProblemResultWriter w("deleteme.h5", true, id);
 
-    w.rootPath = "/bla/";
+    w.setRootPath("/bla/");
 
     w.saveTotalCpuTime(100);
 

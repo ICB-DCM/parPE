@@ -104,15 +104,20 @@ class OptimizationResultWriter {
                                            int numParameters, double masterTime,
                                            int exitStatus);
 
+    void setRootPath(std::string const& path);
+
     virtual ~OptimizationResultWriter();
 
     hid_t file_id;
-    std::string rootPath = "/";
 
   protected:
     int initResultHDFFile(const char *filename, bool overwrite);
 
     void closeResultHDFFile();
+
+private:
+    std::string rootPath = "/";
+
 };
 
 #endif // OPTIMIZATIONRESULTWRITER_H

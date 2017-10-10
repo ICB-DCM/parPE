@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/stat.h>
 
 // mutex for **ALL** HDF5 library calls; read and write; any file(?)
 static pthread_mutex_t mutexHDF;
@@ -505,4 +506,27 @@ int hdf5WriteStringAttribute(hid_t fileId, const char *datasetPath,
                              const char *attributeValue) {
     return H5LTset_attribute_string(fileId, datasetPath, attributeName,
                                     attributeValue);
+}
+
+hid_t hdf5OpenFile(const char *filename, bool overwrite)
+{
+    if (!overwrite) {
+        struct stat st = {0};
+        bool fileExists = stat(filename, &st) == 0;
+
+        // throw HDF5Exception("Result file exists");
+        return -1;
+        assert(!fileExists);
+    }
+
+    H5_SAVE_ERROR_HANDLER;
+    hid_t file_id = H5Fcreate(filename, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+
+    if (file_id < 0) {
+        H5Eprint(H5E_DEFAULT, stderr);
+        //throw HDF5Exception();
+    }
+    H5_RESTORE_ERROR_HANDLER;
+
+    return file_id;
 }

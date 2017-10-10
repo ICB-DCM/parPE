@@ -42,7 +42,7 @@ std::string MultiConditionProblemResultWriter::getOptimizationPath() {
 
 void MultiConditionProblemResultWriter::setJobId(JobIdentifier id) {
     this->id = id;
-    rootPath = getIterationPath(id.idxLocalOptimizationIteration);
+    setRootPath(getIterationPath(id.idxLocalOptimizationIteration));
 }
 
 JobIdentifier MultiConditionProblemResultWriter::getJobId() { return id; }
