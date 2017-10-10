@@ -13,7 +13,7 @@ function [ output_args ] = createExampleData(  )
     options = amioption('sensi',0,...
                         'maxsteps',1e4);
 
-	numConditions = 12;
+    numConditions = 12;
     numK = 4;
     numY = 3;
     numT = numel(t);
@@ -44,5 +44,14 @@ function [ output_args ] = createExampleData(  )
         h5write(hdfFile, '/data/ytrue', sol.y, [1, 1, i], [numT, numY, 1]);
         h5write(hdfFile, '/data/ymeasured', sol.y * (1 + sigmaY * randn()), [1, 1, i], [numT, numY, 1]);
     end
+    
+    fid = H5F.open(hdfFile, 'H5F_ACC_RDWR', 'H5P_DEFAULT');
+    gid = H5G.create(fid,'/optimizationOptions','H5P_DEFAULT','H5P_DEFAULT','H5P_DEFAULT');
+    H5G.close(gid);
+    H5F.close(fid);
+
+    h5writeatt(hdfFile, '/optimizationOptions/', 'optimizer', 0);
+    h5writeatt(hdfFile, '/optimizationOptions/', 'test', 'test');
+
 end
 

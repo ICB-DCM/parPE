@@ -10,7 +10,7 @@
 #include <ceres/gradient_problem_solver.h>
 #include "localOptimizationCeres.h"
 
-// need prototype here, otherwise mess with headers
+// need prototype here, otherwise mess with headers (including ceres.h causes some errors with EIGEN)
 void setCeresOption(const std::pair<const std::string, const std::string> &pair, ceres::GradientProblemSolver::Options* options);
 
 

@@ -47,8 +47,8 @@ add_definitions(-DGIT_VERSION="${GIT_VERSION}")
 
 
 # HDF5
-set(HDF5_PREFER_PARALLEL TRUE)
-find_package(HDF5 COMPONENTS C HL REQUIRED)
+#set(HDF5_PREFER_PARALLEL TRUE)
+find_package(HDF5 COMPONENTS CXX C HL REQUIRED)
 
 
 include_directories(

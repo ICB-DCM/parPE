@@ -35,7 +35,6 @@ void serialize(Archive &ar, UserData &u, const unsigned int version) {
     int size = 0;
     ar &const_cast<int &>(u.np);
     ar &const_cast<int &>(u.nk);
-    ar &const_cast<int &>(u.ny);
     ar &const_cast<int &>(u.nx);
     ar &u.pscale;
     ar &u.nmaxevent;

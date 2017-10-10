@@ -15,24 +15,10 @@
 #include <udata.h>
 
 void checkUserDataEqual(UserData u, UserData v) {
-
     CHECK_EQUAL(u.np, v.np);
     CHECK_EQUAL(u.nx, v.nx);
-    CHECK_EQUAL(u.nxtrue, v.nxtrue);
     CHECK_EQUAL(u.nk, v.nk);
-    CHECK_EQUAL(u.ny, v.ny);
-    CHECK_EQUAL(u.nytrue, v.nytrue);
     CHECK_EQUAL(u.nx, v.nx);
-    CHECK_EQUAL(u.nztrue, v.nztrue);
-    CHECK_EQUAL(u.ne, v.ne);
-    CHECK_EQUAL(u.nJ, v.nJ);
-    CHECK_EQUAL(u.nw, v.nw);
-    CHECK_EQUAL(u.ndwdx, v.ndwdx);
-    CHECK_EQUAL(u.ndwdp, v.ndwdp);
-    CHECK_EQUAL(u.nnz, v.nnz);
-    CHECK_EQUAL(u.ubw, v.ubw);
-    CHECK_EQUAL(u.lbw, v.lbw);
-    CHECK_EQUAL(u.o2mode, v.o2mode);
     CHECK_EQUAL(u.pscale, v.pscale);
 
     CHECK_EQUAL(u.nmaxevent, v.nmaxevent);
@@ -51,23 +37,15 @@ void checkUserDataEqual(UserData u, UserData v) {
     CHECK_EQUAL(u.iter, v.iter);
     CHECK_EQUAL(u.stldet, v.stldet);
     CHECK_EQUAL(u.ordering, v.ordering);
-    CHECK_EQUAL(u.nan_dxdotdp, v.nan_dxdotdp);
-    CHECK_EQUAL(u.nan_J, v.nan_J);
-    CHECK_EQUAL(u.nan_JSparse, v.nan_JSparse);
-    CHECK_EQUAL(u.nan_xdot, v.nan_xdot);
-    CHECK_EQUAL(u.nan_xBdot, v.nan_xBdot);
-    CHECK_EQUAL(u.nan_qBdot, v.nan_qBdot);
 }
 
-TEST_GROUP(serialization){void setup(){}
+TEST_GROUP(userDataSerialization){void setup(){}
 
                           void teardown(){}};
 
-TEST(serialization, test) {
+TEST(userDataSerialization, testFile) {
 
-    UserData u(1, 2, 3, 4, 5, 6, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, AMICI_SCALING_LN,
-               AMICI_O2MODE_FULL);
-    //    printUserData(&u);
+    UserData u(1, 2, 3);
     {
         std::ofstream ofs("sstore.dat");
         boost::archive::text_oarchive oar(ofs);
@@ -79,15 +57,12 @@ TEST(serialization, test) {
         UserData v;
         iar &v;
         checkUserDataEqual(u, v);
-        //        printUserData(&v);
     }
 }
 
-TEST(serialization, test2) {
+TEST(userDataSerialization, testString) {
 
-    UserData u(1, 2, 3, 4, 5, 6, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, AMICI_SCALING_LN,
-               AMICI_O2MODE_FULL);
-    //    printUserData(&u);printf("\n");
+    UserData u(1, 2, 3);
 
     std::string serialized;
 
@@ -108,16 +83,13 @@ TEST(serialization, test2) {
         boost::archive::binary_iarchive iar(s);
         UserData v;
         iar >> v;
-        //        printUserData(&v);
         checkUserDataEqual(u, v);
     }
 }
 
-TEST(serialization, test3) {
+TEST(userDataSerialization, testChar) {
 
-    UserData u(1, 2, 3, 4, 5, 6, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, AMICI_SCALING_LN,
-               AMICI_O2MODE_FULL);
-    // u.print();printf("\n");
+    UserData u(1, 2, 3);
 
     int length;
     char *buf = serializeAmiciUserData(&u, &length);
@@ -125,6 +97,5 @@ TEST(serialization, test3) {
     UserData v = deserializeAmiciUserData(buf, length);
 
     delete[] buf;
-    // v.print();
     checkUserDataEqual(u, v);
 }
