@@ -67,11 +67,13 @@ OptimizationOptions *OptimizationOptions::fromHDF5(hid_t fileId) {
         hid_t type = H5Aget_type(a);
         hid_t typeClass = H5Tget_class(type);
         hid_t nativeType = H5Tget_native_type(type, H5T_DIR_ASCEND);
-        char buf[ainfo->data_size];
+        char buf[ainfo->data_size + 1]; // +1 for \0
+        buf[ainfo->data_size] = '\0';
         H5Aread(a, nativeType, buf);
         H5Tclose(nativeType);
         H5Aclose(a);
 
+        std::cout<<attr_name<<" "<< ainfo->data_size<<std::endl;
         if (typeClass == H5T_STRING) {
             o->setOption(attr_name, buf);
         } else if (typeClass == H5T_FLOAT) {
@@ -143,15 +145,15 @@ OptimizationOptions *OptimizationOptions::fromHDF5(hid_t fileId) {
  * had less columns than `ìndex`
  */
 double *OptimizationOptions::getStartingPoint(hid_t fileId, int index) {
-    double *buffer = NULL;
+    double *buffer = nullptr;
 
     const char *path = "/optimizationOptions/randomStarts";
 
     hdf5LockMutex();
     H5_SAVE_ERROR_HANDLER;
 
-    hid_t dataset = H5Dopen2(fileId, path, H5P_DEFAULT);
-    if (dataset < 0) {
+    hid_t dataset;
+    if (!hdf5DatasetExists(fileId, path) || (dataset = H5Dopen2(fileId, path, H5P_DEFAULT)) < 0) {
         logmessage(LOGLVL_DEBUG, "No initial parameters found in %s", path);
         goto freturn;
     }
@@ -192,6 +194,12 @@ std::string OptimizationOptions::toString() {
     s += "printToStdout: " + patch::to_string(printToStdout) + "\n";
     s += "numStarts: " + patch::to_string(numStarts) + "\n";
     s += "functionTolerance: " + patch::to_string(functionTolerance) + "\n";
+    s += "\n";
+
+    for_each<std::string&>([](const std::pair<const std::string, const std::string> pair, std::string &out){
+        out = out + pair.first + ": " + pair.second + "\n";
+    }, s);
+
     return s;
 }
 
