@@ -8,6 +8,19 @@
 #include <stdbool.h>
 
 #if defined(__cplusplus)
+#include <exception>
+#include <string>
+
+class HDF5Exception : public std::exception {
+public:
+    HDF5Exception(std::string msg = "") : msg(msg) {}
+
+    const char* what() const noexcept override { return msg.c_str(); }
+
+    std::string msg;
+
+};
+
 extern "C" {
 #endif
 

@@ -5,6 +5,7 @@
 #include <cmath>
 #include <logging.h>
 #include <sstream>
+#include <iostream>
 #include <sys/stat.h>
 
 OptimizationResultWriter::OptimizationResultWriter() {}
@@ -40,23 +41,24 @@ void OptimizationResultWriter::logParPEVersion() {
 
 int OptimizationResultWriter::initResultHDFFile(const char *filename,
                                                 bool overwrite) {
-    H5_SAVE_ERROR_HANDLER;
-
     if (!overwrite) {
         struct stat st = {0};
         bool fileExists = stat(filename, &st) == 0;
 
+        throw HDF5Exception("Result file exists");
         assert(!fileExists);
     }
 
-    // overwrites TODO: backup
+    H5_SAVE_ERROR_HANDLER;
     file_id = H5Fcreate(filename, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
     if (file_id < 0) {
         H5Eprint(H5E_DEFAULT, stderr);
+        throw HDF5Exception();
     }
-
     H5_RESTORE_ERROR_HANDLER;
+
+    hdf5EnsureGroupExists(file_id, rootPath.c_str());
 
     return file_id < 0;
 }
@@ -169,8 +171,6 @@ void OptimizationResultWriter::saveTotalCpuTime(const double timeInSeconds) {
     hsize_t dims[1] = {1};
 
     hdf5LockMutex();
-
-    hdf5EnsureGroupExists(file_id, rootPath.c_str());
 
     std::string pathStr = rootPath + "/totalTimeInSec";
     H5LTmake_dataset(file_id, pathStr.c_str(), 1, dims, H5T_NATIVE_DOUBLE,
