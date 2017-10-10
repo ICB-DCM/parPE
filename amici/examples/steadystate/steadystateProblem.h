@@ -36,15 +36,15 @@ class ExampleSteadystateProblem : public OptimizationProblem {
     void readFixedParameters(int conditionIdx);
     void readMeasurement(int conditionIdx);
 
-    UserData *udata;
-    ExpData *edata;
+    UserData *udata = nullptr;
+    ExpData *edata = nullptr;
     Model *model = nullptr;
 
   protected:
     void setupUserData(int conditionIdx);
     void setupExpData(int conditionIdx);
 
-    hid_t fileId;
+    hid_t fileId = -1;
 };
 
 #endif // STEADYSTATEPROBLEM_H

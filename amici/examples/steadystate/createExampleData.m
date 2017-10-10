@@ -45,6 +45,8 @@ function [ output_args ] = createExampleData(  )
         h5write(hdfFile, '/data/ymeasured', sol.y * (1 + sigmaY * randn()), [1, 1, i], [numT, numY, 1]);
     end
     
+    %% set optimization options
+    % create group
     fid = H5F.open(hdfFile, 'H5F_ACC_RDWR', 'H5P_DEFAULT');
     gid = H5G.create(fid,'/optimizationOptions','H5P_DEFAULT','H5P_DEFAULT','H5P_DEFAULT');
     H5G.close(gid);

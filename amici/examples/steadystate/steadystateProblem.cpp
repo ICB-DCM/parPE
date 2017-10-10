@@ -6,11 +6,12 @@
 #include <amici_model.h>
 #include <cassert>
 #include <cstring>
+#include <iostream>
+
+#define STEADYSTATE_DATA_HDF5 "/home/dweindl/src/parPE/amici/examples/steadystate/data.h5"
 
 ExampleSteadystateProblem::ExampleSteadystateProblem() {
-    fileId =
-        H5Fopen("/home/dweindl/src/parPE/amici/examples/steadystate/data.h5",
-                H5F_ACC_RDONLY, H5P_DEFAULT);
+    fileId = H5Fopen(STEADYSTATE_DATA_HDF5, H5F_ACC_RDONLY, H5P_DEFAULT);
 
     model = getModel();
     setupUserData(0);
@@ -35,7 +36,8 @@ ExampleSteadystateProblem::ExampleSteadystateProblem() {
 
 int ExampleSteadystateProblem::evaluateObjectiveFunction(
     const double *parameters, double *objFunVal, double *objFunGrad) {
-    memcpy(udata->p, parameters, model->np * sizeof(double));
+
+    udata->setParameters(parameters);
 
     //    printArray(parameters, udata->np);printf("\n");
 
@@ -114,17 +116,12 @@ void ExampleSteadystateProblem::requireSensitivities(
 void ExampleSteadystateProblem::setupUserData(int conditionIdx) {
     udata = model->getNewUserData();
 
-    hsize_t length;
-    AMI_HDF5_getDoubleArrayAttribute(fileId, "data", "t", &udata->ts, &length);
-    udata->nt = length;
-
     udata->qpositivex = new double[model->nx];
     fillArray(udata->qpositivex, model->nx, 1);
 
-    // calculate sensitivities for all parameters
-    udata->requireSensitivitiesForAllParameters();
-
-    udata->p = new double[model->np];
+    hsize_t length;
+    AMI_HDF5_getDoubleArrayAttribute(fileId, "data", "t", &udata->ts, &length);
+    udata->nt = length;
 
     // set model constants
     udata->k = new double[model->nk];
@@ -132,6 +129,8 @@ void ExampleSteadystateProblem::setupUserData(int conditionIdx) {
 
     udata->pscale = AMICI_SCALING_LOG10;
     requireSensitivities(true);
+    udata->requireSensitivitiesForAllParameters();
+    udata->maxsteps = 10000;
 }
 
 void ExampleSteadystateProblem::setupExpData(int conditionIdx) {
