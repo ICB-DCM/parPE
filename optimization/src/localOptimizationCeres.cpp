@@ -164,6 +164,6 @@ void setCeresOption(const std::pair<const std::string, const std::string> &pair,
     } else if(key == "minimizer_progress_to_stdout") {
         options->minimizer_progress_to_stdout = std::stoi(val);
     } else {
-        logmessage(LOGLVL_WARNING, "Ignoring unknown optimization option %s.", key);
+        logmessage(LOGLVL_WARNING, "Ignoring unknown optimization option %s.", key.c_str());
     }
 }

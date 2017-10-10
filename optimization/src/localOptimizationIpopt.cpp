@@ -352,7 +352,7 @@ void setIpOptOption(const std::pair<const std::string, const std::string> &pair,
     else if(std::find(dblOpts.begin(), dblOpts.end(), key) != dblOpts.end())
         options->SetNumericValue(key, std::stod(val));
     else
-        logmessage(LOGLVL_WARNING, "Ignoring unknown optimization option %s.", key);
+        logmessage(LOGLVL_WARNING, "Ignoring unknown optimization option %s.", key.c_str());
 }
 
 void setIpOptOptions(SmartPtr<OptionsList> optionsIpOpt,
