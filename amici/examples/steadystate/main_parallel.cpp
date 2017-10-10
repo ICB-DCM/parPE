@@ -26,11 +26,11 @@ int main(int argc, char **argv) {
 
     if (commSize == 1) {
         // run in serial mode
-        SteadystateProblemParallel problem = SteadystateProblemParallel(NULL);
+        SteadystateProblemParallel problem {NULL};
         status = getLocalOptimum(&problem);
 
     } else {
-        SteadystateProblemParallel problem = SteadystateProblemParallel(NULL);
+        SteadystateProblemParallel problem {NULL};
 
         int mpiRank;
         MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);

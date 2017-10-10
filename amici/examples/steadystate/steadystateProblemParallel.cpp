@@ -91,8 +91,7 @@ int SteadystateProblemParallel::evaluateSerial(const double *parameters,
                                                double *objFunVal,
                                                double *objFunGrad) {
     int status = 0;
-    memcpy(udata->p, parameters, model->np * sizeof(double));
-
+    udata->setParameters(parameters);
     //    printArray(parameters, udata->np);printf("\n");
 
     *objFunVal = 0;
@@ -134,7 +133,7 @@ void SteadystateProblemParallel::messageHandler(char **buffer, int *size,
     // unpack parameters
     int conditionIdx = (int)**buffer;
     int needGradient = (int)*(*buffer + sizeof(int));
-    memcpy(udata->p, *buffer + 2 * sizeof(int), sizeof(double) * model->np);
+    udata->setParameters(reinterpret_cast<double *>(*buffer + 2 * sizeof(int)));
     delete[] * buffer;
 
     // read data for current conditions
