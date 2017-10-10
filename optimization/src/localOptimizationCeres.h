@@ -20,6 +20,4 @@ class OptimizerCeres : public Optimizer {
     int optimize(OptimizationProblem *problem) override;
 };
 
-void setCeresOption(const std::pair<const std::string, const std::string> &pair, void* arg);
-
 #endif

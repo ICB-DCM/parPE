@@ -4,6 +4,8 @@
 #include <ceres/ceres.h>
 #include <logging.h>
 
+void setCeresOption(const std::pair<const std::string, const std::string> &pair, ceres::GradientProblemSolver::Options* options);
+
 class MyCeresFirstOrderFunction : public ceres::FirstOrderFunction {
 
   public:
@@ -70,7 +72,7 @@ ceres::GradientProblemSolver::Options getCeresOptions(
     // NOTE: WOLFE line_search_type will always require gradient
     // options.line_search_interpolation_type = ceres::QUADRATIC;
 
-    problem->optimizationOptions->for_each(setCeresOption, &options);
+    problem->optimizationOptions->for_each<ceres::GradientProblemSolver::Options*>(setCeresOption, &options);
 
     return options;
 }
@@ -107,10 +109,8 @@ int OptimizerCeres::optimize(OptimizationProblem *problem) {
 }
 
 
-void setCeresOption(const std::pair<const std::string, const std::string> &pair, void* arg) {
+void setCeresOption(const std::pair<const std::string, const std::string> &pair, ceres::GradientProblemSolver::Options* options) {
     // for iterating over OptimizationOptions
-
-    auto options = static_cast<ceres::GradientProblemSolver::Options*>(arg);
 
     const std::string &key = pair.first;
     const std::string &val = pair.second;

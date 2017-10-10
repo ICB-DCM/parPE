@@ -336,10 +336,11 @@ static pthread_mutex_t ipoptMutex = PTHREAD_MUTEX_INITIALIZER;
 
 using namespace Ipopt;
 
-void setIpOptOption(const std::pair<const std::string, const std::string> &pair, void* arg) {
+
+void setIpOptOption(const std::pair<const std::string, const std::string> &pair, SmartPtr<OptionsList>* o) {
     // for iterating over OptimizationOptions
 
-    auto options = *static_cast<SmartPtr<OptionsList>*>(arg);
+    auto options = *o;
 
     const std::string &key = pair.first;
     const std::string &val = pair.second;
@@ -387,7 +388,7 @@ void setIpOptOptions(SmartPtr<OptionsList> optionsIpOpt,
 
 
     // set IpOpt options from OptimizationOptions
-    problem->optimizationOptions->for_each(setIpOptOption, &optionsIpOpt);
+    problem->optimizationOptions->for_each<SmartPtr<OptionsList> *>(setIpOptOption, &optionsIpOpt);
 }
 
 OptimizerIpOpt::OptimizerIpOpt() {}

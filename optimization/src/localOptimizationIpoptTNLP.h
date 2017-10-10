@@ -70,4 +70,7 @@ class LocalOptimizationIpoptTNLP : public Ipopt::TNLP {
 
     pthread_mutex_t *ipoptMutex;
 };
+
+void setIpOptOption(const std::pair<const std::string, const std::string> &pair, SmartPtr<OptionsList>* o);
+
 #endif // LOCALOPTIMIZATIONIPOPTTNLP_H

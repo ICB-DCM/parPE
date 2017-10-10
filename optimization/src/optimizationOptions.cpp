@@ -6,7 +6,6 @@
 #include <cassert>
 #include <iostream>
 #include <iomanip>
-#include <algorithm>
 #include <sstream>
 #include <limits>
 #include <hdf5.h>
@@ -226,12 +225,6 @@ void OptimizationOptions::setOption(std::string key, double value)
 void OptimizationOptions::setOption(std::string key, std::string value)
 {
     options[key] = value;
-}
-
-void OptimizationOptions::for_each(std::function< void (const std::pair<const std::string, const std::string>, void*)> f, void* arg)
-{
-    std::for_each(options.begin(), options.end(),
-                  std::bind2nd(f, arg));
 }
 
 Optimizer* optimizerFactory(optimizerEnum optimizer)

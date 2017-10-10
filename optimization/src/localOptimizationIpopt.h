@@ -17,6 +17,4 @@ class OptimizerIpOpt : public Optimizer {
     int optimize(OptimizationProblem *problem) override;
 };
 
-void setIpOptOption(const std::pair<const std::string, const std::string> &pair, void* arg);
-
 #endif

@@ -10,6 +10,10 @@
 #include <ceres/gradient_problem_solver.h>
 #include "localOptimizationCeres.h"
 
+// need prototype here, otherwise mess with headers
+void setCeresOption(const std::pair<const std::string, const std::string> &pair, ceres::GradientProblemSolver::Options* options);
+
+
 TEST_GROUP(optimizationOptions){
     void setup(){mock().clear();
 }
@@ -66,7 +70,7 @@ TEST(optimizationOptions, setIpOptOptions) {
 
     OptimizationOptions o;
     o.setOption(key, expVal);
-    o.for_each(setIpOptOption, &options);
+    o.for_each<SmartPtr<OptionsList>*>(setIpOptOption, &options);
 
     int actVal = 0;
     CHECK_EQUAL(true, options->GetIntegerValue(key, actVal, ""));
@@ -81,7 +85,7 @@ TEST(optimizationOptions, setCeresOptions) {
 
     OptimizationOptions o;
     o.setOption(key, expVal);
-    o.for_each(setCeresOption, &options);
+    o.for_each<ceres::GradientProblemSolver::Options*>(setCeresOption, &options);
 
     int actVal = options.max_num_iterations;
 

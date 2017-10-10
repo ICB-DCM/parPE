@@ -5,6 +5,7 @@
 #include <map>
 #include <string>
 #include <functional>
+#include <algorithm>
 
 class Optimizer;
 
@@ -62,7 +63,13 @@ class OptimizationOptions {
     void setOption(std::string key, double value);
     void setOption(std::string key, std::string value);
 
-    void for_each(std::function<void (std::pair<const std::string, const std::string>, void*)> f, void* arg);
+    template <typename T>
+    void for_each(std::function< void (const std::pair<const std::string, const std::string>, T)> f, T arg)
+    {
+        std::for_each(options.begin(), options.end(),
+                      std::bind2nd(f, arg));
+    }
+
 private:
     std::map<std::string, std::string> options;
 };
