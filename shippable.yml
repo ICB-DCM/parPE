@@ -6,12 +6,15 @@ build:
     ci:
         - lsb_release -a
         - sudo apt-get update
+        # libceres-dev is too old and missing some options
         - sudo apt-get install gfortran libmpich-dev libatlas-base-dev
             libhdf5-dev cmake libceres-dev coinor-libipopt-dev libcpputest-dev gcovr
         - export PARPE_BASE=`pwd`
         # workaround for https://bugs.launchpad.net/ubuntu/+source/ceres-solver/+bug/1595692 :
         - wget -O /usr/include/ceres/internal/config.h "https://raw.githubusercontent.com/ceres-solver/ceres-solver/master/config/ceres/internal/config.h"
+	- cd $PARPE_BASE/deps/AMICI/ && scripts/run-build.sh && scripts/run-cpputest.sh
         - cd $PARPE_BASE/ThirdParty && ./installAMICI.sh
+        - cd $PARPE_BASE/ThirdParty && ./installCeres.sh
         - cd $PARPE_BASE && ./buildShippable.sh
         - cd $PARPE_BASE/build && CTEST_OUTPUT_ON_FAILURE=1 make test
         - cd $PARPE_BASE/build && make parpe_coverage_cobertura
