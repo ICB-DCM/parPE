@@ -1,13 +1,13 @@
 #include <bits/stl_tree.h>
 
-#include "CppUTest/TestHarness.h"
-#include "CppUTestExt/MockSupport.h"
 #include "MultiConditionDataProvider.h"
 #include "multiConditionProblem.h"
 #include "multiConditionProblemResultWriter.h"
 #include "testingMisc.h"
-
 #include "hdf5Misc.h"
+
+#include "CppUTest/TestHarness.h"
+#include "CppUTestExt/MockSupport.h"
 
 TEST_GROUP(multiConditionProblemResultWriter){void setup(){initHDF5Mutex();
 }

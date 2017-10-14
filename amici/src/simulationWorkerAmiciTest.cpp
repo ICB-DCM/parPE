@@ -1,8 +1,9 @@
+#include "simulationWorkerAmici.h"
 #include "CppUTest/TestHarness.h"
 #include "CppUTestExt/MockSupport.h"
 #include "misc.h"
-#include "simulationWorkerAmici.h"
 #include "testingMisc.h"
+#include <amici_model.h>
 
 TEST_GROUP(simulationWorkerAmici){void setup(){
 
@@ -12,43 +13,22 @@ TEST_GROUP(simulationWorkerAmici){void setup(){
 
                                   }};
 
-IGNORE_TEST(simulationWorkerAmici, testSerializeResultPackageMessage) {
-    //    // serialize and deserialize resultpackage with random content
-    //    int nTheta = randInt(0, 5000);
+TEST(simulationWorkerAmici, testSerializeResultPackageMessage) {
+    UserData u(1, 2, 3);
+    Model m(1, 2, 3, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, AMICI_O2MODE_NONE);
 
-    //    // generate random data
-    //    UserData udataExp;
-    //    udataExp.sensi_meth = AMICI_SENSI_ASA;
-    //    udataExp.sensi = AMICI_SENSI_ORDER_FIRST;
+    ReturnData r(&u, &m);
+    JobResultAmiciSimulation results(1, &r, 2.1);
 
-    //    ReturnData rdataExp();
-    //    int statusExp = randInt(INT_MIN, INT_MAX);
-    //    double llhExp = randDouble(1e-8, 1e8);
-    //    rdataExp.llh = &llhExp;
-    //    rdataExp.sllh = new double[nTheta];
-    //    for (int i = 0; i < nTheta; ++i) {
-    //        rdataExp.sllh[i] = randDouble(1e-8, 1e8);
-    //    }
+    int msgSize = 0;
+    char *buffer = serializeToChar<JobResultAmiciSimulation>(&results, &msgSize);
 
-    //    int resultPackageLength = JobResultAmiciSimulation::getLength(nTheta);
-    //    char *buffer = new char[resultPackageLength];
-    //    JobResultAmiciSimulation::serialize(&rdataExp, &udataExp, statusExp,
-    //                                        buffer);
+    JobResultAmiciSimulation resultsAct = deserializeFromChar<JobResultAmiciSimulation>(buffer, msgSize);
+    CHECK_EQUAL(results.simulationTimeInSec, resultsAct.simulationTimeInSec);
 
-    //    // deserialize
-    //    JobResultAmiciSimulation rpAct;
-    //    rpAct.sllh = new double[nTheta];
-    //    rpAct.deserialize(buffer);
-    //    delete[] buffer;
+    delete resultsAct.rdata;
 
-    //    CHECK_EQUAL(rpAct.status, statusExp);
-    //    DOUBLES_EQUAL(rpAct.llh, llhExp, 0);
-    //    for (int i = 0; i < nTheta; ++i) {
-    //        DOUBLES_EQUAL(rpAct.sllh[i], rdataExp.sllh[i], 0);
-    //    }
-
-    //    delete[] rdataExp.sllh;
-    //    delete[] rpAct.sllh;
+    delete[] buffer;
 }
 
 TEST(simulationWorkerAmici, testSerializeWorkPackageMessage) {

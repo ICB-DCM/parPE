@@ -6,6 +6,7 @@
 #include "multiStartOptimization.h"
 #include "optimizationProblem.h"
 #include <LoadBalancerWorker.h>
+#include <simulationWorkerAmici.h>
 #include <cmath> //NAN
 
 class ReturnData;
@@ -106,11 +107,10 @@ class MultiConditionProblem : public OptimizationProblem,
      * @param path
      * @param jobId
      * @param resultWriter
-     * @param status
      * @return
      */
-    ReturnData *runAndLogSimulation(UserData *udata, JobIdentifier path,
-                                    int jobId, int *status);
+    JobResultAmiciSimulation runAndLogSimulation(UserData *udata, JobIdentifier path,
+                                    int jobId);
 
     MultiConditionDataProvider *getDataProvider();
     virtual double *getInitialParameters(int multiStartIndex) const;
@@ -185,8 +185,6 @@ class MultiConditionProblem : public OptimizationProblem,
         const double *simulationGradient, double *objectiveFunctionGradient,
         int numCommon, int numConditionSpecificParams,
         int firstIndexOfCurrentConditionsSpecificOptimizationParameters);
-
-    int unpackSimulationResult(JobData *d, double *sllhBuffer, double *llh);
 
     void queueSimulation(JobIdentifier path, JobData *d, int *jobDone,
                          pthread_cond_t *jobDoneChangedCondition,

@@ -3,8 +3,9 @@
 
 #include <include/rdata.h>
 #include <include/udata.h>
+#include <amici_serialization.h>
 
-class JobAmiciSimulation {
+struct JobAmiciSimulation {
   public:
     /** Simulation data or dataset Id */
     int lenData;
@@ -28,23 +29,35 @@ class JobAmiciSimulation {
 };
 
 class JobResultAmiciSimulation {
-  public:
-    /** number of simulation parameters */
-    int numSimulationParameters;
+public:
+    JobResultAmiciSimulation() = default;
+    JobResultAmiciSimulation(int status, ReturnData *rdata, double simulationTimeInSec)
+        : status(status), rdata(rdata), simulationTimeInSec(simulationTimeInSec) {}
+
+    ~JobResultAmiciSimulation() {
+    }
 
     /** simulation return status */
-    int status;
+    int status = 1;
 
     /** log likelihood */
-    double llh;
+    ReturnData *rdata = nullptr;
 
-    /** log likelihood gradient*/
-    double *sllh;
-
-    static void serialize(const ReturnData *rdata, const UserData *udata,
-                          int status, char *buffer);
-    void deserialize(char *buffer);
-
-    static int getLength(int numSimulationParameters);
+    double simulationTimeInSec = -1;
 };
+
+namespace boost {
+namespace serialization {
+template <class Archive>
+void serialize(Archive &ar, JobResultAmiciSimulation &d, const unsigned int version) {
+    ar & d.status;
+    if (Archive::is_loading::value) {
+        d.rdata = new ReturnData();
+    }
+    ar & *d.rdata;
+    ar & d.simulationTimeInSec;
+}
+} // namespace serialization
+} // namespace boost
+
 #endif

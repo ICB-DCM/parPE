@@ -14,6 +14,7 @@
 #include <misc.h>
 #include <rdata.h>
 #include <udata.h>
+#include <amici_serialization.h>
 
 // For debugging:
 // skip objective function evaluation completely
@@ -175,10 +176,9 @@ int MultiConditionProblem::earlyStopping() {
     return stop;
 }
 
-ReturnData *MultiConditionProblem::runAndLogSimulation(UserData *udata,
+JobResultAmiciSimulation MultiConditionProblem::runAndLogSimulation(UserData *udata,
                                                        JobIdentifier path,
-                                                       int jobId, int *status) {
-
+                                                       int jobId) {
     double startTime = MPI_Wtime();
 
     Model *model = dataProvider->getModel();
@@ -199,12 +199,10 @@ ReturnData *MultiConditionProblem::runAndLogSimulation(UserData *udata,
     double endTime = MPI_Wtime();
     double timeSeconds = (endTime - startTime);
 
-    *status = (int)*rdata->status;
-
     char pathStrBuf[100];
     path.sprint(pathStrBuf);
     logmessage(LOGLVL_DEBUG, "Result for %s (%d): %e  (%d) (%.2fs)", pathStrBuf,
-               jobId, rdata->llh[0], *status, timeSeconds);
+               jobId, rdata->llh[0], *rdata->status, timeSeconds);
 
     // check for NaNs
     if (udata->sensi >= AMICI_SENSI_ORDER_FIRST) {
@@ -221,9 +219,9 @@ ReturnData *MultiConditionProblem::runAndLogSimulation(UserData *udata,
         resultWriter->logSimulation(path, udata->p, rdata->llh[0], rdata->sllh,
                                     timeSeconds, model->np, model->nx, rdata->x,
                                     rdata->sx, model->ny, rdata->y, jobId,
-                                    iterationsUntilSteadystate, *status);
+                                    iterationsUntilSteadystate, *rdata->status);
 
-    return rdata;
+    return JobResultAmiciSimulation((int)*rdata->status, rdata, timeSeconds);
 }
 
 MultiConditionProblem::~MultiConditionProblem() {
@@ -238,8 +236,6 @@ MultiConditionProblem::~MultiConditionProblem() {
 
 void MultiConditionProblem::messageHandler(char **buffer, int *msgSize,
                                            int jobId) {
-    Model *model = dataProvider->getModel();
-
     // unpack
     UserData *udata = dataProvider->getUserData();
     JobIdentifier path;
@@ -254,8 +250,7 @@ void MultiConditionProblem::messageHandler(char **buffer, int *msgSize,
 #endif
 
     // do work
-    int status = 0;
-    ReturnData *rdata = runAndLogSimulation(udata, path, jobId, &status);
+    JobResultAmiciSimulation result = runAndLogSimulation(udata, path, jobId);
 
 #if QUEUE_WORKER_H_VERBOSE >= 2
     printf("[%d] Work done. ", mpiRank);
@@ -263,11 +258,8 @@ void MultiConditionProblem::messageHandler(char **buffer, int *msgSize,
 #endif
 
     // pack & cleanup
-    *msgSize = JobResultAmiciSimulation::getLength(model->np);
-    *buffer = new char[*msgSize];
-    JobResultAmiciSimulation::serialize(rdata, udata, status, *buffer);
-
-    delete rdata;
+    *buffer = serializeToChar<JobResultAmiciSimulation>(&result, msgSize);
+    delete result.rdata;
     delete udata;
 }
 
@@ -345,22 +337,25 @@ int MultiConditionProblem::aggregateLikelihood(
     int errors = 0;
 
     // temporary variables for deserialization of simulation results
-    double llhTmp;
-    double sllhTmp[model->np];
 
     for (int simulationIdx = 0; simulationIdx < numDataIndices;
          ++simulationIdx) {
         // deserialize
-        errors +=
-            unpackSimulationResult(&data[simulationIdx], sllhTmp, &llhTmp);
+        JobResultAmiciSimulation result =
+                deserializeFromChar<JobResultAmiciSimulation>(
+                    data[simulationIdx].recvBuffer,
+                    data[simulationIdx].lenRecvBuffer);
+        delete[] data[simulationIdx].recvBuffer;
+        errors += result.status;
 
         // sum up
-        *logLikelihood -= llhTmp;
+        *logLikelihood -= *result.rdata->llh;
 
         if (objectiveFunctionGradient)
             addSimulationGradientToObjectiveFunctionGradient(
-                dataIndices[simulationIdx], sllhTmp, objectiveFunctionGradient,
+                dataIndices[simulationIdx], result.rdata->sllh, objectiveFunctionGradient,
                 dataProvider->getNumCommonParameters());
+        delete result.rdata;
     }
 
     return errors;
@@ -403,19 +398,6 @@ void MultiConditionProblem::
     }
 }
 
-int MultiConditionProblem::unpackSimulationResult(JobData *d,
-                                                  double *sllhBuffer,
-                                                  double *llh) {
-    JobResultAmiciSimulation result;
-    result.sllh = sllhBuffer;
-
-    result.deserialize(d->recvBuffer);
-    *llh = result.llh;
-
-    delete[] d->recvBuffer;
-
-    return result.status != 0;
-}
 
 void MultiConditionProblem::setSensitivityOptions(bool sensiRequired) {
     // sensitivities requested?
