@@ -49,9 +49,8 @@ void MultiConditionProblem::init() {
     lastObjectiveFunctionGradient = new double[numOptimizationParameters];
 }
 
-int MultiConditionProblem::evaluateObjectiveFunction(
-    const double *optimiziationVariables, double *objectiveFunctionValue,
-    double *objectiveFunctionGradient) {
+int MultiConditionProblem::evaluateObjectiveFunction(const double *optimiziationVariables, double *objectiveFunctionValue,
+    double *objectiveFunctionGradient, double *totalTimeInSec) {
     // run on all data
     int numDataIndices = dataProvider->getNumberOfConditions();
     int dataIndices[numDataIndices];
@@ -60,12 +59,12 @@ int MultiConditionProblem::evaluateObjectiveFunction(
 
     return evaluateObjectiveFunction(
         optimiziationVariables, objectiveFunctionValue,
-        objectiveFunctionGradient, dataIndices, numDataIndices);
+        objectiveFunctionGradient, dataIndices, numDataIndices, totalTimeInSec);
 }
 
 int MultiConditionProblem::evaluateObjectiveFunction(
     const double *optimiziationVariables, double *objectiveFunctionValue,
-    double *objectiveFunctionGradient, int *dataIndices, int numDataIndices) {
+    double *objectiveFunctionGradient, int *dataIndices, int numDataIndices, double *totalTimeInSec) {
 #ifdef NO_OBJ_FUN_EVAL
     if (objectiveFunctionGradient)
         for (int i = 0; i < numOptimizationParameters; ++i)
@@ -83,7 +82,8 @@ int MultiConditionProblem::evaluateObjectiveFunction(
 
     int errors =
         runSimulations(optimiziationVariables, objectiveFunctionValue,
-                       objectiveFunctionGradient, dataIndices, numDataIndices);
+                       objectiveFunctionGradient, totalTimeInSec,
+                       dataIndices, numDataIndices);
 
     if (errors) {
         printObjectiveFunctionFailureMessage();
@@ -201,8 +201,8 @@ JobResultAmiciSimulation MultiConditionProblem::runAndLogSimulation(UserData *ud
 
     char pathStrBuf[100];
     path.sprint(pathStrBuf);
-    logmessage(LOGLVL_DEBUG, "Result for %s (%d): %e  (%d) (%.2fs)", pathStrBuf,
-               jobId, rdata->llh[0], *rdata->status, timeSeconds);
+    logmessage(LOGLVL_DEBUG, "Result for %s (%d): %g (%d) (%.4fs)", pathStrBuf,
+               jobId, rdata->llh[0], (int)*rdata->status, timeSeconds);
 
     // check for NaNs
     if (udata->sensi >= AMICI_SENSI_ORDER_FIRST) {
@@ -288,6 +288,7 @@ void MultiConditionProblem::updateUserDataCommon(
 int MultiConditionProblem::runSimulations(const double *optimizationVariables,
                                           double *logLikelihood,
                                           double *objectiveFunctionGradient,
+                                          double *timeInSec,
                                           int *dataIndices,
                                           int numDataIndices) {
 
@@ -308,7 +309,8 @@ int MultiConditionProblem::runSimulations(const double *optimizationVariables,
         },
         [&](JobData *jobs, int numJobsTotal) {
             return aggregateLikelihood(jobs, logLikelihood,
-                                       objectiveFunctionGradient, dataIndices,
+                                       objectiveFunctionGradient, timeInSec,
+                                       dataIndices,
                                        numDataIndices);
         });
 
@@ -332,7 +334,7 @@ int MultiConditionProblem::runSimulations(const double *optimizationVariables,
 }
 
 int MultiConditionProblem::aggregateLikelihood(
-    JobData *data, double *logLikelihood, double *objectiveFunctionGradient,
+    JobData *data, double *logLikelihood, double *objectiveFunctionGradient, double *timeInSec,
     int *dataIndices, int numDataIndices) {
     int errors = 0;
 
@@ -347,9 +349,10 @@ int MultiConditionProblem::aggregateLikelihood(
                     data[simulationIdx].lenRecvBuffer);
         delete[] data[simulationIdx].recvBuffer;
         errors += result.status;
-
         // sum up
         *logLikelihood -= *result.rdata->llh;
+        if(timeInSec)
+            *timeInSec += result.simulationTimeInSec;
 
         if (objectiveFunctionGradient)
             addSimulationGradientToObjectiveFunctionGradient(

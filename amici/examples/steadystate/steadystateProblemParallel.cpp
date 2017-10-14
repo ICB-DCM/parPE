@@ -14,8 +14,7 @@ SteadystateProblemParallel::SteadystateProblemParallel(
     numConditions = 12;
 }
 
-int SteadystateProblemParallel::evaluateObjectiveFunction(
-    const double *parameters, double *objFunVal, double *objFunGrad) {
+int SteadystateProblemParallel::evaluateObjectiveFunction(const double *parameters, double *objFunVal, double *objFunGrad, double *timeInSec) {
     if (commSize > 1) {
         return evaluateParallel(parameters, objFunVal, objFunGrad);
     } else {

@@ -34,8 +34,7 @@ ExampleSteadystateProblem::ExampleSteadystateProblem() {
     optimizationOptions->maxOptimizerIterations = 100;
 }
 
-int ExampleSteadystateProblem::evaluateObjectiveFunction(
-    const double *parameters, double *objFunVal, double *objFunGrad) {
+int ExampleSteadystateProblem::evaluateObjectiveFunction(const double *parameters, double *objFunVal, double *objFunGrad, double *timeInSec) {
 
     udata->setParameters(parameters);
 

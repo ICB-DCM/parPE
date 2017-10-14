@@ -21,8 +21,15 @@ class MyCeresFirstOrderFunction : public ceres::FirstOrderFunction {
      */
     virtual bool Evaluate(const double *parameters, double *cost,
                           double *gradient) const override {
+        static __thread int numFunctionCalls = 0;
+        ++numFunctionCalls;
+
+        double cpuTimeInSec = 0;
         bool status =
-            problem->evaluateObjectiveFunction(parameters, cost, gradient);
+            problem->evaluateObjectiveFunction(parameters, cost, gradient, &cpuTimeInSec);
+
+            problem->logObjectiveFunctionEvaluation(parameters, *cost, gradient,
+                                                numFunctionCalls, cpuTimeInSec);
 
         return status == 0;
     }

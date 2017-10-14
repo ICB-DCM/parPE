@@ -34,7 +34,7 @@ TEST(localOptimizationCeres, testOptimization) {
     // This is a work-around for buggy ceres in ubuntu repository, which does
     // not always return the correct optimal cost
     problem.evaluateObjectiveFunction(&problem.optimalParameter,
-                                      &problem.optimalCost, NULL);
+                                      &problem.optimalCost, nullptr, nullptr);
 
     DOUBLES_EQUAL(42.0, problem.optimalCost, 1e-12);
     DOUBLES_EQUAL(-1.0, problem.optimalParameter, 1e-12);

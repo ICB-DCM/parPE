@@ -35,12 +35,12 @@ class MultiConditionProblem : public OptimizationProblem,
     virtual int
     evaluateObjectiveFunction(const double *optimiziationVariables,
                               double *objectiveFunctionValue,
-                              double *objectiveFunctionGradient) override;
+                              double *objectiveFunctionGradient, double *totalTimeInSec) override;
 
     virtual int evaluateObjectiveFunction(const double *optimiziationVariables,
                                           double *objectiveFunctionValue,
                                           double *objectiveFunctionGradient,
-                                          int *dataIndices, int numDataIndices);
+                                          int *dataIndices, int numDataIndices, double *totalTimeInSec);
 
     /**
      * @brief This function is called after each iteration. See IpOpt for
@@ -149,7 +149,7 @@ class MultiConditionProblem : public OptimizationProblem,
      */
     virtual int runSimulations(const double *optimizationVariables,
                                double *logLikelihood,
-                               double *objectiveFunctionGradient,
+                               double *objectiveFunctionGradient, double *timeInSec,
                                int *dataIndices, int numDataIndices);
 
     /**
@@ -163,7 +163,7 @@ class MultiConditionProblem : public OptimizationProblem,
      */
 
     int aggregateLikelihood(JobData *data, double *logLikelihood,
-                            double *objectiveFunctionGradient, int *dataIndices,
+                            double *objectiveFunctionGradient, double *timeInSec, int *dataIndices,
                             int numDataIndices);
 
     void printObjectiveFunctionFailureMessage();

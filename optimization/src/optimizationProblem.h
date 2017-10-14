@@ -22,7 +22,7 @@ class OptimizationProblem {
      */
     virtual int evaluateObjectiveFunction(const double *parameters,
                                           double *objFunVal,
-                                          double *objFunGrad) = 0;
+                                          double *objFunGrad, double *totalTimeInSec) = 0;
 
     /**
      * Callback function which is called after each optimizer iteration.

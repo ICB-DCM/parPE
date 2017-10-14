@@ -11,7 +11,7 @@ class SteadystateProblemParallel : public ExampleSteadystateProblem,
     SteadystateProblemParallel(LoadBalancerMaster *loadBalancer);
 
     int evaluateObjectiveFunction(const double *parameters, double *objFunVal,
-                                  double *objFunGrad) override;
+                                  double *objFunGrad, double *timeInSec) override;
 
     int evaluateParallel(const double *parameters, double *objFunVal,
                          double *objFunGrad);

@@ -49,7 +49,7 @@ void optimizationProblemGradientCheck(OptimizationProblem *problem,
     problem->fillInitialParameters(theta);
 
     double *gradient = new double[problem->getNumOptimizationParameters()];
-    problem->evaluateObjectiveFunction(theta, &fc, gradient);
+    problem->evaluateObjectiveFunction(theta, &fc, gradient, nullptr);
 
     double *thetaTmp = new double[problem->getNumOptimizationParameters()];
     memcpy(thetaTmp, theta,
@@ -63,10 +63,10 @@ void optimizationProblemGradientCheck(OptimizationProblem *problem,
         double fb = 0, ff = 0; // f(theta + eps) , f(theta - eps)
 
         thetaTmp[curInd] = theta[curInd] + epsilon;
-        problem->evaluateObjectiveFunction(thetaTmp, &ff, NULL);
+        problem->evaluateObjectiveFunction(thetaTmp, &ff, nullptr, nullptr);
 
         thetaTmp[curInd] = theta[curInd] - epsilon;
-        problem->evaluateObjectiveFunction(thetaTmp, &fb, NULL);
+        problem->evaluateObjectiveFunction(thetaTmp, &fb, nullptr, nullptr);
 
         double fd_f = (ff - fc) / epsilon;
 
