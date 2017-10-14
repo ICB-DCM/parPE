@@ -4,35 +4,33 @@
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/archive/text_oarchive.hpp>
 #include <udata.h>
+#include <rdata.h>
 
 /** This files provides boost::serialization support for AMICI UserData,
  * e.g. to allow sending UserData from MPI master to MPI workers */
 
-/**
- * @brief Serialize AMICI::UserData
- * @param udata In: Pointer to object to serialize
- * @param size Out: The size of the serialzed object in bytes. Can be NULL.
- * @return The serialized object
- */
-
-char *serializeAmiciUserData(const UserData *udata, int *size);
-
-/**
- * @brief Deserialize AMICI::UserData that has been serialized using
- * serializeAmiciUserData
- * @param buffer
- * @param size
- * @return The deserialized object
- */
-
-UserData deserializeAmiciUserData(const char *buffer, int size);
-
 namespace boost {
 namespace serialization {
 
+
+template <class Archive, typename T>
+void archiveRawArray(Archive &ar, T **p, int size) {
+    if (Archive::is_loading::value) {
+        assert(*p == nullptr);
+        ar &size;
+        if (size)
+            *p = new T[size];
+    } else {
+        size = *p == nullptr ? 0 : size;
+        ar &size;
+    }
+    ar &make_array<T>(*p, size);
+
+}
+
+// AMICI UserData
 template <class Archive>
 void serialize(Archive &ar, UserData &u, const unsigned int version) {
-    int size = 0;
     ar &const_cast<int &>(u.np);
     ar &const_cast<int &>(u.nk);
     ar &const_cast<int &>(u.nx);
@@ -54,105 +52,80 @@ void serialize(Archive &ar, UserData &u, const unsigned int version) {
     ar &u.stldet;
     ar &u.ordering;
 
-    if (Archive::is_loading::value) {
-        assert(u.qpositivex == NULL);
-        ar &size;
-        if (size)
-            u.qpositivex = new double[size];
-    } else {
-        size = u.qpositivex == NULL ? 0 : u.nx;
-        ar &size;
-    }
-    ar &make_array<double>(u.qpositivex, size);
+    archiveRawArray(ar, &u.qpositivex, u.nx);
+    archiveRawArray(ar, &u.plist, u.nplist);
+    archiveRawArray(ar, &u.p, u.np);
+    archiveRawArray(ar, &u.k, u.nk);
+    archiveRawArray(ar, &u.ts, u.nt);
+    archiveRawArray(ar, &u.pbar, u.np);
+    archiveRawArray(ar, &u.xbar, u.nx);
+    archiveRawArray(ar, &u.x0data, u.nx);
+    archiveRawArray(ar, &u.sx0data, u.np * u.nx);
+}
 
-    if (Archive::is_loading::value) {
-        assert(u.plist == NULL);
-        ar &size;
-        if (size)
-            u.plist = new int[size];
-    } else {
-        size = u.plist == NULL ? 0 : u.nplist;
-        ar &size;
-    }
-    ar &make_array<int>(u.plist, size);
+// AMICI ReturnData
+template <class Archive>
+void serialize(Archive &ar, ReturnData &r, const unsigned int version) {
+    ar &r.freeFieldsOnDestruction;
 
-    if (Archive::is_loading::value) {
-        assert(u.p == NULL);
-        ar &size;
-        if (size)
-            u.p = new double[size];
-    } else {
-        size = u.p == NULL ? 0 : u.np;
-        ar &size;
-    }
-    ar &make_array<double>(u.k, size);
+    ar &const_cast<int &>(r.np);
+    ar &const_cast<int &>(r.nk);
+    ar &const_cast<int &>(r.nx);
+    ar &const_cast<int &>(r.nxtrue);
+    ar &const_cast<int &>(r.ny);
+    ar &const_cast<int &>(r.nytrue);
+    ar &const_cast<int &>(r.nz);
+    ar &const_cast<int &>(r.nztrue);
+    ar &const_cast<int &>(r.ne);
+    ar &const_cast<int &>(r.nJ);
+    ar &const_cast<int &>(r.nplist);
+    ar &const_cast<int &>(r.nmaxevent);
+    ar &const_cast<int &>(r.nt);
+    ar &const_cast<int &>(r.newton_maxsteps);
+    ar &const_cast<AMICI_parameter_scaling &>(r.pscale);
+    ar &const_cast<AMICI_o2mode &>(r.o2mode);
+    ar &const_cast<AMICI_sensi_order &>(r.sensi);
+    ar &const_cast<AMICI_sensi_meth &>(r.sensi_meth);
 
-    if (Archive::is_loading::value) {
-        assert(u.k == NULL);
-        ar &size;
-        if (size)
-            u.k = new double[size];
-    } else {
-        size = u.k == NULL ? 0 : u.nk;
-        ar &size;
-    }
+    archiveRawArray(ar, &r.ts, r.nt);
+    archiveRawArray(ar, &r.xdot, r.nx);
+    archiveRawArray(ar, &r.J, r.nx * r.nx);
+    archiveRawArray(ar, &r.z, r.nmaxevent * r.nz);
+    archiveRawArray(ar, &r.sigmaz, r.nmaxevent * r.nz);
+    archiveRawArray(ar, &r.sz, r.nmaxevent * r.nz * r.nplist);
+    archiveRawArray(ar, &r.ssigmaz, r.nmaxevent * r.nz * r.nplist);
+    archiveRawArray(ar, &r.rz, r.nmaxevent * r.nz);
+    archiveRawArray(ar, &r.srz, r.nmaxevent * r.nz * r.nplist);
+    archiveRawArray(ar, &r.s2rz, r.nmaxevent * r.nz * r.nplist * r.nplist);
+    archiveRawArray(ar, &r.x, r.nt * r.nx);
+    archiveRawArray(ar, &r.sx, r.nt * r.nx * r.nplist);
+    archiveRawArray(ar, &r.y, r.nt * r.ny);
+    archiveRawArray(ar, &r.sigmay, r.nt * r.ny);
+    archiveRawArray(ar, &r.sy, r.nt * r.ny * r.nplist);
+    archiveRawArray(ar, &r.ssigmay, r.nt * r.ny * r.nplist);
 
-    ar &make_array<double>(u.ts, size);
+    archiveRawArray(ar, &r.numsteps, r.nt);
+    archiveRawArray(ar, &r.numstepsB, r.nt);
+    archiveRawArray(ar, &r.numrhsevals, r.nt);
+    archiveRawArray(ar, &r.numrhsevalsB, r.nt);
+    archiveRawArray(ar, &r.numerrtestfails, r.nt);
+    archiveRawArray(ar, &r.numerrtestfailsB, r.nt);
+    archiveRawArray(ar, &r.numnonlinsolvconvfails, r.nt);
+    archiveRawArray(ar, &r.numnonlinsolvconvfailsB, r.nt);
+    archiveRawArray(ar, &r.order, r.nt);
 
-    if (Archive::is_loading::value) {
-        assert(u.ts == NULL);
-        ar &size;
-        if (size)
-            u.ts = new double[size];
-    } else {
-        size = u.ts == NULL ? 0 : u.nt;
-        ar &size;
-    }
-    ar &make_array<double>(u.ts, size);
+    archiveRawArray(ar, &r.newton_status, r.nt);
+    archiveRawArray(ar, &r.newton_time, r.nt);
+    archiveRawArray(ar, &r.newton_numsteps, r.nt);
+    archiveRawArray(ar, &r.newton_numlinsteps, r.nt);
+    archiveRawArray(ar, &r.x0, r.nx);
+    archiveRawArray(ar, &r.sx0, r.nx * r.nplist);
 
-    if (Archive::is_loading::value) {
-        assert(u.pbar == NULL);
-        ar &size;
-        if (size)
-            u.pbar = new double[size];
-    } else {
-        size = u.pbar == NULL ? 0 : u.np;
-        ar &size;
-    }
-    ar &make_array<double>(u.pbar, size);
-
-    if (Archive::is_loading::value) {
-        assert(u.xbar == NULL);
-        ar &size;
-        if (size)
-            u.xbar = new double[size];
-    } else {
-        size = u.ts == NULL ? 0 : u.nx;
-        ar &size;
-    }
-    ar &make_array<double>(u.xbar, size);
-
-    if (Archive::is_loading::value) {
-        assert(u.x0data == NULL);
-        ar &size;
-        if (size)
-            u.x0data = new double[size];
-    } else {
-        size = u.x0data == NULL ? 0 : u.nx;
-        ar &size;
-    }
-    ar &make_array<double>(u.x0data, size);
-
-    if (Archive::is_loading::value) {
-        assert(u.sx0data == NULL);
-        ar &size;
-        if (size)
-            u.sx0data = new double[size];
-    } else {
-        size = u.sx0data == NULL ? 0 : u.np * u.nx;
-        ar &size;
-    }
-    ar &make_array<double>(u.sx0data, size);
+    archiveRawArray(ar, &r.llh, 1);
+    archiveRawArray(ar, &r.chi2, 1);
+    archiveRawArray(ar, &r.sllh, r.nplist);
+    archiveRawArray(ar, &r.s2llh, r.nplist * r.nplist);
+    archiveRawArray(ar, &r.status, 1);
 }
 
 } // namespace serialization
@@ -164,6 +137,15 @@ void serialize(Archive &ar, UserData &u, const unsigned int version) {
 
 #include <boost/iostreams/device/back_inserter.hpp>
 #include <boost/iostreams/stream.hpp>
+
+
+/**
+ * @brief Serialize AMICI::UserData
+ * @param udata In: Pointer to object to serialize
+ * @param size Out: The size of the serialzed object in bytes. Can be NULL.
+ * @return The serialized object
+ */
+
 
 template <typename T>
 char *serializeToChar(const T *data, int *size) {
@@ -184,6 +166,14 @@ char *serializeToChar(const T *data, int *size) {
     return charBuffer;
 }
 
+/**
+ * @brief Deserialize AMICI::UserData that has been serialized using
+ * serializeAmiciUserData
+ * @param buffer
+ * @param size
+ * @return The deserialized object
+ */
+
 template <typename T>
 T deserializeFromChar(const char *buffer, int size) {
     boost::iostreams::basic_array_source<char> device(buffer, size);
@@ -195,5 +185,34 @@ T deserializeFromChar(const char *buffer, int size) {
 
     return data;
 }
+
+
+template <typename T>
+std::string serializeToString(T const& data) {
+    std::string serialized;
+    boost::iostreams::back_insert_device<std::string> inserter(serialized);
+    boost::iostreams::stream<
+        boost::iostreams::back_insert_device<std::string>>
+        s(inserter);
+    boost::archive::binary_oarchive oar(s);
+    oar << data;
+    s.flush();
+
+    return serialized;
+}
+
+template <typename T>
+T deserializeFromString(std::string const& serialized) {
+    boost::iostreams::basic_array_source<char> device(serialized.data(),
+                                                      serialized.size());
+    boost::iostreams::stream<boost::iostreams::basic_array_source<char>> s(
+        device);
+    boost::archive::binary_iarchive iar(s);
+    T deserialized;
+    iar >> deserialized;
+
+    return deserialized;
+}
+
 
 #endif // AMICIUSERDATASERIALIZATION_H

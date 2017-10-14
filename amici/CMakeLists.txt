@@ -1,6 +1,6 @@
 find_package(Amici)
 
-find_package(Boost COMPONENTS serialization)
+find_package(Boost COMPONENTS serialization REQUIRED)
 
 get_property(AmiciConfigIncludes TARGET Upstream::amici PROPERTY INCLUDE_DIRECTORIES)
 
