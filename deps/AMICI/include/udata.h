@@ -4,6 +4,13 @@
 
 #include <cmath>
 
+class UserData;
+namespace boost {
+namespace serialization {
+template <class Archive>
+void serialize(Archive &ar, UserData &u, const unsigned int version);
+}}
+
 /** @brief struct that stores all user provided data
  * NOTE: multidimensional arrays are expected to be stored in column-major order
  * (FORTRAN-style)
@@ -14,7 +21,7 @@ class UserData {
     /**
      * @brief UserData
      * @param np total number of model parameters
-     * @param nk number of f ixed parameters
+     * @param nk number of fixed parameters
      * @param nx number of states
      */
     UserData(int np, int nk, int nx);
@@ -49,8 +56,15 @@ class UserData {
      * @brief setPlist set parameter selection and ordering.
      * accepts array of doubles to deal with user input from matlab.
      * @param plist
+     * @param nplist length of plist
      */
     void setPlist(const double *plist, int nplist);
+    /**
+     * @brief setPlist set parameter selection and ordering.
+     * accepts array of ints.
+     * @param plist
+     * @param nplist length of plist
+     */
     void setPlist(const int *plist, int nplist);
 
     /**
@@ -189,6 +203,16 @@ class UserData {
     const int nk;
     /** number of states */
     const int nx;
+
+    /**
+     * @brief Serialize UserData (see boost::serialization::serialize)
+     * @param ar Archive to serialize to
+     * @param r Data to serialize
+     * @param version Version number
+     */
+    template <class Archive>
+    friend void boost::serialization::serialize(Archive &ar, UserData &r, const unsigned int version);
+
 };
 
 #endif /* _MY_UDATA */
