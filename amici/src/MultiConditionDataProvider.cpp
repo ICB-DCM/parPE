@@ -220,7 +220,15 @@ int MultiConditionDataProvider::
     getIndexOfFirstConditionSpecificOptimizationParameter(
         int conditionIdx) const {
     return getNumCommonParameters() +
-           conditionIdx * getNumConditionSpecificParametersPerSimulation();
+            conditionIdx * getNumConditionSpecificParametersPerSimulation();
+}
+
+void MultiConditionDataProvider::updateSimulationParameters(int conditionIndex, const double *optimizationParams, UserData *udata) const
+{
+    // copy all common parameters + conditionspecific parameters for first conditions to UserDaata
+    memcpy(udata->p, optimizationParams, sizeof(double) * getNumCommonParameters());
+
+    updateConditionSpecificSimulationParameters(conditionIndex, optimizationParams, udata);
 }
 
 void MultiConditionDataProvider::updateConditionSpecificSimulationParameters(

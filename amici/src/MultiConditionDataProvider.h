@@ -148,6 +148,10 @@ class MultiConditionDataProvider {
     virtual int getIndexOfFirstConditionSpecificOptimizationParameter(
         int conditionIdx) const;
 
+    void updateSimulationParameters(int conditionIndex, const double *optimizationParams,
+        UserData *udata) const;
+
+
     virtual void updateConditionSpecificSimulationParameters(
         int conditionIndex, const double *optimizationParams,
         UserData *udata) const;
