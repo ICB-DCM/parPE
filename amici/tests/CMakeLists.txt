@@ -13,7 +13,7 @@ set(SRC_LIST_CPP
     ../src/multiConditionProblemResultWriterTest.cpp
     ../src/multiConditionDataProviderTest.cpp
     ../src/multiConditionProblemTest.cpp
-    ../../common/src/testingMisc.c
+    ../../common/src/testingMisc.cpp
 )
 set(SHARED_OBJECT_EXTENSION .so)
 
