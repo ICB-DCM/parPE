@@ -12,7 +12,7 @@ class ExampleSteadystateProblem : public OptimizationProblem {
     ExampleSteadystateProblem();
 
     int evaluateObjectiveFunction(const double *parameters, double *objFunVal,
-                                  double *objFunGrad, double *timeInSec) override;
+                                  double *objFunGrad) override;
 
     int intermediateFunction(int alg_mod, int iter_count, double obj_value,
                              double inf_pr, double inf_du, double mu,

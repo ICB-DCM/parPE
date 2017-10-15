@@ -22,7 +22,7 @@ class OptimizationProblem {
      */
     virtual int evaluateObjectiveFunction(const double *parameters,
                                           double *objFunVal,
-                                          double *objFunGrad, double *totalTimeInSec) = 0;
+                                          double *objFunGrad) = 0;
 
     /**
      * Callback function which is called after each optimizer iteration.
@@ -39,7 +39,7 @@ class OptimizationProblem {
     logObjectiveFunctionEvaluation(const double *parameters,
                                    double objectiveFunctionValue,
                                    const double *objectiveFunctionGradient,
-                                   int numFunctionCalls, double timeElapsed);
+                                   int numFunctionCalls, double cpuTimeInSec);
 
     virtual void logOptimizerFinished(double optimalCost,
                                       const double *optimalParameters,

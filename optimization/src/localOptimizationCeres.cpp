@@ -26,7 +26,7 @@ class MyCeresFirstOrderFunction : public ceres::FirstOrderFunction {
 
         double cpuTimeInSec = 0;
         bool status =
-            problem->evaluateObjectiveFunction(parameters, cost, gradient, &cpuTimeInSec);
+            problem->evaluateObjectiveFunction(parameters, cost, gradient);
 
             problem->logObjectiveFunctionEvaluation(parameters, *cost, gradient,
                                                 numFunctionCalls, cpuTimeInSec);

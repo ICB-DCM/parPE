@@ -49,7 +49,7 @@ void optimizationProblemGradientCheck(OptimizationProblem *problem,
     problem->fillInitialParameters(theta);
 
     double *gradient = new double[problem->getNumOptimizationParameters()];
-    problem->evaluateObjectiveFunction(theta, &fc, gradient, nullptr);
+    problem->evaluateObjectiveFunction(theta, &fc, gradient);
 
     double *thetaTmp = new double[problem->getNumOptimizationParameters()];
     memcpy(thetaTmp, theta,
@@ -63,10 +63,10 @@ void optimizationProblemGradientCheck(OptimizationProblem *problem,
         double fb = 0, ff = 0; // f(theta + eps) , f(theta - eps)
 
         thetaTmp[curInd] = theta[curInd] + epsilon;
-        problem->evaluateObjectiveFunction(thetaTmp, &ff, nullptr, nullptr);
+        problem->evaluateObjectiveFunction(thetaTmp, &ff, nullptr);
 
         thetaTmp[curInd] = theta[curInd] - epsilon;
-        problem->evaluateObjectiveFunction(thetaTmp, &fb, nullptr, nullptr);
+        problem->evaluateObjectiveFunction(thetaTmp, &fb, nullptr);
 
         double fd_f = (ff - fc) / epsilon;
 
@@ -93,10 +93,9 @@ int OptimizationProblem::intermediateFunction(
     return 0;
 }
 
-void OptimizationProblem::logObjectiveFunctionEvaluation(
-    const double *parameters, double objectiveFunctionValue,
+void OptimizationProblem::logObjectiveFunctionEvaluation(const double *parameters, double objectiveFunctionValue,
     const double *objectiveFunctionGradient, int numFunctionCalls,
-    double timeElapsed) {}
+    double cpuTimeInSec) {}
 
 void OptimizationProblem::logOptimizerFinished(double optimalCost,
                                                const double *optimalParameters,

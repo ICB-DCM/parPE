@@ -50,7 +50,7 @@ void MultiConditionProblem::init() {
 }
 
 int MultiConditionProblem::evaluateObjectiveFunction(const double *optimiziationVariables, double *objectiveFunctionValue,
-    double *objectiveFunctionGradient, double *totalTimeInSec) {
+    double *objectiveFunctionGradient) {
     // run on all data
     int numDataIndices = dataProvider->getNumberOfConditions();
     int dataIndices[numDataIndices];
@@ -59,12 +59,12 @@ int MultiConditionProblem::evaluateObjectiveFunction(const double *optimiziation
 
     return evaluateObjectiveFunction(
         optimiziationVariables, objectiveFunctionValue,
-        objectiveFunctionGradient, dataIndices, numDataIndices, totalTimeInSec);
+        objectiveFunctionGradient, dataIndices, numDataIndices);
 }
 
 int MultiConditionProblem::evaluateObjectiveFunction(
     const double *optimiziationVariables, double *objectiveFunctionValue,
-    double *objectiveFunctionGradient, int *dataIndices, int numDataIndices, double *totalTimeInSec) {
+    double *objectiveFunctionGradient, int *dataIndices, int numDataIndices) {
 #ifdef NO_OBJ_FUN_EVAL
     if (objectiveFunctionGradient)
         for (int i = 0; i < numOptimizationParameters; ++i)
@@ -82,7 +82,7 @@ int MultiConditionProblem::evaluateObjectiveFunction(
 
     int errors =
         runSimulations(optimiziationVariables, objectiveFunctionValue,
-                       objectiveFunctionGradient, totalTimeInSec,
+                       objectiveFunctionGradient,
                        dataIndices, numDataIndices);
 
     if (errors) {
@@ -124,7 +124,7 @@ int MultiConditionProblem::intermediateFunction(
         ((MultiConditionProblemResultWriter *)resultWriter)->setJobId(path);
         resultWriter->logLocalOptimizerIteration(
             iter_count, lastOptimizationParameters, numOptimizationParameters,
-            obj_value, lastObjectiveFunctionGradient, duration, alg_mod, inf_pr,
+            obj_value, lastObjectiveFunctionGradient, simulationTimeInS, alg_mod, inf_pr,
             inf_du, mu, d_norm, regularization_size, alpha_du, alpha_pr,
             ls_trials);
     }
@@ -288,7 +288,6 @@ void MultiConditionProblem::updateUserDataCommon(
 int MultiConditionProblem::runSimulations(const double *optimizationVariables,
                                           double *logLikelihood,
                                           double *objectiveFunctionGradient,
-                                          double *timeInSec,
                                           int *dataIndices,
                                           int numDataIndices) {
 
@@ -309,7 +308,7 @@ int MultiConditionProblem::runSimulations(const double *optimizationVariables,
         },
         [&](JobData *jobs, int numJobsTotal) {
             return aggregateLikelihood(jobs, logLikelihood,
-                                       objectiveFunctionGradient, timeInSec,
+                                       objectiveFunctionGradient,
                                        dataIndices,
                                        numDataIndices);
         });
@@ -334,7 +333,7 @@ int MultiConditionProblem::runSimulations(const double *optimizationVariables,
 }
 
 int MultiConditionProblem::aggregateLikelihood(
-    JobData *data, double *logLikelihood, double *objectiveFunctionGradient, double *timeInSec,
+    JobData *data, double *logLikelihood, double *objectiveFunctionGradient,
     int *dataIndices, int numDataIndices) {
     int errors = 0;
 
@@ -351,8 +350,7 @@ int MultiConditionProblem::aggregateLikelihood(
         errors += result.status;
         // sum up
         *logLikelihood -= *result.rdata->llh;
-        if(timeInSec)
-            *timeInSec += result.simulationTimeInSec;
+            simulationTimeInS += result.simulationTimeInSec;
 
         if (objectiveFunctionGradient)
             addSimulationGradientToObjectiveFunctionGradient(

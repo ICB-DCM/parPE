@@ -15,7 +15,7 @@ class QuadraticTestProblem : public OptimizationProblem {
      */
 
     int evaluateObjectiveFunction(const double *parameters, double *objFunVal,
-                                  double *objFunGrad, double *timeInSec) override;
+                                  double *objFunGrad) override;
 
     void logOptimizerFinished(double optimalCost,
                               const double *optimalParameters,

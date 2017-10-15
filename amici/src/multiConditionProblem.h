@@ -35,12 +35,12 @@ class MultiConditionProblem : public OptimizationProblem,
     virtual int
     evaluateObjectiveFunction(const double *optimiziationVariables,
                               double *objectiveFunctionValue,
-                              double *objectiveFunctionGradient, double *totalTimeInSec) override;
+                              double *objectiveFunctionGradient) override;
 
     virtual int evaluateObjectiveFunction(const double *optimiziationVariables,
                                           double *objectiveFunctionValue,
                                           double *objectiveFunctionGradient,
-                                          int *dataIndices, int numDataIndices, double *totalTimeInSec);
+                                          int *dataIndices, int numDataIndices);
 
     /**
      * @brief This function is called after each iteration. See IpOpt for
@@ -149,7 +149,7 @@ class MultiConditionProblem : public OptimizationProblem,
      */
     virtual int runSimulations(const double *optimizationVariables,
                                double *logLikelihood,
-                               double *objectiveFunctionGradient, double *timeInSec,
+                               double *objectiveFunctionGradient,
                                int *dataIndices, int numDataIndices);
 
     /**
@@ -163,7 +163,7 @@ class MultiConditionProblem : public OptimizationProblem,
      */
 
     int aggregateLikelihood(JobData *data, double *logLikelihood,
-                            double *objectiveFunctionGradient, double *timeInSec, int *dataIndices,
+                            double *objectiveFunctionGradient, int *dataIndices,
                             int numDataIndices);
 
     void printObjectiveFunctionFailureMessage();
@@ -215,6 +215,9 @@ class MultiConditionProblem : public OptimizationProblem,
     double *lastOptimizationParameters = nullptr;
     double *lastObjectiveFunctionGradient = nullptr;
     double lastObjectiveFunctionValue = NAN;
+
+    /** Time that was spent inside AMICI simulations since creating this object or last reset  */
+    double simulationTimeInS = 0.0;
 };
 
 /**

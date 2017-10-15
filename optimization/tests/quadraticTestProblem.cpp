@@ -24,7 +24,7 @@ QuadraticTestProblem::QuadraticTestProblem() {
 
 int QuadraticTestProblem::evaluateObjectiveFunction(const double *parameters,
                                                     double *objFunVal,
-                                                    double *objFunGrad, double *timeInSec) {
+                                                    double *objFunGrad) {
     if (objFunGrad) {
         mock().actualCall("testObjGrad");
 

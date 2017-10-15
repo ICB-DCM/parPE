@@ -73,11 +73,10 @@ bool LocalOptimizationIpoptTNLP::eval_f(Index n, const Number *x, bool new_x,
 
     int errors = 0;
 
-    double cpuTimeInSec = 0;
-//    clock_t timeBegin = clock();
+    clock_t timeBegin = clock();
 
     if (new_x || !lastCostP) {
-        errors = problem->evaluateObjectiveFunction(x, &obj_value, NULL, &cpuTimeInSec);
+        errors = problem->evaluateObjectiveFunction(x, &obj_value, NULL);
         if (lastGradient) // invalidate
             delete[] lastGradient;
         lastGradient = NULL;
@@ -89,12 +88,11 @@ bool LocalOptimizationIpoptTNLP::eval_f(Index n, const Number *x, bool new_x,
         obj_value = lastCost;
     }
 
-//    clock_t timeEnd = clock();
-    //double wallTime = (double)(timeEnd - timeBegin) / CLOCKS_PER_SEC;
-    // TODO: log wallTime as well
+    clock_t timeEnd = clock();
+    double wallTime = (double)(timeEnd - timeBegin) / CLOCKS_PER_SEC;
 
     problem->logObjectiveFunctionEvaluation(x, obj_value, NULL,
-                                            numFunctionCalls, cpuTimeInSec);
+                                            numFunctionCalls, wallTime);
 
     pthread_mutex_lock(ipoptMutex);
 
@@ -112,11 +110,10 @@ bool LocalOptimizationIpoptTNLP::eval_grad_f(Index n, const Number *x,
 
     int errors = 0;
 
-    double cpuTimeInSec = 0;
-//    clock_t timeBegin = clock();
+    clock_t timeBegin = clock();
 
     if (new_x || !lastCostP || !lastGradient) {
-        errors = problem->evaluateObjectiveFunction(x, &lastCost, grad_f, &cpuTimeInSec);
+        errors = problem->evaluateObjectiveFunction(x, &lastCost, grad_f);
 
         if (!lastGradient)
             lastGradient = new Number[problem->getNumOptimizationParameters()];
@@ -128,11 +125,11 @@ bool LocalOptimizationIpoptTNLP::eval_grad_f(Index n, const Number *x,
         errors = lastErrors;
     }
 
-//    clock_t timeEnd = clock();
-//    double timeElapsed = (double)(timeEnd - timeBegin) / CLOCKS_PER_SEC;
+    clock_t timeEnd = clock();
+    double timeElapsed = (double)(timeEnd - timeBegin) / CLOCKS_PER_SEC;
 
     problem->logObjectiveFunctionEvaluation(x, lastCost, grad_f,
-                                            numFunctionCalls, cpuTimeInSec);
+                                            numFunctionCalls, timeElapsed);
 
     pthread_mutex_lock(ipoptMutex);
 
