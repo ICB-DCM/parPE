@@ -52,4 +52,8 @@ EXTERNC void fillArrayRandomDoubleIndividualInterval(const double *min,
 
 EXTERNC void fillArrayRandomDoubleSameInterval(double min, double max,
                                                int length, double *buffer);
+
+EXTERNC int getMpiRank();
+EXTERNC int getMpiCommSize();
+
 #endif

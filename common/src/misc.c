@@ -13,6 +13,7 @@
 #include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
+#include <mpi.h>
 
 // void printMatlabArray(const double *buffer, int len)
 //{
@@ -131,4 +132,31 @@ void fillArrayRandomDoubleSameInterval(double min, double max, int length,
                                        double *buffer) {
     for (int i = 0; i < length; ++i)
         buffer[i] = randDouble(min, max);
+}
+
+
+int getMpiRank() {
+    int mpiRank = -1;
+
+    int mpiInitialized = 0;
+    MPI_Initialized(&mpiInitialized);
+
+    if (mpiInitialized) {
+        MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
+    }
+
+    return mpiRank;
+}
+
+int getMpiCommSize() {
+    int mpiCommSize = -1;
+
+    int mpiInitialized = 0;
+    MPI_Initialized(&mpiInitialized);
+
+    if (mpiInitialized) {
+        MPI_Comm_size(MPI_COMM_WORLD, &mpiCommSize);
+    }
+
+    return mpiCommSize;
 }

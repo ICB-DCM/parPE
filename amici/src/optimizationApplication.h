@@ -71,10 +71,6 @@ class OptimizationApplication {
 
     bool isWorker();
 
-    static int getMpiRank();
-
-    static int getMpiCommSize();
-
   protected:
     /**
      * @brief Initialize MPI
@@ -92,6 +88,8 @@ class OptimizationApplication {
      * @return
      */
     virtual int parseOptions(int argc, char **argv);
+
+    void printUsage(char* const argZero);
 
     // command line option parsing
     const char *shortOptions = "dhvt:o:";

@@ -54,15 +54,7 @@ int OptimizationApplication::parseOptions(int argc, char **argv) {
             printf("Version: %s\n", GIT_VERSION);
             return 1;
         case 'h':
-            printf("Usage: %s [OPTION]... FILE\n", argv[0]);
-            printf("FILE: HDF5 data file");
-            printf("Options: \n"
-                   "  -o, --outfile-prefix Prefix for result files (path + "
-                   "filename)\n"
-                   "  -t, --task    What to do? Parameter estimation (default) "
-                   "or check gradient ('gradient_check')\n"
-                   "  -h, --help    Print this help text\n"
-                   "  -v, --version Print version info\n");
+            printUsage(argv[0]);
             return 1;
         default:
             printf("Unrecognized option: %c\n", c);
@@ -79,6 +71,19 @@ int OptimizationApplication::parseOptions(int argc, char **argv) {
     }
 
     return 0;
+}
+
+void OptimizationApplication::printUsage(char * const argZero)
+{
+    printf("Usage: %s [OPTION]... FILE\n", argZero);
+    printf("FILE: HDF5 data file");
+    printf("Options: \n"
+           "  -o, --outfile-prefix Prefix for result files (path + "
+           "filename)\n"
+           "  -t, --task    What to do? Parameter estimation (default) "
+           "or check gradient ('gradient_check')\n"
+           "  -h, --help    Print this help text\n"
+           "  -v, --version Print version info\n");
 }
 
 void OptimizationApplication::initMPI(int *argc, char ***argv) {
@@ -202,8 +207,7 @@ void OptimizationApplication::finalizeTiming(clock_t begin) {
     MPI_Reduce(&wallTimeSeconds, &totalTimeInSeconds, 1, MPI_DOUBLE, MPI_SUM, 0,
                MPI_COMM_WORLD);
 
-    int mpiRank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
+    int mpiRank = getMpiRank();
 
     if (mpiRank == 0) {
         logmessage(LOGLVL_INFO, "Walltime: %fs, total compute time:%fs",
@@ -253,30 +257,4 @@ OptimizationApplication::~OptimizationApplication() {
     destroyHDF5Mutex();
 
     MPI_Finalize();
-}
-
-int OptimizationApplication::getMpiRank() {
-    int mpiRank = -1;
-
-    int mpiInitialized = 0;
-    MPI_Initialized(&mpiInitialized);
-
-    if (mpiInitialized) {
-        MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
-    }
-
-    return mpiRank;
-}
-
-int OptimizationApplication::getMpiCommSize() {
-    int mpiCommSize = -1;
-
-    int mpiInitialized = 0;
-    MPI_Initialized(&mpiInitialized);
-
-    if (mpiInitialized) {
-        MPI_Comm_size(MPI_COMM_WORLD, &mpiCommSize);
-    }
-
-    return mpiCommSize;
 }
