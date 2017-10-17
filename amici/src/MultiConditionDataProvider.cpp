@@ -127,11 +127,12 @@ ExpData *MultiConditionDataProvider::getExperimentalDataForCondition(
     ExpData *edata = new ExpData(udata, model);
     assert(edata && "Failed getting experimental data. Check data file.");
 
-    hdf5Read2DDoubleHyperslab(fileId, hdf5MeasurementPath.c_str(), model->ny, 1,
-                              0, conditionIdx, edata->my);
-    hdf5Read2DDoubleHyperslab(fileId, hdf5MeasurementSigmaPath.c_str(),
-                              model->ny, 1, 0, conditionIdx, edata->sigmay);
-
+    hdf5Read3DDoubleHyperslab(fileId, hdf5MeasurementPath.c_str(),
+                              edata->nt, edata->nytrue, 1,
+                              0, 0, conditionIdx, edata->my);
+    hdf5Read3DDoubleHyperslab(fileId, hdf5MeasurementSigmaPath.c_str(),
+                              edata->nt, edata->nytrue, 1,
+                              0, 0, conditionIdx, edata->sigmay);
     hdf5UnlockMutex();
 
     return edata;
