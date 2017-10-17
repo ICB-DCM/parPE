@@ -203,8 +203,6 @@ UserData *MultiConditionDataProvider::getUserData() const {
         delete[] udata->x0data;
     udata->x0data = new double[model->nx]();
 
-    udata->pscale = AMICI_SCALING_LOG10;
-
     return (udata);
 }
 
