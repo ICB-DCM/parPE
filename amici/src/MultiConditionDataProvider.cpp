@@ -61,15 +61,15 @@ int MultiConditionDataProvider::getNumberOfConditions() const {
     hid_t dset = H5Dopen(fileId, hdf5MeasurementPath.c_str(), H5P_DEFAULT);
     hid_t dspace = H5Dget_space(dset);
     const int ndims = H5Sget_simple_extent_ndims(dspace);
-    assert(ndims == 2); // nObservables * nConditions (TODO *nt)
+    assert(ndims == 3); // nt * nObservables * nConditions
     hsize_t dims[ndims];
     H5Sget_simple_extent_dims(dspace, dims, NULL);
 
     hdf5UnlockMutex();
 
-    assert(dims[1] >= 0);
+    assert(dims[2] >= 0);
 
-    return dims[1];
+    return dims[2];
 }
 
 int MultiConditionDataProvider::getNumConditionSpecificParametersPerSimulation()
