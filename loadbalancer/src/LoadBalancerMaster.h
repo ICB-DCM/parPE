@@ -71,6 +71,8 @@ class LoadBalancerMaster {
 
     void sendTerminationSignalToAllWorkers();
 
+    bool isRunning() const;
+
   protected:
     /**
      * @brief Thread entry point. This is run from run()
@@ -108,7 +110,7 @@ class LoadBalancerMaster {
      */
     int handleReply(MPI_Status *mpiStatus);
 
-    bool isRunning = false;
+    bool isRunning_ = false;
 
     int numWorkers = 0;
 

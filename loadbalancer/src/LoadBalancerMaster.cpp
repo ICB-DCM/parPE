@@ -4,7 +4,7 @@
 #include <climits>
 
 void LoadBalancerMaster::run() {
-    if (isRunning)
+    if (isRunning_)
         return;
 
     assertMPIInitialized();
@@ -31,7 +31,7 @@ void LoadBalancerMaster::run() {
     sem_init(&semQueue, 0, queueMaxLength);
     pthread_create(&queueThread, NULL, threadEntryPoint, this);
 
-    isRunning = true;
+    isRunning_ = true;
 }
 
 LoadBalancerMaster::~LoadBalancerMaster()
@@ -180,7 +180,7 @@ void LoadBalancerMaster::sendToWorker(int workerIdx, JobData *data) {
 }
 
 void LoadBalancerMaster::queueJob(JobData *data) {
-    assert(isRunning);
+    assert(isRunning_);
 
     sem_wait(&semQueue);
 
@@ -197,7 +197,7 @@ void LoadBalancerMaster::queueJob(JobData *data) {
 }
 
 void LoadBalancerMaster::terminate() {
-    if (!isRunning)
+    if (!isRunning_)
         return;
 
     pthread_cancel(queueThread);
@@ -214,7 +214,7 @@ void LoadBalancerMaster::terminate() {
     if (workerIsBusy)
         delete[] workerIsBusy;
 
-    isRunning = false;
+    isRunning_ = false;
 }
 
 int LoadBalancerMaster::handleReply(MPI_Status *mpiStatus) {
@@ -263,4 +263,9 @@ void LoadBalancerMaster::sendTerminationSignalToAllWorkers() {
         MPI_Isend(MPI_BOTTOM, 0, MPI_INT, i, 0, MPI_COMM_WORLD, &reqs[i - 1]);
     }
     MPI_Waitall(commSize - 1, reqs, MPI_STATUS_IGNORE);
+}
+
+bool LoadBalancerMaster::isRunning() const
+{
+    return isRunning_;
 }

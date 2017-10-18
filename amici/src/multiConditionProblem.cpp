@@ -315,7 +315,7 @@ int MultiConditionProblem::runSimulations(const double *optimizationVariables,
 
     int errors;
 
-    if (loadBalancer) {
+    if (loadBalancer && loadBalancer->isRunning()) {
         errors = simRunner.run(
             numDataIndices,
             JobAmiciSimulation::getLength(model->np, sizeof(JobIdentifier)),
