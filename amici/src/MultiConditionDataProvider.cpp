@@ -67,9 +67,9 @@ int MultiConditionDataProvider::getNumberOfConditions() const {
 
     hdf5UnlockMutex();
 
-    assert(dims[2] >= 0);
+    assert(dims[0] >= 0);
 
-    return dims[2];
+    return dims[0];
 }
 
 int MultiConditionDataProvider::getNumConditionSpecificParametersPerSimulation()
