@@ -34,7 +34,7 @@ class SteadystateApplication : public OptimizationApplication {
         problem =
             new SteadyStateMultiConditionProblem(dataProvider.get(), &loadBalancer);
 
-        JobIdentifier id = {0};
+        JobIdentifier id;
         resultWriter =
             new MultiConditionProblemResultWriter(outFileArgument, true, id);
         problem->resultWriter = resultWriter;

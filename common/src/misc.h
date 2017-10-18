@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <memory>
 
+namespace parPE {
 // void printMatlabArray(const double *buffer, int len);
 
 /**
@@ -49,6 +50,12 @@ void fillArrayRandomDoubleSameInterval(double min, double max,
 
 int getMpiRank();
 int getMpiCommSize();
+
+
+} // namespace parPE
+
+//TODO remove as soon as everthing is namespaced
+using namespace parPE;
 
 #if __cplusplus < 201402L
 // custom make_unique while we are still using c++11

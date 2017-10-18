@@ -12,19 +12,19 @@ class Model;
   */
 struct JobIdentifier {
     /** current multistart batch (e.g. for crossvalidation) */
-    int idxMultiStart;
+    int idxMultiStart = 0;
 
     /** current start index in multistart run */
-    int idxLocalOptimization;
+    int idxLocalOptimization = 0;
 
     /** iteration of local solver or epoch for minibatch */
-    int idxLocalOptimizationIteration;
+    int idxLocalOptimizationIteration = 0;
 
     // TODO int idxMiniBatch           /** current minibatch index */
 
     /** condition index (current data record) */
     // TODO Only this one is used for the moment
-    int idxConditions;
+    int idxConditions = 0;
 
     void print();
 

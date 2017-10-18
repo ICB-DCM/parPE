@@ -117,7 +117,7 @@ class MultiConditionProblem : public OptimizationProblem,
 
     ~MultiConditionProblem();
 
-    JobIdentifier path = {0};
+    JobIdentifier path;
 
     /**
      * @brief Callback function for loadbalancer

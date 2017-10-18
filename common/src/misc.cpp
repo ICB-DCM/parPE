@@ -23,6 +23,9 @@
 //    fflush(stdout);
 //}
 
+namespace parPE {
+
+
 bool fileExists(const char *name) {
     struct stat buffer;
     return (stat(name, &buffer) == 0);
@@ -160,3 +163,5 @@ int getMpiCommSize() {
 
     return mpiCommSize;
 }
+
+} // namespace parPE
