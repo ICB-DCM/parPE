@@ -113,7 +113,7 @@ class MultiConditionProblem : public OptimizationProblem,
                                     int jobId);
 
     MultiConditionDataProvider *getDataProvider();
-    virtual double *getInitialParameters(int multiStartIndex) const;
+    virtual double const*getInitialParameters(int multiStartIndex) const override;
 
     ~MultiConditionProblem();
 
@@ -133,7 +133,6 @@ class MultiConditionProblem : public OptimizationProblem,
     MultiConditionProblemResultWriter *resultWriter = nullptr;
 
   protected:
-    void init();
 
     void updateUserDataCommon(const double *simulationParameters,
                               const double *objectiveFunctionGradient);
@@ -212,8 +211,8 @@ class MultiConditionProblem : public OptimizationProblem,
 
     // keep track of previous results to avoid re-evaluation at the same
     // parameters (using IpOpt new_x)
-    double *lastOptimizationParameters = nullptr;
-    double *lastObjectiveFunctionGradient = nullptr;
+    std::vector<double> lastOptimizationParameters;
+    std::vector<double> lastObjectiveFunctionGradient;
     double lastObjectiveFunctionValue = NAN;
 
     /** Time that was spent inside AMICI simulations since creating this object or last reset  */

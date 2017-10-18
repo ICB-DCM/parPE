@@ -23,9 +23,6 @@ class SteadyStateMultiConditionDataProvider
     int updateFixedSimulationParameters(int conditionIdx,
                                         UserData *udata) const override;
 
-    ExpData *
-    getExperimentalDataForCondition(int conditionIdx,
-                                    const UserData *udata) const override;
 
     void setupUserData(UserData *udata) const;
 

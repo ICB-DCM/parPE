@@ -17,16 +17,10 @@ ExampleSteadystateProblem::ExampleSteadystateProblem() {
     setupUserData(0);
     setupExpData(0);
 
-    numOptimizationParameters = model->np;
-
-    initialParameters = new double[numOptimizationParameters];
-    fillArray(initialParameters, model->np, 0);
-
-    parametersMin = new double[numOptimizationParameters];
-    fillArray(parametersMin, model->np, -5);
-
-    parametersMax = new double[numOptimizationParameters];
-    fillArray(parametersMax, model->np, 5);
+    setNumOptimizationParameters(model->np);
+    fillArray(initialParameters_.data(), model->np, 0);
+    fillArray(parametersMin_.data(), model->np, -5);
+    fillArray(parametersMax_.data(), model->np, 5);
 
     optimizationOptions = new OptimizationOptions();
     optimizationOptions->optimizer = OPTIMIZER_IPOPT;
@@ -90,9 +84,6 @@ void ExampleSteadystateProblem::logOptimizerFinished(
 
 ExampleSteadystateProblem::~ExampleSteadystateProblem() {
     H5Fclose(fileId);
-    delete[] initialParameters;
-    delete[] parametersMin;
-    delete[] parametersMax;
     delete udata;
     delete edata;
     if (model)

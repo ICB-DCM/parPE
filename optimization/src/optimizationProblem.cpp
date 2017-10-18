@@ -8,6 +8,8 @@
 #include <cstdlib>
 #include <cstring>
 #include <optimizer.h>
+#include <iostream>
+#include <cassert>
 /**
  * @brief getLocalOptimum
  * @param problem
@@ -86,6 +88,15 @@ void optimizationProblemGradientCheck(OptimizationProblem *problem,
     delete[] thetaTmp;
 }
 
+OptimizationProblem::OptimizationProblem(int numOptimizationParameters)
+    : numOptimizationParameters_(numOptimizationParameters),
+      parametersMin_(numOptimizationParameters),
+      parametersMax_(numOptimizationParameters),
+      initialParameters_(numOptimizationParameters)
+{
+
+}
+
 int OptimizationProblem::intermediateFunction(
     int alg_mod, int iter_count, double obj_value, double inf_pr, double inf_du,
     double mu, double d_norm, double regularization_size, double alpha_du,
@@ -104,31 +115,41 @@ void OptimizationProblem::logOptimizerFinished(double optimalCost,
 
 OptimizationProblem::~OptimizationProblem() {}
 
-double *OptimizationProblem::getInitialParameters(int multiStartIndex) const {
+double const* OptimizationProblem::getInitialParameters(int multiStartIndex) const {
     double *buf = new double[getNumOptimizationParameters()];
     fillInitialParameters(buf);
     return buf;
 }
 
-double *OptimizationProblem::getInitialParameters() const {
-    return initialParameters;
+double const* OptimizationProblem::getInitialParameters() const {
+    return initialParameters_.data();
 }
 
-void OptimizationProblem::setInitialParameters(double *initialParameters) {
-    // TODO should copy
-    this->initialParameters = initialParameters;
+void OptimizationProblem::setInitialParameters(double const *initialParameters) {
+    if(initialParameters == nullptr)
+        return;
+    initialParameters_.resize(numOptimizationParameters_);
+    std::copy(initialParameters, initialParameters + numOptimizationParameters_, initialParameters_.begin());
 }
 
 int OptimizationProblem::getNumOptimizationParameters() const {
-    return numOptimizationParameters;
+    return numOptimizationParameters_;
 }
 
 const double *OptimizationProblem::getParametersMin() const {
-    return parametersMin;
+    return parametersMin_.data();
 }
 
 const double *OptimizationProblem::getParametersMax() const {
-    return parametersMax;
+    return parametersMax_.data();
+}
+
+void OptimizationProblem::setNumOptimizationParameters(int n)
+{
+    numOptimizationParameters_ = n;
+    parametersMin_.resize(numOptimizationParameters_);
+    parametersMax_.resize(numOptimizationParameters_);
+    initialParameters_.resize(numOptimizationParameters_);
 }
 
 void OptimizationProblem::fillInitialParameters(double *buffer) const {

@@ -80,7 +80,7 @@ ceres::GradientProblemSolver::Options getCeresOptions(
 int OptimizerCeres::optimize(OptimizationProblem *problem) {
     std::vector<double> parameters(problem->getNumOptimizationParameters());
 
-    double *startingPoint = problem->getInitialParameters();
+    const double *startingPoint = problem->getInitialParameters();
     if (startingPoint) {
         // copy, because will be update each iteration
         memcpy(parameters.data(), startingPoint,

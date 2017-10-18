@@ -69,7 +69,7 @@ int SteadystateProblemParallel::evaluateParallel(const double *parameters,
     // aggregate likelihood
     *objFunVal = 0;
     if (objFunGrad)
-        fillArray(objFunGrad, numOptimizationParameters, 0.0);
+        fillArray(objFunGrad, numOptimizationParameters_, 0.0);
 
     for (int i = 0; i < numConditions; ++i) {
         double *buffer = (double *)(jobdata[i].recvBuffer);
@@ -98,7 +98,7 @@ int SteadystateProblemParallel::evaluateSerial(const double *parameters,
     if (objFunGrad) {
         udata->sensi = AMICI_SENSI_ORDER_FIRST;
         udata->sensi_meth = AMICI_SENSI_FSA;
-        fillArray(objFunGrad, numOptimizationParameters, 0.0);
+        fillArray(objFunGrad, numOptimizationParameters_, 0.0);
     } else {
         udata->sensi = AMICI_SENSI_ORDER_NONE;
         udata->sensi_meth = AMICI_SENSI_NONE;

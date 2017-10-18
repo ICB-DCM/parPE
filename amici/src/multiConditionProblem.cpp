@@ -26,28 +26,22 @@ MultiConditionProblem::MultiConditionProblem(
 
 MultiConditionProblem::MultiConditionProblem(
     MultiConditionDataProvider *dataProvider, LoadBalancerMaster *loadBalancer)
-    : dataProvider(dataProvider), loadBalancer(loadBalancer),
+    : OptimizationProblem(dataProvider?dataProvider->getNumOptimizationParameters():0),
+      dataProvider(dataProvider), loadBalancer(loadBalancer),
       model(dataProvider->getModel()),
       udata(dataProvider->getUserDataForCondition(0)) {
 
     if (udata == NULL)
         abort();
 
-    init();
+    dataProvider->getOptimizationParametersLowerBounds(parametersMin_.data());
+    dataProvider->getOptimizationParametersUpperBounds(parametersMax_.data());
+
+    lastOptimizationParameters.resize(numOptimizationParameters_);
+    lastObjectiveFunctionGradient.resize(numOptimizationParameters_);
+
 }
 
-void MultiConditionProblem::init() {
-    numOptimizationParameters = dataProvider->getNumOptimizationParameters();
-
-    parametersMin = new double[numOptimizationParameters];
-    dataProvider->getOptimizationParametersLowerBounds(parametersMin);
-
-    parametersMax = new double[numOptimizationParameters];
-    dataProvider->getOptimizationParametersUpperBounds(parametersMax);
-
-    lastOptimizationParameters = new double[numOptimizationParameters];
-    lastObjectiveFunctionGradient = new double[numOptimizationParameters];
-}
 
 int MultiConditionProblem::evaluateObjectiveFunction(const double *optimiziationVariables, double *objectiveFunctionValue,
     double *objectiveFunctionGradient) {
@@ -78,7 +72,7 @@ int MultiConditionProblem::evaluateObjectiveFunction(
     *objectiveFunctionValue = 0;
 
     if (objectiveFunctionGradient)
-        zeros(objectiveFunctionGradient, numOptimizationParameters);
+        zeros(objectiveFunctionGradient, numOptimizationParameters_);
 
     int errors =
         runSimulations(optimiziationVariables, objectiveFunctionValue,
@@ -123,8 +117,8 @@ int MultiConditionProblem::intermediateFunction(
     if (resultWriter) {
         ((MultiConditionProblemResultWriter *)resultWriter)->setJobId(path);
         resultWriter->logLocalOptimizerIteration(
-            iter_count, lastOptimizationParameters, numOptimizationParameters,
-            obj_value, lastObjectiveFunctionGradient, simulationTimeInS, alg_mod, inf_pr,
+            iter_count, lastOptimizationParameters.data(), numOptimizationParameters_,
+            obj_value, lastObjectiveFunctionGradient.data(), simulationTimeInS, alg_mod, inf_pr,
             inf_du, mu, d_norm, regularization_size, alpha_du, alpha_pr,
             ls_trials);
     }
@@ -143,7 +137,7 @@ void MultiConditionProblem::logObjectiveFunctionEvaluation(
     double timeElapsed) {
     if (resultWriter)
         resultWriter->logLocalOptimizerObjectiveFunctionEvaluation(
-            parameters, numOptimizationParameters, objectiveFunctionValue,
+            parameters, numOptimizationParameters_, objectiveFunctionValue,
             objectiveFunctionGradient, numFunctionCalls, timeElapsed);
 }
 
@@ -158,7 +152,7 @@ void MultiConditionProblem::logOptimizerFinished(
 
     if (resultWriter)
         resultWriter->saveLocalOptimizerResults(optimalCost, optimalParameters,
-                                                numOptimizationParameters,
+                                                numOptimizationParameters_,
                                                 masterTime, exitStatus);
 }
 
@@ -226,11 +220,6 @@ JobResultAmiciSimulation MultiConditionProblem::runAndLogSimulation(UserData *ud
 
 MultiConditionProblem::~MultiConditionProblem() {
     delete udata;
-
-    delete[] parametersMax;
-    delete[] parametersMin;
-    delete[] lastObjectiveFunctionGradient;
-    delete[] lastOptimizationParameters;
 }
 
 void MultiConditionProblem::messageHandler(char **buffer, int *msgSize,
@@ -269,7 +258,7 @@ double MultiConditionProblem::getTime() const {
     // return MPI_Wtime();
 }
 
-double *MultiConditionProblem::getInitialParameters(int multiStartIndex) const {
+const double *MultiConditionProblem::getInitialParameters(int multiStartIndex) const {
     return OptimizationOptions::getStartingPoint(dataProvider->getHdf5FileId(),
                                                  multiStartIndex);
 }
@@ -414,11 +403,9 @@ void MultiConditionProblem::storeCurrentFunctionEvaluation(
     const double *optimizationParameters, double objectiveFunctionValue,
     const double *objectiveFunctionGradient) {
     lastObjectiveFunctionValue = objectiveFunctionValue;
-    memcpy(lastOptimizationParameters, optimizationParameters,
-           sizeof(double) * numOptimizationParameters);
+    std::copy(optimizationParameters, optimizationParameters + numOptimizationParameters_, lastOptimizationParameters.begin());
     if (objectiveFunctionGradient)
-        memcpy(lastObjectiveFunctionGradient, objectiveFunctionGradient,
-               sizeof(double) * numOptimizationParameters);
+        std::copy(objectiveFunctionGradient, objectiveFunctionGradient + numOptimizationParameters_, lastObjectiveFunctionGradient.begin());
 }
 
 MultiConditionDataProvider *MultiConditionProblem::getDataProvider() {

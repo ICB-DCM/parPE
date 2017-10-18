@@ -7,19 +7,14 @@
 #include <math.h>
 #include <stdio.h>
 
-QuadraticTestProblem::QuadraticTestProblem() {
-    numOptimizationParameters = 1;
-    initialParameters = new double[numOptimizationParameters]();
-    parametersMin = new double[numOptimizationParameters]();
-    parametersMax = new double[numOptimizationParameters]();
-
+QuadraticTestProblem::QuadraticTestProblem() : OptimizationProblem(1) {
     optimizationOptions = new OptimizationOptions();
     optimizationOptions->maxOptimizerIterations = 12;
 
     optimizationOptions->optimizer = OPTIMIZER_IPOPT;
 
-    parametersMin[0] = -1e5;
-    parametersMax[0] = 1e5;
+    parametersMin_[0] = -1e5;
+    parametersMax_[0] = 1e5;
 }
 
 int QuadraticTestProblem::evaluateObjectiveFunction(const double *parameters,
@@ -57,9 +52,6 @@ void QuadraticTestProblem::logOptimizerFinished(double optimalCost,
 }
 
 QuadraticTestProblem::~QuadraticTestProblem() {
-    delete[] initialParameters;
-    delete[] parametersMin;
-    delete[] parametersMax;
     delete optimizationOptions;
 }
 

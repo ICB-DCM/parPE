@@ -9,7 +9,11 @@ SteadyStateMultiConditionDataProvider::SteadyStateMultiConditionDataProvider(
     Model *model, std::string hdf5Filename)
     : MultiConditionDataProvider(model, hdf5Filename) {
 
-    hdf5MeasurementPath = "/data/ytrue";
+    // hdf5MeasurementPath = "/data/ytrue";
+
+    hdf5MeasurementPath = "/data/ymeasured";
+    hdf5MeasurementSigmaPath = "/data/sigmay";
+
     udata = getUserData();
 }
 
@@ -20,19 +24,6 @@ int SteadyStateMultiConditionDataProvider::updateFixedSimulationParameters(
     return 0;
 }
 
-ExpData *SteadyStateMultiConditionDataProvider::getExperimentalDataForCondition(
-    int conditionIdx, const UserData *udata) const {
-    ExpData *edata = new ExpData(udata, model);
-
-    hdf5Read3DDoubleHyperslab(fileId, "/data/ymeasured", 1, model->ny,
-                              udata->nt, conditionIdx, 0, 0, edata->my);
-
-    double ysigma = NAN;
-    AMI_HDF5_getDoubleScalarAttribute(fileId, "data", "sigmay", &ysigma);
-    fillArray(edata->sigmay, model->nytrue * udata->nt, ysigma);
-
-    return edata;
-}
 
 void SteadyStateMultiConditionDataProvider::setupUserData(
     UserData *udata) const {
@@ -73,18 +64,10 @@ SteadyStateMultiConditionProblem::SteadyStateMultiConditionProblem(
     SteadyStateMultiConditionDataProvider *dp, LoadBalancerMaster *loadBalancer)
     : MultiConditionProblem(dp, loadBalancer) {
 
-    numOptimizationParameters = model->np;
+    std::fill(initialParameters_.begin(), initialParameters_.end(), 0);
+    std::fill(parametersMin_.begin(), parametersMin_.end(), -5);
+    std::fill(parametersMax_.begin(), parametersMax_.end(), 5);
 
-    initialParameters = new double[numOptimizationParameters];
-    fillArray(initialParameters, model->np, 0);
-
-    delete[] parametersMin; // TODO: allocated by base class
-    parametersMin = new double[numOptimizationParameters];
-    fillArray(parametersMin, model->np, -5);
-
-    delete[] parametersMax; // TODO: allocated by base class
-    parametersMax = new double[numOptimizationParameters];
-    fillArray(parametersMax, model->np, 5);
 
     optimizationOptions = new OptimizationOptions();
     optimizationOptions->optimizer = OPTIMIZER_IPOPT;
@@ -105,8 +88,5 @@ void SteadyStateMultiConditionProblem::setSensitivityOptions(
 }
 
 SteadyStateMultiConditionProblem::~SteadyStateMultiConditionProblem() {
-    delete[] initialParameters;
-    delete[] parametersMin;
-    delete[] parametersMax;
     delete optimizationOptions;
 }

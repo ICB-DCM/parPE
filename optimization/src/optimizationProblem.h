@@ -3,6 +3,7 @@
 
 #include "optimizationResultWriter.h"
 #include <cstdlib>
+#include <vector>
 #include <hdf5.h>
 
 class OptimizationOptions;
@@ -14,6 +15,8 @@ class OptimizationResultWriter;
 class OptimizationProblem {
 
   public:
+    OptimizationProblem() = default;
+    OptimizationProblem(int numOptimizationParameters);
     /**
      * Callback function for objective function gradient evaluation at
      * parameters.
@@ -47,9 +50,9 @@ class OptimizationProblem {
 
     virtual ~OptimizationProblem();
 
-    virtual double *getInitialParameters(int multiStartIndex) const;
+    virtual double const* getInitialParameters(int multiStartIndex) const;
 
-    virtual double *getInitialParameters() const;
+    virtual double const* getInitialParameters() const;
 
     /** random starting points are drawn from [parametersMin, parametersMax] */
 
@@ -58,7 +61,7 @@ class OptimizationProblem {
     static void getRandomStartingpoint(const double *min, const double *max,
                                        int numParameters, double *buffer);
 
-    void setInitialParameters(double *initialParameters);
+    void setInitialParameters(const double *initialParameters);
 
     int getNumOptimizationParameters() const;
 
@@ -68,17 +71,19 @@ class OptimizationProblem {
 
     OptimizationOptions *optimizationOptions = nullptr;
 
+    void setNumOptimizationParameters(int n);
+
   protected:
     /** number of optimization parameters */
-    int numOptimizationParameters = 0;
+    int numOptimizationParameters_ = 0;
 
     /** lowest allowed parameter values */
-    double *parametersMin = nullptr;
+    std::vector<double> parametersMin_;
 
     /** highest allowed parameter values */
-    double *parametersMax = nullptr;
+    std::vector<double> parametersMax_;
 
-    double *initialParameters = nullptr;
+    std::vector<double> initialParameters_;
 };
 
 int getLocalOptimum(OptimizationProblem *problem);

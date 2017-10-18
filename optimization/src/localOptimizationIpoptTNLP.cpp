@@ -49,7 +49,7 @@ bool LocalOptimizationIpoptTNLP::get_starting_point(Index n, bool init_x,
                                                     Index m, bool init_lambda,
                                                     Number *lambda) {
     if (init_x) {
-        double *startingPoint = problem->getInitialParameters();
+        const double *startingPoint = problem->getInitialParameters();
         if (startingPoint) {
             memcpy(x, startingPoint, sizeof(Number) * n);
         } else {
