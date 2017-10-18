@@ -2,13 +2,7 @@
 #define CPP_MISC_H
 
 #include <stdlib.h>
-
-#ifdef __cplusplus
-#define EXTERNC extern "C"
-#else
-#define EXTERNC
-#include <stdbool.h>
-#endif
+#include <memory>
 
 // void printMatlabArray(const double *buffer, int len);
 
@@ -17,25 +11,25 @@
  * @param name
  * @return True if exists, false if not
  */
-EXTERNC bool fileExists(const char *name);
+bool fileExists(const char *name);
 
-EXTERNC int mkpath(char *file_path, mode_t mode);
+int mkpath(char *file_path, mode_t mode);
 
-EXTERNC int mkpathConstChar(const char *file_path, mode_t mode);
+int mkpathConstChar(const char *file_path, mode_t mode);
 
-EXTERNC void createDirectoryIfNotExists(char *dirName);
+void createDirectoryIfNotExists(char *dirName);
 
-EXTERNC void strFormatCurrentLocaltime(char *buffer, size_t bufferSize,
+void strFormatCurrentLocaltime(char *buffer, size_t bufferSize,
                                        const char *format);
 
-EXTERNC void shuffle(int *array, size_t numElements);
+void shuffle(int *array, size_t numElements);
 
-EXTERNC void runInParallelAndWaitForFinish(void *(*function)(void *),
+void runInParallelAndWaitForFinish(void *(*function)(void *),
                                            void **args, int numArgs);
 
-EXTERNC void printBacktrace(int depth);
+void printBacktrace(int depth);
 
-EXTERNC double randDouble(double min, double max);
+double randDouble(double min, double max);
 
 /**
  * @brief fillArrayRandomDoubleIndividualInterval Fill "buffer" with "length"
@@ -45,15 +39,26 @@ EXTERNC double randDouble(double min, double max);
  * @param length
  * @param buffer
  */
-EXTERNC void fillArrayRandomDoubleIndividualInterval(const double *min,
+void fillArrayRandomDoubleIndividualInterval(const double *min,
                                                      const double *max,
                                                      int length,
                                                      double *buffer);
 
-EXTERNC void fillArrayRandomDoubleSameInterval(double min, double max,
+void fillArrayRandomDoubleSameInterval(double min, double max,
                                                int length, double *buffer);
 
-EXTERNC int getMpiRank();
-EXTERNC int getMpiCommSize();
+int getMpiRank();
+int getMpiCommSize();
+
+#if __cplusplus < 201402L
+// custom make_unique while we are still using c++11
+namespace std {
+template<typename T, typename... Args>
+std::unique_ptr<T> make_unique(Args&&... args)
+{
+    return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
+}
+}
+#endif
 
 #endif

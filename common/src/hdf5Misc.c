@@ -1,7 +1,6 @@
 #include "hdf5Misc.h"
 
 #include "logging.h"
-#include "misc.h"
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
