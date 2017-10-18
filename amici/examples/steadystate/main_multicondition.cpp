@@ -7,7 +7,7 @@
 #include <logging.h>
 #include <multiConditionProblemResultWriter.h>
 #include <optimizationApplication.h>
-
+#include <misc.h>
 #include <iostream>
 #include <unistd.h>
 
@@ -28,12 +28,11 @@ class SteadystateApplication : public OptimizationApplication {
 
     virtual void initProblem(std::string inFileArgument,
                              std::string outFileArgument) override {
-        model = getModel();
-        dataProvider =
-            new SteadyStateMultiConditionDataProvider(model, inFileArgument);
+        model = std::unique_ptr<Model>(getModel());
+        dataProvider = std::make_unique<SteadyStateMultiConditionDataProvider>(model.get(), inFileArgument);
 
         problem =
-            new SteadyStateMultiConditionProblem(dataProvider, &loadBalancer);
+            new SteadyStateMultiConditionProblem(dataProvider.get(), &loadBalancer);
 
         JobIdentifier id = {0};
         resultWriter =
@@ -46,12 +45,10 @@ class SteadystateApplication : public OptimizationApplication {
     virtual ~SteadystateApplication() {
         delete resultWriter;
         delete problem;
-        delete dataProvider;
-        delete model;
     }
 
-    SteadyStateMultiConditionDataProvider *dataProvider;
-    Model *model;
+    std::unique_ptr<SteadyStateMultiConditionDataProvider> dataProvider;
+    std::unique_ptr<Model> model;
 };
 
 class SteadystateLocalOptimizationApplication : public SteadystateApplication {
@@ -74,23 +71,22 @@ class SteadystateMultiStartOptimizationApplication
         int status = 0;
 
         // Multistart optimization
-        OptimizationOptions *options = OptimizationOptions::fromHDF5(
-            dataProvider->getHdf5FileId()); // if numStarts > 1: need to use
-                                            // multiple MPI
+        std::unique_ptr<OptimizationOptions> options(OptimizationOptions::fromHDF5(
+                                                                 dataProvider->getHdf5FileId()));
+        // if numStarts > 1: need to use multiple MPI
         // workers, otherwise simulation crashes due
         // to CVODES threading issues
 
         MultiConditionProblemMultiStartOptimization multiStartOptimization(
             options->numStarts, options->retryOptimization);
-        multiStartOptimization.options = options;
+        multiStartOptimization.options = options.get();
         multiStartOptimization.resultWriter = problem->resultWriter;
-        multiStartOptimization.dp = dataProvider;
+        multiStartOptimization.dp = dataProvider.get();
         multiStartOptimization.loadBalancer = &loadBalancer;
 
         std::cout << multiStartOptimization.options->toString();
 
         multiStartOptimization.run();
-        delete options;
 
         return status;
     }
