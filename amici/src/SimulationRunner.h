@@ -3,6 +3,7 @@
 
 #include <MultiConditionDataProvider.h> // JobIdentifier
 #include <functional>
+#include <vector>
 class UserData;
 class ExpData;
 class JobData;
@@ -16,7 +17,7 @@ class SimulationRunner {
   public:
     SimulationRunner(std::function<UserData *(int)> getUserData,
                      std::function<JobIdentifier(int)> getJobIdentifier,
-                     std::function<int(JobData *jobs, int numJobs)> aggregate);
+                     std::function<int(std::vector<JobData> &)> aggregate);
 
     /**
      * @brief Dispatch simulation jobs using LoadBalancerMaster
@@ -49,7 +50,7 @@ class SimulationRunner {
   private:
     std::function<UserData *(int)> getUserData = nullptr;
     std::function<JobIdentifier(int)> getJobIdentifier = nullptr;
-    std::function<int(JobData *jobs, int numJobs)> aggregate = nullptr;
+    std::function<int(std::vector<JobData> &jobs)> aggregate = nullptr;
 };
 
 #endif // SIMULATIONRUNNER_H

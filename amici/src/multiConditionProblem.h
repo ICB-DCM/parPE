@@ -162,7 +162,7 @@ class MultiConditionProblem : public OptimizationProblem,
      * @return *Negative* log likelihood.
      */
 
-    int aggregateLikelihood(JobData *data, double *logLikelihood,
+    int aggregateLikelihood(std::vector<JobData> &data, double *logLikelihood,
                             double *objectiveFunctionGradient, int *dataIndices,
                             int numDataIndices);
 

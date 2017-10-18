@@ -227,7 +227,6 @@ JobResultAmiciSimulation MultiConditionProblem::runAndLogSimulation(UserData *ud
 MultiConditionProblem::~MultiConditionProblem() {
     delete udata;
 
-    delete[] initialParameters;
     delete[] parametersMax;
     delete[] parametersMin;
     delete[] lastObjectiveFunctionGradient;
@@ -306,7 +305,7 @@ int MultiConditionProblem::runSimulations(const double *optimizationVariables,
             path.idxConditions = dataIndices[simulationIdx];
             return path;
         },
-        [&](JobData *jobs, int numJobsTotal) {
+        [&](std::vector<JobData> &jobs) {
             return aggregateLikelihood(jobs, logLikelihood,
                                        objectiveFunctionGradient,
                                        dataIndices,
@@ -333,12 +332,12 @@ int MultiConditionProblem::runSimulations(const double *optimizationVariables,
 }
 
 int MultiConditionProblem::aggregateLikelihood(
-    JobData *data, double *logLikelihood, double *objectiveFunctionGradient,
+    std::vector<JobData> &data, double *logLikelihood, double *objectiveFunctionGradient,
     int *dataIndices, int numDataIndices) {
     int errors = 0;
 
     // temporary variables for deserialization of simulation results
-
+    assert(data.size() == (unsigned)numDataIndices);
     for (int simulationIdx = 0; simulationIdx < numDataIndices;
          ++simulationIdx) {
         // deserialize

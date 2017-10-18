@@ -5,7 +5,7 @@
 SimulationRunner::SimulationRunner(
     std::function<UserData *(int)> getUserData,
     std::function<JobIdentifier(int)> getJobIdentifier,
-    std::function<int(JobData *jobs, int numJobs)> aggregate)
+    std::function<int(std::vector<JobData> &jobs)> aggregate)
     : getUserData(getUserData), getJobIdentifier(getJobIdentifier),
       aggregate(aggregate) {}
 
@@ -14,7 +14,7 @@ int SimulationRunner::run(int numJobsTotal, int lenSendBuffer,
     int numJobsFinished = 0;
 
     // TODO: allocate and free piecewise or according to max queue length
-    JobData *jobs = new JobData[numJobsTotal];
+    std::vector<JobData> jobs {static_cast<unsigned int>(numJobsTotal)};
 
     // mutex to wait for simulations to finish
     pthread_cond_t simulationsCond = PTHREAD_COND_INITIALIZER;
@@ -45,9 +45,7 @@ int SimulationRunner::run(int numJobsTotal, int lenSendBuffer,
     pthread_cond_destroy(&simulationsCond);
 
     // unpack
-    int errors = aggregate(jobs, numJobsTotal);
-
-    delete[] jobs;
+    int errors = aggregate(jobs);
 
     return errors;
 }
@@ -56,7 +54,7 @@ int SimulationRunner::runSerial(
     int numJobsTotal, int lenSendBuffer,
     std::function<void(char **buffer, int *msgSize, int jobId)>
         messageHandler) {
-    JobData *jobs = new JobData[numJobsTotal];
+    std::vector<JobData> jobs {static_cast<unsigned int>(numJobsTotal)};
 
     for (int simulationIdx = 0; simulationIdx < numJobsTotal; ++simulationIdx) {
         JobIdentifier path = getJobIdentifier(simulationIdx);
@@ -81,9 +79,7 @@ int SimulationRunner::runSerial(
     }
 
     // unpack
-    int errors = aggregate(jobs, numJobsTotal);
-
-    delete[] jobs;
+    int errors = aggregate(jobs);
 
     return errors;
 }
