@@ -38,8 +38,7 @@ class SimulationRunner {
      * @return
      */
     int runSerial(int numJobsTotal, int lenSendBuffer,
-                  std::function<void(char **buffer, int *msgSize, int jobId)>
-                      messageHandler);
+                  std::function<void(std::vector<char> &, int)> messageHandler);
 
     void queueSimulation(LoadBalancerMaster *loadBalancer, JobIdentifier path,
                          JobData *d, UserData *udata, int *jobDone,

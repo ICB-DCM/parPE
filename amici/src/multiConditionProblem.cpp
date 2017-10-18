@@ -222,13 +222,12 @@ MultiConditionProblem::~MultiConditionProblem() {
     delete udata;
 }
 
-void MultiConditionProblem::messageHandler(char **buffer, int *msgSize,
+void MultiConditionProblem::messageHandler(std::vector<char> &buffer,
                                            int jobId) {
     // unpack
     UserData *udata = dataProvider->getUserData();
     JobIdentifier path;
-    JobAmiciSimulation::toUserData(*buffer, udata, &path);
-    delete[] * buffer;
+    JobAmiciSimulation::toUserData(buffer.data(), udata, &path);
 
 #if QUEUE_WORKER_H_VERBOSE >= 2
     int mpiRank;
@@ -246,7 +245,7 @@ void MultiConditionProblem::messageHandler(char **buffer, int *msgSize,
 #endif
 
     // pack & cleanup
-    *buffer = serializeToChar<JobResultAmiciSimulation>(&result, msgSize);
+    buffer = serializeToStdVec<JobResultAmiciSimulation>(&result);
     delete result.rdata;
     delete udata;
 }
@@ -312,8 +311,8 @@ int MultiConditionProblem::runSimulations(const double *optimizationVariables,
         errors = simRunner.runSerial(
             numDataIndices,
             JobAmiciSimulation::getLength(model->np, sizeof(JobIdentifier)),
-            [&](char **buffer, int *msgSize, int jobId) {
-                messageHandler(buffer, msgSize, jobId);
+            [&](std::vector<char> &buffer, int jobId) {
+                messageHandler(buffer, jobId);
             });
     }
 

@@ -76,22 +76,16 @@ class DuplicatingLoadBalancerWorker : public LoadBalancerWorker {
      * @param userData
      */
 
-    void messageHandler(char **buffer, int *size, int jobId) override {
-        // reuse allocated memory
-        //    double *result = (double*) *buffer;
-        //    *result *= 2;
-
+    void messageHandler(std::vector<char> &buffer, int jobId) override {
         // read message
-        double value = **((double **)buffer);
+        double value = *reinterpret_cast<double *>(buffer.data());
         //    printf("Received %f\n", value);
-        delete[] * buffer;
 
         // sleep(1);
 
         // prepare result
-        *size = sizeof(double);
-        *buffer = new char[*size];
-        double *result = (double *)*buffer;
+        buffer.resize(sizeof(double));
+        double *result = reinterpret_cast<double *>(buffer.data());
         *result = value * 2;
         //    printf("Sending %f\n", *result);
     }

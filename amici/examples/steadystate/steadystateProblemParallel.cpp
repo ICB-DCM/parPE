@@ -122,7 +122,7 @@ int SteadystateProblemParallel::evaluateSerial(const double *parameters,
     return status;
 }
 
-void SteadystateProblemParallel::messageHandler(char **buffer, int *size,
+void SteadystateProblemParallel::messageHandler(std::vector<char> &buffer,
                                                 int jobId) {
     //    int mpiRank;
     //    MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
@@ -130,10 +130,10 @@ void SteadystateProblemParallel::messageHandler(char **buffer, int *size,
     //    jobId);
 
     // unpack parameters
-    int conditionIdx = (int)**buffer;
-    int needGradient = (int)*(*buffer + sizeof(int));
-    udata->setParameters(reinterpret_cast<double *>(*buffer + 2 * sizeof(int)));
-    delete[] * buffer;
+
+    int conditionIdx = *(int*)buffer.data();
+    int needGradient = *(int*)(buffer.data() + sizeof(int));
+    udata->setParameters(reinterpret_cast<double *>(buffer.data() + 2 * sizeof(int)));
 
     // read data for current conditions
     readFixedParameters(conditionIdx);
@@ -144,9 +144,8 @@ void SteadystateProblemParallel::messageHandler(char **buffer, int *size,
     ReturnData *rdata = getSimulationResults(model, udata, edata);
     // printf("Result for %d: %f\n", conditionIdx, *rdata->llh);
     // pack results
-    *size = sizeof(double) * (udata->nplist + 1);
-    *buffer = new char[*size];
-    double *doubleBuffer = (double *)*buffer;
+    buffer.resize(sizeof(double) * (udata->nplist + 1));
+    double *doubleBuffer = (double *) buffer.data();
 
     doubleBuffer[0] = rdata->llh[0];
     if (needGradient)

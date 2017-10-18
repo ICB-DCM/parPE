@@ -52,7 +52,7 @@ int SimulationRunner::run(int numJobsTotal, int lenSendBuffer,
 
 int SimulationRunner::runSerial(
     int numJobsTotal, int lenSendBuffer,
-    std::function<void(char **buffer, int *msgSize, int jobId)>
+    std::function<void(std::vector<char> &buffer, int jobId)>
         messageHandler) {
     std::vector<JobData> jobs {static_cast<unsigned int>(numJobsTotal)};
 
@@ -61,9 +61,6 @@ int SimulationRunner::runSerial(
 
         UserData *udata = getUserData(simulationIdx);
 
-        jobs[simulationIdx].lenSendBuffer = lenSendBuffer;
-        jobs[simulationIdx].sendBuffer = new char[lenSendBuffer];
-
         JobAmiciSimulation work;
         work.data = &path;
         work.lenData = sizeof(path);
@@ -71,11 +68,13 @@ int SimulationRunner::runSerial(
         work.numSimulationParameters = udata->np;
         work.simulationParameters = udata->p;
 
-        work.serialize(jobs[simulationIdx].sendBuffer);
-        int sizeDummy;
-        messageHandler(&jobs[simulationIdx].sendBuffer, &sizeDummy,
-                       simulationIdx);
-        jobs[simulationIdx].recvBuffer = jobs[simulationIdx].sendBuffer;
+        std::vector<char> buffer(lenSendBuffer);
+        work.serialize(buffer.data());
+        messageHandler(buffer, simulationIdx);
+
+        jobs[simulationIdx].lenRecvBuffer = buffer.size();
+        jobs[simulationIdx].recvBuffer = new char[buffer.size()];
+        std::copy(buffer.begin(), buffer.end(), jobs[simulationIdx].recvBuffer);
     }
 
     // unpack

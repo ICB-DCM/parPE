@@ -27,11 +27,11 @@ bool LoadBalancerWorker::waitForAndHandleJobs() {
     MPI_Probe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &mpiStatus);
     int msgSize;
     MPI_Get_count(&mpiStatus, MPI_BYTE, &msgSize);
-    auto buffer = new char[msgSize];
+    std::vector<char> buffer(static_cast<unsigned int>(msgSize));
 
     // receive message
     int source = 0;
-    err = MPI_Recv(buffer, msgSize, MPI_BYTE, source, MPI_ANY_TAG,
+    err = MPI_Recv(buffer.data(), msgSize, MPI_BYTE, source, MPI_ANY_TAG,
                    MPI_COMM_WORLD, &mpiStatus);
 
 #if QUEUE_WORKER_H_VERBOSE >= 3
@@ -41,17 +41,16 @@ bool LoadBalancerWorker::waitForAndHandleJobs() {
         abort();
 
     if (mpiStatus.MPI_TAG == MPI_TAG_EXIT_SIGNAL) {
-        delete[] buffer;
         return true;
     }
 
-    messageHandler(&buffer, &msgSize, mpiStatus.MPI_TAG);
+
+    messageHandler(buffer, mpiStatus.MPI_TAG);
 
 #if QUEUE_WORKER_H_VERBOSE >= 2
     printf("[%d] Job done, sending results, %dB.\n", rank, msgSize);
 #endif
-    MPI_Send(buffer, msgSize, MPI_BYTE, 0, mpiStatus.MPI_TAG, MPI_COMM_WORLD);
-    delete[] buffer;
+    MPI_Send(buffer.data(), buffer.size(), MPI_BYTE, 0, mpiStatus.MPI_TAG, MPI_COMM_WORLD);
 
     return false;
 }

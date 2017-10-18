@@ -125,8 +125,7 @@ class MultiConditionProblem : public OptimizationProblem,
      * @param msgSize In/out: size (bytes) of bufferobjFunVal
      * @param jobId: In: Identifier of the job (unique up to INT_MAX)
      */
-    virtual void messageHandler(char **buffer, int *msgSize,
-                                int jobId) override;
+    virtual void messageHandler(std::vector<char> &buffer, int jobId) override;
 
     virtual double getTime() const;
 

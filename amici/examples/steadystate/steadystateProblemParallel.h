@@ -19,7 +19,7 @@ class SteadystateProblemParallel : public ExampleSteadystateProblem,
     int evaluateSerial(const double *parameters, double *objFunVal,
                        double *objFunGrad);
 
-    void messageHandler(char **buffer, int *size, int jobId) override;
+    void messageHandler(std::vector<char> &buffer, int jobId) override;
 
     ~SteadystateProblemParallel();
 
