@@ -15,21 +15,19 @@ class ExpData {
     void setObservedData(const double *observedData);
     void setObservedDataStdDev(const double *observedDataStdDev);
     void setObservedEvents(const double *observedEvents);
-    void setObservedRoots(const double *observedRoots);
     void setObservedEventsStdDev(const double *observedEventsStdDev);
 
     ~ExpData();
 
-    /** observed data */
+    /** observed data (dimension: nytrue x nt, column-major) */
     double *my = nullptr;
-    /** standard deviation of observed data */
+    /** standard deviation of observed data (dimension: nytrue x nt, column-major) */
     double *sigmay = nullptr;
 
-    /** observed events */
+    /** observed events (dimension: nmaxevents x nztrue, column-major) */
     double *mz = nullptr;
-    /** observed roots */
-    double *mrz = nullptr;
-    /** standard deviation of observed events/roots */
+    /** standard deviation of observed events/roots
+     * (dimension: nmaxevents x nztrue, column-major)*/
     double *sigmaz = nullptr;
     
     /** number of observables */
