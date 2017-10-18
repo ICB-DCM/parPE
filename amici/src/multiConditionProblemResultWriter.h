@@ -11,6 +11,8 @@ class MultiConditionProblemResultWriter : public OptimizationResultWriter {
   public:
     MultiConditionProblemResultWriter();
 
+    MultiConditionProblemResultWriter(hid_t file_id);
+
     MultiConditionProblemResultWriter(hid_t file_id, JobIdentifier id);
 
     MultiConditionProblemResultWriter(std::string filename, bool overwrite,

@@ -5,6 +5,11 @@ MultiConditionProblemResultWriter::MultiConditionProblemResultWriter()
     : OptimizationResultWriter() {}
 
 MultiConditionProblemResultWriter::MultiConditionProblemResultWriter(
+    hid_t file_id)
+    : OptimizationResultWriter(file_id) {
+}
+
+MultiConditionProblemResultWriter::MultiConditionProblemResultWriter(
     hid_t file_id, JobIdentifier id)
     : OptimizationResultWriter(file_id) {
     setJobId(id);
@@ -16,8 +21,7 @@ MultiConditionProblemResultWriter::MultiConditionProblemResultWriter(
     setJobId(id);
 }
 
-std::string
-MultiConditionProblemResultWriter::getIterationPath(int iterationIdx) {
+std::string MultiConditionProblemResultWriter::getIterationPath(int iterationIdx) {
 
     char fullGroupPath[1024];
     sprintf(fullGroupPath, "/multistarts/%d/iteration/%d/",
