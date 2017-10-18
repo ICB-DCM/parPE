@@ -100,7 +100,7 @@ void hdf5CreateGroup(hid_t file_id, const char *groupPath, bool recursively) {
 }
 
 void hdf5CreateExtendableDouble2DArray(hid_t file_id, const char *datasetPath,
-                                       int stride) {
+                                       hsize_t stride) {
     int rank = 2;
     hsize_t initialDimensions[2] = {stride, 0};
     hsize_t maximumDimensions[2] = {stride, H5S_UNLIMITED};
@@ -136,7 +136,8 @@ void hdf5Extend2ndDimensionAndWriteToDouble2DArray(hid_t file_id,
                                     "hdf5Extend2ndDimensionAndWriteToDouble2DAr"
                                     "ray",
                    datasetPath);
-        goto freturn1;
+        hdf5UnlockMutex();
+        return;
     }
 
     // extend
@@ -147,36 +148,34 @@ void hdf5Extend2ndDimensionAndWriteToDouble2DArray(hid_t file_id,
                                     "hdf5Extend2ndDimensionAndWriteToDouble2DAr"
                                     "ray: not of rank 2 (%d) when writing %s",
                    rank, datasetPath);
-        goto freturn2;
+    } else {
+
+        hsize_t currentDimensions[2];
+        H5Sget_simple_extent_dims(filespace, currentDimensions, NULL);
+
+        hsize_t newDimensions[2] = {currentDimensions[0], currentDimensions[1] + 1};
+        herr_t status = H5Dset_extent(dataset, newDimensions);
+
+        filespace = H5Dget_space(dataset);
+        hsize_t offset[2] = {0, currentDimensions[1]};
+        hsize_t slabsize[2] = {currentDimensions[0], 1};
+
+        status = H5Sselect_hyperslab(filespace, H5S_SELECT_SET, offset, NULL,
+                                     slabsize, NULL);
+
+        hid_t memspace = H5Screate_simple(rank, slabsize, NULL);
+
+        status = H5Dwrite(dataset, H5T_NATIVE_DOUBLE, memspace, filespace,
+                          H5P_DEFAULT, buffer);
+
+        if (status < 0)
+            error("Failed to write data in "
+                  "hdf5Extend2ndDimensionAndWriteToDouble2DArray");
+
+        H5Sclose(memspace);
     }
 
-    hsize_t currentDimensions[2];
-    H5Sget_simple_extent_dims(filespace, currentDimensions, NULL);
-
-    hsize_t newDimensions[2] = {currentDimensions[0], currentDimensions[1] + 1};
-    herr_t status = H5Dset_extent(dataset, newDimensions);
-
-    filespace = H5Dget_space(dataset);
-    hsize_t offset[2] = {0, currentDimensions[1]};
-    hsize_t slabsize[2] = {currentDimensions[0], 1};
-
-    status = H5Sselect_hyperslab(filespace, H5S_SELECT_SET, offset, NULL,
-                                 slabsize, NULL);
-
-    hid_t memspace = H5Screate_simple(rank, slabsize, NULL);
-
-    status = H5Dwrite(dataset, H5T_NATIVE_DOUBLE, memspace, filespace,
-                      H5P_DEFAULT, buffer);
-
-    if (status < 0)
-        error("Failed to write data in "
-              "hdf5Extend2ndDimensionAndWriteToDouble2DArray");
-
-    H5Sclose(memspace);
-
-freturn2:
     H5Sclose(filespace);
-freturn1:
     H5Dclose(dataset);
     hdf5UnlockMutex();
 }
@@ -227,7 +226,7 @@ void hdf5CreateOrExtendAndWriteToDouble2DArray(hid_t file_id,
                                                const char *parentPath,
                                                const char *datasetName,
                                                const double *buffer,
-                                               int stride) {
+                                               hsize_t stride) {
     hdf5LockMutex();
 
     hdf5EnsureGroupExists(file_id, parentPath);
@@ -241,7 +240,7 @@ void hdf5CreateOrExtendAndWriteToDouble2DArray(hid_t file_id,
     hdf5Extend2ndDimensionAndWriteToDouble2DArray(file_id, fullDatasetPath,
                                                   buffer);
 
-    free(fullDatasetPath);
+    delete[] fullDatasetPath;
 
     hdf5UnlockMutex();
 }
@@ -250,7 +249,7 @@ void hdf5CreateOrExtendAndWriteToDouble3DArray(hid_t file_id,
                                                const char *parentPath,
                                                const char *datasetName,
                                                const double *buffer,
-                                               int stride1, int stride2) {
+                                               hsize_t stride1, hsize_t stride2) {
     hdf5LockMutex();
 
     hdf5EnsureGroupExists(file_id, parentPath);
@@ -267,13 +266,13 @@ void hdf5CreateOrExtendAndWriteToDouble3DArray(hid_t file_id,
 
     hdf5UnlockMutex();
 
-    free(fullDatasetPath);
+    delete[] fullDatasetPath;
 }
 
 void hdf5CreateOrExtendAndWriteToInt2DArray(hid_t file_id,
                                             const char *parentPath,
                                             const char *datasetName,
-                                            const int *buffer, int stride) {
+                                            const int *buffer, hsize_t stride) {
     hdf5LockMutex();
 
     hdf5EnsureGroupExists(file_id, parentPath);
@@ -289,7 +288,7 @@ void hdf5CreateOrExtendAndWriteToInt2DArray(hid_t file_id,
 
     hdf5UnlockMutex();
 
-    free(fullDatasetPath);
+    delete[] fullDatasetPath;
 }
 
 void hdf5Extend2ndDimensionAndWriteToInt2DArray(hid_t file_id,
@@ -300,47 +299,46 @@ void hdf5Extend2ndDimensionAndWriteToInt2DArray(hid_t file_id,
     hid_t dataset = H5Dopen2(file_id, datasetPath, H5P_DEFAULT);
     if (dataset < 0) {
         logmessage(LOGLVL_CRITICAL, "Unable to open dataset %s", datasetPath);
-        goto freturn1;
+    } else {
+
+        // extend
+        hid_t filespace = H5Dget_space(dataset);
+        int rank = H5Sget_simple_extent_ndims(filespace);
+        assert(rank == 2 && "Only works for 2D arrays!");
+
+        hsize_t currentDimensions[2];
+        H5Sget_simple_extent_dims(filespace, currentDimensions, NULL);
+
+        hsize_t newDimensions[2] = {currentDimensions[0], currentDimensions[1] + 1};
+        herr_t status = H5Dset_extent(dataset, newDimensions);
+
+        filespace = H5Dget_space(dataset);
+        hsize_t offset[2] = {0, currentDimensions[1]};
+        hsize_t slabsize[2] = {currentDimensions[0], 1};
+
+        status = H5Sselect_hyperslab(filespace, H5S_SELECT_SET, offset, NULL,
+                                     slabsize, NULL);
+
+        hid_t memspace = H5Screate_simple(rank, slabsize, NULL);
+
+        status = H5Dwrite(dataset, H5T_NATIVE_INT, memspace, filespace, H5P_DEFAULT,
+                          buffer);
+
+        if (status < 0)
+            error("Error writing data in "
+                  "hdf5Extend2ndDimensionAndWriteToInt2DArray.");
+
+        H5Sclose(filespace);
+        H5Sclose(memspace);
+
     }
-
-    // extend
-    hid_t filespace = H5Dget_space(dataset);
-    int rank = H5Sget_simple_extent_ndims(filespace);
-    assert(rank == 2 && "Only works for 2D arrays!");
-
-    hsize_t currentDimensions[2];
-    H5Sget_simple_extent_dims(filespace, currentDimensions, NULL);
-
-    hsize_t newDimensions[2] = {currentDimensions[0], currentDimensions[1] + 1};
-    herr_t status = H5Dset_extent(dataset, newDimensions);
-
-    filespace = H5Dget_space(dataset);
-    hsize_t offset[2] = {0, currentDimensions[1]};
-    hsize_t slabsize[2] = {currentDimensions[0], 1};
-
-    status = H5Sselect_hyperslab(filespace, H5S_SELECT_SET, offset, NULL,
-                                 slabsize, NULL);
-
-    hid_t memspace = H5Screate_simple(rank, slabsize, NULL);
-
-    status = H5Dwrite(dataset, H5T_NATIVE_INT, memspace, filespace, H5P_DEFAULT,
-                      buffer);
-
-    if (status < 0)
-        error("Error writing data in "
-              "hdf5Extend2ndDimensionAndWriteToInt2DArray.");
-
-    H5Sclose(filespace);
-    H5Sclose(memspace);
-
-freturn1:
     H5Dclose(dataset);
 
     hdf5UnlockMutex();
 }
 
 void hdf5CreateExtendableInt2DArray(hid_t file_id, const char *datasetPath,
-                                    int stride) {
+                                    hsize_t stride) {
     hdf5LockMutex();
 
     int rank = 2;
@@ -368,7 +366,7 @@ void hdf5CreateExtendableInt2DArray(hid_t file_id, const char *datasetPath,
 }
 
 void hdf5CreateExtendableDouble3DArray(hid_t file_id, const char *datasetPath,
-                                       int stride1, int stride2) {
+                                       hsize_t stride1, hsize_t stride2) {
     hdf5LockMutex();
 
     int rank = 3;
@@ -394,8 +392,7 @@ void hdf5CreateExtendableDouble3DArray(hid_t file_id, const char *datasetPath,
 }
 
 char *myStringCat(const char *first, const char *second) {
-    char *concatenation =
-        malloc(sizeof(char) * (strlen(first) + strlen(second) + 1));
+    char *concatenation = new char[strlen(first) + strlen(second) + 1];
     strcpy(concatenation, first);
     strcat(concatenation, second);
     return concatenation;

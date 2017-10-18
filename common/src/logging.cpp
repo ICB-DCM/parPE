@@ -80,8 +80,8 @@ void logmessage(loglevel lvl, const char *format, ...)
 
 void logProcessStats()
 {
-    int bufSize = 1024;
-    char *buffer = malloc(bufSize);
+    const int bufSize = 1024;
+    char buffer[bufSize];
 
     FILE* status = fopen( "/proc/self/status", "r" );
 
@@ -91,7 +91,6 @@ void logProcessStats()
     }
 
     fclose(status);
-    free(buffer);
 }
 
 void printMPIInfo() {

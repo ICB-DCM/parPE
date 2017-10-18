@@ -17,7 +17,7 @@ void teardown() { destroyHDF5Mutex(); }
 ;
 
 TEST(multiConditionProblemResultWriter, testResultWriter) {
-    JobIdentifier id = {0};
+    JobIdentifier id;
     MultiConditionProblemResultWriter w("deleteme.h5", true, id);
 
     w.setRootPath("/bla/");

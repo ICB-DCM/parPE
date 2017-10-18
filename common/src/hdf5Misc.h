@@ -6,8 +6,6 @@
 
 #include <pthread.h>
 #include <stdbool.h>
-
-#if defined(__cplusplus)
 #include <exception>
 #include <string>
 
@@ -21,8 +19,6 @@ public:
 
 };
 
-extern "C" {
-#endif
 
 void initHDF5Mutex();
 
@@ -56,13 +52,13 @@ hid_t hdf5OpenFile(const char *filename,
                    bool overwrite);
 
 void hdf5CreateExtendableDouble2DArray(hid_t file_id, const char *datasetPath,
-                                       int stride);
+                                       hsize_t stride);
 
 void hdf5CreateExtendableInt2DArray(hid_t file_id, const char *datasetPath,
-                                    int stride);
+                                    hsize_t stride);
 
 void hdf5CreateExtendableDouble3DArray(hid_t file_id, const char *datasetPath,
-                                       int stride1, int stride2);
+                                       hsize_t stride1, hsize_t stride2);
 
 void hdf5Extend2ndDimensionAndWriteToDouble2DArray(hid_t file_id,
                                                    const char *datasetPath,
@@ -76,18 +72,18 @@ void hdf5CreateOrExtendAndWriteToDouble2DArray(hid_t file_id,
                                                const char *parentPath,
                                                const char *datasetName,
                                                const double *buffer,
-                                               int stride);
+                                               hsize_t stride);
 
 void hdf5CreateOrExtendAndWriteToInt2DArray(hid_t file_id,
                                             const char *parentPath,
                                             const char *datasetName,
-                                            const int *buffer, int stride);
+                                            const int *buffer, hsize_t stride);
 
 void hdf5CreateOrExtendAndWriteToDouble3DArray(hid_t file_id,
                                                const char *parentPath,
                                                const char *datasetName,
                                                const double *buffer,
-                                               int stride1, int stride2);
+                                               hsize_t stride1, hsize_t stride2);
 
 int hdf5Read2DDoubleHyperslab(hid_t file_id, const char *path, hsize_t size0,
                               hsize_t size1, hsize_t offset0, hsize_t offset1,
@@ -110,8 +106,5 @@ int hdf5WriteStringAttribute(hid_t fileId, const char *datasetPath,
                              const char *attributeName,
                              const char *attributeValue);
 
-#if defined(__cplusplus)
-}
-#endif
 
 #endif

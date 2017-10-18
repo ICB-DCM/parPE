@@ -2,8 +2,8 @@ project(parpecommon)
 
 set(SRC_LIST
     misc.cpp
-    logging.c
-    hdf5Misc.c
+    logging.cpp
+    hdf5Misc.cpp
     parpeException.cpp
 )
 
