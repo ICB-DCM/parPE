@@ -100,6 +100,9 @@ int hdf5Read3DDoubleHyperslab(hid_t file_id, const char *path, hsize_t size0,
 void hdf5GetDatasetDimensions2D(hid_t file_id, const char *path, int *d1,
                                 int *d2);
 
+void hdf5GetDatasetDimensions3D(hid_t file_id, const char *path, int *d1,
+                                int *d2, int *d3);
+
 int hdf5AttributeExists(hid_t fileId, const char *datasetPath,
                         const char *attributeName);
 

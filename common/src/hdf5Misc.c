@@ -530,3 +530,25 @@ hid_t hdf5OpenFile(const char *filename, bool overwrite)
 
     return file_id;
 }
+
+void hdf5GetDatasetDimensions3D(hid_t file_id, const char *path, int *d1, int *d2, int *d3)
+{
+    hdf5LockMutex();
+
+    hid_t dataset = H5Dopen2(file_id, path, H5P_DEFAULT);
+    hid_t dataspace = H5Dget_space(dataset);
+
+    const int ndims = H5Sget_simple_extent_ndims(dataspace);
+    assert(ndims == 3 && "Only works for 3D arrays!");
+    hsize_t dims[ndims];
+    H5Sget_simple_extent_dims(dataspace, dims, NULL);
+
+    *d1 = dims[0];
+    *d2 = dims[1];
+    *d3 = dims[2];
+
+    H5Sclose(dataspace);
+    H5Dclose(dataset);
+
+    hdf5UnlockMutex();
+}
