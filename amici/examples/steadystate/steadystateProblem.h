@@ -7,7 +7,7 @@
 
 class Model;
 
-class ExampleSteadystateProblem : public parPE::OptimizationProblem {
+class ExampleSteadystateProblem : public parpe::OptimizationProblem {
   public:
     ExampleSteadystateProblem();
 

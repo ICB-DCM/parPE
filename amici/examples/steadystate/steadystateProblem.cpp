@@ -22,8 +22,8 @@ ExampleSteadystateProblem::ExampleSteadystateProblem() {
     fillArray(parametersMin_.data(), model->np, -5);
     fillArray(parametersMax_.data(), model->np, 5);
 
-    optimizationOptions = new parPE::OptimizationOptions();
-    optimizationOptions->optimizer = parPE::OPTIMIZER_IPOPT;
+    optimizationOptions = new parpe::OptimizationOptions();
+    optimizationOptions->optimizer = parpe::OPTIMIZER_IPOPT;
     optimizationOptions->printToStdout = true;
     optimizationOptions->maxOptimizerIterations = 100;
 }
@@ -133,11 +133,11 @@ void ExampleSteadystateProblem::setupExpData(int conditionIdx) {
 }
 
 void ExampleSteadystateProblem::readFixedParameters(int conditionIdx) {
-    parPE::hdf5Read2DDoubleHyperslab(fileId, "/data/k", model->nk, 1, 0, conditionIdx,
+    parpe::hdf5Read2DDoubleHyperslab(fileId, "/data/k", model->nk, 1, 0, conditionIdx,
                               udata->k);
 }
 
 void ExampleSteadystateProblem::readMeasurement(int conditionIdx) {
-    parPE::hdf5Read3DDoubleHyperslab(fileId, "/data/ymeasured", 1, model->ny,
+    parpe::hdf5Read3DDoubleHyperslab(fileId, "/data/ymeasured", 1, model->ny,
                               udata->nt, conditionIdx, 0, 0, edata->my);
 }

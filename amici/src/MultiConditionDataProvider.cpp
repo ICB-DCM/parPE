@@ -9,7 +9,7 @@
 #include <edata.h>
 #include <udata.h>
 
-namespace parPE {
+namespace parpe {
 
 /**
  * @brief
@@ -284,4 +284,4 @@ void JobIdentifier::sprint(char *buffer) {
             idxLocalOptimizationIteration, idxConditions);
 }
 
-} // namespace parPE
+} // namespace parpe

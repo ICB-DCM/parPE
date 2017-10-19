@@ -9,7 +9,7 @@
 #include <exception>
 #include <string>
 
-namespace parPE {
+namespace parpe {
 
 class HDF5Exception : public std::exception {
 public:
@@ -108,5 +108,5 @@ int hdf5WriteStringAttribute(hid_t fileId, const char *datasetPath,
                              const char *attributeName,
                              const char *attributeValue);
 
-} // namespace parPE
+} // namespace parpe
 #endif

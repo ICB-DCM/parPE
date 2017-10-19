@@ -8,7 +8,7 @@ class ExpData;
 class UserData;
 class Model;
 
-namespace parPE {
+namespace parpe {
 
 /** Struct to tell simulation workers which dataset they are operating on.
   */
@@ -174,6 +174,6 @@ class MultiConditionDataProvider {
     Model *model = nullptr;
 };
 
-} // namespace parPE
+} // namespace parpe
 
 #endif // MULTICONDITIONDATAPROVIDER_H

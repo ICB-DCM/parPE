@@ -47,7 +47,7 @@ TEST(queuemaster, test_queueinit) {
     // Can happen or not, depending on how quick it's terminated
     // mock().expectOneCall("MPI_Testany");
 
-    parPE::LoadBalancerMaster lbm;
+    parpe::LoadBalancerMaster lbm;
     lbm.run();
 
     //    CHECK_C(loadBalancer.queue != 0);
@@ -60,14 +60,14 @@ TEST(queuemaster, test_queueinit) {
 
 TEST(queuemaster, test_queue) {
     mock().expectNCalls(1, "MPI_Comm_size");
-    parPE::LoadBalancerMaster lbm;
+    parpe::LoadBalancerMaster lbm;
     lbm.run();
 
-    parPE::JobData data;
+    parpe::JobData data;
     lbm.queueJob(&data);
     //    CHECK_EQUAL(1, lbm.lastJobId);
 
-    parPE::JobData data2;
+    parpe::JobData data2;
     lbm.queueJob(&data2);
     //    CHECK_EQUAL(2, loadBalancer.lastJobId);
     // getNextJob()

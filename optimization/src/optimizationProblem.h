@@ -6,7 +6,7 @@
 #include <vector>
 #include <hdf5.h>
 
-namespace parPE {
+namespace parpe {
 
 class OptimizationOptions;
 class OptimizationResultWriter;
@@ -99,6 +99,6 @@ void optimizationProblemGradientCheck(OptimizationProblem *problem,
                                       const int parameterIndices[],
                                       int numParameterIndices, double epsilon);
 
-} // namespace parPE
+} // namespace parpe
 
 #endif

@@ -6,7 +6,7 @@
 
 #include <vector>
 
-namespace parPE {
+namespace parpe {
 
 class LoadBalancerWorker {
   public:
@@ -31,6 +31,6 @@ class LoadBalancerWorker {
     bool waitForAndHandleJobs();
 };
 
-} // namespace parPE
+} // namespace parpe
 
 #endif // LOADBALANCERWORKER_H

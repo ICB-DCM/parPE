@@ -17,7 +17,7 @@ mock().clear();
 ;
 
 TEST(localOptimizationIpopt, testOptimization) {
-    parPE::QuadraticTestProblem problem;
+    parpe::QuadraticTestProblem problem;
     //problem->optimizationOptions->functionTolerance = 1;
 
     mock().expectOneCall("logFinish").withIntParameter("exitStatus", 0);
@@ -25,7 +25,7 @@ TEST(localOptimizationIpopt, testOptimization) {
     //    mock().expectNCalls(12, "testObjGrad");
     mock().ignoreOtherCalls();
 
-    parPE::OptimizerIpOpt optimizer;
+    parpe::OptimizerIpOpt optimizer;
     optimizer.optimize(&problem);
 
     DOUBLES_EQUAL(42.0, problem.optimalCost, 1e-12);

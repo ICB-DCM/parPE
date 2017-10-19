@@ -1,7 +1,7 @@
 #ifndef LOGGING_H
 #define LOGGING_H
 
-namespace parPE {
+namespace parpe {
 
 #define ANSI_COLOR_RED "\x1b[31m"
 #define ANSI_COLOR_GREEN "\x1b[32m"
@@ -38,5 +38,5 @@ void error(const char *message);
 void warning(const char *message);
 
 
-} // namespace parPE
+} // namespace parpe
 #endif

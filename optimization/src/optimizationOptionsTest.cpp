@@ -11,7 +11,7 @@
 #include "localOptimizationCeres.h"
 
 // need prototype here, otherwise mess with headers (including ceres.h causes some errors with EIGEN)
-namespace parPE {
+namespace parpe {
 void setCeresOption(const std::pair<const std::string, const std::string> &pair, ceres::GradientProblemSolver::Options* options);
 }
 
@@ -27,7 +27,7 @@ void teardown() {
 };
 
 TEST(optimizationOptions, setGetOptionStr) {
-    parPE::OptimizationOptions o;
+    parpe::OptimizationOptions o;
     std::string key = "str";
     std::string expVal = "testStr";
     o.setOption(key, expVal);
@@ -37,7 +37,7 @@ TEST(optimizationOptions, setGetOptionStr) {
 }
 
 TEST(optimizationOptions, setGetOptionInt) {
-    parPE::OptimizationOptions o;
+    parpe::OptimizationOptions o;
     std::string key = "str";
     double expVal = 1.23;
     o.setOption(key, expVal);
@@ -47,7 +47,7 @@ TEST(optimizationOptions, setGetOptionInt) {
 }
 
 TEST(optimizationOptions, setGetOptionDouble) {
-    parPE::OptimizationOptions o;
+    parpe::OptimizationOptions o;
     std::string key = "str";
     auto expVal = 123;
     o.setOption(key, expVal);
@@ -58,7 +58,7 @@ TEST(optimizationOptions, setGetOptionDouble) {
 
 
 TEST(optimizationOptions, getNonExistingOption) {
-    parPE::OptimizationOptions o;
+    parpe::OptimizationOptions o;
 
     CHECK_THROWS(std::invalid_argument, o.getIntOption("missingKey"));
 }
@@ -70,9 +70,9 @@ TEST(optimizationOptions, setIpOptOptions) {
     Ipopt::SmartPtr<Ipopt::IpoptApplication> app = IpoptApplicationFactory();
     auto options = app->Options();
 
-    parPE::OptimizationOptions o;
+    parpe::OptimizationOptions o;
     o.setOption(key, expVal);
-    o.for_each<Ipopt::SmartPtr<Ipopt::OptionsList>*>(parPE::setIpOptOption, &options);
+    o.for_each<Ipopt::SmartPtr<Ipopt::OptionsList>*>(parpe::setIpOptOption, &options);
 
     int actVal = 0;
     CHECK_EQUAL(true, options->GetIntegerValue(key, actVal, ""));
@@ -85,9 +85,9 @@ TEST(optimizationOptions, setCeresOptions) {
 
     ceres::GradientProblemSolver::Options options;
 
-    parPE::OptimizationOptions o;
+    parpe::OptimizationOptions o;
     o.setOption(key, expVal);
-    o.for_each<ceres::GradientProblemSolver::Options*>(parPE::setCeresOption, &options);
+    o.for_each<ceres::GradientProblemSolver::Options*>(parpe::setCeresOption, &options);
 
     int actVal = options.max_num_iterations;
 

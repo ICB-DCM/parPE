@@ -4,7 +4,7 @@
 #include <ceres/ceres.h>
 #include <logging.h>
 
-namespace parPE {
+namespace parpe {
 
 void setCeresOption(const std::pair<const std::string, const std::string> &pair, ceres::GradientProblemSolver::Options* options);
 
@@ -171,4 +171,4 @@ void setCeresOption(const std::pair<const std::string, const std::string> &pair,
 }
 
 
-} // namespace parPE
+} // namespace parpe

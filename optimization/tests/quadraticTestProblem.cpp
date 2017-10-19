@@ -7,7 +7,7 @@
 #include <math.h>
 #include <stdio.h>
 
-namespace parPE {
+namespace parpe {
 
 QuadraticTestProblem::QuadraticTestProblem() : OptimizationProblem(1) {
     optimizationOptions = new OptimizationOptions();
@@ -65,4 +65,4 @@ QuadraticOptimizationMultiStartProblem::getLocalProblemImpl(
     return problem;
 }
 
-} // namespace parPE
+} // namespace parpe

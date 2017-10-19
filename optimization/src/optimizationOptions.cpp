@@ -11,7 +11,7 @@
 #include <hdf5.h>
 #include <H5Cpp.h>
 
-namespace parPE {
+namespace parpe {
 
 // Workaround for missing to_string on some systems
 namespace patch {
@@ -240,4 +240,4 @@ Optimizer* optimizerFactory(optimizerEnum optimizer)
     return nullptr;
 }
 
-} // namespace parPE
+} // namespace parpe

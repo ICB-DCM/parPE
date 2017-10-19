@@ -18,12 +18,12 @@ TEST(simulationWorkerAmici, testSerializeResultPackageMessage) {
     Model m(1, 2, 3, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, AMICI_O2MODE_NONE);
 
     ReturnData r(&u, &m);
-    parPE::JobResultAmiciSimulation results(1, &r, 2.1);
+    parpe::JobResultAmiciSimulation results(1, &r, 2.1);
 
     int msgSize = 0;
-    char *buffer = serializeToChar<parPE::JobResultAmiciSimulation>(&results, &msgSize);
+    char *buffer = serializeToChar<parpe::JobResultAmiciSimulation>(&results, &msgSize);
 
-    parPE::JobResultAmiciSimulation resultsAct = deserializeFromChar<parPE::JobResultAmiciSimulation>(buffer, msgSize);
+    parpe::JobResultAmiciSimulation resultsAct = deserializeFromChar<parpe::JobResultAmiciSimulation>(buffer, msgSize);
     CHECK_EQUAL(results.simulationTimeInSec, resultsAct.simulationTimeInSec);
 
     delete resultsAct.rdata;
@@ -36,27 +36,27 @@ TEST(simulationWorkerAmici, testSerializeWorkPackageMessage) {
     int nTheta = randInt(0, 5000);
 
     // generate data
-    parPE::JobAmiciSimulation expWp;
+    parpe::JobAmiciSimulation expWp;
     int lenDataElements = 10;
     expWp.lenData = lenDataElements * sizeof(double);
     expWp.data = alloca(expWp.lenData);
     for (int i = 0; i < lenDataElements; ++i)
-        ((double *)expWp.data)[i] = parPE::randDouble(-1e-8, 1e8);
+        ((double *)expWp.data)[i] = parpe::randDouble(-1e-8, 1e8);
     expWp.sensitivityMethod = AMICI_SENSI_ASA;
     expWp.numSimulationParameters = nTheta;
     expWp.simulationParameters = new double[nTheta];
     for (int i = 0; i < nTheta; ++i) {
-        expWp.simulationParameters[i] = parPE::randDouble(-1e-8, 1e8);
+        expWp.simulationParameters[i] = parpe::randDouble(-1e-8, 1e8);
     }
 
     // serialize
     int workPackageLength =
-        parPE::JobAmiciSimulation::getLength(nTheta, expWp.lenData);
+        parpe::JobAmiciSimulation::getLength(nTheta, expWp.lenData);
     char *buffer = new char[workPackageLength];
     expWp.serialize(buffer);
 
     // deserialize
-    parPE::JobAmiciSimulation actWp;
+    parpe::JobAmiciSimulation actWp;
     actWp.data = alloca(expWp.lenData);
     actWp.simulationParameters = new double[nTheta];
 

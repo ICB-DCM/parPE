@@ -6,7 +6,7 @@
 #include <hdf5_hl.h>
 #include <string>
 
-namespace parPE {
+namespace parpe {
 
 class OptimizationProblem;
 
@@ -122,6 +122,6 @@ private:
 
 };
 
-} // namespace parPE
+} // namespace parpe
 
 #endif // OPTIMIZATIONRESULTWRITER_H

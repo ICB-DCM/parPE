@@ -2,7 +2,7 @@
 #include "simulationWorkerAmici.h"
 #include <LoadBalancerMaster.h>
 
-namespace parPE {
+namespace parpe {
 
 SimulationRunner::SimulationRunner(
     std::function<UserData *(int)> getUserData,
@@ -106,4 +106,4 @@ void SimulationRunner::queueSimulation(LoadBalancerMaster *loadBalancer,
     loadBalancer->queueJob(d);
 }
 
-} // namespace parPE
+} // namespace parpe

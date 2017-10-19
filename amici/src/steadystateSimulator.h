@@ -7,7 +7,7 @@
 
 class Model;
 
-namespace parPE {
+namespace parpe {
 
 
 /**
@@ -53,6 +53,6 @@ class SteadystateSimulator {
                                         const double src[], int count);
 };
 
-} // namespace parPE
+} // namespace parpe
 
 #endif // STEADYSTATESIMULATOR_H

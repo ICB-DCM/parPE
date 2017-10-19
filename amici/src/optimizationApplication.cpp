@@ -9,7 +9,7 @@
 #include <optimizationOptions.h>
 #include <pthread.h>
 
-namespace parPE {
+namespace parpe {
 
 OptimizationApplication::OptimizationApplication()
     : OptimizationApplication(0, nullptr) {}
@@ -261,4 +261,4 @@ OptimizationApplication::~OptimizationApplication() {
     MPI_Finalize();
 }
 
-} // namespace parPE
+} // namespace parpe

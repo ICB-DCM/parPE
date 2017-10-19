@@ -5,15 +5,15 @@
 #include "hdf5Misc.h"
 #include "optimizationResultWriter.h"
 
-TEST_GROUP(optimizationResultWriter){void setup(){parPE::initHDF5Mutex();
+TEST_GROUP(optimizationResultWriter){void setup(){parpe::initHDF5Mutex();
 }
 
-void teardown() { parPE::destroyHDF5Mutex(); }
+void teardown() { parpe::destroyHDF5Mutex(); }
 }
 ;
 
 TEST(optimizationResultWriter, testResultWriter) {
-    parPE::OptimizationResultWriter w("deleteme.h5", true);
+    parpe::OptimizationResultWriter w("deleteme.h5", true);
 
     w.setRootPath("/bla/");
 

@@ -4,7 +4,7 @@
 #include "optimizationProblem.h"
 #include "optimizer.h"
 
-namespace parPE {
+namespace parpe {
 
 class OptimizerIpOpt : public Optimizer {
   public:
@@ -19,6 +19,6 @@ class OptimizerIpOpt : public Optimizer {
     int optimize(OptimizationProblem *problem) override;
 };
 
-} // namespace parPE
+} // namespace parpe
 
 #endif

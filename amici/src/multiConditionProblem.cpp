@@ -16,7 +16,7 @@
 #include <udata.h>
 #include <amici_serialization.h>
 
-namespace parPE {
+namespace parpe {
 
 // For debugging:
 // skip objective function evaluation completely
@@ -449,4 +449,4 @@ MultiConditionProblemMultiStartOptimization::getLocalProblemImpl(
     return problem;
 }
 
-} // namespace parPE
+} // namespace parpe

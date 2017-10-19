@@ -1,7 +1,7 @@
 #include "simulationWorkerAmici.h"
 #include <cstring>
 
-namespace parPE {
+namespace parpe {
 
 void JobAmiciSimulation::toUserData(const char *buffer, UserData *udata,
                                     void *userData) {
@@ -71,4 +71,4 @@ void JobAmiciSimulation::deserialize(const char *msg) {
     msg += size;
 }
 
-} // namespace parPE
+} // namespace parpe

@@ -7,7 +7,7 @@
 #include <functional>
 #include <algorithm>
 
-namespace parPE {
+namespace parpe {
 
 class Optimizer;
 
@@ -71,6 +71,6 @@ private:
 
 Optimizer* optimizerFactory(optimizerEnum optimizer);
 
-} // namespace parPE
+} // namespace parpe
 
 #endif // OPTIMIZATIONOPTIONS_H

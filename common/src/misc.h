@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <memory>
 
-namespace parPE {
+namespace parpe {
 // void printMatlabArray(const double *buffer, int len);
 
 /**
@@ -52,7 +52,7 @@ int getMpiRank();
 int getMpiCommSize();
 
 
-} // namespace parPE
+} // namespace parpe
 
 #if __cplusplus < 201402L
 // custom make_unique while we are still using c++11

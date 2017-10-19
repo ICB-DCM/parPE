@@ -9,7 +9,7 @@
 #include <string.h>
 #include <unistd.h>
 
-namespace parPE {
+namespace parpe {
 
 const char *loglevelShortStr[] = {"", "CRI", "ERR", "WRN", "INF", "DBG"};
 
@@ -133,4 +133,4 @@ void warning(const char *message) {
     logmessage(LOGLVL_WARNING, message);
 }
 
-} // namespace parPE
+} // namespace parpe

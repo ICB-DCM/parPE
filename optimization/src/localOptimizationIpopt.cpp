@@ -14,7 +14,7 @@
 #include <ctime>
 #include <pthread.h>
 
-namespace parPE {
+namespace parpe {
 
 // https://www.coin-or.org/Ipopt/documentation/node40.html
 // grep -A1 -r "roptions->Add" ../ThirdParty/Ipopt-3.12.7
@@ -402,4 +402,4 @@ int OptimizerIpOpt::optimize(OptimizationProblem *problem) {
     return (int)status < Maximum_Iterations_Exceeded;
 }
 
-} // namespace parPE
+} // namespace parpe

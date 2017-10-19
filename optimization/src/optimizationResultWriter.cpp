@@ -7,7 +7,7 @@
 #include <sstream>
 #include <iostream>
 
-namespace parPE {
+namespace parpe {
 
 OptimizationResultWriter::OptimizationResultWriter() {}
 
@@ -204,4 +204,4 @@ void OptimizationResultWriter::setRootPath(const std::string &path)
 
 OptimizationResultWriter::~OptimizationResultWriter() { closeResultHDFFile(); }
 
-} // namespace parPE
+} // namespace parpe

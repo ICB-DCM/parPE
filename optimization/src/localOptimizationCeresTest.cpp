@@ -19,7 +19,7 @@ void teardown() {
 ;
 
 TEST(localOptimizationCeres, testOptimization) {
-    parPE::QuadraticTestProblem problem;
+    parpe::QuadraticTestProblem problem;
 
     mock().expectOneCall("logFinish").withIntParameter("exitStatus", 0);
     // CERES always requests gradient, this one call is for the workaround
@@ -28,7 +28,7 @@ TEST(localOptimizationCeres, testOptimization) {
     //    mock().expectNCalls(10, "testObjGrad");
     mock().ignoreOtherCalls();
 
-    parPE::OptimizerCeres optimizer;
+    parpe::OptimizerCeres optimizer;
     optimizer.optimize(&problem);
 
     // This is a work-around for buggy ceres in ubuntu repository, which does

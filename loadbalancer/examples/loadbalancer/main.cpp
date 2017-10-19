@@ -18,20 +18,20 @@
  * @return number of errors
  */
 int master() {
-    parPE::LoadBalancerMaster lbm;
+    parpe::LoadBalancerMaster lbm;
     lbm.run();
 
     int numJobs = NUM_JOBS;
     int numJobsFinished = 0;
 
-    parPE::JobData jobdata[numJobs];
+    parpe::JobData jobdata[numJobs];
 
     // mutex to wait for simulations to finish
     pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
     pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
     for (int i = 0; i < numJobs; ++i) {
-        parPE::JobData *job = &jobdata[i];
+        parpe::JobData *job = &jobdata[i];
         job->jobDone = &numJobsFinished;
         job->jobDoneChangedCondition = &cond;
         job->jobDoneChangedMutex = &mutex;
@@ -65,7 +65,7 @@ int master() {
     return errors;
 }
 
-class DuplicatingLoadBalancerWorker : public parPE::LoadBalancerWorker {
+class DuplicatingLoadBalancerWorker : public parpe::LoadBalancerWorker {
     /**
      * @brief messageHandler On the worker side, take the received value,
      * multiply

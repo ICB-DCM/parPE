@@ -1,9 +1,9 @@
 #include "optimizer.h"
 
-namespace parPE {
+namespace parpe {
 
 Optimizer::Optimizer() {}
 
 Optimizer::~Optimizer() {}
 
-} // namespace parPE
+} // namespace parpe

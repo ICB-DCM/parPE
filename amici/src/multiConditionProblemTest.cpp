@@ -10,7 +10,7 @@ int runAmiciSimulation(UserData *, ExpData const *, ReturnData *) { return 0; }
 /**
  * @brief Mock MultiConditionProblem
  */
-class MultiConditionProblemTest : public parPE::MultiConditionProblem {
+class MultiConditionProblemTest : public parpe::MultiConditionProblem {
   public:
     MultiConditionProblemTest() {}
     void addSimulationGradientToObjectiveFunctionGradient(
@@ -25,10 +25,10 @@ class MultiConditionProblemTest : public parPE::MultiConditionProblem {
     }
 };
 
-TEST_GROUP(multiConditionProblem){void setup(){parPE::initHDF5Mutex();
+TEST_GROUP(multiConditionProblem){void setup(){parpe::initHDF5Mutex();
 }
 
-void teardown() { parPE::destroyHDF5Mutex(); }
+void teardown() { parpe::destroyHDF5Mutex(); }
 }
 ;
 

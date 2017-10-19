@@ -9,7 +9,7 @@
 #include <amici_hdf5.h>
 
 class SteadyStateMultiConditionDataProvider
-    : public parPE::MultiConditionDataProvider {
+    : public parpe::MultiConditionDataProvider {
   public:
     SteadyStateMultiConditionDataProvider(Model *model,
                                           std::string hdf5Filename);
@@ -33,10 +33,10 @@ class SteadyStateMultiConditionDataProvider
     UserData *udata;
 };
 
-class SteadyStateMultiConditionProblem : public parPE::MultiConditionProblem {
+class SteadyStateMultiConditionProblem : public parpe::MultiConditionProblem {
   public:
     SteadyStateMultiConditionProblem(SteadyStateMultiConditionDataProvider *dp,
-                                     parPE::LoadBalancerMaster *loadBalancer);
+                                     parpe::LoadBalancerMaster *loadBalancer);
 
     void setSensitivityOptions(bool sensiRequired) override;
 

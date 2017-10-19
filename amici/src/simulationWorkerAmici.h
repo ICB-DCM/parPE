@@ -5,7 +5,7 @@
 #include <include/udata.h>
 #include <amici_serialization.h>
 
-namespace parPE {
+namespace parpe {
 
 struct JobAmiciSimulation {
   public:
@@ -48,12 +48,12 @@ public:
     double simulationTimeInSec = -1;
 };
 
-} // namespace parPE
+} // namespace parpe
 
 namespace boost {
 namespace serialization {
 template <class Archive>
-void serialize(Archive &ar, parPE::JobResultAmiciSimulation &d, const unsigned int version) {
+void serialize(Archive &ar, parpe::JobResultAmiciSimulation &d, const unsigned int version) {
     ar & d.status;
     if (Archive::is_loading::value) {
         d.rdata = new ReturnData();

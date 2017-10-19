@@ -7,7 +7,7 @@
 #include <unistd.h>
 
 SteadystateProblemParallel::SteadystateProblemParallel(
-    parPE::LoadBalancerMaster *loadBalancer)
+    parpe::LoadBalancerMaster *loadBalancer)
     : loadBalancer(loadBalancer) {
     MPI_Comm_size(MPI_COMM_WORLD, &commSize);
 
@@ -28,7 +28,7 @@ int SteadystateProblemParallel::evaluateParallel(const double *parameters,
     // TODO: always computes gradient; ignores simulation status
 
     // create load balancer job for each simulation
-    parPE::JobData jobdata[numConditions];
+    parpe::JobData jobdata[numConditions];
 
     // mutex to wait for simulations to finish
     pthread_cond_t simulationsCond = PTHREAD_COND_INITIALIZER;
@@ -37,7 +37,7 @@ int SteadystateProblemParallel::evaluateParallel(const double *parameters,
     int numJobsFinished = 0;
 
     for (int i = 0; i < numConditions; ++i) {
-        parPE::JobData *job = &jobdata[i];
+        parpe::JobData *job = &jobdata[i];
         job->jobDone = &numJobsFinished;
         job->jobDoneChangedCondition = &simulationsCond;
         job->jobDoneChangedMutex = &simulationsMutex;

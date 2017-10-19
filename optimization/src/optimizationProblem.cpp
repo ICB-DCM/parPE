@@ -11,7 +11,7 @@
 #include <iostream>
 #include <cassert>
 
-namespace parPE {
+namespace parpe {
 
 
 /**
@@ -168,4 +168,4 @@ void OptimizationProblem::getRandomStartingpoint(const double *min,
     fillArrayRandomDoubleIndividualInterval(min, max, numParameters, buffer);
 }
 
-} // namespace parPE
+} // namespace parpe

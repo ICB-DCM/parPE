@@ -8,7 +8,7 @@
 #include <getopt.h>
 #include <string>
 
-namespace parPE {
+namespace parpe {
 
 /**
  * @brief The OptimizationApplication class parses command line arguments,
@@ -118,6 +118,6 @@ class OptimizationApplication {
     LoadBalancerMaster loadBalancer;
 };
 
-} // namespace parPE
+} // namespace parpe
 
 #endif // OPTIMIZATIONAPPLICATION_H

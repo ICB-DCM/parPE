@@ -8,7 +8,7 @@
 class UserData;
 class ExpData;
 
-namespace parPE {
+namespace parpe {
 
 class JobData;
 class LoadBalancerMaster;
@@ -56,6 +56,6 @@ class SimulationRunner {
     std::function<int(std::vector<JobData> &jobs)> aggregate = nullptr;
 };
 
-} // namespace parPE
+} // namespace parpe
 
 #endif // SIMULATIONRUNNER_H

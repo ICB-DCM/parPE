@@ -12,7 +12,7 @@
 class ReturnData;
 class UserData;
 
-namespace parPE {
+namespace parpe {
 
 class MultiConditionDataProvider;
 class MultiConditionProblemResultWriter;
@@ -242,6 +242,6 @@ class MultiConditionProblemMultiStartOptimization
     LoadBalancerMaster *loadBalancer = nullptr;
 };
 
-} // namespace parPE
+} // namespace parpe
 
 #endif
