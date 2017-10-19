@@ -4,8 +4,12 @@
 #include <MultiConditionDataProvider.h> // JobIdentifier
 #include <functional>
 #include <vector>
+
 class UserData;
 class ExpData;
+
+namespace parPE {
+
 class JobData;
 class LoadBalancerMaster;
 
@@ -51,5 +55,7 @@ class SimulationRunner {
     std::function<JobIdentifier(int)> getJobIdentifier = nullptr;
     std::function<int(std::vector<JobData> &jobs)> aggregate = nullptr;
 };
+
+} // namespace parPE
 
 #endif // SIMULATIONRUNNER_H

@@ -10,6 +10,10 @@
 #include <optimizer.h>
 #include <iostream>
 #include <cassert>
+
+namespace parPE {
+
+
 /**
  * @brief getLocalOptimum
  * @param problem
@@ -163,3 +167,5 @@ void OptimizationProblem::getRandomStartingpoint(const double *min,
                                                  double *buffer) {
     fillArrayRandomDoubleIndividualInterval(min, max, numParameters, buffer);
 }
+
+} // namespace parPE

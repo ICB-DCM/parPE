@@ -7,6 +7,8 @@
 #include <mpi.h>
 #include <parpeException.h>
 
+namespace parPE {
+
 #define XDOT_REL_TOLERANCE 1e-6
 
 ReturnData *SteadystateSimulator::getSteadystateSolution(Model *model,
@@ -90,3 +92,5 @@ bool SteadystateSimulator::reachedSteadyState(const double *xdot,
     }
     return TRUE;
 }
+
+} // namespace parPE

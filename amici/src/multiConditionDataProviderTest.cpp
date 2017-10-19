@@ -8,7 +8,7 @@
 /**
  * @brief Mock MultiConditionDataProvider
  */
-class MultiConditionDataProviderTest : public MultiConditionDataProvider {
+class MultiConditionDataProviderTest : public parPE::MultiConditionDataProvider {
   public:
     MultiConditionDataProviderTest() {
         model = new Model(10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22,
@@ -28,10 +28,10 @@ class MultiConditionDataProviderTest : public MultiConditionDataProvider {
     ~MultiConditionDataProviderTest() { delete model; }
 };
 
-TEST_GROUP(multiConditionDataProvider){void setup(){initHDF5Mutex();
+TEST_GROUP(multiConditionDataProvider){void setup(){parPE::initHDF5Mutex();
 }
 
-void teardown() { destroyHDF5Mutex(); }
+void teardown() { parPE::destroyHDF5Mutex(); }
 }
 ;
 

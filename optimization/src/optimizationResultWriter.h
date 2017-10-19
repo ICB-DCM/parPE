@@ -6,6 +6,8 @@
 #include <hdf5_hl.h>
 #include <string>
 
+namespace parPE {
+
 class OptimizationProblem;
 
 /**
@@ -119,5 +121,7 @@ private:
     std::string rootPath = "/";
 
 };
+
+} // namespace parPE
 
 #endif // OPTIMIZATIONRESULTWRITER_H

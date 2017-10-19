@@ -7,6 +7,8 @@
 #include <math.h>
 #include <stdio.h>
 
+namespace parPE {
+
 QuadraticTestProblem::QuadraticTestProblem() : OptimizationProblem(1) {
     optimizationOptions = new OptimizationOptions();
     optimizationOptions->maxOptimizerIterations = 12;
@@ -62,3 +64,5 @@ QuadraticOptimizationMultiStartProblem::getLocalProblemImpl(
 
     return problem;
 }
+
+} // namespace parPE

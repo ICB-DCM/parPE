@@ -6,9 +6,9 @@
 #include <LoadBalancerWorker.h>
 
 class SteadystateProblemParallel : public ExampleSteadystateProblem,
-                                   public LoadBalancerWorker {
+                                   public parPE::LoadBalancerWorker {
   public:
-    SteadystateProblemParallel(LoadBalancerMaster *loadBalancer);
+    SteadystateProblemParallel(parPE::LoadBalancerMaster *loadBalancer);
 
     int evaluateObjectiveFunction(const double *parameters, double *objFunVal,
                                   double *objFunGrad) override;
@@ -23,7 +23,7 @@ class SteadystateProblemParallel : public ExampleSteadystateProblem,
 
     ~SteadystateProblemParallel();
 
-    LoadBalancerMaster *loadBalancer;
+    parPE::LoadBalancerMaster *loadBalancer;
 
   protected:
     int commSize;

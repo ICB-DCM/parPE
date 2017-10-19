@@ -9,16 +9,16 @@
 #include "CppUTest/TestHarness.h"
 #include "CppUTestExt/MockSupport.h"
 
-TEST_GROUP(multiConditionProblemResultWriter){void setup(){initHDF5Mutex();
+TEST_GROUP(multiConditionProblemResultWriter){void setup(){parPE::initHDF5Mutex();
 }
 
-void teardown() { destroyHDF5Mutex(); }
+void teardown() { parPE::destroyHDF5Mutex(); }
 }
 ;
 
 TEST(multiConditionProblemResultWriter, testResultWriter) {
-    JobIdentifier id;
-    MultiConditionProblemResultWriter w("deleteme.h5", true, id);
+    parPE::JobIdentifier id;
+    parPE::MultiConditionProblemResultWriter w("deleteme.h5", true, id);
 
     w.setRootPath("/bla/");
 

@@ -8,6 +8,8 @@
 
 //#define MASTER_QUEUE_H_SHOW_COMMUNICATION
 
+namespace parPE {
+
 /** data to be sent to workers */
 struct JobData {
     JobData() = default;
@@ -132,5 +134,7 @@ class LoadBalancerMaster {
 
     pthread_t queueThread = 0;
 };
+
+} // namespace parPE
 
 #endif // LOADBALANCERMASTER_H

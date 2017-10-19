@@ -4,6 +4,8 @@
 #include "optimizationProblem.h"
 #include <vector>
 
+namespace parPE {
+
 class MultiStartOptimization {
 
   public:
@@ -28,5 +30,7 @@ class MultiStartOptimization {
     int numberOfStarts = 1;
     bool restartOnFailure = false;
 };
+
+} // namespace parPE
 
 #endif

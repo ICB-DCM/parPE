@@ -1,6 +1,8 @@
 #include "simulationWorkerAmici.h"
 #include <cstring>
 
+namespace parPE {
+
 void JobAmiciSimulation::toUserData(const char *buffer, UserData *udata,
                                     void *userData) {
     JobAmiciSimulation work;
@@ -68,3 +70,5 @@ void JobAmiciSimulation::deserialize(const char *msg) {
     size = sizeof(int);
     msg += size;
 }
+
+} // namespace parPE

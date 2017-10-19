@@ -10,12 +10,14 @@
 #include <math.h>
 #include <pthread.h>
 
+namespace parPE {
 using namespace Ipopt;
 
 class OptimizationProblem;
 
 class LocalOptimizationIpoptTNLP : public Ipopt::TNLP {
   public:
+
     LocalOptimizationIpoptTNLP(OptimizationProblem *problem,
                                pthread_mutex_t *ipoptMutex);
 
@@ -72,5 +74,6 @@ class LocalOptimizationIpoptTNLP : public Ipopt::TNLP {
 };
 
 void setIpOptOption(const std::pair<const std::string, const std::string> &pair, SmartPtr<OptionsList>* o);
+} // namespace parPE
 
 #endif // LOCALOPTIMIZATIONIPOPTTNLP_H

@@ -16,6 +16,8 @@
 #include <udata.h>
 #include <amici_serialization.h>
 
+namespace parPE {
+
 // For debugging:
 // skip objective function evaluation completely
 //#define NO_OBJ_FUN_EVAL
@@ -446,3 +448,5 @@ MultiConditionProblemMultiStartOptimization::getLocalProblemImpl(
 
     return problem;
 }
+
+} // namespace parPE

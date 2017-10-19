@@ -11,14 +11,14 @@ int main(int argc, char **argv) {
     printf("# IpOpt #\n");
     printf("#########\n");
 
-    int status = getLocalOptimum(&problem);
+    int status = parPE::getLocalOptimum(&problem);
 
     printf("#########\n");
     printf("# CERES #\n");
     printf("#########\n");
 
-    problem.optimizationOptions->optimizer = OPTIMIZER_CERES;
-    status += getLocalOptimum(&problem);
+    problem.optimizationOptions->optimizer = parPE::OPTIMIZER_CERES;
+    status += parPE::getLocalOptimum(&problem);
 
     return status;
 }

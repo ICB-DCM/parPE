@@ -54,9 +54,6 @@ int getMpiCommSize();
 
 } // namespace parPE
 
-//TODO remove as soon as everthing is namespaced
-using namespace parPE;
-
 #if __cplusplus < 201402L
 // custom make_unique while we are still using c++11
 namespace std {

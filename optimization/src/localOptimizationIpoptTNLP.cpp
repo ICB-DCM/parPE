@@ -3,6 +3,8 @@
 #include <cassert>
 #include <cstring>
 
+namespace parPE {
+
 LocalOptimizationIpoptTNLP::LocalOptimizationIpoptTNLP(
     OptimizationProblem *problem, pthread_mutex_t *ipoptMutex)
     : problem(problem), ipoptMutex(ipoptMutex) {
@@ -194,3 +196,5 @@ void LocalOptimizationIpoptTNLP::finalize_solution(
 
     pthread_mutex_lock(ipoptMutex);
 }
+
+} // namespace parPE

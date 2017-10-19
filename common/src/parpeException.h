@@ -4,6 +4,8 @@
 #include <exception>
 #include <string>
 
+namespace parPE {
+
 class ParPEException : public std::exception {
   public:
     ParPEException(const char *message);
@@ -18,4 +20,5 @@ class ParPEException : public std::exception {
     std::string message;
 };
 
+} // namespace parPE
 #endif // PARPEEXCEPTION_H

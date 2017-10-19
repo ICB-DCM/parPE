@@ -19,7 +19,7 @@ int main(int argc, char **argv) {
     int status = 0;
 
     initMPI(&argc, &argv);
-    initHDF5Mutex();
+    parPE::initHDF5Mutex();
 
     int commSize;
     MPI_Comm_size(MPI_COMM_WORLD, &commSize);
@@ -36,11 +36,11 @@ int main(int argc, char **argv) {
         MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
 
         if (mpiRank == 0) {
-            LoadBalancerMaster lbm;
+            parPE::LoadBalancerMaster lbm;
             problem.loadBalancer = &lbm;
             lbm.run();
 
-            status = getLocalOptimum(&problem);
+            status = parPE::getLocalOptimum(&problem);
 
             lbm.terminate();
             lbm.sendTerminationSignalToAllWorkers();
@@ -49,7 +49,7 @@ int main(int argc, char **argv) {
         }
     }
 
-    destroyHDF5Mutex();
+    parPE::destroyHDF5Mutex();
 
     MPI_Finalize();
 
@@ -59,7 +59,7 @@ int main(int argc, char **argv) {
 void initMPI(int *argc, char ***argv) {
     int mpiErr = MPI_Init(argc, argv);
     if (mpiErr != MPI_SUCCESS) {
-        logmessage(LOGLVL_CRITICAL, "Problem initializing MPI. Exiting.");
+        parPE::logmessage(parPE::LOGLVL_CRITICAL, "Problem initializing MPI. Exiting.");
         exit(1);
     }
 
@@ -69,6 +69,6 @@ void initMPI(int *argc, char ***argv) {
         int commSize;
         MPI_Comm_size(MPI_COMM_WORLD, &commSize);
 
-        logmessage(LOGLVL_INFO, "Running with %d MPI processes.", commSize);
+        parPE::logmessage(parPE::LOGLVL_INFO, "Running with %d MPI processes.", commSize);
     }
 }

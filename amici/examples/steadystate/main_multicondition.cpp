@@ -22,7 +22,7 @@
  * steadystate_`date +%F` amici/examples/steadystate/data.h5
  */
 
-class SteadystateApplication : public OptimizationApplication {
+class SteadystateApplication : public parPE::OptimizationApplication {
   public:
     using OptimizationApplication::OptimizationApplication;
 
@@ -34,9 +34,9 @@ class SteadystateApplication : public OptimizationApplication {
         problem =
             new SteadyStateMultiConditionProblem(dataProvider.get(), &loadBalancer);
 
-        JobIdentifier id;
+        parPE::JobIdentifier id;
         resultWriter =
-            new MultiConditionProblemResultWriter(outFileArgument, true, id);
+            new parPE::MultiConditionProblemResultWriter(outFileArgument, true, id);
         problem->resultWriter = resultWriter;
     }
 
@@ -71,13 +71,13 @@ class SteadystateMultiStartOptimizationApplication
         int status = 0;
 
         // Multistart optimization
-        std::unique_ptr<OptimizationOptions> options(OptimizationOptions::fromHDF5(
+        std::unique_ptr<parPE::OptimizationOptions> options(parPE::OptimizationOptions::fromHDF5(
                                                                  dataProvider->getHdf5FileId()));
         // if numStarts > 1: need to use multiple MPI
         // workers, otherwise simulation crashes due
         // to CVODES threading issues
 
-        MultiConditionProblemMultiStartOptimization multiStartOptimization(
+        parPE::MultiConditionProblemMultiStartOptimization multiStartOptimization(
             options->numStarts, options->retryOptimization);
         multiStartOptimization.options = options.get();
         multiStartOptimization.resultWriter = problem->resultWriter;

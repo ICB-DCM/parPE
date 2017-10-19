@@ -1,6 +1,8 @@
 #include "multiConditionProblemResultWriter.h"
 #include <cmath>
 
+namespace parPE {
+
 MultiConditionProblemResultWriter::MultiConditionProblemResultWriter()
     : OptimizationResultWriter() {}
 
@@ -110,3 +112,5 @@ void MultiConditionProblemResultWriter::logSimulation(
 
     flushResultWriter();
 }
+
+} // namespace parPE

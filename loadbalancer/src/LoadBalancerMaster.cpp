@@ -3,6 +3,8 @@
 #include <cassert>
 #include <climits>
 
+namespace parPE {
+
 void LoadBalancerMaster::run() {
     if (isRunning_)
         return;
@@ -269,3 +271,5 @@ bool LoadBalancerMaster::isRunning() const
 {
     return isRunning_;
 }
+
+} // namespace parPE

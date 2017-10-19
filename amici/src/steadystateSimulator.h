@@ -5,6 +5,11 @@
 #include <rdata.h>
 #include <udata.h>
 
+class Model;
+
+namespace parPE {
+
+
 /**
  * @brief The SteadystateSimulator class runs an AMICI simulation until a
  * steady-state is reached.
@@ -47,5 +52,7 @@ class SteadystateSimulator {
     static void updateInitialConditions(double destination[],
                                         const double src[], int count);
 };
+
+} // namespace parPE
 
 #endif // STEADYSTATESIMULATOR_H

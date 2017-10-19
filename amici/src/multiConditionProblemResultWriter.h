@@ -6,6 +6,8 @@
 #include "optimizationResultWriter.h"
 #include <stdbool.h>
 
+namespace parPE {
+
 class MultiConditionProblemResultWriter : public OptimizationResultWriter {
 
   public:
@@ -39,5 +41,7 @@ class MultiConditionProblemResultWriter : public OptimizationResultWriter {
   protected:
     JobIdentifier id;
 };
+
+} // namespace parPE
 
 #endif

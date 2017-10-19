@@ -4,6 +4,8 @@
 #include <ceres/ceres.h>
 #include <logging.h>
 
+namespace parPE {
+
 void setCeresOption(const std::pair<const std::string, const std::string> &pair, ceres::GradientProblemSolver::Options* options);
 
 class MyCeresFirstOrderFunction : public ceres::FirstOrderFunction {
@@ -167,3 +169,6 @@ void setCeresOption(const std::pair<const std::string, const std::string> &pair,
         logmessage(LOGLVL_WARNING, "Ignoring unknown optimization option %s.", key.c_str());
     }
 }
+
+
+} // namespace parPE

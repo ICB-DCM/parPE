@@ -10,6 +10,10 @@
 #include <cmath> //NAN
 
 class ReturnData;
+class UserData;
+
+namespace parPE {
+
 class MultiConditionDataProvider;
 class MultiConditionProblemResultWriter;
 
@@ -237,5 +241,7 @@ class MultiConditionProblemMultiStartOptimization
     Model *model = nullptr;
     LoadBalancerMaster *loadBalancer = nullptr;
 };
+
+} // namespace parPE
 
 #endif

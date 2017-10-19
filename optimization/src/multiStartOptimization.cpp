@@ -5,6 +5,8 @@
 #include <pthread.h>
 #include <unistd.h>
 
+namespace parPE {
+
 MultiStartOptimization::MultiStartOptimization(int numberOfStarts,
                                                bool restartOnFailure)
     : numberOfStarts(numberOfStarts), restartOnFailure(restartOnFailure) {}
@@ -109,3 +111,5 @@ MultiStartOptimization::createLocalOptimizationProblems() {
 
     return localProblems;
 }
+
+} // namespace parPE

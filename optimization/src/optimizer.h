@@ -1,6 +1,8 @@
 #ifndef OPTIMIZER_H
 #define OPTIMIZER_H
 
+namespace parPE {
+
 class OptimizationProblem;
 class OptimizationOptions;
 
@@ -14,5 +16,7 @@ class Optimizer {
 
     virtual ~Optimizer();
 };
+
+} // namespace parPE
 
 #endif // OPTIMIZER_H

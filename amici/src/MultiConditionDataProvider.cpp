@@ -9,6 +9,8 @@
 #include <edata.h>
 #include <udata.h>
 
+namespace parPE {
+
 /**
  * @brief
  * @param hdf5Filename Filename from where to read data
@@ -281,3 +283,5 @@ void JobIdentifier::sprint(char *buffer) {
     sprintf(buffer, "%d.%d.%d.%d", idxMultiStart, idxLocalOptimization,
             idxLocalOptimizationIteration, idxConditions);
 }
+
+} // namespace parPE

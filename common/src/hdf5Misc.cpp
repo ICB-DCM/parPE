@@ -7,6 +7,8 @@
 #include <unistd.h>
 #include <sys/stat.h>
 
+namespace parPE {
+
 // mutex for **ALL** HDF5 library calls; read and write; any file(?)
 static pthread_mutex_t mutexHDF;
 
@@ -548,3 +550,5 @@ void hdf5GetDatasetDimensions3D(hid_t file_id, const char *path, int *d1, int *d
 
     hdf5UnlockMutex();
 }
+
+} // namespace parPE

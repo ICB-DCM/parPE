@@ -7,6 +7,8 @@
 #include <sstream>
 #include <iostream>
 
+namespace parPE {
+
 OptimizationResultWriter::OptimizationResultWriter() {}
 
 OptimizationResultWriter::OptimizationResultWriter(hid_t file_id) {
@@ -201,3 +203,5 @@ void OptimizationResultWriter::setRootPath(const std::string &path)
 }
 
 OptimizationResultWriter::~OptimizationResultWriter() { closeResultHDFFile(); }
+
+} // namespace parPE

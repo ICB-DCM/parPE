@@ -19,7 +19,7 @@ SteadyStateMultiConditionDataProvider::SteadyStateMultiConditionDataProvider(
 
 int SteadyStateMultiConditionDataProvider::updateFixedSimulationParameters(
     int conditionIdx, UserData *udata) const {
-    hdf5Read2DDoubleHyperslab(fileId, "/data/k", model->nk, 1, 0, conditionIdx,
+    parPE::hdf5Read2DDoubleHyperslab(fileId, "/data/k", model->nk, 1, 0, conditionIdx,
                               udata->k);
     return 0;
 }
@@ -61,7 +61,7 @@ SteadyStateMultiConditionDataProvider::
 }
 
 SteadyStateMultiConditionProblem::SteadyStateMultiConditionProblem(
-    SteadyStateMultiConditionDataProvider *dp, LoadBalancerMaster *loadBalancer)
+    SteadyStateMultiConditionDataProvider *dp, parPE::LoadBalancerMaster *loadBalancer)
     : MultiConditionProblem(dp, loadBalancer) {
 
     std::fill(initialParameters_.begin(), initialParameters_.end(), 0);
@@ -69,8 +69,8 @@ SteadyStateMultiConditionProblem::SteadyStateMultiConditionProblem(
     std::fill(parametersMax_.begin(), parametersMax_.end(), 5);
 
 
-    optimizationOptions = new OptimizationOptions();
-    optimizationOptions->optimizer = OPTIMIZER_IPOPT;
+    optimizationOptions = new parPE::OptimizationOptions();
+    optimizationOptions->optimizer = parPE::OPTIMIZER_IPOPT;
     optimizationOptions->printToStdout = true;
     optimizationOptions->maxOptimizerIterations = 30;
 }

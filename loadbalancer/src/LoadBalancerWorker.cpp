@@ -6,6 +6,8 @@
 #include <cstring>
 #include <mpi.h>
 
+namespace parPE {
+
 void LoadBalancerWorker::run() {
     bool terminate = false;
 
@@ -54,3 +56,5 @@ bool LoadBalancerWorker::waitForAndHandleJobs() {
 
     return false;
 }
+
+} // namespace parPE

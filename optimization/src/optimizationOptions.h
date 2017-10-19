@@ -7,6 +7,8 @@
 #include <functional>
 #include <algorithm>
 
+namespace parPE {
+
 class Optimizer;
 
 typedef enum optimizer_tag { OPTIMIZER_IPOPT, OPTIMIZER_CERES } optimizerEnum;
@@ -68,5 +70,7 @@ private:
 };
 
 Optimizer* optimizerFactory(optimizerEnum optimizer);
+
+} // namespace parPE
 
 #endif // OPTIMIZATIONOPTIONS_H

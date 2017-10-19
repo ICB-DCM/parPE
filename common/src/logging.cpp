@@ -9,6 +9,8 @@
 #include <string.h>
 #include <unistd.h>
 
+namespace parPE {
+
 const char *loglevelShortStr[] = {"", "CRI", "ERR", "WRN", "INF", "DBG"};
 
 void logmessage(loglevel lvl, const char *format, ...)
@@ -130,3 +132,5 @@ void error(const char *message) { // exit?
 void warning(const char *message) {
     logmessage(LOGLVL_WARNING, message);
 }
+
+} // namespace parPE

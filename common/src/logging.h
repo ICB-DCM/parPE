@@ -1,6 +1,8 @@
 #ifndef LOGGING_H
 #define LOGGING_H
 
+namespace parPE {
+
 #define ANSI_COLOR_RED "\x1b[31m"
 #define ANSI_COLOR_GREEN "\x1b[32m"
 #define ANSI_COLOR_YELLOW "\x1b[33m"
@@ -9,9 +11,6 @@
 #define ANSI_COLOR_CYAN "\x1b[36m"
 #define ANSI_COLOR_RESET "\x1b[0m"
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
 
 typedef enum loglevel_tag {
     LOGLVL_CRITICAL = 1,
@@ -38,8 +37,6 @@ void error(const char *message);
 // TODO remove
 void warning(const char *message);
 
-#if defined(__cplusplus)
-}
-#endif
 
+} // namespace parPE
 #endif

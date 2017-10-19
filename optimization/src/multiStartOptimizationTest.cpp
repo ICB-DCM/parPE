@@ -25,6 +25,6 @@ TEST(multiStartOptimization, testMultiStartOptimization) {
     mock().expectNCalls(numStarts, "logFinish").ignoreOtherParameters();
     mock().ignoreOtherCalls();
 
-    QuadraticOptimizationMultiStartProblem ms(numStarts, true);
+    parPE::QuadraticOptimizationMultiStartProblem ms(numStarts, true);
     ms.run();
 }

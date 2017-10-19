@@ -11,6 +11,8 @@
 #include <hdf5.h>
 #include <H5Cpp.h>
 
+namespace parPE {
+
 // Workaround for missing to_string on some systems
 namespace patch {
 template <typename T> std::string to_string(const T &n) {
@@ -237,3 +239,5 @@ Optimizer* optimizerFactory(optimizerEnum optimizer)
 
     return nullptr;
 }
+
+} // namespace parPE

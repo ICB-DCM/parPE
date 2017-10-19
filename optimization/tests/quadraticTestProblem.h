@@ -4,6 +4,8 @@
 #include "multiStartOptimization.h"
 #include "optimizationProblem.h"
 
+namespace parPE {
+
 class QuadraticTestProblem : public OptimizationProblem {
   public:
     QuadraticTestProblem();
@@ -32,5 +34,7 @@ class QuadraticOptimizationMultiStartProblem : public MultiStartOptimization {
     using MultiStartOptimization::MultiStartOptimization;
     OptimizationProblem *getLocalProblemImpl(int multiStartIndex) override;
 };
+
+} // namespace parPE
 
 #endif

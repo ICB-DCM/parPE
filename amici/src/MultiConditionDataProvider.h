@@ -8,6 +8,8 @@ class ExpData;
 class UserData;
 class Model;
 
+namespace parPE {
+
 /** Struct to tell simulation workers which dataset they are operating on.
   */
 struct JobIdentifier {
@@ -171,5 +173,7 @@ class MultiConditionDataProvider {
 
     Model *model = nullptr;
 };
+
+} // namespace parPE
 
 #endif // MULTICONDITIONDATAPROVIDER_H

@@ -6,6 +6,8 @@
 
 #include <vector>
 
+namespace parPE {
+
 class LoadBalancerWorker {
   public:
     LoadBalancerWorker() = default;
@@ -28,5 +30,7 @@ class LoadBalancerWorker {
      */
     bool waitForAndHandleJobs();
 };
+
+} // namespace parPE
 
 #endif // LOADBALANCERWORKER_H
