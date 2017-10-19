@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <sstream>
 
 namespace parpe {
 
@@ -131,6 +132,15 @@ void error(const char *message) { // exit?
 
 void warning(const char *message) {
     logmessage(LOGLVL_WARNING, message);
+}
+
+void logmessage(loglevel lvl, const std::string &msg)
+{
+    std::stringstream ss(msg);
+    std::string line;
+
+    while(std::getline(ss, line, '\n'))
+        logmessage(lvl, line.c_str());
 }
 
 } // namespace parpe

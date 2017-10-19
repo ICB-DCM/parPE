@@ -1,6 +1,8 @@
 #ifndef LOGGING_H
 #define LOGGING_H
 
+#include <string>
+
 namespace parpe {
 
 #define ANSI_COLOR_RED "\x1b[31m"
@@ -11,7 +13,6 @@ namespace parpe {
 #define ANSI_COLOR_CYAN "\x1b[36m"
 #define ANSI_COLOR_RESET "\x1b[0m"
 
-
 typedef enum loglevel_tag {
     LOGLVL_CRITICAL = 1,
     LOGLVL_ERROR,
@@ -20,6 +21,7 @@ typedef enum loglevel_tag {
     LOGLVL_DEBUG
 } loglevel;
 
+void logmessage(loglevel lvl, std::string const& msg);
 void logmessage(loglevel lvl, const char *format, ...);
 
 /**

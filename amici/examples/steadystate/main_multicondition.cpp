@@ -84,7 +84,7 @@ class SteadystateMultiStartOptimizationApplication
         multiStartOptimization.dp = dataProvider.get();
         multiStartOptimization.loadBalancer = &loadBalancer;
 
-        std::cout << multiStartOptimization.options->toString();
+        parpe::logmessage(parpe::LOGLVL_DEBUG, multiStartOptimization.options->toString());
 
         multiStartOptimization.run();
 
