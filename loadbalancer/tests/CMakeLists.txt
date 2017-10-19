@@ -2,8 +2,7 @@ project(unittests_loadbalancer)
 
 add_test (NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME} -c)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -include ${CPPUTEST_DIR}/include/CppUTest/MemoryLeakDetectorMallocMacros.h")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -include /usr/include/c++/6/bits/stl_tree.h -include ${CPPUTEST_DIR}/include/CppUTest/MemoryLeakDetectorNewMacros.h")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -include ${CMAKE_CURRENT_LIST_DIR}/../../common/src/STLCompatibleMemoryLeakDetectorMacros.h")
 
 include_directories(${CPPUTEST_INCLUDE_DIR})
 

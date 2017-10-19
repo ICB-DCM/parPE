@@ -98,10 +98,10 @@ int MultiConditionProblem::intermediateFunction(
     double mu, double d_norm, double regularization_size, double alpha_du,
     double alpha_pr, int ls_trials) {
 
-    static double startTime = 0;
+//    static double startTime = 0;
     // Wall time on master. NOTE: This also includes waiting time for the job
     // being sent to workers.
-    double duration = startTime ? (getTime() - startTime) : 0;
+//    double duration = startTime ? (getTime() - startTime) : 0;
 
     bool stop = false;
 
@@ -126,7 +126,7 @@ int MultiConditionProblem::intermediateFunction(
     }
 
     // save start time of the following iteration
-    startTime = getTime();
+//    startTime = getTime();
 
     stop = stop || earlyStopping();
 

@@ -1,4 +1,4 @@
-find_package(Amici)
+find_package(Amici HINTS ${CMAKE_CURRENT_LIST_DIR}/../deps/AMICI/build)
 
 find_package(Boost COMPONENTS serialization REQUIRED)
 
