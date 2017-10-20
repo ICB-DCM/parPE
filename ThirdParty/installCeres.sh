@@ -13,8 +13,8 @@ make install
 cd ../..
 
 # build CERES
-tar -xzf ceres-solver-1.12.0.tar.gz
-cd ceres-solver-1.12.0/
+tar -xzf ceres-solver-1.13.0.tar.gz
+cd ceres-solver-1.13.0/
 mkdir -p build
 cd build
 cmake -DCMAKE_INSTALL_PREFIX=`pwd`/install \

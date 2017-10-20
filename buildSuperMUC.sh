@@ -9,7 +9,7 @@ cd ThirdParty
 # requires download of additional packages ./installIpopt.sh
 cd ..
 
-CERES_BASE=`pwd`/ThirdParty/ceres-solver-1.12.0/
+CERES_BASE=`pwd`/ThirdParty/ceres-solver-1.13.0/
 
 mkdir -p build
 cd build
