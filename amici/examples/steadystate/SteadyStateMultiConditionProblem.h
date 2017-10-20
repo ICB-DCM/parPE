@@ -9,8 +9,13 @@
 #include <amici_hdf5.h>
 #include <memory>
 
+/**
+ * @brief The SteadyStateMultiConditionDataProvider class provides the interface
+ * to a HDF5 data file
+ */
 class SteadyStateMultiConditionDataProvider
     : public parpe::MultiConditionDataProvider {
+
   public:
     SteadyStateMultiConditionDataProvider(Model *model,
                                           std::string hdf5Filename);
@@ -38,8 +43,6 @@ class SteadyStateMultiConditionProblem : public parpe::MultiConditionProblem {
   public:
     SteadyStateMultiConditionProblem(SteadyStateMultiConditionDataProvider *dp,
                                      parpe::LoadBalancerMaster *loadBalancer);
-
-    void setSensitivityOptions(bool sensiRequired) override;
 
     ~SteadyStateMultiConditionProblem() = default;
 };

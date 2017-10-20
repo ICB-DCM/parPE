@@ -45,8 +45,9 @@ void SteadyStateMultiConditionDataProvider::setupUserData(
     udata->pscale = AMICI_SCALING_LOG10;
     udata->sensi = AMICI_SENSI_ORDER_FIRST;
     udata->sensi_meth = AMICI_SENSI_FSA;
-
     udata->maxsteps = 1e4;
+    udata->newton_maxlinsteps = 100;
+    udata->newton_maxsteps = 40;
 }
 
 UserData *SteadyStateMultiConditionDataProvider::getUserData() const {
@@ -60,24 +61,11 @@ SteadyStateMultiConditionProblem::SteadyStateMultiConditionProblem(
     SteadyStateMultiConditionDataProvider *dp, parpe::LoadBalancerMaster *loadBalancer)
     : MultiConditionProblem(dp, loadBalancer) {
 
+    std::unique_ptr<parpe::OptimizationOptions> options(parpe::OptimizationOptions::fromHDF5(
+                                                             dataProvider->getHdf5FileId()));
+
+    optimizationOptions = *options.get();
     std::fill(initialParameters_.begin(), initialParameters_.end(), 0);
     std::fill(parametersMin_.begin(), parametersMin_.end(), -5);
     std::fill(parametersMax_.begin(), parametersMax_.end(), 5);
-
-
-    optimizationOptions.optimizer = parpe::OPTIMIZER_IPOPT;
-    optimizationOptions.printToStdout = true;
-    optimizationOptions.maxOptimizerIterations = 30;
-}
-
-void SteadyStateMultiConditionProblem::setSensitivityOptions(
-    bool sensiRequired) {
-    // sensitivities requested?
-    if (sensiRequired) {
-        udata->sensi = AMICI_SENSI_ORDER_FIRST;
-        udata->sensi_meth = AMICI_SENSI_FSA;
-    } else {
-        udata->sensi = AMICI_SENSI_ORDER_NONE;
-        udata->sensi_meth = AMICI_SENSI_NONE;
-    }
 }

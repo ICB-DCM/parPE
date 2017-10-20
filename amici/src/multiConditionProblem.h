@@ -193,7 +193,7 @@ class MultiConditionProblem : public OptimizationProblem,
                          pthread_mutex_t *jobDoneChangedMutex,
                          int lenSendBuffer);
 
-    virtual void setSensitivityOptions(bool sensiRequired);
+    void setSensitivityOptions(bool sensiRequired);
 
     /**
      * @brief Keep information from last evaluation to avoid recomputation for
@@ -211,6 +211,7 @@ class MultiConditionProblem : public OptimizationProblem,
     LoadBalancerMaster *loadBalancer = nullptr;
     Model *model = nullptr;
     UserData *udata = nullptr;
+    UserData udataOriginal; // for saving sensitivity options which are changed depending on whether gradient is needed
 
     // keep track of previous results to avoid re-evaluation at the same
     // parameters (using IpOpt new_x)

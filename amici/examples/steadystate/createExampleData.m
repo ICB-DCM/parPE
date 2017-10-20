@@ -6,7 +6,8 @@ function [ output_args ] = createExampleData(  )
     % compile the model
     amiwrap('model_steadystate','model_steadystate_syms',exdir)
     
-    t = linspace(0,300,20); % timepoints
+    t = linspace(0,100,20); % timepoints
+    t = [t, inf];
     p = [1;0.5;0.4;2;0.1]; % optimization parameters
     % k_original = [0.1,0.4,0.7,1]; % fixed parameters
     
@@ -22,7 +23,7 @@ function [ output_args ] = createExampleData(  )
     
     rng(0);
     hdfFile = '/home/dweindl/src/parPE/amici/examples/steadystate/data.h5';
-    kAll = rand(numConditions, numK);
+    kAll = ones(numConditions, numK);
     
     delete(hdfFile);
     try
@@ -58,7 +59,7 @@ function [ output_args ] = createExampleData(  )
     H5F.close(fid);
 
     h5writeatt(hdfFile, '/optimizationOptions/', 'optimizer', 0);
-    h5writeatt(hdfFile, '/optimizationOptions/', 'maxIter', 80);
+    h5writeatt(hdfFile, '/optimizationOptions/', 'maxIter', 50);
 
 end
 

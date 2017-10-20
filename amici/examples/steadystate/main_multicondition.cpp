@@ -40,7 +40,18 @@ class SteadystateApplication : public parpe::OptimizationApplication {
         problem->resultWriter = resultWriter;
     }
 
-    virtual int runSingleMpiProcess() override;
+    virtual int runSingleMpiProcess() override {
+        parpe::MultiConditionProblemMultiStartOptimization ms(
+            1,
+            problem->getOptimizationOptions().retryOptimization);
+        ms.options = problem->getOptimizationOptions();
+        ms.resultWriter = problem->resultWriter;
+        ms.dp = problem->getDataProvider();
+        ms.loadBalancer = &loadBalancer;
+        ms.run();
+        return 0;
+        //return getLocalOptimum(problem);
+    }
 
     virtual ~SteadystateApplication() {
         delete resultWriter;
@@ -53,7 +64,8 @@ class SteadystateApplication : public parpe::OptimizationApplication {
 
 class SteadystateLocalOptimizationApplication : public SteadystateApplication {
   public:
-    SteadystateLocalOptimizationApplication() : SteadystateApplication() {}
+
+    using SteadystateApplication::SteadystateApplication;
 
     virtual int runMaster() override {
         // Single optimization
@@ -61,47 +73,14 @@ class SteadystateLocalOptimizationApplication : public SteadystateApplication {
     }
 };
 
-class SteadystateMultiStartOptimizationApplication
-    : public SteadystateApplication {
-  public:
-    using SteadystateApplication::SteadystateApplication;
-
-    virtual int runMaster() override {
-
-        int status = 0;
-
-        // Multistart optimization
-        std::unique_ptr<parpe::OptimizationOptions> options(parpe::OptimizationOptions::fromHDF5(
-                                                                 dataProvider->getHdf5FileId()));
-        // if numStarts > 1: need to use multiple MPI
-        // workers, otherwise simulation crashes due
-        // to CVODES threading issues
-
-        parpe::MultiConditionProblemMultiStartOptimization multiStartOptimization(
-            options->numStarts, options->retryOptimization);
-        multiStartOptimization.options = problem->getOptimizationOptions();
-        multiStartOptimization.resultWriter = problem->resultWriter;
-        multiStartOptimization.dp = dataProvider.get();
-        multiStartOptimization.loadBalancer = &loadBalancer;
-
-        parpe::logmessage(parpe::LOGLVL_DEBUG, multiStartOptimization.options.toString());
-
-        multiStartOptimization.run();
-
-        return status;
-    }
-};
-
 int main(int argc, char **argv) {
     int status = 0;
 
-    // SteadystateLocalOptimizationApplication app(argc, argv);
-    SteadystateMultiStartOptimizationApplication app(argc, argv);
+//     SteadystateLocalOptimizationApplication app(argc, argv);
+    SteadystateApplication app(argc, argv);
     status = app.run();
 
     return status;
 }
 
-int SteadystateApplication::runSingleMpiProcess() {
-    return getLocalOptimum(problem);
-}
+

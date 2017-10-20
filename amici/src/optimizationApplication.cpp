@@ -171,6 +171,10 @@ int OptimizationApplication::runMaster() {
     default:
         // startParameterEstimation(&dataProvider);
 
+        // if numStarts > 1: need to use multiple MPI
+        // workers, otherwise simulation crashes due
+        // to CVODES threading issues
+
         if (problem->getOptimizationOptions().numStarts > 0) {
             MultiConditionProblemMultiStartOptimization ms(
                 problem->getOptimizationOptions().numStarts,

@@ -32,7 +32,8 @@ MultiConditionProblem::MultiConditionProblem(
     : OptimizationProblem(dataProvider?dataProvider->getNumOptimizationParameters():0),
       dataProvider(dataProvider), loadBalancer(loadBalancer),
       model(dataProvider->getModel()),
-      udata(dataProvider->getUserDataForCondition(0)) {
+      udata(dataProvider->getUserDataForCondition(0)),
+      udataOriginal (*udata) {
 
     if (udata == NULL)
         abort();
@@ -189,6 +190,7 @@ JobResultAmiciSimulation MultiConditionProblem::runAndLogSimulation(UserData *ud
         path.idxConditions, udata);
 
     ReturnData *rdata = getSimulationResults(model, udata, edata);
+
     delete edata;
 
     double endTime = MPI_Wtime();
@@ -391,8 +393,8 @@ void MultiConditionProblem::
 void MultiConditionProblem::setSensitivityOptions(bool sensiRequired) {
     // sensitivities requested?
     if (sensiRequired) {
-        udata->sensi = AMICI_SENSI_ORDER_FIRST;
-        udata->sensi_meth = AMICI_SENSI_ASA;
+        udata->sensi = udataOriginal.sensi;
+        udata->sensi_meth = udataOriginal.sensi_meth;
     } else {
         udata->sensi = AMICI_SENSI_ORDER_NONE;
         udata->sensi_meth = AMICI_SENSI_NONE;
