@@ -91,7 +91,7 @@ TEST(optimizationOptions, setCeresOptions) {
 
     int actVal = options.max_num_iterations;
 
-    CHECK_TRUE(options.IsValid(nullptr));
+    // NOTE: disabled for ceres 1.11 compatibility CHECK_TRUE(options.IsValid(nullptr));
     CHECK_EQUAL(expVal, actVal);
 }
 
