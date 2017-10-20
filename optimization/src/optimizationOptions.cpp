@@ -115,14 +115,16 @@ OptimizationOptions *OptimizationOptions::fromHDF5(hid_t fileId) {
             optimizerPath = std::string(hdf5path) + "/ipopt";
     }
 
-    hid_t attributeGroup = H5Gopen1(fileId, optimizerPath.c_str());
-    if(attributeGroup < 0)
-        return o;
+    if(hdf5GroupExists(fileId, optimizerPath.c_str())) {
+        hid_t attributeGroup = H5Gopen1(fileId, optimizerPath.c_str());
+        if(attributeGroup < 0)
+            return o;
 
-    H5Aiterate2(attributeGroup, H5_INDEX_NAME, H5_ITER_NATIVE, 0,
-                optimizationOptionsFromAttribute, o);
+        H5Aiterate2(attributeGroup, H5_INDEX_NAME, H5_ITER_NATIVE, 0,
+                    optimizationOptionsFromAttribute, o);
 
-    H5Gclose(attributeGroup);
+        H5Gclose(attributeGroup);
+    }
     return o;
 }
 
@@ -149,6 +151,7 @@ double *OptimizationOptions::getStartingPoint(hid_t fileId, int index) {
     hid_t dataset;
     if (!hdf5DatasetExists(fileId, path) || (dataset = H5Dopen2(fileId, path, H5P_DEFAULT)) < 0) {
         logmessage(LOGLVL_DEBUG, "No initial parameters found in %s", path);
+        H5Eclear1();
         goto freturn;
     }
 
