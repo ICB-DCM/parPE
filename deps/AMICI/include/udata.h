@@ -1,15 +1,19 @@
 #ifndef _MY_UDATA
 #define _MY_UDATA
-#include "include/amici_defines.h"
 
+#include "include/amici_defines.h"
 #include <cmath>
 
+namespace amici {
 class UserData;
-namespace boost {
-namespace serialization {
+}
+
+namespace boost { namespace serialization {
 template <class Archive>
-void serialize(Archive &ar, UserData &u, const unsigned int version);
+void serialize(Archive &ar, amici::UserData &u, const unsigned int version);
 }}
+
+namespace amici {
 
 /** @brief struct that stores all user provided data
  * NOTE: multidimensional arrays are expected to be stored in column-major order
@@ -30,6 +34,19 @@ class UserData {
      * @brief Default constructor for testing and serialization
      */
     UserData();
+
+    /**
+     * @brief Copy constructor
+     * @param other object to copy from
+     */
+    UserData (const UserData &other);
+
+    /**
+     * @brief Copy assignment is disabled until const members are removed
+     * @param other object to copy from
+     * @return
+     */
+    UserData& operator=(UserData const &other)=delete;
 
     int unscaleParameters(double *bufferUnscaled) const;
 
@@ -214,5 +231,7 @@ class UserData {
     friend void boost::serialization::serialize(Archive &ar, UserData &r, const unsigned int version);
 
 };
+
+} // namespace amici
 
 #endif /* _MY_UDATA */

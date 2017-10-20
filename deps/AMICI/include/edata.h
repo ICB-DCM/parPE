@@ -1,6 +1,8 @@
 #ifndef _MY_EDATA
 #define _MY_EDATA
 
+namespace amici {
+
 class UserData;
 class Model;
 
@@ -12,6 +14,8 @@ class ExpData {
     ExpData();
     ExpData(const UserData *udata, Model *model);
 
+    ExpData (const ExpData &other) = delete;
+
     void setObservedData(const double *observedData);
     void setObservedDataStdDev(const double *observedDataStdDev);
     void setObservedEvents(const double *observedEvents);
@@ -19,9 +23,9 @@ class ExpData {
 
     ~ExpData();
 
-    /** observed data (dimension: nytrue x nt, column-major) */
+    /** observed data (dimension: nt x nytrue, column-major) */
     double *my = nullptr;
-    /** standard deviation of observed data (dimension: nytrue x nt, column-major) */
+    /** standard deviation of observed data (dimension: nt x nytrue, column-major) */
     double *sigmay = nullptr;
 
     /** observed events (dimension: nmaxevents x nztrue, column-major) */
@@ -39,5 +43,7 @@ class ExpData {
     /** maximal number of event occurences */
     const int nmaxevent;
 };
+
+} // namespace amici
 
 #endif /* _MY_EDATA */

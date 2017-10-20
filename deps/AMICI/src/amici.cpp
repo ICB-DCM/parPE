@@ -26,6 +26,8 @@
 #include <include/amici_misc.h>
 #include <include/symbolic_functions.h>
 
+namespace amici {
+
 /** errMsgIdAndTxt is a function pointer for printErrMsgIdAndTxt  */
 msgIdAndTxtFp errMsgIdAndTxt = &printErrMsgIdAndTxt;
 /** warnMsgIdAndTxt is a function pointer for printWarnMsgIdAndTxt  */
@@ -56,7 +58,7 @@ int runAmiciSimulation(const UserData *udata, const ExpData *edata,
         return AMICI_ERROR_NOTHINGTODO;
     }
 
-    TempData tdata = TempData(udata, model, rdata);
+    TempData tdata(udata, model, rdata);
 
     if (status == AMICI_SUCCESS)
         status = ForwardProblem::workForwardProblem(udata, &tdata, rdata, edata,
@@ -115,3 +117,5 @@ void printWarnMsgIdAndTxt(const char *identifier, const char *format, ...) {
     va_end(argptr);
     printf("\n");
 }
+
+} // namespace amici
