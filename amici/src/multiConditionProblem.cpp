@@ -15,6 +15,7 @@
 #include <rdata.h>
 #include <udata.h>
 #include <amici_serialization.h>
+#include <numeric>
 
 namespace parpe {
 
@@ -50,8 +51,7 @@ int MultiConditionProblem::evaluateObjectiveFunction(const double *optimiziation
     // run on all data
     int numDataIndices = dataProvider->getNumberOfConditions();
     int dataIndices[numDataIndices];
-    for (int i = 0; i < numDataIndices; ++i)
-        dataIndices[i] = i;
+    std::iota(dataIndices, dataIndices + numDataIndices, 0);
 
     return evaluateObjectiveFunction(
         optimiziationVariables, objectiveFunctionValue,
@@ -63,8 +63,7 @@ int MultiConditionProblem::evaluateObjectiveFunction(
     double *objectiveFunctionGradient, int *dataIndices, int numDataIndices) {
 #ifdef NO_OBJ_FUN_EVAL
     if (objectiveFunctionGradient)
-        for (int i = 0; i < numOptimizationParameters; ++i)
-            objectiveFunctionGradient = 0;
+        std::fill(objectiveFunctionGradient, objectiveFunctionGradient + numOptimizationParameters_, 0);
     *objectiveFunctionValue = 1;
     return 0;
 #endif
