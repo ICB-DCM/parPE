@@ -8,6 +8,8 @@
 #include <mpi.h>
 #include <optimizationOptions.h>
 #include <pthread.h>
+#include <amici.h>
+#include <amiciMisc.h>
 
 namespace parpe {
 
@@ -29,6 +31,9 @@ OptimizationApplication::OptimizationApplication(int argc, char **argv) {
     unsigned int seed = time(NULL);
     logmessage(LOGLVL_DEBUG, "Seeding RNG with %u", seed);
     srand(seed); // TODO to CLI
+
+    errMsgIdAndTxt = printAmiciErrMsgIdAndTxt;
+    warnMsgIdAndTxt = printAmiciWarnMsgIdAndTxt;
 }
 
 int OptimizationApplication::parseOptions(int argc, char **argv) {

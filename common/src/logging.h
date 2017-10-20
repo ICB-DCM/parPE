@@ -2,6 +2,7 @@
 #define LOGGING_H
 
 #include <string>
+#include <cstdarg>
 
 namespace parpe {
 
@@ -23,6 +24,7 @@ typedef enum loglevel_tag {
 
 void logmessage(loglevel lvl, std::string const& msg);
 void logmessage(loglevel lvl, const char *format, ...);
+void logmessage(loglevel lvl, const char *format, va_list argptr);
 
 /**
  * @brief Print process statistics from /proc/self/status

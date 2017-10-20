@@ -4,7 +4,6 @@
 #include <mpi.h>
 #include <stdio.h>
 #include <math.h>
-#include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -15,6 +14,76 @@ namespace parpe {
 const char *loglevelShortStr[] = {"", "CRI", "ERR", "WRN", "INF", "DBG"};
 
 void logmessage(loglevel lvl, const char *format, ...)
+{
+    va_list argptr;
+    va_start(argptr,format);
+    logmessage(lvl, format, argptr);
+    va_end(argptr);
+}
+
+void logProcessStats()
+{
+    const int bufSize = 1024;
+    char buffer[bufSize];
+
+    FILE* status = fopen( "/proc/self/status", "r" );
+
+    while (fgets(buffer, bufSize, status)) {
+        buffer[strlen(buffer) - 1] = '\0'; // remove \n
+        logmessage(LOGLVL_DEBUG, "%s", buffer);
+    }
+
+    fclose(status);
+}
+
+void printMPIInfo() {
+    int mpiInitialized = 0;
+    MPI_Initialized(&mpiInitialized);
+
+    if(mpiInitialized) {
+        int mpiCommSize, mpiRank;
+        MPI_Comm_size(MPI_COMM_WORLD, &mpiCommSize);
+        MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
+
+        char procName[MPI_MAX_PROCESSOR_NAME];
+        int procNameLen;
+        MPI_Get_processor_name(procName, &procNameLen);
+
+        logmessage(LOGLVL_DEBUG, "Rank %d/%d running on %s.", mpiRank, mpiCommSize, procName);
+    } else {
+        logmessage(LOGLVL_DEBUG, "MPI not initialized.");
+    }
+}
+
+
+void printDebugInfoAndWait() {
+    //int i = 0;
+    char hostname[256];
+    gethostname(hostname, sizeof(hostname));
+    logmessage(LOGLVL_DEBUG, "PID %d on %s ready for attach", getpid(), hostname);
+    fflush(stdout);
+    //while (0 == i)
+    sleep(15);
+}
+
+void error(const char *message) { // exit?
+    logmessage(LOGLVL_ERROR, message);
+}
+
+void warning(const char *message) {
+    logmessage(LOGLVL_WARNING, message);
+}
+
+void logmessage(loglevel lvl, const std::string &msg)
+{
+    std::stringstream ss(msg);
+    std::string line;
+
+    while(std::getline(ss, line, '\n'))
+        logmessage(lvl, line.c_str());
+}
+
+void logmessage(loglevel lvl, const char *format, va_list argptr)
 {
     int mpiInitialized = 0;
     MPI_Initialized(&mpiInitialized);
@@ -66,10 +135,7 @@ void logmessage(loglevel lvl, const char *format, ...)
     printf("[%*d/%s] ", 1 + (int)log10(mpiCommSize), mpiRank, procName);
 
     // Message
-    va_list argptr;
-    va_start(argptr,format);
     vprintf(format, argptr);
-    va_end(argptr);
     printf(ANSI_COLOR_RESET "\n");
 
     switch (lvl) {
@@ -79,68 +145,7 @@ void logmessage(loglevel lvl, const char *format, ...)
     default:
         break;
     }
-}
 
-void logProcessStats()
-{
-    const int bufSize = 1024;
-    char buffer[bufSize];
-
-    FILE* status = fopen( "/proc/self/status", "r" );
-
-    while (fgets(buffer, bufSize, status)) {
-        buffer[strlen(buffer) - 1] = '\0'; // remove \n
-        logmessage(LOGLVL_DEBUG, "%s", buffer);
-    }
-
-    fclose(status);
-}
-
-void printMPIInfo() {
-    int mpiInitialized = 0;
-    MPI_Initialized(&mpiInitialized);
-
-    if(mpiInitialized) {
-        int mpiCommSize, mpiRank;
-        MPI_Comm_size(MPI_COMM_WORLD, &mpiCommSize);
-        MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
-
-        char procName[MPI_MAX_PROCESSOR_NAME];
-        int procNameLen;
-        MPI_Get_processor_name(procName, &procNameLen);
-
-        logmessage(LOGLVL_DEBUG, "Rank %d/%d running on %s.", mpiRank, mpiCommSize, procName);
-    } else {
-        logmessage(LOGLVL_DEBUG, "MPI not initialized.");
-    }
-}
-
-
-void printDebugInfoAndWait() {
-    //int i = 0;
-    char hostname[256];
-    gethostname(hostname, sizeof(hostname));
-    logmessage(LOGLVL_DEBUG, "PID %d on %s ready for attach", getpid(), hostname);
-    fflush(stdout);
-    //while (0 == i)
-        sleep(15);
-}
-
-void error(const char *message) { // exit?
-    logmessage(LOGLVL_ERROR, message);
-}
-
-void warning(const char *message) {
-    logmessage(LOGLVL_WARNING, message);
-}
-
-void logmessage(loglevel lvl, const std::string &msg)
-{
-    std::stringstream ss(msg);
-    std::string line;
-
-    while(std::getline(ss, line, '\n'))
-        logmessage(lvl, line.c_str());
 }
 
 } // namespace parpe

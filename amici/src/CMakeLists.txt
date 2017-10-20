@@ -8,6 +8,7 @@ set(SRC_LIST
     steadystateSimulator.cpp
     optimizationApplication.cpp
     SimulationRunner.cpp
+    amiciMisc.cpp
 )
 
 add_library(${PROJECT_NAME} ${SRC_LIST})
