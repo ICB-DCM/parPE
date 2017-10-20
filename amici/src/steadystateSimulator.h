@@ -4,8 +4,7 @@
 #include <edata.h>
 #include <rdata.h>
 #include <udata.h>
-
-class Model;
+#include <amici.h>
 
 namespace parpe {
 
@@ -25,8 +24,8 @@ class SteadystateSimulator {
      * @return
      */
 
-    static ReturnData *getSteadystateSolution(Model *model, UserData *udata,
-                                              ExpData *edata, int *status,
+    static amici::ReturnData *getSteadystateSolution(amici::Model *model, amici::UserData *udata,
+                                              amici::ExpData *edata, int *status,
                                               int *iterationDone);
 
     /**

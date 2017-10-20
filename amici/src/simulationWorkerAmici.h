@@ -27,13 +27,13 @@ struct JobAmiciSimulation {
 
     static int getLength(int numSimulationParameters, int sizeOfData);
 
-    static void toUserData(const char *buffer, UserData *udata, void *userData);
+    static void toUserData(const char *buffer, amici::UserData *udata, void *userData);
 };
 
 class JobResultAmiciSimulation {
 public:
     JobResultAmiciSimulation() = default;
-    JobResultAmiciSimulation(int status, ReturnData *rdata, double simulationTimeInSec)
+    JobResultAmiciSimulation(int status, amici::ReturnData *rdata, double simulationTimeInSec)
         : status(status), rdata(rdata), simulationTimeInSec(simulationTimeInSec) {}
 
     ~JobResultAmiciSimulation() {
@@ -43,7 +43,7 @@ public:
     int status = 1;
 
     /** log likelihood */
-    ReturnData *rdata = nullptr;
+    amici::ReturnData *rdata = nullptr;
 
     double simulationTimeInSec = -1;
 };
@@ -56,7 +56,7 @@ template <class Archive>
 void serialize(Archive &ar, parpe::JobResultAmiciSimulation &d, const unsigned int version) {
     ar & d.status;
     if (Archive::is_loading::value) {
-        d.rdata = new ReturnData();
+        d.rdata = new amici::ReturnData();
     }
     ar & *d.rdata;
     ar & d.simulationTimeInSec;

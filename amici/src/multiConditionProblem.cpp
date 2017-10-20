@@ -74,7 +74,7 @@ int MultiConditionProblem::evaluateObjectiveFunction(
     *objectiveFunctionValue = 0;
 
     if (objectiveFunctionGradient)
-        zeros(objectiveFunctionGradient, numOptimizationParameters_);
+        amici::zeros(objectiveFunctionGradient, numOptimizationParameters_);
 
     int errors =
         runSimulations(optimiziationVariables, objectiveFunctionValue,
@@ -172,12 +172,12 @@ int MultiConditionProblem::earlyStopping() {
     return stop;
 }
 
-JobResultAmiciSimulation MultiConditionProblem::runAndLogSimulation(UserData *udata,
+JobResultAmiciSimulation MultiConditionProblem::runAndLogSimulation(amici::UserData *udata,
                                                        JobIdentifier path,
                                                        int jobId) {
     double startTime = MPI_Wtime();
 
-    Model *model = dataProvider->getModel();
+    amici::Model *model = dataProvider->getModel();
 
     // run simulation
     int iterationsUntilSteadystate = -1;
@@ -186,10 +186,10 @@ JobResultAmiciSimulation MultiConditionProblem::runAndLogSimulation(UserData *ud
     // necessary here, this has been done by master)
     dataProvider->updateFixedSimulationParameters(path.idxConditions, udata);
 
-    ExpData *edata = dataProvider->getExperimentalDataForCondition(
+    amici::ExpData *edata = dataProvider->getExperimentalDataForCondition(
         path.idxConditions, udata);
 
-    ReturnData *rdata = getSimulationResults(model, udata, edata);
+    amici::ReturnData *rdata = amici::getSimulationResults(model, udata, edata);
 
     delete edata;
 
@@ -202,7 +202,7 @@ JobResultAmiciSimulation MultiConditionProblem::runAndLogSimulation(UserData *ud
                jobId, rdata->llh[0], (int)*rdata->status, timeSeconds);
 
     // check for NaNs
-    if (udata->sensi >= AMICI_SENSI_ORDER_FIRST) {
+    if (udata->sensi >= amici::AMICI_SENSI_ORDER_FIRST) {
         for (int i = 0; i < model->np; ++i)
             if (std::isnan(rdata->sllh[i]))
                 logmessage(LOGLVL_DEBUG, "Result for %s: contains NaN at %d",
@@ -228,7 +228,7 @@ MultiConditionProblem::~MultiConditionProblem() {
 void MultiConditionProblem::messageHandler(std::vector<char> &buffer,
                                            int jobId) {
     // unpack
-    UserData *udata = dataProvider->getUserData();
+    amici::UserData *udata = dataProvider->getUserData();
     JobIdentifier path;
     JobAmiciSimulation::toUserData(buffer.data(), udata, &path);
 
@@ -248,7 +248,7 @@ void MultiConditionProblem::messageHandler(std::vector<char> &buffer,
 #endif
 
     // pack & cleanup
-    buffer = serializeToStdVec<JobResultAmiciSimulation>(&result);
+    buffer = amici::serializeToStdVec<JobResultAmiciSimulation>(&result);
     delete result.rdata;
     delete udata;
 }
@@ -333,7 +333,7 @@ int MultiConditionProblem::aggregateLikelihood(
          ++simulationIdx) {
         // deserialize
         JobResultAmiciSimulation result =
-                deserializeFromChar<JobResultAmiciSimulation>(
+                amici::deserializeFromChar<JobResultAmiciSimulation>(
                     data[simulationIdx].recvBuffer,
                     data[simulationIdx].lenRecvBuffer);
         delete[] data[simulationIdx].recvBuffer;
@@ -396,8 +396,8 @@ void MultiConditionProblem::setSensitivityOptions(bool sensiRequired) {
         udata->sensi = udataOriginal.sensi;
         udata->sensi_meth = udataOriginal.sensi_meth;
     } else {
-        udata->sensi = AMICI_SENSI_ORDER_NONE;
-        udata->sensi_meth = AMICI_SENSI_NONE;
+        udata->sensi = amici::AMICI_SENSI_ORDER_NONE;
+        udata->sensi_meth = amici::AMICI_SENSI_NONE;
     }
 }
 

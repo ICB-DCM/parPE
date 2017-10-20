@@ -5,7 +5,7 @@
 namespace parpe {
 
 SimulationRunner::SimulationRunner(
-    std::function<UserData *(int)> getUserData,
+    std::function<amici::UserData *(int)> getUserData,
     std::function<JobIdentifier(int)> getJobIdentifier,
     std::function<int(std::vector<JobData> &jobs)> aggregate)
     : getUserData(getUserData), getJobIdentifier(getJobIdentifier),
@@ -27,7 +27,7 @@ int SimulationRunner::run(int numJobsTotal, int lenSendBuffer,
         // UserData::k
         JobIdentifier path = getJobIdentifier(simulationIdx);
 
-        UserData *udata = getUserData(simulationIdx);
+        amici::UserData *udata = getUserData(simulationIdx);
 
         queueSimulation(loadBalancer, path, &jobs[simulationIdx], udata,
                         &numJobsFinished, &simulationsCond, &simulationsMutex,
@@ -61,7 +61,7 @@ int SimulationRunner::runSerial(
     for (int simulationIdx = 0; simulationIdx < numJobsTotal; ++simulationIdx) {
         JobIdentifier path = getJobIdentifier(simulationIdx);
 
-        UserData *udata = getUserData(simulationIdx);
+        amici::UserData *udata = getUserData(simulationIdx);
 
         JobAmiciSimulation work;
         work.data = &path;
@@ -87,7 +87,7 @@ int SimulationRunner::runSerial(
 
 void SimulationRunner::queueSimulation(LoadBalancerMaster *loadBalancer,
                                        JobIdentifier path, JobData *d,
-                                       UserData *udata, int *jobDone,
+                                       amici::UserData *udata, int *jobDone,
                                        pthread_cond_t *jobDoneChangedCondition,
                                        pthread_mutex_t *jobDoneChangedMutex,
                                        int lenSendBuffer) {

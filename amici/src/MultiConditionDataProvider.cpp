@@ -16,11 +16,11 @@ namespace parpe {
  * @param hdf5Filename Filename from where to read data
  */
 
-MultiConditionDataProvider::MultiConditionDataProvider(Model *model,
+MultiConditionDataProvider::MultiConditionDataProvider(amici::Model *model,
                                                        std::string hdf5Filename)
     : MultiConditionDataProvider(model, hdf5Filename, "") {}
 
-MultiConditionDataProvider::MultiConditionDataProvider(Model *model,
+MultiConditionDataProvider::MultiConditionDataProvider(amici::Model *model,
                                                        std::string hdf5Filename,
                                                        std::string rootPath)
     : model(model) {
@@ -76,7 +76,7 @@ int MultiConditionDataProvider::getNumConditionSpecificParametersPerSimulation()
 
     int num = 0;
     int status =
-        AMI_HDF5_getIntScalarAttribute(fileId, hdf5ParameterPath.c_str(),
+        amici::AMI_HDF5_getIntScalarAttribute(fileId, hdf5ParameterPath.c_str(),
                                        "numConditionSpecificParameters", &num);
     assert(status >= 0);
     hdf5UnlockMutex();
@@ -94,7 +94,7 @@ int MultiConditionDataProvider::getNumConditionSpecificParametersPerSimulation()
  * @return
  */
 int MultiConditionDataProvider::updateFixedSimulationParameters(
-    int conditionIdx, UserData *udata) const {
+    int conditionIdx, amici::UserData *udata) const {
     hdf5LockMutex();
 
     H5_SAVE_ERROR_HANDLER;
@@ -118,11 +118,11 @@ int MultiConditionDataProvider::updateFixedSimulationParameters(
     return H5Eget_num(H5E_DEFAULT);
 }
 
-ExpData *MultiConditionDataProvider::getExperimentalDataForCondition(
-    int conditionIdx, const UserData *udata) const {
+amici::ExpData *MultiConditionDataProvider::getExperimentalDataForCondition(
+    int conditionIdx, const amici::UserData *udata) const {
     hdf5LockMutex();
 
-    ExpData *edata = new ExpData(udata, model);
+    amici::ExpData *edata = new amici::ExpData(udata, model);
     assert(edata && "Failed getting experimental data. Check data file.");
 
     hdf5Read3DDoubleHyperslab(fileId, hdf5MeasurementPath.c_str(),
@@ -139,13 +139,13 @@ ExpData *MultiConditionDataProvider::getExperimentalDataForCondition(
 void MultiConditionDataProvider::getOptimizationParametersLowerBounds(
     double *buffer) const {
     // TODO to HDF5
-    fillArray(buffer, getNumOptimizationParameters(), -2);
+    amici::fillArray(buffer, getNumOptimizationParameters(), -2);
 }
 
 void MultiConditionDataProvider::getOptimizationParametersUpperBounds(
     double *buffer) const {
     // TODO to HDF5
-    fillArray(buffer, getNumOptimizationParameters(), 2);
+    amici::fillArray(buffer, getNumOptimizationParameters(), 2);
 }
 
 int MultiConditionDataProvider::getNumOptimizationParameters() const {
@@ -158,16 +158,16 @@ int MultiConditionDataProvider::getNumCommonParameters() const {
     return model->np - getNumConditionSpecificParametersPerSimulation();
 }
 
-Model *MultiConditionDataProvider::getModel() const { return model; }
+amici::Model *MultiConditionDataProvider::getModel() const { return model; }
 
-UserData *MultiConditionDataProvider::getUserData() const {
+amici::UserData *MultiConditionDataProvider::getUserData() const {
     // TODO: separate class for udata?
     hdf5LockMutex();
 
     const char *optionsObject = hdf5AmiciOptionPath.c_str();
 
     H5_SAVE_ERROR_HANDLER;
-    UserData *udata = AMI_HDF5_readSimulationUserDataFromFileObject(
+    amici::UserData *udata = amici::AMI_HDF5_readSimulationUserDataFromFileObject(
         fileId, optionsObject, model);
 
     if (H5Eget_num(H5E_DEFAULT)) {
@@ -204,9 +204,9 @@ UserData *MultiConditionDataProvider::getUserData() const {
     return (udata);
 }
 
-UserData *
+amici::UserData *
 MultiConditionDataProvider::getUserDataForCondition(int conditionIdx) const {
-    UserData *udata = getUserData();
+    amici::UserData *udata = getUserData();
 
     updateFixedSimulationParameters(conditionIdx, udata);
 
@@ -220,7 +220,7 @@ int MultiConditionDataProvider::
             conditionIdx * getNumConditionSpecificParametersPerSimulation();
 }
 
-void MultiConditionDataProvider::updateSimulationParameters(int conditionIndex, const double *optimizationParams, UserData *udata) const
+void MultiConditionDataProvider::updateSimulationParameters(int conditionIndex, const double *optimizationParams, amici::UserData *udata) const
 {
     // copy all common parameters + conditionspecific parameters for first conditions to UserDaata
     memcpy(udata->p, optimizationParams, sizeof(double) * getNumCommonParameters());
@@ -230,7 +230,7 @@ void MultiConditionDataProvider::updateSimulationParameters(int conditionIndex, 
 
 void MultiConditionDataProvider::updateConditionSpecificSimulationParameters(
     int conditionIndex, const double *optimizationParams,
-    UserData *udata) const {
+    amici::UserData *udata) const {
     /* Optimization parameters are [commonParameters,
      * condition1SpecificParameters, condition2SpecificParameters, ...]
      * number of condition specific parameters is the same for all cell lines.

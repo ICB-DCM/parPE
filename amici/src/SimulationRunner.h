@@ -4,9 +4,7 @@
 #include <MultiConditionDataProvider.h> // JobIdentifier
 #include <functional>
 #include <vector>
-
-class UserData;
-class ExpData;
+#include <amici.h>
 
 namespace parpe {
 
@@ -19,7 +17,7 @@ class LoadBalancerMaster;
  */
 class SimulationRunner {
   public:
-    SimulationRunner(std::function<UserData *(int)> getUserData,
+    SimulationRunner(std::function<amici::UserData *(int)> getUserData,
                      std::function<JobIdentifier(int)> getJobIdentifier,
                      std::function<int(std::vector<JobData> &)> aggregate);
 
@@ -45,13 +43,13 @@ class SimulationRunner {
                   std::function<void(std::vector<char> &, int)> messageHandler);
 
     void queueSimulation(LoadBalancerMaster *loadBalancer, JobIdentifier path,
-                         JobData *d, UserData *udata, int *jobDone,
+                         JobData *d, amici::UserData *udata, int *jobDone,
                          pthread_cond_t *jobDoneChangedCondition,
                          pthread_mutex_t *jobDoneChangedMutex,
                          int lenSendBuffer);
 
   private:
-    std::function<UserData *(int)> getUserData = nullptr;
+    std::function<amici::UserData *(int)> getUserData = nullptr;
     std::function<JobIdentifier(int)> getJobIdentifier = nullptr;
     std::function<int(std::vector<JobData> &jobs)> aggregate = nullptr;
 };

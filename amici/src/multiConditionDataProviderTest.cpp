@@ -11,8 +11,8 @@
 class MultiConditionDataProviderTest : public parpe::MultiConditionDataProvider {
   public:
     MultiConditionDataProviderTest() {
-        model = new Model(10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22,
-                          23, 24, 25, AMICI_O2MODE_NONE);
+        model = new amici::Model(10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22,
+                          23, 24, 25, amici::AMICI_O2MODE_NONE);
     }
 
     int getNumberOfConditions() const override { return numConditions; }

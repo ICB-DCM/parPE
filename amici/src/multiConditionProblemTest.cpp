@@ -5,8 +5,9 @@
 #include "CppUTestExt/MockSupport.h"
 
 // mock amici
-int runAmiciSimulation(UserData *, ExpData const *, ReturnData *) { return 0; }
-
+namespace amici {
+int runAmiciSimulation(amici::UserData *, amici::ExpData const *, amici::ReturnData *) { return 0; }
+}
 /**
  * @brief Mock MultiConditionProblem
  */

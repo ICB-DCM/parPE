@@ -32,8 +32,8 @@ OptimizationApplication::OptimizationApplication(int argc, char **argv) {
     logmessage(LOGLVL_DEBUG, "Seeding RNG with %u", seed);
     srand(seed); // TODO to CLI
 
-    errMsgIdAndTxt = printAmiciErrMsgIdAndTxt;
-    warnMsgIdAndTxt = printAmiciWarnMsgIdAndTxt;
+    amici::errMsgIdAndTxt = printAmiciErrMsgIdAndTxt;
+    amici::warnMsgIdAndTxt = printAmiciWarnMsgIdAndTxt;
 }
 
 int OptimizationApplication::parseOptions(int argc, char **argv) {

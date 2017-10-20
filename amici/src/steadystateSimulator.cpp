@@ -11,23 +11,23 @@ namespace parpe {
 
 #define XDOT_REL_TOLERANCE 1e-6
 
-ReturnData *SteadystateSimulator::getSteadystateSolution(Model *model,
-                                                         UserData *udata,
-                                                         ExpData *edata,
+amici::ReturnData *SteadystateSimulator::getSteadystateSolution(amici::Model *model,
+                                                         amici::UserData *udata,
+                                                         amici::ExpData *edata,
                                                          int *status,
                                                          int *iterationDone) {
     if (udata->nt > 1)
         throw(ParPEException("SteadystateSimulator::getSteadystateSolution "
                              "works only with nt == 1"));
 
-    ReturnData *rdata = NULL;
+    amici::ReturnData *rdata = NULL;
     bool inSteadyState = FALSE;
     int iterations = 0;
 
     while (!inSteadyState) {
         ++iterations;
 
-        rdata = getSimulationResults(model, udata, edata);
+        rdata = amici::getSimulationResults(model, udata, edata);
 
         if (*rdata->status < 0) {
             error("Failed to integrate."); // TODO add dataset info,

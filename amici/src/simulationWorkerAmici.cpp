@@ -3,16 +3,16 @@
 
 namespace parpe {
 
-void JobAmiciSimulation::toUserData(const char *buffer, UserData *udata,
+void JobAmiciSimulation::toUserData(const char *buffer, amici::UserData *udata,
                                     void *userData) {
     JobAmiciSimulation work;
     work.data = userData;
     work.simulationParameters = udata->p;
     work.deserialize(buffer);
 
-    udata->sensi_meth = (AMICI_sensi_meth)work.sensitivityMethod;
-    udata->sensi = work.sensitivityMethod > 0 ? AMICI_SENSI_ORDER_FIRST
-                                              : AMICI_SENSI_ORDER_NONE;
+    udata->sensi_meth = (amici::AMICI_sensi_meth)work.sensitivityMethod;
+    udata->sensi = work.sensitivityMethod > 0 ? amici::AMICI_SENSI_ORDER_FIRST
+                                              : amici::AMICI_SENSI_ORDER_NONE;
 }
 
 int JobAmiciSimulation::getLength(int numSimulationParameters, int sizeOfData) {

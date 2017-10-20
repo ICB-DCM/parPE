@@ -4,8 +4,7 @@
 #include "include/amici_interface_cpp.h"
 #include "optimizationProblem.h"
 #include <hdf5.h>
-
-class Model;
+#include <amici.h>
 
 class ExampleSteadystateProblem : public parpe::OptimizationProblem {
   public:
@@ -36,9 +35,9 @@ class ExampleSteadystateProblem : public parpe::OptimizationProblem {
     void readFixedParameters(int conditionIdx);
     void readMeasurement(int conditionIdx);
 
-    UserData *udata = nullptr;
-    ExpData *edata = nullptr;
-    Model *model = nullptr;
+    amici::UserData *udata = nullptr;
+    amici::ExpData *edata = nullptr;
+    amici::Model *model = nullptr;
 
   protected:
     void setupUserData(int conditionIdx);

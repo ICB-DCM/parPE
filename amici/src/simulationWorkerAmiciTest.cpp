@@ -14,16 +14,16 @@ TEST_GROUP(simulationWorkerAmici){void setup(){
                                   }};
 
 TEST(simulationWorkerAmici, testSerializeResultPackageMessage) {
-    UserData u(1, 2, 3);
-    Model m(1, 2, 3, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, AMICI_O2MODE_NONE);
+    amici::UserData u(1, 2, 3);
+    amici::Model m(1, 2, 3, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, amici::AMICI_O2MODE_NONE);
 
-    ReturnData r(&u, &m);
+    amici::ReturnData r(&u, &m);
     parpe::JobResultAmiciSimulation results(1, &r, 2.1);
 
     int msgSize = 0;
-    char *buffer = serializeToChar<parpe::JobResultAmiciSimulation>(&results, &msgSize);
+    char *buffer = amici::serializeToChar<parpe::JobResultAmiciSimulation>(&results, &msgSize);
 
-    parpe::JobResultAmiciSimulation resultsAct = deserializeFromChar<parpe::JobResultAmiciSimulation>(buffer, msgSize);
+    parpe::JobResultAmiciSimulation resultsAct = amici::deserializeFromChar<parpe::JobResultAmiciSimulation>(buffer, msgSize);
     CHECK_EQUAL(results.simulationTimeInSec, resultsAct.simulationTimeInSec);
 
     delete resultsAct.rdata;
@@ -42,7 +42,7 @@ TEST(simulationWorkerAmici, testSerializeWorkPackageMessage) {
     expWp.data = alloca(expWp.lenData);
     for (int i = 0; i < lenDataElements; ++i)
         ((double *)expWp.data)[i] = parpe::randDouble(-1e-8, 1e8);
-    expWp.sensitivityMethod = AMICI_SENSI_ASA;
+    expWp.sensitivityMethod = amici::AMICI_SENSI_ASA;
     expWp.numSimulationParameters = nTheta;
     expWp.simulationParameters = new double[nTheta];
     for (int i = 0; i < nTheta; ++i) {

@@ -8,9 +8,7 @@
 #include <LoadBalancerWorker.h>
 #include <simulationWorkerAmici.h>
 #include <cmath> //NAN
-
-class ReturnData;
-class UserData;
+#include <amici.h>
 
 namespace parpe {
 
@@ -113,7 +111,7 @@ class MultiConditionProblem : public OptimizationProblem,
      * @param resultWriter
      * @return
      */
-    JobResultAmiciSimulation runAndLogSimulation(UserData *udata, JobIdentifier path,
+    JobResultAmiciSimulation runAndLogSimulation(amici::UserData *udata, JobIdentifier path,
                                     int jobId);
 
     MultiConditionDataProvider *getDataProvider();
@@ -209,9 +207,9 @@ class MultiConditionProblem : public OptimizationProblem,
 
     MultiConditionDataProvider *dataProvider = nullptr;
     LoadBalancerMaster *loadBalancer = nullptr;
-    Model *model = nullptr;
-    UserData *udata = nullptr;
-    UserData udataOriginal; // for saving sensitivity options which are changed depending on whether gradient is needed
+    amici::Model *model = nullptr;
+    amici::UserData *udata = nullptr;
+    amici::UserData udataOriginal; // for saving sensitivity options which are changed depending on whether gradient is needed
 
     // keep track of previous results to avoid re-evaluation at the same
     // parameters (using IpOpt new_x)
@@ -239,7 +237,7 @@ class MultiConditionProblemMultiStartOptimization
     MultiConditionDataProvider *dp = nullptr;
     OptimizationOptions options;
     MultiConditionProblemResultWriter *resultWriter = nullptr;
-    Model *model = nullptr;
+    amici::Model *model = nullptr;
     LoadBalancerMaster *loadBalancer = nullptr;
 };
 

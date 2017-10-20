@@ -3,10 +3,7 @@
 
 #include <hdf5Misc.h>
 #include <string>
-
-class ExpData;
-class UserData;
-class Model;
+#include <amici.h>
 
 namespace parpe {
 
@@ -59,9 +56,9 @@ struct JobIdentifier {
 
 class MultiConditionDataProvider {
   public:
-    MultiConditionDataProvider(Model *model, std::string hdf5Filename);
+    MultiConditionDataProvider(amici::Model *model, std::string hdf5Filename);
 
-    MultiConditionDataProvider(Model *model, std::string hdf5Filename,
+    MultiConditionDataProvider(amici::Model *model, std::string hdf5Filename,
                                std::string rootPath);
 
     virtual ~MultiConditionDataProvider();
@@ -90,11 +87,11 @@ class MultiConditionDataProvider {
      * @return Status, 0 on success, non-zero otherwise
      */
     virtual int updateFixedSimulationParameters(int conditionIdx,
-                                                UserData *udata) const;
+                                                amici::UserData *udata) const;
 
-    virtual ExpData *
+    virtual amici::ExpData *
     getExperimentalDataForCondition(int conditionIdx,
-                                    const UserData *udata) const;
+                                    const amici::UserData *udata) const;
 
     /**
      * @brief getOptimizationParametersLowerBounds Get lower parameter bounds
@@ -128,7 +125,7 @@ class MultiConditionDataProvider {
      * @brief Returns a pointer to the underlying AMICI model
      * @return The model
      */
-    virtual Model *getModel() const;
+    virtual amici::Model *getModel() const;
 
     /**
      * @brief Returns a new UserData instance with options read from the HDF5
@@ -136,7 +133,7 @@ class MultiConditionDataProvider {
      * Fixed and variable parameters are for no particular condition.
      * @return A new UserData instance.
      */
-    virtual UserData *getUserData() const;
+    virtual amici::UserData *getUserData() const;
 
     /**
      * @brief Returns a new UserData instance with options read from the HDF5
@@ -145,18 +142,18 @@ class MultiConditionDataProvider {
      * are not).
      * @return A new UserData instance.
      */
-    virtual UserData *getUserDataForCondition(int conditionIdx) const;
+    virtual amici::UserData *getUserDataForCondition(int conditionIdx) const;
 
     virtual int getIndexOfFirstConditionSpecificOptimizationParameter(
         int conditionIdx) const;
 
     void updateSimulationParameters(int conditionIndex, const double *optimizationParams,
-        UserData *udata) const;
+        amici::UserData *udata) const;
 
 
     virtual void updateConditionSpecificSimulationParameters(
         int conditionIndex, const double *optimizationParams,
-        UserData *udata) const;
+        amici::UserData *udata) const;
 
     hid_t getHdf5FileId() const;
 
@@ -171,7 +168,7 @@ class MultiConditionDataProvider {
 
     hid_t fileId = 0;
 
-    Model *model = nullptr;
+    amici::Model *model = nullptr;
 };
 
 } // namespace parpe
