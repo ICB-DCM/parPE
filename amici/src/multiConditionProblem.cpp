@@ -432,7 +432,7 @@ MultiConditionProblemMultiStartOptimization::getLocalProblemImpl(
     MultiConditionProblem *problem =
         new MultiConditionProblem(dp, loadBalancer);
 
-    problem->optimizationOptions = new OptimizationOptions(*options);
+    problem->setOptimizationOptions(options);
 
     if (resultWriter) {
         JobIdentifier id = resultWriter->getJobId();

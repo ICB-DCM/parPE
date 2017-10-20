@@ -17,7 +17,10 @@ int main(int argc, char **argv) {
     printf("# CERES #\n");
     printf("#########\n");
 
-    problem.optimizationOptions->optimizer = parpe::OPTIMIZER_CERES;
+    parpe::OptimizationOptions options = problem.getOptimizationOptions();
+    options.optimizer = parpe::OPTIMIZER_CERES;
+    problem.setOptimizationOptions(options);
+
     status += parpe::getLocalOptimum(&problem);
 
     return status;

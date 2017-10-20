@@ -23,8 +23,6 @@ class QuadraticTestProblem : public OptimizationProblem {
                               const double *optimalParameters,
                               double masterTime, int exitStatus) override;
 
-    ~QuadraticTestProblem();
-
     double optimalCost;
     double optimalParameter;
 };

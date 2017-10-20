@@ -21,7 +21,7 @@ namespace parpe {
  */
 
 int getLocalOptimum(OptimizationProblem *problem) {
-    Optimizer *optimizer = problem->optimizationOptions->createOptimizer();
+    Optimizer *optimizer = problem->getOptimizationOptions().createOptimizer();
     int status = optimizer->optimize(problem);
     delete optimizer;
     return status;
@@ -146,6 +146,16 @@ const double *OptimizationProblem::getParametersMin() const {
 
 const double *OptimizationProblem::getParametersMax() const {
     return parametersMax_.data();
+}
+
+const OptimizationOptions &OptimizationProblem::getOptimizationOptions() const
+{
+    return optimizationOptions;
+}
+
+void OptimizationProblem::setOptimizationOptions(const OptimizationOptions &options)
+{
+    optimizationOptions = options;
 }
 
 void OptimizationProblem::setNumOptimizationParameters(int n)

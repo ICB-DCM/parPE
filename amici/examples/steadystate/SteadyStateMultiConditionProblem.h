@@ -7,6 +7,7 @@
 #include "steadystateProblem.h"
 #include "wrapfunctions.h"
 #include <amici_hdf5.h>
+#include <memory>
 
 class SteadyStateMultiConditionDataProvider
     : public parpe::MultiConditionDataProvider {
@@ -23,14 +24,14 @@ class SteadyStateMultiConditionDataProvider
     int updateFixedSimulationParameters(int conditionIdx,
                                         UserData *udata) const override;
 
-
-    void setupUserData(UserData *udata) const;
-
     UserData *getUserData() const override;
 
-    ~SteadyStateMultiConditionDataProvider();
+    ~SteadyStateMultiConditionDataProvider() = default;
 
-    UserData *udata;
+private:
+    void setupUserData(UserData *udata) const;
+
+    std::unique_ptr<UserData> udata;
 };
 
 class SteadyStateMultiConditionProblem : public parpe::MultiConditionProblem {
@@ -40,7 +41,7 @@ class SteadyStateMultiConditionProblem : public parpe::MultiConditionProblem {
 
     void setSensitivityOptions(bool sensiRequired) override;
 
-    ~SteadyStateMultiConditionProblem();
+    ~SteadyStateMultiConditionProblem() = default;
 };
 
 #endif // STEADYSTATEMULTICONDITIONPROBLEM_H

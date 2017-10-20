@@ -14,7 +14,7 @@ SteadyStateMultiConditionDataProvider::SteadyStateMultiConditionDataProvider(
     hdf5MeasurementPath = "/data/ymeasured";
     hdf5MeasurementSigmaPath = "/data/sigmay";
 
-    udata = getUserData();
+    udata = std::unique_ptr<UserData>(getUserData());
 }
 
 int SteadyStateMultiConditionDataProvider::updateFixedSimulationParameters(
@@ -55,10 +55,6 @@ UserData *SteadyStateMultiConditionDataProvider::getUserData() const {
     return udata;
 }
 
-SteadyStateMultiConditionDataProvider::
-    ~SteadyStateMultiConditionDataProvider() {
-    delete udata;
-}
 
 SteadyStateMultiConditionProblem::SteadyStateMultiConditionProblem(
     SteadyStateMultiConditionDataProvider *dp, parpe::LoadBalancerMaster *loadBalancer)
@@ -69,10 +65,9 @@ SteadyStateMultiConditionProblem::SteadyStateMultiConditionProblem(
     std::fill(parametersMax_.begin(), parametersMax_.end(), 5);
 
 
-    optimizationOptions = new parpe::OptimizationOptions();
-    optimizationOptions->optimizer = parpe::OPTIMIZER_IPOPT;
-    optimizationOptions->printToStdout = true;
-    optimizationOptions->maxOptimizerIterations = 30;
+    optimizationOptions.optimizer = parpe::OPTIMIZER_IPOPT;
+    optimizationOptions.printToStdout = true;
+    optimizationOptions.maxOptimizerIterations = 30;
 }
 
 void SteadyStateMultiConditionProblem::setSensitivityOptions(
@@ -85,8 +80,4 @@ void SteadyStateMultiConditionProblem::setSensitivityOptions(
         udata->sensi = AMICI_SENSI_ORDER_NONE;
         udata->sensi_meth = AMICI_SENSI_NONE;
     }
-}
-
-SteadyStateMultiConditionProblem::~SteadyStateMultiConditionProblem() {
-    delete optimizationOptions;
 }

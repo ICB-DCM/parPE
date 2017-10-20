@@ -166,11 +166,11 @@ int OptimizationApplication::runMaster() {
     default:
         // startParameterEstimation(&dataProvider);
 
-        if (problem->optimizationOptions->numStarts > 0) {
+        if (problem->getOptimizationOptions().numStarts > 0) {
             MultiConditionProblemMultiStartOptimization ms(
-                problem->optimizationOptions->numStarts,
-                problem->optimizationOptions->retryOptimization);
-            ms.options = problem->optimizationOptions;
+                problem->getOptimizationOptions().numStarts,
+                problem->getOptimizationOptions().retryOptimization);
+            ms.options = problem->getOptimizationOptions();
             ms.resultWriter = problem->resultWriter;
             ms.dp = problem->getDataProvider();
             ms.loadBalancer = &loadBalancer;
@@ -186,11 +186,11 @@ int OptimizationApplication::runMaster() {
 int OptimizationApplication::runSingleMpiProcess() {
     // TODO: also for gradientCheck
     // run serially
-    if (problem->optimizationOptions->numStarts > 0) {
+    if (problem->getOptimizationOptions().numStarts > 0) {
         MultiConditionProblemMultiStartOptimization ms(
-            problem->optimizationOptions->numStarts,
-            problem->optimizationOptions->retryOptimization);
-        ms.options = problem->optimizationOptions;
+            problem->getOptimizationOptions().numStarts,
+            problem->getOptimizationOptions().retryOptimization);
+        ms.options = problem->getOptimizationOptions();
         ms.resultWriter = problem->resultWriter;
         ms.dp = problem->getDataProvider();
         return ms.run();

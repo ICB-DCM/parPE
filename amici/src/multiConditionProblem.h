@@ -236,7 +236,7 @@ class MultiConditionProblemMultiStartOptimization
     OptimizationProblem *getLocalProblemImpl(int multiStartIndex) override;
 
     MultiConditionDataProvider *dp = nullptr;
-    OptimizationOptions *options = nullptr;
+    OptimizationOptions options;
     MultiConditionProblemResultWriter *resultWriter = nullptr;
     Model *model = nullptr;
     LoadBalancerMaster *loadBalancer = nullptr;

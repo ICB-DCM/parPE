@@ -20,7 +20,7 @@ class OptimizationOptions {
     OptimizationOptions() = default;
 
     /** Optimizer factory method depending on OptimizationOptions::optimizer */
-    Optimizer *createOptimizer();
+    Optimizer *createOptimizer() const;
 
     /** Optimizer to use */
     optimizerEnum optimizer = OPTIMIZER_IPOPT;
@@ -59,7 +59,7 @@ class OptimizationOptions {
     void setOption(std::string key, std::string value);
 
     template <typename T>
-    void for_each(std::function< void (const std::pair<const std::string, const std::string>, T)> f, T arg)
+    void for_each(std::function< void (const std::pair<const std::string, const std::string>, T)> f, T arg) const
     {
         std::for_each(options.begin(), options.end(),
                       std::bind2nd(f, arg));

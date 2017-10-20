@@ -70,11 +70,11 @@ ceres::GradientProblemSolver::Options getCeresOptions(
     ceres::GradientProblemSolver::Options options;
 
     options.minimizer_progress_to_stdout =
-        problem->optimizationOptions->printToStdout;
+        problem->getOptimizationOptions().printToStdout;
     options.max_num_iterations =
-        problem->optimizationOptions->maxOptimizerIterations;
+        problem->getOptimizationOptions().maxOptimizerIterations;
 
-    problem->optimizationOptions->for_each<ceres::GradientProblemSolver::Options*>(setCeresOption, &options);
+    problem->getOptimizationOptions().for_each<ceres::GradientProblemSolver::Options*>(setCeresOption, &options);
 
     return options;
 }

@@ -79,12 +79,12 @@ class SteadystateMultiStartOptimizationApplication
 
         parpe::MultiConditionProblemMultiStartOptimization multiStartOptimization(
             options->numStarts, options->retryOptimization);
-        multiStartOptimization.options = options.get();
+        multiStartOptimization.options = problem->getOptimizationOptions();
         multiStartOptimization.resultWriter = problem->resultWriter;
         multiStartOptimization.dp = dataProvider.get();
         multiStartOptimization.loadBalancer = &loadBalancer;
 
-        parpe::logmessage(parpe::LOGLVL_DEBUG, multiStartOptimization.options->toString());
+        parpe::logmessage(parpe::LOGLVL_DEBUG, multiStartOptimization.options.toString());
 
         multiStartOptimization.run();
 

@@ -22,10 +22,9 @@ ExampleSteadystateProblem::ExampleSteadystateProblem() {
     fillArray(parametersMin_.data(), model->np, -5);
     fillArray(parametersMax_.data(), model->np, 5);
 
-    optimizationOptions = new parpe::OptimizationOptions();
-    optimizationOptions->optimizer = parpe::OPTIMIZER_IPOPT;
-    optimizationOptions->printToStdout = true;
-    optimizationOptions->maxOptimizerIterations = 100;
+    optimizationOptions.optimizer = parpe::OPTIMIZER_IPOPT;
+    optimizationOptions.printToStdout = true;
+    optimizationOptions.maxOptimizerIterations = 100;
 }
 
 int ExampleSteadystateProblem::evaluateObjectiveFunction(const double *parameters, double *objFunVal, double *objFunGrad) {
@@ -88,8 +87,6 @@ ExampleSteadystateProblem::~ExampleSteadystateProblem() {
     delete edata;
     if (model)
         delete model;
-
-    delete optimizationOptions;
 }
 
 void ExampleSteadystateProblem::requireSensitivities(

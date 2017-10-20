@@ -10,10 +10,8 @@
 namespace parpe {
 
 QuadraticTestProblem::QuadraticTestProblem() : OptimizationProblem(1) {
-    optimizationOptions = new OptimizationOptions();
-    optimizationOptions->maxOptimizerIterations = 12;
-
-    optimizationOptions->optimizer = OPTIMIZER_IPOPT;
+    optimizationOptions.maxOptimizerIterations = 12;
+    optimizationOptions.optimizer = OPTIMIZER_IPOPT;
 
     parametersMin_[0] = -1e5;
     parametersMax_[0] = 1e5;
@@ -53,9 +51,6 @@ void QuadraticTestProblem::logOptimizerFinished(double optimalCost,
     //    masterTime, exitStatus);
 }
 
-QuadraticTestProblem::~QuadraticTestProblem() {
-    delete optimizationOptions;
-}
 
 OptimizationProblem *
 QuadraticOptimizationMultiStartProblem::getLocalProblemImpl(

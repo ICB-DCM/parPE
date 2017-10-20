@@ -57,7 +57,7 @@ herr_t optimizationOptionsFromAttribute(hid_t location_id/*in*/,
     return 0; // continue
 }
 
-Optimizer *OptimizationOptions::createOptimizer() {
+Optimizer *OptimizationOptions::createOptimizer() const {
     return optimizerFactory(optimizer);
 }
 

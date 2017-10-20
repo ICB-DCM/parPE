@@ -5,10 +5,10 @@
 #include <cstdlib>
 #include <vector>
 #include <hdf5.h>
+#include <optimizationOptions.h>
 
 namespace parpe {
 
-class OptimizationOptions;
 class OptimizationResultWriter;
 
 /**
@@ -71,7 +71,9 @@ class OptimizationProblem {
 
     const double *getParametersMax() const;
 
-    OptimizationOptions *optimizationOptions = nullptr;
+    OptimizationOptions const& getOptimizationOptions() const;
+
+    void setOptimizationOptions(OptimizationOptions const& options);
 
     void setNumOptimizationParameters(int n);
 
@@ -86,6 +88,8 @@ class OptimizationProblem {
     std::vector<double> parametersMax_;
 
     std::vector<double> initialParameters_;
+
+    OptimizationOptions optimizationOptions;
 };
 
 int getLocalOptimum(OptimizationProblem *problem);

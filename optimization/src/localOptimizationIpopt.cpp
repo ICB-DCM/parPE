@@ -359,7 +359,7 @@ void setIpOptOption(const std::pair<const std::string, const std::string> &pair,
 void setIpOptOptions(SmartPtr<OptionsList> optionsIpOpt,
                      OptimizationProblem *problem) {
 
-    if (problem->optimizationOptions->printToStdout) {
+    if (problem->getOptimizationOptions().printToStdout) {
         optionsIpOpt->SetIntegerValue("print_level", 5);
         optionsIpOpt->SetStringValue("print_user_options", "yes");
     } else {
@@ -374,10 +374,10 @@ void setIpOptOptions(SmartPtr<OptionsList> optionsIpOpt,
     optionsIpOpt->SetStringValue("limited_memory_update_type", "bfgs");
 
     optionsIpOpt->SetIntegerValue(
-        "max_iter", problem->optimizationOptions->maxOptimizerIterations);
+        "max_iter", problem->getOptimizationOptions().maxOptimizerIterations);
 
     // set IpOpt options from OptimizationOptions
-    problem->optimizationOptions->for_each<SmartPtr<OptionsList> *>(setIpOptOption, &optionsIpOpt);
+    problem->getOptimizationOptions().for_each<SmartPtr<OptionsList> *>(setIpOptOption, &optionsIpOpt);
 }
 
 OptimizerIpOpt::OptimizerIpOpt() {}
