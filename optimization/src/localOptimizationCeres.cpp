@@ -159,8 +159,9 @@ void setCeresOption(const std::pair<const std::string, const std::string> &pair,
         options->function_tolerance = std::stod(val);
     } else if(key == "gradient_tolerance") {
         options->gradient_tolerance = std::stod(val);
-    } else if(key == "parameter_tolerance") {
-        options->parameter_tolerance = std::stod(val);
+        // NOTE: this currently disabled until shippable CI has ceres 1.12 debian package available. this option is not available in the current 1.11 package and breaks CI.
+//    } else if(key == "parameter_tolerance") {
+//        options->parameter_tolerance = std::stod(val);
     } else if(key == "logging_type") {
         options->logging_type = static_cast<ceres::LoggingType>(std::stoi(val));
     } else if(key == "minimizer_progress_to_stdout") {
