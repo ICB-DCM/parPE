@@ -76,8 +76,8 @@ if(${BUILD_TESTS})
     set(COVERAGE_DEPENDENCIES unittests_common unittests_amici unittests_loadbalancer unittests_optimization)
     if(${CMAKE_COMPILER_IS_GNUCXX})
         if(${GCOV_REPORT})
-            # NOTE: GCOV uses absolute paths for exclusion
-            set(COVERAGE_EXCLUDES "/usr/*" "${CMAKE_CURRENT_LIST_DIR}/ThirdParty/*" "${CMAKE_CURRENT_LIST_DIR}/deps/*")
+            # NOTE: LCOV uses absolute paths for exclusion; arguments must be enclosed in single quotes
+            set(COVERAGE_EXCLUDES '/usr/*' '${CMAKE_CURRENT_LIST_DIR}/ThirdParty/*' '${CMAKE_CURRENT_LIST_DIR}/deps/*')
             set(GCOV_LIBRARY gcov)
             include(CodeCoverage)
             APPEND_COVERAGE_COMPILER_FLAGS()
