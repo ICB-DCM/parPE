@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <climits>
+#include <misc.h>
 
 namespace parpe {
 
@@ -9,7 +10,9 @@ void LoadBalancerMaster::run() {
     if (isRunning_)
         return;
 
-    assertMPIInitialized();
+#ifndef QUEUE_MASTER_TEST
+    assertMpiActive();
+#endif
 
     int mpiCommSize;
     MPI_Comm_size(MPI_COMM_WORLD, &mpiCommSize);
@@ -42,10 +45,8 @@ LoadBalancerMaster::~LoadBalancerMaster()
 }
 
 #ifndef QUEUE_MASTER_TEST
-void LoadBalancerMaster::assertMPIInitialized() {
-    int mpiInitialized = 0;
-    MPI_Initialized(&mpiInitialized);
-    assert(mpiInitialized);
+void LoadBalancerMaster::assertMpiActive() {
+    assert(getMpiActive());
 }
 #endif
 

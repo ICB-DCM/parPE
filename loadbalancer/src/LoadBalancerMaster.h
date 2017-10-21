@@ -56,7 +56,7 @@ class LoadBalancerMaster {
     ~LoadBalancerMaster();
 
 #ifndef QUEUE_MASTER_TEST
-    static void assertMPIInitialized();
+    static void assertMpiActive();
 #endif
 
     /**
