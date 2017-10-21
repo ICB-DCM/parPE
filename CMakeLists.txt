@@ -73,7 +73,7 @@ if(${BUILD_TESTS})
     # Create test coverage reports?
     set(GCOV_REPORT FALSE CACHE BOOL "Create GCOV report?")
     set(GCOVR_REPORT FALSE CACHE BOOL "Create GCOVR report?")
-
+    set(COVERAGE_DEPENDENCIES unittests_common unittests_amici unittests_loadbalancer unittests_optimization)
     if(${CMAKE_COMPILER_IS_GNUCXX})
         set(COVERAGE_EXCLUDES '/usr/*' '${CMAKE_CURRENT_LIST_DIR}/ThirdParty/*' '${CMAKE_CURRENT_LIST_DIR}/deps/')
         if(${GCOV_REPORT})
@@ -83,7 +83,7 @@ if(${BUILD_TESTS})
             setup_target_for_coverage(
                 NAME ${PROJECT_NAME}_coverage
                 EXECUTABLE ctest
-                DEPENDENCIES parpeoptimization)
+                DEPENDENCIES ${COVERAGE_DEPENDENCIES})
         endif()
         if(${GCOVR_REPORT})
             set(GCOV_LIBRARY gcov)
@@ -92,7 +92,7 @@ if(${BUILD_TESTS})
             setup_target_for_coverage_cobertura(
                 NAME ${PROJECT_NAME}_coverage_cobertura
                 EXECUTABLE ctest
-                DEPENDENCIES parpeoptimization)
+                DEPENDENCIES ${COVERAGE_DEPENDENCIES})
         endif()
     else()
         message("Not creating coverage report, because compiler is not GCC but ${CMAKE_CXX_COMPILER_ID}.")
