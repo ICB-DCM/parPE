@@ -131,10 +131,7 @@ void fillArrayRandomDoubleSameInterval(double min, double max, int length,
 int getMpiRank() {
     int mpiRank = -1;
 
-    int mpiInitialized = 0;
-    MPI_Initialized(&mpiInitialized);
-
-    if (mpiInitialized) {
+    if (getMpiActive()) {
         MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
     }
 
@@ -144,14 +141,23 @@ int getMpiRank() {
 int getMpiCommSize() {
     int mpiCommSize = -1;
 
-    int mpiInitialized = 0;
-    MPI_Initialized(&mpiInitialized);
-
-    if (mpiInitialized) {
+    if (getMpiActive()) {
         MPI_Comm_size(MPI_COMM_WORLD, &mpiCommSize);
     }
 
     return mpiCommSize;
+}
+
+int getMpiActive()
+{
+    int result = 0;
+
+    MPI_Initialized(&result);
+    if(!result)
+        return false;
+
+    MPI_Finalized(&result);
+    return(!result);
 }
 
 } // namespace parpe

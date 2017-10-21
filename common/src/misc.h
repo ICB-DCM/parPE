@@ -48,7 +48,7 @@ void fillArrayRandomDoubleSameInterval(double min, double max,
 
 int getMpiRank();
 int getMpiCommSize();
-
+int getMpiActive();
 
 } // namespace parpe
 
