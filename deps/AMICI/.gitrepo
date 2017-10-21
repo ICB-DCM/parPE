@@ -6,7 +6,7 @@
 [subrepo]
 	remote = git@github.com:ICB-DCM/AMICI.git
 	branch = feature_userdata_copyable
-	commit = dd79f9068b7ceae140fe9b6a8c0164a4f50e26df
-	parent = e819b9b6c95903e61358a7ee0262b93f4c02226f
+	commit = af8ceb9c5a7a8eed86d8071d2133a01c42243739
+	parent = f5c9b5e20a2b5213f11896ce694df1a22801fdaa
 	cmdver = 0.4.0
 	method = merge
