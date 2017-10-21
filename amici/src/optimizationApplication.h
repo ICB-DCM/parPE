@@ -12,7 +12,7 @@ namespace parpe {
 
 /**
  * @brief The OptimizationApplication class parses command line arguments,
- * initializes MPI in required, opens data and results files and starts an
+ * initializes MPI if required, opens data and results files and starts an
  * optimization
  */
 // TODO: DistributedOptimizationApplication
@@ -25,7 +25,9 @@ class OptimizationApplication {
     ~OptimizationApplication();
 
     /**
-     * @brief User-provided problem initialization
+     * @brief User-provided problem initialization.
+     * Must set OptimizationApplication::problem and should set
+     * OptimizationApplication::resultWriter
      * @param inFileArgument
      * @param outFileArgument
      */
@@ -84,8 +86,8 @@ class OptimizationApplication {
 
     /**
      * @brief Parse command line Options.
-     * Must be called before any other functions. Initializes MPI if not already
-     * done.
+     * Must be called before any other functions.
+     * Initializes MPI if not already done.
      * @param argc
      * @param argv
      * @return
@@ -112,8 +114,8 @@ class OptimizationApplication {
 
     std::string dataFileName;
     std::string resultFileName;
-    MultiConditionProblem *problem = nullptr;
-    MultiConditionProblemResultWriter *resultWriter = nullptr;
+    std::unique_ptr<MultiConditionProblem> problem;
+    std::unique_ptr<MultiConditionProblemResultWriter> resultWriter;
     operationTypeEnum opType = OP_TYPE_PARAMETER_ESTIMATION;
     LoadBalancerMaster loadBalancer;
 };

@@ -10,6 +10,9 @@
 #include <pthread.h>
 #include <amici.h>
 #include <amiciMisc.h>
+#include <numeric>
+#include <algorithm>
+#include <random>
 
 namespace parpe {
 
@@ -156,15 +159,14 @@ int OptimizationApplication::runMaster() {
         const double epsilon = 1e-6;
 
         // choose random parameters to check
-        int *parameterIndices =
-            new int[problem->getNumOptimizationParameters()];
-        for (int i = 0; i < problem->getNumOptimizationParameters(); ++i)
-            parameterIndices[i] = i;
-        shuffle(parameterIndices, problem->getNumOptimizationParameters());
+        std::vector<int> parameterIndices(problem->getNumOptimizationParameters());
+        std::iota(parameterIndices.begin(), parameterIndices.end(), 0);
+        std::random_device rd;
+        std::mt19937 g(rd());
+        std::shuffle(parameterIndices.begin(), parameterIndices.end(), g);
 
-        optimizationProblemGradientCheck(problem, parameterIndices,
+        optimizationProblemGradientCheck(problem.get(), parameterIndices.data(),
                                          numParameterIndicesToCheck, epsilon);
-        delete[] parameterIndices;
         break;
     }
     case OP_TYPE_PARAMETER_ESTIMATION:
@@ -204,7 +206,7 @@ int OptimizationApplication::runSingleMpiProcess() {
         ms.dp = problem->getDataProvider();
         return ms.run();
     } else {
-        return getLocalOptimum(problem);
+        return getLocalOptimum(problem.get());
     }
 }
 
@@ -266,7 +268,6 @@ bool OptimizationApplication::isWorker() { return getMpiRank() > 0; }
 
 OptimizationApplication::~OptimizationApplication() {
     destroyHDF5Mutex();
-
     MPI_Finalize();
 }
 

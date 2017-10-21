@@ -31,12 +31,12 @@ class SteadystateApplication : public parpe::OptimizationApplication {
         model = std::unique_ptr<Model>(getModel());
         dataProvider = std::make_unique<SteadyStateMultiConditionDataProvider>(model.get(), inFileArgument);
 
-        problem =
-            new SteadyStateMultiConditionProblem(dataProvider.get(), &loadBalancer);
+        problem = std::unique_ptr<parpe::MultiConditionProblem>(
+                    new SteadyStateMultiConditionProblem(dataProvider.get(), &loadBalancer));
 
         parpe::JobIdentifier id;
-        resultWriter =
-            new parpe::MultiConditionProblemResultWriter(outFileArgument, true, id);
+        resultWriter = std::make_unique<parpe::MultiConditionProblemResultWriter>(outFileArgument, true, id);
+
         problem->resultWriter = std::make_unique<parpe::MultiConditionProblemResultWriter>(*resultWriter);
         problem->resultWriter->setJobId(id);
 
@@ -66,7 +66,7 @@ class SteadystateLocalOptimizationApplication : public SteadystateApplication {
 
     virtual int runMaster() override {
         // Single optimization
-        return getLocalOptimum(problem);
+        return getLocalOptimum(problem.get());
     }
 };
 
