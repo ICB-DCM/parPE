@@ -23,8 +23,8 @@ TEST(multiStartOptimization, testMultiStartOptimization) {
     int numStarts = 10;
 
     // exit status may change depending on starting point -> ignore
-    mock().expectNCalls(numStarts, "logFinish").ignoreOtherParameters();
-    mock().ignoreOtherCalls();
+    // mock().expectNCalls(numStarts, "logFinish").ignoreOtherParameters();
+    // mock().ignoreOtherCalls();
 
     parpe::QuadraticOptimizationMultiStartProblem ms(numStarts, true);
     ms.run();
