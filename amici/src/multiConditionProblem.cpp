@@ -117,7 +117,7 @@ int MultiConditionProblem::intermediateFunction(
     //               ls_trials);
 
     if (resultWriter) {
-        ((MultiConditionProblemResultWriter *)resultWriter)->setJobId(path);
+        resultWriter->setJobId(path);
         resultWriter->logLocalOptimizerIteration(
             iter_count, lastOptimizationParameters.data(), numOptimizationParameters_,
             obj_value, lastObjectiveFunctionGradient.data(), simulationTimeInS, alg_mod, inf_pr,
@@ -221,9 +221,6 @@ JobResultAmiciSimulation MultiConditionProblem::runAndLogSimulation(amici::UserD
     return JobResultAmiciSimulation((int)*rdata->status, rdata, timeSeconds);
 }
 
-MultiConditionProblem::~MultiConditionProblem() {
-    delete udata;
-}
 
 void MultiConditionProblem::messageHandler(std::vector<char> &buffer,
                                            int jobId) {
@@ -289,8 +286,8 @@ int MultiConditionProblem::runSimulations(const double *optimizationVariables,
             // of
             // sending whole  optimization parameter vector to worker
             dataProvider->updateConditionSpecificSimulationParameters(
-                dataIndices[simulationIdx], optimizationVariables, udata);
-            return udata;
+                dataIndices[simulationIdx], optimizationVariables, udata.get());
+            return udata.get();
         },
         [&](int simulationIdx) {
             path.idxConditions = dataIndices[simulationIdx];
@@ -439,8 +436,8 @@ MultiConditionProblemMultiStartOptimization::getLocalProblemImpl(
         JobIdentifier id = resultWriter->getJobId();
         id.idxLocalOptimization = multiStartIndex;
 
-        problem->resultWriter =
-            new MultiConditionProblemResultWriter(resultWriter->file_id, id);
+        problem->resultWriter = std::make_unique<MultiConditionProblemResultWriter>(*resultWriter);
+        problem->resultWriter->setJobId(id);
         problem->path.idxLocalOptimization = multiStartIndex;
     }
 

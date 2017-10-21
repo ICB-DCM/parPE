@@ -180,7 +180,7 @@ int OptimizationApplication::runMaster() {
                 problem->getOptimizationOptions().numStarts,
                 problem->getOptimizationOptions().retryOptimization);
             ms.options = problem->getOptimizationOptions();
-            ms.resultWriter = problem->resultWriter;
+            ms.resultWriter = problem->resultWriter.get();
             ms.dp = problem->getDataProvider();
             ms.loadBalancer = &loadBalancer;
             ms.run();
@@ -200,7 +200,7 @@ int OptimizationApplication::runSingleMpiProcess() {
             problem->getOptimizationOptions().numStarts,
             problem->getOptimizationOptions().retryOptimization);
         ms.options = problem->getOptimizationOptions();
-        ms.resultWriter = problem->resultWriter;
+        ms.resultWriter = problem->resultWriter.get();
         ms.dp = problem->getDataProvider();
         return ms.run();
     } else {

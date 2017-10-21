@@ -11,8 +11,8 @@ namespace parpe {
 
 OptimizationResultWriter::OptimizationResultWriter() {}
 
-OptimizationResultWriter::OptimizationResultWriter(hid_t file_id) {
-    this->file_id = file_id;
+OptimizationResultWriter::OptimizationResultWriter(hid_t file_id)
+    : file_id(H5Freopen(file_id)) {
     logParPEVersion();
 }
 
@@ -202,6 +202,8 @@ void OptimizationResultWriter::setRootPath(const std::string &path)
     hdf5EnsureGroupExists(file_id, rootPath.c_str());
 }
 
-OptimizationResultWriter::~OptimizationResultWriter() { closeResultHDFFile(); }
+OptimizationResultWriter::~OptimizationResultWriter() {
+        closeResultHDFFile();
+}
 
 } // namespace parpe

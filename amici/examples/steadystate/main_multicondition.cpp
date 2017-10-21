@@ -37,7 +37,9 @@ class SteadystateApplication : public parpe::OptimizationApplication {
         parpe::JobIdentifier id;
         resultWriter =
             new parpe::MultiConditionProblemResultWriter(outFileArgument, true, id);
-        problem->resultWriter = resultWriter;
+        problem->resultWriter = std::make_unique<parpe::MultiConditionProblemResultWriter>(*resultWriter);
+        problem->resultWriter->setJobId(id);
+
     }
 
     virtual int runSingleMpiProcess() override {
@@ -45,17 +47,12 @@ class SteadystateApplication : public parpe::OptimizationApplication {
             1,
             problem->getOptimizationOptions().retryOptimization);
         ms.options = problem->getOptimizationOptions();
-        ms.resultWriter = problem->resultWriter;
+        ms.resultWriter = problem->resultWriter.get();
         ms.dp = problem->getDataProvider();
         ms.loadBalancer = &loadBalancer;
         ms.run();
         return 0;
         //return getLocalOptimum(problem);
-    }
-
-    virtual ~SteadystateApplication() {
-        delete resultWriter;
-        delete problem;
     }
 
     std::unique_ptr<SteadyStateMultiConditionDataProvider> dataProvider;

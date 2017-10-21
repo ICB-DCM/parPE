@@ -3,6 +3,7 @@
 #include <amici_model.h>
 #include <cstdio>
 #include <misc.h>
+#include <multiConditionProblemResultWriter.h>
 Model *getModel();
 
 SteadyStateMultiConditionDataProvider::SteadyStateMultiConditionDataProvider(
@@ -31,15 +32,11 @@ void SteadyStateMultiConditionDataProvider::setupUserData(
     hsize_t length;
     AMI_HDF5_getDoubleArrayAttribute(fileId, "data", "t", &udata->ts, &length);
     udata->nt = length;
-    udata->qpositivex = new double[model->nx];
-    fillArray(udata->qpositivex, model->nx, 1);
 
     // calculate sensitivities for all parameters
     udata->requireSensitivitiesForAllParameters();
-    udata->p = new double[model->np];
 
     // set model constants
-    udata->k = new double[model->nk];
     updateFixedSimulationParameters(0, udata);
 
     udata->pscale = AMICI_SCALING_LOG10;

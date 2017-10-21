@@ -9,6 +9,7 @@
 #include <simulationWorkerAmici.h>
 #include <cmath> //NAN
 #include <amici.h>
+#include <multiConditionProblemResultWriter.h>
 
 namespace parpe {
 
@@ -25,6 +26,8 @@ class MultiConditionProblem : public OptimizationProblem,
 
     MultiConditionProblem(MultiConditionDataProvider *dataProvider,
                           LoadBalancerMaster *loadBalancer);
+
+    ~MultiConditionProblem() = default;
 
     /**
      * @brief Evaluate cost function at `optimiziationVariables`
@@ -117,8 +120,6 @@ class MultiConditionProblem : public OptimizationProblem,
     MultiConditionDataProvider *getDataProvider();
     virtual double const*getInitialParameters(int multiStartIndex) const override;
 
-    ~MultiConditionProblem();
-
     JobIdentifier path;
 
     /**
@@ -131,7 +132,7 @@ class MultiConditionProblem : public OptimizationProblem,
 
     virtual double getTime() const;
 
-    MultiConditionProblemResultWriter *resultWriter = nullptr;
+    std::unique_ptr<MultiConditionProblemResultWriter> resultWriter;
 
   protected:
 
@@ -208,7 +209,7 @@ class MultiConditionProblem : public OptimizationProblem,
     MultiConditionDataProvider *dataProvider = nullptr;
     LoadBalancerMaster *loadBalancer = nullptr;
     amici::Model *model = nullptr;
-    amici::UserData *udata = nullptr;
+    std::unique_ptr<amici::UserData> udata;
     amici::UserData udataOriginal; // for saving sensitivity options which are changed depending on whether gradient is needed
 
     // keep track of previous results to avoid re-evaluation at the same
