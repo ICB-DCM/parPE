@@ -411,8 +411,7 @@ MultiConditionDataProvider *MultiConditionProblem::getDataProvider() {
     return dataProvider;
 }
 
-OptimizationProblem *
-MultiConditionProblemMultiStartOptimization::getLocalProblemImpl(
+std::unique_ptr<OptimizationProblem> MultiConditionProblemMultiStartOptimization::getLocalProblemImpl(
     int multiStartIndex) {
     // generate new OptimizationProblem with data from dp
 
@@ -427,8 +426,7 @@ MultiConditionProblemMultiStartOptimization::getLocalProblemImpl(
     if (mpiInitialized)
         MPI_Comm_size(MPI_COMM_WORLD, &mpiCommSize);
 
-    MultiConditionProblem *problem =
-        new MultiConditionProblem(dp, loadBalancer);
+    auto problem = std::make_unique<MultiConditionProblem>(dp, loadBalancer);
 
     problem->setOptimizationOptions(options);
 
@@ -444,7 +442,7 @@ MultiConditionProblemMultiStartOptimization::getLocalProblemImpl(
     problem->setInitialParameters(
         problem->getInitialParameters(multiStartIndex));
 
-    return problem;
+    return std::move(problem);
 }
 
 } // namespace parpe

@@ -3,6 +3,7 @@
 
 #include "optimizationProblem.h"
 #include <vector>
+#include <memory>
 
 namespace parpe {
 
@@ -21,11 +22,11 @@ class MultiStartOptimization {
     int run();
 
   protected:
-    OptimizationProblem *getLocalProblem(int multiStartIndex);
+    std::unique_ptr<OptimizationProblem> getLocalProblem(int multiStartIndex);
 
     std::vector<OptimizationProblem *> createLocalOptimizationProblems();
 
-    virtual OptimizationProblem *getLocalProblemImpl(int multiStartIndex) = 0;
+    virtual std::unique_ptr<OptimizationProblem> getLocalProblemImpl(int multiStartIndex) = 0;
 
     int numberOfStarts = 1;
     bool restartOnFailure = false;

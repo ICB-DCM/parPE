@@ -52,12 +52,9 @@ void QuadraticTestProblem::logOptimizerFinished(double optimalCost,
 }
 
 
-OptimizationProblem *
-QuadraticOptimizationMultiStartProblem::getLocalProblemImpl(
+std::unique_ptr<OptimizationProblem> QuadraticOptimizationMultiStartProblem::getLocalProblemImpl(
     int multiStartIndex) {
-    OptimizationProblem *problem = new QuadraticTestProblem();
-
-    return problem;
+    return std::unique_ptr<OptimizationProblem>(new QuadraticTestProblem());
 }
 
 } // namespace parpe

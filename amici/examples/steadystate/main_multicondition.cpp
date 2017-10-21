@@ -1,7 +1,6 @@
 #include "SteadyStateMultiConditionProblem.h"
 #include "optimizationOptions.h"
 #include "wrapfunctions.h"
-
 #include <LoadBalancerWorker.h>
 #include <hdf5Misc.h>
 #include <logging.h>
@@ -71,7 +70,7 @@ class SteadystateLocalOptimizationApplication : public SteadystateApplication {
 };
 
 int main(int argc, char **argv) {
-    int status = 0;
+    int status = EXIT_SUCCESS;
 
 //     SteadystateLocalOptimizationApplication app(argc, argv);
     SteadystateApplication app(argc, argv);

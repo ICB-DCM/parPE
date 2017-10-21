@@ -30,7 +30,7 @@ class QuadraticTestProblem : public OptimizationProblem {
 class QuadraticOptimizationMultiStartProblem : public MultiStartOptimization {
   public:
     using MultiStartOptimization::MultiStartOptimization;
-    OptimizationProblem *getLocalProblemImpl(int multiStartIndex) override;
+    std::unique_ptr<OptimizationProblem> getLocalProblemImpl(int multiStartIndex) override;
 };
 
 } // namespace parpe

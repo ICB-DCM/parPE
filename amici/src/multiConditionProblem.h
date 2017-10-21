@@ -233,7 +233,7 @@ class MultiConditionProblemMultiStartOptimization
   public:
     using MultiStartOptimization::MultiStartOptimization;
 
-    OptimizationProblem *getLocalProblemImpl(int multiStartIndex) override;
+    std::unique_ptr<OptimizationProblem> getLocalProblemImpl(int multiStartIndex) override;
 
     MultiConditionDataProvider *dp = nullptr;
     OptimizationOptions options;

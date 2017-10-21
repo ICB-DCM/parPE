@@ -71,7 +71,7 @@ int MultiStartOptimization::run() {
                                ms);
                     ++lastStartIdx;
 
-                    localProblems[ms] = getLocalProblem(lastStartIdx);
+                    localProblems[ms] = getLocalProblem(lastStartIdx).release();
                     logmessage(
                         LOGLVL_DEBUG,
                         "Spawning thread for local optimization #%d (%d)",
@@ -94,9 +94,9 @@ int MultiStartOptimization::run() {
     return 0;
 }
 
-OptimizationProblem *
+std::unique_ptr<OptimizationProblem>
 MultiStartOptimization::getLocalProblem(int multiStartIndex) {
-    OptimizationProblem *problem = getLocalProblemImpl(multiStartIndex);
+    std::unique_ptr<OptimizationProblem> problem = getLocalProblemImpl(multiStartIndex);
 
     return problem;
 }
@@ -106,7 +106,7 @@ MultiStartOptimization::createLocalOptimizationProblems() {
     std::vector<OptimizationProblem *> localProblems(numberOfStarts);
 
     for (int ms = 0; ms < numberOfStarts; ++ms) {
-        localProblems[ms] = getLocalProblem(ms);
+        localProblems[ms] = getLocalProblem(ms).release();
     }
 
     return localProblems;
