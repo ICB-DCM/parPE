@@ -267,6 +267,11 @@ bool OptimizationApplication::isMaster() { return getMpiRank() == 0; }
 bool OptimizationApplication::isWorker() { return getMpiRank() > 0; }
 
 OptimizationApplication::~OptimizationApplication() {
+    // objects must be destroyed before MPI_Finalize is called
+    // and Hdf5 mutex is destroyed
+    problem.reset(nullptr);
+    resultWriter.reset(nullptr);
+
     destroyHDF5Mutex();
     MPI_Finalize();
 }
