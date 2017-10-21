@@ -203,7 +203,7 @@ function(SETUP_TARGET_FOR_COVERAGE_COBERTURA)
     # Combine excludes to several -e arguments
     set(COBERTURA_EXCLUDES "")
     foreach(EXCLUDE ${COVERAGE_EXCLUDES})
-        set(COBERTURA_EXCLUDES "-e ${EXCLUDE} ${COBERTURA_EXCLUDES}")
+        set(COBERTURA_EXCLUDES -e ${EXCLUDE} ${COBERTURA_EXCLUDES})
     endforeach()
 
     add_custom_target(${Coverage_NAME}
