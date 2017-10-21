@@ -75,7 +75,7 @@ if(${BUILD_TESTS})
     set(GCOVR_REPORT FALSE CACHE BOOL "Create GCOVR report?")
 
     if(${CMAKE_COMPILER_IS_GNUCXX})
-        set(COVERAGE_EXCLUDES 'boost/*' '/usr/include/*' 'cxx/*', 'ThirdParty/*')
+        set(COVERAGE_EXCLUDES '/usr/*' '*/ThirdParty/*')
         if(${GCOV_REPORT})
             set(GCOV_LIBRARY gcov)
             include(CodeCoverage)
