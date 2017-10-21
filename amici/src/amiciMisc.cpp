@@ -1,7 +1,7 @@
 #include <logging.h>
 #include <sstream>
-namespace parpe {
 
+namespace parpe {
 
 void printAmiciErrMsgIdAndTxt(const char *identifier, const char *format, ...) {
     std::stringstream ss;
@@ -27,4 +27,4 @@ void printAmiciWarnMsgIdAndTxt(const char *identifier, const char *format, ...) 
     va_end(argptr);
 }
 
-}
+} // namespace parpe

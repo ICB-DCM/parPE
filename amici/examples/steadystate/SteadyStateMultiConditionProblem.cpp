@@ -18,10 +18,9 @@ SteadyStateMultiConditionDataProvider::SteadyStateMultiConditionDataProvider(
     udata = std::unique_ptr<UserData>(getUserData());
 }
 
-int SteadyStateMultiConditionDataProvider::updateFixedSimulationParameters(
-    int conditionIdx, UserData *udata) const {
+int SteadyStateMultiConditionDataProvider::updateFixedSimulationParameters(int conditionIdx, UserData &udata) const {
     parpe::hdf5Read2DDoubleHyperslab(fileId, "/data/k", model->nk, 1, 0, conditionIdx,
-                              udata->k);
+                              udata.k);
     return 0;
 }
 
@@ -37,7 +36,7 @@ void SteadyStateMultiConditionDataProvider::setupUserData(
     udata->requireSensitivitiesForAllParameters();
 
     // set model constants
-    updateFixedSimulationParameters(0, udata);
+    updateFixedSimulationParameters(0, *udata);
 
     udata->pscale = AMICI_SCALING_LOG10;
     udata->sensi = AMICI_SENSI_ORDER_FIRST;
@@ -47,9 +46,9 @@ void SteadyStateMultiConditionDataProvider::setupUserData(
     udata->newton_maxsteps = 40;
 }
 
-UserData *SteadyStateMultiConditionDataProvider::getUserData() const {
-    UserData *udata = model->getNewUserData();
-    setupUserData(udata);
+std::unique_ptr<UserData> SteadyStateMultiConditionDataProvider::getUserData() const {
+    auto udata = std::unique_ptr<amici::UserData>(model->getNewUserData());
+    setupUserData(udata.get());
     return udata;
 }
 

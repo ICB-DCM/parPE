@@ -94,13 +94,13 @@ int MultiConditionDataProvider::getNumConditionSpecificParametersPerSimulation()
  * @return
  */
 int MultiConditionDataProvider::updateFixedSimulationParameters(
-    int conditionIdx, amici::UserData *udata) const {
+    int conditionIdx, amici::UserData &udata) const {
     hdf5LockMutex();
 
     H5_SAVE_ERROR_HANDLER;
 
     hdf5Read2DDoubleHyperslab(fileId, hdf5ConditionPath.c_str(), model->nk, 1,
-                              0, conditionIdx, udata->k);
+                              0, conditionIdx, udata.k);
 
     if (H5Eget_num(H5E_DEFAULT)) {
         logmessage(LOGLVL_CRITICAL,
@@ -118,11 +118,11 @@ int MultiConditionDataProvider::updateFixedSimulationParameters(
     return H5Eget_num(H5E_DEFAULT);
 }
 
-amici::ExpData *MultiConditionDataProvider::getExperimentalDataForCondition(
+std::unique_ptr<amici::ExpData> MultiConditionDataProvider::getExperimentalDataForCondition(
     int conditionIdx, const amici::UserData *udata) const {
     hdf5LockMutex();
 
-    amici::ExpData *edata = new amici::ExpData(udata, model);
+    auto edata = std::make_unique<amici::ExpData>(udata, model);
     assert(edata && "Failed getting experimental data. Check data file.");
 
     hdf5Read3DDoubleHyperslab(fileId, hdf5MeasurementPath.c_str(),
@@ -160,15 +160,16 @@ int MultiConditionDataProvider::getNumCommonParameters() const {
 
 amici::Model *MultiConditionDataProvider::getModel() const { return model; }
 
-amici::UserData *MultiConditionDataProvider::getUserData() const {
+std::unique_ptr<amici::UserData> MultiConditionDataProvider::getUserData() const {
     // TODO: separate class for udata?
     hdf5LockMutex();
 
     const char *optionsObject = hdf5AmiciOptionPath.c_str();
 
     H5_SAVE_ERROR_HANDLER;
-    amici::UserData *udata = amici::AMI_HDF5_readSimulationUserDataFromFileObject(
-        fileId, optionsObject, model);
+    auto udata = std::unique_ptr<amici::UserData>(
+                amici::AMI_HDF5_readSimulationUserDataFromFileObject(
+                    fileId, optionsObject, model));
 
     if (H5Eget_num(H5E_DEFAULT)) {
         error("Problem with reading udata\n");
@@ -204,11 +205,10 @@ amici::UserData *MultiConditionDataProvider::getUserData() const {
     return (udata);
 }
 
-amici::UserData *
-MultiConditionDataProvider::getUserDataForCondition(int conditionIdx) const {
-    amici::UserData *udata = getUserData();
+std::unique_ptr<amici::UserData> MultiConditionDataProvider::getUserDataForCondition(int conditionIdx) const {
+    auto udata = getUserData();
 
-    updateFixedSimulationParameters(conditionIdx, udata);
+    updateFixedSimulationParameters(conditionIdx, *udata);
 
     return udata;
 }

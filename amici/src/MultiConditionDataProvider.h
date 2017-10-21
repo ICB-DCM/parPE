@@ -4,6 +4,7 @@
 #include <hdf5Misc.h>
 #include <string>
 #include <amici.h>
+#include <memory>
 
 namespace parpe {
 
@@ -87,10 +88,9 @@ class MultiConditionDataProvider {
      * @return Status, 0 on success, non-zero otherwise
      */
     virtual int updateFixedSimulationParameters(int conditionIdx,
-                                                amici::UserData *udata) const;
+                                                amici::UserData &udata) const;
 
-    virtual amici::ExpData *
-    getExperimentalDataForCondition(int conditionIdx,
+    virtual std::unique_ptr<amici::ExpData> getExperimentalDataForCondition(int conditionIdx,
                                     const amici::UserData *udata) const;
 
     /**
@@ -133,7 +133,7 @@ class MultiConditionDataProvider {
      * Fixed and variable parameters are for no particular condition.
      * @return A new UserData instance.
      */
-    virtual amici::UserData *getUserData() const;
+    virtual std::unique_ptr<amici::UserData> getUserData() const;
 
     /**
      * @brief Returns a new UserData instance with options read from the HDF5
@@ -142,7 +142,7 @@ class MultiConditionDataProvider {
      * are not).
      * @return A new UserData instance.
      */
-    virtual amici::UserData *getUserDataForCondition(int conditionIdx) const;
+    virtual std::unique_ptr<amici::UserData> getUserDataForCondition(int conditionIdx) const;
 
     virtual int getIndexOfFirstConditionSpecificOptimizationParameter(
         int conditionIdx) const;

@@ -167,7 +167,11 @@ int MultiConditionProblem::earlyStopping() {
      * costValidation.append()
      * if no decrease during last 3 rounds, return stop
      *
+     * TODO: need to have current parameters; need to be supplied to intermediate function;
+     * need to from optimizer if in line search or actual step
      */
+
+    // validationProblem->evaluateObjectiveFunction()
 
     return stop;
 }
@@ -184,10 +188,9 @@ JobResultAmiciSimulation MultiConditionProblem::runAndLogSimulation(amici::UserD
 
     // update UserData::k for condition-specific variables (no parameter mapping
     // necessary here, this has been done by master)
-    dataProvider->updateFixedSimulationParameters(path.idxConditions, udata);
+    dataProvider->updateFixedSimulationParameters(path.idxConditions, *udata);
 
-    auto edata = std::unique_ptr<amici::ExpData>(
-                dataProvider->getExperimentalDataForCondition(path.idxConditions, udata));
+    auto edata = dataProvider->getExperimentalDataForCondition(path.idxConditions, udata);
 
     auto rdata = std::unique_ptr<amici::ReturnData>(
                 amici::getSimulationResults(model, udata, edata.get()));

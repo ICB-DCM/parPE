@@ -27,9 +27,9 @@ class SteadyStateMultiConditionDataProvider
     }
 
     int updateFixedSimulationParameters(int conditionIdx,
-                                        UserData *udata) const override;
+                                        UserData &udata) const override;
 
-    UserData *getUserData() const override;
+    std::unique_ptr<amici::UserData> getUserData() const override;
 
     ~SteadyStateMultiConditionDataProvider() = default;
 

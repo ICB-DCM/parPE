@@ -24,7 +24,7 @@ TEST(simulationWorkerAmici, testSerializeResultPackageMessage) {
     parpe::JobResultAmiciSimulation results(1, std::make_unique<amici::ReturnData>(&u, &m), 2.1);
 
     int msgSize = 0;
-    auto buffer = std::unique_ptr<char>(
+    auto buffer = std::unique_ptr<char[]>(
                 amici::serializeToChar<parpe::JobResultAmiciSimulation>(&results, &msgSize));
 
     parpe::JobResultAmiciSimulation resultsAct =

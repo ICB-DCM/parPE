@@ -206,6 +206,7 @@ class MultiConditionProblem : public OptimizationProblem,
                                    double objectiveFunctionValue,
                                    const double *objectiveFunctionGradient);
 
+    std::unique_ptr<OptimizationProblem> validationProblem;
     MultiConditionDataProvider *dataProvider = nullptr;
     LoadBalancerMaster *loadBalancer = nullptr;
     amici::Model *model = nullptr;

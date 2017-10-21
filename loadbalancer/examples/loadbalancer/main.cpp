@@ -68,8 +68,7 @@ int master() {
 class DuplicatingLoadBalancerWorker : public parpe::LoadBalancerWorker {
     /**
      * @brief messageHandler On the worker side, take the received value,
-     * multiply
-     * by 2, return
+     * multiply by 2, return
      * @param buffer
      * @param size
      * @param jobId
@@ -109,6 +108,8 @@ int main(int argc, char **argv) {
     } else {
         worker();
     }
+
     MPI_Finalize();
+
     return status;
 }
