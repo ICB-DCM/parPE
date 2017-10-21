@@ -9,6 +9,7 @@ include_directories(${CPPUTEST_INCLUDE_DIR})
 set(SRC_LIST
     main.cpp
     commonTests.cpp
+    ../src/testingMisc.cpp
 )
 
 add_executable(${PROJECT_NAME} ${SRC_LIST})

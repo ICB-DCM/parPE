@@ -5,7 +5,60 @@
 #include <logging.h>
 #include <parpeException.h>
 #include <hdf5Misc.h>
+#include <testingMisc.h>
 #include <mpi.h>
+#include <cmath>
+
+// clang-format off
+TEST_GROUP(testingMisc){
+    void setup(){
+
+    }
+
+    void teardown(){
+        mock().checkExpectations();
+        mock().clear();
+    }
+};
+// clang-format on
+
+TEST(testingMisc, testWithinTolerance) {
+    double atol = 0.1;
+    double rtol = 0.1;
+
+    CHECK_TRUE(withinTolerance(1.0, 1.0, atol, rtol, 0));
+    CHECK_TRUE(withinTolerance(2.0, 2.15, atol, rtol, 0)); // abs false, rel true
+    CHECK_TRUE(withinTolerance(0, 0.05, atol, rtol, 0)); // abs true, rel false
+
+
+    CHECK_TRUE(withinTolerance(NAN, NAN, atol, rtol, 0));
+    CHECK_FALSE(withinTolerance(NAN, 1, atol, rtol, 0));
+    CHECK_FALSE(withinTolerance(1, NAN, atol, rtol, 0));
+
+    CHECK_TRUE(withinTolerance(INFINITY, INFINITY, atol, rtol, 0));
+    CHECK_FALSE(withinTolerance(1, INFINITY, atol, rtol, 0));
+    CHECK_FALSE(withinTolerance(INFINITY, 1, atol, rtol, 0));
+}
+
+TEST(testingMisc, testCheckEqualArray) {
+    const double expected[] = {1.0, 2.0, 3.0};
+    const double actual[] = {1.0, 2.0, 3.0};
+
+    checkEqualArray(expected, actual, 3, 1e-16, 1e-16);
+    checkEqualArray(nullptr, nullptr, 3, 1e-16, 1e-16);
+}
+
+TEST(testingMisc, testRandInt) {
+    const int numTests = 100;
+    const int min = -1;
+    const int max = 1;
+
+    for(int i = 0; i < numTests; ++i) {
+        int r = randInt(min, max);
+        CHECK_TRUE(r >= min && r <= max);
+    }
+}
+
 
 // clang-format off
 TEST_GROUP(commonMisc){
