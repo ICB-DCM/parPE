@@ -79,16 +79,6 @@ void strFormatCurrentLocaltime(char *buffer, size_t bufferSize,
     strftime(buffer, bufferSize, format, tm_info);
 }
 
-void shuffle(int *array, size_t numElements) {
-    size_t i;
-    for (i = 0; i < numElements - 1; ++i) {
-        size_t j = numElements * rand() / RAND_MAX;
-        int tmp = array[j];
-        array[j] = array[i];
-        array[i] = tmp;
-    }
-}
-
 #include <pthread.h>
 
 void runInParallelAndWaitForFinish(void *(*function)(void *), void **args,
