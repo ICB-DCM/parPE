@@ -4,6 +4,7 @@
 #include <include/rdata.h>
 #include <include/udata.h>
 #include <amici_serialization.h>
+#include <misc.h>
 
 namespace parpe {
 
@@ -33,17 +34,23 @@ struct JobAmiciSimulation {
 class JobResultAmiciSimulation {
 public:
     JobResultAmiciSimulation() = default;
-    JobResultAmiciSimulation(int status, amici::ReturnData *rdata, double simulationTimeInSec)
-        : status(status), rdata(rdata), simulationTimeInSec(simulationTimeInSec) {}
+    JobResultAmiciSimulation(int status, std::unique_ptr<amici::ReturnData> rdata, double simulationTimeInSec)
+        : status(status), rdata(std::move(rdata)), simulationTimeInSec(simulationTimeInSec) {}
 
     ~JobResultAmiciSimulation() {
+    }
+
+    JobResultAmiciSimulation ( JobResultAmiciSimulation && other) {
+        std::swap(status, other.status);
+        std::swap(rdata, other.rdata);
+        std::swap(simulationTimeInSec, other.simulationTimeInSec);
     }
 
     /** simulation return status */
     int status = 1;
 
     /** log likelihood */
-    amici::ReturnData *rdata = nullptr;
+    std::unique_ptr<amici::ReturnData> rdata;
 
     double simulationTimeInSec = -1;
 };
@@ -56,9 +63,9 @@ template <class Archive>
 void serialize(Archive &ar, parpe::JobResultAmiciSimulation &d, const unsigned int version) {
     ar & d.status;
     if (Archive::is_loading::value) {
-        d.rdata = new amici::ReturnData();
+        d.rdata = std::make_unique<amici::ReturnData>();
     }
-    ar & *d.rdata;
+    ar & *d.rdata.get();
     ar & d.simulationTimeInSec;
 }
 } // namespace serialization

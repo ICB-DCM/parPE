@@ -25,9 +25,9 @@ struct JobIdentifier {
     // TODO Only this one is used for the moment
     int idxConditions = 0;
 
-    void print();
+    void print() const;
 
-    void sprint(char *buffer);
+    void sprint(char *buffer) const;
 };
 
 /**

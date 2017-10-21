@@ -274,12 +274,12 @@ MultiConditionDataProvider::~MultiConditionDataProvider() {
     }
 }
 
-void JobIdentifier::print() {
+void JobIdentifier::print() const {
     printf("%d.%d.%d.%d", idxMultiStart, idxLocalOptimization,
            idxLocalOptimizationIteration, idxConditions);
 }
 
-void JobIdentifier::sprint(char *buffer) {
+void JobIdentifier::sprint(char *buffer) const {
     sprintf(buffer, "%d.%d.%d.%d", idxMultiStart, idxLocalOptimization,
             idxLocalOptimizationIteration, idxConditions);
 }

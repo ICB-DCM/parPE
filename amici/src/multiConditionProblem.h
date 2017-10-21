@@ -242,6 +242,9 @@ class MultiConditionProblemMultiStartOptimization
     LoadBalancerMaster *loadBalancer = nullptr;
 };
 
+
+void printSimulationResult(JobIdentifier const& path, int jobId, const amici::UserData *udata, const amici::ReturnData *rdata, double timeSeconds);
+
 } // namespace parpe
 
 #endif

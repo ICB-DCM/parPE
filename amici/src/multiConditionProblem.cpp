@@ -177,7 +177,7 @@ JobResultAmiciSimulation MultiConditionProblem::runAndLogSimulation(amici::UserD
                                                        int jobId) {
     double startTime = MPI_Wtime();
 
-    amici::Model *model = dataProvider->getModel();
+    auto model = dataProvider->getModel();
 
     // run simulation
     int iterationsUntilSteadystate = -1;
@@ -186,31 +186,16 @@ JobResultAmiciSimulation MultiConditionProblem::runAndLogSimulation(amici::UserD
     // necessary here, this has been done by master)
     dataProvider->updateFixedSimulationParameters(path.idxConditions, udata);
 
-    amici::ExpData *edata = dataProvider->getExperimentalDataForCondition(
-        path.idxConditions, udata);
+    auto edata = std::unique_ptr<amici::ExpData>(
+                dataProvider->getExperimentalDataForCondition(path.idxConditions, udata));
 
-    amici::ReturnData *rdata = amici::getSimulationResults(model, udata, edata);
-
-    delete edata;
+    auto rdata = std::unique_ptr<amici::ReturnData>(
+                amici::getSimulationResults(model, udata, edata.get()));
 
     double endTime = MPI_Wtime();
     double timeSeconds = (endTime - startTime);
 
-    char pathStrBuf[100];
-    path.sprint(pathStrBuf);
-    logmessage(LOGLVL_DEBUG, "Result for %s (%d): %g (%d) (%.4fs)", pathStrBuf,
-               jobId, rdata->llh[0], (int)*rdata->status, timeSeconds);
-
-    // check for NaNs
-    if (udata->sensi >= amici::AMICI_SENSI_ORDER_FIRST) {
-        for (int i = 0; i < model->np; ++i)
-            if (std::isnan(rdata->sllh[i]))
-                logmessage(LOGLVL_DEBUG, "Result for %s: contains NaN at %d",
-                           pathStrBuf, i);
-            else if (std::isinf(rdata->sllh[i]))
-                logmessage(LOGLVL_DEBUG, "Result for %s: contains Inf at %d",
-                           pathStrBuf, i);
-    }
+    printSimulationResult(path, jobId, udata, rdata.get(), timeSeconds);
 
     if (resultWriter)
         resultWriter->logSimulation(path, udata->p, rdata->llh[0], rdata->sllh,
@@ -218,16 +203,17 @@ JobResultAmiciSimulation MultiConditionProblem::runAndLogSimulation(amici::UserD
                                     rdata->sx, model->ny, rdata->y, jobId,
                                     iterationsUntilSteadystate, *rdata->status);
 
-    return JobResultAmiciSimulation((int)*rdata->status, rdata, timeSeconds);
+    int status = (int)*rdata->status;
+    return JobResultAmiciSimulation(status, std::move(rdata), timeSeconds);
 }
 
 
 void MultiConditionProblem::messageHandler(std::vector<char> &buffer,
                                            int jobId) {
     // unpack
-    amici::UserData *udata = dataProvider->getUserData();
+    auto udata = std::unique_ptr<amici::UserData>(dataProvider->getUserData());
     JobIdentifier path;
-    JobAmiciSimulation::toUserData(buffer.data(), udata, &path);
+    JobAmiciSimulation::toUserData(buffer.data(), udata.get(), &path);
 
 #if QUEUE_WORKER_H_VERBOSE >= 2
     int mpiRank;
@@ -237,7 +223,7 @@ void MultiConditionProblem::messageHandler(std::vector<char> &buffer,
 #endif
 
     // do work
-    JobResultAmiciSimulation result = runAndLogSimulation(udata, path, jobId);
+    JobResultAmiciSimulation result = runAndLogSimulation(udata.get(), path, jobId);
 
 #if QUEUE_WORKER_H_VERBOSE >= 2
     printf("[%d] Work done. ", mpiRank);
@@ -246,8 +232,6 @@ void MultiConditionProblem::messageHandler(std::vector<char> &buffer,
 
     // pack & cleanup
     buffer = amici::serializeToStdVec<JobResultAmiciSimulation>(&result);
-    delete result.rdata;
-    delete udata;
 }
 
 double MultiConditionProblem::getTime() const {
@@ -343,7 +327,6 @@ int MultiConditionProblem::aggregateLikelihood(
             addSimulationGradientToObjectiveFunctionGradient(
                 dataIndices[simulationIdx], result.rdata->sllh, objectiveFunctionGradient,
                 dataProvider->getNumCommonParameters());
-        delete result.rdata;
     }
 
     return errors;
@@ -418,14 +401,6 @@ std::unique_ptr<OptimizationProblem> MultiConditionProblemMultiStartOptimization
     assert(dp != nullptr);
     assert(dp->getModel() != nullptr);
 
-    // Create parallel or serial problem depending on how many processes we are
-    // running
-    int mpiCommSize = 1;
-    int mpiInitialized = 0;
-    MPI_Initialized(&mpiInitialized);
-    if (mpiInitialized)
-        MPI_Comm_size(MPI_COMM_WORLD, &mpiCommSize);
-
     auto problem = std::make_unique<MultiConditionProblem>(dp, loadBalancer);
 
     problem->setOptimizationOptions(options);
@@ -443,6 +418,25 @@ std::unique_ptr<OptimizationProblem> MultiConditionProblemMultiStartOptimization
         problem->getInitialParameters(multiStartIndex));
 
     return std::move(problem);
+}
+
+void printSimulationResult(const JobIdentifier &path, int jobId, amici::UserData const* udata, amici::ReturnData const* rdata, double timeSeconds) {
+    char pathStrBuf[100];
+    path.sprint(pathStrBuf);
+    logmessage(LOGLVL_DEBUG, "Result for %s (%d): %g (%d) (%.4fs)", pathStrBuf,
+               jobId, rdata->llh[0], (int)*rdata->status, timeSeconds);
+
+
+    // check for NaNs
+    if (udata->sensi >= amici::AMICI_SENSI_ORDER_FIRST) {
+        for (int i = 0; i < udata->np; ++i)
+            if (std::isnan(rdata->sllh[i]))
+                logmessage(LOGLVL_DEBUG, "Result for %s: contains NaN at %d",
+                           pathStrBuf, i);
+            else if (std::isinf(rdata->sllh[i]))
+                logmessage(LOGLVL_DEBUG, "Result for %s: contains Inf at %d",
+                           pathStrBuf, i);
+    }
 }
 
 } // namespace parpe

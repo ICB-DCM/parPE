@@ -5,30 +5,32 @@
 #include "testingMisc.h"
 #include <amici_model.h>
 
-TEST_GROUP(simulationWorkerAmici){void setup(){
+// clang-format off
+TEST_GROUP(simulationWorkerAmici){
+    void setup(){
 
-}
+    }
 
-                                  void teardown(){
+    void teardown(){
+    }
+};
+// clang-format on
 
-                                  }};
 
 TEST(simulationWorkerAmici, testSerializeResultPackageMessage) {
     amici::UserData u(1, 2, 3);
     amici::Model m(1, 2, 3, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, amici::AMICI_O2MODE_NONE);
 
-    amici::ReturnData r(&u, &m);
-    parpe::JobResultAmiciSimulation results(1, &r, 2.1);
+    parpe::JobResultAmiciSimulation results(1, std::make_unique<amici::ReturnData>(&u, &m), 2.1);
 
     int msgSize = 0;
-    char *buffer = amici::serializeToChar<parpe::JobResultAmiciSimulation>(&results, &msgSize);
+    auto buffer = std::unique_ptr<char>(
+                amici::serializeToChar<parpe::JobResultAmiciSimulation>(&results, &msgSize));
 
-    parpe::JobResultAmiciSimulation resultsAct = amici::deserializeFromChar<parpe::JobResultAmiciSimulation>(buffer, msgSize);
+    parpe::JobResultAmiciSimulation resultsAct =
+            amici::deserializeFromChar<parpe::JobResultAmiciSimulation>(buffer.get(), msgSize);
+
     CHECK_EQUAL(results.simulationTimeInSec, resultsAct.simulationTimeInSec);
-
-    delete resultsAct.rdata;
-
-    delete[] buffer;
 }
 
 TEST(simulationWorkerAmici, testSerializeWorkPackageMessage) {
@@ -45,9 +47,7 @@ TEST(simulationWorkerAmici, testSerializeWorkPackageMessage) {
     expWp.sensitivityMethod = amici::AMICI_SENSI_ASA;
     expWp.numSimulationParameters = nTheta;
     expWp.simulationParameters = new double[nTheta];
-    for (int i = 0; i < nTheta; ++i) {
-        expWp.simulationParameters[i] = parpe::randDouble(-1e-8, 1e8);
-    }
+    parpe::fillArrayRandomDoubleSameInterval(-1e-8, 1e8, nTheta, expWp.simulationParameters);
 
     // serialize
     int workPackageLength =
