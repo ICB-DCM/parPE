@@ -20,6 +20,8 @@ class MultiConditionProblemResultWriter : public OptimizationResultWriter {
     MultiConditionProblemResultWriter(std::string filename, bool overwrite,
                                       JobIdentifier id);
 
+    MultiConditionProblemResultWriter(MultiConditionProblemResultWriter const& other);
+
     std::string getIterationPath(int iterationIdx) override;
 
     std::string getSimulationPath(JobIdentifier id);

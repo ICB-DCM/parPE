@@ -23,6 +23,11 @@ MultiConditionProblemResultWriter::MultiConditionProblemResultWriter(
     setJobId(id);
 }
 
+MultiConditionProblemResultWriter::MultiConditionProblemResultWriter(const MultiConditionProblemResultWriter &other) : MultiConditionProblemResultWriter(other.file_id, other.id)
+{
+
+}
+
 std::string MultiConditionProblemResultWriter::getIterationPath(int iterationIdx) {
 
     char fullGroupPath[1024];
