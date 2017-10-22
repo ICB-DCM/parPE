@@ -5,8 +5,11 @@
 #include <LoadBalancerMaster.h>
 #include <LoadBalancerWorker.h>
 #include <memory>
-#include "SteadyStateMultiConditionProblem.h"
+#include "steadyStateMultiConditionDataprovider.h"
 
+/**
+ * @brief The SteadystateProblemParallel class evaluates an ODE-constrained objective function in paralell.
+ */
 class SteadystateProblemParallel : public parpe::OptimizationProblem, public parpe::LoadBalancerWorker {
   public:
     SteadystateProblemParallel(parpe::LoadBalancerMaster *loadBalancer);
@@ -28,11 +31,7 @@ class SteadystateProblemParallel : public parpe::OptimizationProblem, public par
 
 
   protected:
-
-    int commSize;
-
     int numConditions;
-
     std::unique_ptr<SteadyStateMultiConditionDataProvider> dataProvider;
     std::unique_ptr<Model> model;
     std::unique_ptr<amici::UserData> udata;

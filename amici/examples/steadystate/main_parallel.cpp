@@ -4,10 +4,12 @@
 #include <LoadBalancerWorker.h>
 #include <logging.h>
 #include <mpi.h>
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
+#include <cstring>
 #include <unistd.h>
-/*
+
+/** @file
+ *
  * This example demonstrates the use of the loadbalancer / queue for parallel
  * ODE simulation.
  */

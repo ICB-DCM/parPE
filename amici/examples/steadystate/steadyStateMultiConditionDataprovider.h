@@ -11,7 +11,7 @@
 
 /**
  * @brief The SteadyStateMultiConditionDataProvider class provides the interface
- * to a HDF5 data file
+ * to a HDF5 data file. Some non-default paths within the hdf5 file are set here.
  */
 class SteadyStateMultiConditionDataProvider
     : public parpe::MultiConditionDataProvider {
@@ -20,14 +20,7 @@ class SteadyStateMultiConditionDataProvider
     SteadyStateMultiConditionDataProvider(Model *model,
                                           std::string hdf5Filename);
 
-    int getNumberOfConditions() const override { return 12; }
-
-    int getNumConditionSpecificParametersPerSimulation() const override {
-        return 0;
-    }
-
-    int updateFixedSimulationParameters(int conditionIdx,
-                                        UserData &udata) const override;
+    int getNumConditionSpecificParametersPerSimulation() const override;
 
     std::unique_ptr<amici::UserData> getUserData() const override;
 
@@ -37,14 +30,6 @@ private:
     void setupUserData(UserData *udata) const;
 
     std::unique_ptr<UserData> udata;
-};
-
-class SteadyStateMultiConditionProblem : public parpe::MultiConditionProblem {
-  public:
-    SteadyStateMultiConditionProblem(SteadyStateMultiConditionDataProvider *dp,
-                                     parpe::LoadBalancerMaster *loadBalancer);
-
-    ~SteadyStateMultiConditionProblem() = default;
 };
 
 #endif // STEADYSTATEMULTICONDITIONPROBLEM_H

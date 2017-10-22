@@ -30,9 +30,8 @@ project(example_steadystate_parallel)
 
 set(SRC_LIST_EXE_PARALLEL
     main_parallel.cpp
-    steadystateProblem.cpp
     steadystateProblemParallel.cpp
-    SteadyStateMultiConditionProblem.cpp
+    steadyStateMultiConditionDataprovider.cpp
 )
 
 add_executable(${PROJECT_NAME} ${SRC_LIST_EXE_PARALLEL})
@@ -52,9 +51,7 @@ project(example_steadystate_multi)
 
 set(SRC_LIST_EXE_PARALLEL
     main_multicondition.cpp
-    SteadyStateMultiConditionProblem.cpp
-    steadystateProblem.cpp
-    steadystateProblemParallel.cpp
+    steadyStateMultiConditionDataprovider.cpp
 )
 
 add_executable(${PROJECT_NAME} ${SRC_LIST_EXE_PARALLEL})
@@ -62,5 +59,5 @@ add_executable(${PROJECT_NAME} ${SRC_LIST_EXE_PARALLEL})
 target_link_libraries(${PROJECT_NAME}
     ${MODEL_LIBRARIES}
     parpeamici
-    )
+)
 # /example_steadystate_multi executable

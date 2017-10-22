@@ -1,10 +1,9 @@
-#include "SteadyStateMultiConditionProblem.h"
+#include "steadyStateMultiConditionDataprovider.h"
 #include "optimizationOptions.h"
 #include <amici_model.h>
 #include <cstdio>
 #include <misc.h>
 #include <multiConditionProblemResultWriter.h>
-Model *getModel();
 
 SteadyStateMultiConditionDataProvider::SteadyStateMultiConditionDataProvider(
     Model *model, std::string hdf5Filename)
@@ -14,13 +13,12 @@ SteadyStateMultiConditionDataProvider::SteadyStateMultiConditionDataProvider(
 
     hdf5MeasurementPath = "/data/ymeasured";
     hdf5MeasurementSigmaPath = "/data/sigmay";
+    hdf5ConditionPath = "/data/k";
 
     udata = std::unique_ptr<UserData>(getUserData());
 }
 
-int SteadyStateMultiConditionDataProvider::updateFixedSimulationParameters(int conditionIdx, UserData &udata) const {
-    parpe::hdf5Read2DDoubleHyperslab(fileId, "/data/k", model->nk, 1, 0, conditionIdx,
-                              udata.k);
+int SteadyStateMultiConditionDataProvider::getNumConditionSpecificParametersPerSimulation() const {
     return 0;
 }
 
@@ -50,18 +48,4 @@ std::unique_ptr<UserData> SteadyStateMultiConditionDataProvider::getUserData() c
     auto udata = std::unique_ptr<amici::UserData>(model->getNewUserData());
     setupUserData(udata.get());
     return udata;
-}
-
-
-SteadyStateMultiConditionProblem::SteadyStateMultiConditionProblem(
-    SteadyStateMultiConditionDataProvider *dp, parpe::LoadBalancerMaster *loadBalancer)
-    : MultiConditionProblem(dp, loadBalancer) {
-
-    std::unique_ptr<parpe::OptimizationOptions> options(parpe::OptimizationOptions::fromHDF5(
-                                                             dataProvider->getHdf5FileId()));
-
-    optimizationOptions = *options.get();
-    std::fill(initialParameters_.begin(), initialParameters_.end(), 0);
-    std::fill(parametersMin_.begin(), parametersMin_.end(), -5);
-    std::fill(parametersMax_.begin(), parametersMax_.end(), 5);
 }

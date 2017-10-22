@@ -12,7 +12,6 @@
 SteadystateProblemParallel::SteadystateProblemParallel(
     parpe::LoadBalancerMaster *loadBalancer)
     : loadBalancer(loadBalancer), model(std::unique_ptr<Model>(getModel())) {
-    MPI_Comm_size(MPI_COMM_WORLD, &commSize);
 
     setNumOptimizationParameters(model->np);
     fillArray(initialParameters_.data(), model->np, 0);
@@ -30,7 +29,7 @@ SteadystateProblemParallel::SteadystateProblemParallel(
 }
 
 int SteadystateProblemParallel::evaluateObjectiveFunction(const double *parameters, double *objFunVal, double *objFunGrad) {
-    if (commSize > 1) {
+    if (parpe::getMpiCommSize() > 1) {
         return evaluateParallel(parameters, objFunVal, objFunGrad);
     } else {
         return evaluateSerial(parameters, objFunVal, objFunGrad);

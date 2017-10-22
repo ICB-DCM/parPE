@@ -1,4 +1,4 @@
-#include "SteadyStateMultiConditionProblem.h"
+#include "steadyStateMultiConditionDataprovider.h"
 #include "optimizationOptions.h"
 #include "wrapfunctions.h"
 #include <LoadBalancerWorker.h>
@@ -10,7 +10,9 @@
 #include <iostream>
 #include <unistd.h>
 
-/** @brief This example demonstrates the use of the loadbalancer / queue for
+/** @file
+ *
+ * This example demonstrates the use of the loadbalancer / queue for
  * parallel ODE simulation.
  * The example is based on the `steadystate` example included in AMICI.
  *
@@ -19,6 +21,32 @@
  * To run, e.g.: mpiexec -np 4
  * ../parPE-build/amici/examples/steadystate/example_steadystate_multi -o
  * steadystate_`date +%F` amici/examples/steadystate/data.h5
+ */
+
+/**
+ * @brief The SteadyStateMultiConditionProblem class subclasses parpe::MultiConditionProblem
+ * to set some problem specific options like initial parameters
+ */
+class SteadyStateMultiConditionProblem : public parpe::MultiConditionProblem {
+  public:
+    SteadyStateMultiConditionProblem(
+        SteadyStateMultiConditionDataProvider *dp, parpe::LoadBalancerMaster *loadBalancer)
+        : MultiConditionProblem(dp, loadBalancer) {
+
+        std::unique_ptr<parpe::OptimizationOptions> options(parpe::OptimizationOptions::fromHDF5(
+                                                                 dataProvider->getHdf5FileId()));
+
+        optimizationOptions = *options.get();
+        std::fill(initialParameters_.begin(), initialParameters_.end(), 0);
+        std::fill(parametersMin_.begin(), parametersMin_.end(), -5);
+        std::fill(parametersMax_.begin(), parametersMax_.end(), 5);
+    }
+};
+
+/**
+ * @brief The SteadystateApplication class subclasses parpe::OptimizationApplication
+ * which provides a frame for a standalone program to solve a multi-start local optimization
+ * problem.
  */
 
 class SteadystateApplication : public parpe::OptimizationApplication {
@@ -42,6 +70,9 @@ class SteadystateApplication : public parpe::OptimizationApplication {
     }
 
     virtual int runSingleMpiProcess() override {
+        //return getLocalOptimum(problem);
+
+        // Can only run single start because of non-threadsafe sundials
         parpe::MultiConditionProblemMultiStartOptimization ms(
             1,
             problem->getOptimizationOptions().retryOptimization);
@@ -51,13 +82,16 @@ class SteadystateApplication : public parpe::OptimizationApplication {
         ms.loadBalancer = &loadBalancer;
         ms.run();
         return 0;
-        //return getLocalOptimum(problem);
     }
 
     std::unique_ptr<SteadyStateMultiConditionDataProvider> dataProvider;
     std::unique_ptr<Model> model;
 };
 
+/**
+ * @brief The SteadystateLocalOptimizationApplication class overrides the multi-start optimization
+ * in the base class and performs only a single optimization run. This is mostly for debugging.
+ */
 class SteadystateLocalOptimizationApplication : public SteadystateApplication {
   public:
 
@@ -69,10 +103,11 @@ class SteadystateLocalOptimizationApplication : public SteadystateApplication {
     }
 };
 
+
 int main(int argc, char **argv) {
     int status = EXIT_SUCCESS;
 
-//     SteadystateLocalOptimizationApplication app(argc, argv);
+    // SteadystateLocalOptimizationApplication app(argc, argv);
     SteadystateApplication app(argc, argv);
     status = app.run();
 
