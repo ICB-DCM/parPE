@@ -32,6 +32,7 @@ set(SRC_LIST_EXE_PARALLEL
     main_parallel.cpp
     steadystateProblem.cpp
     steadystateProblemParallel.cpp
+    SteadyStateMultiConditionProblem.cpp
 )
 
 add_executable(${PROJECT_NAME} ${SRC_LIST_EXE_PARALLEL})
@@ -40,6 +41,7 @@ target_link_libraries(${PROJECT_NAME}
     ${MODEL_LIBRARIES}
     parpeoptimization
     parpeloadbalancer
+    parpeamici
 )
 # /example_steadystate_parallel executable
 

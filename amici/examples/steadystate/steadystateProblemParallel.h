@@ -4,9 +4,10 @@
 #include "steadystateProblem.h"
 #include <LoadBalancerMaster.h>
 #include <LoadBalancerWorker.h>
+#include <memory>
+#include "SteadyStateMultiConditionProblem.h"
 
-class SteadystateProblemParallel : public ExampleSteadystateProblem,
-                                   public parpe::LoadBalancerWorker {
+class SteadystateProblemParallel : public parpe::OptimizationProblem, public parpe::LoadBalancerWorker {
   public:
     SteadystateProblemParallel(parpe::LoadBalancerMaster *loadBalancer);
 
@@ -27,9 +28,14 @@ class SteadystateProblemParallel : public ExampleSteadystateProblem,
 
 
   protected:
+
     int commSize;
 
     int numConditions;
+
+    std::unique_ptr<SteadyStateMultiConditionDataProvider> dataProvider;
+    std::unique_ptr<Model> model;
+    std::unique_ptr<amici::UserData> udata;
 };
 
 #endif // STEADYSTATEPROBLEM_PARALLEL_H

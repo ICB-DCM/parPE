@@ -6,12 +6,27 @@
 #include <pthread.h>
 #include <unistd.h>
 
+#define STEADYSTATE_DATA_HDF5 "/home/dweindl/src/parPE/amici/examples/steadystate/data.h5"
+
+
 SteadystateProblemParallel::SteadystateProblemParallel(
     parpe::LoadBalancerMaster *loadBalancer)
-    : loadBalancer(loadBalancer) {
+    : loadBalancer(loadBalancer), model(std::unique_ptr<Model>(getModel())) {
     MPI_Comm_size(MPI_COMM_WORLD, &commSize);
 
-    numConditions = 12;
+    setNumOptimizationParameters(model->np);
+    fillArray(initialParameters_.data(), model->np, 0);
+    fillArray(parametersMin_.data(), model->np, -5);
+    fillArray(parametersMax_.data(), model->np, 5);
+
+    const char *inFileArgument = STEADYSTATE_DATA_HDF5;
+    dataProvider = std::make_unique<SteadyStateMultiConditionDataProvider>(model.get(), inFileArgument);
+    udata = dataProvider->getUserData();
+    numConditions = dataProvider->getNumberOfConditions();
+
+    optimizationOptions.optimizer = parpe::OPTIMIZER_IPOPT;
+    optimizationOptions.printToStdout = true;
+    optimizationOptions.maxOptimizerIterations = 10;
 }
 
 int SteadystateProblemParallel::evaluateObjectiveFunction(const double *parameters, double *objFunVal, double *objFunGrad) {
@@ -44,7 +59,7 @@ int SteadystateProblemParallel::evaluateParallel(const double *parameters,
         job->lenSendBuffer = sizeof(double) * model->np + 2 * sizeof(int);
         job->sendBuffer = new char[job->lenSendBuffer];
 
-        readFixedParameters(i);
+        dataProvider->updateFixedSimulationParameters(i, *udata);
         int needGradient = objFunGrad ? 1 : 0;
 
         memcpy(job->sendBuffer, &i, sizeof(int));
@@ -69,7 +84,7 @@ int SteadystateProblemParallel::evaluateParallel(const double *parameters,
     // aggregate likelihood
     *objFunVal = 0;
     if (objFunGrad)
-        fillArray(objFunGrad, numOptimizationParameters_, 0.0);
+        fillArray(objFunGrad, dataProvider->getNumOptimizationParameters(), 0.0);
 
     for (int i = 0; i < numConditions; ++i) {
         double *buffer = (double *)(jobdata[i].recvBuffer);
@@ -98,17 +113,17 @@ int SteadystateProblemParallel::evaluateSerial(const double *parameters,
     if (objFunGrad) {
         udata->sensi = AMICI_SENSI_ORDER_FIRST;
         udata->sensi_meth = AMICI_SENSI_FSA;
-        fillArray(objFunGrad, numOptimizationParameters_, 0.0);
+        fillArray(objFunGrad, dataProvider->getNumOptimizationParameters(), 0.0);
     } else {
         udata->sensi = AMICI_SENSI_ORDER_NONE;
         udata->sensi_meth = AMICI_SENSI_NONE;
     }
 
     for (int i = 0; i < numConditions; ++i) {
-        readFixedParameters(i);
-        readMeasurement(i);
+        dataProvider->updateFixedSimulationParameters(i, *udata);
+        auto edata = dataProvider->getExperimentalDataForCondition(i, udata.get());
 
-        ReturnData *rdata = getSimulationResults(model, udata, edata);
+        ReturnData *rdata = getSimulationResults(model.get(), udata.get(), edata.get());
         status += (int)*rdata->status;
 
         *objFunVal -= *rdata->llh;
@@ -136,12 +151,20 @@ void SteadystateProblemParallel::messageHandler(std::vector<char> &buffer,
     udata->setParameters(reinterpret_cast<double *>(buffer.data() + 2 * sizeof(int)));
 
     // read data for current conditions
-    readFixedParameters(conditionIdx);
-    readMeasurement(conditionIdx);
-    requireSensitivities(needGradient);
+    dataProvider->updateFixedSimulationParameters(conditionIdx, *udata);
+    auto edata = dataProvider->getExperimentalDataForCondition(conditionIdx, udata.get());
+
+    if (needGradient) {
+        udata->sensi = AMICI_SENSI_ORDER_FIRST;
+        udata->sensi_meth = AMICI_SENSI_FSA;
+    } else {
+        udata->sensi = AMICI_SENSI_ORDER_NONE;
+        udata->sensi_meth = AMICI_SENSI_NONE;
+    }
+
 
     // run simulation
-    ReturnData *rdata = getSimulationResults(model, udata, edata);
+    ReturnData *rdata = getSimulationResults(model.get(), udata.get(), edata.get());
     // printf("Result for %d: %f\n", conditionIdx, *rdata->llh);
     // pack results
     buffer.resize(sizeof(double) * (udata->nplist + 1));
