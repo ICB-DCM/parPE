@@ -2,7 +2,6 @@
 #include "steadystateProblemParallel.h"
 #include <LoadBalancerMaster.h>
 #include <LoadBalancerWorker.h>
-#include <amici_model.h>
 #include <logging.h>
 #include <mpi.h>
 #include <stdio.h>
@@ -30,6 +29,7 @@ int main(int argc, char **argv) {
         status = getLocalOptimum(&problem);
 
     } else {
+        // run in parallel
         SteadystateProblemParallel problem {NULL};
 
         int mpiRank;

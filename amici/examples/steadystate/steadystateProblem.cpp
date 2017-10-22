@@ -103,15 +103,11 @@ void ExampleSteadystateProblem::requireSensitivities(
 void ExampleSteadystateProblem::setupUserData(int conditionIdx) {
     udata = model->getNewUserData();
 
-    udata->qpositivex = new double[model->nx];
-    fillArray(udata->qpositivex, model->nx, 1);
-
     hsize_t length;
     AMI_HDF5_getDoubleArrayAttribute(fileId, "data", "t", &udata->ts, &length);
     udata->nt = length;
 
     // set model constants
-    udata->k = new double[model->nk];
     readFixedParameters(conditionIdx);
 
     udata->pscale = AMICI_SCALING_LOG10;

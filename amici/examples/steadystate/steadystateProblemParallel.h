@@ -25,6 +25,7 @@ class SteadystateProblemParallel : public ExampleSteadystateProblem,
 
     parpe::LoadBalancerMaster *loadBalancer;
 
+
   protected:
     int commSize;
 
