@@ -8,7 +8,7 @@
 
 class ExampleSteadystateProblem : public parpe::OptimizationProblem {
   public:
-    ExampleSteadystateProblem();
+    ExampleSteadystateProblem(std::string const& dataFileName);
 
     int evaluateObjectiveFunction(const double *parameters, double *objFunVal,
                                   double *objFunGrad) override;

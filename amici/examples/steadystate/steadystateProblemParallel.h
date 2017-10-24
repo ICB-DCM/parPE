@@ -12,7 +12,7 @@
  */
 class SteadystateProblemParallel : public parpe::OptimizationProblem, public parpe::LoadBalancerWorker {
   public:
-    SteadystateProblemParallel(parpe::LoadBalancerMaster *loadBalancer);
+    SteadystateProblemParallel(parpe::LoadBalancerMaster *loadBalancer, const std::string &dataFileName);
 
     int evaluateObjectiveFunction(const double *parameters, double *objFunVal,
                                   double *objFunGrad) override;

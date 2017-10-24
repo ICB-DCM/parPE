@@ -1,7 +1,8 @@
-#include <stdio.h>
+#include <cstdio>
 #include "optimizationOptions.h"
 #include "steadystateProblem.h"
-
+#include <string>
+#include <iostream>
 /**
  * @file
  *
@@ -13,7 +14,13 @@
  */
 
 int main(int argc, char **argv) {
-    ExampleSteadystateProblem problem = ExampleSteadystateProblem();
+    if(argc != 2) {
+        std::cerr<<"Error: wrong number of arguments. Exactly one argument for data file expected.";
+        return EXIT_FAILURE;
+    }
+
+    std::string dataFileName = argv[1];
+    ExampleSteadystateProblem problem = ExampleSteadystateProblem(dataFileName);
 
     printf("#########\n");
     printf("# IpOpt #\n");

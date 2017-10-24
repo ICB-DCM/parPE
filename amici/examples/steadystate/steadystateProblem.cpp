@@ -8,10 +8,8 @@
 #include <cstring>
 #include <iostream>
 
-#define STEADYSTATE_DATA_HDF5 "/home/dweindl/src/parPE/amici/examples/steadystate/data.h5"
-
-ExampleSteadystateProblem::ExampleSteadystateProblem() {
-    fileId = H5Fopen(STEADYSTATE_DATA_HDF5, H5F_ACC_RDONLY, H5P_DEFAULT);
+ExampleSteadystateProblem::ExampleSteadystateProblem(const std::string &dataFileName) {
+    fileId = H5Fopen(dataFileName.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
 
     model = getModel();
     setupUserData(0);

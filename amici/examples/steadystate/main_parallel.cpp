@@ -7,6 +7,7 @@
 #include <cstdio>
 #include <cstring>
 #include <unistd.h>
+#include <string>
 
 /** @file
  *
@@ -20,6 +21,14 @@ int main(int argc, char **argv) {
     int status = 0;
 
     initMPI(&argc, &argv);
+
+    if(argc != 2) {
+        std::cerr<<"Error: wrong number of arguments. Exactly one argument for data file expected.";
+        MPI_Finalize();
+        return EXIT_FAILURE;
+    }
+    std::string dataFileName = argv[1];
+
     parpe::initHDF5Mutex();
 
     int commSize;
@@ -27,12 +36,12 @@ int main(int argc, char **argv) {
 
     if (commSize == 1) {
         // run in serial mode
-        SteadystateProblemParallel problem {NULL};
+        SteadystateProblemParallel problem {nullptr, dataFileName};
         status = getLocalOptimum(&problem);
 
     } else {
         // run in parallel
-        SteadystateProblemParallel problem {NULL};
+        SteadystateProblemParallel problem {nullptr, dataFileName};
 
         int mpiRank;
         MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);

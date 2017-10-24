@@ -6,11 +6,8 @@
 #include <pthread.h>
 #include <unistd.h>
 
-#define STEADYSTATE_DATA_HDF5 "/home/dweindl/src/parPE/amici/examples/steadystate/data.h5"
-
-
 SteadystateProblemParallel::SteadystateProblemParallel(
-    parpe::LoadBalancerMaster *loadBalancer)
+    parpe::LoadBalancerMaster *loadBalancer, std::string const& dataFileName)
     : loadBalancer(loadBalancer), model(std::unique_ptr<Model>(getModel())) {
 
     setNumOptimizationParameters(model->np);
@@ -18,8 +15,7 @@ SteadystateProblemParallel::SteadystateProblemParallel(
     fillArray(parametersMin_.data(), model->np, -5);
     fillArray(parametersMax_.data(), model->np, 5);
 
-    const char *inFileArgument = STEADYSTATE_DATA_HDF5;
-    dataProvider = std::make_unique<SteadyStateMultiConditionDataProvider>(model.get(), inFileArgument);
+    dataProvider = std::make_unique<SteadyStateMultiConditionDataProvider>(model.get(), dataFileName);
     udata = dataProvider->getUserData();
     numConditions = dataProvider->getNumberOfConditions();
 
