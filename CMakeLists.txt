@@ -27,7 +27,7 @@ set(IPOPT_INCLUDE_DIRS "${IPOPT_DIR}/include/coin/"  CACHE PATH "IpOpt include d
 set(IPOPT_LIBRARIES "${IPOPT_DIR}/lib/libipopt.so"  CACHE FILEPATH "IpOpt library")
 set(CERES_INCLUDE_DIRS "" "/usr/include/eigen3" CACHE PATH "CERES include directories")
 set(CERES_LIBRARIES "" CACHE FILEPATH "CERES libraries")
-
+set(DLIB_DIR "${CMAKE_CURRENT_LIST_DIR}/ThirdParty/dlib-19.7" CACHE FILEPATH "DLIB base directory")
 
 # Enable MPI? Currently mandatory.
 if(${USE_MPI})

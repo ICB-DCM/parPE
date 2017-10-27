@@ -6,6 +6,7 @@ set(SRC_LIST
     localOptimizationIpopt.cpp
     localOptimizationIpoptTNLP.cpp
     localOptimizationCeres.cpp
+    localOptimizationDlib.cpp
     optimizationProblem.cpp
     multiStartOptimization.cpp
     optimizationResultWriter.cpp
@@ -15,10 +16,14 @@ set(SRC_LIST
 
 add_library(${PROJECT_NAME} ${SRC_LIST})
 
+add_subdirectory(${DLIB_DIR} dlib_build)
+
+
 target_link_libraries(${PROJECT_NAME}
     parpecommon
     ${IPOPT_LIBRARIES}
     ${CERES_LIBRARIES}
+    dlib::dlib
     ${HDF5_HL_LIBRARIES}
     ${HDF5_C_LIBRARIES}
     ${CMAKE_THREAD_LIBS_INIT}
