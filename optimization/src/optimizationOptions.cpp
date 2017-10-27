@@ -1,6 +1,9 @@
 #include "optimizationOptions.h"
 #include "localOptimizationCeres.h"
 #include "localOptimizationIpopt.h"
+#ifdef PARPE_DLIB_ENABLED
+#include "localOptimizationDlib.h"
+#endif
 #include "logging.h"
 #include "misc.h"
 #include <cassert>
@@ -237,6 +240,12 @@ Optimizer* optimizerFactory(optimizerEnum optimizer)
         return new OptimizerIpOpt();
     case OPTIMIZER_CERES:
         return new OptimizerCeres();
+    case OPTIMIZER_DLIB:
+#ifdef PARPE_DLIB_ENABLED
+        return new OptimizerDlibLineSearch();
+#else
+        return nullptr;
+#endif
     }
 
     return nullptr;

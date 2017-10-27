@@ -11,7 +11,7 @@ namespace parpe {
 
 class Optimizer;
 
-typedef enum optimizer_tag { OPTIMIZER_IPOPT, OPTIMIZER_CERES } optimizerEnum;
+typedef enum optimizer_tag { OPTIMIZER_IPOPT, OPTIMIZER_CERES, OPTIMIZER_DLIB } optimizerEnum;
 
 /** Type to describe an optimization (minimization) problem */
 
@@ -32,7 +32,7 @@ class OptimizationOptions {
     bool printToStdout = true;
 
     /** Maximum number of optimizer iterations*/
-    int maxOptimizerIterations = 1000;
+    int maxOptimizerIterations = 100;
 
     static OptimizationOptions *fromHDF5(const char *fileName);
 
