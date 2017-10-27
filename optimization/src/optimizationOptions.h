@@ -32,7 +32,7 @@ class OptimizationOptions {
     bool printToStdout = true;
 
     /** Maximum number of optimizer iterations*/
-    int maxOptimizerIterations = 1000;
+    int maxOptimizerIterations = 100;
 
     static OptimizationOptions *fromHDF5(const char *fileName);
 

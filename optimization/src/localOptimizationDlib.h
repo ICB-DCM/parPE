@@ -13,6 +13,9 @@ class OptimizerDlibLineSearch : public Optimizer {
     /**
      * @brief Minimize an objective function given as OptimizationProblem using
      * dlib line search algorithm
+     *
+     * TODO: no options are specifyable for the moment
+     *
      * @param problem
      * @return Returns 0 on success.
      */

@@ -10,40 +10,52 @@ namespace parpe {
 typedef dlib::matrix<double,0,1> column_vector;
 typedef dlib::matrix<double> general_matrix;
 
+column_vector dlibColumnVectorFromDoubleArray(double const *src, int len) {
+    column_vector colVec(len);
+    std::copy(src, src + len, colVec.begin());
+    return colVec;
+}
+
 int parpe::OptimizerDlibLineSearch::optimize(OptimizationProblem *problem)
 {
     int status = 0;
 
-    column_vector startingPoint(problem->getNumOptimizationParameters());
-    auto tmpStartingPoint = std::unique_ptr<double const[]>(problem->getInitialParameters());
-    std::copy(tmpStartingPoint.get(), tmpStartingPoint.get() + problem->getNumOptimizationParameters(),
-              startingPoint.begin());
+    int numParams = problem->getNumOptimizationParameters();
+    column_vector startingPoint = dlibColumnVectorFromDoubleArray(problem->getInitialParameters(), numParams);
+    column_vector min = dlibColumnVectorFromDoubleArray(problem->getParametersMin(), numParams);
+    column_vector max = dlibColumnVectorFromDoubleArray(problem->getParametersMax(), numParams);
 
-    column_vector min(problem->getNumOptimizationParameters());
-    column_vector max(problem->getNumOptimizationParameters());
-    std::fill(min.begin(), min.end(), -2.0);
-    std::fill(max.begin(), max.end(), 2.0);
-//    std::cout<<startingPoint<<"/"<<min<<"/"<<max<<std::endl;
+    dlib::find_min_box_constrained(
+                dlib::lbfgs_search_strategy(10),
+                dlib::objective_delta_stop_strategy(
+                    1e-9, problem->getOptimizationOptions().maxOptimizerIterations),
+                [&problem](const column_vector& x){
+        // objective function
+        static __thread int numFunctionCalls = 0;
 
-    // TODO toColumnVector  for constraints
-    dlib::find_min_box_constrained(dlib::lbfgs_search_strategy(10),
-                                   dlib::objective_delta_stop_strategy(1e-9),
-                                   [&problem](const column_vector& x){
-        static int iter = 0;
-        double result = NAN;
-        problem->evaluateObjectiveFunction(x.begin(), &result, nullptr);
-        std::cout<<std::endl<<iter++<<": "<<result;
-        return result;
+        double fval = NAN;
+        problem->evaluateObjectiveFunction(x.begin(), &fval, nullptr);
+
+        if(problem->getOptimizationOptions().printToStdout)
+            std::cout<<std::endl<<numFunctionCalls++<<": "<<fval;
+
+        return fval;
 
     },
     [&problem](const column_vector& x){
-        double unusedResult = NAN;
-        column_vector grad(problem->getNumOptimizationParameters());
-        problem->evaluateObjectiveFunction(x.begin(), &unusedResult, grad.begin());
-        std::cout<<"g";
-        return grad;
+        // objective function gradient
+        static __thread int numFunctionCalls = 0;
+
+        double unusedFVal = NAN;
+        column_vector fGrad(problem->getNumOptimizationParameters());
+        problem->evaluateObjectiveFunction(x.begin(), &unusedFVal, fGrad.begin());
+
+        if(problem->getOptimizationOptions().printToStdout)
+            std::cout<<" g"<<numFunctionCalls++;
+
+        return fGrad;
     },
-    startingPoint, min, max); // TODO: constraints from problem
+    startingPoint, min, max);
 
     return status;
 }
