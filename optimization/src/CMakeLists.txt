@@ -6,7 +6,6 @@ set(SRC_LIST
     localOptimizationIpopt.cpp
     localOptimizationIpoptTNLP.cpp
     localOptimizationCeres.cpp
-    localOptimizationDlib.cpp
     optimizationProblem.cpp
     multiStartOptimization.cpp
     optimizationResultWriter.cpp
@@ -14,20 +13,32 @@ set(SRC_LIST
     optimizationOptions.cpp
 )
 
+if(${ENABLE_DLIB})
+    set(SRC_LIST ${SRC_LIST} localOptimizationDlib.cpp)
+endif(${ENABLE_DLIB})
+
+
 add_library(${PROJECT_NAME} ${SRC_LIST})
-
-add_subdirectory(${DLIB_DIR} dlib_build)
-
 
 target_link_libraries(${PROJECT_NAME}
     parpecommon
     ${IPOPT_LIBRARIES}
     ${CERES_LIBRARIES}
-    dlib::dlib
     ${HDF5_HL_LIBRARIES}
     ${HDF5_C_LIBRARIES}
     ${CMAKE_THREAD_LIBS_INIT}
 )
+
+if(${ENABLE_DLIB})
+    set(DLIB_NO_GUI_SUPPORT ON)
+    set(DLIB_GIF_SUPPORT OFF)
+    set(DLIB_JPEG_SUPPORT OFF)
+    set(DLIB_PNG_SUPPORT OFF)
+    set(DLIB_LINK_WITH_SQLITE3 OFF)
+    add_subdirectory(${DLIB_DIR} dlib_build)
+    target_link_libraries(${PROJECT_NAME} dlib::dlib)
+endif(${ENABLE_DLIB})
+
 
 get_target_property(PARPEOPTIMIZATION_INCLUDE_DIRS ${PROJECT_NAME} INCLUDE_DIRECTORIES)
 set_property(GLOBAL PROPERTY PARPEOPTIMIZATION_INCLUDE_DIRS "${PARPELOADBALANCER_INCLUDE_DIRS}")

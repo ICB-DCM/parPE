@@ -28,6 +28,7 @@ set(IPOPT_LIBRARIES "${IPOPT_DIR}/lib/libipopt.so"  CACHE FILEPATH "IpOpt librar
 set(CERES_INCLUDE_DIRS "" "/usr/include/eigen3" CACHE PATH "CERES include directories")
 set(CERES_LIBRARIES "" CACHE FILEPATH "CERES libraries")
 set(DLIB_DIR "${CMAKE_CURRENT_LIST_DIR}/ThirdParty/dlib-19.7" CACHE FILEPATH "DLIB base directory")
+set(ENABLE_DLIB FALSE CACHE BOOL "Enable dlib optimizers?")
 
 # Enable MPI? Currently mandatory.
 if(${USE_MPI})
@@ -35,6 +36,10 @@ if(${USE_MPI})
     add_definitions(-DUSE_MPI)
     set(MPI_INCLUDE_DIR "/usr/lib/openmpi/include/" CACHE PATH "MPI include directory")
 endif(${USE_MPI})
+
+if(${ENABLE_DLIB})
+    add_definitions(-DPARPE_DLIB_ENABLED)
+endif(${ENABLE_DLIB})
 
 # PThreads
 set(THREADS_PREFER_PTHREAD_FLAG ON)

@@ -40,6 +40,7 @@ int main(int argc, char **argv) {
 
     status += parpe::getLocalOptimum(&problem);
 
+#ifdef PARPE_DLIB_ENABLED
     printf("#########\n");
     printf("# Dlib  #\n");
     printf("#########\n");
@@ -48,6 +49,7 @@ int main(int argc, char **argv) {
     problem.setOptimizationOptions(options);
 
     status += parpe::getLocalOptimum(&problem);
+#endif
 
     return status;
 }
