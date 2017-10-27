@@ -17,6 +17,9 @@ if(${ENABLE_DLIB})
     set(SRC_LIST ${SRC_LIST} localOptimizationDlib.cpp)
 endif(${ENABLE_DLIB})
 
+if(${ENABLE_TOMS611})
+    set(SRC_LIST ${SRC_LIST} localOptimizationToms611.cpp)
+endif(${ENABLE_TOMS611})
 
 add_library(${PROJECT_NAME} ${SRC_LIST})
 
@@ -42,7 +45,6 @@ endif(${ENABLE_DLIB})
 if(${ENABLE_TOMS611})
     target_link_libraries(${PROJECT_NAME} toms611)
 endif(${ENABLE_TOMS611})
-
 
 get_target_property(PARPEOPTIMIZATION_INCLUDE_DIRS ${PROJECT_NAME} INCLUDE_DIRECTORIES)
 set_property(GLOBAL PROPERTY PARPEOPTIMIZATION_INCLUDE_DIRS "${PARPELOADBALANCER_INCLUDE_DIRS}")

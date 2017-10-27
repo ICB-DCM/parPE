@@ -11,7 +11,7 @@ namespace parpe {
 
 class Optimizer;
 
-typedef enum optimizer_tag { OPTIMIZER_IPOPT, OPTIMIZER_CERES, OPTIMIZER_DLIB } optimizerEnum;
+typedef enum optimizer_tag { OPTIMIZER_IPOPT, OPTIMIZER_CERES, OPTIMIZER_DLIB, OPTIMIZER_TOMS611 } optimizerEnum;
 
 /** Type to describe an optimization (minimization) problem */
 
