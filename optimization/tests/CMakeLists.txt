@@ -22,3 +22,20 @@ target_link_libraries(${PROJECT_NAME}
     ${CPPUTEST_LIBRARY}
     ${GCOV_LIBRARY}
 )
+
+if(${ENABLE_TOMS611})
+    project(unittests_optimization_toms611)
+
+    add_executable(${PROJECT_NAME}
+        main.cpp
+        ../src/localOptimizationToms611Test.cpp
+    )
+
+    target_link_libraries(${PROJECT_NAME}
+        toms611
+        parpeoptimization
+        parpecommon
+        ${CPPUTEST_LIBRARY}
+        ${GCOV_LIBRARY}
+    )
+endif(${ENABLE_TOMS611})

@@ -29,6 +29,7 @@ set(CERES_INCLUDE_DIRS "" "/usr/include/eigen3" CACHE PATH "CERES include direct
 set(CERES_LIBRARIES "" CACHE FILEPATH "CERES libraries")
 set(DLIB_DIR "${CMAKE_CURRENT_LIST_DIR}/ThirdParty/dlib-19.7" CACHE FILEPATH "DLIB base directory")
 set(ENABLE_DLIB FALSE CACHE BOOL "Enable dlib optimizers?")
+set(ENABLE_TOMS611 FALSE CACHE BOOL "Enable toms611 optimizers?")
 
 # Enable MPI? Currently mandatory.
 if(${USE_MPI})
@@ -40,6 +41,10 @@ endif(${USE_MPI})
 if(${ENABLE_DLIB})
     add_definitions(-DPARPE_DLIB_ENABLED)
 endif(${ENABLE_DLIB})
+
+if(${ENABLE_TOMS611})
+    add_definitions(-DPARPE_TOMS611_ENABLED)
+endif(${ENABLE_TOMS611})
 
 # PThreads
 set(THREADS_PREFER_PTHREAD_FLAG ON)
