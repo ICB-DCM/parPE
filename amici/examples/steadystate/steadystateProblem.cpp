@@ -117,10 +117,6 @@ void ExampleSteadystateProblem::setupUserData(int conditionIdx) {
 void ExampleSteadystateProblem::setupExpData(int conditionIdx) {
     edata = new ExpData(udata, model);
     readMeasurement(conditionIdx);
-
-    double ysigma = NAN;
-    AMI_HDF5_getDoubleScalarAttribute(fileId, "data", "sigmay", &ysigma);
-    fillArray(edata->sigmay, model->nytrue * udata->nt, ysigma);
 }
 
 void ExampleSteadystateProblem::readFixedParameters(int conditionIdx) {
@@ -131,4 +127,8 @@ void ExampleSteadystateProblem::readFixedParameters(int conditionIdx) {
 void ExampleSteadystateProblem::readMeasurement(int conditionIdx) {
     parpe::hdf5Read3DDoubleHyperslab(fileId, "/data/ymeasured", 1, model->ny,
                               udata->nt, conditionIdx, 0, 0, edata->my);
+
+
+    parpe::hdf5Read3DDoubleHyperslab(fileId, "/data/sigmay", 1, edata->nytrue,
+                                     edata->nt, conditionIdx, 0, 0, edata->sigmay);
 }
