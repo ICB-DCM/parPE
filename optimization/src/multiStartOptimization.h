@@ -21,7 +21,12 @@ class MultiStartOptimization {
 
     int run();
 
+    int runMultiThreaded();
+
+    int runSingleThreaded();
+
   protected:
+
     std::unique_ptr<OptimizationProblem> getLocalProblem(int multiStartIndex);
 
     std::vector<OptimizationProblem *> createLocalOptimizationProblems();

@@ -12,6 +12,12 @@ MultiStartOptimization::MultiStartOptimization(int numberOfStarts,
     : numberOfStarts(numberOfStarts), restartOnFailure(restartOnFailure) {}
 
 int MultiStartOptimization::run() {
+    return runSingleThreaded();
+    return runMultiThreaded();
+}
+
+int MultiStartOptimization::runMultiThreaded()
+{
     logmessage(LOGLVL_DEBUG,
                "Starting runParallelMultiStartOptimization with %d starts",
                numberOfStarts);
@@ -92,6 +98,40 @@ int MultiStartOptimization::run() {
     pthread_attr_destroy(&threadAttr);
 
     return 0;
+}
+
+int MultiStartOptimization::runSingleThreaded()
+{
+    logmessage(LOGLVL_DEBUG,
+               "Starting runParallelMultiStartOptimization with %d starts sequentially",
+               numberOfStarts);
+
+    int ms = 0;
+    int numSucceeded = 0;
+
+    while(true) {
+        if(restartOnFailure && numSucceeded == numberOfStarts)
+            break;
+        else if(ms == numberOfStarts)
+            break;
+
+        auto problem = getLocalProblem(ms);
+        auto result = getLocalOptimum(problem.get());
+        if(result) {
+            logmessage(LOGLVL_DEBUG,
+                       "Start #%d finished successfully", ms);
+            ++numSucceeded;
+        } else {
+            logmessage(LOGLVL_DEBUG, "Thread ms #%d finished "
+                                     "unsuccessfully.",ms);
+        }
+        ++ms;
+    }
+
+    logmessage(LOGLVL_DEBUG, "runParallelMultiStartOptimization finished");
+
+    return 0;
+
 }
 
 std::unique_ptr<OptimizationProblem>
