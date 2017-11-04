@@ -25,13 +25,17 @@ int parpe::OptimizerDlibLineSearch::optimize(OptimizationProblem *problem)
     column_vector min = dlibColumnVectorFromDoubleArray(problem->getParametersMin(), numParams);
     column_vector max = dlibColumnVectorFromDoubleArray(problem->getParametersMax(), numParams);
 
-    dlib::find_min_box_constrained(
+    clock_t timeBegin = clock();
+    clock_t timeIterBegin = clock();
+
+    double finalFVal = dlib::find_min_box_constrained(
                 dlib::lbfgs_search_strategy(10),
                 dlib::objective_delta_stop_strategy(
                     1e-9, problem->getOptimizationOptions().maxOptimizerIterations),
                 [&problem](const column_vector& x){
         // objective function
         static __thread int numFunctionCalls = 0;
+        clock_t timeBegin = clock();
 
         double fval = NAN;
         problem->evaluateObjectiveFunction(x.begin(), &fval, nullptr);
@@ -39,23 +43,43 @@ int parpe::OptimizerDlibLineSearch::optimize(OptimizationProblem *problem)
         if(problem->getOptimizationOptions().printToStdout)
             std::cout<<std::endl<<numFunctionCalls++<<": "<<fval;
 
+        clock_t timeEnd = clock();
+        double wallTime = (double)(timeEnd - timeBegin) / CLOCKS_PER_SEC;
+
+        problem->logObjectiveFunctionEvaluation(x.begin(), fval, nullptr,
+                                                numFunctionCalls, wallTime);
+
         return fval;
 
     },
-    [&problem](const column_vector& x){
+    [&problem, &timeIterBegin](const column_vector& x){
         // objective function gradient
         static __thread int numFunctionCalls = 0;
+        clock_t timeBegin = clock();
 
-        double unusedFVal = NAN;
+        double fVal = NAN;
         column_vector fGrad(problem->getNumOptimizationParameters());
-        problem->evaluateObjectiveFunction(x.begin(), &unusedFVal, fGrad.begin());
+        problem->evaluateObjectiveFunction(x.begin(), &fVal, fGrad.begin());
 
         if(problem->getOptimizationOptions().printToStdout)
             std::cout<<" g"<<numFunctionCalls++;
 
+        clock_t timeEnd = clock();
+        double wallTime = (double)(timeEnd - timeBegin) / CLOCKS_PER_SEC;
+//        double wallTimeIter = (double)(timeEnd - timeIterBegin) / CLOCKS_PER_SEC;
+        timeIterBegin = clock();
+
+        problem->logObjectiveFunctionEvaluation(x.begin(), fVal, fGrad.begin(), numFunctionCalls, wallTime);
+        problem->intermediateFunction(
+                    0, numFunctionCalls, fVal, 0, 0, 0, 0, 0, 0, 0, 0);
         return fGrad;
     },
     startingPoint, min, max);
+
+    clock_t timeEnd = clock();
+    double wallTime = (double)(timeEnd - timeBegin) / CLOCKS_PER_SEC;
+
+    problem->logOptimizerFinished(finalFVal, startingPoint.begin(), wallTime, 0);
 
     return status;
 }
