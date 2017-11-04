@@ -21,6 +21,7 @@ int main(int argc, char **argv) {
 
     std::string dataFileName = argv[1];
     ExampleSteadystateProblem problem = ExampleSteadystateProblem(dataFileName);
+    parpe::OptimizationOptions options = problem.getOptimizationOptions();
 
     int status = 0;
 
@@ -34,11 +35,11 @@ int main(int argc, char **argv) {
     printf("# CERES #\n");
     printf("#########\n");
 
-    parpe::OptimizationOptions options = problem.getOptimizationOptions();
     options.optimizer = parpe::OPTIMIZER_CERES;
     problem.setOptimizationOptions(options);
 
     status += parpe::getLocalOptimum(&problem);
+
 
 #ifdef PARPE_DLIB_ENABLED
     printf("#########\n");
@@ -46,6 +47,17 @@ int main(int argc, char **argv) {
     printf("#########\n");
 
     options.optimizer = parpe::OPTIMIZER_DLIB;
+    problem.setOptimizationOptions(options);
+
+    status += parpe::getLocalOptimum(&problem);
+#endif
+
+#ifdef PARPE_TOMS611_ENABLED
+    printf("#########\n");
+    printf("# TOMS611  #\n");
+    printf("#########\n");
+
+    options.optimizer = parpe::OPTIMIZER_TOMS611;
     problem.setOptimizationOptions(options);
 
     status += parpe::getLocalOptimum(&problem);

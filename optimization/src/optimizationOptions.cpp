@@ -4,6 +4,9 @@
 #ifdef PARPE_DLIB_ENABLED
 #include "localOptimizationDlib.h"
 #endif
+#ifdef PARPE_TOMS611_ENABLED
+#include "localOptimizationToms611.h"
+#endif
 #include "logging.h"
 #include "misc.h"
 #include <cassert>
@@ -243,6 +246,12 @@ Optimizer* optimizerFactory(optimizerEnum optimizer)
     case OPTIMIZER_DLIB:
 #ifdef PARPE_DLIB_ENABLED
         return new OptimizerDlibLineSearch();
+#else
+        return nullptr;
+#endif
+    case OPTIMIZER_TOMS611:
+#ifdef PARPE_TOMS611_ENABLED
+        return new OptimizerToms611TrustRegionSumsl();
 #else
         return nullptr;
 #endif
