@@ -2,6 +2,7 @@
 #include "logging.h"
 #include "optimizationOptions.h"
 #include "optimizationProblem.h"
+#include <cmath>
 #include <toms611.h>
 
 namespace parpe {
@@ -11,14 +12,14 @@ void calcf(integer &n, doublereal *x, integer &nf, doublereal &f,
     static_assert(sizeof(doublereal) == sizeof(double), "Float size mismatch");
 
     problem->evaluateObjectiveFunction(x, &f, nullptr);
+    *urparm = f;
 }
 
 void calcg(integer &n, doublereal *x, integer &nf, doublereal *g,
            OptimizationProblem *problem, doublereal *urparm, void *ufparm) {
 
     static_assert(sizeof(doublereal) == sizeof(double), "Float size mismatch");
-    double unusedFVal;
-    problem->evaluateObjectiveFunction(x, &unusedFVal, g);
+    problem->evaluateObjectiveFunction(x, urparm, g);
 
 }
 
@@ -27,6 +28,7 @@ int OptimizerToms611TrustRegionSumsl::optimize(OptimizationProblem *problem)
 {
     integer numOptimizationVariables = problem->getNumOptimizationParameters();
 
+    // allocate toms 611 memory and set options
     integer liv = toms611_sumsl_iv_min_length;
     integer iv[liv];
     iv[0] = 0; // fresh start, make sumsl_ call deflt_
@@ -37,9 +39,13 @@ int OptimizerToms611TrustRegionSumsl::optimize(OptimizationProblem *problem)
     doublereal scaling[numOptimizationVariables];
     std::fill(scaling, scaling + numOptimizationVariables, 1.0);
 
+
     doublereal parameters[numOptimizationVariables];
     double const* startingPoint = problem->getInitialParameters();
     std::copy(startingPoint, startingPoint + numOptimizationVariables, parameters);
+
+    double fval = NAN; // the last computed cost function value; is this necessarily the one for the final parameters?
+    clock_t timeBegin = clock();
 
     sumsl_(numOptimizationVariables,
            scaling,
@@ -48,7 +54,12 @@ int OptimizerToms611TrustRegionSumsl::optimize(OptimizationProblem *problem)
            iv, liv,
            lv, v,
            reinterpret_cast<integer *>(problem), // sumsl_ only lets us pass integer, real or function...
-           nullptr, nullptr);
+           &fval, nullptr);
+
+    clock_t timeEnd = clock();
+    double wallTime = (double)(timeEnd - timeBegin) / CLOCKS_PER_SEC;
+
+    problem->logOptimizerFinished(NAN, parameters, wallTime, iv[0]);
 
     return iv[0] >= first_error_code;
 }
