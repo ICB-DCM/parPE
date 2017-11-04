@@ -11,7 +11,6 @@ set(CMAKE_DEBUG_POSTFIX "-dbg")
 set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -Wall -Wno-unused-function -fopenmp -D_GNU_SOURCE") # -D_GNU_SOURCE for pthread recursive mutex issues
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wno-unused-function -fopenmp -D_GNU_SOURCE") # -D_GNU_SOURCE for pthread recursive mutex issues
-set(GLOBAL_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/CMakeModules)
 
 
@@ -21,17 +20,17 @@ set(BUILD_EXAMPLES TRUE CACHE BOOL "Build examples?")
 set(BUILD_DOCS FALSE CACHE BOOL "Generate documentation?")
 set(BLAS "CBLAS" CACHE STRING "BLAS library to use")
 set_property(CACHE BLAS PROPERTY STRINGS "CBLAS" "MKL")
-set(USE_MPI TRUE CACHE BOOL "Use MPI?")
+#set(USE_MPI TRUE CACHE BOOL "Use MPI?")
 set(IPOPT_DIR "" CACHE PATH "IpOpt root directory")
 set(IPOPT_INCLUDE_DIRS "${IPOPT_DIR}/include/coin/"  CACHE PATH "IpOpt include directory")
 set(IPOPT_LIBRARIES "${IPOPT_DIR}/lib/libipopt.so"  CACHE FILEPATH "IpOpt library")
 set(CERES_INCLUDE_DIRS "" "/usr/include/eigen3" CACHE PATH "CERES include directories")
 set(CERES_LIBRARIES "" CACHE FILEPATH "CERES libraries")
-set(DLIB_DIR "${CMAKE_CURRENT_LIST_DIR}/ThirdParty/dlib-19.7" CACHE FILEPATH "DLIB base directory")
 set(ENABLE_DLIB FALSE CACHE BOOL "Enable dlib optimizers?")
 set(ENABLE_TOMS611 FALSE CACHE BOOL "Enable toms611 optimizers?")
 
 # Enable MPI? Currently mandatory.
+set(USE_MPI ON)
 if(${USE_MPI})
     find_package(MPI REQUIRED)
     add_definitions(-DUSE_MPI)
@@ -39,6 +38,7 @@ if(${USE_MPI})
 endif(${USE_MPI})
 
 if(${ENABLE_DLIB})
+    set(DLIB_DIR "${CMAKE_CURRENT_LIST_DIR}/ThirdParty/dlib-19.7" CACHE FILEPATH "DLIB base directory")
     add_definitions(-DPARPE_DLIB_ENABLED)
 endif(${ENABLE_DLIB})
 
@@ -73,6 +73,7 @@ include_directories(
 if(${BUILD_TESTS})
     include (CTest)
 
+    # CppUTest
     add_definitions(-DD_MemoryLeakWarningPlugin_h) # prevent undefined reference to operator new; new is redefined even when memoryleakdetector is disabled
     set(CPPUTEST_DIR "${CMAKE_CURRENT_LIST_DIR}/deps/AMICI/ThirdParty/cpputest-master/build-noleakcheck/install/" CACHE PATH "cppUTest base directory")
     set(CPPUTEST_INCLUDE_DIR "${CPPUTEST_DIR}/include")
@@ -95,6 +96,7 @@ if(${BUILD_TESTS})
                 EXECUTABLE ctest
                 DEPENDENCIES ${COVERAGE_DEPENDENCIES})
         endif()
+
         if(${GCOVR_REPORT})
             # NOTE: GCOVR uses regexs on relative paths from ${PROJECT_BINARY_DIR} for exclusion
             set(COVERAGE_EXCLUDES "^ThirdParty/" "^deps/" "^amici/examples/steadystate/model/")
