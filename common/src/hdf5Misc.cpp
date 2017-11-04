@@ -1,5 +1,4 @@
 #include "hdf5Misc.h"
-
 #include "logging.h"
 #include <assert.h>
 #include <stdlib.h>
@@ -13,6 +12,7 @@ namespace parpe {
 static mutexHdfType mutexHdf;
 
 void initHDF5Mutex() {
+    // TODO: check if still required
     H5dont_atexit();
 }
 
@@ -86,8 +86,7 @@ void hdf5CreateGroup(hid_t file_id, const char *groupPath, bool recursively) {
     hid_t group = H5Gcreate(file_id, groupPath, groupCreationPropertyList,
                             H5P_DEFAULT, H5P_DEFAULT);
     if (group < 0)
-        logmessage(LOGLVL_ERROR,
-                   "Failed to create group in hdf5CreateGroup: %s", groupPath);
+        throw(HDF5Exception("Failed to create group in hdf5CreateGroup: %s", groupPath));
     H5Gclose(group);
 
 }
@@ -124,20 +123,14 @@ void hdf5Extend2ndDimensionAndWriteToDouble2DArray(hid_t file_id,
 
     hid_t dataset = H5Dopen2(file_id, datasetPath, H5P_DEFAULT);
     if (dataset < 0) {
-        logmessage(LOGLVL_CRITICAL, "Failed to open dataset %s in "
-                                    "hdf5Extend2ndDimensionAndWriteToDouble2DAr"
-                                    "ray",
-                   datasetPath);
-        return;
+        throw HDF5Exception("Failed to open dataset %s in hdf5Extend2ndDimensionAndWriteToDouble2DArray", datasetPath);
     }
 
     // extend
     hid_t filespace = H5Dget_space(dataset);
     int rank = H5Sget_simple_extent_ndims(filespace);
     if (rank != 2) {
-        logmessage(LOGLVL_CRITICAL, "Failed to write data in "
-                                    "hdf5Extend2ndDimensionAndWriteToDouble2DAr"
-                                    "ray: not of rank 2 (%d) when writing %s",
+        throw HDF5Exception("Failed to write data in hdf5Extend2ndDimensionAndWriteToDouble2DArray: not of rank 2 (%d) when writing %s",
                    rank, datasetPath);
     } else {
 
@@ -160,7 +153,7 @@ void hdf5Extend2ndDimensionAndWriteToDouble2DArray(hid_t file_id,
                           H5P_DEFAULT, buffer);
 
         if (status < 0)
-            error("Failed to write data in "
+            throw HDF5Exception("Failed to write data in "
                   "hdf5Extend2ndDimensionAndWriteToDouble2DArray");
 
         H5Sclose(memspace);
@@ -202,7 +195,7 @@ void hdf5Extend3rdDimensionAndWriteToDouble3DArray(hid_t file_id,
                       H5P_DEFAULT, buffer);
 
     if (status < 0)
-        error("Failed to write data in "
+        throw HDF5Exception("Failed to write data in "
               "hdf5Extend3rdDimensionAndWriteToDouble3DArray");
 
     H5Dclose(dataset);
@@ -270,41 +263,40 @@ void hdf5Extend2ndDimensionAndWriteToInt2DArray(hid_t file_id,
     std::lock_guard<mutexHdfType> lock(mutexHdf);
 
     hid_t dataset = H5Dopen2(file_id, datasetPath, H5P_DEFAULT);
-    if (dataset < 0) {
-        logmessage(LOGLVL_CRITICAL, "Unable to open dataset %s", datasetPath);
-    } else {
+    if (dataset < 0)
+        throw HDF5Exception("Unable to open dataset %s", datasetPath);
 
-        // extend
-        hid_t filespace = H5Dget_space(dataset);
-        int rank = H5Sget_simple_extent_ndims(filespace);
-        assert(rank == 2 && "Only works for 2D arrays!");
+    // extend
+    hid_t filespace = H5Dget_space(dataset);
+    int rank = H5Sget_simple_extent_ndims(filespace);
+    if(rank != 2)
+        throw HDF5Exception("Only works for 2D arrays!");
 
-        hsize_t currentDimensions[2];
-        H5Sget_simple_extent_dims(filespace, currentDimensions, NULL);
+    hsize_t currentDimensions[2];
+    H5Sget_simple_extent_dims(filespace, currentDimensions, NULL);
 
-        hsize_t newDimensions[2] = {currentDimensions[0], currentDimensions[1] + 1};
-        herr_t status = H5Dset_extent(dataset, newDimensions);
+    hsize_t newDimensions[2] = {currentDimensions[0], currentDimensions[1] + 1};
+    herr_t status = H5Dset_extent(dataset, newDimensions);
 
-        filespace = H5Dget_space(dataset);
-        hsize_t offset[2] = {0, currentDimensions[1]};
-        hsize_t slabsize[2] = {currentDimensions[0], 1};
+    filespace = H5Dget_space(dataset);
+    hsize_t offset[2] = {0, currentDimensions[1]};
+    hsize_t slabsize[2] = {currentDimensions[0], 1};
 
-        status = H5Sselect_hyperslab(filespace, H5S_SELECT_SET, offset, NULL,
-                                     slabsize, NULL);
+    status = H5Sselect_hyperslab(filespace, H5S_SELECT_SET, offset, NULL,
+                                 slabsize, NULL);
 
-        hid_t memspace = H5Screate_simple(rank, slabsize, NULL);
+    hid_t memspace = H5Screate_simple(rank, slabsize, NULL);
 
-        status = H5Dwrite(dataset, H5T_NATIVE_INT, memspace, filespace, H5P_DEFAULT,
-                          buffer);
+    status = H5Dwrite(dataset, H5T_NATIVE_INT, memspace, filespace, H5P_DEFAULT,
+                      buffer);
 
-        if (status < 0)
-            error("Error writing data in "
-                  "hdf5Extend2ndDimensionAndWriteToInt2DArray.");
+    if (status < 0)
+        throw HDF5Exception("Error writing data in "
+              "hdf5Extend2ndDimensionAndWriteToInt2DArray.");
 
-        H5Sclose(filespace);
-        H5Sclose(memspace);
+    H5Sclose(filespace);
+    H5Sclose(memspace);
 
-    }
     H5Dclose(dataset);
 
 }
@@ -436,21 +428,24 @@ int hdf5AttributeExists(hid_t fileId, const char *datasetPath,
 
     H5_SAVE_ERROR_HANDLER;
     if (H5Lexists(fileId, datasetPath, H5P_DEFAULT)) {
-        hid_t dataset = H5Dopen2(fileId, datasetPath, H5P_DEFAULT);
-        if (H5LTfind_attribute(dataset, attributeName))
+        hid_t loc = H5Oopen(fileId, datasetPath, H5P_DEFAULT);
+        if (loc > 0 && H5LTfind_attribute(loc, attributeName))
             return 1;
     }
     H5_RESTORE_ERROR_HANDLER;
     return 0;
 }
 
-int hdf5WriteStringAttribute(hid_t fileId, const char *datasetPath,
+void hdf5WriteStringAttribute(hid_t fileId, const char *datasetPath,
                              const char *attributeName,
                              const char *attributeValue) {
     std::lock_guard<mutexHdfType> lock(mutexHdf);
 
-    return H5LTset_attribute_string(fileId, datasetPath, attributeName,
+    int ret = H5LTset_attribute_string(fileId, datasetPath, attributeName,
                                     attributeValue);
+    if(ret < 0)
+        throw HDF5Exception("Unable to write attribute %s on %s",
+                            datasetPath, attributeName);
 }
 
 hid_t hdf5OpenFile(const char *filename, bool overwrite)
@@ -482,23 +477,40 @@ hid_t hdf5OpenFile(const char *filename, bool overwrite)
 void hdf5GetDatasetDimensions(hid_t file_id, const char *path, hsize_t nDimsExpected, int *d1, int *d2, int *d3, int *d4)
 {
     std::lock_guard<mutexHdfType> lock(mutexHdf);
+    H5_SAVE_ERROR_HANDLER;
 
     auto dataspace = H5::H5File(file_id).openDataSet(path).getSpace();
 
     const int nDimsActual = dataspace.getSimpleExtentNdims();
-    assert(nDimsActual == (signed)nDimsExpected && "Dataset rank does not match nDims argument");
+    if(nDimsActual != (signed)nDimsExpected)
+        throw(HDF5Exception("Dataset rank does not match nDims argument"));
 
     hsize_t dims[nDimsExpected];
-    dataspace.getSimpleExtentDims(dims, &nDimsExpected);
+    dataspace.getSimpleExtentDims(dims, nullptr);
 
-    if(nDimsExpected >= 0 && d1)
+    if(nDimsExpected > 0 && d1)
         *d1 = dims[0];
-    if(nDimsExpected >= 1 && d2)
+    if(nDimsExpected > 1 && d2)
         *d2 = dims[1];
-    if(nDimsExpected >= 2 && d3)
+    if(nDimsExpected > 2 && d3)
         *d3 = dims[2];
-    if(nDimsExpected >= 3 && d4)
+    if(nDimsExpected > 3 && d4)
         *d4 = dims[3];
+
+    H5_RESTORE_ERROR_HANDLER;
+}
+
+HDF5Exception::HDF5Exception(const char *format, ...) {
+    va_list argptr;
+    va_start(argptr,format);
+    size_t needed = vsnprintf(nullptr, 0, format, argptr) + 1;
+    char buf[needed];
+
+    va_start(argptr,format);
+    vsprintf(buf, format, argptr);
+    va_end(argptr);
+
+    msg = buf;
 }
 
 } // namespace parpe

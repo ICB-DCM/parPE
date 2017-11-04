@@ -3,18 +3,19 @@
 
 #include <hdf5.h>
 #include <hdf5_hl.h>
-
 #include <pthread.h>
 #include <stdbool.h>
 #include <exception>
 #include <string>
 #include <mutex>
+#include <cstdarg>
 
 namespace parpe {
 
 class HDF5Exception : public std::exception {
 public:
     HDF5Exception(std::string msg = "") : msg(msg) {}
+    HDF5Exception(const char *format, ...);
 
     const char* what() const noexcept override { return msg.c_str(); }
 
@@ -51,10 +52,10 @@ bool hdf5GroupExists(hid_t file_id, const char *groupName);
 
 bool hdf5EnsureGroupExists(hid_t file_id, const char *groupName);
 
-void hdf5CreateGroup(hid_t file_id, const char *groupPath, bool recursively);
+void hdf5CreateGroup(hid_t file_id, const char *groupPath, bool recursively = false);
 
 hid_t hdf5OpenFile(const char *filename,
-                   bool overwrite);
+                   bool overwrite = false);
 
 void hdf5CreateExtendableDouble2DArray(hid_t file_id, const char *datasetPath,
                                        hsize_t stride);
@@ -104,7 +105,7 @@ void hdf5GetDatasetDimensions(hid_t file_id, const char *path, hsize_t nDims, in
 int hdf5AttributeExists(hid_t fileId, const char *datasetPath,
                         const char *attributeName);
 
-int hdf5WriteStringAttribute(hid_t fileId, const char *datasetPath,
+void hdf5WriteStringAttribute(hid_t fileId, const char *datasetPath,
                              const char *attributeName,
                              const char *attributeValue);
 

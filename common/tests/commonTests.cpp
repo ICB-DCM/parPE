@@ -23,21 +23,23 @@ TEST_GROUP(testingMisc){
 // clang-format on
 
 TEST(testingMisc, testWithinTolerance) {
-    double atol = 0.1;
-    double rtol = 0.1;
+    captureStreamToString([](){
+        double atol = 0.1;
+        double rtol = 0.1;
 
-    CHECK_TRUE(withinTolerance(1.0, 1.0, atol, rtol, 0));
-    CHECK_TRUE(withinTolerance(2.0, 2.15, atol, rtol, 0)); // abs false, rel true
-    CHECK_TRUE(withinTolerance(0, 0.05, atol, rtol, 0)); // abs true, rel false
+        CHECK_TRUE(withinTolerance(1.0, 1.0, atol, rtol, 0));
+        CHECK_TRUE(withinTolerance(2.0, 2.15, atol, rtol, 0)); // abs false, rel true
+        CHECK_TRUE(withinTolerance(0, 0.05, atol, rtol, 0)); // abs true, rel false
 
 
-    CHECK_TRUE(withinTolerance(NAN, NAN, atol, rtol, 0));
-    CHECK_FALSE(withinTolerance(NAN, 1, atol, rtol, 0));
-    CHECK_FALSE(withinTolerance(1, NAN, atol, rtol, 0));
+        CHECK_TRUE(withinTolerance(NAN, NAN, atol, rtol, 0));
+        CHECK_FALSE(withinTolerance(NAN, 1, atol, rtol, 0));
+        CHECK_FALSE(withinTolerance(1, NAN, atol, rtol, 0));
 
-    CHECK_TRUE(withinTolerance(INFINITY, INFINITY, atol, rtol, 0));
-    CHECK_FALSE(withinTolerance(1, INFINITY, atol, rtol, 0));
-    CHECK_FALSE(withinTolerance(INFINITY, 1, atol, rtol, 0));
+        CHECK_TRUE(withinTolerance(INFINITY, INFINITY, atol, rtol, 0));
+        CHECK_FALSE(withinTolerance(1, INFINITY, atol, rtol, 0));
+        CHECK_FALSE(withinTolerance(INFINITY, 1, atol, rtol, 0));
+    }, stderr, STDERR_FILENO);
 }
 
 TEST(testingMisc, testCheckEqualArray) {
@@ -74,7 +76,10 @@ TEST_GROUP(commonMisc){
 // clang-format on
 
 TEST(commonMisc, testBacktrace) {
-    parpe::printBacktrace(5);
+    std::string output = captureStreamToString([]() {
+        parpe::printBacktrace(5);
+    }, stderr, STDERR_FILENO);
+    CHECK_TRUE(100 < output.size());
 }
 
 TEST(commonMisc, testFilexists) {

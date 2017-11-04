@@ -9,6 +9,7 @@ include_directories(${CPPUTEST_INCLUDE_DIR})
 set(SRC_LIST
     main.cpp
     commonTests.cpp
+    hdf5MiscTests.cpp
     ../src/testingMisc.cpp
 )
 

@@ -3,6 +3,11 @@
 #include <cstdio>
 #include <cmath>
 #include "CppUTest/TestHarness.h"
+#include <iostream>
+#include <sstream>
+#include <fstream>
+#include <streambuf>
+#include <fcntl.h> // O_WRONLY
 
 bool withinTolerance(double expected, double actual, double atol, double rtol, int index) {
     bool withinTol =  fabs(expected - actual) <= atol || fabs((expected - actual) / (rtol + expected)) <= rtol;
@@ -38,4 +43,46 @@ void checkEqualArray(const double *expected, const double *actual, int length, d
 
 int randInt(int min, int max) {
     return min + rand() / (double) RAND_MAX * (max - min);
+}
+
+std::string captureStreamToString(std::function<void()> f, std::ostream &os) {
+    std::streambuf* oldOStreamBuf = os.rdbuf();
+    os.flush();
+
+    std::ostringstream strOs;
+    os.rdbuf(strOs.rdbuf());
+
+    f();
+
+    strOs.flush();
+    os.rdbuf( oldOStreamBuf );
+
+    return strOs.str();
+}
+
+std::string captureStreamToString(std::function<void()> f, std::FILE* captureStream, int captureStreamFd) {
+    // use fmemopen instead of file?
+
+    char tempFileName[TMP_MAX];
+    std::tmpnam(tempFileName);
+
+    int newStreamFd = open(tempFileName, O_CREAT | O_WRONLY);
+    assert(newStreamFd >= 0);
+
+    int oldStreamFd = dup(captureStreamFd);
+    assert(oldStreamFd >= 0);
+    fflush(captureStream);
+
+    dup2(newStreamFd, captureStreamFd); // replace original fd by tmp file
+    close(newStreamFd);  // close remaining copy
+
+    f();
+    fflush(captureStream);
+
+    dup2(oldStreamFd, captureStreamFd); // restore (closes tmp file)
+    close(oldStreamFd); // close remainingv copy
+
+    std::ifstream ifs(tempFileName);
+    return std::string ((std::istreambuf_iterator<char>(ifs)),
+                     std::istreambuf_iterator<char>());
 }
