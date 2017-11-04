@@ -18,6 +18,6 @@ build:
         #- cd $PARPE_BASE/ThirdParty && ./installCeres.sh
         - cd $PARPE_BASE && ./buildShippable.sh
         - cd $PARPE_BASE/build && CTEST_OUTPUT_ON_FAILURE=1 make test
-	- CTEST_OUTPUT_ON_FAILURE=1 make ExperimentalMemCheck && cat Testing/Temporary/MemoryChecker.*.log
+        - CTEST_OUTPUT_ON_FAILURE=1 make ExperimentalMemCheck && cat Testing/Temporary/MemoryChecker.*.log
         - cd $PARPE_BASE/build && make parpe_coverage_cobertura
         - mkdir -p $PARPE_BASE/shippable/codecoverage && cp $PARPE_BASE/build/parpe_coverage_cobertura.xml $PARPE_BASE/shippable/codecoverage
