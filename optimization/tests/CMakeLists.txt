@@ -2,8 +2,6 @@ project(unittests_optimization)
 
 add_test (NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME} -c)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -include ${CMAKE_CURRENT_LIST_DIR}/../../common/src/STLCompatibleMemoryLeakDetectorMacros.h")
-
 set(SRC_LIST_CPP
     main.cpp
     ../src/localOptimizationIpoptTest.cpp
@@ -15,6 +13,9 @@ set(SRC_LIST_CPP
 )
 
 add_executable(${PROJECT_NAME} ${SRC_LIST_CPP})
+
+#target_compile_options(${PROJECT_NAME} PUBLIC
+#    -include ${CMAKE_CURRENT_LIST_DIR}/../../common/src/STLCompatibleMemoryLeakDetectorMacros.h)
 
 target_link_libraries(${PROJECT_NAME}
     parpeoptimization
@@ -30,6 +31,9 @@ if(${ENABLE_TOMS611})
         main.cpp
         ../src/localOptimizationToms611Test.cpp
     )
+
+ #   target_compile_options(${PROJECT_NAME} PUBLIC
+  #  -include ${CMAKE_CURRENT_LIST_DIR}/../../common/src/STLCompatibleMemoryLeakDetectorMacros.h)
 
     target_link_libraries(${PROJECT_NAME}
         toms611

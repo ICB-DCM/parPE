@@ -6,6 +6,7 @@
 #include <cstdio>
 #include <mpi.h>
 #include <unistd.h>
+#include <misc.h>
 
 #define QUEUE_MASTER_TEST
 
@@ -37,6 +38,12 @@ int MPI_Testany(int count, MPI_Request array_of_requests[], int *index,
 
     sleep(1000); // do nothing and wait to be killed
 
+    return 0;
+}
+
+int MPI_Iprobe(int source, int tag, MPI_Comm comm, int *flag,
+               MPI_Status *status) {
+    sleep(1000);
     return 0;
 }
 

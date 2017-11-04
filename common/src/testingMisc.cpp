@@ -8,6 +8,7 @@
 #include <fstream>
 #include <streambuf>
 #include <fcntl.h> // O_WRONLY
+#include <cassert>
 
 bool withinTolerance(double expected, double actual, double atol, double rtol, int index) {
     bool withinTol =  fabs(expected - actual) <= atol || fabs((expected - actual) / (rtol + expected)) <= rtol;

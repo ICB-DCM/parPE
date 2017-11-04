@@ -64,8 +64,6 @@ find_package(HDF5 COMPONENTS CXX C HL REQUIRED)
 
 include_directories(
     common/src/
-    ${IPOPT_INCLUDE_DIRS}
-    ${CERES_INCLUDE_DIRS}
     ${HDF5_INCLUDE_DIRS}
     ${MPI_INCLUDE_DIR}
 )
@@ -74,9 +72,9 @@ include_directories(
 # Build tests?
 if(${BUILD_TESTS})
     include (CTest)
-    enable_testing ()
 
-    set(CPPUTEST_DIR "" CACHE PATH "cppUTest base directory")
+    add_definitions(-DD_MemoryLeakWarningPlugin_h) # prevent undefined reference to operator new; new is redefined even when memoryleakdetector is disabled
+    set(CPPUTEST_DIR "${CMAKE_CURRENT_LIST_DIR}/deps/AMICI/ThirdParty/cpputest-master/build-noleakcheck/install/" CACHE PATH "cppUTest base directory")
     set(CPPUTEST_INCLUDE_DIR "${CPPUTEST_DIR}/include")
     set(CPPUTEST_LIBRARY "${CPPUTEST_DIR}/lib/libCppUTest.a" "${CPPUTEST_DIR}/lib/libCppUTestExt.a")
     include_directories(${CPPUTEST_INCLUDE_DIR})
