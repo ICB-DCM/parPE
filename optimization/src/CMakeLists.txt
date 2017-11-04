@@ -33,13 +33,7 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 if(${ENABLE_DLIB})
-    set(DLIB_NO_GUI_SUPPORT ON)
-    set(DLIB_GIF_SUPPORT OFF)
-    set(DLIB_JPEG_SUPPORT OFF)
-    set(DLIB_PNG_SUPPORT OFF)
-    set(DLIB_LINK_WITH_SQLITE3 OFF)
-    add_subdirectory(${DLIB_DIR} dlib_build)
-    target_link_libraries(${PROJECT_NAME} dlib::dlib)
+    target_link_libraries(${PROJECT_NAME} ${dlib_LIBRARIES})
 endif(${ENABLE_DLIB})
 
 if(${ENABLE_TOMS611})
