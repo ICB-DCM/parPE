@@ -200,8 +200,12 @@ void LoadBalancerMaster::queueJob(JobData *data) {
 }
 
 void LoadBalancerMaster::terminate() {
+    // avoid double termination
+    pthread_mutex_lock(&mutexQueue);
     if (!isRunning_)
         return;
+    isRunning_ = false;
+    pthread_mutex_unlock(&mutexQueue);
 
     pthread_cancel(queueThread);
     // wait until canceled
@@ -217,7 +221,6 @@ void LoadBalancerMaster::terminate() {
     if (workerIsBusy)
         delete[] workerIsBusy;
 
-    isRunning_ = false;
 }
 
 int LoadBalancerMaster::handleReply(MPI_Status *mpiStatus) {
