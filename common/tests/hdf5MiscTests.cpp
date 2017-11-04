@@ -98,8 +98,8 @@ TEST(hdf5Misc, testStringAttribute) {
     parpe::hdf5WriteStringAttribute(fileId, groupName, attrName, expAttrValue);
 
     CHECK_TRUE(parpe::hdf5AttributeExists(fileId, groupName, attrName));
-    H5T_class_t type_class;
 
+    H5T_class_t type_class;
     size_t size = 0;
     int ret = H5LTget_attribute_info(fileId, groupName, attrName, nullptr, &type_class, &size);
     CHECK_TRUE(ret >= 0);

@@ -73,6 +73,7 @@ include_directories(
 
 # Build tests?
 if(${BUILD_TESTS})
+    include (CTest)
     enable_testing ()
 
     set(CPPUTEST_DIR "" CACHE PATH "cppUTest base directory")

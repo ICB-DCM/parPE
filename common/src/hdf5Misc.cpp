@@ -427,10 +427,13 @@ int hdf5AttributeExists(hid_t fileId, const char *datasetPath,
     std::lock_guard<mutexHdfType> lock(mutexHdf);
 
     H5_SAVE_ERROR_HANDLER;
-    if (H5Lexists(fileId, datasetPath, H5P_DEFAULT)) {
-        hid_t loc = H5Oopen(fileId, datasetPath, H5P_DEFAULT);
-        if (loc > 0 && H5LTfind_attribute(loc, attributeName))
+    hid_t loc = H5Oopen(fileId, datasetPath, H5P_DEFAULT);
+    if (loc > 0) {
+        if(H5LTfind_attribute(loc, attributeName)) {
+            H5Oclose(loc);
             return 1;
+        }
+        H5Oclose(loc);
     }
     H5_RESTORE_ERROR_HANDLER;
     return 0;
