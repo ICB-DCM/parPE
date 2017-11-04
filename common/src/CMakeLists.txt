@@ -12,6 +12,7 @@ add_library(${PROJECT_NAME} ${SRC_LIST})
 target_link_libraries(${PROJECT_NAME}
     ${HDF5_HL_LIBRARIES}
     ${HDF5_C_LIBRARIES}
+    ${HDF5_CXX_LIBRARIES}
 )
 
 get_target_property(PARPECOMMON_INCLUDE_DIRS ${PROJECT_NAME} INCLUDE_DIRECTORIES)

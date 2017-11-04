@@ -3,32 +3,27 @@
 #include "logging.h"
 #include <assert.h>
 #include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <H5Cpp.h>
 
 namespace parpe {
 
 // mutex for **ALL** HDF5 library calls; read and write; any file(?)
-static pthread_mutex_t mutexHDF;
-
-static char *myStringCat(const char *first, const char *second);
+static mutexHdfType mutexHdf;
 
 void initHDF5Mutex() {
-    pthread_mutexattr_t attr;
-    pthread_mutexattr_init(&attr);
-    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
-    pthread_mutex_init(&mutexHDF, &attr);
-    pthread_mutexattr_destroy(&attr);
-
     H5dont_atexit();
 }
 
-void hdf5LockMutex() { pthread_mutex_lock(&mutexHDF); }
+void hdf5LockMutex() { mutexHdf.lock(); }
 
-void hdf5UnlockMutex() { pthread_mutex_unlock(&mutexHDF); }
+void hdf5UnlockMutex() { mutexHdf.unlock(); }
 
-void destroyHDF5Mutex() { pthread_mutex_destroy(&mutexHDF); }
+std::unique_lock<mutexHdfType> hdf5MutexGetLock()
+{
+    return std::unique_lock<mutexHdfType>(mutexHdf);
+}
 
 herr_t hdf5ErrorStackWalker_cb(unsigned int n, const H5E_error_t *err_desc,
                                void *client_data) {
@@ -51,15 +46,14 @@ herr_t hdf5ErrorStackWalker_cb(unsigned int n, const H5E_error_t *err_desc,
 }
 
 bool hdf5DatasetExists(hid_t file_id, const char *datasetName) {
-    hdf5LockMutex();
+    std::lock_guard<mutexHdfType> lock(mutexHdf);
     bool exists = H5Lexists(file_id, datasetName, H5P_DEFAULT) > 0;
-    hdf5UnlockMutex();
 
     return exists;
 }
 
 bool hdf5GroupExists(hid_t file_id, const char *groupName) {
-    hdf5LockMutex();
+    std::lock_guard<mutexHdfType> lock(mutexHdf);
 
     // switch off error handler, check existance and reenable
     H5_SAVE_ERROR_HANDLER;
@@ -67,8 +61,6 @@ bool hdf5GroupExists(hid_t file_id, const char *groupName) {
     herr_t status = H5Gget_objinfo(file_id, groupName, 0, NULL);
 
     H5_RESTORE_ERROR_HANDLER;
-
-    hdf5UnlockMutex();
 
     return status >= 0;
 }
@@ -84,7 +76,7 @@ bool hdf5EnsureGroupExists(hid_t file_id, const char *groupName) {
 void hdf5CreateGroup(hid_t file_id, const char *groupPath, bool recursively) {
     hid_t groupCreationPropertyList = H5P_DEFAULT;
 
-    hdf5LockMutex();
+    std::lock_guard<mutexHdfType> lock(mutexHdf);
 
     if (recursively) {
         groupCreationPropertyList = H5Pcreate(H5P_LINK_CREATE);
@@ -98,7 +90,6 @@ void hdf5CreateGroup(hid_t file_id, const char *groupPath, bool recursively) {
                    "Failed to create group in hdf5CreateGroup: %s", groupPath);
     H5Gclose(group);
 
-    hdf5UnlockMutex();
 }
 
 void hdf5CreateExtendableDouble2DArray(hid_t file_id, const char *datasetPath,
@@ -107,7 +98,7 @@ void hdf5CreateExtendableDouble2DArray(hid_t file_id, const char *datasetPath,
     hsize_t initialDimensions[2] = {stride, 0};
     hsize_t maximumDimensions[2] = {stride, H5S_UNLIMITED};
 
-    hdf5LockMutex();
+    std::lock_guard<mutexHdfType> lock(mutexHdf);
 
     hid_t dataspace =
         H5Screate_simple(rank, initialDimensions, maximumDimensions);
@@ -124,13 +115,12 @@ void hdf5CreateExtendableDouble2DArray(hid_t file_id, const char *datasetPath,
     H5Dclose(dataset);
     H5Sclose(dataspace);
 
-    hdf5UnlockMutex();
 }
 
 void hdf5Extend2ndDimensionAndWriteToDouble2DArray(hid_t file_id,
                                                    const char *datasetPath,
                                                    const double *buffer) {
-    hdf5LockMutex();
+    std::lock_guard<mutexHdfType> lock(mutexHdf);
 
     hid_t dataset = H5Dopen2(file_id, datasetPath, H5P_DEFAULT);
     if (dataset < 0) {
@@ -138,7 +128,6 @@ void hdf5Extend2ndDimensionAndWriteToDouble2DArray(hid_t file_id,
                                     "hdf5Extend2ndDimensionAndWriteToDouble2DAr"
                                     "ray",
                    datasetPath);
-        hdf5UnlockMutex();
         return;
     }
 
@@ -179,13 +168,12 @@ void hdf5Extend2ndDimensionAndWriteToDouble2DArray(hid_t file_id,
 
     H5Sclose(filespace);
     H5Dclose(dataset);
-    hdf5UnlockMutex();
 }
 
 void hdf5Extend3rdDimensionAndWriteToDouble3DArray(hid_t file_id,
                                                    const char *datasetPath,
                                                    const double *buffer) {
-    hdf5LockMutex();
+    std::lock_guard<mutexHdfType> lock(mutexHdf);
 
     hid_t dataset = H5Dopen2(file_id, datasetPath, H5P_DEFAULT);
 
@@ -220,8 +208,6 @@ void hdf5Extend3rdDimensionAndWriteToDouble3DArray(hid_t file_id,
     H5Dclose(dataset);
     H5Sclose(filespace);
     H5Sclose(memspace);
-
-    hdf5UnlockMutex();
 }
 
 void hdf5CreateOrExtendAndWriteToDouble2DArray(hid_t file_id,
@@ -229,22 +215,16 @@ void hdf5CreateOrExtendAndWriteToDouble2DArray(hid_t file_id,
                                                const char *datasetName,
                                                const double *buffer,
                                                hsize_t stride) {
-    hdf5LockMutex();
-
     hdf5EnsureGroupExists(file_id, parentPath);
 
-    char *fullDatasetPath = myStringCat(parentPath, datasetName);
+    std::string fullDatasetPath = std::string(parentPath) + datasetName;
 
-    if (!hdf5DatasetExists(file_id, fullDatasetPath)) {
-        hdf5CreateExtendableDouble2DArray(file_id, fullDatasetPath, stride);
+    if (!hdf5DatasetExists(file_id, fullDatasetPath.c_str())) {
+        hdf5CreateExtendableDouble2DArray(file_id, fullDatasetPath.c_str(), stride);
     }
 
-    hdf5Extend2ndDimensionAndWriteToDouble2DArray(file_id, fullDatasetPath,
+    hdf5Extend2ndDimensionAndWriteToDouble2DArray(file_id, fullDatasetPath.c_str(),
                                                   buffer);
-
-    delete[] fullDatasetPath;
-
-    hdf5UnlockMutex();
 }
 
 void hdf5CreateOrExtendAndWriteToDouble3DArray(hid_t file_id,
@@ -252,51 +232,42 @@ void hdf5CreateOrExtendAndWriteToDouble3DArray(hid_t file_id,
                                                const char *datasetName,
                                                const double *buffer,
                                                hsize_t stride1, hsize_t stride2) {
-    hdf5LockMutex();
-
     hdf5EnsureGroupExists(file_id, parentPath);
 
-    char *fullDatasetPath = myStringCat(parentPath, datasetName);
+    std::string fullDatasetPath = std::string(parentPath) + datasetName;
 
-    if (!hdf5DatasetExists(file_id, fullDatasetPath)) {
-        hdf5CreateExtendableDouble3DArray(file_id, fullDatasetPath, stride1,
+    if (!hdf5DatasetExists(file_id, fullDatasetPath.c_str())) {
+        hdf5CreateExtendableDouble3DArray(file_id, fullDatasetPath.c_str(), stride1,
                                           stride2);
     }
 
-    hdf5Extend3rdDimensionAndWriteToDouble3DArray(file_id, fullDatasetPath,
+    hdf5Extend3rdDimensionAndWriteToDouble3DArray(file_id, fullDatasetPath.c_str(),
                                                   buffer);
 
-    hdf5UnlockMutex();
-
-    delete[] fullDatasetPath;
 }
 
 void hdf5CreateOrExtendAndWriteToInt2DArray(hid_t file_id,
                                             const char *parentPath,
                                             const char *datasetName,
                                             const int *buffer, hsize_t stride) {
-    hdf5LockMutex();
+    std::lock_guard<mutexHdfType> lock(mutexHdf);
 
     hdf5EnsureGroupExists(file_id, parentPath);
 
-    char *fullDatasetPath = myStringCat(parentPath, datasetName);
+    auto fullDatasetPath = std::string(parentPath) + datasetName;
 
-    if (!hdf5DatasetExists(file_id, fullDatasetPath)) {
-        hdf5CreateExtendableInt2DArray(file_id, fullDatasetPath, stride);
+    if (!hdf5DatasetExists(file_id, fullDatasetPath.c_str())) {
+        hdf5CreateExtendableInt2DArray(file_id, fullDatasetPath.c_str(), stride);
     }
 
-    hdf5Extend2ndDimensionAndWriteToInt2DArray(file_id, fullDatasetPath,
+    hdf5Extend2ndDimensionAndWriteToInt2DArray(file_id, fullDatasetPath.c_str(),
                                                buffer);
-
-    hdf5UnlockMutex();
-
-    delete[] fullDatasetPath;
 }
 
 void hdf5Extend2ndDimensionAndWriteToInt2DArray(hid_t file_id,
                                                 const char *datasetPath,
                                                 const int *buffer) {
-    hdf5LockMutex();
+    std::lock_guard<mutexHdfType> lock(mutexHdf);
 
     hid_t dataset = H5Dopen2(file_id, datasetPath, H5P_DEFAULT);
     if (dataset < 0) {
@@ -336,12 +307,11 @@ void hdf5Extend2ndDimensionAndWriteToInt2DArray(hid_t file_id,
     }
     H5Dclose(dataset);
 
-    hdf5UnlockMutex();
 }
 
 void hdf5CreateExtendableInt2DArray(hid_t file_id, const char *datasetPath,
                                     hsize_t stride) {
-    hdf5LockMutex();
+    std::lock_guard<mutexHdfType> lock(mutexHdf);
 
     int rank = 2;
     hsize_t initialDimensions[2] = {stride, 0};
@@ -363,17 +333,16 @@ void hdf5CreateExtendableInt2DArray(hid_t file_id, const char *datasetPath,
 
     H5Dclose(dataset);
     H5Sclose(dataspace);
-
-    hdf5UnlockMutex();
 }
 
 void hdf5CreateExtendableDouble3DArray(hid_t file_id, const char *datasetPath,
                                        hsize_t stride1, hsize_t stride2) {
-    hdf5LockMutex();
 
     int rank = 3;
     hsize_t initialDimensions[3] = {stride1, stride2, 0};
     hsize_t maximumDimensions[3] = {stride1, stride2, H5S_UNLIMITED};
+
+    std::lock_guard<mutexHdfType> lock(mutexHdf);
 
     hid_t dataspace =
         H5Screate_simple(rank, initialDimensions, maximumDimensions);
@@ -389,20 +358,13 @@ void hdf5CreateExtendableDouble3DArray(hid_t file_id, const char *datasetPath,
 
     H5Dclose(dataset);
     H5Sclose(dataspace);
-
-    hdf5UnlockMutex();
-}
-
-char *myStringCat(const char *first, const char *second) {
-    char *concatenation = new char[strlen(first) + strlen(second) + 1];
-    strcpy(concatenation, first);
-    strcat(concatenation, second);
-    return concatenation;
 }
 
 int hdf5Read2DDoubleHyperslab(hid_t file_id, const char *path, hsize_t size0,
                               hsize_t size1, hsize_t offset0, hsize_t offset1,
                               double *buffer) {
+    std::lock_guard<mutexHdfType> lock(mutexHdf);
+
     hid_t dataset = H5Dopen2(file_id, path, H5P_DEFAULT);
     hid_t dataspace = H5Dget_space(dataset);
     hsize_t offset[] = {offset0, offset1};
@@ -436,6 +398,8 @@ int hdf5Read3DDoubleHyperslab(hid_t file_id, const char *path, hsize_t size0,
                               hsize_t size1, hsize_t size2, hsize_t offset0,
                               hsize_t offset1, hsize_t offset2,
                               double *buffer) {
+    std::lock_guard<mutexHdfType> lock(mutexHdf);
+
     const int rank = 3;
     hid_t dataset = H5Dopen2(file_id, path, H5P_DEFAULT);
     hid_t dataspace = H5Dget_space(dataset);
@@ -466,29 +430,10 @@ int hdf5Read3DDoubleHyperslab(hid_t file_id, const char *path, hsize_t size0,
     return 0;
 }
 
-void hdf5GetDatasetDimensions2D(hid_t file_id, const char *path, int *d1,
-                                int *d2) {
-    hdf5LockMutex();
-
-    hid_t dataset = H5Dopen2(file_id, path, H5P_DEFAULT);
-    hid_t dataspace = H5Dget_space(dataset);
-
-    const int ndims = H5Sget_simple_extent_ndims(dataspace);
-    assert(ndims == 2 && "Only works for 2D arrays!");
-    hsize_t dims[ndims];
-    H5Sget_simple_extent_dims(dataspace, dims, NULL);
-
-    *d1 = dims[0];
-    *d2 = dims[1];
-
-    H5Sclose(dataspace);
-    H5Dclose(dataset);
-
-    hdf5UnlockMutex();
-}
-
 int hdf5AttributeExists(hid_t fileId, const char *datasetPath,
                         const char *attributeName) {
+    std::lock_guard<mutexHdfType> lock(mutexHdf);
+
     H5_SAVE_ERROR_HANDLER;
     if (H5Lexists(fileId, datasetPath, H5P_DEFAULT)) {
         hid_t dataset = H5Dopen2(fileId, datasetPath, H5P_DEFAULT);
@@ -502,20 +447,24 @@ int hdf5AttributeExists(hid_t fileId, const char *datasetPath,
 int hdf5WriteStringAttribute(hid_t fileId, const char *datasetPath,
                              const char *attributeName,
                              const char *attributeValue) {
+    std::lock_guard<mutexHdfType> lock(mutexHdf);
+
     return H5LTset_attribute_string(fileId, datasetPath, attributeName,
                                     attributeValue);
 }
 
 hid_t hdf5OpenFile(const char *filename, bool overwrite)
 {
+
     if (!overwrite) {
         struct stat st = {0};
         bool fileExists = stat(filename, &st) == 0;
 
-        // throw HDF5Exception("Result file exists");
-        return -1;
-        assert(!fileExists);
+        if(fileExists)
+            throw HDF5Exception("Result file exists");
     }
+
+    std::lock_guard<mutexHdfType> lock(mutexHdf);
 
     H5_SAVE_ERROR_HANDLER;
     hid_t file_id = H5Fcreate(filename, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
@@ -529,26 +478,27 @@ hid_t hdf5OpenFile(const char *filename, bool overwrite)
     return file_id;
 }
 
-void hdf5GetDatasetDimensions3D(hid_t file_id, const char *path, int *d1, int *d2, int *d3)
+
+void hdf5GetDatasetDimensions(hid_t file_id, const char *path, hsize_t nDimsExpected, int *d1, int *d2, int *d3, int *d4)
 {
-    hdf5LockMutex();
+    std::lock_guard<mutexHdfType> lock(mutexHdf);
 
-    hid_t dataset = H5Dopen2(file_id, path, H5P_DEFAULT);
-    hid_t dataspace = H5Dget_space(dataset);
+    auto dataspace = H5::H5File(file_id).openDataSet(path).getSpace();
 
-    const int ndims = H5Sget_simple_extent_ndims(dataspace);
-    assert(ndims == 3 && "Only works for 3D arrays!");
-    hsize_t dims[ndims];
-    H5Sget_simple_extent_dims(dataspace, dims, NULL);
+    const int nDimsActual = dataspace.getSimpleExtentNdims();
+    assert(nDimsActual == (signed)nDimsExpected && "Dataset rank does not match nDims argument");
 
-    *d1 = dims[0];
-    *d2 = dims[1];
-    *d3 = dims[2];
+    hsize_t dims[nDimsExpected];
+    dataspace.getSimpleExtentDims(dims, &nDimsExpected);
 
-    H5Sclose(dataspace);
-    H5Dclose(dataset);
-
-    hdf5UnlockMutex();
+    if(nDimsExpected >= 0 && d1)
+        *d1 = dims[0];
+    if(nDimsExpected >= 1 && d2)
+        *d2 = dims[1];
+    if(nDimsExpected >= 2 && d3)
+        *d3 = dims[2];
+    if(nDimsExpected >= 3 && d4)
+        *d4 = dims[3];
 }
 
 } // namespace parpe

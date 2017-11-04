@@ -29,7 +29,7 @@ class MultiConditionProblemTest : public parpe::MultiConditionProblem {
 TEST_GROUP(multiConditionProblem){void setup(){parpe::initHDF5Mutex();
 }
 
-void teardown() { parpe::destroyHDF5Mutex(); }
+void teardown() {  }
 }
 ;
 

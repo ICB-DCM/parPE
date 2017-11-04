@@ -31,7 +31,7 @@ class MultiConditionDataProviderTest : public parpe::MultiConditionDataProvider 
 TEST_GROUP(multiConditionDataProvider){void setup(){parpe::initHDF5Mutex();
 }
 
-void teardown() { parpe::destroyHDF5Mutex(); }
+void teardown() { }
 }
 ;
 

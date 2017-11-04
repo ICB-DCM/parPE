@@ -12,7 +12,7 @@
 TEST_GROUP(multiConditionProblemResultWriter){void setup(){parpe::initHDF5Mutex();
 }
 
-void teardown() { parpe::destroyHDF5Mutex(); }
+void teardown() {  }
 }
 ;
 

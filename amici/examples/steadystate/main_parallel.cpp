@@ -60,8 +60,6 @@ int main(int argc, char **argv) {
         }
     }
 
-    parpe::destroyHDF5Mutex();
-
     MPI_Finalize();
 
     return status;

@@ -61,7 +61,7 @@ int MultiConditionDataProvider::getNumberOfConditions() const {
     hdf5LockMutex();
 
     int d1, d2, d3;
-    hdf5GetDatasetDimensions3D(fileId, hdf5MeasurementPath.c_str(), &d1, &d2, &d3);
+    hdf5GetDatasetDimensions(fileId, hdf5MeasurementPath.c_str(), 3, &d1, &d2, &d3);
 
     hdf5UnlockMutex();
 

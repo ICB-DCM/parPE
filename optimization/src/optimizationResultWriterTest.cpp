@@ -1,16 +1,18 @@
-#include <bits/stl_tree.h>
-
 #include "CppUTest/TestHarness.h"
 #include "CppUTestExt/MockSupport.h"
 #include "hdf5Misc.h"
 #include "optimizationResultWriter.h"
 
-TEST_GROUP(optimizationResultWriter){void setup(){parpe::initHDF5Mutex();
-}
+// clang-format off
+TEST_GROUP(optimizationResultWriter){
+    void setup() {
+        parpe::initHDF5Mutex();
+    }
 
-void teardown() { parpe::destroyHDF5Mutex(); }
-}
-;
+    void teardown() {
+    }
+};
+// clang-format on
 
 TEST(optimizationResultWriter, testResultWriter) {
     parpe::OptimizationResultWriter w("deleteme.h5", true);

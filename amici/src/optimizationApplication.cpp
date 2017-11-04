@@ -271,8 +271,6 @@ OptimizationApplication::~OptimizationApplication() {
     // and Hdf5 mutex is destroyed
     problem.reset(nullptr);
     resultWriter.reset(nullptr);
-
-    destroyHDF5Mutex();
     MPI_Finalize();
 }
 

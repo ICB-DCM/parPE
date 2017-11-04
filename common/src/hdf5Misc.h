@@ -8,6 +8,7 @@
 #include <stdbool.h>
 #include <exception>
 #include <string>
+#include <mutex>
 
 namespace parpe {
 
@@ -22,13 +23,15 @@ public:
 };
 
 
+typedef std::recursive_mutex mutexHdfType;
+
 void initHDF5Mutex();
 
 void hdf5LockMutex();
 
 void hdf5UnlockMutex();
 
-void destroyHDF5Mutex();
+std::unique_lock<mutexHdfType> hdf5MutexGetLock();
 
 #define H5_SAVE_ERROR_HANDLER                                                  \
     herr_t (*old_func)(void *);                                                \
@@ -95,11 +98,8 @@ int hdf5Read3DDoubleHyperslab(hid_t file_id, const char *path, hsize_t size0,
                               hsize_t size1, hsize_t size2, hsize_t offset0,
                               hsize_t offset1, hsize_t offset2, double *buffer);
 
-void hdf5GetDatasetDimensions2D(hid_t file_id, const char *path, int *d1,
-                                int *d2);
-
-void hdf5GetDatasetDimensions3D(hid_t file_id, const char *path, int *d1,
-                                int *d2, int *d3);
+void hdf5GetDatasetDimensions(hid_t file_id, const char *path, hsize_t nDims, int *d1 = nullptr,
+                                int *d2 = nullptr, int *d3 = nullptr, int *d4 = nullptr);
 
 int hdf5AttributeExists(hid_t fileId, const char *datasetPath,
                         const char *attributeName);
