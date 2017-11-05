@@ -67,20 +67,17 @@ Optimizer *OptimizationOptions::createOptimizer() const {
 }
 
 std::unique_ptr<OptimizationOptions> OptimizationOptions::fromHDF5(const char *fileName) {
-    hid_t fileId = H5Fopen(fileName, H5F_ACC_RDONLY, H5P_DEFAULT);
-
-    if (fileId < 0) {
+    H5::H5File file;
+    try {
+        file = H5::H5File(fileName, H5F_ACC_RDONLY);
+    } catch (...) {
         printBacktrace(20);
         throw HDF5Exception(
-            "OptimizationOptions::fromHDF5 failed to open HDF5 file '%s'.",
-            fileName);
+                    "OptimizationOptions::fromHDF5 failed to open HDF5 file '%s'.",
+                    fileName);
     }
 
-    auto o = fromHDF5(fileId);
-
-    H5Fclose(fileId);
-
-    return o;
+    return fromHDF5(file.getId());
 }
 
 std::unique_ptr<OptimizationOptions> OptimizationOptions::fromHDF5(hid_t fileId) {
@@ -111,12 +108,12 @@ std::unique_ptr<OptimizationOptions> OptimizationOptions::fromHDF5(hid_t fileId)
     std::string optimizerPath;
 
     switch(o->optimizer) {
-        case OPTIMIZER_CERES:
-            optimizerPath = std::string(hdf5path) + "/ceres";
-            break;
-        case OPTIMIZER_IPOPT:
-        default:
-            optimizerPath = std::string(hdf5path) + "/ipopt";
+    case OPTIMIZER_CERES:
+        optimizerPath = std::string(hdf5path) + "/ceres";
+        break;
+    case OPTIMIZER_IPOPT:
+    default:
+        optimizerPath = std::string(hdf5path) + "/ipopt";
     }
 
     if(hdf5GroupExists(fileId, optimizerPath.c_str())) {
