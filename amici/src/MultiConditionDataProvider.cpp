@@ -24,7 +24,8 @@ MultiConditionDataProvider::MultiConditionDataProvider(amici::Model *model,
                                                        std::string hdf5Filename,
                                                        std::string rootPath)
     : model(model) {
-    hdf5LockMutex();
+
+    auto lock = hdf5MutexGetLock();
 
     H5_SAVE_ERROR_HANDLER;
     fileId = H5Fopen(hdf5Filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
@@ -36,8 +37,6 @@ MultiConditionDataProvider::MultiConditionDataProvider(amici::Model *model,
         H5Ewalk2(H5E_DEFAULT, H5E_WALK_DOWNWARD, hdf5ErrorStackWalker_cb, NULL);
     }
     H5_RESTORE_ERROR_HANDLER;
-
-    hdf5UnlockMutex();
 
     hdf5MeasurementPath = rootPath + "/measurements/y";
     hdf5MeasurementSigmaPath = rootPath + "/measurements/ysigma";
@@ -58,12 +57,10 @@ int MultiConditionDataProvider::getNumberOfConditions() const {
     // -> won't need different file for testing/validation splits
     // TODO: cache
 
-    hdf5LockMutex();
+    auto lock = hdf5MutexGetLock();
 
     int d1, d2, d3;
     hdf5GetDatasetDimensions(fileId, hdf5MeasurementPath.c_str(), 3, &d1, &d2, &d3);
-
-    hdf5UnlockMutex();
 
     assert(d1 >= 0);
 
@@ -72,14 +69,13 @@ int MultiConditionDataProvider::getNumberOfConditions() const {
 
 int MultiConditionDataProvider::getNumConditionSpecificParametersPerSimulation()
     const {
-    hdf5LockMutex();
+    auto lock = hdf5MutexGetLock();
 
     int num = 0;
     int status =
         amici::AMI_HDF5_getIntScalarAttribute(fileId, hdf5ParameterPath.c_str(),
                                        "numConditionSpecificParameters", &num);
     assert(status >= 0);
-    hdf5UnlockMutex();
 
     return num;
 }
@@ -95,7 +91,7 @@ int MultiConditionDataProvider::getNumConditionSpecificParametersPerSimulation()
  */
 int MultiConditionDataProvider::updateFixedSimulationParameters(
     int conditionIdx, amici::UserData &udata) const {
-    hdf5LockMutex();
+    auto lock = hdf5MutexGetLock();
 
     H5_SAVE_ERROR_HANDLER;
 
@@ -113,14 +109,12 @@ int MultiConditionDataProvider::updateFixedSimulationParameters(
 
     H5_RESTORE_ERROR_HANDLER;
 
-    hdf5UnlockMutex();
-
     return H5Eget_num(H5E_DEFAULT);
 }
 
 std::unique_ptr<amici::ExpData> MultiConditionDataProvider::getExperimentalDataForCondition(
     int conditionIdx, const amici::UserData *udata) const {
-    hdf5LockMutex();
+    auto lock = hdf5MutexGetLock();
 
     auto edata = std::make_unique<amici::ExpData>(udata, model);
     assert(edata && "Failed getting experimental data. Check data file.");
@@ -131,7 +125,6 @@ std::unique_ptr<amici::ExpData> MultiConditionDataProvider::getExperimentalDataF
     hdf5Read3DDoubleHyperslab(fileId, hdf5MeasurementSigmaPath.c_str(),
                               1, edata->nytrue, edata->nt,
                               conditionIdx, 0, 0, edata->sigmay);
-    hdf5UnlockMutex();
 
     return edata;
 }
@@ -162,7 +155,7 @@ amici::Model *MultiConditionDataProvider::getModel() const { return model; }
 
 std::unique_ptr<amici::UserData> MultiConditionDataProvider::getUserData() const {
     // TODO: separate class for udata?
-    hdf5LockMutex();
+    auto lock = hdf5MutexGetLock();
 
     const char *optionsObject = hdf5AmiciOptionPath.c_str();
 
@@ -178,23 +171,14 @@ std::unique_ptr<amici::UserData> MultiConditionDataProvider::getUserData() const
     }
     H5_RESTORE_ERROR_HANDLER;
 
-    hdf5UnlockMutex();
+    if(!udata)
+        throw HDF5Exception("Unable to load UserData");
 
-    if (udata == NULL)
-        return NULL;
-
-    // ensure parameter indices are within range //TODO: to ami_hdf
+    // ensure parameter indices are within range
+    //TODO: to ami_hdf
     for (int i = 0; i < udata->nplist; ++i) {
         assert(udata->plist[i] < model->np);
         assert(udata->plist[i] >= 0);
-    }
-
-    if (udata->p == NULL) {
-        udata->p = new double[model->np];
-    }
-
-    if (udata->k == NULL) {
-        udata->k = new double[model->nk];
     }
 
     // x0data is not written to HDF5 with proper dimensions
@@ -202,7 +186,7 @@ std::unique_ptr<amici::UserData> MultiConditionDataProvider::getUserData() const
         delete[] udata->x0data;
     udata->x0data = new double[model->nx]();
 
-    return (udata);
+    return udata;
 }
 
 std::unique_ptr<amici::UserData> MultiConditionDataProvider::getUserDataForCondition(int conditionIdx) const {
