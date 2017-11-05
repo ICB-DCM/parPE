@@ -62,9 +62,8 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 if(${BUILD_TESTS})
-    # --allow-run-as-root is required for running on shippable systems
     add_test (NAME ${PROJECT_NAME}
-        COMMAND mpiexec --allow-run-as-root -n 4 ${PROJECT_NAME} -o ${PROJECT_NAME}-testresults ${CMAKE_CURRENT_LIST_DIR}/data.h5
+        COMMAND ${TESTS_MPIEXEC_COMMAND} ${PROJECT_NAME} -o ${PROJECT_NAME}-testresults ${CMAKE_CURRENT_LIST_DIR}/data.h5
         )
 endif()
 # /example_steadystate_multi executable

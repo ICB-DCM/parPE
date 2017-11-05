@@ -73,6 +73,9 @@ include_directories(
 if(${BUILD_TESTS})
     include (CTest)
 
+    # --allow-run-as-root is required for running on shippable systems
+    set(TESTS_MPIEXEC_COMMAND mpiexec --allow-run-as-root -n 4 CACHE STRING "")
+
     # CppUTest
     add_definitions(-DD_MemoryLeakWarningPlugin_h) # prevent undefined reference to operator new; new is redefined even when memoryleakdetector is disabled
     set(CPPUTEST_DIR "${CMAKE_CURRENT_LIST_DIR}/deps/AMICI/ThirdParty/cpputest-master/build-noleakcheck/install/" CACHE PATH "cppUTest base directory")

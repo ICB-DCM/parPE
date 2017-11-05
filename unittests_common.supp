@@ -7,23 +7,23 @@
 }
 
 {
-   <OpenMPI>
+   <OpenMPI opal_libevent2022_event_base_loop>
    Memcheck:Leak
    ...
    fun:opal_libevent2022_event_base_loop
    ...
    fun:start_thread
-   fun:clone
+   ...
 }
 
 {
-   <OpenMPI>
+   <OpenMPI mca_base_framework_open>
    Memcheck:Leak
    fun:mca_base_framework_open
 }
 
 {
-   <OpenMPI>
+   <OpenMPI ompi_mpi_finalize>
    Memcheck:Leak
    ...
    fun:orte_finalize
@@ -32,18 +32,38 @@
 }
 
 {
-   <hwloc_topology_set_xmlbuffer>
+   <hwloc_topology_(set|export)_xmlbuffer>
    Memcheck:Leak
    match-leak-kinds: definite
    ...
-   fun:hwloc_topology_set_xmlbuffer
+   fun:hwloc_topology_*_xmlbuffer
+   ...
 }
 
 {
-   <insert_a_suppression_name_here>
+   <_dlerror_run OpenMPI?>
    Memcheck:Leak
    match-leak-kinds: definite
    ...
    fun:_dlerror_run
    fun:dlopen@@GLIBC_2.2.5
 }
+
+{
+   <orterun>
+   Memcheck:Leak
+   ...
+   obj:/usr/bin/orterun
+   ...
+}
+
+{
+   <orterun>
+   Memcheck:Cond
+   ...
+   obj:/usr/bin/orterun
+   ...
+}
+
+
+
