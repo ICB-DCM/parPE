@@ -124,7 +124,7 @@ TEST(hdf5Misc, testDatasetDimensions) {
                      fileId, datasetName, rank,
                      nullptr, nullptr, nullptr, nullptr));
 
-    H5LTmake_dataset_int(fileId, datasetName, rank, dims, buffer);
+    CHECK_TRUE(H5LTmake_dataset_int(fileId, datasetName, rank, dims, buffer) >= 0);
 
     CHECK_TRUE(parpe::hdf5DatasetExists(fileId, datasetName));
 

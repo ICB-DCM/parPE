@@ -426,17 +426,19 @@ int hdf5AttributeExists(hid_t fileId, const char *datasetPath,
                         const char *attributeName) {
     std::lock_guard<mutexHdfType> lock(mutexHdf);
 
+    int exists = false;
+
     H5_SAVE_ERROR_HANDLER;
+
     hid_t loc = H5Oopen(fileId, datasetPath, H5P_DEFAULT);
-    if (loc > 0) {
-        if(H5LTfind_attribute(loc, attributeName)) {
-            H5Oclose(loc);
-            return 1;
-        }
+    if (loc >= 0) {
+        exists = H5LTfind_attribute(loc, attributeName);
         H5Oclose(loc);
     }
+
     H5_RESTORE_ERROR_HANDLER;
-    return 0;
+
+    return exists;
 }
 
 void hdf5WriteStringAttribute(hid_t fileId, const char *datasetPath,

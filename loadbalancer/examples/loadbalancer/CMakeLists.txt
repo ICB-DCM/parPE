@@ -16,6 +16,6 @@ target_link_libraries(${PROJECT_NAME}
 if(${BUILD_TESTS})
     # --allow-run-as-root is required for running on shippable systems
     add_test (NAME ${PROJECT_NAME}
-        COMMAND ${TESTS_MPIEXEC_COMMAND} ${PROJECT_NAME}
+        COMMAND ${TESTS_MPIEXEC_COMMAND} ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}
         )
 endif()
