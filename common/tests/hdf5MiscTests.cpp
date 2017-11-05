@@ -131,9 +131,9 @@ TEST(hdf5Misc, testDatasetDimensions) {
     int d0 = 0, d1 = 0, d2 = 0, d3 = 0;
     parpe::hdf5GetDatasetDimensions(fileId, datasetName, rank,
                                     &d0, &d1, &d2, &d3);
-    CHECK_EQUAL(dims[0], d0);
-    CHECK_EQUAL(dims[1], d1);
-    CHECK_EQUAL(dims[2], d2);
+    CHECK_EQUAL((signed)dims[0], d0);
+    CHECK_EQUAL((signed)dims[1], d1);
+    CHECK_EQUAL((signed)dims[2], d2);
     CHECK_EQUAL(0      , d3);
 }
 
