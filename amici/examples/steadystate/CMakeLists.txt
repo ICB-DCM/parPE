@@ -60,4 +60,8 @@ target_link_libraries(${PROJECT_NAME}
     ${MODEL_LIBRARIES}
     parpeamici
 )
+
+if(${BUILD_TESTS})
+    add_test (NAME ${PROJECT_NAME} COMMAND mpiexec -n 4 ${PROJECT_NAME} -o ${PROJECT_NAME}-testresults ${CMAKE_CURRENT_LIST_DIR}/data.h5)
+endif()
 # /example_steadystate_multi executable
