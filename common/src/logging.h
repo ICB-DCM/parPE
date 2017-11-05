@@ -34,7 +34,7 @@ void logProcessStats();
 
 void printMPIInfo();
 
-void printDebugInfoAndWait();
+void printDebugInfoAndWait(int seconds = 15);
 
 // TODO remove
 void error(const char *message);

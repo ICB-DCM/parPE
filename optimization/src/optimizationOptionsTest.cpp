@@ -95,3 +95,34 @@ TEST(optimizationOptions, setCeresOptions) {
     CHECK_EQUAL(expVal, actVal);
 }
 
+TEST(optimizationOptions, fromHDF5) {
+    char tmpName[TMP_MAX];
+    std::tmpnam(tmpName);
+
+    CHECK_THROWS(parpe::HDF5Exception, parpe::OptimizationOptions::fromHDF5(tmpName));
+
+    // create file
+    hid_t fileId = parpe::hdf5OpenFile(tmpName, false);
+    parpe::hdf5CreateGroup(fileId, "/optimizationOptions/ceres", true);
+    int optimizer = 1;
+    H5LTset_attribute_int(fileId, "/optimizationOptions", "optimizer", &optimizer, 1);
+    H5LTset_attribute_int(fileId, "/optimizationOptions/ceres", "someOption", &optimizer, 1);
+    hsize_t dims[] = {2, 3};
+    double buf[] = {1, 2, 3,
+                    4, 5, 6};
+    H5LTmake_dataset_double(fileId, "/optimizationOptions/randomStarts", 2, dims, buf);
+
+    // TODO: throw instead of pront
+    auto startingPoint = parpe::OptimizationOptions::getStartingPoint(fileId, 0);
+    CHECK_EQUAL(1, startingPoint[0]);
+    CHECK_EQUAL(4, startingPoint[1]);
+    delete[] startingPoint;
+    H5Fclose(fileId);
+
+    auto o = parpe::OptimizationOptions::fromHDF5(tmpName);
+    CHECK_EQUAL(optimizer, o->optimizer);
+    CHECK_EQUAL(optimizer, o->getIntOption("someOption"));
+    CHECK_TRUE(o->toString().size() > 50);
+
+    remove(tmpName);
+}

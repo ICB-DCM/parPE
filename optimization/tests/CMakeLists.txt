@@ -9,6 +9,7 @@ set(SRC_LIST_CPP
     ../src/multiStartOptimizationTest.cpp
     ../src/optimizationResultWriterTest.cpp
     ../src/optimizationOptionsTest.cpp
+    ../src/optimizationProblemTest.cpp
     quadraticTestProblem.cpp
 )
 

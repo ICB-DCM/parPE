@@ -1,6 +1,7 @@
 {
-   <OpenMPI>
+   <OpenMPI ompi_mpi_init>
    Memcheck:Leak
+   match-leak-kinds: definite
    ...
    fun:ompi_mpi_init
    ...

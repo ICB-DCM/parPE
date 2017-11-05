@@ -8,6 +8,7 @@
 #include <testingMisc.h>
 #include <mpi.h>
 #include <cmath>
+#include <vector>
 
 // clang-format off
 TEST_GROUP(testingMisc){
@@ -90,6 +91,20 @@ TEST(commonMisc, testFilexists) {
 TEST(commonMisc, testCreateDirectoryIfNotExists) {
     char dir[] {"/"};
     parpe::createDirectoryIfNotExists(dir);
+
+    char tmpName[TMP_MAX];
+    std::tmpnam(tmpName);
+    parpe::createDirectoryIfNotExists(tmpName);
+    rmdir(tmpName);
+}
+
+TEST(commonMisc, testRecursiveMkpath) {
+    char tmpName[TMP_MAX];
+    std::tmpnam(tmpName);
+    std::string name(tmpName);
+    name += "/a/b/c";
+    parpe::mkpathConstChar(name.c_str(), 0755);
+    rmdir(name.c_str());
 }
 
 TEST(commonMisc, testRandDouble) {
@@ -116,6 +131,20 @@ TEST(commonMisc, testFillArrayRandomDoubleSameInterval) {
     }
 }
 
+TEST(commonMisc, testFillArrayRandomDoubleIndividualInterval) {
+    const int numTests = 100;
+    const double min[numTests] = {-1.0, 0.0, 1.0};
+    const double max[numTests] = {-0.5, 0.5, 1.5};
+
+    double buf[numTests];
+    parpe::fillArrayRandomDoubleIndividualInterval(min, max, numTests, buf);
+
+    for(int i = 0; i < numTests; ++i) {
+        CHECK_TRUE(buf[i] >= min[i] && buf[i] <= max[i]);
+    }
+}
+
+
 TEST(commonMisc, testMpi) {
     // Before MPI initialized
     CHECK_EQUAL(-1, parpe::getMpiRank());
@@ -132,5 +161,67 @@ TEST(commonMisc, testMpi) {
     CHECK_EQUAL(-1, parpe::getMpiCommSize());
 }
 
+
+TEST(commonMisc, runInParallelAndWaitForFinish) {
+    captureStreamToString([](){
+        const int numThreads = 15;
+        void* args[numThreads];
+
+        parpe::runInParallelAndWaitForFinish(
+                    [](void *) -> void* { return nullptr; }, args, numThreads);
+    }, stdout);
+}
+
+TEST(commonMisc, strFormatCurrentLocaltime) {
+    int buflen = 10;
+    char buf[buflen];
+    parpe::strFormatCurrentLocaltime(buf, buflen, "abc");
+    CHECK_EQUAL(3, strlen(buf));
+}
+
+
+// clang-format off
+TEST_GROUP(logging){
+    void setup(){
+
+    }
+
+    void teardown(){
+        mock().checkExpectations();
+        mock().clear();
+    }
+};
+// clang-format on
+
+
+TEST(logging, printDebugInfoAndWait) {
+    captureStreamToString([](){
+        parpe::printDebugInfoAndWait(0);
+    }, stdout);
+}
+
+TEST(logging, misc) {
+    captureStreamToString([](){
+        parpe::warning("bla");
+        parpe::error("bla");
+        parpe::logmessage(parpe::LOGLVL_ERROR, "error");
+    }, stdout);
+}
+
+TEST(logging, printMPIInfo) {
+    std::string s = captureStreamToString([](){
+        parpe::printMPIInfo();
+    }, stdout);
+
+    CHECK_TRUE(s.size() > 20);
+}
+
+TEST(logging, logProcessStats) {
+    std::string s = captureStreamToString([](){
+        parpe::logProcessStats();
+    }, stdout);
+
+    CHECK_TRUE(s.size() > 200);
+}
 
 
