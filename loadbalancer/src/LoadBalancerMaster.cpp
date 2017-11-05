@@ -34,7 +34,12 @@ void LoadBalancerMaster::run() {
         SEM_VALUE_MAX < queueMaxLength ? SEM_VALUE_MAX : queueMaxLength;
 #endif
     sem_init(&semQueue, 0, queueMaxLength);
-    pthread_create(&queueThread, NULL, threadEntryPoint, this);
+
+    pthread_attr_t threadAttr;
+    pthread_attr_init(&threadAttr);
+    pthread_attr_setdetachstate(&threadAttr, PTHREAD_CREATE_JOINABLE);
+    pthread_create(&queueThread, &threadAttr, threadEntryPoint, this);
+    pthread_attr_destroy(&threadAttr);
 
     isRunning_ = true;
 }
