@@ -14,6 +14,7 @@ TEST_GROUP(hdf5Misc){
     void setup(){
         // avoid memory problems
         H5::H5Library::dontAtExit();
+        parpe::initHDF5Mutex();
 
         fileId = parpe::hdf5OpenFile(std::tmpnam(tempFileName), false);
     }

@@ -8,9 +8,9 @@ SCRIPT_PATH="`( cd \"$SCRIPT_PATH\" && pwd )`"
 set -e
 
 ./installCBLAS.sh
- 
-#./installCpputest.sh
- 
+
+./installCpputest.sh
+
 ./installCeres.sh
- 
+
 ./installIpopt.sh
