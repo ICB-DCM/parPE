@@ -56,14 +56,14 @@ void printMPIInfo() {
 }
 
 
-void printDebugInfoAndWait() {
+void printDebugInfoAndWait(int seconds) {
     //int i = 0;
     char hostname[256];
     gethostname(hostname, sizeof(hostname));
-    logmessage(LOGLVL_DEBUG, "PID %d on %s ready for attach", getpid(), hostname);
+    logmessage(LOGLVL_DEBUG, "PID %d on %s ready for attach (will wait for %ds)", getpid(), hostname, seconds);
     fflush(stdout);
     //while (0 == i)
-    sleep(15);
+    sleep(seconds);
 }
 
 void error(const char *message) { // exit?
