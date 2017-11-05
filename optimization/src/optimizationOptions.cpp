@@ -66,7 +66,7 @@ Optimizer *OptimizationOptions::createOptimizer() const {
     return optimizerFactory(optimizer);
 }
 
-OptimizationOptions *OptimizationOptions::fromHDF5(const char *fileName) {
+std::unique_ptr<OptimizationOptions> OptimizationOptions::fromHDF5(const char *fileName) {
     hid_t fileId = H5Fopen(fileName, H5F_ACC_RDONLY, H5P_DEFAULT);
 
     if (fileId < 0) {
@@ -76,15 +76,15 @@ OptimizationOptions *OptimizationOptions::fromHDF5(const char *fileName) {
             fileName);
     }
 
-    OptimizationOptions *o = fromHDF5(fileId);
+    auto o = fromHDF5(fileId);
 
     H5Fclose(fileId);
 
     return o;
 }
 
-OptimizationOptions *OptimizationOptions::fromHDF5(hid_t fileId) {
-    OptimizationOptions *o = new OptimizationOptions();
+std::unique_ptr<OptimizationOptions> OptimizationOptions::fromHDF5(hid_t fileId) {
+    auto o = std::make_unique<OptimizationOptions>();
 
     const char *hdf5path = "/optimizationOptions";
 
@@ -125,7 +125,7 @@ OptimizationOptions *OptimizationOptions::fromHDF5(hid_t fileId) {
             return o;
 
         H5Aiterate2(attributeGroup, H5_INDEX_NAME, H5_ITER_NATIVE, 0,
-                    optimizationOptionsFromAttribute, o);
+                    optimizationOptionsFromAttribute, o.get());
 
         H5Gclose(attributeGroup);
     }

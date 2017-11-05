@@ -6,6 +6,7 @@
 #include <string>
 #include <functional>
 #include <algorithm>
+#include <memory>
 
 namespace parpe {
 
@@ -34,9 +35,9 @@ class OptimizationOptions {
     /** Maximum number of optimizer iterations*/
     int maxOptimizerIterations = 100;
 
-    static OptimizationOptions *fromHDF5(const char *fileName);
+    static std::unique_ptr<OptimizationOptions> fromHDF5(const char *fileName);
 
-    static OptimizationOptions *fromHDF5(hid_t fileId);
+    static std::unique_ptr<OptimizationOptions> fromHDF5(hid_t fileId);
 
     static double *getStartingPoint(hid_t fileId, int index);
 
