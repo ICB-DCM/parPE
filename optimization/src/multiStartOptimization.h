@@ -27,6 +27,8 @@ class MultiStartOptimization {
 
     int runSingleThreaded();
 
+    void setRunParallel(bool runParallel);
+
   protected:
 
     std::unique_ptr<OptimizationProblem> getLocalProblem(int multiStartIndex);

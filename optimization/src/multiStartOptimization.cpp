@@ -143,6 +143,11 @@ int MultiStartOptimization::runSingleThreaded()
 
 }
 
+void MultiStartOptimization::setRunParallel(bool runParallel)
+{
+    this->runParallel = runParallel;
+}
+
 std::unique_ptr<OptimizationProblem>
 MultiStartOptimization::getLocalProblem(int multiStartIndex) {
     std::unique_ptr<OptimizationProblem> problem = getLocalProblemImpl(multiStartIndex);

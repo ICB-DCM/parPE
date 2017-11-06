@@ -78,7 +78,7 @@ class SteadystateApplication : public parpe::OptimizationApplication {
         ms.dp = problem->getDataProvider();
         ms.loadBalancer = &loadBalancer;
         // Can only run single start because of non-threadsafe sundials
-        ms.runParallel = false;
+        ms.setRunParallel(false);
         ms.run();
         return 0;
     }
