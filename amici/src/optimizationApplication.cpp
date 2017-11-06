@@ -178,9 +178,7 @@ int OptimizationApplication::runMaster() {
         // to CVODES threading issues
 
         if (problem->getOptimizationOptions().numStarts > 0) {
-            MultiConditionProblemMultiStartOptimization ms(
-                problem->getOptimizationOptions().numStarts,
-                problem->getOptimizationOptions().retryOptimization);
+            MultiConditionProblemMultiStartOptimization ms(problem->getOptimizationOptions());
             ms.options = problem->getOptimizationOptions();
             ms.resultWriter = problem->resultWriter.get();
             ms.dp = problem->getDataProvider();
@@ -198,9 +196,7 @@ int OptimizationApplication::runSingleMpiProcess() {
     // TODO: also for gradientCheck
     // run serially
     if (problem->getOptimizationOptions().numStarts > 0) {
-        MultiConditionProblemMultiStartOptimization ms(
-            problem->getOptimizationOptions().numStarts,
-            problem->getOptimizationOptions().retryOptimization);
+        MultiConditionProblemMultiStartOptimization ms(problem->getOptimizationOptions());
         ms.options = problem->getOptimizationOptions();
         ms.resultWriter = problem->resultWriter.get();
         ms.dp = problem->getDataProvider();

@@ -72,14 +72,13 @@ class SteadystateApplication : public parpe::OptimizationApplication {
     virtual int runSingleMpiProcess() override {
         //return getLocalOptimum(problem);
 
-        // Can only run single start because of non-threadsafe sundials
-        parpe::MultiConditionProblemMultiStartOptimization ms(
-            1,
-            problem->getOptimizationOptions().retryOptimization);
+        parpe::MultiConditionProblemMultiStartOptimization ms(problem->getOptimizationOptions());
         ms.options = problem->getOptimizationOptions();
         ms.resultWriter = problem->resultWriter.get();
         ms.dp = problem->getDataProvider();
         ms.loadBalancer = &loadBalancer;
+        // Can only run single start because of non-threadsafe sundials
+        ms.runParallel = false;
         ms.run();
         return 0;
     }

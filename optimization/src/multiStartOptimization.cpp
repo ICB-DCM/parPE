@@ -8,12 +8,21 @@
 namespace parpe {
 
 MultiStartOptimization::MultiStartOptimization(int numberOfStarts,
-                                               bool restartOnFailure)
-    : numberOfStarts(numberOfStarts), restartOnFailure(restartOnFailure) {}
+                                               bool restartOnFailure, bool runParallel)
+    : numberOfStarts(numberOfStarts),
+      restartOnFailure(restartOnFailure),
+      runParallel(runParallel) {}
+
+MultiStartOptimization::MultiStartOptimization(const OptimizationOptions &o)
+    : numberOfStarts(o.numStarts),
+      restartOnFailure(o.retryOptimization),
+      runParallel(o.multistartsInParallel) {}
 
 int MultiStartOptimization::run() {
+    if (runParallel)
+        return runMultiThreaded();
+
     return runSingleThreaded();
-    return runMultiThreaded();
 }
 
 int MultiStartOptimization::runMultiThreaded()

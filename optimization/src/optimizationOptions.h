@@ -49,6 +49,8 @@ class OptimizationOptions {
      * optimization */
     int retryOptimization = false;
 
+    int multistartsInParallel = true;
+
     std::string toString();
 
     int getIntOption(std::string key);

@@ -100,6 +100,11 @@ std::unique_ptr<OptimizationOptions> OptimizationOptions::fromHDF5(hid_t fileId)
                               &o->retryOptimization);
     }
 
+    if (hdf5AttributeExists(fileId, hdf5path, "multistartsInParallel")) {
+        H5LTget_attribute_int(fileId, hdf5path, "multistartsInParallel",
+                              &o->multistartsInParallel);
+    }
+
     if (hdf5AttributeExists(fileId, hdf5path, "maxIter")) {
         // this value is overwritten by any optimizer-specific configuration
         H5LTget_attribute_int(fileId, hdf5path, "maxIter", &o->maxOptimizerIterations);

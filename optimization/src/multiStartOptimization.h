@@ -12,7 +12,9 @@ class MultiStartOptimization {
   public:
     MultiStartOptimization() = default;
 
-    MultiStartOptimization(int numberOfStarts, bool restartOnFailure);
+    MultiStartOptimization(int numberOfStarts, bool restartOnFailure, bool runParallel = true);
+
+    MultiStartOptimization(OptimizationOptions const& o);
 
     /**
      * @brief Start multi-start optimization
@@ -35,6 +37,7 @@ class MultiStartOptimization {
 
     int numberOfStarts = 1;
     bool restartOnFailure = false;
+    bool runParallel = true;
 };
 
 } // namespace parpe
