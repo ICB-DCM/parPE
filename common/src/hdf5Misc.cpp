@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <H5Cpp.h>
+#include <misc.h>
 
 namespace parpe {
 
@@ -455,13 +456,13 @@ void hdf5WriteStringAttribute(hid_t fileId, const char *datasetPath,
 
 hid_t hdf5OpenFile(const char *filename, bool overwrite)
 {
-
+    logmessage(LOGLVL_DEBUG, "Trying to open %s", filename);
     if (!overwrite) {
         struct stat st = {0};
         bool fileExists = stat(filename, &st) == 0;
 
         if(fileExists)
-            throw HDF5Exception("Result file exists");
+            throw HDF5Exception("Result file exists %s", filename);
     }
 
     std::lock_guard<mutexHdfType> lock(mutexHdf);
@@ -471,7 +472,8 @@ hid_t hdf5OpenFile(const char *filename, bool overwrite)
 
     if (file_id < 0) {
         H5Eprint(H5E_DEFAULT, stderr);
-        //throw HDF5Exception();
+        printBacktrace();
+        throw HDF5Exception("hdf5OpenFile %s", filename);
     }
     H5_RESTORE_ERROR_HANDLER;
 

@@ -26,7 +26,7 @@ void strFormatCurrentLocaltime(char *buffer, size_t bufferSize,
 void runInParallelAndWaitForFinish(void *(*function)(void *),
                                            void **args, int numArgs);
 
-void printBacktrace(int depth);
+void printBacktrace(int depth = 20);
 
 double randDouble(double min, double max);
 
