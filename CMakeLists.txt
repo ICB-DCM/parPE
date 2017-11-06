@@ -87,8 +87,9 @@ if(${BUILD_TESTS})
     set(GCOV_REPORT FALSE CACHE BOOL "Create GCOV report?")
     set(GCOVR_REPORT FALSE CACHE BOOL "Create GCOVR report?")
     set(COVERAGE_DEPENDENCIES unittests_common unittests_amici unittests_loadbalancer unittests_optimization)
-    if(${CMAKE_COMPILER_IS_GNUCXX})
-        if(${GCOV_REPORT})
+
+    if(${GCOV_REPORT})
+        if(${CMAKE_COMPILER_IS_GNUCXX})
             # NOTE: LCOV uses absolute paths for exclusion; arguments must be enclosed in single quotes
             set(COVERAGE_EXCLUDES '/usr/*' '${CMAKE_CURRENT_LIST_DIR}/ThirdParty/*' '${CMAKE_CURRENT_LIST_DIR}/deps/*')
             set(GCOV_LIBRARY gcov)
@@ -98,9 +99,14 @@ if(${BUILD_TESTS})
                 NAME ${PROJECT_NAME}_coverage
                 EXECUTABLE ctest
                 DEPENDENCIES ${COVERAGE_DEPENDENCIES})
+        else()
+            message("Not creating coverage report, because compiler is not GCC but ${CMAKE_CXX_COMPILER_ID}.")
         endif()
+    endif()
 
-        if(${GCOVR_REPORT})
+    if(${GCOVR_REPORT})
+        if(${CMAKE_COMPILER_IS_GNUCXX})
+
             # NOTE: GCOVR uses regexs on relative paths from ${PROJECT_BINARY_DIR} for exclusion
             set(COVERAGE_EXCLUDES "^ThirdParty/" "^deps/" "^amici/examples/steadystate/model/")
             set(GCOV_LIBRARY gcov)
@@ -110,10 +116,11 @@ if(${BUILD_TESTS})
                 NAME ${PROJECT_NAME}_coverage_cobertura
                 EXECUTABLE ctest
                 DEPENDENCIES ${COVERAGE_DEPENDENCIES})
+        else()
+            message("Not creating coverage report, because compiler is not GCC but ${CMAKE_CXX_COMPILER_ID}.")
         endif()
-    else()
-        message("Not creating coverage report, because compiler is not GCC but ${CMAKE_CXX_COMPILER_ID}.")
     endif()
+
 endif(${BUILD_TESTS})
 
 
