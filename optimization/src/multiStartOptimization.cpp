@@ -35,6 +35,7 @@ int MultiStartOptimization::runMultiThreaded()
 
     std::vector<OptimizationProblem *> localProblems =
         createLocalOptimizationProblems();
+    assert(localProblems.size() == numberOfStarts);
 
     pthread_attr_t threadAttr;
     pthread_attr_init(&threadAttr);

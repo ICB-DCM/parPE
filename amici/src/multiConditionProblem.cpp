@@ -433,12 +433,16 @@ void printSimulationResult(const JobIdentifier &path, int jobId, amici::UserData
     // check for NaNs
     if (udata->sensi >= amici::AMICI_SENSI_ORDER_FIRST) {
         for (int i = 0; i < udata->np; ++i)
-            if (std::isnan(rdata->sllh[i]))
+            if (std::isnan(rdata->sllh[i])) {
                 logmessage(LOGLVL_DEBUG, "Result for %s: contains NaN at %d",
                            pathStrBuf, i);
-            else if (std::isinf(rdata->sllh[i]))
+                break;
+            }
+            else if (std::isinf(rdata->sllh[i])) {
                 logmessage(LOGLVL_DEBUG, "Result for %s: contains Inf at %d",
                            pathStrBuf, i);
+                break;
+            }
     }
 }
 

@@ -484,6 +484,8 @@ hid_t hdf5OpenFile(const char *filename, bool overwrite)
 
 void hdf5GetDatasetDimensions(hid_t file_id, const char *path, hsize_t nDimsExpected, int *d1, int *d2, int *d3, int *d4)
 {
+    assert(file_id >= 0);
+
     std::lock_guard<mutexHdfType> lock(mutexHdf);
     H5_SAVE_ERROR_HANDLER;
 

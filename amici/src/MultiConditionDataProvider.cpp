@@ -35,6 +35,7 @@ MultiConditionDataProvider::MultiConditionDataProvider(amici::Model *model,
                    hdf5Filename.c_str());
         printBacktrace(20);
         H5Ewalk2(H5E_DEFAULT, H5E_WALK_DOWNWARD, hdf5ErrorStackWalker_cb, NULL);
+        throw(HDF5Exception());
     }
     H5_RESTORE_ERROR_HANDLER;
 
