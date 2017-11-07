@@ -236,6 +236,28 @@ void MultiConditionProblem::messageHandler(std::vector<char> &buffer,
     // pack & cleanup
     delete[] result.rdata->J;
     result.rdata->J = nullptr;
+
+    delete[] result.rdata->sigmay;
+    result.rdata->sigmay = nullptr;
+
+    delete[] result.rdata->ssigmay;
+    result.rdata->ssigmay = nullptr;
+
+    delete[] result.rdata->sx0;
+    result.rdata->sx0 = nullptr;
+
+    delete[] result.rdata->x;
+    result.rdata->x = nullptr;
+
+    delete[] result.rdata->x0;
+    result.rdata->x0 = nullptr;
+
+    delete[] result.rdata->xdot;
+    result.rdata->xdot = nullptr;
+
+    delete[] result.rdata->y;
+    result.rdata->y = nullptr;
+
     buffer = amici::serializeToStdVec<JobResultAmiciSimulation>(&result);
 }
 
