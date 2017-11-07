@@ -234,6 +234,8 @@ void MultiConditionProblem::messageHandler(std::vector<char> &buffer,
 #endif
 
     // pack & cleanup
+    delete[] result.rdata->J;
+    result.rdata->J = nullptr;
     buffer = amici::serializeToStdVec<JobResultAmiciSimulation>(&result);
 }
 
