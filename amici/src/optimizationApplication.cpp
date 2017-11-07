@@ -13,13 +13,24 @@
 #include <numeric>
 #include <algorithm>
 #include <random>
+#include <csignal>
 
 namespace parpe {
+
+void signalHandler(int sig) {
+    logmessage(LOGLVL_CRITICAL, "Caught signal %d ", sig);
+    printBacktrace();
+    exit(sig);
+}
 
 OptimizationApplication::OptimizationApplication()
     : OptimizationApplication(0, nullptr) {}
 
 OptimizationApplication::OptimizationApplication(int argc, char **argv) {
+    // install signal handler for backtrace on error
+    signal(SIGSEGV, signalHandler);
+    signal(SIGKILL, signalHandler);
+
     // TODO: check if initialized already
     initMPI(&argc, &argv);
 
