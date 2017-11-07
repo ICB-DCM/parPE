@@ -17,10 +17,16 @@
 
 namespace parpe {
 
+struct sigaction act;
+struct sigaction oldact;
+
 void signalHandler(int sig) {
     logmessage(LOGLVL_CRITICAL, "Caught signal %d ", sig);
     printBacktrace();
-    exit(sig);
+
+    // restore previous
+    oldact.sa_flags = SA_SIGINFO;
+    (*oldact.sa_sigaction)(sig, nullptr, nullptr);
 }
 
 OptimizationApplication::OptimizationApplication()
@@ -28,8 +34,9 @@ OptimizationApplication::OptimizationApplication()
 
 OptimizationApplication::OptimizationApplication(int argc, char **argv) {
     // install signal handler for backtrace on error
-    signal(SIGSEGV, signalHandler);
-    signal(SIGKILL, signalHandler);
+    sigaction(SIGSEGV, &act, &oldact);
+    sigaction(SIGKILL, &act, nullptr);
+    sigaction(SIGHUP, &act, nullptr);
 
     // TODO: check if initialized already
     initMPI(&argc, &argv);
