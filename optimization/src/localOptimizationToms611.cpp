@@ -9,19 +9,39 @@ namespace parpe {
 
 static_assert(sizeof(doublereal) == sizeof(double), "Float size mismatch");
 
-void calcf(integer &n, doublereal *x, integer &nf, doublereal &f,
+bool withinBounds(integer n, doublereal const *x, const double *min, const double *max ) {
+    for(int i = 0; i < n; ++i)
+        if(x[i] < min[i])
+            return false;
+
+    for(int i = 0; i < n; ++i)
+        if(x[i] > max[i])
+            return false;
+
+    return true;
+}
+
+void calcf(integer const &n, doublereal const *x, integer &nf, doublereal &f,
            OptimizationProblem *problem, doublereal *urparm, void *ufparm) {
 
     problem->evaluateObjectiveFunction(x, &f, nullptr);
     *urparm = f;
+
+    if(std::isnan(f) || !withinBounds(n, x, problem->getParametersMin(), problem->getParametersMax())) {
+        nf = 0; // tells optimizer to choose a shorter step
+    }
 }
 
-void calcg(integer &n, doublereal *x, integer &nf, doublereal *g,
+void calcg(integer const &n, doublereal const *x, integer &nf, doublereal *g,
            OptimizationProblem *problem, doublereal *urparm, void *ufparm) {
     static int __thread numFunctionCalls = 0;
     problem->evaluateObjectiveFunction(x, urparm, g);
     problem->intermediateFunction(0, numFunctionCalls, *urparm, 0, 0, 0, 0, 0, 0, 0, 0);
     ++numFunctionCalls;
+
+    if(std::isnan(*urparm) || !withinBounds(n, x, problem->getParametersMin(), problem->getParametersMax())) {
+        nf = 0; // tells optimizer to choose a shorter step
+    }
 }
 
 
