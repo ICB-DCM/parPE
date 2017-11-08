@@ -50,6 +50,20 @@ int getMpiRank();
 int getMpiCommSize();
 int getMpiActive();
 
+template <typename T_TEST, typename T_BOUNDS>
+bool withinBounds(long int n, T_TEST const *x, const T_BOUNDS *min, const T_BOUNDS *max ) {
+    for(int i = 0; i < n; ++i)
+        if(x[i] < min[i])
+            return false;
+
+    for(int i = 0; i < n; ++i)
+        if(x[i] > max[i])
+            return false;
+
+    return true;
+}
+
+
 } // namespace parpe
 
 #if __cplusplus < 201402L

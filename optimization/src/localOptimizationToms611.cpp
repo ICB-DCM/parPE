@@ -4,22 +4,11 @@
 #include "optimizationProblem.h"
 #include <cmath>
 #include <toms611.h>
+#include <misc.h>
 
 namespace parpe {
 
 static_assert(sizeof(doublereal) == sizeof(double), "Float size mismatch");
-
-bool withinBounds(integer n, doublereal const *x, const double *min, const double *max ) {
-    for(int i = 0; i < n; ++i)
-        if(x[i] < min[i])
-            return false;
-
-    for(int i = 0; i < n; ++i)
-        if(x[i] > max[i])
-            return false;
-
-    return true;
-}
 
 void calcf(integer const &n, doublereal const *x, integer &nf, doublereal &f,
            OptimizationProblem *problem, doublereal *urparm, void *ufparm) {

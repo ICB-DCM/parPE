@@ -3,6 +3,7 @@
 #include "optimizationProblem.h"
 #include <ceres/ceres.h>
 #include <logging.h>
+#include <misc.h>
 
 namespace parpe {
 
@@ -25,6 +26,10 @@ class MyCeresFirstOrderFunction : public ceres::FirstOrderFunction {
                           double *gradient) const override {
         static __thread int numFunctionCalls = 0;
         ++numFunctionCalls;
+
+        if(!withinBounds(problem->getNumOptimizationParameters(), parameters,
+                         problem->getParametersMin(), problem->getParametersMax()))
+            return false;
 
         double cpuTimeInSec = 0;
         bool status =
