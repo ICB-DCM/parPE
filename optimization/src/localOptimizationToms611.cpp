@@ -40,7 +40,7 @@ void calcf(integer const &n, doublereal const *x, integer &nf, doublereal &f,
 
 void calcg(integer const &n, doublereal const *x, integer &nf, doublereal *g,
            OptimizationProblem *problem, doublereal *urparm, void *ufparm) {
-    static int __thread numFunctionCalls = 0;
+    static __thread int numFunctionCalls = 0;
 
     if(!withinBounds(n, x, problem->getParametersMin(), problem->getParametersMax())) {
         nf = 0; // tells optimizer to choose a shorter step
