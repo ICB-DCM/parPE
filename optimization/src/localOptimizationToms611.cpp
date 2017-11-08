@@ -7,9 +7,10 @@
 
 namespace parpe {
 
+static_assert(sizeof(doublereal) == sizeof(double), "Float size mismatch");
+
 void calcf(integer &n, doublereal *x, integer &nf, doublereal &f,
            OptimizationProblem *problem, doublereal *urparm, void *ufparm) {
-    static_assert(sizeof(doublereal) == sizeof(double), "Float size mismatch");
 
     problem->evaluateObjectiveFunction(x, &f, nullptr);
     *urparm = f;
@@ -17,10 +18,10 @@ void calcf(integer &n, doublereal *x, integer &nf, doublereal &f,
 
 void calcg(integer &n, doublereal *x, integer &nf, doublereal *g,
            OptimizationProblem *problem, doublereal *urparm, void *ufparm) {
-
-    static_assert(sizeof(doublereal) == sizeof(double), "Float size mismatch");
+    static int __thread numFunctionCalls = 0;
     problem->evaluateObjectiveFunction(x, urparm, g);
-
+    problem->intermediateFunction(0, numFunctionCalls, *urparm, 0, 0, 0, 0, 0, 0, 0, 0);
+    ++numFunctionCalls;
 }
 
 
