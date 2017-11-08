@@ -1,22 +1,24 @@
-#include <bits/stl_tree.h>
-
 #include "CppUTest/TestHarness.h"
 #include "CppUTestExt/MockSupport.h"
-
 #include "localOptimizationCeres.h"
 #include "quadraticTestProblem.h"
 #include "testingMisc.h"
-#include <math.h>
+#include <cmath>
 
-TEST_GROUP(localOptimizationCeres){void setup(){mock().clear();
-}
 
-void teardown() {
-    mock().checkExpectations();
-    mock().clear();
-}
-}
-;
+// clang-format off
+TEST_GROUP(localOptimizationCeres){
+    void setup() {
+        mock().clear();
+    }
+
+    void teardown() {
+        mock().checkExpectations();
+        mock().clear();
+    }
+};
+// clang-format on
+
 
 TEST(localOptimizationCeres, testOptimization) {
     parpe::QuadraticTestProblem problem;

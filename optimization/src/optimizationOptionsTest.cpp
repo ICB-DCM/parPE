@@ -1,8 +1,6 @@
-#include <bits/stl_tree.h>
-#include <iostream>
 #include "CppUTest/TestHarness.h"
 #include "CppUTestExt/MockSupport.h"
-
+#include <iostream>
 #include "optimizationOptions.h"
 #include "testingMisc.h"
 #include "localOptimizationIpopt.h"
@@ -16,15 +14,19 @@ void setCeresOption(const std::pair<const std::string, const std::string> &pair,
 }
 
 
+// clang-format off
 TEST_GROUP(optimizationOptions){
-    void setup(){mock().clear();
-}
+    void setup() {
+        mock().clear();
+    }
 
-void teardown() {
-    mock().checkExpectations();
-    mock().clear();
-}
+    void teardown() {
+        mock().checkExpectations();
+        mock().clear();
+    }
 };
+// clang-format on
+
 
 TEST(optimizationOptions, setGetOptionStr) {
     parpe::OptimizationOptions o;

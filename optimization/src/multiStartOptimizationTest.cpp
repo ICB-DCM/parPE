@@ -1,6 +1,5 @@
 #include "CppUTest/TestHarness.h"
 #include "CppUTestExt/MockSupport.h"
-
 #include "localOptimizationIpopt.h"
 #include "multiStartOptimization.h"
 #include "quadraticTestProblem.h"
