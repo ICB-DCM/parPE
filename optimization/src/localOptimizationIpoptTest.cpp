@@ -16,17 +16,6 @@ mock().clear();
 }
 ;
 
-extern "C" {
-  void deflt_(int &alg, int *iv, int &liv, int &lv, double *v);
-
-  void sumsl_(
-    int &n, double *d, double *x,
-    void (*calcf)(int &, double *, int &, double &, int *, double *, void *),
-    void (*calcg)(int &, double *, int &, double *, int *, double *, void *),
-    int *iv, int &liv, int &lv, double *v,
-    int *uiparm, double *urparm, void *ufparm);
-}
-
 TEST(localOptimizationIpopt, testOptimization) {
     parpe::QuadraticTestProblem problem;
     //problem->optimizationOptions->functionTolerance = 1;

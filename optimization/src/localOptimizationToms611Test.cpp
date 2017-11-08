@@ -5,13 +5,14 @@
 #include "testingMisc.h"
 #include <cmath>
 #include <iostream>
-#include <toms611.h>
+#include <localOptimizationToms611.h>
+#include <quadraticTestProblem.h>
 
+#include <toms611.h>
 
 // clang-format off
 TEST_GROUP(localOptimizationToms611){
     void setup(){
-
     }
 
     void teardown(){
@@ -32,7 +33,7 @@ void calcg(integer &n, doublereal *x, integer &nf, doublereal *g,
     std::cout<<nf<<"g: "<<g[0]<<std::endl;
 }
 
-TEST(localOptimizationToms611, testOptimization) {
+IGNORE_TEST(localOptimizationToms611, testOptimization) {
     integer numOptimizationVariables = 1;
 
     integer liv = toms611_sumsl_iv_min_length;
@@ -59,4 +60,21 @@ TEST(localOptimizationToms611, testOptimization) {
     //std::cout<<std::endl;
     //std::cout<<"iv[0] = "<<iv[0]<<std::endl;
     //std::cout<<"Final x = "<<startingPoint[0]<<std::endl;
+}
+
+
+TEST(localOptimizationToms611, testOptimizationGetlocalOptimum) {
+    parpe::QuadraticTestProblem problem;
+    problem.printDebug = true;
+
+    mock().expectOneCall("logFinish").withIntParameter("exitStatus", x_and_relative_function_convergence);
+    mock().expectNCalls(2, "testObj");
+    mock().expectNCalls(2, "testObjGrad");
+    mock().ignoreOtherCalls();
+
+    parpe::OptimizerToms611TrustRegionSumsl optimizer;
+    optimizer.optimize(&problem);
+
+    DOUBLES_EQUAL(42.0, problem.optimalCost, 1e-12);
+    DOUBLES_EQUAL(-1.0, problem.optimalParameter, 1e-12);
 }

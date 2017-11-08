@@ -25,6 +25,7 @@ class QuadraticTestProblem : public OptimizationProblem {
 
     double optimalCost;
     double optimalParameter;
+    bool printDebug = false;
 };
 
 class QuadraticOptimizationMultiStartProblem : public MultiStartOptimization {

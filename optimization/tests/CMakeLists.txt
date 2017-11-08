@@ -31,6 +31,7 @@ if(${ENABLE_TOMS611})
     add_executable(${PROJECT_NAME}
         main.cpp
         ../src/localOptimizationToms611Test.cpp
+        quadraticTestProblem.cpp
     )
 
  #   target_compile_options(${PROJECT_NAME} PUBLIC

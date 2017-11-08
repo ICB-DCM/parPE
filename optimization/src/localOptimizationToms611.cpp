@@ -59,7 +59,7 @@ int OptimizerToms611TrustRegionSumsl::optimize(OptimizationProblem *problem)
     clock_t timeEnd = clock();
     double wallTime = (double)(timeEnd - timeBegin) / CLOCKS_PER_SEC;
 
-    problem->logOptimizerFinished(NAN, parameters, wallTime, iv[0]);
+    problem->logOptimizerFinished(fval, parameters, wallTime, iv[0]);
 
     return iv[0] >= first_error_code;
 }
