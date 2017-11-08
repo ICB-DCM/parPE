@@ -1,5 +1,7 @@
 /* toms611.f downloaded from http://people.sc.fsu.edu/~jburkardt/f77_src/toms611/toms611.f
  * converted using f2c -C++ toms611.f
+ *
+ * turned all static variable to thread-static
  */
 /* toms611.f -- translated by f2c (version 20100827).
    You must link the resulting object file with libf2c:
@@ -20,19 +22,19 @@ extern "C" {
 
 /* Table of constant values */
 
-static integer c__2 = 2;
-static integer c__1 = 1;
-static integer c__4 = 4;
-static integer c_n1 = -1;
-static integer c__3 = 3;
-static integer c__6 = 6;
-static integer c__5 = 5;
+static __thread integer c__2 = 2;
+static __thread integer c__1 = 1;
+static __thread integer c__4 = 4;
+static __thread integer c_n1 = -1;
+static __thread integer c__3 = 3;
+static __thread integer c__6 = 6;
+static __thread integer c__5 = 5;
 
 integer imdcon_(integer *k)
 {
     /* Initialized data */
 
-    static integer mdperm[3] = { 2,4,1 };
+    static __thread integer mdperm[3] = { 2,4,1 };
 
     /* System generated locals */
     integer ret_val;
@@ -69,18 +71,18 @@ doublereal rmdcon_(integer *k)
 {
     /* Initialized data */
 
-    static doublereal zero = 0.;
-    static struct {
+    static __thread doublereal zero = 0.;
+    static __thread struct {
 	doublereal e_1;
 	doublereal fill_2[1];
 	} equiv_0 = { 0. };
 
-    static struct {
+    static __thread struct {
 	doublereal e_1;
 	doublereal fill_2[1];
 	} equiv_1 = { 0. };
 
-    static struct {
+    static __thread struct {
 	doublereal e_1;
 	doublereal fill_2[1];
 	} equiv_2 = { 0. };
@@ -251,19 +253,19 @@ L999:
 {
     /* Initialized data */
 
-    static integer nfcall = 6;
-    static integer nfgcal = 7;
-    static integer g = 28;
-    static integer toobig = 2;
-    static integer vneed = 4;
-    static integer nextv = 47;
+    static __thread integer nfcall = 6;
+    static __thread integer nfgcal = 7;
+    static __thread integer g = 28;
+    static __thread integer toobig = 2;
+    static __thread integer vneed = 4;
+    static __thread integer nextv = 47;
 
     /* System generated locals */
     integer i__1;
 
     /* Local variables */
-    static doublereal f;
-    static integer g1, nf, iv1;
+    static __thread doublereal f;
+    static __thread integer g1, nf, iv1;
     extern /* Subroutine */ int deflt_(integer *, integer *, integer *, 
 	    integer *, doublereal *), sumit_(doublereal *, doublereal *, 
 	    doublereal *, integer *, integer *, integer *, integer *, 
@@ -782,11 +784,11 @@ L999:
 {
     /* Initialized data */
 
-    static integer nfcall = 6;
-    static integer toobig = 2;
+    static __thread integer nfcall = 6;
+    static __thread integer toobig = 2;
 
-    static integer nf;
-    static doublereal fx;
+    static __thread integer nf;
+    static __thread doublereal fx;
     extern /* Subroutine */ int snoit_(doublereal *, doublereal *, integer *, 
 	    integer *, integer *, integer *, doublereal *, doublereal *);
 
@@ -898,71 +900,71 @@ L999:
 {
     /* Initialized data */
 
-    static integer cnvcod = 55;
-    static integer dg = 37;
-    static integer g0 = 48;
-    static integer inith = 25;
-    static integer irc = 29;
-    static integer kagqt = 33;
-    static integer mode = 35;
-    static integer model = 5;
-    static integer mxfcal = 17;
-    static integer mxiter = 18;
-    static integer nfcall = 6;
-    static integer nfgcal = 7;
-    static integer ngcall = 30;
-    static integer niter = 31;
-    static integer nwtstp = 34;
-    static integer radinc = 8;
-    static integer restor = 9;
-    static integer step = 40;
-    static integer stglim = 11;
-    static integer stlstg = 41;
-    static integer toobig = 2;
-    static integer vneed = 4;
-    static integer xirc = 13;
-    static integer x0 = 43;
-    static integer dgnorm = 1;
-    static integer dinit = 38;
-    static integer dstnrm = 2;
-    static integer dst0 = 3;
-    static integer f = 10;
-    static integer f0 = 13;
-    static integer fdif = 11;
-    static integer gthg = 44;
-    static integer gtstep = 4;
-    static integer incfac = 23;
-    static integer lmat = 42;
-    static integer lmax0 = 35;
-    static integer lmaxs = 36;
-    static integer nextv = 47;
-    static integer nreduc = 6;
-    static integer preduc = 7;
-    static integer radfac = 16;
-    static integer radius = 8;
-    static integer rad0 = 9;
-    static integer reldx = 17;
-    static integer tuner4 = 29;
-    static integer tuner5 = 30;
-    static doublereal half = .5;
-    static doublereal negone = -1.;
-    static doublereal one = 1.;
-    static doublereal onep2 = 1.2;
-    static doublereal zero = 0.;
+    static __thread integer cnvcod = 55;
+    static __thread integer dg = 37;
+    static __thread integer g0 = 48;
+    static __thread integer inith = 25;
+    static __thread integer irc = 29;
+    static __thread integer kagqt = 33;
+    static __thread integer mode = 35;
+    static __thread integer model = 5;
+    static __thread integer mxfcal = 17;
+    static __thread integer mxiter = 18;
+    static __thread integer nfcall = 6;
+    static __thread integer nfgcal = 7;
+    static __thread integer ngcall = 30;
+    static __thread integer niter = 31;
+    static __thread integer nwtstp = 34;
+    static __thread integer radinc = 8;
+    static __thread integer restor = 9;
+    static __thread integer step = 40;
+    static __thread integer stglim = 11;
+    static __thread integer stlstg = 41;
+    static __thread integer toobig = 2;
+    static __thread integer vneed = 4;
+    static __thread integer xirc = 13;
+    static __thread integer x0 = 43;
+    static __thread integer dgnorm = 1;
+    static __thread integer dinit = 38;
+    static __thread integer dstnrm = 2;
+    static __thread integer dst0 = 3;
+    static __thread integer f = 10;
+    static __thread integer f0 = 13;
+    static __thread integer fdif = 11;
+    static __thread integer gthg = 44;
+    static __thread integer gtstep = 4;
+    static __thread integer incfac = 23;
+    static __thread integer lmat = 42;
+    static __thread integer lmax0 = 35;
+    static __thread integer lmaxs = 36;
+    static __thread integer nextv = 47;
+    static __thread integer nreduc = 6;
+    static __thread integer preduc = 7;
+    static __thread integer radfac = 16;
+    static __thread integer radius = 8;
+    static __thread integer rad0 = 9;
+    static __thread integer reldx = 17;
+    static __thread integer tuner4 = 29;
+    static __thread integer tuner5 = 30;
+    static __thread doublereal half = .5;
+    static __thread doublereal negone = -1.;
+    static __thread doublereal one = 1.;
+    static __thread doublereal onep2 = 1.2;
+    static __thread doublereal zero = 0.;
 
     /* System generated locals */
     integer i__1;
 
     /* Local variables */
-    static integer i__, k, l;
-    static doublereal t;
-    static integer w, z__, g01, x01, dg1, temp1, step1;
+    static __thread integer i__, k, l;
+    static __thread doublereal t;
+    static __thread integer w, z__, g01, x01, dg1, temp1, step1;
     extern /* Subroutine */ int dbdog_(doublereal *, integer *, integer *, 
 	    doublereal *, doublereal *, doublereal *), deflt_(integer *, 
 	    integer *, integer *, integer *, doublereal *), parck_(integer *, 
 	    doublereal *, integer *, integer *, integer *, integer *, 
 	    doublereal *);
-    static integer dummy;
+    static __thread integer dummy;
     extern /* Subroutine */ int assst_(integer *, integer *, integer *, 
 	    doublereal *), lvmul_(integer *, doublereal *, doublereal *, 
 	    doublereal *), vcopy_(integer *, doublereal *, doublereal *), 
@@ -971,7 +973,7 @@ L999:
 	    doublereal *, doublereal *, doublereal *, doublereal *);
     extern logical stopx_(integer *);
     extern doublereal v2norm_(integer *, doublereal *);
-    static integer nwtst1;
+    static __thread integer nwtst1;
     extern /* Subroutine */ int lupdat_(doublereal *, doublereal *, 
 	    doublereal *, doublereal *, doublereal *, integer *, doublereal *,
 	     doublereal *);
@@ -980,7 +982,7 @@ L999:
     extern /* Subroutine */ int wzbfgs_(doublereal *, integer *, doublereal *,
 	     doublereal *, doublereal *, doublereal *), livmul_(integer *, 
 	    doublereal *, doublereal *, doublereal *);
-    static integer lstgst;
+    static __thread integer lstgst;
     extern /* Subroutine */ int litvmu_(integer *, doublereal *, doublereal *,
 	     doublereal *), ltvmul_(integer *, doublereal *, doublereal *, 
 	    doublereal *), vscopy_(integer *, doublereal *, doublereal *), 
@@ -1533,24 +1535,24 @@ L999:
 {
     /* Initialized data */
 
-    static integer vneed = 4;
-    static doublereal zero = 0.;
-    static integer eta0 = 42;
-    static integer f = 10;
-    static integer g = 28;
-    static integer lmat = 42;
-    static integer nextv = 47;
-    static integer nfgcal = 7;
-    static integer ngcall = 30;
-    static integer niter = 31;
-    static integer sgirc = 57;
-    static integer toobig = 2;
+    static __thread integer vneed = 4;
+    static __thread doublereal zero = 0.;
+    static __thread integer eta0 = 42;
+    static __thread integer f = 10;
+    static __thread integer g = 28;
+    static __thread integer lmat = 42;
+    static __thread integer nextv = 47;
+    static __thread integer nfgcal = 7;
+    static __thread integer ngcall = 30;
+    static __thread integer niter = 31;
+    static __thread integer sgirc = 57;
+    static __thread integer toobig = 2;
 
     /* System generated locals */
     integer i__1;
 
     /* Local variables */
-    static integer i__, j, k, w, g1, iv1, alpha;
+    static __thread integer i__, j, k, w, g1, iv1, alpha;
     extern /* Subroutine */ int deflt_(integer *, integer *, integer *, 
 	    integer *, doublereal *), sumit_(doublereal *, doublereal *, 
 	    doublereal *, integer *, integer *, integer *, integer *, 
@@ -1753,22 +1755,22 @@ L999:
 {
     /* Initialized data */
 
-    static doublereal half = .5;
-    static doublereal one = 1.;
-    static doublereal two = 2.;
-    static doublereal zero = 0.;
-    static integer bias = 43;
-    static integer dgnorm = 1;
-    static integer dstnrm = 2;
-    static integer dst0 = 3;
-    static integer grdfac = 45;
-    static integer gthg = 44;
-    static integer gtstep = 4;
-    static integer nreduc = 6;
-    static integer nwtfac = 46;
-    static integer preduc = 7;
-    static integer radius = 8;
-    static integer stppar = 5;
+    static __thread doublereal half = .5;
+    static __thread doublereal one = 1.;
+    static __thread doublereal two = 2.;
+    static __thread doublereal zero = 0.;
+    static __thread integer bias = 43;
+    static __thread integer dgnorm = 1;
+    static __thread integer dstnrm = 2;
+    static __thread integer dst0 = 3;
+    static __thread integer grdfac = 45;
+    static __thread integer gthg = 44;
+    static __thread integer gtstep = 4;
+    static __thread integer nreduc = 6;
+    static __thread integer nwtfac = 46;
+    static __thread integer preduc = 7;
+    static __thread integer radius = 8;
+    static __thread integer stppar = 5;
 
     /* System generated locals */
     integer i__1;
@@ -1778,8 +1780,8 @@ L999:
     double sqrt(doublereal);
 
     /* Local variables */
-    static integer i__;
-    static doublereal t, t1, t2, cfact, relax, cnorm, gnorm, rlambd, ghinvg, 
+    static __thread integer i__;
+    static __thread doublereal t, t1, t2, cfact, relax, cnorm, gnorm, rlambd, ghinvg,
 	    femnsq, ctrnwt, nwtnrm;
 
 
@@ -2025,14 +2027,14 @@ L999:
 {
     /* Initialized data */
 
-    static doublereal zero = 0.;
+    static __thread doublereal zero = 0.;
 
     /* System generated locals */
     integer i__1, i__2;
 
     /* Local variables */
-    static integer i__, j, i0, ij;
-    static doublereal yi;
+    static __thread integer i__, j, i0, ij;
+    static __thread doublereal yi;
 
 
 /*  ***  compute  x = (l**t)*y, where  l  is an  n x n  lower */
@@ -2076,8 +2078,8 @@ L999:
 {
     /* Initialized data */
 
-    static doublereal one = 1.;
-    static doublereal zero = 0.;
+    static __thread doublereal one = 1.;
+    static __thread doublereal zero = 0.;
 
     /* System generated locals */
     integer i__1, i__2;
@@ -2087,13 +2089,13 @@ L999:
     double sqrt(doublereal);
 
     /* Local variables */
-    static doublereal a, b;
-    static integer i__, j, k;
-    static doublereal s, bj, gj;
-    static integer ij, jj;
-    static doublereal lj, wj, nu, zj;
-    static integer jp1, nm1, np1;
-    static doublereal eta, lij, ljj, theta;
+    static __thread doublereal a, b;
+    static __thread integer i__, j, k;
+    static __thread doublereal s, bj, gj;
+    static __thread integer ij, jj;
+    static __thread doublereal lj, wj, nu, zj;
+    static __thread integer jp1, nm1, np1;
+    static __thread doublereal eta, lij, ljj, theta;
 
 
 /*  ***  compute lplus = secant update of l  *** */
@@ -2266,15 +2268,15 @@ L50:
 {
     /* Initialized data */
 
-    static doublereal zero = 0.;
+    static __thread doublereal zero = 0.;
 
     /* System generated locals */
     integer i__1, i__2;
 
     /* Local variables */
-    static integer i__, j;
-    static doublereal t;
-    static integer i0, ii, ij, np1;
+    static __thread integer i__, j;
+    static __thread doublereal t;
+    static __thread integer i0, ii, ij, np1;
 
 
 /*  ***  compute  x = l*y, where  l  is an  n x n  lower triangular */
@@ -2320,19 +2322,19 @@ L50:
 {
     /* Initialized data */
 
-    static doublereal c2000 = 2e3;
-    static doublereal four = 4.;
-    static doublereal hmax0 = .02;
-    static doublereal hmin0 = 50.;
-    static doublereal one = 1.;
-    static doublereal p002 = .002;
-    static doublereal three = 3.;
-    static doublereal two = 2.;
-    static doublereal zero = 0.;
-    static integer fh = 3;
-    static integer fx0 = 4;
-    static integer hsave = 5;
-    static integer xisave = 6;
+    static __thread doublereal c2000 = 2e3;
+    static __thread doublereal four = 4.;
+    static __thread doublereal hmax0 = .02;
+    static __thread doublereal hmin0 = 50.;
+    static __thread doublereal one = 1.;
+    static __thread doublereal p002 = .002;
+    static __thread doublereal three = 3.;
+    static __thread doublereal two = 2.;
+    static __thread doublereal zero = 0.;
+    static __thread integer fh = 3;
+    static __thread integer fx0 = 4;
+    static __thread integer hsave = 5;
+    static __thread integer xisave = 6;
 
     /* System generated locals */
     doublereal d__1, d__2, d__3;
@@ -2341,9 +2343,9 @@ L50:
     double sqrt(doublereal), pow_dd(doublereal *, doublereal *);
 
     /* Local variables */
-    static doublereal h__;
-    static integer i__;
-    static doublereal h0, gi, aai, agi, eta, afx, axi, hmin, machep, alphai, 
+    static __thread doublereal h__;
+    static __thread integer i__;
+    static __thread doublereal h0, gi, aai, agi, eta, afx, axi, hmin, machep, alphai,
 	    axibar, afxeta, discon;
     extern doublereal rmdcon_(integer *);
 
@@ -2627,7 +2629,7 @@ L999:
     integer i__1;
 
     /* Local variables */
-    static integer i__;
+    static __thread integer i__;
 
 
 /* ***  set x(i) = y(i) * z(i)**k, 1 .le. i .le. n (for k = 1 or -1)  *** */
@@ -2665,8 +2667,8 @@ L999:
 {
     /* Initialized data */
 
-    static doublereal eps = .1;
-    static doublereal one = 1.;
+    static __thread doublereal eps = .1;
+    static __thread doublereal one = 1.;
 
     /* System generated locals */
     integer i__1;
@@ -2675,8 +2677,8 @@ L999:
     double sqrt(doublereal);
 
     /* Local variables */
-    static integer i__;
-    static doublereal cs, cy, ys, shs, theta, epsrt;
+    static __thread integer i__;
+    static __thread doublereal cs, cy, ys, shs, theta, epsrt;
     extern doublereal dotprd_(integer *, doublereal *, doublereal *);
     extern /* Subroutine */ int livmul_(integer *, doublereal *, doublereal *,
 	     doublereal *), ltvmul_(integer *, doublereal *, doublereal *, 
@@ -2779,59 +2781,59 @@ L20:
 {
     /* Initialized data */
 
-    static doublereal half = .5;
-    static doublereal one = 1.;
-    static doublereal onep2 = 1.2;
-    static doublereal two = 2.;
-    static doublereal zero = 0.;
-    static integer irc = 29;
-    static integer mlstgd = 32;
-    static integer model = 5;
-    static integer nfcall = 6;
-    static integer nfgcal = 7;
-    static integer radinc = 8;
-    static integer restor = 9;
-    static integer stage = 10;
-    static integer stglim = 11;
-    static integer switch__ = 12;
-    static integer toobig = 2;
-    static integer xirc = 13;
-    static integer afctol = 31;
-    static integer decfac = 22;
-    static integer dstnrm = 2;
-    static integer dst0 = 3;
-    static integer dstsav = 18;
-    static integer f = 10;
-    static integer fdif = 11;
-    static integer flstgd = 12;
-    static integer f0 = 13;
-    static integer gtslst = 14;
-    static integer gtstep = 4;
-    static integer incfac = 23;
-    static integer lmaxs = 36;
-    static integer nreduc = 6;
-    static integer plstgd = 15;
-    static integer preduc = 7;
-    static integer radfac = 16;
-    static integer rdfcmn = 24;
-    static integer rdfcmx = 25;
-    static integer reldx = 17;
-    static integer rfctol = 32;
-    static integer sctol = 37;
-    static integer stppar = 5;
-    static integer tuner1 = 26;
-    static integer tuner2 = 27;
-    static integer tuner3 = 28;
-    static integer xctol = 33;
-    static integer xftol = 34;
+    static __thread doublereal half = .5;
+    static __thread doublereal one = 1.;
+    static __thread doublereal onep2 = 1.2;
+    static __thread doublereal two = 2.;
+    static __thread doublereal zero = 0.;
+    static __thread integer irc = 29;
+    static __thread integer mlstgd = 32;
+    static __thread integer model = 5;
+    static __thread integer nfcall = 6;
+    static __thread integer nfgcal = 7;
+    static __thread integer radinc = 8;
+    static __thread integer restor = 9;
+    static __thread integer stage = 10;
+    static __thread integer stglim = 11;
+    static __thread integer switch__ = 12;
+    static __thread integer toobig = 2;
+    static __thread integer xirc = 13;
+    static __thread integer afctol = 31;
+    static __thread integer decfac = 22;
+    static __thread integer dstnrm = 2;
+    static __thread integer dst0 = 3;
+    static __thread integer dstsav = 18;
+    static __thread integer f = 10;
+    static __thread integer fdif = 11;
+    static __thread integer flstgd = 12;
+    static __thread integer f0 = 13;
+    static __thread integer gtslst = 14;
+    static __thread integer gtstep = 4;
+    static __thread integer incfac = 23;
+    static __thread integer lmaxs = 36;
+    static __thread integer nreduc = 6;
+    static __thread integer plstgd = 15;
+    static __thread integer preduc = 7;
+    static __thread integer radfac = 16;
+    static __thread integer rdfcmn = 24;
+    static __thread integer rdfcmx = 25;
+    static __thread integer reldx = 17;
+    static __thread integer rfctol = 32;
+    static __thread integer sctol = 37;
+    static __thread integer stppar = 5;
+    static __thread integer tuner1 = 26;
+    static __thread integer tuner2 = 27;
+    static __thread integer tuner3 = 28;
+    static __thread integer xctol = 33;
+    static __thread integer xftol = 34;
 
     /* System generated locals */
     doublereal d__1, d__2;
 
     /* Local variables */
-    static integer i__, nfc;
-    static doublereal gts, emax, xmax, rfac1, emaxs;
-    static logical goodx;
+    static __thread integer i__, nfc;
+    static __thread doublereal gts, emax, xmax, rfac1, emaxs;
+    static __thread logical goodx;
 
 
 /*  ***  assess candidate step (***sol version 2.3)  *** */
@@ -3475,41 +3477,41 @@ L999:
 {
     /* Initialized data */
 
-    static integer algsav = 51;
-    static integer covprt = 14;
-    static integer covreq = 15;
-    static integer dtype = 16;
-    static integer hc = 71;
-    static integer ierr = 75;
-    static integer inith = 25;
-    static integer inits = 25;
-    static integer ipivot = 76;
-    static integer ivneed = 3;
-    static integer lastiv = 44;
-    static integer lastv = 45;
-    static integer lmat = 42;
-    static integer mxfcal = 17;
-    static integer mxiter = 18;
-    static integer nfcov = 52;
-    static integer ngcov = 53;
-    static integer nvdflt = 50;
-    static integer outlev = 19;
-    static integer parprt = 20;
-    static integer parsav = 49;
-    static integer perm = 58;
-    static integer prunit = 21;
-    static integer qrtyp = 80;
-    static integer rdreq = 57;
-    static integer rmat = 78;
-    static integer solprt = 22;
-    static integer statpr = 23;
-    static integer vneed = 4;
-    static integer vsave = 60;
-    static integer x0prt = 24;
-    static integer miniv[2] = { 80,59 };
-    static integer minv[2] = { 98,71 };
+    static __thread integer algsav = 51;
+    static __thread integer covprt = 14;
+    static __thread integer covreq = 15;
+    static __thread integer dtype = 16;
+    static __thread integer hc = 71;
+    static __thread integer ierr = 75;
+    static __thread integer inith = 25;
+    static __thread integer inits = 25;
+    static __thread integer ipivot = 76;
+    static __thread integer ivneed = 3;
+    static __thread integer lastiv = 44;
+    static __thread integer lastv = 45;
+    static __thread integer lmat = 42;
+    static __thread integer mxfcal = 17;
+    static __thread integer mxiter = 18;
+    static __thread integer nfcov = 52;
+    static __thread integer ngcov = 53;
+    static __thread integer nvdflt = 50;
+    static __thread integer outlev = 19;
+    static __thread integer parprt = 20;
+    static __thread integer parsav = 49;
+    static __thread integer perm = 58;
+    static __thread integer prunit = 21;
+    static __thread integer qrtyp = 80;
+    static __thread integer rdreq = 57;
+    static __thread integer rmat = 78;
+    static __thread integer solprt = 22;
+    static __thread integer statpr = 23;
+    static __thread integer vneed = 4;
+    static __thread integer vsave = 60;
+    static __thread integer x0prt = 24;
+    static __thread integer miniv[2] = { 80,59 };
+    static __thread integer minv[2] = { 98,71 };
 
-    static integer mv, miv;
+    static __thread integer mv, miv;
     extern /* Subroutine */ int vdflt_(integer *, integer *, doublereal *);
     extern integer imdcon_(integer *);
 
@@ -3628,17 +3630,17 @@ doublereal dotprd_(integer *p, doublereal *x, doublereal *y)
 {
     /* Initialized data */
 
-    static doublereal one = 1.;
-    static doublereal sqteta = 0.;
-    static doublereal zero = 0.;
+    static __thread doublereal one = 1.;
+    static __thread doublereal sqteta = 0.;
+    static __thread doublereal zero = 0.;
 
     /* System generated locals */
     integer i__1;
     doublereal ret_val, d__1, d__2, d__3, d__4;
 
     /* Local variables */
-    static integer i__;
-    static doublereal t;
+    static __thread integer i__;
+    static __thread doublereal t;
     extern doublereal rmdcon_(integer *);
 
 
@@ -3701,30 +3703,30 @@ L999:
 {
     /* Initialized data */
 
-    static integer algsav = 51;
-    static integer needhd = 36;
-    static integer nfcall = 6;
-    static integer nfcov = 52;
-    static integer ngcall = 30;
-    static integer ngcov = 53;
-    static integer niter = 31;
-    static integer outlev = 19;
-    static integer prntit = 39;
-    static integer prunit = 21;
-    static integer solprt = 22;
-    static integer statpr = 23;
-    static integer sused = 64;
-    static integer x0prt = 24;
-    static integer dstnrm = 2;
-    static integer f = 10;
-    static integer f0 = 13;
-    static integer fdif = 11;
-    static integer nreduc = 6;
-    static integer preduc = 7;
-    static integer reldx = 17;
-    static integer stppar = 5;
-    static doublereal zero = 0.;
-    static struct {
+    static __thread integer algsav = 51;
+    static __thread integer needhd = 36;
+    static __thread integer nfcall = 6;
+    static __thread integer nfcov = 52;
+    static __thread integer ngcall = 30;
+    static __thread integer ngcov = 53;
+    static __thread integer niter = 31;
+    static __thread integer outlev = 19;
+    static __thread integer prntit = 39;
+    static __thread integer prunit = 21;
+    static __thread integer solprt = 22;
+    static __thread integer statpr = 23;
+    static __thread integer sused = 64;
+    static __thread integer x0prt = 24;
+    static __thread integer dstnrm = 2;
+    static __thread integer f = 10;
+    static __thread integer f0 = 13;
+    static __thread integer fdif = 11;
+    static __thread integer nreduc = 6;
+    static __thread integer preduc = 7;
+    static __thread integer reldx = 17;
+    static __thread integer stppar = 5;
+    static __thread doublereal zero = 0.;
+    static __thread struct {
 	char e_1[24];
 	real e_2;
 	} equiv_378 = { {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 
@@ -3733,7 +3735,7 @@ L999:
 
 #define model1 ((real *)&equiv_378)
 
-    static struct {
+    static __thread struct {
 	char e_1[24];
 	real e_2;
 	} equiv_379 = { {' ', 'g', ' ', ' ', ' ', 's', ' ', ' ', 'g', '-', 
@@ -3744,53 +3746,53 @@ L999:
 
 
     /* Format strings */
-    static char fmt_30[] = "(/\002   it   nf\002,6x,\002f\002,7x,\002reld\
+    static __thread char fmt_30[] = "(/\002   it   nf\002,6x,\002f\002,7x,\002reld\
 f\002,3x,\002preldf\002,3x,\002reldx\002,2x,\002model  stppar\002)";
-    static char fmt_40[] = "(/\002    it   nf\002,7x,\002f\002,8x,\002reld\
+    static __thread char fmt_40[] = "(/\002    it   nf\002,7x,\002f\002,8x,\002reld\
 f\002,4x,\002preldf\002,4x,\002reldx\002,3x,\002stppar\002)";
-    static char fmt_100[] = "(i6,i5,d10.3,2d9.2,d8.1,a3,a4,2d8.1,d9.2)";
-    static char fmt_110[] = "(i6,i5,d11.3,2d10.2,3d9.1,d10.2)";
-    static char fmt_70[] = "(/\002    it   nf\002,6x,\002f\002,7x,\002reld\
+    static __thread char fmt_100[] = "(i6,i5,d10.3,2d9.2,d8.1,a3,a4,2d8.1,d9.2)";
+    static __thread char fmt_110[] = "(i6,i5,d11.3,2d10.2,3d9.1,d10.2)";
+    static __thread char fmt_70[] = "(/\002    it   nf\002,6x,\002f\002,7x,\002reld\
 f\002,3x,\002preldf\002,3x,\002reldx\002,2x,\002model  stppar\002,2x,\002d*s\
 tep\002,2x,\002npreldf\002)";
-    static char fmt_80[] = "(/\002    it   nf\002,7x,\002f\002,8x,\002reld\
+    static __thread char fmt_80[] = "(/\002    it   nf\002,7x,\002f\002,8x,\002reld\
 f\002,4x,\002preldf\002,4x,\002reldx\002,3x,\002stppar\002,3x,\002d*step\002\
 ,3x,\002npreldf\002)";
-    static char fmt_140[] = "(/\002 ***** x-convergence *****\002)";
-    static char fmt_160[] = "(/\002 ***** relative function convergence **\
+    static __thread char fmt_140[] = "(/\002 ***** x-convergence *****\002)";
+    static __thread char fmt_160[] = "(/\002 ***** relative function convergence **\
 ***\002)";
-    static char fmt_180[] = "(/\002 ***** x- and relative function convergen\
+    static __thread char fmt_180[] = "(/\002 ***** x- and relative function convergen\
 ce *****\002)";
-    static char fmt_200[] = "(/\002 ***** absolute function convergence **\
+    static __thread char fmt_200[] = "(/\002 ***** absolute function convergence **\
 ***\002)";
-    static char fmt_220[] = "(/\002 ***** singular convergence *****\002)";
-    static char fmt_240[] = "(/\002 ***** false convergence *****\002)";
-    static char fmt_260[] = "(/\002 ***** function evaluation limit *****\
+    static __thread char fmt_220[] = "(/\002 ***** singular convergence *****\002)";
+    static __thread char fmt_240[] = "(/\002 ***** false convergence *****\002)";
+    static __thread char fmt_260[] = "(/\002 ***** function evaluation limit *****\
 \002)";
-    static char fmt_280[] = "(/\002 ***** iteration limit *****\002)";
-    static char fmt_300[] = "(/\002 ***** stopx *****\002)";
-    static char fmt_320[] = "(/\002 ***** initial f(x) cannot be computed **\
+    static __thread char fmt_280[] = "(/\002 ***** iteration limit *****\002)";
+    static __thread char fmt_300[] = "(/\002 ***** stopx *****\002)";
+    static __thread char fmt_320[] = "(/\002 ***** initial f(x) cannot be computed **\
 ***\002)";
-    static char fmt_340[] = "(/\002 ***** bad parameters to assess *****\002)"
+    static __thread char fmt_340[] = "(/\002 ***** bad parameters to assess *****\002)"
 	    ;
-    static char fmt_360[] = "(/\002 ***** gradient could not be computed ***\
+    static __thread char fmt_360[] = "(/\002 ***** gradient could not be computed ***\
 **\002)";
-    static char fmt_380[] = "(/\002 ***** iv(1) =\002,i5,\002 *****\002)";
-    static char fmt_400[] = "(/\002     i     initial x(i)\002,8x,\002d(i\
+    static __thread char fmt_380[] = "(/\002 ***** iv(1) =\002,i5,\002 *****\002)";
+    static __thread char fmt_400[] = "(/\002     i     initial x(i)\002,8x,\002d(i\
 )\002//(1x,i5,d17.6,d14.3))";
-    static char fmt_410[] = "(/\002     0    1\002,d10.3)";
-    static char fmt_420[] = "(/\002     0    1\002,d11.3)";
-    static char fmt_450[] = "(/\002 function\002,d17.6,\002   reldx\002,d17.\
+    static __thread char fmt_410[] = "(/\002     0    1\002,d10.3)";
+    static __thread char fmt_420[] = "(/\002     0    1\002,d11.3)";
+    static __thread char fmt_450[] = "(/\002 function\002,d17.6,\002   reldx\002,d17.\
 3/\002 func. evals\002,i8,9x,\002grad. evals\002,i8/\002 preldf\002,d16.3,6x,\
 \002npreldf\002,d15.3)";
-    static char fmt_460[] = "(/1x,i4,\002 extra func. evals for covariance a\
+    static __thread char fmt_460[] = "(/1x,i4,\002 extra func. evals for covariance a\
 nd diagnostics.\002)";
-    static char fmt_470[] = "(1x,i4,\002 extra grad. evals for covariance an\
+    static __thread char fmt_470[] = "(1x,i4,\002 extra grad. evals for covariance an\
 d diagnostics.\002)";
-    static char fmt_490[] = "(/\002     i      final x(i)\002,8x,\002d(i)\
+    static __thread char fmt_490[] = "(/\002     i      final x(i)\002,8x,\002d(i)\
 \002,10x,\002g(i)\002/)";
-    static char fmt_510[] = "(1x,i5,d16.6,2d14.3)";
-    static char fmt_530[] = "(/\002 inconsistent dimensions\002)";
+    static __thread char fmt_510[] = "(1x,i5,d16.6,2d14.3)";
+    static __thread char fmt_530[] = "(/\002 inconsistent dimensions\002)";
 
     /* System generated locals */
     integer i__1;
@@ -3800,44 +3802,44 @@ d diagnostics.\002)";
     integer s_wsfe(cilist *), e_wsfe(), do_fio(integer *, char *, ftnlen);
 
     /* Local variables */
-    static integer i__, m, nf, ng, ol, pu, iv1, alg;
-    static doublereal oldf, reldf, nreldf, preldf;
+    static __thread integer i__, m, nf, ng, ol, pu, iv1, alg;
+    static __thread doublereal oldf, reldf, nreldf, preldf;
 
     /* Fortran I/O blocks */
-    static cilist io___340 = { 0, 0, 0, fmt_30, 0 };
-    static cilist io___341 = { 0, 0, 0, fmt_40, 0 };
-    static cilist io___343 = { 0, 0, 0, fmt_100, 0 };
-    static cilist io___344 = { 0, 0, 0, fmt_110, 0 };
-    static cilist io___345 = { 0, 0, 0, fmt_70, 0 };
-    static cilist io___346 = { 0, 0, 0, fmt_80, 0 };
-    static cilist io___348 = { 0, 0, 0, fmt_100, 0 };
-    static cilist io___349 = { 0, 0, 0, fmt_110, 0 };
-    static cilist io___350 = { 0, 0, 0, fmt_140, 0 };
-    static cilist io___351 = { 0, 0, 0, fmt_160, 0 };
-    static cilist io___352 = { 0, 0, 0, fmt_180, 0 };
-    static cilist io___353 = { 0, 0, 0, fmt_200, 0 };
-    static cilist io___354 = { 0, 0, 0, fmt_220, 0 };
-    static cilist io___355 = { 0, 0, 0, fmt_240, 0 };
-    static cilist io___356 = { 0, 0, 0, fmt_260, 0 };
-    static cilist io___357 = { 0, 0, 0, fmt_280, 0 };
-    static cilist io___358 = { 0, 0, 0, fmt_300, 0 };
-    static cilist io___359 = { 0, 0, 0, fmt_320, 0 };
-    static cilist io___360 = { 0, 0, 0, fmt_340, 0 };
-    static cilist io___361 = { 0, 0, 0, fmt_360, 0 };
-    static cilist io___362 = { 0, 0, 0, fmt_380, 0 };
-    static cilist io___363 = { 0, 0, 0, fmt_400, 0 };
-    static cilist io___365 = { 0, 0, 0, fmt_30, 0 };
-    static cilist io___366 = { 0, 0, 0, fmt_40, 0 };
-    static cilist io___367 = { 0, 0, 0, fmt_70, 0 };
-    static cilist io___368 = { 0, 0, 0, fmt_80, 0 };
-    static cilist io___369 = { 0, 0, 0, fmt_410, 0 };
-    static cilist io___370 = { 0, 0, 0, fmt_420, 0 };
-    static cilist io___372 = { 0, 0, 0, fmt_450, 0 };
-    static cilist io___373 = { 0, 0, 0, fmt_460, 0 };
-    static cilist io___374 = { 0, 0, 0, fmt_470, 0 };
-    static cilist io___375 = { 0, 0, 0, fmt_490, 0 };
-    static cilist io___376 = { 0, 0, 0, fmt_510, 0 };
-    static cilist io___377 = { 0, 0, 0, fmt_530, 0 };
+    static __thread cilist io___340 = { 0, 0, 0, fmt_30, 0 };
+    static __thread cilist io___341 = { 0, 0, 0, fmt_40, 0 };
+    static __thread cilist io___343 = { 0, 0, 0, fmt_100, 0 };
+    static __thread cilist io___344 = { 0, 0, 0, fmt_110, 0 };
+    static __thread cilist io___345 = { 0, 0, 0, fmt_70, 0 };
+    static __thread cilist io___346 = { 0, 0, 0, fmt_80, 0 };
+    static __thread cilist io___348 = { 0, 0, 0, fmt_100, 0 };
+    static __thread cilist io___349 = { 0, 0, 0, fmt_110, 0 };
+    static __thread cilist io___350 = { 0, 0, 0, fmt_140, 0 };
+    static __thread cilist io___351 = { 0, 0, 0, fmt_160, 0 };
+    static __thread cilist io___352 = { 0, 0, 0, fmt_180, 0 };
+    static __thread cilist io___353 = { 0, 0, 0, fmt_200, 0 };
+    static __thread cilist io___354 = { 0, 0, 0, fmt_220, 0 };
+    static __thread cilist io___355 = { 0, 0, 0, fmt_240, 0 };
+    static __thread cilist io___356 = { 0, 0, 0, fmt_260, 0 };
+    static __thread cilist io___357 = { 0, 0, 0, fmt_280, 0 };
+    static __thread cilist io___358 = { 0, 0, 0, fmt_300, 0 };
+    static __thread cilist io___359 = { 0, 0, 0, fmt_320, 0 };
+    static __thread cilist io___360 = { 0, 0, 0, fmt_340, 0 };
+    static __thread cilist io___361 = { 0, 0, 0, fmt_360, 0 };
+    static __thread cilist io___362 = { 0, 0, 0, fmt_380, 0 };
+    static __thread cilist io___363 = { 0, 0, 0, fmt_400, 0 };
+    static __thread cilist io___365 = { 0, 0, 0, fmt_30, 0 };
+    static __thread cilist io___366 = { 0, 0, 0, fmt_40, 0 };
+    static __thread cilist io___367 = { 0, 0, 0, fmt_70, 0 };
+    static __thread cilist io___368 = { 0, 0, 0, fmt_80, 0 };
+    static __thread cilist io___369 = { 0, 0, 0, fmt_410, 0 };
+    static __thread cilist io___370 = { 0, 0, 0, fmt_420, 0 };
+    static __thread cilist io___372 = { 0, 0, 0, fmt_450, 0 };
+    static __thread cilist io___373 = { 0, 0, 0, fmt_460, 0 };
+    static __thread cilist io___374 = { 0, 0, 0, fmt_470, 0 };
+    static __thread cilist io___375 = { 0, 0, 0, fmt_490, 0 };
+    static __thread cilist io___376 = { 0, 0, 0, fmt_510, 0 };
+    static __thread cilist io___377 = { 0, 0, 0, fmt_530, 0 };
 
 
 
@@ -4297,15 +4299,15 @@ L999:
 {
     /* Initialized data */
 
-    static doublereal zero = 0.;
+    static __thread doublereal zero = 0.;
 
     /* System generated locals */
     integer i__1, i__2;
 
     /* Local variables */
-    static integer i__, j, i0, ii, ij;
-    static doublereal xi;
-    static integer im1, np1;
+    static __thread integer i__, j, i0, ii, ij;
+    static __thread doublereal xi;
+    static __thread integer im1, np1;
 
 
 /*  ***  solve  (l**t)*x = y,  where  l  is an  n x n  lower triangular */
@@ -4362,14 +4364,14 @@ L999:
 {
     /* Initialized data */
 
-    static doublereal zero = 0.;
+    static __thread doublereal zero = 0.;
 
     /* System generated locals */
     integer i__1, i__2;
 
     /* Local variables */
-    static integer i__, j, k;
-    static doublereal t;
+    static __thread integer i__, j, k;
+    static __thread doublereal t;
     extern doublereal dotprd_(integer *, doublereal *, doublereal *);
 
 
@@ -4422,30 +4424,30 @@ L999:
 {
     /* Initialized data */
 
-    static integer algsav = 51;
-    static integer dinit = 38;
-    static integer dtype = 16;
-    static integer dtype0 = 54;
-    static integer epslon = 19;
-    static integer inits = 25;
-    static integer ivneed = 3;
-    static integer lastiv = 44;
-    static integer lastv = 45;
-    static integer lmat = 42;
-    static integer nextiv = 46;
-    static integer nextv = 47;
-    static integer nvdflt = 50;
-    static integer oldn = 38;
-    static integer parprt = 20;
-    static integer parsav = 49;
-    static integer perm = 58;
-    static integer prunit = 21;
-    static integer vneed = 4;
-    static doublereal big = 0.;
-    static doublereal machep = -1.;
-    static doublereal tiny = 1.;
-    static doublereal zero = 0.;
-    static struct {
+    static __thread integer algsav = 51;
+    static __thread integer dinit = 38;
+    static __thread integer dtype = 16;
+    static __thread integer dtype0 = 54;
+    static __thread integer epslon = 19;
+    static __thread integer inits = 25;
+    static __thread integer ivneed = 3;
+    static __thread integer lastiv = 44;
+    static __thread integer lastv = 45;
+    static __thread integer lmat = 42;
+    static __thread integer nextiv = 46;
+    static __thread integer nextv = 47;
+    static __thread integer nvdflt = 50;
+    static __thread integer oldn = 38;
+    static __thread integer parprt = 20;
+    static __thread integer parsav = 49;
+    static __thread integer perm = 58;
+    static __thread integer prunit = 21;
+    static __thread integer vneed = 4;
+    static __thread doublereal big = 0.;
+    static __thread doublereal machep = -1.;
+    static __thread doublereal tiny = 1.;
+    static __thread doublereal zero = 0.;
+    static __thread struct {
 	char e_1[272];
 	real e_2;
 	} equiv_457 = { {'e', 'p', 's', 'l', 'o', 'n', '.', '.', 'p', 'h', 
@@ -4475,27 +4477,27 @@ L999:
 
 #define vn ((real *)&equiv_457)
 
-    static doublereal vm[34] = { .001,-.99,.001,.01,1.2,.01,1.2,0.,0.,.001,
+    static __thread doublereal vm[34] = { .001,-.99,.001,.01,1.2,.01,1.2,0.,0.,.001,
 	    -1.,0.0,0.,0.0,0.,0.,0.0,0.0,0.,-10.,0.,0.,0.,0.0,0.0,0.0,1.01,
 	    1e10,0.0,0.,0.,0.,0.0,0. };
-    static doublereal vx[34] = { .9,-.001,10.,.8,100.,.8,100.,.5,.5,1.,1.,0.0,
+    static __thread doublereal vx[34] = { .9,-.001,10.,.8,100.,.8,100.,.5,.5,1.,1.,0.0,
 	    0.0,.1,1.,1.,0.0,0.0,1.,0.0,0.0,0.0,1.,1.,1.,1.,1e10,0.0,1.,0.0,
 	    1.,1.,1.,1. };
-    static struct {
+    static __thread struct {
 	char e_1[8];
 	integer e_2;
 	} equiv_458 = { {'p', ' ', ' ', ' ', 'n', ' ', ' ', ' '}, 0 };
 
 #define varnm ((integer *)&equiv_458)
 
-    static struct {
+    static __thread struct {
 	char e_1[8];
 	integer e_2;
 	} equiv_459 = { {'s', ' ', ' ', ' ', 'h', ' ', ' ', ' '}, 0 };
 
 #define sh ((integer *)&equiv_459)
 
-    static struct {
+    static __thread struct {
 	char e_1[12];
 	real e_2;
 	} equiv_460 = { {'-', '-', '-', 'c', 'h', 'a', 'n', 'g', 'e', 'd', 
@@ -4503,7 +4505,7 @@ L999:
 
 #define cngd ((real *)&equiv_460)
 
-    static struct {
+    static __thread struct {
 	char e_1[12];
 	real e_2;
 	} equiv_461 = { {'n', 'o', 'n', 'd', 'e', 'f', 'a', 'u', 'l', 't', 
@@ -4511,35 +4513,35 @@ L999:
 
 #define dflt ((real *)&equiv_461)
 
-    static integer ijmp = 33;
-    static integer jlim[2] = { 0,24 };
-    static integer ndflt[2] = { 32,25 };
-    static integer miniv[2] = { 80,59 };
+    static __thread integer ijmp = 33;
+    static __thread integer jlim[2] = { 0,24 };
+    static __thread integer ndflt[2] = { 32,25 };
+    static __thread integer miniv[2] = { 80,59 };
 
     /* Format strings */
-    static char fmt_20[] = "(/\002 the first parameter to deflt should be\
+    static __thread char fmt_20[] = "(/\002 the first parameter to deflt should be\
 \002,i3,\002 rather than\002,i3)";
-    static char fmt_40[] = "(/\002 /// bad\002,a1,\002 =\002,i5)";
-    static char fmt_70[] = "(/\002 /// \002,1a1,\002 changed from \002,i5\
+    static __thread char fmt_40[] = "(/\002 /// bad\002,a1,\002 =\002,i5)";
+    static __thread char fmt_70[] = "(/\002 /// \002,1a1,\002 changed from \002,i5\
 ,\002 to \002,i5)";
-    static char fmt_90[] = "(/\002 ///  iv(1) =\002,i5,\002 should be betwee\
+    static __thread char fmt_90[] = "(/\002 ///  iv(1) =\002,i5,\002 should be betwee\
 n 0 and 14.\002)";
-    static char fmt_130[] = "(/\002 ///  \002,2a4,\002.. v(\002,i2,\002) \
+    static __thread char fmt_130[] = "(/\002 ///  \002,2a4,\002.. v(\002,i2,\002) \
 =\002,d11.3,\002 should\002,\002 be between\002,d11.3,\002 and\002,d11.3)";
-    static char fmt_160[] = "(/\002 iv(nvdflt) =\002,i5,\002 rather than \
+    static __thread char fmt_160[] = "(/\002 iv(nvdflt) =\002,i5,\002 rather than \
 \002,i5)";
-    static char fmt_180[] = "(/\002 ///  d(\002,i3,\002) =\002,d11.3,\002 sh\
+    static __thread char fmt_180[] = "(/\002 ///  d(\002,i3,\002) =\002,d11.3,\002 sh\
 ould be positive\002)";
-    static char fmt_220[] = "(/\002 nondefault values....\002/\002 init\002,\
+    static __thread char fmt_220[] = "(/\002 nondefault values....\002/\002 init\002,\
 a1,\002..... iv(25) =\002,i3)";
-    static char fmt_260[] = "(/\002 \002,3a4,\002alues....\002/)";
-    static char fmt_240[] = "(\002 dtype..... iv(16) =\002,i3)";
-    static char fmt_270[] = "(1x,2a4,\002.. v(\002,i2,\002) =\002,d15.7)";
-    static char fmt_310[] = "(/\002 /// liv =\002,i5,\002 must be at leas\
+    static __thread char fmt_260[] = "(/\002 \002,3a4,\002alues....\002/)";
+    static __thread char fmt_240[] = "(\002 dtype..... iv(16) =\002,i3)";
+    static __thread char fmt_270[] = "(1x,2a4,\002.. v(\002,i2,\002) =\002,d15.7)";
+    static __thread char fmt_310[] = "(/\002 /// liv =\002,i5,\002 must be at leas\
 t\002,i5)";
-    static char fmt_330[] = "(/\002 /// lv =\002,i5,\002 must be at least\
+    static __thread char fmt_330[] = "(/\002 /// lv =\002,i5,\002 must be at least\
 \002,i5)";
-    static char fmt_350[] = "(/\002 /// alg =\002,i5,\002 must be 1 or 2\002)"
+    static __thread char fmt_350[] = "(/\002 /// alg =\002,i5,\002 must be 1 or 2\002)"
 	    ;
 
     /* System generated locals */
@@ -4549,33 +4551,33 @@ t\002,i5)";
     integer s_wsfe(cilist *), do_fio(integer *, char *, ftnlen), e_wsfe();
 
     /* Local variables */
-    static integer i__, j, k, l, m, ii;
-    static doublereal vk;
-    static integer pu, iv1, miv1, miv2;
+    static __thread integer i__, j, k, l, m, ii;
+    static __thread doublereal vk;
+    static __thread integer pu, iv1, miv1, miv2;
     extern /* Subroutine */ int deflt_(integer *, integer *, integer *, 
 	    integer *, doublereal *);
-    static real which[3];
+    static __thread real which[3];
     extern /* Subroutine */ int vdflt_(integer *, integer *, doublereal *), 
 	    vcopy_(integer *, doublereal *, doublereal *);
-    static integer parsv1, ndfalt;
+    static __thread integer parsv1, ndfalt;
     extern doublereal rmdcon_(integer *);
 
     /* Fortran I/O blocks */
-    static cilist io___432 = { 0, 0, 0, fmt_20, 0 };
-    static cilist io___433 = { 0, 0, 0, fmt_40, 0 };
-    static cilist io___436 = { 0, 0, 0, fmt_70, 0 };
-    static cilist io___437 = { 0, 0, 0, fmt_90, 0 };
-    static cilist io___444 = { 0, 0, 0, fmt_130, 0 };
-    static cilist io___445 = { 0, 0, 0, fmt_160, 0 };
-    static cilist io___446 = { 0, 0, 0, fmt_180, 0 };
-    static cilist io___447 = { 0, 0, 0, fmt_220, 0 };
-    static cilist io___448 = { 0, 0, 0, fmt_260, 0 };
-    static cilist io___449 = { 0, 0, 0, fmt_240, 0 };
-    static cilist io___451 = { 0, 0, 0, fmt_260, 0 };
-    static cilist io___452 = { 0, 0, 0, fmt_270, 0 };
-    static cilist io___454 = { 0, 0, 0, fmt_310, 0 };
-    static cilist io___455 = { 0, 0, 0, fmt_330, 0 };
-    static cilist io___456 = { 0, 0, 0, fmt_350, 0 };
+    static __thread cilist io___432 = { 0, 0, 0, fmt_20, 0 };
+    static __thread cilist io___433 = { 0, 0, 0, fmt_40, 0 };
+    static __thread cilist io___436 = { 0, 0, 0, fmt_70, 0 };
+    static __thread cilist io___437 = { 0, 0, 0, fmt_90, 0 };
+    static __thread cilist io___444 = { 0, 0, 0, fmt_130, 0 };
+    static __thread cilist io___445 = { 0, 0, 0, fmt_160, 0 };
+    static __thread cilist io___446 = { 0, 0, 0, fmt_180, 0 };
+    static __thread cilist io___447 = { 0, 0, 0, fmt_220, 0 };
+    static __thread cilist io___448 = { 0, 0, 0, fmt_260, 0 };
+    static __thread cilist io___449 = { 0, 0, 0, fmt_240, 0 };
+    static __thread cilist io___451 = { 0, 0, 0, fmt_260, 0 };
+    static __thread cilist io___452 = { 0, 0, 0, fmt_270, 0 };
+    static __thread cilist io___454 = { 0, 0, 0, fmt_310, 0 };
+    static __thread cilist io___455 = { 0, 0, 0, fmt_330, 0 };
+    static __thread cilist io___456 = { 0, 0, 0, fmt_350, 0 };
 
 
 
@@ -5015,15 +5017,15 @@ doublereal reldst_(integer *p, doublereal *d__, doublereal *x, doublereal *x0)
 {
     /* Initialized data */
 
-    static doublereal zero = 0.;
+    static __thread doublereal zero = 0.;
 
     /* System generated locals */
     integer i__1;
     doublereal ret_val, d__1, d__2;
 
     /* Local variables */
-    static integer i__;
-    static doublereal t, emax, xmax;
+    static __thread integer i__;
+    static __thread doublereal t, emax, xmax;
 
 
 /*  ***  compute and return relative difference between x and x0  *** */
@@ -5100,7 +5102,7 @@ logical stopx_(integer *idummy)
     integer i__1;
 
     /* Local variables */
-    static integer i__;
+    static __thread integer i__;
 
 
 /*  ***  set w = a*x + y  --  w, x, y = p-vectors, a = scalar  *** */
@@ -5127,7 +5129,7 @@ logical stopx_(integer *idummy)
     integer i__1;
 
     /* Local variables */
-    static integer i__;
+    static __thread integer i__;
 
 
 /*  ***  set y = x, where x and y are p-vectors  *** */
@@ -5151,42 +5153,42 @@ logical stopx_(integer *idummy)
 {
     /* Initialized data */
 
-    static doublereal one = 1.;
-    static doublereal three = 3.;
-    static integer afctol = 31;
-    static integer bias = 43;
-    static integer cosmin = 47;
-    static integer decfac = 22;
-    static integer delta0 = 44;
-    static integer dfac = 41;
-    static integer dinit = 38;
-    static integer dltfdc = 42;
-    static integer dltfdj = 43;
-    static integer dtinit = 39;
-    static integer d0init = 40;
-    static integer epslon = 19;
-    static integer eta0 = 42;
-    static integer fuzz = 45;
-    static integer huberc = 48;
-    static integer incfac = 23;
-    static integer lmax0 = 35;
-    static integer lmaxs = 36;
-    static integer phmnfc = 20;
-    static integer phmxfc = 21;
-    static integer rdfcmn = 24;
-    static integer rdfcmx = 25;
-    static integer rfctol = 32;
-    static integer rlimit = 46;
-    static integer rsptol = 49;
-    static integer sctol = 37;
-    static integer sigmin = 50;
-    static integer tuner1 = 26;
-    static integer tuner2 = 27;
-    static integer tuner3 = 28;
-    static integer tuner4 = 29;
-    static integer tuner5 = 30;
-    static integer xctol = 33;
-    static integer xftol = 34;
+    static __thread doublereal one = 1.;
+    static __thread doublereal three = 3.;
+    static __thread integer afctol = 31;
+    static __thread integer bias = 43;
+    static __thread integer cosmin = 47;
+    static __thread integer decfac = 22;
+    static __thread integer delta0 = 44;
+    static __thread integer dfac = 41;
+    static __thread integer dinit = 38;
+    static __thread integer dltfdc = 42;
+    static __thread integer dltfdj = 43;
+    static __thread integer dtinit = 39;
+    static __thread integer d0init = 40;
+    static __thread integer epslon = 19;
+    static __thread integer eta0 = 42;
+    static __thread integer fuzz = 45;
+    static __thread integer huberc = 48;
+    static __thread integer incfac = 23;
+    static __thread integer lmax0 = 35;
+    static __thread integer lmaxs = 36;
+    static __thread integer phmnfc = 20;
+    static __thread integer phmxfc = 21;
+    static __thread integer rdfcmn = 24;
+    static __thread integer rdfcmx = 25;
+    static __thread integer rfctol = 32;
+    static __thread integer rlimit = 46;
+    static __thread integer rsptol = 49;
+    static __thread integer sctol = 37;
+    static __thread integer sigmin = 50;
+    static __thread integer tuner1 = 26;
+    static __thread integer tuner2 = 27;
+    static __thread integer tuner3 = 28;
+    static __thread integer tuner4 = 29;
+    static __thread integer tuner5 = 30;
+    static __thread integer xctol = 33;
+    static __thread integer xftol = 34;
 
     /* System generated locals */
     doublereal d__1, d__2, d__3;
@@ -5195,9 +5197,9 @@ logical stopx_(integer *idummy)
     double pow_dd(doublereal *, doublereal *);
 
     /* Local variables */
-    static doublereal machep;
+    static __thread doublereal machep;
     extern doublereal rmdcon_(integer *);
-    static doublereal mepcrt, sqteps;
+    static __thread doublereal mepcrt, sqteps;
 
 
 /*  ***  supply ***sol (version 2.3) default values to v  *** */
@@ -5311,7 +5313,7 @@ L999:
     integer i__1;
 
     /* Local variables */
-    static integer i__;
+    static __thread integer i__;
 
 
 /*  ***  set p-vector y to scalar s  *** */
@@ -5334,9 +5336,9 @@ doublereal v2norm_(integer *p, doublereal *x)
 {
     /* Initialized data */
 
-    static doublereal one = 1.;
-    static doublereal zero = 0.;
-    static doublereal sqteta = 0.;
+    static __thread doublereal one = 1.;
+    static __thread doublereal zero = 0.;
+    static __thread doublereal sqteta = 0.;
 
     /* System generated locals */
     integer i__1;
@@ -5346,8 +5348,8 @@ doublereal v2norm_(integer *p, doublereal *x)
     double sqrt(doublereal);
 
     /* Local variables */
-    static integer i__, j;
-    static doublereal r__, t, xi, scale;
+    static __thread integer i__, j;
+    static __thread doublereal r__, t, xi, scale;
     extern doublereal rmdcon_(integer *);
 
 
@@ -5436,20 +5438,20 @@ L999:
 {
     /* Initialized data */
 
-    static integer nextv = 47;
-    static integer nfcall = 6;
-    static integer nfgcal = 7;
-    static integer g = 28;
-    static integer h__ = 56;
-    static integer toobig = 2;
-    static integer vneed = 4;
+    static __thread integer nextv = 47;
+    static __thread integer nfcall = 6;
+    static __thread integer nfgcal = 7;
+    static __thread integer g = 28;
+    static __thread integer h__ = 56;
+    static __thread integer toobig = 2;
+    static __thread integer vneed = 4;
 
     /* System generated locals */
     integer i__1;
 
     /* Local variables */
-    static doublereal f;
-    static integer g1, h1, lh, nf, iv1;
+    static __thread doublereal f;
+    static __thread integer g1, h1, lh, nf, iv1;
     extern /* Subroutine */ int deflt_(integer *, integer *, integer *, 
 	    integer *, doublereal *), humit_(doublereal *, doublereal *, 
 	    doublereal *, doublereal *, integer *, integer *, integer *, 
@@ -5627,69 +5629,69 @@ L999:
 {
     /* Initialized data */
 
-    static integer cnvcod = 55;
-    static integer dg = 37;
-    static integer dtol = 59;
-    static integer dtype = 16;
-    static integer irc = 29;
-    static integer kagqt = 33;
-    static integer lmat = 42;
-    static integer mode = 35;
-    static integer model = 5;
-    static integer mxfcal = 17;
-    static integer mxiter = 18;
-    static integer nextv = 47;
-    static integer nfcall = 6;
-    static integer nfgcal = 7;
-    static integer ngcall = 30;
-    static integer niter = 31;
-    static integer radinc = 8;
-    static integer restor = 9;
-    static integer step = 40;
-    static integer stglim = 11;
-    static integer stlstg = 41;
-    static integer toobig = 2;
-    static integer vneed = 4;
-    static integer w = 34;
-    static integer xirc = 13;
-    static integer x0 = 43;
-    static integer dgnorm = 1;
-    static integer dinit = 38;
-    static integer dstnrm = 2;
-    static integer dtinit = 39;
-    static integer d0init = 40;
-    static integer f = 10;
-    static integer f0 = 13;
-    static integer fdif = 11;
-    static integer gtstep = 4;
-    static integer incfac = 23;
-    static integer lmax0 = 35;
-    static integer lmaxs = 36;
-    static integer preduc = 7;
-    static integer radfac = 16;
-    static integer radius = 8;
-    static integer rad0 = 9;
-    static integer reldx = 17;
-    static integer stppar = 5;
-    static integer tuner4 = 29;
-    static integer tuner5 = 30;
-    static doublereal one = 1.;
-    static doublereal onep2 = 1.2;
-    static doublereal zero = 0.;
+    static __thread integer cnvcod = 55;
+    static __thread integer dg = 37;
+    static __thread integer dtol = 59;
+    static __thread integer dtype = 16;
+    static __thread integer irc = 29;
+    static __thread integer kagqt = 33;
+    static __thread integer lmat = 42;
+    static __thread integer mode = 35;
+    static __thread integer model = 5;
+    static __thread integer mxfcal = 17;
+    static __thread integer mxiter = 18;
+    static __thread integer nextv = 47;
+    static __thread integer nfcall = 6;
+    static __thread integer nfgcal = 7;
+    static __thread integer ngcall = 30;
+    static __thread integer niter = 31;
+    static __thread integer radinc = 8;
+    static __thread integer restor = 9;
+    static __thread integer step = 40;
+    static __thread integer stglim = 11;
+    static __thread integer stlstg = 41;
+    static __thread integer toobig = 2;
+    static __thread integer vneed = 4;
+    static __thread integer w = 34;
+    static __thread integer xirc = 13;
+    static __thread integer x0 = 43;
+    static __thread integer dgnorm = 1;
+    static __thread integer dinit = 38;
+    static __thread integer dstnrm = 2;
+    static __thread integer dtinit = 39;
+    static __thread integer d0init = 40;
+    static __thread integer f = 10;
+    static __thread integer f0 = 13;
+    static __thread integer fdif = 11;
+    static __thread integer gtstep = 4;
+    static __thread integer incfac = 23;
+    static __thread integer lmax0 = 35;
+    static __thread integer lmaxs = 36;
+    static __thread integer preduc = 7;
+    static __thread integer radfac = 16;
+    static __thread integer radius = 8;
+    static __thread integer rad0 = 9;
+    static __thread integer reldx = 17;
+    static __thread integer stppar = 5;
+    static __thread integer tuner4 = 29;
+    static __thread integer tuner5 = 30;
+    static __thread doublereal one = 1.;
+    static __thread doublereal onep2 = 1.2;
+    static __thread doublereal zero = 0.;
 
     /* System generated locals */
     integer i__1, i__2;
 
     /* Local variables */
-    static integer i__, j, k, l;
-    static doublereal t;
-    static integer w1, x01, dg1, nn1o2, temp1, step1;
+    static __thread integer i__, j, k, l;
+    static __thread doublereal t;
+    static __thread integer w1, x01, dg1, nn1o2, temp1, step1;
     extern /* Subroutine */ int deflt_(integer *, integer *, integer *, 
 	    integer *, doublereal *), parck_(integer *, doublereal *, integer 
 	    *, integer *, integer *, integer *, doublereal *), dupdu_(
 	    doublereal *, doublereal *, integer *, integer *, integer *, 
 	    integer *, doublereal *);
-    static integer dummy;
+    static __thread integer dummy;
     extern /* Subroutine */ int assst_(integer *, integer *, integer *, 
 	    doublereal *), vcopy_(integer *, doublereal *, doublereal *), 
 	    itsum_(doublereal *, doublereal *, integer *, integer *, integer *
@@ -5701,7 +5703,7 @@ L999:
     extern doublereal v2norm_(integer *, doublereal *), dotprd_(integer *, 
 	    doublereal *, doublereal *), reldst_(integer *, doublereal *, 
 	    doublereal *, doublereal *);
-    static integer lstgst;
+    static __thread integer lstgst;
     extern /* Subroutine */ int slvmul_(integer *, doublereal *, doublereal *,
 	     doublereal *), vscopy_(integer *, doublereal *, doublereal *);
 
@@ -6281,10 +6283,10 @@ L999:
 {
     /* Initialized data */
 
-    static integer dfac = 41;
-    static integer dtol = 59;
-    static integer dtype = 16;
-    static integer niter = 31;
+    static __thread integer dfac = 41;
+    static __thread integer dtol = 59;
+    static __thread integer dtype = 16;
+    static __thread integer niter = 31;
 
     /* System generated locals */
     integer i__1;
@@ -6294,11 +6296,11 @@ L999:
     double sqrt(doublereal);
 
     /* Local variables */
-    static integer i__;
-    static doublereal t;
-    static integer d0i;
-    static doublereal vdfac;
-    static integer dtoli;
+    static __thread integer i__;
+    static __thread doublereal t;
+    static __thread integer d0i;
+    static __thread doublereal vdfac;
+    static __thread integer dtoli;
 
 
 /*  ***  update scale vector d for humsl  *** */
@@ -6367,31 +6369,31 @@ L999:
 {
     /* Initialized data */
 
-    static integer dgnorm = 1;
-    static integer dstnrm = 2;
-    static integer dst0 = 3;
-    static integer epslon = 19;
-    static integer gtstep = 4;
-    static integer nreduc = 6;
-    static integer phmnfc = 20;
-    static integer phmxfc = 21;
-    static integer preduc = 7;
-    static integer radius = 8;
-    static integer rad0 = 9;
-    static integer stppar = 5;
-    static doublereal epsfac = 50.;
-    static doublereal four = 4.;
-    static doublereal half = .5;
-    static doublereal kappa = 2.;
-    static doublereal negone = -1.;
-    static doublereal one = 1.;
-    static doublereal p001 = .001;
-    static doublereal six = 6.;
-    static doublereal three = 3.;
-    static doublereal two = 2.;
-    static doublereal zero = 0.;
-    static doublereal big = 0.;
-    static doublereal dgxfac = 0.;
+    static __thread integer dgnorm = 1;
+    static __thread integer dstnrm = 2;
+    static __thread integer dst0 = 3;
+    static __thread integer epslon = 19;
+    static __thread integer gtstep = 4;
+    static __thread integer nreduc = 6;
+    static __thread integer phmnfc = 20;
+    static __thread integer phmxfc = 21;
+    static __thread integer preduc = 7;
+    static __thread integer radius = 8;
+    static __thread integer rad0 = 9;
+    static __thread integer stppar = 5;
+    static __thread doublereal epsfac = 50.;
+    static __thread doublereal four = 4.;
+    static __thread doublereal half = .5;
+    static __thread doublereal kappa = 2.;
+    static __thread doublereal negone = -1.;
+    static __thread doublereal one = 1.;
+    static __thread doublereal p001 = .001;
+    static __thread doublereal six = 6.;
+    static __thread doublereal three = 3.;
+    static __thread doublereal two = 2.;
+    static __thread doublereal zero = 0.;
+    static __thread doublereal big = 0.;
+    static __thread doublereal dgxfac = 0.;
 
     /* System generated locals */
     integer i__1, i__2;
@@ -6401,39 +6403,39 @@ L999:
     double sqrt(doublereal);
 
     /* Local variables */
-    static integer i__, j, k, q;
-    static doublereal t;
-    static integer x, k1, q0;
-    static doublereal t1, t2, lk, si, sk, uk, wi, sw;
-    static integer im1, lk0, uk0;
-    static doublereal aki, akk, rad;
-    static integer inc, irc;
-    static doublereal phi, eps, dst;
-    static integer diag, emin, emax;
-    static doublereal root;
-    static integer diag0;
-    static doublereal delta;
-    static integer kalim, kamin;
-    static doublereal radsq, gtsta;
+    static __thread integer i__, j, k, q;
+    static __thread doublereal t;
+    static __thread integer x, k1, q0;
+    static __thread doublereal t1, t2, lk, si, sk, uk, wi, sw;
+    static __thread integer im1, lk0, uk0;
+    static __thread doublereal aki, akk, rad;
+    static __thread integer inc, irc;
+    static __thread doublereal phi, eps, dst;
+    static __thread integer diag, emin, emax;
+    static __thread doublereal root;
+    static __thread integer diag0;
+    static __thread doublereal delta;
+    static __thread integer kalim, kamin;
+    static __thread doublereal radsq, gtsta;
     extern /* Subroutine */ int lsqrt_(integer *, integer *, doublereal *, 
 	    doublereal *, integer *);
     extern doublereal v2norm_(integer *, doublereal *);
-    static doublereal alphak, psifac;
-    static integer dggdmx;
-    static doublereal oldphi;
+    static __thread doublereal alphak, psifac;
+    static __thread integer dggdmx;
+    static __thread doublereal oldphi;
     extern doublereal rmdcon_(integer *);
-    static doublereal phimin, phimax;
-    static integer phipin;
+    static __thread doublereal phimin, phimax;
+    static __thread integer phipin;
     extern doublereal dotprd_(integer *, doublereal *, doublereal *);
-    static integer dstsav;
+    static __thread integer dstsav;
     extern /* Subroutine */ int livmul_(integer *, doublereal *, doublereal *,
 	     doublereal *);
     extern doublereal lsvmin_(integer *, doublereal *, doublereal *, 
 	    doublereal *);
     extern /* Subroutine */ int litvmu_(integer *, doublereal *, doublereal *,
 	     doublereal *);
-    static logical restrt;
-    static doublereal twopsi;
+    static __thread logical restrt;
+    static __thread doublereal twopsi;
 
 
 /*  *** compute goldfeld-quandt-trotter step by more-hebden technique *** */
@@ -7254,7 +7256,7 @@ L410:
 {
     /* Initialized data */
 
-    static doublereal zero = 0.;
+    static __thread doublereal zero = 0.;
 
     /* System generated locals */
     integer i__1, i__2, i__3;
@@ -7263,11 +7265,11 @@ L410:
     double sqrt(doublereal);
 
     /* Local variables */
-    static integer i__, j, k;
-    static doublereal t;
-    static integer i0, j0, ij, ik, jk;
-    static doublereal td;
-    static integer im1, jm1;
+    static __thread integer i__, j, k;
+    static __thread doublereal t;
+    static __thread integer i0, j0, ij, ik, jk;
+    static __thread doublereal td;
+    static __thread integer im1, jm1;
 
 
 /*  ***  compute rows n1 through n of the cholesky factor  l  of */
@@ -7357,27 +7359,27 @@ doublereal lsvmin_(integer *p, doublereal *l, doublereal *x, doublereal *y)
 {
     /* Initialized data */
 
-    static doublereal half = .5;
-    static doublereal one = 1.;
-    static doublereal r9973 = 9973.;
-    static doublereal zero = 0.;
+    static __thread doublereal half = .5;
+    static __thread doublereal one = 1.;
+    static __thread doublereal r9973 = 9973.;
+    static __thread doublereal zero = 0.;
 
     /* System generated locals */
     integer i__1, i__2;
     doublereal ret_val, d__1;
 
     /* Local variables */
-    static doublereal b;
-    static integer i__, j;
-    static doublereal t;
-    static integer j0, ii, ji, jj, ix, jm1, pm1, jjj;
-    static doublereal splus;
+    static __thread doublereal b;
+    static __thread integer i__, j;
+    static __thread doublereal t;
+    static __thread integer j0, ii, ji, jj, ix, jm1, pm1, jjj;
+    static __thread doublereal splus;
     extern /* Subroutine */ int vaxpy_(integer *, doublereal *, doublereal *, 
 	    doublereal *, doublereal *);
-    static doublereal xplus;
+    static __thread doublereal xplus;
     extern doublereal v2norm_(integer *, doublereal *), dotprd_(integer *, 
 	    doublereal *, doublereal *);
-    static doublereal sminus, xminus;
+    static __thread doublereal sminus, xminus;
 
 
 /*  ***  estimate smallest sing. value of packed lower triang. matrix l */
@@ -7591,9 +7593,9 @@ L999:
     integer i__1, i__2;
 
     /* Local variables */
-    static integer i__, j, k;
-    static doublereal xi;
-    static integer im1;
+    static __thread integer i__, j, k;
+    static __thread doublereal xi;
+    static __thread integer im1;
     extern doublereal dotprd_(integer *, doublereal *, doublereal *);
 
 
@@ -7661,16 +7663,16 @@ doublereal d1mach_(integer *i__)
     /* Subroutine */ int s_stop(char *, ftnlen);
 
     /* Fortran I/O blocks */
-    static cilist io___712 = { 0, 6, 0, "(a)", 0 };
-    static cilist io___713 = { 0, 6, 0, "(a)", 0 };
-    static cilist io___714 = { 0, 6, 0, "(a)", 0 };
-    static cilist io___715 = { 0, 6, 0, "(a)", 0 };
-    static cilist io___716 = { 0, 6, 0, "(a,i12)", 0 };
-    static cilist io___717 = { 0, 6, 0, "(a)", 0 };
-    static cilist io___718 = { 0, 6, 0, "(a)", 0 };
-    static cilist io___719 = { 0, 6, 0, "(a)", 0 };
-    static cilist io___720 = { 0, 6, 0, "(a)", 0 };
-    static cilist io___721 = { 0, 6, 0, "(a,i12)", 0 };
+    static __thread cilist io___712 = { 0, 6, 0, "(a)", 0 };
+    static __thread cilist io___713 = { 0, 6, 0, "(a)", 0 };
+    static __thread cilist io___714 = { 0, 6, 0, "(a)", 0 };
+    static __thread cilist io___715 = { 0, 6, 0, "(a)", 0 };
+    static __thread cilist io___716 = { 0, 6, 0, "(a,i12)", 0 };
+    static __thread cilist io___717 = { 0, 6, 0, "(a)", 0 };
+    static __thread cilist io___718 = { 0, 6, 0, "(a)", 0 };
+    static __thread cilist io___719 = { 0, 6, 0, "(a)", 0 };
+    static __thread cilist io___720 = { 0, 6, 0, "(a)", 0 };
+    static __thread cilist io___721 = { 0, 6, 0, "(a,i12)", 0 };
 
 
 /* *********************************************************************72 */
@@ -7783,16 +7785,16 @@ integer i1mach_(integer *i__)
     /* Subroutine */ int s_stop(char *, ftnlen);
 
     /* Fortran I/O blocks */
-    static cilist io___722 = { 0, 6, 0, "(a)", 0 };
-    static cilist io___723 = { 0, 6, 0, "(a)", 0 };
-    static cilist io___724 = { 0, 6, 0, "(a)", 0 };
-    static cilist io___725 = { 0, 6, 0, "(a)", 0 };
-    static cilist io___726 = { 0, 6, 0, "(a,i12)", 0 };
-    static cilist io___727 = { 0, 6, 0, "(a)", 0 };
-    static cilist io___728 = { 0, 6, 0, "(a)", 0 };
-    static cilist io___729 = { 0, 6, 0, "(a)", 0 };
-    static cilist io___730 = { 0, 6, 0, "(a)", 0 };
-    static cilist io___731 = { 0, 6, 0, "(a,i12)", 0 };
+    static __thread cilist io___722 = { 0, 6, 0, "(a)", 0 };
+    static __thread cilist io___723 = { 0, 6, 0, "(a)", 0 };
+    static __thread cilist io___724 = { 0, 6, 0, "(a)", 0 };
+    static __thread cilist io___725 = { 0, 6, 0, "(a)", 0 };
+    static __thread cilist io___726 = { 0, 6, 0, "(a,i12)", 0 };
+    static __thread cilist io___727 = { 0, 6, 0, "(a)", 0 };
+    static __thread cilist io___728 = { 0, 6, 0, "(a)", 0 };
+    static __thread cilist io___729 = { 0, 6, 0, "(a)", 0 };
+    static __thread cilist io___730 = { 0, 6, 0, "(a)", 0 };
+    static __thread cilist io___731 = { 0, 6, 0, "(a,i12)", 0 };
 
 
 /* *********************************************************************72 */
@@ -7960,16 +7962,16 @@ doublereal r1mach_(integer *i__)
     /* Subroutine */ int s_stop(char *, ftnlen);
 
     /* Fortran I/O blocks */
-    static cilist io___732 = { 0, 6, 0, "(a)", 0 };
-    static cilist io___733 = { 0, 6, 0, "(a)", 0 };
-    static cilist io___734 = { 0, 6, 0, "(a)", 0 };
-    static cilist io___735 = { 0, 6, 0, "(a)", 0 };
-    static cilist io___736 = { 0, 6, 0, "(a,i12)", 0 };
-    static cilist io___737 = { 0, 6, 0, "(a)", 0 };
-    static cilist io___738 = { 0, 6, 0, "(a)", 0 };
-    static cilist io___739 = { 0, 6, 0, "(a)", 0 };
-    static cilist io___740 = { 0, 6, 0, "(a)", 0 };
-    static cilist io___741 = { 0, 6, 0, "(a,i12)", 0 };
+    static __thread cilist io___732 = { 0, 6, 0, "(a)", 0 };
+    static __thread cilist io___733 = { 0, 6, 0, "(a)", 0 };
+    static __thread cilist io___734 = { 0, 6, 0, "(a)", 0 };
+    static __thread cilist io___735 = { 0, 6, 0, "(a)", 0 };
+    static __thread cilist io___736 = { 0, 6, 0, "(a,i12)", 0 };
+    static __thread cilist io___737 = { 0, 6, 0, "(a)", 0 };
+    static __thread cilist io___738 = { 0, 6, 0, "(a)", 0 };
+    static __thread cilist io___739 = { 0, 6, 0, "(a)", 0 };
+    static __thread cilist io___740 = { 0, 6, 0, "(a)", 0 };
+    static __thread cilist io___741 = { 0, 6, 0, "(a,i12)", 0 };
 
 
 /* *********************************************************************72 */
