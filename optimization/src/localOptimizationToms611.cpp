@@ -34,8 +34,8 @@ int OptimizerToms611TrustRegionSumsl::optimize(OptimizationProblem *problem)
     integer iv[liv];
     iv[0] = 0; // fresh start, make sumsl_ call deflt_
 
-    integer lv = toms611_sumsl_v_min_length(numOptimizationVariables);
-    doublereal v[lv];
+    integer lv = toms611_sumsl_v_min_length(numOptimizationVariables)*10;
+    std::vector<doublereal> v(lv);
 
     doublereal scaling[numOptimizationVariables];
     std::fill(scaling, scaling + numOptimizationVariables, 1.0);
@@ -53,7 +53,7 @@ int OptimizerToms611TrustRegionSumsl::optimize(OptimizationProblem *problem)
            parameters,
            reinterpret_cast<S_fp>(calcf), (S_fp)calcg,
            iv, liv,
-           lv, v,
+           lv, v.data(),
            reinterpret_cast<integer *>(problem), // sumsl_ only lets us pass integer, real or function...
            &fval, nullptr);
 
