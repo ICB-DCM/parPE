@@ -24,23 +24,36 @@ bool withinBounds(integer n, doublereal const *x, const double *min, const doubl
 void calcf(integer const &n, doublereal const *x, integer &nf, doublereal &f,
            OptimizationProblem *problem, doublereal *urparm, void *ufparm) {
 
+    if(!withinBounds(n, x, problem->getParametersMin(), problem->getParametersMax())) {
+        nf = 0; // tells optimizer to choose a shorter step
+        return;
+    }
+
     problem->evaluateObjectiveFunction(x, &f, nullptr);
     *urparm = f;
 
-    if(std::isnan(f) || !withinBounds(n, x, problem->getParametersMin(), problem->getParametersMax())) {
+    if(std::isnan(f)) {
         nf = 0; // tells optimizer to choose a shorter step
+        return;
     }
 }
 
 void calcg(integer const &n, doublereal const *x, integer &nf, doublereal *g,
            OptimizationProblem *problem, doublereal *urparm, void *ufparm) {
     static int __thread numFunctionCalls = 0;
+
+    if(!withinBounds(n, x, problem->getParametersMin(), problem->getParametersMax())) {
+        nf = 0; // tells optimizer to choose a shorter step
+        return;
+    }
+
     problem->evaluateObjectiveFunction(x, urparm, g);
     problem->intermediateFunction(0, numFunctionCalls, *urparm, 0, 0, 0, 0, 0, 0, 0, 0);
     ++numFunctionCalls;
 
-    if(std::isnan(*urparm) || !withinBounds(n, x, problem->getParametersMin(), problem->getParametersMax())) {
+    if(std::isnan(f)) {
         nf = 0; // tells optimizer to choose a shorter step
+        return;
     }
 }
 
