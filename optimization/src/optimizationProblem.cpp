@@ -119,9 +119,9 @@ void OptimizationProblem::logOptimizerFinished(double optimalCost,
 
 OptimizationProblem::~OptimizationProblem() {}
 
-double const* OptimizationProblem::getInitialParameters(int multiStartIndex) const {
-    double *buf = new double[getNumOptimizationParameters()];
-    fillInitialParameters(buf);
+std::unique_ptr<double[]> OptimizationProblem::getInitialParameters(int multiStartIndex) const {
+    std::unique_ptr<double[]> buf(new double[getNumOptimizationParameters()]);
+    fillInitialParameters(buf.get());
     return buf;
 }
 

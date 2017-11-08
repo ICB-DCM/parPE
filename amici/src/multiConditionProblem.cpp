@@ -268,9 +268,9 @@ double MultiConditionProblem::getTime() const {
     // return MPI_Wtime();
 }
 
-const double *MultiConditionProblem::getInitialParameters(int multiStartIndex) const {
-    return OptimizationOptions::getStartingPoint(dataProvider->getHdf5FileId(),
-                                                 multiStartIndex);
+std::unique_ptr<double[]> MultiConditionProblem::getInitialParameters(int multiStartIndex) const {
+    return std::unique_ptr<double[]>(OptimizationOptions::getStartingPoint(dataProvider->getHdf5FileId(),
+                                                 multiStartIndex));
 }
 
 void MultiConditionProblem::updateUserDataCommon(
@@ -428,7 +428,7 @@ std::unique_ptr<OptimizationProblem> MultiConditionProblemMultiStartOptimization
     assert(dp != nullptr);
     assert(dp->getModel() != nullptr);
 
-    auto problem = std::make_unique<MultiConditionProblem>(dp, loadBalancer);
+    std::unique_ptr<MultiConditionProblem> problem = std::make_unique<MultiConditionProblem>(dp, loadBalancer);
 
     problem->setOptimizationOptions(options);
 
@@ -441,8 +441,8 @@ std::unique_ptr<OptimizationProblem> MultiConditionProblemMultiStartOptimization
         problem->path.idxLocalOptimization = multiStartIndex;
     }
 
-    problem->setInitialParameters(
-        problem->getInitialParameters(multiStartIndex));
+    auto startingPoint = problem->getInitialParameters(multiStartIndex);
+    problem->setInitialParameters(startingPoint.get());
 
     return std::move(problem);
 }

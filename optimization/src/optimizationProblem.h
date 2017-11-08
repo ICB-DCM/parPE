@@ -52,7 +52,7 @@ class OptimizationProblem {
 
     virtual ~OptimizationProblem();
 
-    virtual double const* getInitialParameters(int multiStartIndex) const;
+    virtual std::unique_ptr<double[]> getInitialParameters(int multiStartIndex) const;
 
     virtual double const* getInitialParameters() const;
 

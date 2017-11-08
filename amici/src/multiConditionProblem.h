@@ -118,7 +118,7 @@ class MultiConditionProblem : public OptimizationProblem,
                                     int jobId);
 
     MultiConditionDataProvider *getDataProvider();
-    virtual double const*getInitialParameters(int multiStartIndex) const override;
+    virtual std::unique_ptr<double[]> getInitialParameters(int multiStartIndex) const override;
 
     JobIdentifier path;
 
