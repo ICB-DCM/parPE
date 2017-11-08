@@ -51,7 +51,7 @@ void calcg(integer const &n, doublereal const *x, integer &nf, doublereal *g,
     problem->intermediateFunction(0, numFunctionCalls, *urparm, 0, 0, 0, 0, 0, 0, 0, 0);
     ++numFunctionCalls;
 
-    if(std::isnan(f)) {
+    if(std::isnan(*urparm)) {
         nf = 0; // tells optimizer to choose a shorter step
         return;
     }
