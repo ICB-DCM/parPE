@@ -40,6 +40,17 @@ int OptimizerToms611TrustRegionSumsl::optimize(OptimizationProblem *problem)
     doublereal scaling[numOptimizationVariables];
     std::fill(scaling, scaling + numOptimizationVariables, 1.0);
 
+    // Initialize optimizer options and memory
+    integer deflt_algorithm = 2; /* general unconstrained optimization constants */
+    deflt_(deflt_algorithm, iv, liv, lv, v.data());
+
+    if(iv[0] != 12) // dflt_ success
+        throw std::exception();
+
+    // change default options
+    auto o = problem->getOptimizationOptions();
+    iv[17] = o.maxOptimizerIterations; // mxiter
+    iv[23] = 0; // x0prt: don't print x0 and scaling
 
     doublereal parameters[numOptimizationVariables];
     double const* startingPoint = problem->getInitialParameters();

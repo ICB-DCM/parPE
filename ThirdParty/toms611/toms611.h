@@ -62,7 +62,7 @@ int sumsl_(integer &n, doublereal *d, doublereal *x, S_fp
            calcf, S_fp calcg, integer *iv, integer &liv, integer &lv, doublereal
            *v, integer *uiparm, doublereal *urparm, U_fp ufparm);
 
-//int deflt_(integer *alg, integer *iv, integer *liv, integer *lv, doublereal *v);
+int deflt_(integer &alg, integer *iv, integer &liv, integer &lv, doublereal *v);
 
 #ifdef __cplusplus
 }
