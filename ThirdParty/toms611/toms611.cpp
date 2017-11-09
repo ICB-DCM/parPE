@@ -3806,40 +3806,40 @@ d diagnostics.\002)";
     static __thread doublereal oldf, reldf, nreldf, preldf;
 
     /* Fortran I/O blocks */
-    static __thread cilist io___340 = { 0, 0, 0, fmt_30, 0 };
-    static __thread cilist io___341 = { 0, 0, 0, fmt_40, 0 };
-    static __thread cilist io___343 = { 0, 0, 0, fmt_100, 0 };
-    static __thread cilist io___344 = { 0, 0, 0, fmt_110, 0 };
-    static __thread cilist io___345 = { 0, 0, 0, fmt_70, 0 };
-    static __thread cilist io___346 = { 0, 0, 0, fmt_80, 0 };
-    static __thread cilist io___348 = { 0, 0, 0, fmt_100, 0 };
-    static __thread cilist io___349 = { 0, 0, 0, fmt_110, 0 };
-    static __thread cilist io___350 = { 0, 0, 0, fmt_140, 0 };
-    static __thread cilist io___351 = { 0, 0, 0, fmt_160, 0 };
-    static __thread cilist io___352 = { 0, 0, 0, fmt_180, 0 };
-    static __thread cilist io___353 = { 0, 0, 0, fmt_200, 0 };
-    static __thread cilist io___354 = { 0, 0, 0, fmt_220, 0 };
-    static __thread cilist io___355 = { 0, 0, 0, fmt_240, 0 };
-    static __thread cilist io___356 = { 0, 0, 0, fmt_260, 0 };
-    static __thread cilist io___357 = { 0, 0, 0, fmt_280, 0 };
-    static __thread cilist io___358 = { 0, 0, 0, fmt_300, 0 };
-    static __thread cilist io___359 = { 0, 0, 0, fmt_320, 0 };
-    static __thread cilist io___360 = { 0, 0, 0, fmt_340, 0 };
-    static __thread cilist io___361 = { 0, 0, 0, fmt_360, 0 };
-    static __thread cilist io___362 = { 0, 0, 0, fmt_380, 0 };
-    static __thread cilist io___363 = { 0, 0, 0, fmt_400, 0 };
-    static __thread cilist io___365 = { 0, 0, 0, fmt_30, 0 };
-    static __thread cilist io___366 = { 0, 0, 0, fmt_40, 0 };
-    static __thread cilist io___367 = { 0, 0, 0, fmt_70, 0 };
-    static __thread cilist io___368 = { 0, 0, 0, fmt_80, 0 };
-    static __thread cilist io___369 = { 0, 0, 0, fmt_410, 0 };
-    static __thread cilist io___370 = { 0, 0, 0, fmt_420, 0 };
-    static __thread cilist io___372 = { 0, 0, 0, fmt_450, 0 };
-    static __thread cilist io___373 = { 0, 0, 0, fmt_460, 0 };
-    static __thread cilist io___374 = { 0, 0, 0, fmt_470, 0 };
-    static __thread cilist io___375 = { 0, 0, 0, fmt_490, 0 };
-    static __thread cilist io___376 = { 0, 0, 0, fmt_510, 0 };
-    static __thread cilist io___377 = { 0, 0, 0, fmt_530, 0 };
+    cilist io___340 = { 0, 0, 0, fmt_30, 0 };
+    cilist io___341 = { 0, 0, 0, fmt_40, 0 };
+    cilist io___343 = { 0, 0, 0, fmt_100, 0 };
+    cilist io___344 = { 0, 0, 0, fmt_110, 0 };
+    cilist io___345 = { 0, 0, 0, fmt_70, 0 };
+    cilist io___346 = { 0, 0, 0, fmt_80, 0 };
+    cilist io___348 = { 0, 0, 0, fmt_100, 0 };
+    cilist io___349 = { 0, 0, 0, fmt_110, 0 };
+    cilist io___350 = { 0, 0, 0, fmt_140, 0 };
+    cilist io___351 = { 0, 0, 0, fmt_160, 0 };
+    cilist io___352 = { 0, 0, 0, fmt_180, 0 };
+    cilist io___353 = { 0, 0, 0, fmt_200, 0 };
+    cilist io___354 = { 0, 0, 0, fmt_220, 0 };
+    cilist io___355 = { 0, 0, 0, fmt_240, 0 };
+    cilist io___356 = { 0, 0, 0, fmt_260, 0 };
+    cilist io___357 = { 0, 0, 0, fmt_280, 0 };
+    cilist io___358 = { 0, 0, 0, fmt_300, 0 };
+    cilist io___359 = { 0, 0, 0, fmt_320, 0 };
+    cilist io___360 = { 0, 0, 0, fmt_340, 0 };
+    cilist io___361 = { 0, 0, 0, fmt_360, 0 };
+    cilist io___362 = { 0, 0, 0, fmt_380, 0 };
+    cilist io___363 = { 0, 0, 0, fmt_400, 0 };
+    cilist io___365 = { 0, 0, 0, fmt_30, 0 };
+    cilist io___366 = { 0, 0, 0, fmt_40, 0 };
+    cilist io___367 = { 0, 0, 0, fmt_70, 0 };
+    cilist io___368 = { 0, 0, 0, fmt_80, 0 };
+    cilist io___369 = { 0, 0, 0, fmt_410, 0 };
+    cilist io___370 = { 0, 0, 0, fmt_420, 0 };
+    cilist io___372 = { 0, 0, 0, fmt_450, 0 };
+    cilist io___373 = { 0, 0, 0, fmt_460, 0 };
+    cilist io___374 = { 0, 0, 0, fmt_470, 0 };
+    cilist io___375 = { 0, 0, 0, fmt_490, 0 };
+    cilist io___376 = { 0, 0, 0, fmt_510, 0 };
+    cilist io___377 = { 0, 0, 0, fmt_530, 0 };
 
 
 
@@ -4563,21 +4563,21 @@ t\002,i5)";
     extern doublereal rmdcon_(integer *);
 
     /* Fortran I/O blocks */
-    static __thread cilist io___432 = { 0, 0, 0, fmt_20, 0 };
-    static __thread cilist io___433 = { 0, 0, 0, fmt_40, 0 };
-    static __thread cilist io___436 = { 0, 0, 0, fmt_70, 0 };
-    static __thread cilist io___437 = { 0, 0, 0, fmt_90, 0 };
-    static __thread cilist io___444 = { 0, 0, 0, fmt_130, 0 };
-    static __thread cilist io___445 = { 0, 0, 0, fmt_160, 0 };
-    static __thread cilist io___446 = { 0, 0, 0, fmt_180, 0 };
-    static __thread cilist io___447 = { 0, 0, 0, fmt_220, 0 };
-    static __thread cilist io___448 = { 0, 0, 0, fmt_260, 0 };
-    static __thread cilist io___449 = { 0, 0, 0, fmt_240, 0 };
-    static __thread cilist io___451 = { 0, 0, 0, fmt_260, 0 };
-    static __thread cilist io___452 = { 0, 0, 0, fmt_270, 0 };
-    static __thread cilist io___454 = { 0, 0, 0, fmt_310, 0 };
-    static __thread cilist io___455 = { 0, 0, 0, fmt_330, 0 };
-    static __thread cilist io___456 = { 0, 0, 0, fmt_350, 0 };
+    cilist io___432 = { 0, 0, 0, fmt_20, 0 };
+    cilist io___433 = { 0, 0, 0, fmt_40, 0 };
+    cilist io___436 = { 0, 0, 0, fmt_70, 0 };
+    cilist io___437 = { 0, 0, 0, fmt_90, 0 };
+    cilist io___444 = { 0, 0, 0, fmt_130, 0 };
+    cilist io___445 = { 0, 0, 0, fmt_160, 0 };
+    cilist io___446 = { 0, 0, 0, fmt_180, 0 };
+    cilist io___447 = { 0, 0, 0, fmt_220, 0 };
+    cilist io___448 = { 0, 0, 0, fmt_260, 0 };
+    cilist io___449 = { 0, 0, 0, fmt_240, 0 };
+    cilist io___451 = { 0, 0, 0, fmt_260, 0 };
+    cilist io___452 = { 0, 0, 0, fmt_270, 0 };
+    cilist io___454 = { 0, 0, 0, fmt_310, 0 };
+    cilist io___455 = { 0, 0, 0, fmt_330, 0 };
+    cilist io___456 = { 0, 0, 0, fmt_350, 0 };
 
 
 
@@ -7663,16 +7663,16 @@ doublereal d1mach_(integer *i__)
     /* Subroutine */ int s_stop(char *, ftnlen);
 
     /* Fortran I/O blocks */
-    static __thread cilist io___712 = { 0, 6, 0, "(a)", 0 };
-    static __thread cilist io___713 = { 0, 6, 0, "(a)", 0 };
-    static __thread cilist io___714 = { 0, 6, 0, "(a)", 0 };
-    static __thread cilist io___715 = { 0, 6, 0, "(a)", 0 };
-    static __thread cilist io___716 = { 0, 6, 0, "(a,i12)", 0 };
-    static __thread cilist io___717 = { 0, 6, 0, "(a)", 0 };
-    static __thread cilist io___718 = { 0, 6, 0, "(a)", 0 };
-    static __thread cilist io___719 = { 0, 6, 0, "(a)", 0 };
-    static __thread cilist io___720 = { 0, 6, 0, "(a)", 0 };
-    static __thread cilist io___721 = { 0, 6, 0, "(a,i12)", 0 };
+    cilist io___712 = { 0, 6, 0, "(a)", 0 };
+    cilist io___713 = { 0, 6, 0, "(a)", 0 };
+    cilist io___714 = { 0, 6, 0, "(a)", 0 };
+    cilist io___715 = { 0, 6, 0, "(a)", 0 };
+    cilist io___716 = { 0, 6, 0, "(a,i12)", 0 };
+    cilist io___717 = { 0, 6, 0, "(a)", 0 };
+    cilist io___718 = { 0, 6, 0, "(a)", 0 };
+    cilist io___719 = { 0, 6, 0, "(a)", 0 };
+    cilist io___720 = { 0, 6, 0, "(a)", 0 };
+    cilist io___721 = { 0, 6, 0, "(a,i12)", 0 };
 
 
 /* *********************************************************************72 */
@@ -7785,16 +7785,16 @@ integer i1mach_(integer *i__)
     /* Subroutine */ int s_stop(char *, ftnlen);
 
     /* Fortran I/O blocks */
-    static __thread cilist io___722 = { 0, 6, 0, "(a)", 0 };
-    static __thread cilist io___723 = { 0, 6, 0, "(a)", 0 };
-    static __thread cilist io___724 = { 0, 6, 0, "(a)", 0 };
-    static __thread cilist io___725 = { 0, 6, 0, "(a)", 0 };
-    static __thread cilist io___726 = { 0, 6, 0, "(a,i12)", 0 };
-    static __thread cilist io___727 = { 0, 6, 0, "(a)", 0 };
-    static __thread cilist io___728 = { 0, 6, 0, "(a)", 0 };
-    static __thread cilist io___729 = { 0, 6, 0, "(a)", 0 };
-    static __thread cilist io___730 = { 0, 6, 0, "(a)", 0 };
-    static __thread cilist io___731 = { 0, 6, 0, "(a,i12)", 0 };
+    cilist io___722 = { 0, 6, 0, "(a)", 0 };
+    cilist io___723 = { 0, 6, 0, "(a)", 0 };
+    cilist io___724 = { 0, 6, 0, "(a)", 0 };
+    cilist io___725 = { 0, 6, 0, "(a)", 0 };
+    cilist io___726 = { 0, 6, 0, "(a,i12)", 0 };
+    cilist io___727 = { 0, 6, 0, "(a)", 0 };
+    cilist io___728 = { 0, 6, 0, "(a)", 0 };
+    cilist io___729 = { 0, 6, 0, "(a)", 0 };
+    cilist io___730 = { 0, 6, 0, "(a)", 0 };
+    cilist io___731 = { 0, 6, 0, "(a,i12)", 0 };
 
 
 /* *********************************************************************72 */
@@ -7962,16 +7962,16 @@ doublereal r1mach_(integer *i__)
     /* Subroutine */ int s_stop(char *, ftnlen);
 
     /* Fortran I/O blocks */
-    static __thread cilist io___732 = { 0, 6, 0, "(a)", 0 };
-    static __thread cilist io___733 = { 0, 6, 0, "(a)", 0 };
-    static __thread cilist io___734 = { 0, 6, 0, "(a)", 0 };
-    static __thread cilist io___735 = { 0, 6, 0, "(a)", 0 };
-    static __thread cilist io___736 = { 0, 6, 0, "(a,i12)", 0 };
-    static __thread cilist io___737 = { 0, 6, 0, "(a)", 0 };
-    static __thread cilist io___738 = { 0, 6, 0, "(a)", 0 };
-    static __thread cilist io___739 = { 0, 6, 0, "(a)", 0 };
-    static __thread cilist io___740 = { 0, 6, 0, "(a)", 0 };
-    static __thread cilist io___741 = { 0, 6, 0, "(a,i12)", 0 };
+    cilist io___732 = { 0, 6, 0, "(a)", 0 };
+    cilist io___733 = { 0, 6, 0, "(a)", 0 };
+    cilist io___734 = { 0, 6, 0, "(a)", 0 };
+    cilist io___735 = { 0, 6, 0, "(a)", 0 };
+    cilist io___736 = { 0, 6, 0, "(a,i12)", 0 };
+    cilist io___737 = { 0, 6, 0, "(a)", 0 };
+    cilist io___738 = { 0, 6, 0, "(a)", 0 };
+    cilist io___739 = { 0, 6, 0, "(a)", 0 };
+    cilist io___740 = { 0, 6, 0, "(a)", 0 };
+    cilist io___741 = { 0, 6, 0, "(a,i12)", 0 };
 
 
 /* *********************************************************************72 */
