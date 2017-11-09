@@ -173,7 +173,10 @@ void setCeresOption(const std::pair<const std::string, const std::string> &pair,
         options->minimizer_progress_to_stdout = std::stoi(val);
     } else {
         logmessage(LOGLVL_WARNING, "Ignoring unknown optimization option %s.", key.c_str());
+        return;
     }
+
+    logmessage(LOGLVL_WARNING, "Set optimization option %s to %s.", key.c_str(), val.c_str());
 }
 
 
