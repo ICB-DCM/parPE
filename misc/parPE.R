@@ -9,6 +9,8 @@ getStarts <- function(file) {
 #######################################################
 
 plotCostTrajectory <- function(cost) {
+  #naCols <- colSums(apply(cost, 2, is.na)) == nrow(cost)
+  #cost <- cost[, !naCols]
   cost[1] <- NA # skip first (high) cost value
   par(las = 1)
   plot(cost, xlab="Iteration", ylab="Cost", type="l")
@@ -25,8 +27,12 @@ getCostTrajectory <- function(file, starts=getStarts(file)) {
   cost <- NULL
   for(start in starts) {
     newCost <- tryCatch(h5read(file, paste0("/multistarts/", start, "/iterCostFunCost")), error=function(cond) {NULL})
-    if(is.null(newCost))
-      newCost <- as.matrix(rep(NA, nrow(cost)))
+    if(is.null(newCost)) {
+      if(is.null(cost))
+        newCost <- NA
+      else
+        newCost <- as.matrix(rep(NA, nrow(cost)))
+    }
     maxIter <- max(nrow(cost), nrow(newCost))
     if(! is.null(cost)) {
       cost <- rbind(cost, matrix(NA, maxIter - nrow(cost), ncol(cost)))
@@ -39,10 +45,11 @@ getCostTrajectory <- function(file, starts=getStarts(file)) {
 }
 
 getExitCodes <- function(file, starts=getStarts(file)) {
-  status <- NULL
-  for(start in starts) {
-    newStatus <- tryCatch(h5read(file, paste0("/multistarts/", start, "/exitStatus")), error=function(cond) {NULL})
-    status <- c(status, newStatus)
+  status <- rep(NA, length(starts))
+  for(i in 1:length(starts)) {
+    start <- starts[i]
+    newStatus <- tryCatch(h5read(file, paste0("/multistarts/", start, "/exitStatus")), error=function(cond) {NA})
+    status[i] <- newStatus
     #colnames(cost)[ncol(status)] <- start
   }
   return(status)
@@ -112,3 +119,33 @@ getCorrelationByObservable <- function(simulationResultFile, starts) {
 getParameterTrajectory <- function(file, start) {
     return(h5read(file, paste0("/multistarts/", start, "/iterCostFunParameters")))
 }
+
+
+
+getFinalCost <- function(cost) {
+  final <- cost[nrow(cost), ]
+  for(i in 1:length(final)) {
+    final[i] <- getLastNonNA(cost[, i])
+  }
+  return(final)
+}
+
+getFirstNonNA <- function(x) {
+  for(i in 1:length(x)) {
+    if(!is.na(x[i]))
+      return(x[i])
+  }
+  return(NA)
+}
+
+getLastNonNA <- function(x) {
+  for(i in length(x):1) {
+    if(!is.na(x[i]))
+      return(x[i])
+  }
+  return(NA)
+}
+
+# test
+# 1 : getLastNonNA(c(NA, 2, 1, NA))
+
