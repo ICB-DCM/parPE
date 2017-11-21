@@ -16,7 +16,7 @@ TEST_GROUP(hdf5Misc){
         H5::H5Library::dontAtExit();
         parpe::initHDF5Mutex();
 
-        fileId = parpe::hdf5OpenFile(std::tmpnam(tempFileName), false);
+        fileId = parpe::hdf5CreateFile(std::tmpnam(tempFileName), false);
     }
 
     void teardown(){
@@ -29,13 +29,13 @@ TEST_GROUP(hdf5Misc){
 
 
 TEST(hdf5Misc, testOpenExistingFileNoOverwrite) {
-    CHECK_THROWS(parpe::HDF5Exception, parpe::hdf5OpenFile(tempFileName, false));
+    CHECK_THROWS(parpe::HDF5Exception, parpe::hdf5CreateFile(tempFileName, false));
 }
 
 
 TEST(hdf5Misc, testOpenExistingFileOverwrite) {
     H5Fclose(fileId);
-    fileId = parpe::hdf5OpenFile(tempFileName, true);
+    fileId = parpe::hdf5CreateFile(tempFileName, true);
 }
 
 

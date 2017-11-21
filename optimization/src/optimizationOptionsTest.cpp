@@ -104,7 +104,7 @@ TEST(optimizationOptions, fromHDF5) {
     CHECK_THROWS(parpe::HDF5Exception, parpe::OptimizationOptions::fromHDF5(tmpName));
 
     // create file
-    hid_t fileId = parpe::hdf5OpenFile(tmpName, false);
+    hid_t fileId = parpe::hdf5CreateFile(tmpName, false);
     parpe::hdf5CreateGroup(fileId, "/optimizationOptions/ceres", true);
     int optimizer = 1;
     H5LTset_attribute_int(fileId, "/optimizationOptions", "optimizer", &optimizer, 1);

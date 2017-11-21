@@ -454,11 +454,9 @@ void hdf5WriteStringAttribute(hid_t fileId, const char *datasetPath,
                             datasetPath, attributeName);
 }
 
-hid_t hdf5OpenFile(const char *filename, bool overwrite)
+hid_t hdf5CreateFile(const char *filename, bool overwrite)
 {
     std::lock_guard<mutexHdfType> lock(mutexHdf);
-
-    logmessage(LOGLVL_DEBUG, "Trying to open %s", filename);
 
     if (!overwrite) {
         struct stat st = {0};
@@ -474,7 +472,7 @@ hid_t hdf5OpenFile(const char *filename, bool overwrite)
     if (file_id < 0) {
         H5Eprint(H5E_DEFAULT, stderr);
         printBacktrace();
-        throw HDF5Exception("hdf5OpenFile %s", filename);
+        throw HDF5Exception("hdf5CreateFile: Failed to create file %s", filename);
     }
     H5_RESTORE_ERROR_HANDLER;
 
