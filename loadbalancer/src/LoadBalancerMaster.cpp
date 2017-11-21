@@ -255,7 +255,8 @@ int LoadBalancerMaster::handleReply(MPI_Status *mpiStatus) {
 #endif
 
     // signal job done
-    ++(*data->jobDone);
+    if(data->jobDone)
+        ++(*data->jobDone);
     pthread_mutex_lock(data->jobDoneChangedMutex);
     pthread_cond_signal(data->jobDoneChangedCondition);
     pthread_mutex_unlock(data->jobDoneChangedMutex);
