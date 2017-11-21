@@ -357,7 +357,7 @@ void setIpOptOption(const std::pair<const std::string, const std::string> &pair,
         return;
     }
 
-    logmessage(LOGLVL_WARNING, "Set optimization option %s to %s.", key.c_str(), val.c_str());
+    logmessage(LOGLVL_DEBUG, "Set optimization option %s to %s.", key.c_str(), val.c_str());
 }
 
 void setIpOptOptions(SmartPtr<OptionsList> optionsIpOpt,
