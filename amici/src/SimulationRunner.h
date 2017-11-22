@@ -19,6 +19,7 @@ class SimulationRunner {
   public:
     SimulationRunner(std::function<amici::UserData *(int)> getUserData,
                      std::function<JobIdentifier(int)> getJobIdentifier,
+                     std::function<void(JobData*, int)> callbackJobFinished,
                      std::function<int(std::vector<JobData> &)> aggregate);
 
     /**
@@ -46,12 +47,14 @@ class SimulationRunner {
                          JobData *d, amici::UserData *udata, int *jobDone,
                          pthread_cond_t *jobDoneChangedCondition,
                          pthread_mutex_t *jobDoneChangedMutex,
-                         int lenSendBuffer);
+                         int lenSendBufferm, int simulationIdx);
 
   private:
     std::function<amici::UserData *(int)> getUserData = nullptr;
     std::function<JobIdentifier(int)> getJobIdentifier = nullptr;
+    std::function<void(JobData*, int)> callbackJobFinished = nullptr;
     std::function<int(std::vector<JobData> &jobs)> aggregate = nullptr;
+    int errors = 0;
 };
 
 } // namespace parpe

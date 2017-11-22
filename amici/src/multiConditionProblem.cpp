@@ -289,6 +289,7 @@ int MultiConditionProblem::runSimulations(const double *optimizationVariables,
                                           int *dataIndices,
                                           int numDataIndices) {
 
+    int errors = 0;
     JobIdentifier path = this->path;
 
     SimulationRunner simRunner(
@@ -304,22 +305,21 @@ int MultiConditionProblem::runSimulations(const double *optimizationVariables,
             path.idxConditions = dataIndices[simulationIdx];
             return path;
         },
-        [&](std::vector<JobData> &jobs) {
-            return aggregateLikelihood(jobs, logLikelihood,
+        [&](JobData *job, int simulationIdx) {
+            errors += aggregateLikelihood(*job,
+                                       logLikelihood,
                                        objectiveFunctionGradient,
-                                       dataIndices,
-                                       numDataIndices);
-        });
+                                       dataIndices[simulationIdx]);
+        }, nullptr);
 
-    int errors;
 
     if (loadBalancer && loadBalancer->isRunning()) {
-        errors = simRunner.run(
+        errors += simRunner.run(
             numDataIndices,
             JobAmiciSimulation::getLength(model->np, sizeof(JobIdentifier)),
             loadBalancer);
     } else {
-        errors = simRunner.runSerial(
+        errors += simRunner.runSerial(
             numDataIndices,
             JobAmiciSimulation::getLength(model->np, sizeof(JobIdentifier)),
             [&](std::vector<char> &buffer, int jobId) {
@@ -354,24 +354,6 @@ int MultiConditionProblem::aggregateLikelihood(JobData &data, double *logLikelih
     return errors;
 }
 
-
-int MultiConditionProblem::aggregateLikelihood(
-    std::vector<JobData> &data, double *logLikelihood, double *objectiveFunctionGradient,
-    int *dataIndices, int numDataIndices) {
-    int errors = 0;
-
-    // temporary variables for deserialization of simulation results
-    assert(data.size() == (unsigned)numDataIndices);
-    for (int simulationIdx = 0; simulationIdx < numDataIndices;
-         ++simulationIdx) {
-        errors += aggregateLikelihood(data[simulationIdx],
-                            logLikelihood,
-                            objectiveFunctionGradient,
-                            dataIndices[simulationIdx]);
-    }
-
-    return errors;
-}
 
 void MultiConditionProblem::printObjectiveFunctionFailureMessage() {
     char strBuf[100];

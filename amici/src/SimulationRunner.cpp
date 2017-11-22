@@ -7,8 +7,11 @@ namespace parpe {
 SimulationRunner::SimulationRunner(
     std::function<amici::UserData *(int)> getUserData,
     std::function<JobIdentifier(int)> getJobIdentifier,
+    std::function<void(JobData*, int)> callbackJobFinished,
     std::function<int(std::vector<JobData> &jobs)> aggregate)
-    : getUserData(getUserData), getJobIdentifier(getJobIdentifier),
+    : getUserData(getUserData),
+      getJobIdentifier(getJobIdentifier),
+      callbackJobFinished(callbackJobFinished),
       aggregate(aggregate) {}
 
 int SimulationRunner::run(int numJobsTotal, int lenSendBuffer,
@@ -31,7 +34,7 @@ int SimulationRunner::run(int numJobsTotal, int lenSendBuffer,
 
         queueSimulation(loadBalancer, path, &jobs[simulationIdx], udata,
                         &numJobsFinished, &simulationsCond, &simulationsMutex,
-                        lenSendBuffer);
+                        lenSendBuffer, simulationIdx);
         // printf("Queued work: "); printDatapath(path);
     }
 
@@ -77,10 +80,15 @@ int SimulationRunner::runSerial(
         jobs[simulationIdx].lenRecvBuffer = buffer.size();
         jobs[simulationIdx].recvBuffer = new char[buffer.size()];
         std::copy(buffer.begin(), buffer.end(), jobs[simulationIdx].recvBuffer);
+
+        if(callbackJobFinished)
+            callbackJobFinished(&jobs[simulationIdx], simulationIdx);
     }
 
     // unpack
-    int errors = aggregate(jobs);
+    int errors = 0;
+    if(aggregate)
+        errors = aggregate(jobs);
 
     return errors;
 }
@@ -90,7 +98,7 @@ void SimulationRunner::queueSimulation(LoadBalancerMaster *loadBalancer,
                                        amici::UserData *udata, int *jobDone,
                                        pthread_cond_t *jobDoneChangedCondition,
                                        pthread_mutex_t *jobDoneChangedMutex,
-                                       int lenSendBuffer) {
+                                       int lenSendBuffer, int simulationIdx) {
 
     *d = JobData(lenSendBuffer, new char[lenSendBuffer], jobDone,
                  jobDoneChangedCondition, jobDoneChangedMutex);
@@ -102,7 +110,7 @@ void SimulationRunner::queueSimulation(LoadBalancerMaster *loadBalancer,
     work.numSimulationParameters = udata->np;
     work.simulationParameters = udata->p;
     work.serialize(d->sendBuffer);
-
+    d->callbackJobFinished = std::bind2nd(callbackJobFinished, simulationIdx);
     loadBalancer->queueJob(d);
 }
 
