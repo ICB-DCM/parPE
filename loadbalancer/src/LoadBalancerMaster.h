@@ -5,6 +5,7 @@
 #include <pthread.h>
 #include <queue>
 #include <semaphore.h>
+#include <functional>
 
 //#define MASTER_QUEUE_H_SHOW_COMMUNICATION
 
@@ -43,6 +44,9 @@ struct JobData {
     pthread_cond_t *jobDoneChangedCondition = nullptr;
     /** is locked to signal jobDoneChangedCondition condition  */
     pthread_mutex_t *jobDoneChangedMutex = nullptr;
+
+    /** callback when job is finished */
+    std::function<void(JobData*)> callbackJobFinished = nullptr;
 };
 
 class LoadBalancerMaster {
@@ -75,7 +79,7 @@ class LoadBalancerMaster {
 
     bool isRunning() const;
 
-  protected:
+  private:
     /**
      * @brief Thread entry point. This is run from run()
      * @param "this"
