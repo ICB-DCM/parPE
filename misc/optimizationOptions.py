@@ -8,8 +8,10 @@ Daniel Weindl 2017
 
 import h5py
 import sys
+import re 
+import numpy as np
 
-def getOptionsDataset(f):
+def getOptionsObject(f):
     if "/optimizationOptions" in f:
         options = f["/optimizationOptions"]
         return options
@@ -20,33 +22,73 @@ def getOptionsDataset(f):
 
 
 def setOption(filename, option, value):
+    """
+    Set the given option to value 
+    """
+    value = convertValue(value)
+    
     f = h5py.File(filename, "r+")
-    options = getOptionsDataset(f)
+    options = getOptionsObject(f)
 
     if options:
-        options.attrs[option] = int(value)
+        parts = option.split('/')
+        if len(parts) == 1:
+            options.attrs[option] = value
+        else:
+            g = options.require_group(parts[0])
+            g.attrs[parts[1]] = value
     else:
         exit(1)
 
+def convertValue(value):
+    """
+    Guess type of data represented as string value and convert to the respective type 
+    """
+    
+    if re.match(r'^\d+$', value):
+        return int(value)
+    
+    try:
+        return float(value)
+    except ValueError:
+        return np.string_(value)
 
 def printOptions(filename):
+    """
+    Recursively print all options in /optimizationOptions
+    """
     f = h5py.File(filename, "r")
     
-    options = getOptionsDataset(f)
+    options = getOptionsObject(f)
     if options:
-        for o in options.attrs:
-            print("%20s %3s" % (o, options.attrs[o]))
+        printAttributes(options)
+      
+        for o in options:
+            printAttributes(options[o], o + "/")
+
     else:
         exit(1)    
 
-
+def printAttributes(object, prefix=''):
+    """
+    Print all attributes of the given object 
+    """
+    
+    for o in object.attrs:
+        print("%40s %12s" % (prefix + o, object.attrs[o]))
+    
+    
 def unsetOption(filename, option):
     f = h5py.File(filename, "r+")
     
-    options = getOptionsDataset(f)
-    if options:
+    group = getOptionsObject(f)
+    if group:
+        parts = option.split('/')
+        if len(parts) > 1:
+            group = group.require_group(parts[0])
+            option = parts[1]
         try:
-            options.attrs.__delitem__(option)
+            group.attrs.__delitem__(option)
         except KeyError:
             pass
     else:
@@ -57,7 +99,7 @@ def printUsage():
     print("""Usage: 
     optimizationOptions.py              -> print All
     optimizationOptions.py key          -> print key
-    optimizationOptions.py -s key value -> set key to value
+    optimizationOptions.py -s key value -> set key to value (use e.g. optimizername/option for optimizer-specific values)
     optimizationOptions.py -s key       -> remove key
     
     Options currently supported are 
