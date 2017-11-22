@@ -23,7 +23,7 @@ int SimulationRunner::run(int numJobsTotal, int lenSendBuffer,
     pthread_mutex_t simulationsMutex = PTHREAD_MUTEX_INITIALIZER;
 
     for (int simulationIdx = 0; simulationIdx < numJobsTotal; ++simulationIdx) {
-        // tell worker with condition to work on, for logging and reading proper
+        // tell worker which condition to work on, for logging and reading proper
         // UserData::k
         JobIdentifier path = getJobIdentifier(simulationIdx);
 

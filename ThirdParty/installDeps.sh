@@ -7,6 +7,8 @@ SCRIPT_PATH="`( cd \"$SCRIPT_PATH\" && pwd )`"
 # exit on error
 set -e
 
+../deps/AMICI/scripts/run-build.sh
+
 ./installCBLAS.sh
 
 ./installCpputest.sh
