@@ -29,23 +29,20 @@ void signalHandler(int sig) {
     (*oldact.sa_sigaction)(sig, nullptr, nullptr);
 }
 
-OptimizationApplication::OptimizationApplication()
-    : OptimizationApplication(0, nullptr) {}
-
-OptimizationApplication::OptimizationApplication(int argc, char **argv) {
+int OptimizationApplication::init(int argc, char **argv) {
     // install signal handler for backtrace on error
     sigaction(SIGSEGV, &act, &oldact);
-    sigaction(SIGKILL, &act, nullptr);
     sigaction(SIGHUP, &act, nullptr);
 
-    // TODO: check if initialized already
-    initMPI(&argc, &argv);
+    if(!getMpiActive())
+        initMPI(&argc, &argv);
 
     printMPIInfo();
-
     initHDF5Mutex();
 
-    parseOptions(argc, argv);
+    int status = parseOptions(argc, argv);
+    if(status)
+        return status;
 
     // Seed random number generator
     //    srand(1337);
@@ -55,6 +52,8 @@ OptimizationApplication::OptimizationApplication(int argc, char **argv) {
 
     amici::errMsgIdAndTxt = printAmiciErrMsgIdAndTxt;
     amici::warnMsgIdAndTxt = printAmiciWarnMsgIdAndTxt;
+
+    return status;
 }
 
 int OptimizationApplication::parseOptions(int argc, char **argv) {
@@ -65,7 +64,7 @@ int OptimizationApplication::parseOptions(int argc, char **argv) {
         c = getopt_long(argc, argv, shortOptions, longOptions, &optionIndex);
 
         if (c == -1)
-            break;
+            break; // no more options
 
         switch (c) {
         case 'd':
@@ -129,10 +128,12 @@ void OptimizationApplication::initMPI(int *argc, char ***argv) {
     }
 }
 
-int OptimizationApplication::run() {
+int OptimizationApplication::run(int argc, char **argv) {
     clock_t begin = clock();
 
-    int status = 0;
+    int status = init(argc, argv);
+    if(status)
+        return status;
 
     if (!dataFileName.size()) {
         logmessage(LOGLVL_CRITICAL,
@@ -141,6 +142,7 @@ int OptimizationApplication::run() {
                    "OptimizationApplication::inputFileName manually.");
         return 1;
     }
+
     initProblem(dataFileName, resultFileName);
 
     int commSize = getMpiCommSize();
@@ -285,7 +287,8 @@ OptimizationApplication::~OptimizationApplication() {
     // and Hdf5 mutex is destroyed
     problem.reset(nullptr);
     resultWriter.reset(nullptr);
-    MPI_Finalize();
+    if(getMpiActive())
+        MPI_Finalize();
 }
 
 } // namespace parpe

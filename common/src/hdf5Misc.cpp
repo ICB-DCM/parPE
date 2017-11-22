@@ -472,7 +472,7 @@ hid_t hdf5CreateFile(const char *filename, bool overwrite)
     if (file_id < 0) {
         H5Eprint(H5E_DEFAULT, stderr);
         printBacktrace();
-        throw HDF5Exception("hdf5CreateFile: Failed to create file %s", filename);
+        throw HDF5Exception("hdf5CreateFile: Failed to create file %s. Is this file opened by another process?", filename);
     }
     H5_RESTORE_ERROR_HANDLER;
 

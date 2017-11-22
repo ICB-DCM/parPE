@@ -18,9 +18,7 @@ namespace parpe {
 // TODO: DistributedOptimizationApplication
 class OptimizationApplication {
   public:
-    OptimizationApplication();
-
-    OptimizationApplication(int argc, char **argv);
+    OptimizationApplication() = default;
 
     ~OptimizationApplication();
 
@@ -35,10 +33,10 @@ class OptimizationApplication {
                              std::string outFileArgument) = 0;
 
     /**
-     * @brief Start the optimization run
-     * @return
+     * @brief Start the optimization run. Must only be called once.
+     * @return status code; 0 on success
      */
-    int run();
+    int run(int argc, char **argv);
 
     /**
      * @brief This is run by the MPI rank 0 process when started with multiple
@@ -77,6 +75,7 @@ class OptimizationApplication {
     bool isWorker();
 
   protected:
+
     /**
      * @brief Initialize MPI
      * @param argc
@@ -96,6 +95,15 @@ class OptimizationApplication {
 
     void printUsage(char* const argZero);
 
+private:
+    /**
+     * @brief initialize MPI, mutexes, ...
+     * @param argc
+     * @param argv
+     */
+    int init(int argc, char **argv);
+
+protected:
     // command line option parsing
     const char *shortOptions = "dhvt:o:";
     struct option const longOptions[7] = {

@@ -157,7 +157,7 @@ int getMpiActive()
         return false;
 
     MPI_Finalized(&result);
-    return(!result);
+    return !result;
 }
 
 } // namespace parpe

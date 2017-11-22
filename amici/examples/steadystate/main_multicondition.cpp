@@ -107,8 +107,8 @@ int main(int argc, char **argv) {
     int status = EXIT_SUCCESS;
 
     // SteadystateLocalOptimizationApplication app(argc, argv);
-    SteadystateApplication app(argc, argv);
-    status = app.run();
+    SteadystateApplication app;
+    status = app.run(argc, argv);
 
     return status;
 }
