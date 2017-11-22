@@ -330,6 +330,31 @@ int MultiConditionProblem::runSimulations(const double *optimizationVariables,
     return errors;
 }
 
+int MultiConditionProblem::aggregateLikelihood(JobData &data, double *logLikelihood,
+                        double *objectiveFunctionGradient, int dataIdx) {
+    int errors = 0;
+
+    // deserialize
+    JobResultAmiciSimulation result =
+            amici::deserializeFromChar<JobResultAmiciSimulation>(
+                data.recvBuffer,
+                data.lenRecvBuffer);
+    delete[] data.recvBuffer;
+    errors += result.status;
+
+    // sum up
+    *logLikelihood -= *result.rdata->llh;
+    simulationTimeInS += result.simulationTimeInSec;
+
+    if (objectiveFunctionGradient)
+        addSimulationGradientToObjectiveFunctionGradient(
+            dataIdx, result.rdata->sllh, objectiveFunctionGradient,
+            dataProvider->getNumCommonParameters());
+
+    return errors;
+}
+
+
 int MultiConditionProblem::aggregateLikelihood(
     std::vector<JobData> &data, double *logLikelihood, double *objectiveFunctionGradient,
     int *dataIndices, int numDataIndices) {
@@ -339,21 +364,10 @@ int MultiConditionProblem::aggregateLikelihood(
     assert(data.size() == (unsigned)numDataIndices);
     for (int simulationIdx = 0; simulationIdx < numDataIndices;
          ++simulationIdx) {
-        // deserialize
-        JobResultAmiciSimulation result =
-                amici::deserializeFromChar<JobResultAmiciSimulation>(
-                    data[simulationIdx].recvBuffer,
-                    data[simulationIdx].lenRecvBuffer);
-        delete[] data[simulationIdx].recvBuffer;
-        errors += result.status;
-        // sum up
-        *logLikelihood -= *result.rdata->llh;
-            simulationTimeInS += result.simulationTimeInSec;
-
-        if (objectiveFunctionGradient)
-            addSimulationGradientToObjectiveFunctionGradient(
-                dataIndices[simulationIdx], result.rdata->sllh, objectiveFunctionGradient,
-                dataProvider->getNumCommonParameters());
+        errors += aggregateLikelihood(data[simulationIdx],
+                            logLikelihood,
+                            objectiveFunctionGradient,
+                            dataIndices[simulationIdx]);
     }
 
     return errors;
