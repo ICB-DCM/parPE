@@ -18,7 +18,7 @@ cd ceres-solver-1.13.0/
 mkdir -p build
 cd build
 cmake -DCMAKE_INSTALL_PREFIX=`pwd`/install \
-      -DBUILD_SHARED_LIBS=ON \
+      -DBUILD_SHARED_LIBS=OFF \
       -DBUILD_TESTING=OFF \
       -DBUILD_EXAMPLES=OFF \
       -DGFLAGS=OFF \

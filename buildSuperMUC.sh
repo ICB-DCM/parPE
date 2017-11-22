@@ -38,7 +38,7 @@ mkdir -p ${CERES_BASE}/build
 cd ${CERES_BASE}/build
 CC=mpicc CXX=mpiCC HDF5_ROOT=${HDF5_BASE} BOOSTROOT=${BOOST_BASE} MPI_HOME=${MPI_BASE} cmake \
       -DIPOPT_DIR=`pwd`/../ThirdParty/Ipopt-3.12.7/install \
-      -DCERES_LIBRARIES=${CERES_BASE}/build/install/lib64/libceres.so \
+      -DCERES_LIBRARIES=${CERES_BASE}/build/install/lib64/libceres.a \
       -DCERES_INCLUDE_DIRS="${CERES_BASE}/build/install/include/;${CERES_BASE}/build/install/include/ceres/internal/miniglog/;`pwd`/../ThirdParty/eigen-eigen-67e894c6cd8f/build/install/include/eigen3/" \
       -DCPPUTEST_DIR=${CPPUTEST_PATH} \
       ..
