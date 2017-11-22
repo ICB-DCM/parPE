@@ -17,6 +17,13 @@ class LoadBalancerMaster;
  */
 class SimulationRunner {
   public:
+    /**
+     * @brief SimulationRunner
+     * @param getUserData Function to provide UserData for the given simulation index. Must be provided.
+     * @param getJobIdentifier Function returning a JobIdentifier object for the given simulation index. Must be provided.
+     * @param callbackJobFinished Function which is called after any finished simulation.  May be nullptr.
+     * @param aggregate Function which is called after all simulations are completed. May be nullptr.
+     */
     SimulationRunner(std::function<amici::UserData *(int)> getUserData,
                      std::function<JobIdentifier(int)> getJobIdentifier,
                      std::function<void(JobData*, int)> callbackJobFinished,
@@ -42,6 +49,8 @@ class SimulationRunner {
      */
     int runSerial(int numJobsTotal, int lenSendBuffer,
                   std::function<void(std::vector<char> &, int)> messageHandler);
+
+    // TODO int runSharedMemoryParallel(int numJobsTotal, int lenSendBuffer);
 
     void queueSimulation(LoadBalancerMaster *loadBalancer, JobIdentifier path,
                          JobData *d, amici::UserData *udata, int *jobDone,
