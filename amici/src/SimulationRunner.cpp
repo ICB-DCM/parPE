@@ -50,7 +50,8 @@ int SimulationRunner::run(int numJobsTotal, int lenSendBuffer,
     pthread_cond_destroy(&simulationsCond);
 
     // unpack
-    int errors = aggregate(jobs);
+    if(aggregate)
+        errors += aggregate(jobs);
 
     return errors;
 }
