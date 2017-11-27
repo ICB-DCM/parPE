@@ -254,15 +254,15 @@ int LoadBalancerMaster::handleReply(MPI_Status *mpiStatus) {
            mpiStatus->MPI_TAG, mpiStatus->MPI_SOURCE);
 #endif
 
-    // signal job done
-    if(data->jobDone)
-        ++(*data->jobDone);
-
     // user-provided callback if specified
     if(data->callbackJobFinished)
         data->callbackJobFinished(data);
 
+
+    // signal job done
     pthread_mutex_lock(data->jobDoneChangedMutex);
+    if(data->jobDone)
+        ++(*data->jobDone);
     pthread_cond_signal(data->jobDoneChangedCondition);
     pthread_mutex_unlock(data->jobDoneChangedMutex);
 
