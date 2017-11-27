@@ -305,11 +305,11 @@ int MultiConditionProblem::runSimulations(const double *optimizationVariables,
             path.idxConditions = dataIndices[simulationIdx];
             return path;
         },
-        [&](JobData *job, int simulationIdx) {
+        [&](JobData *job, int dataIdx) {
             errors += aggregateLikelihood(*job,
                                        logLikelihood,
                                        objectiveFunctionGradient,
-                                       dataIndices[simulationIdx]);
+                                       dataIndices[dataIdx]);
         }, nullptr);
 
 

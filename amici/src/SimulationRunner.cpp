@@ -40,8 +40,7 @@ int SimulationRunner::run(int numJobsTotal, int lenSendBuffer,
 
     // wait for simulations to finish
     pthread_mutex_lock(&simulationsMutex);
-    while (numJobsFinished < numJobsTotal) // TODO handle finished simulations
-                                           // here, don't wait for all to
+    while (numJobsFinished < numJobsTotal) // TODO don't wait for all to
                                            // complete; stop early if errors
                                            // occured
         pthread_cond_wait(&simulationsCond, &simulationsMutex);
@@ -111,7 +110,8 @@ void SimulationRunner::queueSimulation(LoadBalancerMaster *loadBalancer,
     work.numSimulationParameters = udata->np;
     work.simulationParameters = udata->p;
     work.serialize(d->sendBuffer);
-    d->callbackJobFinished = std::bind2nd(callbackJobFinished, simulationIdx);
+    if(callbackJobFinished)
+        d->callbackJobFinished = std::bind2nd(callbackJobFinished, simulationIdx);
     loadBalancer->queueJob(d);
 }
 
