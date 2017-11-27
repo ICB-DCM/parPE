@@ -395,6 +395,7 @@ int OptimizerIpOpt::optimize(OptimizationProblem *problem) {
         SmartPtr<TNLP> mynlp =
             new LocalOptimizationIpoptTNLP(problem, &ipoptMutex);
         SmartPtr<IpoptApplication> app = IpoptApplicationFactory();
+        app->RethrowNonIpoptException(true);
 
         setIpOptOptions(app->Options(), problem);
 
