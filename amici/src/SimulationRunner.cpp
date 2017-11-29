@@ -4,11 +4,10 @@
 
 namespace parpe {
 
-SimulationRunner::SimulationRunner(
-    std::function<amici::UserData *(int)> getUserData,
-    std::function<JobIdentifier(int)> getJobIdentifier,
-    std::function<void(JobData*, int)> callbackJobFinished,
-    std::function<int(std::vector<JobData> &jobs)> aggregate)
+SimulationRunner::SimulationRunner(getUserDataType getUserData,
+                                   getJobIdentifierType getJobIdentifier,
+                                   callbackJobFinishedType callbackJobFinished,
+                                   callbackAllFinishedType aggregate)
     : getUserData(getUserData),
       getJobIdentifier(getJobIdentifier),
       callbackJobFinished(callbackJobFinished),

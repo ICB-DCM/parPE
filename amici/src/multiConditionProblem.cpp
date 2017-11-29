@@ -295,8 +295,7 @@ int MultiConditionProblem::runSimulations(const double *optimizationVariables,
     SimulationRunner simRunner(
         [&](int simulationIdx) {
             // extract parameters for simulation of current condition, instead
-            // of
-            // sending whole  optimization parameter vector to worker
+            // of sending whole  optimization parameter vector to worker
             dataProvider->updateConditionSpecificSimulationParameters(
                 dataIndices[simulationIdx], optimizationVariables, udata.get());
             return udata.get();

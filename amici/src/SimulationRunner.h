@@ -17,6 +17,11 @@ class LoadBalancerMaster;
  */
 class SimulationRunner {
   public:
+    using getUserDataType        = std::function<amici::UserData *(int)>;
+    using getJobIdentifierType    = std::function<JobIdentifier(int)>;
+    using callbackJobFinishedType = std::function<void(JobData*, int)>;
+    using callbackAllFinishedType = std::function<int(std::vector<JobData> &)>;
+
     /**
      * @brief SimulationRunner
      * @param getUserData Function to provide UserData for the given simulation index. Must be provided.
@@ -24,10 +29,10 @@ class SimulationRunner {
      * @param callbackJobFinished Function which is called after any finished simulation.  May be nullptr.
      * @param aggregate Function which is called after all simulations are completed. May be nullptr.
      */
-    SimulationRunner(std::function<amici::UserData *(int)> getUserData,
-                     std::function<JobIdentifier(int)> getJobIdentifier,
-                     std::function<void(JobData*, int)> callbackJobFinished,
-                     std::function<int(std::vector<JobData> &)> aggregate);
+    SimulationRunner(getUserDataType getUserData,
+                     getJobIdentifierType getJobIdentifier,
+                     callbackJobFinishedType callbackJobFinished,
+                     callbackAllFinishedType aggregate);
 
     /**
      * @brief Dispatch simulation jobs using LoadBalancerMaster
@@ -59,10 +64,10 @@ class SimulationRunner {
                          int lenSendBufferm, int simulationIdx);
 
   private:
-    std::function<amici::UserData *(int)> getUserData = nullptr;
-    std::function<JobIdentifier(int)> getJobIdentifier = nullptr;
-    std::function<void(JobData*, int)> callbackJobFinished = nullptr;
-    std::function<int(std::vector<JobData> &jobs)> aggregate = nullptr;
+    getUserDataType getUserData = nullptr;
+    getJobIdentifierType getJobIdentifier = nullptr;
+    callbackJobFinishedType callbackJobFinished = nullptr;
+    callbackAllFinishedType aggregate = nullptr;
     int errors = 0;
 };
 
