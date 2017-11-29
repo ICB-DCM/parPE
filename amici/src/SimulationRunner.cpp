@@ -2,14 +2,9 @@
 #include "simulationWorkerAmici.h"
 #include <LoadBalancerMaster.h>
 #include <LoadBalancerWorker.h>
+#include <omp.h>
 
 namespace parpe {
-
-SimulationRunner::SimulationRunner(int numJobsTotal,
-                                   getUserDataType getUserData,
-                                   getJobIdentifierType getJobIdentifier,
-                                   callbackJobFinishedType callbackJobFinished)
-    : SimulationRunner(numJobsTotal, getUserData, getJobIdentifier, callbackJobFinished, nullptr) {}
 
 SimulationRunner::SimulationRunner(int numJobsTotal,
                                    getUserDataType getUserData,
@@ -22,7 +17,7 @@ SimulationRunner::SimulationRunner(int numJobsTotal,
       callbackJobFinished(callbackJobFinished),
       aggregate(aggregate) {}
 
-int SimulationRunner::runMPI(LoadBalancerMaster *loadBalancer) {
+int SimulationRunner::runDistributedMemory(LoadBalancerMaster *loadBalancer) {
     int numJobsFinished = 0;
 
     // TODO: allocate and free piecewise or according to max queue length
@@ -62,10 +57,14 @@ int SimulationRunner::runMPI(LoadBalancerMaster *loadBalancer) {
     return errors;
 }
 
-int SimulationRunner::runSerial(LoadBalancerWorker::messageHandlerFunc messageHandler) {
+int SimulationRunner::runSharedMemory(LoadBalancerWorker::messageHandlerFunc messageHandler, bool sequential) {
 
     std::vector<JobData> jobs {static_cast<unsigned int>(numJobsTotal)};
 
+    if(sequential)
+        omp_set_num_threads(1);
+
+    #pragma omp parallel for
     for (int simulationIdx = 0; simulationIdx < numJobsTotal; ++simulationIdx) {
         JobIdentifier path = getJobIdentifier(simulationIdx);
 
@@ -87,6 +86,7 @@ int SimulationRunner::runSerial(LoadBalancerWorker::messageHandlerFunc messageHa
 
     return errors;
 }
+
 
 void SimulationRunner::queueSimulation(LoadBalancerMaster *loadBalancer,
                                        JobIdentifier path, JobData *d,

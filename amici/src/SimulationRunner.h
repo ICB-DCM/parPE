@@ -23,10 +23,6 @@ class SimulationRunner {
     using callbackJobFinishedType = std::function<void(JobData*, int)>;
     using callbackAllFinishedType = std::function<int(std::vector<JobData> &)>;
 
-    SimulationRunner(int numJobsTotal,
-                     getUserDataType getUserData,
-                     getJobIdentifierType getJobIdentifier,
-                     callbackJobFinishedType callbackJobFinished);
     /**
      * @brief SimulationRunner
      * @param getUserData Function to provide UserData for the given simulation index. Must be provided.
@@ -38,15 +34,15 @@ class SimulationRunner {
     SimulationRunner(int numJobsTotal,
                      getUserDataType getUserData,
                      getJobIdentifierType getJobIdentifier,
-                     callbackJobFinishedType callbackJobFinished,
-                     callbackAllFinishedType aggregate);
+                     callbackJobFinishedType callbackJobFinished = nullptr,
+                     callbackAllFinishedType aggregate = nullptr);
 
     /**
      * @brief Dispatch simulation jobs using LoadBalancerMaster
      * @param loadBalancer
      * @return
      */
-    int runMPI(LoadBalancerMaster *loadBalancer);
+    int runDistributedMemory(LoadBalancerMaster *loadBalancer);
 
     /**
      * @brief Runs simulations within the same thread. Mostly intended for
@@ -54,13 +50,8 @@ class SimulationRunner {
      * @param messageHandler
      * @return
      */
-    int runSerial(LoadBalancerWorker::messageHandlerFunc messageHandler);
+    int runSharedMemory(LoadBalancerWorker::messageHandlerFunc messageHandler, bool sequential = false);
 
-    /**
-     * @brief runSharedMemoryParallel
-     * @return
-     */
-    int runSharedMemoryParallel();
 
 private:
     void queueSimulation(LoadBalancerMaster *loadBalancer,

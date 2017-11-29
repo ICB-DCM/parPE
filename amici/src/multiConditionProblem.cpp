@@ -315,9 +315,9 @@ int MultiConditionProblem::runSimulations(const double *optimizationVariables,
 
 
     if (loadBalancer && loadBalancer->isRunning()) {
-        errors += simRunner.runMPI(loadBalancer);
+        errors += simRunner.runDistributedMemory(loadBalancer);
     } else {
-        errors += simRunner.runSerial(
+        errors += simRunner.runSharedMemory(
             [&](std::vector<char> &buffer, int jobId) {
                 messageHandler(buffer, jobId);
             });
