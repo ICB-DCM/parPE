@@ -13,7 +13,7 @@ SimulationRunner::SimulationRunner(getUserDataType getUserData,
       callbackJobFinished(callbackJobFinished),
       aggregate(aggregate) {}
 
-int SimulationRunner::run(int numJobsTotal, int lenSendBuffer,
+int SimulationRunner::runMPI(int numJobsTotal, int lenSendBuffer,
                           LoadBalancerMaster *loadBalancer) {
     int numJobsFinished = 0;
 
@@ -85,7 +85,6 @@ int SimulationRunner::runSerial(
     }
 
     // unpack
-    int errors = 0;
     if(aggregate)
         errors = aggregate(jobs);
 

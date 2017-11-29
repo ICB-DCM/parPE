@@ -41,7 +41,7 @@ class SimulationRunner {
      * @param loadBalancer
      * @return
      */
-    int run(int numJobsTotal, int lenSendBuffer,
+    int runMPI(int numJobsTotal, int lenSendBuffer,
             LoadBalancerMaster *loadBalancer);
 
     /**
