@@ -13,7 +13,7 @@ SimulationRunner::SimulationRunner(getUserDataType getUserData,
       callbackJobFinished(callbackJobFinished),
       aggregate(aggregate) {}
 
-int SimulationRunner::runMPI(int numJobsTotal, int lenSendBuffer,
+int SimulationRunner::runMPI(int numJobsTotal,
                           LoadBalancerMaster *loadBalancer) {
     int numJobsFinished = 0;
 
@@ -33,7 +33,7 @@ int SimulationRunner::runMPI(int numJobsTotal, int lenSendBuffer,
 
         queueSimulation(loadBalancer, path, &jobs[simulationIdx], &udata,
                         &numJobsFinished, &simulationsCond, &simulationsMutex,
-                        lenSendBuffer, simulationIdx);
+                        simulationIdx);
         // printf("Queued work: "); printDatapath(path);
     }
 
@@ -55,7 +55,7 @@ int SimulationRunner::runMPI(int numJobsTotal, int lenSendBuffer,
 }
 
 int SimulationRunner::runSerial(
-    int numJobsTotal, int lenSendBuffer,
+    int numJobsTotal,
     std::function<void(std::vector<char> &buffer, int jobId)>
         messageHandler) {
     std::vector<JobData> jobs {static_cast<unsigned int>(numJobsTotal)};
@@ -65,15 +65,8 @@ int SimulationRunner::runSerial(
 
         amici::UserData udata = getUserData(simulationIdx);
 
-        JobAmiciSimulation work;
-        work.data = &path;
-        work.lenData = sizeof(path);
-        work.sensitivityMethod = udata.sensi_meth;
-        work.numSimulationParameters = udata.np;
-        work.simulationParameters = udata.p;
-
-        std::vector<char> buffer(lenSendBuffer);
-        work.serialize(buffer.data());
+        JobAmiciSimulation<JobIdentifier> work(&udata, &path);
+        std::vector<char> buffer = work.serialize();
         messageHandler(buffer, simulationIdx);
 
         jobs[simulationIdx].lenRecvBuffer = buffer.size();
@@ -96,18 +89,11 @@ void SimulationRunner::queueSimulation(LoadBalancerMaster *loadBalancer,
                                        amici::UserData *udata, int *jobDone,
                                        pthread_cond_t *jobDoneChangedCondition,
                                        pthread_mutex_t *jobDoneChangedMutex,
-                                       int lenSendBuffer, int simulationIdx) {
+                                       int simulationIdx) {
 
-    *d = JobData(lenSendBuffer, new char[lenSendBuffer], jobDone,
-                 jobDoneChangedCondition, jobDoneChangedMutex);
-
-    JobAmiciSimulation work;
-    work.data = &path;
-    work.lenData = sizeof(path);
-    work.sensitivityMethod = udata->sensi_meth;
-    work.numSimulationParameters = udata->np;
-    work.simulationParameters = udata->p;
-    work.serialize(d->sendBuffer);
+    JobAmiciSimulation<JobIdentifier> work(udata, &path);
+    *d = JobData(jobDone, jobDoneChangedCondition, jobDoneChangedMutex);
+    d->sendBuffer = work.serialize();
     if(callbackJobFinished)
         d->callbackJobFinished = std::bind2nd(callbackJobFinished, simulationIdx);
     loadBalancer->queueJob(d);

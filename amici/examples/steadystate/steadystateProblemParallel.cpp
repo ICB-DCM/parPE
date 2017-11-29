@@ -51,15 +51,14 @@ int SteadystateProblemParallel::evaluateParallel(const double *parameters,
         job->jobDone = &numJobsFinished;
         job->jobDoneChangedCondition = &simulationsCond;
         job->jobDoneChangedMutex = &simulationsMutex;
-        job->lenSendBuffer = sizeof(double) * model->np + 2 * sizeof(int);
-        job->sendBuffer = new char[job->lenSendBuffer];
+        job->sendBuffer.resize(sizeof(double) * model->np + 2 * sizeof(int));
 
         dataProvider->updateFixedSimulationParameters(i, *udata);
         int needGradient = objFunGrad ? 1 : 0;
 
-        memcpy(job->sendBuffer, &i, sizeof(int));
-        memcpy(job->sendBuffer + sizeof(int), &needGradient, sizeof(int));
-        memcpy(job->sendBuffer + 2 * sizeof(int), parameters,
+        memcpy(job->sendBuffer.data(), &i, sizeof(int));
+        memcpy(job->sendBuffer.data() + sizeof(int), &needGradient, sizeof(int));
+        memcpy(job->sendBuffer.data() + 2 * sizeof(int), parameters,
                model->np * sizeof(double));
 
         loadBalancer->queueJob(job);

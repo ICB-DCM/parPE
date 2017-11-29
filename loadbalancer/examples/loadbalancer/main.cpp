@@ -35,9 +35,8 @@ int master() {
         job->jobDone = &numJobsFinished;
         job->jobDoneChangedCondition = &cond;
         job->jobDoneChangedMutex = &mutex;
-        job->lenSendBuffer = sizeof(double);
-        job->sendBuffer = new char[job->lenSendBuffer];
-        *(double *)job->sendBuffer = i;
+        job->sendBuffer.resize(sizeof(double));
+        *(double *)job->sendBuffer.data() = i;
         lbm.queueJob(job);
     }
 

@@ -112,7 +112,7 @@ void LoadBalancerMaster::freeEmptiedSendBuffers() {
                     &anySendCompleted, MPI_STATUS_IGNORE);
 
         if (anySendCompleted && emptiedBufferIdx != MPI_UNDEFINED) {
-            delete[] sentJobsData[emptiedBufferIdx]->sendBuffer;
+            sentJobsData[emptiedBufferIdx]->sendBuffer = std::vector<char>();
         } else {
             break;
         }
@@ -181,7 +181,7 @@ void LoadBalancerMaster::sendToWorker(int workerIdx, JobData *data) {
     printf("\x1b[36mSent job #%d to rank %d.\x1b[0m\n", tag, workerRank);
 #endif
 
-    MPI_Isend(data->sendBuffer, data->lenSendBuffer, MPI_BYTE, workerRank, tag,
+    MPI_Isend(data->sendBuffer.data(), data->sendBuffer.size(), MPI_BYTE, workerRank, tag,
               MPI_COMM_WORLD, &sendRequests[workerIdx]);
 
     sem_post(&semQueue);

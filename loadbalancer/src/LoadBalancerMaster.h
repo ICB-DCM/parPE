@@ -15,22 +15,19 @@ namespace parpe {
 struct JobData {
     JobData() = default;
 
-    JobData(int lenSendBuffer, char *sendBuffer, int *jobDone,
+    JobData(int *jobDone,
             pthread_cond_t *jobDoneChangedCondition,
             pthread_mutex_t *jobDoneChangedMutex)
-        : lenSendBuffer(lenSendBuffer), jobDone(jobDone),
+        : jobDone(jobDone),
           jobDoneChangedCondition(jobDoneChangedCondition),
           jobDoneChangedMutex(jobDoneChangedMutex) {
-        this->sendBuffer = sendBuffer ? sendBuffer : new char[lenSendBuffer];
     }
 
     /** auto-assigned (unique number up to MAX_INT) */
     int jobId;
 
-    /** size of data to send */
-    int lenSendBuffer = 0;
     /** data to send */
-    char *sendBuffer = nullptr;
+    std::vector<char> sendBuffer;
 
     /** size of data to receive (set when job finished) */
     int lenRecvBuffer = 0;

@@ -173,4 +173,21 @@ class MultiConditionDataProvider {
 
 } // namespace parpe
 
+
+
+namespace boost {
+namespace serialization {
+
+template <class Archive>
+void serialize(Archive &ar, parpe::JobIdentifier &d, const unsigned int version) {
+    ar & d.idxMultiStart;
+    ar & d.idxLocalOptimization;
+    ar & d.idxLocalOptimizationIteration;
+    ar & d.idxConditions;
+}
+
+
+} // namespace serialization
+} // namespace boost
+
 #endif // MULTICONDITIONDATAPROVIDER_H

@@ -37,43 +37,37 @@ TEST(simulationWorkerAmici, testSerializeWorkPackageMessage) {
     // serialize and deserialize workpackage with random content
     int nTheta = randInt(0, 5000);
 
-    // generate data
-    parpe::JobAmiciSimulation expWp;
+    // setup userData
+    amici::UserData expUdata(nTheta, 4, 5);
+    expUdata.sensi_meth = amici::AMICI_SENSI_ASA;
+    expUdata.sensi = amici::AMICI_SENSI_ORDER_FIRST;
+    parpe::fillArrayRandomDoubleSameInterval(-1e-8, 1e8, nTheta, expUdata.p);
+
+    // setup extra payload
     int lenDataElements = 10;
-    expWp.lenData = lenDataElements * sizeof(double);
-    expWp.data = alloca(expWp.lenData);
+    std::vector<double> expData(lenDataElements);
     for (int i = 0; i < lenDataElements; ++i)
-        ((double *)expWp.data)[i] = parpe::randDouble(-1e-8, 1e8);
-    expWp.sensitivityMethod = amici::AMICI_SENSI_ASA;
-    expWp.numSimulationParameters = nTheta;
-    expWp.simulationParameters = new double[nTheta];
-    parpe::fillArrayRandomDoubleSameInterval(-1e-8, 1e8, nTheta, expWp.simulationParameters);
+        expData[i] = parpe::randDouble(-1e-8, 1e8);
+
+    parpe::JobAmiciSimulation<std::vector<double>> expWp(&expUdata, &expData);
 
     // serialize
-    int workPackageLength =
-        parpe::JobAmiciSimulation::getLength(nTheta, expWp.lenData);
-    char *buffer = new char[workPackageLength];
-    expWp.serialize(buffer);
+    auto buffer = expWp.serialize();
 
     // deserialize
-    parpe::JobAmiciSimulation actWp;
-    actWp.data = alloca(expWp.lenData);
-    actWp.simulationParameters = new double[nTheta];
+    amici::UserData actUdata(nTheta, 4, 5);
+    std::vector<double> actData(lenDataElements);
+    parpe::JobAmiciSimulation<std::vector<double>> actWp(&actUdata, &actData);
+    actWp.deserialize(buffer.data(), buffer.size());
 
-    actWp.deserialize(buffer);
-    delete[] buffer;
-
-    // check
-    CHECK_EQUAL(actWp.sensitivityMethod, expWp.sensitivityMethod);
+    // verify
+    CHECK_EQUAL(actUdata.sensi, expUdata.sensi);
+    CHECK_EQUAL(actUdata.sensi_meth, expUdata.sensi_meth);
 
     for (int i = 0; i < nTheta; ++i) {
-        DOUBLES_EQUAL(actWp.simulationParameters[i],
-                      expWp.simulationParameters[i], 0);
+        DOUBLES_EQUAL(actUdata.p[i], expUdata.p[i], 0);
     }
     for (int i = 0; i < lenDataElements; ++i) {
-        DOUBLES_EQUAL(((double *)actWp.data)[i], ((double *)expWp.data)[i], 0);
+        DOUBLES_EQUAL(actData[i], expData[i], 0);
     }
-
-    delete[] actWp.simulationParameters;
-    delete[] expWp.simulationParameters;
 }

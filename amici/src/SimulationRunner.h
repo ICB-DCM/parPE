@@ -41,7 +41,7 @@ class SimulationRunner {
      * @param loadBalancer
      * @return
      */
-    int runMPI(int numJobsTotal, int lenSendBuffer,
+    int runMPI(int numJobsTotal,
             LoadBalancerMaster *loadBalancer);
 
     /**
@@ -52,16 +52,21 @@ class SimulationRunner {
      * @param messageHandler
      * @return
      */
-    int runSerial(int numJobsTotal, int lenSendBuffer,
+    int runSerial(int numJobsTotal,
                   std::function<void(std::vector<char> &, int)> messageHandler);
 
-    // TODO int runSharedMemoryParallel(int numJobsTotal, int lenSendBuffer);
+    /**
+     * @brief runSharedMemoryParallel
+     * @param numJobsTotal
+     * @param lenSendBuffer
+     * @return
+     */
+    int runSharedMemoryParallel(int numJobsTotal, int lenSendBuffer);
 
     void queueSimulation(LoadBalancerMaster *loadBalancer, JobIdentifier path,
                          JobData *d, amici::UserData *udata, int *jobDone,
                          pthread_cond_t *jobDoneChangedCondition,
-                         pthread_mutex_t *jobDoneChangedMutex,
-                         int lenSendBufferm, int simulationIdx);
+                         pthread_mutex_t *jobDoneChangedMutex, int simulationIdx);
 
   private:
     getUserDataType getUserData = nullptr;

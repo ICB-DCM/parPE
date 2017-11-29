@@ -216,7 +216,8 @@ void MultiConditionProblem::messageHandler(std::vector<char> &buffer,
     // unpack
     auto udata = std::unique_ptr<amici::UserData>(dataProvider->getUserData());
     JobIdentifier path;
-    JobAmiciSimulation::toUserData(buffer.data(), udata.get(), &path);
+    JobAmiciSimulation<JobIdentifier> sim(udata.get(), &path);
+    sim.deserialize(buffer.data(), buffer.size());
 
 #if QUEUE_WORKER_H_VERBOSE >= 2
     int mpiRank;
@@ -315,12 +316,10 @@ int MultiConditionProblem::runSimulations(const double *optimizationVariables,
     if (loadBalancer && loadBalancer->isRunning()) {
         errors += simRunner.runMPI(
             numDataIndices,
-            JobAmiciSimulation::getLength(model->np, sizeof(JobIdentifier)),
             loadBalancer);
     } else {
         errors += simRunner.runSerial(
             numDataIndices,
-            JobAmiciSimulation::getLength(model->np, sizeof(JobIdentifier)),
             [&](std::vector<char> &buffer, int jobId) {
                 messageHandler(buffer, jobId);
             });
