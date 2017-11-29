@@ -29,14 +29,14 @@ For full functionality, parPE requires the following libraries:
 * PTHREADS
 * IPOPT (requires coinhsl)
 * CERES (requires Eigen)
-* HDF5
+* HDF5 (>= 1.10)
 * BLAS (CBLAS / Intel MKL)
 * [AMICI](https://github.com/ICB-DCM/AMICI) (requires SuiteSparse, Sundials)
 
 On Debian-based systems, dependencies can be installed via:
 ```
 sudo apt-get install build-essential gfortran libmpich-dev libblas-dev libhdf5-dev cmake \
-    libceres-dev coinor-libipopt-dev libcpputest-dev
+    libceres-dev coinor-libipopt-dev libcpputest-dev libboost-serialization-dev
 ```
 
 Scripts to fetch and build the remaining dependencies are provided in `/ThirdParty/` :
