@@ -298,7 +298,7 @@ int MultiConditionProblem::runSimulations(const double *optimizationVariables,
             // of sending whole  optimization parameter vector to worker
             dataProvider->updateConditionSpecificSimulationParameters(
                 dataIndices[simulationIdx], optimizationVariables, udata.get());
-            return udata.get();
+            return *udata;
         },
         [&](int simulationIdx) {
             path.idxConditions = dataIndices[simulationIdx];

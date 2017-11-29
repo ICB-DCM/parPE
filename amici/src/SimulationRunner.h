@@ -17,7 +17,7 @@ class LoadBalancerMaster;
  */
 class SimulationRunner {
   public:
-    using getUserDataType        = std::function<amici::UserData *(int)>;
+    using getUserDataType        = std::function<amici::UserData (int)>;
     using getJobIdentifierType    = std::function<JobIdentifier(int)>;
     using callbackJobFinishedType = std::function<void(JobData*, int)>;
     using callbackAllFinishedType = std::function<int(std::vector<JobData> &)>;

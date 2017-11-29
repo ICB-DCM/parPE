@@ -29,9 +29,9 @@ int SimulationRunner::run(int numJobsTotal, int lenSendBuffer,
         // UserData::k
         JobIdentifier path = getJobIdentifier(simulationIdx);
 
-        amici::UserData *udata = getUserData(simulationIdx);
+        amici::UserData udata = getUserData(simulationIdx);
 
-        queueSimulation(loadBalancer, path, &jobs[simulationIdx], udata,
+        queueSimulation(loadBalancer, path, &jobs[simulationIdx], &udata,
                         &numJobsFinished, &simulationsCond, &simulationsMutex,
                         lenSendBuffer, simulationIdx);
         // printf("Queued work: "); printDatapath(path);
@@ -63,14 +63,14 @@ int SimulationRunner::runSerial(
     for (int simulationIdx = 0; simulationIdx < numJobsTotal; ++simulationIdx) {
         JobIdentifier path = getJobIdentifier(simulationIdx);
 
-        amici::UserData *udata = getUserData(simulationIdx);
+        amici::UserData udata = getUserData(simulationIdx);
 
         JobAmiciSimulation work;
         work.data = &path;
         work.lenData = sizeof(path);
-        work.sensitivityMethod = udata->sensi_meth;
-        work.numSimulationParameters = udata->np;
-        work.simulationParameters = udata->p;
+        work.sensitivityMethod = udata.sensi_meth;
+        work.numSimulationParameters = udata.np;
+        work.simulationParameters = udata.p;
 
         std::vector<char> buffer(lenSendBuffer);
         work.serialize(buffer.data());
