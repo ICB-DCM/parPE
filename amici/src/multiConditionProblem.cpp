@@ -294,32 +294,30 @@ int MultiConditionProblem::runSimulations(const double *optimizationVariables,
     JobIdentifier path = this->path;
 
     SimulationRunner simRunner(
-        [&](int simulationIdx) {
-            // extract parameters for simulation of current condition, instead
-            // of sending whole  optimization parameter vector to worker
-            dataProvider->updateConditionSpecificSimulationParameters(
-                dataIndices[simulationIdx], optimizationVariables, udata.get());
-            return *udata;
-        },
-        [&](int simulationIdx) {
-            path.idxConditions = dataIndices[simulationIdx];
-            return path;
-        },
-        [&](JobData *job, int dataIdx) {
-            errors += aggregateLikelihood(*job,
-                                       logLikelihood,
-                                       objectiveFunctionGradient,
-                                       dataIndices[dataIdx]);
-        }, nullptr);
+                numDataIndices,
+                [&](int simulationIdx) {
+        // extract parameters for simulation of current condition, instead
+        // of sending whole  optimization parameter vector to worker
+        dataProvider->updateConditionSpecificSimulationParameters(
+                    dataIndices[simulationIdx], optimizationVariables, udata.get());
+        return *udata;
+    },
+    [&](int simulationIdx) {
+        path.idxConditions = dataIndices[simulationIdx];
+        return path;
+    },
+    [&](JobData *job, int dataIdx) {
+        errors += aggregateLikelihood(*job,
+                                      logLikelihood,
+                                      objectiveFunctionGradient,
+                                      dataIndices[dataIdx]);
+    }, nullptr);
 
 
     if (loadBalancer && loadBalancer->isRunning()) {
-        errors += simRunner.runMPI(
-            numDataIndices,
-            loadBalancer);
+        errors += simRunner.runMPI(loadBalancer);
     } else {
         errors += simRunner.runSerial(
-            numDataIndices,
             [&](std::vector<char> &buffer, int jobId) {
                 messageHandler(buffer, jobId);
             });

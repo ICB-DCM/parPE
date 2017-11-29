@@ -1,20 +1,28 @@
 #include "SimulationRunner.h"
 #include "simulationWorkerAmici.h"
 #include <LoadBalancerMaster.h>
+#include <LoadBalancerWorker.h>
 
 namespace parpe {
 
-SimulationRunner::SimulationRunner(getUserDataType getUserData,
+SimulationRunner::SimulationRunner(int numJobsTotal,
+                                   getUserDataType getUserData,
+                                   getJobIdentifierType getJobIdentifier,
+                                   callbackJobFinishedType callbackJobFinished)
+    : SimulationRunner(numJobsTotal, getUserData, getJobIdentifier, callbackJobFinished, nullptr) {}
+
+SimulationRunner::SimulationRunner(int numJobsTotal,
+                                   getUserDataType getUserData,
                                    getJobIdentifierType getJobIdentifier,
                                    callbackJobFinishedType callbackJobFinished,
                                    callbackAllFinishedType aggregate)
-    : getUserData(getUserData),
+    : numJobsTotal(numJobsTotal),
+      getUserData(getUserData),
       getJobIdentifier(getJobIdentifier),
       callbackJobFinished(callbackJobFinished),
       aggregate(aggregate) {}
 
-int SimulationRunner::runMPI(int numJobsTotal,
-                          LoadBalancerMaster *loadBalancer) {
+int SimulationRunner::runMPI(LoadBalancerMaster *loadBalancer) {
     int numJobsFinished = 0;
 
     // TODO: allocate and free piecewise or according to max queue length
@@ -54,10 +62,8 @@ int SimulationRunner::runMPI(int numJobsTotal,
     return errors;
 }
 
-int SimulationRunner::runSerial(
-    int numJobsTotal,
-    std::function<void(std::vector<char> &buffer, int jobId)>
-        messageHandler) {
+int SimulationRunner::runSerial(LoadBalancerWorker::messageHandlerFunc messageHandler) {
+
     std::vector<JobData> jobs {static_cast<unsigned int>(numJobsTotal)};
 
     for (int simulationIdx = 0; simulationIdx < numJobsTotal; ++simulationIdx) {
@@ -89,11 +95,14 @@ void SimulationRunner::queueSimulation(LoadBalancerMaster *loadBalancer,
                                        pthread_mutex_t *jobDoneChangedMutex,
                                        int simulationIdx) {
 
-    JobAmiciSimulation<JobIdentifier> work(udata, &path);
     *d = JobData(jobDone, jobDoneChangedCondition, jobDoneChangedMutex);
+
+    JobAmiciSimulation<JobIdentifier> work(udata, &path);
     d->sendBuffer = work.serialize();
+
     if(callbackJobFinished)
         d->callbackJobFinished = std::bind2nd(callbackJobFinished, simulationIdx);
+
     loadBalancer->queueJob(d);
 }
 
