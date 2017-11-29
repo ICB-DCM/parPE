@@ -51,7 +51,10 @@ class OptimizationApplication {
      */
     virtual int runWorker() {
         // TODO: Move out of here
-        problem->run();
+        LoadBalancerWorker lbw;
+        lbw.run([this](std::vector<char> &buffer, int jobId) {
+            problem->messageHandler(buffer, jobId);
+        });
 
         return 0;
     }

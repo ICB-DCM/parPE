@@ -63,34 +63,28 @@ int master() {
     return errors;
 }
 
-class DuplicatingLoadBalancerWorker : public parpe::LoadBalancerWorker {
-    /**
-     * @brief messageHandler On the worker side, take the received value,
-     * multiply by 2, return
-     * @param buffer
-     * @param size
-     * @param jobId
-     * @param userData
-     */
+/**
+ * @brief On the worker side, take the received value, multiply by 2, return
+ * @param buffer
+ * @param jobId
+ */
+void duplicatingMessageHandler(std::vector<char> &buffer, int jobId) {
+    // read message
+    double value = *reinterpret_cast<double *>(buffer.data());
+    //    printf("Received %f\n", value);
 
-    void messageHandler(std::vector<char> &buffer, int jobId) override {
-        // read message
-        double value = *reinterpret_cast<double *>(buffer.data());
-        //    printf("Received %f\n", value);
+    // sleep(1);
 
-        // sleep(1);
-
-        // prepare result
-        buffer.resize(sizeof(double));
-        double *result = reinterpret_cast<double *>(buffer.data());
-        *result = value * 2;
-        //    printf("Sending %f\n", *result);
-    }
-};
+    // prepare result
+    buffer.resize(sizeof(double));
+    double *result = reinterpret_cast<double *>(buffer.data());
+    *result = value * 2;
+    //    printf("Sending %f\n", *result);
+}
 
 void worker() {
-    DuplicatingLoadBalancerWorker w;
-    w.run();
+    parpe::LoadBalancerWorker lbw;
+    lbw.run(duplicatingMessageHandler);
 }
 
 int main(int argc, char **argv) {

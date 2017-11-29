@@ -10,7 +10,7 @@
 /**
  * @brief The SteadystateProblemParallel class evaluates an ODE-constrained objective function in paralell.
  */
-class SteadystateProblemParallel : public parpe::OptimizationProblem, public parpe::LoadBalancerWorker {
+class SteadystateProblemParallel : public parpe::OptimizationProblem {
   public:
     SteadystateProblemParallel(parpe::LoadBalancerMaster *loadBalancer, const std::string &dataFileName);
 
@@ -23,7 +23,7 @@ class SteadystateProblemParallel : public parpe::OptimizationProblem, public par
     int evaluateSerial(const double *parameters, double *objFunVal,
                        double *objFunGrad);
 
-    void messageHandler(std::vector<char> &buffer, int jobId) override;
+    void messageHandler(std::vector<char> &buffer, int jobId);
 
     ~SteadystateProblemParallel();
 

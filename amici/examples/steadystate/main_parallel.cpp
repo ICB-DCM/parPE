@@ -56,7 +56,8 @@ int main(int argc, char **argv) {
             lbm.terminate();
             lbm.sendTerminationSignalToAllWorkers();
         } else {
-            problem.run();
+            parpe::LoadBalancerWorker lbw;
+            lbw.run([&problem](std::vector<char> &buffer, int jobId) { problem.messageHandler(buffer, jobId); });
         }
     }
 

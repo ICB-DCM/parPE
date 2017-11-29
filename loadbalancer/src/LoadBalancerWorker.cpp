@@ -8,15 +8,15 @@
 
 namespace parpe {
 
-void LoadBalancerWorker::run() {
+void LoadBalancerWorker::run(messageHandlerFunc messageHandler) {
     bool terminate = false;
 
     while (!terminate) {
-        terminate = waitForAndHandleJobs();
+        terminate = waitForAndHandleJobs(messageHandler);
     }
 }
 
-bool LoadBalancerWorker::waitForAndHandleJobs() {
+bool LoadBalancerWorker::waitForAndHandleJobs(messageHandlerFunc messageHandler) {
     int rank, err;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
