@@ -121,11 +121,9 @@ class LoadBalancerMaster {
 
     // one for each worker, index is off by one from MPI rank
     // because no job is sent to master (rank 0)
-    bool *workerIsBusy = nullptr;
-
-    MPI_Request *sendRequests = nullptr; // TODO: option: free(sendbuffer)
-
-    JobData **sentJobsData = nullptr;
+    std::vector<bool> workerIsBusy;
+    std::vector<MPI_Request> sendRequests;
+    std::vector<JobData *> sentJobsData;
 
     pthread_mutex_t mutexQueue = PTHREAD_MUTEX_INITIALIZER;
 

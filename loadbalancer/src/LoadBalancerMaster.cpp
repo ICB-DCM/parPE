@@ -20,11 +20,10 @@ void LoadBalancerMaster::run() {
            "Need multiple MPI processes!"); // crashes otherwise
 
     numWorkers = mpiCommSize - 1;
-    sentJobsData = new JobData *[numWorkers];
-    workerIsBusy = new bool[numWorkers]();
-    sendRequests = new MPI_Request[numWorkers];
-    for (int i = 0; i < numWorkers; ++i) // have to initialize before can wait!
-        sendRequests[i] = MPI_REQUEST_NULL;
+    sentJobsData.resize(numWorkers, nullptr);
+    workerIsBusy.resize(numWorkers, false);
+    // have to initialize before can wait!
+    sendRequests.resize(numWorkers, MPI_REQUEST_NULL);
 
     // Create semaphore to limit queue length
     // and avoid huge memory allocation for all send and receive buffers
@@ -108,7 +107,7 @@ void LoadBalancerMaster::freeEmptiedSendBuffers() {
     while (true) {
         int emptiedBufferIdx = -1;
         int anySendCompleted = 0;
-        MPI_Testany(numWorkers, sendRequests, &emptiedBufferIdx,
+        MPI_Testany(sendRequests.size(), sendRequests.data(), &emptiedBufferIdx,
                     &anySendCompleted, MPI_STATUS_IGNORE);
 
         if (anySendCompleted && emptiedBufferIdx != MPI_UNDEFINED) {
@@ -145,11 +144,11 @@ int LoadBalancerMaster::handleFinishedJobs() {
 }
 
 int LoadBalancerMaster::getNextFreeWorkerIndex() {
-    for (int i = 0; i < numWorkers; ++i) {
-        if (workerIsBusy[i] == false) {
+    for (unsigned int i = 0; i < workerIsBusy.size(); ++i) {
+        if (!workerIsBusy[i])
             return i;
-        }
     }
+
     return -1;
 }
 
@@ -207,8 +206,10 @@ void LoadBalancerMaster::queueJob(JobData *data) {
 void LoadBalancerMaster::terminate() {
     // avoid double termination
     pthread_mutex_lock(&mutexQueue);
-    if (!isRunning_)
+    if (!isRunning_) {
+        pthread_mutex_unlock(&mutexQueue);
         return;
+    }
     isRunning_ = false;
     pthread_mutex_unlock(&mutexQueue);
 
@@ -218,14 +219,6 @@ void LoadBalancerMaster::terminate() {
 
     pthread_mutex_destroy(&mutexQueue);
     sem_destroy(&semQueue);
-
-    if (sentJobsData)
-        delete[] sentJobsData;
-    if (sendRequests)
-        delete[] sendRequests;
-    if (workerIsBusy)
-        delete[] workerIsBusy;
-
 }
 
 int LoadBalancerMaster::handleReply(MPI_Status *mpiStatus) {
