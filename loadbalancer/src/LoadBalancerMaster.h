@@ -29,10 +29,8 @@ struct JobData {
     /** data to send */
     std::vector<char> sendBuffer;
 
-    /** size of data to receive (set when job finished) */
-    int lenRecvBuffer = 0;
     /** data to receive (set when job finished) */
-    char *recvBuffer = nullptr;
+    std::vector<char> recvBuffer;
 
     /** incremented by one, once the results have been received */
     int *jobDone = nullptr;

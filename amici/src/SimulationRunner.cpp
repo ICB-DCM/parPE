@@ -69,9 +69,7 @@ int SimulationRunner::runSerial(
         std::vector<char> buffer = work.serialize();
         messageHandler(buffer, simulationIdx);
 
-        jobs[simulationIdx].lenRecvBuffer = buffer.size();
-        jobs[simulationIdx].recvBuffer = new char[buffer.size()];
-        std::copy(buffer.begin(), buffer.end(), jobs[simulationIdx].recvBuffer);
+        jobs[simulationIdx].recvBuffer = buffer;
 
         if(callbackJobFinished)
             callbackJobFinished(&jobs[simulationIdx], simulationIdx);

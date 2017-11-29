@@ -234,8 +234,9 @@ int LoadBalancerMaster::handleReply(MPI_Status *mpiStatus) {
     JobData *data = sentJobsData[workerIdx];
 
     // allocate memory for result
-    MPI_Get_count(mpiStatus, MPI_BYTE, &data->lenRecvBuffer);
-    data->recvBuffer = new char[data->lenRecvBuffer];
+    int lenRecvBuffer = 0;
+    MPI_Get_count(mpiStatus, MPI_BYTE, &lenRecvBuffer);
+    data->recvBuffer.resize(lenRecvBuffer);
 
 #ifdef MASTER_QUEUE_H_SHOW_COMMUNICATION
     printf("\x1b[32mReceiving result for job %d from %d (%dB)\x1b[0m\n",
@@ -243,7 +244,7 @@ int LoadBalancerMaster::handleReply(MPI_Status *mpiStatus) {
 #endif
 
     // receive
-    MPI_Recv(data->recvBuffer, data->lenRecvBuffer, MPI_BYTE,
+    MPI_Recv(data->recvBuffer.data(), data->recvBuffer.size(), MPI_BYTE,
              mpiStatus->MPI_SOURCE, mpiStatus->MPI_TAG, MPI_COMM_WORLD,
              MPI_STATUS_IGNORE);
 

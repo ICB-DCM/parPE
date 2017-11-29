@@ -335,9 +335,8 @@ int MultiConditionProblem::aggregateLikelihood(JobData &data, double *logLikelih
     // deserialize
     JobResultAmiciSimulation result =
             amici::deserializeFromChar<JobResultAmiciSimulation>(
-                data.recvBuffer,
-                data.lenRecvBuffer);
-    delete[] data.recvBuffer;
+                data.recvBuffer.data(), data.recvBuffer.size());
+    data.recvBuffer = std::vector<char>(); // free buffer
     errors += result.status;
 
     // sum up

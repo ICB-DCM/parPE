@@ -51,11 +51,10 @@ int master() {
     // check results
     int errors = 0;
     for (int i = 0; i < numJobs; ++i) {
-        double *buffer = (double *)(jobdata[i].recvBuffer);
+        double *buffer = (double *)(jobdata[i].recvBuffer.data());
 
         if (*buffer != 2 * i)
             printf("ERROR: %d was %f\n", i, *buffer);
-        delete[] buffer;
     }
 
     lbm.terminate();

@@ -81,13 +81,12 @@ int SteadystateProblemParallel::evaluateParallel(const double *parameters,
         fillArray(objFunGrad, dataProvider->getNumOptimizationParameters(), 0.0);
 
     for (int i = 0; i < numConditions; ++i) {
-        double *buffer = (double *)(jobdata[i].recvBuffer);
+        double *buffer = (double *)(jobdata[i].recvBuffer.data());
         *objFunVal -= buffer[0];
 
         if (objFunGrad)
             for (int ip = 0; ip < model->np; ++ip)
                 objFunGrad[ip] -= buffer[1 + ip];
-        delete[] buffer;
     }
 
     sleep(1e-10);
