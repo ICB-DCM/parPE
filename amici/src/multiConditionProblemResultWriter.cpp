@@ -63,6 +63,7 @@ void MultiConditionProblemResultWriter::logSimulation(
     double timeElapsedInSeconds, int nTheta, int numStates, double *states,
     double *stateSensi, int numY, double *y, int jobId,
     int iterationsUntilSteadystate, int status) {
+    // TODO replace by SimulationResultWriter
     if (!gradient && !logLineSearch)
         return;
 

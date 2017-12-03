@@ -9,6 +9,9 @@ namespace parpe {
 
 class SimulationResultWriter {
 public:
+
+    SimulationResultWriter() = default;
+
     SimulationResultWriter(std::string hdf5FileName, std::string rootPath);
 
     /**
@@ -31,8 +34,7 @@ public:
      * position of the result data sets (-> createDatasets)
      */
 
-    void saveSimulationResults(const amici::UserData *udata,
-                               const amici::ExpData *edata,
+    void saveSimulationResults(const amici::ExpData *edata,
                                const amici::ReturnData *rdata,
                                int simulationIdx);
 

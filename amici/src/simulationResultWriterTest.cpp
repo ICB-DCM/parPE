@@ -69,7 +69,7 @@ TEST(simulationResultWriter, testResultWriter) {
     CHECK_TRUE(parpe::hdf5DatasetExists(file.getId(), rw.yMesPath.c_str()));
     CHECK_TRUE(parpe::hdf5DatasetExists(file.getId(), rw.ySimPath.c_str()));
 
-    rw.saveSimulationResults(&udata, &edata, &rdata, 1);
+    rw.saveSimulationResults(&edata, &rdata, 1);
 
     // verify
     std::vector<double> xdotAct(xdot.size());

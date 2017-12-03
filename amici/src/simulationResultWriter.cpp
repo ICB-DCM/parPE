@@ -76,12 +76,14 @@ void SimulationResultWriter::createDatasets(const amici::Model &model, const ami
 }
 
 
-void SimulationResultWriter::saveSimulationResults(const amici::UserData *udata, const amici::ExpData *edata, const amici::ReturnData *rdata, int simulationIndex)
+void SimulationResultWriter::saveSimulationResults(const amici::ExpData *edata, const amici::ReturnData *rdata, int simulationIndex)
 {
     hsize_t simulationIdx = static_cast<hsize_t>(simulationIndex);
     hsize_t ny = static_cast<hsize_t>(rdata->ny);
     hsize_t nx = static_cast<hsize_t>(rdata->nx);
-    hsize_t nt = static_cast<hsize_t>(udata->nt);
+    hsize_t nt = static_cast<hsize_t>(rdata->nt);
+
+    auto lock = parpe::hdf5MutexGetLock();
 
     if(saveYMes && edata->nt > 0 && edata->nytrue > 0) {
         auto dataset = file.openDataSet(yMesPath);
@@ -142,6 +144,8 @@ void SimulationResultWriter::saveSimulationResults(const amici::UserData *udata,
 
         dataset.write(rdata->llh, H5::PredType::NATIVE_DOUBLE, memspace, filespace);
     }
+
+    file.flush(H5F_SCOPE_LOCAL);
 }
 
 H5::H5File SimulationResultWriter::reopenFile()
