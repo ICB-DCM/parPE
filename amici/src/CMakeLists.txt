@@ -8,6 +8,7 @@ set(SRC_LIST
     steadystateSimulator.cpp
     optimizationApplication.cpp
     SimulationRunner.cpp
+    simulationResultWriter.cpp
     amiciMisc.cpp
 )
 

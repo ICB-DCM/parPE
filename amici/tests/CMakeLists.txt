@@ -8,6 +8,7 @@ set(SRC_LIST_CPP
     ../src/multiConditionProblemResultWriterTest.cpp
     ../src/multiConditionDataProviderTest.cpp
     ../src/multiConditionProblemTest.cpp
+    ../src/simulationResultWriterTest.cpp
     ../../common/src/testingMisc.cpp
 )
 
