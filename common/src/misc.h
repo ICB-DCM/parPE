@@ -3,8 +3,17 @@
 
 #include <stdlib.h>
 #include <memory>
+#include <cstdio>
 
 namespace parpe {
+
+#define RELEASE_ASSERT(expr, msg) \
+    if(!(expr)) { \
+        printf("CRITICAL: Assertion %s in %s:%d failed (%s)", \
+                          (#expr), __FILE__, __LINE__, msg); \
+        abort(); \
+    }
+
 // void printMatlabArray(const double *buffer, int len);
 
 /**
