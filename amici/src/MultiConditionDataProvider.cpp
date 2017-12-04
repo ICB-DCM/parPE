@@ -28,8 +28,10 @@ MultiConditionDataProvider::MultiConditionDataProvider(amici::Model *model,
     auto lock = hdf5MutexGetLock();
 
     H5_SAVE_ERROR_HANDLER;
-    fileId = H5Fopen(hdf5Filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
-    if (fileId < 0) {
+    try {
+        file = H5::H5File(hdf5Filename.c_str(), H5F_ACC_RDONLY);
+        fileId = file.getId();
+    } catch (...) {
         logmessage(LOGLVL_CRITICAL,
                    "initDataProvider failed to open HDF5 file '%s'.",
                    hdf5Filename.c_str());
@@ -88,7 +90,7 @@ int MultiConditionDataProvider::getNumConditionSpecificParametersPerSimulation()
  * @param conditionIdx Index of the experimental condition for which the
  * parameters should be taken.
  * @param udata The object to be updated.
- * @return
+ * @return On success zero, non-zero on failure
  */
 int MultiConditionDataProvider::updateFixedSimulationParameters(
     int conditionIdx, amici::UserData &udata) const {
@@ -132,6 +134,7 @@ std::unique_ptr<amici::ExpData> MultiConditionDataProvider::getExperimentalDataF
 
 void MultiConditionDataProvider::getOptimizationParametersLowerBounds(
     double *buffer) const {
+
     // TODO to HDF5
     amici::fillArray(buffer, getNumOptimizationParameters(), -2);
 }
@@ -245,18 +248,6 @@ void MultiConditionDataProvider::updateConditionSpecificSimulationParameters(
 hid_t MultiConditionDataProvider::getHdf5FileId() const { return fileId; }
 
 MultiConditionDataProvider::~MultiConditionDataProvider() {
-    if (fileId > 0) {
-        H5_SAVE_ERROR_HANDLER;
-        herr_t status = H5Fclose(fileId);
-
-        if (status < 0) {
-            error("closeDataProvider failed to close HDF5 file.");
-            printBacktrace(20);
-            H5Ewalk2(H5E_DEFAULT, H5E_WALK_DOWNWARD, hdf5ErrorStackWalker_cb,
-                     NULL);
-        }
-        H5_RESTORE_ERROR_HANDLER;
-    }
 }
 
 void JobIdentifier::print() const {

@@ -5,6 +5,7 @@
 #include <string>
 #include <amici.h>
 #include <memory>
+#include <H5Cpp.h>
 
 namespace parpe {
 
@@ -166,6 +167,7 @@ class MultiConditionDataProvider {
     std::string hdf5AmiciOptionPath;
     std::string hdf5ParameterPath;
 
+    H5::H5File file;
     hid_t fileId = 0;
 
     amici::Model *model = nullptr;
