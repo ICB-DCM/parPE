@@ -166,6 +166,8 @@ class MultiConditionDataProvider {
     std::string hdf5ConditionPath;
     std::string hdf5AmiciOptionPath;
     std::string hdf5ParameterPath;
+    std::string hdf5ParameterMinPath;
+    std::string hdf5ParameterMaxPath;
 
     H5::H5File file;
     hid_t fileId = 0;

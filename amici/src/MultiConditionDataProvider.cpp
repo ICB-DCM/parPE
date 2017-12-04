@@ -46,6 +46,8 @@ MultiConditionDataProvider::MultiConditionDataProvider(amici::Model *model,
     hdf5ConditionPath = rootPath + "/fixedParameters/k";
     hdf5AmiciOptionPath = rootPath + "/amiciOptions";
     hdf5ParameterPath = rootPath + "/parameters";
+    hdf5ParameterMinPath = hdf5ParameterPath + "/lowerBound";
+    hdf5ParameterMaxPath = hdf5ParameterPath + "/upperBound";
 }
 
 /**
@@ -135,14 +137,28 @@ std::unique_ptr<amici::ExpData> MultiConditionDataProvider::getExperimentalDataF
 void MultiConditionDataProvider::getOptimizationParametersLowerBounds(
     double *buffer) const {
 
-    // TODO to HDF5
-    amici::fillArray(buffer, getNumOptimizationParameters(), -2);
+    auto dataset = file.openDataSet(hdf5ParameterMinPath);
+
+    auto dataspace = dataset.getSpace();
+    RELEASE_ASSERT(dataspace.getSimpleExtentNdims() == 1, "hdf5ParameterMinPath dimensions dont match");
+    hsize_t dim = 0;
+    dataspace.getSimpleExtentDims(&dim);
+    RELEASE_ASSERT(dim == (unsigned) getNumOptimizationParameters(), "hdf5ParameterMinPath dimensions dont match");
+
+    dataset.read(buffer, H5::PredType::NATIVE_DOUBLE);
 }
 
 void MultiConditionDataProvider::getOptimizationParametersUpperBounds(
     double *buffer) const {
-    // TODO to HDF5
-    amici::fillArray(buffer, getNumOptimizationParameters(), 2);
+    auto dataset = file.openDataSet(hdf5ParameterMaxPath);
+
+    auto dataspace = dataset.getSpace();
+    RELEASE_ASSERT(dataspace.getSimpleExtentNdims() == 1, "hdf5ParameterMaxPath dimensions dont match");
+    hsize_t dim = 0;
+    dataspace.getSimpleExtentDims(&dim);
+    RELEASE_ASSERT(dim == (unsigned) getNumOptimizationParameters(), "hdf5ParameterMaxPath dimensions dont match");
+
+    dataset.read(buffer, H5::PredType::NATIVE_DOUBLE);
 }
 
 int MultiConditionDataProvider::getNumOptimizationParameters() const {

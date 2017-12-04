@@ -50,6 +50,11 @@ function [ output_args ] = createExampleData(  )
         h5write(hdfFile, '/data/ytrue', sol.y, [1, 1, i], [numT, numY, 1]);
         h5write(hdfFile, '/data/ymeasured', sol.y * (1 + sigmaY * randn()), [1, 1, i], [numT, numY, 1]);
     end
+    %% set bounds
+    h5create(hdfFile, '/parameters/lowerBound', [numel(p)])
+    h5write(hdfFile, '/parameters/lowerBound', -2 * ones(numel(p), 1))
+    h5create(hdfFile, '/parameters/upperBound', [numel(p)])
+    h5write(hdfFile, '/parameters/upperBound', 2 * ones(numel(p), 1))
     
     %% set optimization options
     % create group

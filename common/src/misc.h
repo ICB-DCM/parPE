@@ -9,7 +9,7 @@ namespace parpe {
 
 #define RELEASE_ASSERT(expr, msg) \
     if(!(expr)) { \
-        printf("CRITICAL: Assertion %s in %s:%d failed (%s)", \
+        printf("CRITICAL: Assertion %s in %s:%d failed (%s)\n", \
                           (#expr), __FILE__, __LINE__, msg); \
         abort(); \
     }
