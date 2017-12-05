@@ -38,8 +38,6 @@ class SteadyStateMultiConditionProblem : public parpe::MultiConditionProblem {
 
         optimizationOptions = *options.get();
         std::fill(initialParameters_.begin(), initialParameters_.end(), 0);
-        std::fill(parametersMin_.begin(), parametersMin_.end(), -5);
-        std::fill(parametersMax_.begin(), parametersMax_.end(), 5);
     }
 };
 
@@ -67,20 +65,6 @@ class SteadystateApplication : public parpe::OptimizationApplication {
         problem->resultWriter = std::make_unique<parpe::MultiConditionProblemResultWriter>(*resultWriter);
         problem->resultWriter->setJobId(id);
 
-    }
-
-    virtual int runSingleMpiProcess() override {
-        //return getLocalOptimum(problem);
-
-        parpe::MultiConditionProblemMultiStartOptimization ms(problem->getOptimizationOptions());
-        ms.options = problem->getOptimizationOptions();
-        ms.resultWriter = problem->resultWriter.get();
-        ms.dp = problem->getDataProvider();
-        ms.loadBalancer = &loadBalancer;
-        // Can only run single start because of non-threadsafe sundials
-        ms.setRunParallel(false);
-        ms.run();
-        return 0;
     }
 
     std::unique_ptr<SteadyStateMultiConditionDataProvider> dataProvider;

@@ -10,6 +10,8 @@
 #include <optimizer.h>
 #include <iostream>
 #include <cassert>
+#include <numeric>
+#include <random>
 
 namespace parpe {
 
@@ -48,6 +50,20 @@ void runOptimizationsParallel(const OptimizationProblem **problems,
 }
 
 void optimizationProblemGradientCheck(OptimizationProblem *problem,
+                                      int numParameterIndicesToCheck, double epsilon) {
+    numParameterIndicesToCheck = std::min(numParameterIndicesToCheck, problem->getNumOptimizationParameters());
+    // choose random parameters to check
+    std::vector<int> parameterIndices(problem->getNumOptimizationParameters());
+    std::iota(parameterIndices.begin(), parameterIndices.end(), 0);
+    std::random_device rd;
+    std::mt19937 g(rd());
+    //std::shuffle(parameterIndices.begin(), parameterIndices.end(), g);
+
+    optimizationProblemGradientCheck(problem, parameterIndices.data(),
+                                     numParameterIndicesToCheck, epsilon);
+}
+
+void optimizationProblemGradientCheck(OptimizationProblem *problem,
                                       const int parameterIndices[],
                                       int numParameterIndices, double epsilon) {
     double fc = 0; // f(theta)
@@ -81,8 +97,10 @@ void optimizationProblemGradientCheck(OptimizationProblem *problem,
         thetaTmp[curInd] = theta[curInd];
 
         printf("%d\tg: %f\tfd_f: %f\t(%f)\tfd_c: %f\t(%f)\tfd_b: %f\t(%f)",
-               curInd, gradient[curInd], fd_f, gradient[curInd] - fd_f, fd_c,
-               gradient[curInd] - fd_c, fd_b, gradient[curInd] - fd_b);
+               curInd, gradient[curInd],
+               fd_f, gradient[curInd] - fd_f,
+               fd_c, gradient[curInd] - fd_c,
+               fd_b, gradient[curInd] - fd_b);
         printf("\t\tfb: %f\tfc: %f\tff: %f\t\n", fb, fc, ff);
     }
 }

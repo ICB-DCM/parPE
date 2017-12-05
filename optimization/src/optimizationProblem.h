@@ -100,6 +100,9 @@ void runOptimizationsParallel(const OptimizationProblem **problems,
                               int numProblems);
 
 void optimizationProblemGradientCheck(OptimizationProblem *problem,
+                                      int numParameterIndicesToCheck, double epsilon);
+
+void optimizationProblemGradientCheck(OptimizationProblem *problem,
                                       const int parameterIndices[],
                                       int numParameterIndices, double epsilon);
 

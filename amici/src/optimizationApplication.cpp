@@ -173,20 +173,11 @@ int OptimizationApplication::run(int argc, char **argv) {
 int OptimizationApplication::runMaster() {
     switch (opType) {
     case OP_TYPE_GRADIENT_CHECK: {
-        // startObjectiveFunctionGradientCheck(&problem);
-
         const int numParameterIndicesToCheck = 50;
         const double epsilon = 1e-6;
-
-        // choose random parameters to check
-        std::vector<int> parameterIndices(problem->getNumOptimizationParameters());
-        std::iota(parameterIndices.begin(), parameterIndices.end(), 0);
-        std::random_device rd;
-        std::mt19937 g(rd());
-        std::shuffle(parameterIndices.begin(), parameterIndices.end(), g);
-
-        optimizationProblemGradientCheck(problem.get(), parameterIndices.data(),
-                                         numParameterIndicesToCheck, epsilon);
+        optimizationProblemGradientCheck(problem.get(),
+                                         numParameterIndicesToCheck,
+                                         epsilon);
         break;
     }
     case OP_TYPE_PARAMETER_ESTIMATION:
@@ -213,17 +204,32 @@ int OptimizationApplication::runMaster() {
 }
 
 int OptimizationApplication::runSingleMpiProcess() {
-    // TODO: also for gradientCheck
     // run serially
-    if (problem->getOptimizationOptions().numStarts > 0) {
-        MultiConditionProblemMultiStartOptimization ms(problem->getOptimizationOptions());
-        ms.options = problem->getOptimizationOptions();
-        ms.resultWriter = problem->resultWriter.get();
-        ms.dp = problem->getDataProvider();
-        return ms.run();
-    } else {
-        return getLocalOptimum(problem.get());
+    switch (opType) {
+    case OP_TYPE_GRADIENT_CHECK: {
+        const int numParameterIndicesToCheck = 50;
+        const double epsilon = 1e-6;
+        optimizationProblemGradientCheck(problem.get(),
+                                         numParameterIndicesToCheck,
+                                         epsilon);
+        break;
     }
+    case OP_TYPE_PARAMETER_ESTIMATION:
+    default:
+        if (problem->getOptimizationOptions().numStarts > 0) {
+            MultiConditionProblemMultiStartOptimization ms(problem->getOptimizationOptions());
+            ms.options = problem->getOptimizationOptions();
+            ms.resultWriter = problem->resultWriter.get();
+            ms.dp = problem->getDataProvider();
+            // Can only run single start because of non-threadsafe sundials
+            ms.setRunParallel(false);
+            return ms.run();
+        } else {
+            return getLocalOptimum(problem.get());
+        }
+    }
+
+    return 0;
 }
 
 void OptimizationApplication::finalizeTiming(clock_t begin) {
