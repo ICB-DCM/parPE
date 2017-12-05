@@ -9,6 +9,10 @@ namespace parpe {
 
 void setCeresOption(const std::pair<const std::string, const std::string> &pair, ceres::GradientProblemSolver::Options* options);
 
+
+/**
+ * @brief Adapter class for parpe::OptimizationProblem and ceres::FirstOrderFunction
+ */
 class MyCeresFirstOrderFunction : public ceres::FirstOrderFunction {
 
   public:
@@ -49,14 +53,19 @@ class MyCeresFirstOrderFunction : public ceres::FirstOrderFunction {
     OptimizationProblem *problem;
 };
 
+
+/**
+ * @brief Callback functor for to be called between ceres iterations
+ */
 class MyIterationCallback : public ceres::IterationCallback {
   public:
     MyIterationCallback(OptimizationProblem *problem) : problem(problem) {}
 
     virtual ceres::CallbackReturnType
     operator()(const ceres::IterationSummary &summary) override {
-        switch (problem->intermediateFunction(
-            0, summary.iteration, summary.cost, 0, 0, 0, 0, 0, 0, 0, 0)) {
+        int status = problem->intermediateFunction(
+                    0, summary.iteration, summary.cost, 0, 0, 0, 0, 0, 0, 0, 0);
+        switch (status) {
         case 0:
             return ceres::SOLVER_CONTINUE;
         default:
@@ -68,7 +77,6 @@ class MyIterationCallback : public ceres::IterationCallback {
     OptimizationProblem *problem = NULL;
 };
 
-OptimizerCeres::OptimizerCeres() {}
 
 ceres::GradientProblemSolver::Options getCeresOptions(
                      OptimizationProblem *problem) {
@@ -84,6 +92,7 @@ ceres::GradientProblemSolver::Options getCeresOptions(
     return options;
 }
 
+
 int OptimizerCeres::optimize(OptimizationProblem *problem) {
     std::vector<double> parameters(problem->getNumOptimizationParameters());
 
@@ -96,6 +105,7 @@ int OptimizerCeres::optimize(OptimizationProblem *problem) {
         problem->fillInitialParameters(parameters.data());
     }
 
+    // GradientProblem takes ownership
     ceres::GradientProblem ceresProblem(new MyCeresFirstOrderFunction(problem));
 
     ceres::GradientProblemSolver::Options options = getCeresOptions(problem);

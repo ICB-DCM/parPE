@@ -10,7 +10,7 @@ class OptimizationProblem;
 
 class OptimizerCeres : public Optimizer {
   public:
-    OptimizerCeres();
+    OptimizerCeres() = default;
 
     /**
      * @brief Determines the local optimum for the provided
