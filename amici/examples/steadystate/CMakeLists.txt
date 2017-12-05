@@ -59,6 +59,7 @@ add_executable(${PROJECT_NAME} ${SRC_LIST_EXE_PARALLEL})
 target_link_libraries(${PROJECT_NAME}
     ${MODEL_LIBRARIES}
     parpeamici
+    ${GCOV_LIBRARY}
 )
 
 if(${BUILD_TESTS})
