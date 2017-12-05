@@ -91,7 +91,7 @@ if(${BUILD_TESTS})
     if(${GCOV_REPORT})
         if(${CMAKE_COMPILER_IS_GNUCXX})
             # NOTE: LCOV uses absolute paths for exclusion; arguments must be enclosed in single quotes
-            set(COVERAGE_EXCLUDES '/usr/*' '${CMAKE_CURRENT_LIST_DIR}/ThirdParty/*' '${CMAKE_CURRENT_LIST_DIR}/deps/*')
+            set(COVERAGE_EXCLUDES '/usr/*' '${CMAKE_CURRENT_LIST_DIR}/ThirdParty/*' '${CMAKE_CURRENT_LIST_DIR}/deps/*' '${CMAKE_CURRENT_LIST_DIR}/amici/examples/steadystate/model/*')
             set(GCOV_LIBRARY gcov)
             include(CodeCoverage)
             APPEND_COVERAGE_COMPILER_FLAGS()
@@ -100,7 +100,7 @@ if(${BUILD_TESTS})
                 EXECUTABLE ctest
                 DEPENDENCIES ${COVERAGE_DEPENDENCIES})
         else()
-            message("Not creating coverage report, because compiler is not GCC but ${CMAKE_CXX_COMPILER_ID}.")
+            message("Not creating coverage report, because coamici/examples/steadystate/modelamici/examples/steadystate/modelmpiler is not GCC but ${CMAKE_CXX_COMPILER_ID}.")
         endif()
     endif()
 
