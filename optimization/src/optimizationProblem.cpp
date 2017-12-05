@@ -51,15 +51,13 @@ void optimizationProblemGradientCheck(OptimizationProblem *problem,
                                       const int parameterIndices[],
                                       int numParameterIndices, double epsilon) {
     double fc = 0; // f(theta)
-    double theta[problem->getNumOptimizationParameters()];
-    problem->fillInitialParameters(theta);
+    std::vector<double> theta(problem->getNumOptimizationParameters());
+    problem->fillInitialParameters(theta.data());
 
-    double *gradient = new double[problem->getNumOptimizationParameters()];
-    problem->evaluateObjectiveFunction(theta, &fc, gradient);
+    std::vector<double> gradient(theta.size());
+    problem->evaluateObjectiveFunction(theta.data(), &fc, gradient.data());
 
-    double *thetaTmp = new double[problem->getNumOptimizationParameters()];
-    memcpy(thetaTmp, theta,
-           sizeof(double) * problem->getNumOptimizationParameters());
+    std::vector<double> thetaTmp(theta);
 
     printf("Index\tGradient\tfd_f\t\t(delta)\t\tfd_c\t\t(delta)\t\tfd_b\t\t("
            "delta)\n");
@@ -69,10 +67,10 @@ void optimizationProblemGradientCheck(OptimizationProblem *problem,
         double fb = 0, ff = 0; // f(theta + eps) , f(theta - eps)
 
         thetaTmp[curInd] = theta[curInd] + epsilon;
-        problem->evaluateObjectiveFunction(thetaTmp, &ff, nullptr);
+        problem->evaluateObjectiveFunction(thetaTmp.data(), &ff, nullptr);
 
         thetaTmp[curInd] = theta[curInd] - epsilon;
-        problem->evaluateObjectiveFunction(thetaTmp, &fb, nullptr);
+        problem->evaluateObjectiveFunction(thetaTmp.data(), &fb, nullptr);
 
         double fd_f = (ff - fc) / epsilon;
 
@@ -87,9 +85,6 @@ void optimizationProblemGradientCheck(OptimizationProblem *problem,
                gradient[curInd] - fd_c, fd_b, gradient[curInd] - fd_b);
         printf("\t\tfb: %f\tfc: %f\tff: %f\t\n", fb, fc, ff);
     }
-
-    delete[] gradient;
-    delete[] thetaTmp;
 }
 
 OptimizationProblem::OptimizationProblem(int numOptimizationParameters)
