@@ -58,8 +58,22 @@ struct JobIdentifier {
 
 class MultiConditionDataProvider {
   public:
+    MultiConditionDataProvider() = default;
+
+    /**
+     * @brief MultiConditionDataProvider
+     * @param model A valid pointer to the amici::Model for which the data is to be provided.
+     * The user is responsible for deleting the Model.
+     * @param hdf5Filename Path to the HDF5 file from which the data is to be read
+     */
     MultiConditionDataProvider(amici::Model *model, std::string hdf5Filename);
 
+    /**
+     * @brief See above.
+     * @param model
+     * @param hdf5Filename
+     * @param rootPath The name of the HDF5 group under which the data is stored.
+     */
     MultiConditionDataProvider(amici::Model *model, std::string hdf5Filename,
                                std::string rootPath);
 
@@ -148,6 +162,13 @@ class MultiConditionDataProvider {
     virtual int getIndexOfFirstConditionSpecificOptimizationParameter(
         int conditionIdx) const;
 
+    /**
+     * @brief Based on the array of optimization parameters, set the simulation
+     * parameters in the given UserData object to the ones for condition index.
+     * @param conditionIndex
+     * @param optimizationParams
+     * @param udata
+     */
     void updateSimulationParameters(int conditionIndex, const double *optimizationParams,
         amici::UserData *udata) const;
 
@@ -156,11 +177,16 @@ class MultiConditionDataProvider {
         int conditionIndex, const double *optimizationParams,
         amici::UserData *udata) const;
 
+    /**
+     * @brief Get the identifier of the used HDF5 file. Does not reopen. Do not close file.
+     * @return The file ID
+     */
     hid_t getHdf5FileId() const;
 
-  protected:
-    MultiConditionDataProvider() = default;
-
+    /**
+     * @brief Absolute paths in the HDF5 file to the datasets
+     * from which the respective data is to be read
+     */
     std::string hdf5MeasurementPath;
     std::string hdf5MeasurementSigmaPath;
     std::string hdf5ConditionPath;
@@ -169,9 +195,15 @@ class MultiConditionDataProvider {
     std::string hdf5ParameterMinPath;
     std::string hdf5ParameterMaxPath;
 
+    /**
+     * @brief HDF5 file handles for C++ and C API
+     */
     H5::H5File file;
     hid_t fileId = 0;
 
+    /**
+     * @brief The model for which the data is to be read
+     */
     amici::Model *model = nullptr;
 };
 
