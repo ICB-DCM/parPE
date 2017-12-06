@@ -32,6 +32,12 @@ def extractMultiStartResults(infile, outfile):
                                  (numParameters, numStarts),
                                   dtype='f8', fillvalue=np.nan)
     
+    dsetParameterTrajectories = fOut.create_dataset("/parameterTrajectory",
+                                 (numParameters, 0, numStarts),
+                                 maxshape=(numParameters, None, numStarts),
+                                 chunks=True,
+                                 dtype='f8', fillvalue=np.nan)
+
     dsetExitStatus= fOut.create_dataset("/exitStatus",
                                  (1, numStarts), dtype='<i4', fillvalue=-1)
     
@@ -42,6 +48,13 @@ def extractMultiStartResults(infile, outfile):
     for start in range(numStarts):
         print('Copying /multistarts/%d/' % start)
         try:
+            # extend to max number of iterations if necessary
+            trajectory = fIn['/multistarts/%d/iterCostFunParameters' % start]
+            if trajectory.shape[1] > dsetParameterTrajectories.shape[1]:
+                dsetParameterTrajectories.resize(trajectory.shape[1], 1)
+            dsetParameterTrajectories[:, 0:trajectory.shape[1], start] = trajectory[:,:]
+
+            # try copy last, since they might not exist
             dsetExitStatus[:, start] = fIn['/multistarts/%d/exitStatus' % start]
             dsetParameters[:, start] = fIn['/multistarts/%d/finalParameters' % start]
             dsetFinalCost[:, start]  = fIn['/multistarts/%d/finalCost' % start]
