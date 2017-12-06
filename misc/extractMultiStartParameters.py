@@ -84,5 +84,11 @@ def main():
     
     extractMultiStartResults(infile, outfile)
     
+    # copy input data for conditions names, parameter names, state names, ...
+    with h5py.File(infile, "r") as sF:
+        with h5py.File(outfile, "a") as dF:
+            sF.copy("/inputData", dF.require_group("/"))
+
+    
 if __name__ == "__main__":
     main()
