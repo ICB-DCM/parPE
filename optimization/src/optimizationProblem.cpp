@@ -96,11 +96,21 @@ void optimizationProblemGradientCheck(OptimizationProblem *problem,
 
         thetaTmp[curInd] = theta[curInd];
 
-        printf("%d\tg: %f\tfd_f: %f\t(%f)\tfd_c: %f\t(%f)\tfd_b: %f\t(%f)",
-               curInd, gradient[curInd],
-               fd_f, gradient[curInd] - fd_f,
-               fd_c, gradient[curInd] - fd_c,
-               fd_b, gradient[curInd] - fd_b);
+        double curGrad = gradient[curInd];
+        char status[] = " ";
+        if(!((fd_c >= fd_f && fd_c <= fd_b)
+                || (fd_c <= fd_f && fd_c >= fd_b)))
+            status[0] = '!';
+        if(!((curGrad >= fd_f && curGrad <= fd_b)
+                || (curGrad <= fd_f && curGrad >= fd_b)))
+            status[0] = '!';
+
+
+        printf("%d\t%s\tg: %f\tfd_f: %f\t(%f)\tfd_c: %f\t(%f)\tfd_b: %f\t(%f)",
+               curInd, status, curGrad,
+               fd_f, curGrad - fd_f,
+               fd_c, curGrad - fd_c,
+               fd_b, curGrad - fd_b);
         printf("\t\tfb: %f\tfc: %f\tff: %f\t\n", fb, fc, ff);
     }
 }
