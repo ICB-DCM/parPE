@@ -144,6 +144,13 @@ endif()
 
 include(CMakeModules/clang-tools.cmake)
 
+add_custom_target(cloc
+                  COMMAND cloc misc amici common optimization loadbalancer --fullpath --not-match-d=amici/examples/steadystate/model/*
+                  WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
+                  COMMENT "Counting lines of code"
+                  VERBATIM)
+
+
 add_subdirectory(common)
 add_subdirectory(optimization)
 add_subdirectory(loadbalancer)
