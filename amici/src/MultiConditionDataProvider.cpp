@@ -261,6 +261,12 @@ void MultiConditionDataProvider::updateConditionSpecificSimulationParameters(
            numSpecificParams * sizeof(double));
 }
 
+void MultiConditionDataProvider::copyInputData(H5::H5File target)
+{
+    H5Ocopy(fileId, "/", target.getId(), "/inputData", H5P_DEFAULT, H5P_DEFAULT);
+    H5Fflush(target.getId(), H5F_SCOPE_LOCAL);
+}
+
 hid_t MultiConditionDataProvider::getHdf5FileId() const { return fileId; }
 
 MultiConditionDataProvider::~MultiConditionDataProvider() {

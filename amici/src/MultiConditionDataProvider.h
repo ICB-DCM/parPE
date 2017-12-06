@@ -177,6 +177,8 @@ class MultiConditionDataProvider {
         int conditionIndex, const double *optimizationParams,
         amici::UserData *udata) const;
 
+    void copyInputData(H5::H5File target);
+
     /**
      * @brief Get the identifier of the used HDF5 file. Does not reopen. Do not close file.
      * @return The file ID
