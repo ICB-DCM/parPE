@@ -5,15 +5,8 @@
 #include <misc.h>
 #include <multiConditionProblemResultWriter.h>
 
-SteadyStateMultiConditionDataProvider::SteadyStateMultiConditionDataProvider(
-    Model *model, std::string hdf5Filename)
-    : MultiConditionDataProvider(model, hdf5Filename) {
-
-    // hdf5MeasurementPath = "/data/ytrue";
-
-    hdf5MeasurementPath = "/data/ymeasured";
-    hdf5MeasurementSigmaPath = "/data/sigmay";
-    hdf5ConditionPath = "/data/k";
+SteadyStateMultiConditionDataProvider::SteadyStateMultiConditionDataProvider(Model *model, std::string hdf5Filename, std::string rootPath)
+    : MultiConditionDataProvider(model, hdf5Filename, rootPath) {
 
     udata = std::unique_ptr<UserData>(getUserData());
 }
@@ -27,7 +20,8 @@ void SteadyStateMultiConditionDataProvider::setupUserData(
     UserData *udata) const {
 
     hsize_t length;
-    AMI_HDF5_getDoubleArrayAttribute(fileId, "data", "t", &udata->ts, &length);
+    auto timePath = rootPath + "/parameters";
+    AMI_HDF5_getDoubleArrayAttribute(fileId, timePath.c_str(), "t", &udata->ts, &length);
     udata->nt = length;
 
     // calculate sensitivities for all parameters

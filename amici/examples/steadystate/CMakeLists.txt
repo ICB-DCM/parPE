@@ -71,3 +71,28 @@ if(${BUILD_TESTS})
         )
 endif()
 # /example_steadystate_multi executable
+
+
+# example_steadystate_multi_simulator executable
+
+project(example_steadystate_multi_simulator)
+
+set(SRC_LIST_EXE_PARALLEL
+    main_simulator.cpp
+    steadyStateMultiConditionDataprovider.cpp
+)
+
+add_executable(${PROJECT_NAME} ${SRC_LIST_EXE_PARALLEL})
+
+target_link_libraries(${PROJECT_NAME}
+    ${MODEL_LIBRARIES}
+    parpeamici
+    ${GCOV_LIBRARY}
+)
+
+if(${BUILD_TESTS})
+#    add_test (NAME ${PROJECT_NAME}
+#        COMMAND ${TESTS_MPIEXEC_COMMAND} ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME} -o ${PROJECT_NAME}-testresults ${CMAKE_CURRENT_LIST_DIR}/data.h5
+#        )
+endif()
+# /example_steadystate_multi executable_simulator

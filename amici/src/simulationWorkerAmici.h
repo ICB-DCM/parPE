@@ -86,6 +86,7 @@ public:
     double simulationTimeInSec = -1;
 };
 
+
 /**
  * For use with boost::serialization. Serialize raw C++ array.
  */
@@ -103,9 +104,9 @@ void archiveRawArray(Archive &ar, T **p, int &numElements) {
 
 } // namespace parpe
 
+
 namespace boost {
 namespace serialization {
-
 
 template <class Archive>
 void serialize(Archive &ar, parpe::JobResultAmiciSimulation &d, const unsigned int version) {

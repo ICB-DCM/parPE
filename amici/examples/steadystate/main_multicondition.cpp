@@ -65,6 +65,9 @@ class SteadystateApplication : public parpe::OptimizationApplication {
         problem->resultWriter = std::make_unique<parpe::MultiConditionProblemResultWriter>(*resultWriter);
         problem->resultWriter->setJobId(id);
 
+        if(parpe::getMpiRank() < 1)
+            dataProvider->copyInputData(resultWriter->file_id);
+
     }
 
     std::unique_ptr<SteadyStateMultiConditionDataProvider> dataProvider;

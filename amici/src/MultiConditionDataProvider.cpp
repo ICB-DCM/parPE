@@ -23,7 +23,7 @@ MultiConditionDataProvider::MultiConditionDataProvider(amici::Model *model,
 MultiConditionDataProvider::MultiConditionDataProvider(amici::Model *model,
                                                        std::string hdf5Filename,
                                                        std::string rootPath)
-    : model(model) {
+    : model(model), rootPath(rootPath) {
 
     auto lock = hdf5MutexGetLock();
 

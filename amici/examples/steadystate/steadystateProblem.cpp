@@ -70,7 +70,7 @@ void ExampleSteadystateProblem::logOptimizerFinished(
 
     hsize_t length;
     double *ptrue;
-    AMI_HDF5_getDoubleArrayAttribute(fileId, "/data/", "ptrue", &ptrue,
+    AMI_HDF5_getDoubleArrayAttribute(fileId, "/parameters/", "ptrue", &ptrue,
                                      &length);
     printArray(ptrue, length);
     delete ptrue;
@@ -102,7 +102,7 @@ void ExampleSteadystateProblem::setupUserData(int conditionIdx) {
     udata = model->getNewUserData();
 
     hsize_t length;
-    AMI_HDF5_getDoubleArrayAttribute(fileId, "data", "t", &udata->ts, &length);
+    AMI_HDF5_getDoubleArrayAttribute(fileId, "parameters", "t", &udata->ts, &length);
     udata->nt = length;
 
     // set model constants
@@ -120,15 +120,15 @@ void ExampleSteadystateProblem::setupExpData(int conditionIdx) {
 }
 
 void ExampleSteadystateProblem::readFixedParameters(int conditionIdx) {
-    parpe::hdf5Read2DDoubleHyperslab(fileId, "/data/k", model->nk, 1, 0, conditionIdx,
+    parpe::hdf5Read2DDoubleHyperslab(fileId, "/fixedParameters/k", model->nk, 1, 0, conditionIdx,
                               udata->k);
 }
 
 void ExampleSteadystateProblem::readMeasurement(int conditionIdx) {
-    parpe::hdf5Read3DDoubleHyperslab(fileId, "/data/ymeasured", 1, model->ny,
+    parpe::hdf5Read3DDoubleHyperslab(fileId, "/measurements/y", 1, model->ny,
                               udata->nt, conditionIdx, 0, 0, edata->my);
 
 
-    parpe::hdf5Read3DDoubleHyperslab(fileId, "/data/sigmay", 1, edata->nytrue,
+    parpe::hdf5Read3DDoubleHyperslab(fileId, "/measurements/ysigma", 1, edata->nytrue,
                                      edata->nt, conditionIdx, 0, 0, edata->sigmay);
 }

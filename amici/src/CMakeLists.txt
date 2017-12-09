@@ -9,6 +9,7 @@ set(SRC_LIST
     optimizationApplication.cpp
     SimulationRunner.cpp
     simulationResultWriter.cpp
+    standaloneSimulator.cpp
     amiciMisc.cpp
 )
 

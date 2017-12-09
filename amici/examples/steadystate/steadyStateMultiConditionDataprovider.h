@@ -18,7 +18,7 @@ class SteadyStateMultiConditionDataProvider
 
   public:
     SteadyStateMultiConditionDataProvider(Model *model,
-                                          std::string hdf5Filename);
+                                          std::string hdf5Filename, std::string rootPath = "");
 
     int getNumConditionSpecificParametersPerSimulation() const override;
 

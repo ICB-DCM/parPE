@@ -37,28 +37,33 @@ function [ output_args ] = createExampleData(  )
     %% write data
     delete(hdfFile);
     try
-        h5create(hdfFile, '/data/k', size(kAll));
+        h5create(hdfFile, '/fixedParameters/k', size(kAll));
     end
     try
-        h5create(hdfFile, '/data/ytrue', [numT, numY, numConditions]);
+        h5create(hdfFile, '/measurements/ytrue', [numT, numY, numConditions]);
     end
     try
-        h5create(hdfFile, '/data/ymeasured', [numT, numY, numConditions]);
+        h5create(hdfFile, '/measurements/y', [numT, numY, numConditions]);
     end
     try
-        h5create(hdfFile, '/data/sigmay', [numT, numY, numConditions]);
+        h5create(hdfFile, '/measurements/ysigma', [numT, numY, numConditions]);
     end
     
-    h5write(hdfFile, '/data/k', kAll);
-    h5writeatt(hdfFile, '/data/', 'ptrue', log10(p));
-    h5writeatt(hdfFile, '/data/', 't', t);
-    h5write(hdfFile, '/data/sigmay', sigmaY * ones(numT, numY, numConditions));
+    fid = H5F.open(hdfFile, 'H5F_ACC_RDWR', 'H5P_DEFAULT');
+    gid = H5G.create(fid, '/parameters', 'H5P_DEFAULT', 'H5P_DEFAULT', 'H5P_DEFAULT');
+    H5G.close(gid);
+    H5F.close(fid);
+    
+    h5write(hdfFile, '/fixedParameters/k', kAll);
+    h5writeatt(hdfFile, '/parameters/', 'ptrue', log10(p));
+    h5writeatt(hdfFile, '/parameters/', 't', t);
+    h5write(hdfFile, '/measurements/ysigma', sigmaY * ones(numT, numY, numConditions));
 
     for i = 1:numConditions
         k = kAll(i, :);
         sol = simulate_model_steadystate(t, p, k, [], options);
-        h5write(hdfFile, '/data/ytrue', sol.y, [1, 1, i], [numT, numY, 1]);
-        h5write(hdfFile, '/data/ymeasured', sol.y * (1 + sigmaY * randn()), [1, 1, i], [numT, numY, 1]);
+        h5write(hdfFile, '/measurements/ytrue', sol.y, [1, 1, i], [numT, numY, 1]);
+        h5write(hdfFile, '/measurements/y', sol.y * (1 + sigmaY * randn()), [1, 1, i], [numT, numY, 1]);
     end
     
     %% set bounds

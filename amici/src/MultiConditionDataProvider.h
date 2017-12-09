@@ -189,6 +189,7 @@ class MultiConditionDataProvider {
      * @brief Absolute paths in the HDF5 file to the datasets
      * from which the respective data is to be read
      */
+    std::string rootPath = "/";
     std::string hdf5MeasurementPath;
     std::string hdf5MeasurementSigmaPath;
     std::string hdf5ConditionPath;
