@@ -3,6 +3,7 @@
 #include <cassert>
 #include <climits>
 #include <misc.h>
+#include <parpeException.h>
 
 namespace parpe {
 
@@ -29,8 +30,8 @@ void LoadBalancerMaster::run() {
     // and avoid huge memory allocation for all send and receive buffers
     unsigned int queueMaxLength = mpiCommSize;
 #ifdef SEM_VALUE_MAX
-    queueMaxLength =
-        SEM_VALUE_MAX < queueMaxLength ? SEM_VALUE_MAX : queueMaxLength;
+    if(SEM_VALUE_MAX < queueMaxLength)
+        throw ParPEException("SEM_VALUE_MAX too small to work with the given MPI_Comm_size.");
 #endif
     sem_init(&semQueue, 0, queueMaxLength);
 
