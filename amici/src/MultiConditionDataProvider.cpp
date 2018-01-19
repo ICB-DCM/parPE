@@ -257,8 +257,7 @@ void MultiConditionDataProvider::updateConditionSpecificSimulationParameters(
     // parameters
     double *pConditionSpecificSimulation = &(udata->p[numCommonParams]);
 
-    memcpy(pConditionSpecificSimulation, pConditionSpecificOptimization,
-           numSpecificParams * sizeof(double));
+    std::copy(pConditionSpecificOptimization, pConditionSpecificOptimization + numSpecificParams, pConditionSpecificSimulation);
 }
 
 void MultiConditionDataProvider::copyInputData(H5::H5File target)

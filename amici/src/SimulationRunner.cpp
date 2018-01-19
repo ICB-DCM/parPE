@@ -20,7 +20,6 @@ SimulationRunner::SimulationRunner(int numJobsTotal,
 int SimulationRunner::runDistributedMemory(LoadBalancerMaster *loadBalancer) {
     int numJobsFinished = 0;
 
-    // TODO: allocate and free piecewise or according to max queue length
     std::vector<JobData> jobs {static_cast<unsigned int>(numJobsTotal)};
 
     // mutex to wait for simulations to finish
