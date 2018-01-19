@@ -245,7 +245,7 @@ void OptimizationApplication::finalizeTiming(clock_t begin) {
     int mpiRank = getMpiRank();
 
     if (mpiRank == 0) {
-        logmessage(LOGLVL_INFO, "Walltime: %fs, total compute time:%fs",
+        logmessage(LOGLVL_INFO, "Walltime on master: %fs, all processes: %fs",
                    wallTimeSeconds, totalTimeInSeconds);
         if (resultWriter)
             resultWriter->saveTotalCpuTime(totalTimeInSeconds);
