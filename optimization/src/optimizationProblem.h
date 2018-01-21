@@ -12,8 +12,45 @@ namespace parpe {
 class OptimizationResultWriter;
 
 /**
- * @brief The OptimizationProblem class describes an optimization problem
+ * @brief The GradientFunction class is an interface for an
+ * arbitrary function f(x) and its gradient.
  */
+class GradientFunction {
+public:
+    enum FunctionEvaluationStatus {
+        functionEvaluationSuccess,
+        functionEvaluationFailure,
+    };
+
+    /**
+     * @brief Evaluate the function f(x)
+     * @param parameters Point x at which to evaluate f(x). Must be of length numParameters().
+     * @param fval (output) Will be set to the function value f(x)
+     * @param gradient (output) If not nullptr, will contain the gradient of f(x) at x. Must be of length numParameters().
+     * @return functionEvaluationSuccess on success, functionEvaluationFailure otherwise
+     */
+    virtual FunctionEvaluationStatus evaluate(
+            const double* const parameters,
+            double &fval,
+            double* gradient) const = 0;
+
+    virtual int numParameters() const = 0;
+};
+
+
+
+
+/**
+ * @brief The OptimizationProblem class describes an optimization problem.
+ *
+ * A OptimizationProblem has a GradientFunction objective function to be minimized,
+ * parameter bounds and initial values.
+ *
+ * Additional constraints are currently not supported.
+ *
+ * TODO: rename GradientProblem?
+ */
+
 class OptimizationProblem {
 
   public:

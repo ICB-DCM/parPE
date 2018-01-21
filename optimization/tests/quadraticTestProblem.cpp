@@ -58,4 +58,22 @@ std::unique_ptr<OptimizationProblem> QuadraticOptimizationMultiStartProblem::get
     return std::unique_ptr<OptimizationProblem>(new QuadraticTestProblem());
 }
 
+GradientFunction::FunctionEvaluationStatus QuadraticGradientFunction::evaluate(
+        const double * const parameters,
+        double &fval, double *gradient) const
+{
+    fval = pow(parameters[0] + 1.0, 2) + 42.0;
+
+    if (gradient) {
+        gradient[0] = 2.0 * parameters[0] + 2.0;
+    }
+
+    return functionEvaluationSuccess;
+}
+
+int QuadraticGradientFunction::numParameters() const
+{
+    return 1;
+}
+
 } // namespace parpe

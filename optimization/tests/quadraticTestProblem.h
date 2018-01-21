@@ -6,6 +6,28 @@
 
 namespace parpe {
 
+/**
+ * @brief The QuadraticGradientFunction class is a simple function for testing
+ * the optimization framework.
+ *
+ * Represents the function
+ *   f(x) = (x + 1)^2 + 42 = x^2 + 2x + 43
+ *   for x in R
+ * with gradient
+ *   f'(x) = 2x + 2
+ * and minimum 42 at x = -1
+ */
+
+class QuadraticGradientFunction : public GradientFunction {
+public:
+    FunctionEvaluationStatus evaluate(
+            const double* const parameters,
+            double &fval,
+            double* gradient) const override;
+
+    int numParameters() const override;
+};
+
 class QuadraticTestProblem : public OptimizationProblem {
   public:
     QuadraticTestProblem();
