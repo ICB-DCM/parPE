@@ -389,19 +389,27 @@ OptimizerIpOpt::OptimizerIpOpt() {}
 
 int OptimizerIpOpt::optimize(OptimizationProblem *problem) {
 
-    ApplicationReturnStatus status;
+    ApplicationReturnStatus status = Unrecoverable_Exception;
 
     pthread_mutex_lock(&ipoptMutex);
     { // ensure all IpOpt objects are destroyed before mutex is unlocked
-        SmartPtr<TNLP> mynlp =
-            new LocalOptimizationIpoptTNLP(problem, &ipoptMutex);
-        SmartPtr<IpoptApplication> app = IpoptApplicationFactory();
-        app->RethrowNonIpoptException(true);
+        try {
+            SmartPtr<TNLP> mynlp =
+                    new LocalOptimizationIpoptTNLP(problem, &ipoptMutex);
+            SmartPtr<IpoptApplication> app = IpoptApplicationFactory();
+            app->RethrowNonIpoptException(true);
 
-        setIpOptOptions(app->Options(), problem);
+            setIpOptOptions(app->Options(), problem);
 
-        status = app->Initialize();
-        status = app->OptimizeTNLP(mynlp);
+            status = app->Initialize();
+            status = app->OptimizeTNLP(mynlp);
+        } catch (IpoptException& e) {
+            logmessage(LOGLVL_ERROR, "IpOpt exception: %s",  e.Message().c_str());
+        } catch (std::exception& e) {
+            logmessage(LOGLVL_ERROR, "Unknown exception occured during optimization: %s", e.what());
+        } catch (...) {
+            logmessage(LOGLVL_ERROR, "Unknown exception occured during optimization");
+        }
     }
     pthread_mutex_unlock(&ipoptMutex);
 
