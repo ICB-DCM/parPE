@@ -413,10 +413,11 @@ int OptimizerIpOpt::optimize(OptimizationProblem *problem) {
     }
     pthread_mutex_unlock(&ipoptMutex);
 
-    if((int)status < Not_Enough_Degrees_Of_Freedom) {
-        // should exit, retrying probably makes no sense
-        throw ParPEException("Unrecoverable IpOpt problem - see messages above.");
-    }
+    // TODO: need smarter way to decide if should retry or not
+//    if((int)status < Not_Enough_Degrees_Of_Freedom) {
+//        // should exit, retrying probably makes no sense
+//        throw ParPEException(std::string("Unrecoverable IpOpt problem - see messages above. Code ") + std::to_string(status));
+//    }
 
     return (int)status < Maximum_Iterations_Exceeded;
 }
