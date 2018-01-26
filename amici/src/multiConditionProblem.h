@@ -25,7 +25,7 @@ class MultiConditionGradientFunction : public GradientFunction {
 public:
     MultiConditionGradientFunction() {} // TODO remove?
     MultiConditionGradientFunction(MultiConditionDataProvider *dataProvider, LoadBalancerMaster *loadBalancer, MultiConditionProblemResultWriter *resultWriter = nullptr);
-
+    virtual ~MultiConditionGradientFunction() = default;
 
     /**
      * @brief Evaluate cost function at `optimiziationVariables`
@@ -139,6 +139,8 @@ private:
     std::unique_ptr<amici::UserData> udata;
     amici::UserData udataOriginal; // for saving sensitivity options which are changed depending on whether gradient is needed
     MultiConditionProblemResultWriter *resultWriter = nullptr;
+    bool logLineSearch = false;
+
 };
 
 
@@ -275,6 +277,12 @@ class MultiConditionProblemMultiStartOptimizationProblem
 
 
 void printSimulationResult(JobIdentifier const& path, int jobId, const amici::UserData *udata, const amici::ReturnData *rdata, double timeSeconds);
+
+void logSimulation(hid_t file_id, std::string path, const double *theta, double llh,
+                   const double *gradient, double timeElapsedInSeconds,
+                   int nTheta, int numStates, double *states,
+                   double *stateSensi, int numY, double *y, int jobId,
+                   int iterationsUntilSteadystate, int status);
 
 } // namespace parpe
 

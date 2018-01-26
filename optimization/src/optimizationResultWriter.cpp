@@ -31,10 +31,10 @@ OptimizationResultWriter::OptimizationResultWriter(const std::string &filename,
 }
 
 
-std::string OptimizationResultWriter::getOptimizationPath() { return rootPath; }
+std::string OptimizationResultWriter::getOptimizationPath() const { return rootPath; }
 
 
-std::string OptimizationResultWriter::getIterationPath(int iterationIdx) {
+std::string OptimizationResultWriter::getIterationPath(int iterationIdx) const {
     std::ostringstream ss;
     ss << rootPath << "/" << iterationIdx << "/";
 
@@ -42,7 +42,7 @@ std::string OptimizationResultWriter::getIterationPath(int iterationIdx) {
 }
 
 
-void OptimizationResultWriter::logParPEVersion() {
+void OptimizationResultWriter::logParPEVersion() const {
     hdf5WriteStringAttribute(file_id, rootPath.c_str(), "PARPE_VERSION",
                              GIT_VERSION);
 }
@@ -160,7 +160,7 @@ void OptimizationResultWriter::starting(int numParameters, const double * const 
 }
 
 
-void OptimizationResultWriter::flushResultWriter() {
+void OptimizationResultWriter::flushResultWriter() const {
     auto lock = hdf5MutexGetLock();
 
     H5Fflush(file_id, H5F_SCOPE_LOCAL);
@@ -168,7 +168,7 @@ void OptimizationResultWriter::flushResultWriter() {
 
 void OptimizationResultWriter::saveLocalOptimizerResults(
         double finalNegLogLikelihood, const double *optimalParameters,
-        int numParameters, double masterTime, int exitStatus) {
+        int numParameters, double masterTime, int exitStatus) const {
 
     std::string optimPath = getOptimizationPath();
     hdf5EnsureGroupExists(file_id, optimPath.c_str());

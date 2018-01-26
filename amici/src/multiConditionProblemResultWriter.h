@@ -8,7 +8,8 @@
 namespace parpe {
 
 // TODO get rid of JobIdentifier
-// TODO merge with simulation resultwriter?
+// TODO merge with simulation resultwriter? the only thing this one is doing extra is tracking
+// job identifier and printing 2 messages
 class MultiConditionProblemResultWriter : public OptimizationResultWriter {
 
 public:
@@ -28,33 +29,24 @@ public:
             const double *objectiveFunctionGradient, int numIterations, int numFunctionCalls,
             double timeElapsedInSeconds);
 
-    std::string getIterationPath(int iterationIdx) override;
+    std::string getIterationPath(int iterationIdx) const override;
 
-    std::string getSimulationPath(JobIdentifier id);
-
-    std::string getOptimizationPath() override;
+    std::string getOptimizationPath() const override;
 
     JobIdentifier getJobId();
 
     void setJobId(JobIdentifier id);
-
-    void logSimulation(JobIdentifier id, const double *theta, double llh,
-                       const double *gradient, double timeElapsedInSeconds,
-                       int nTheta, int numStates, double *states,
-                       double *stateSensi, int numY, double *y, int jobId,
-                       int iterationsUntilSteadystate, int status);
 
     void printObjectiveFunctionFailureMessage() const;
 
     void saveLocalOptimizerResults(double finalNegLogLikelihood,
                                            const double *optimalParameters,
                                            int numParameters, double masterTime,
-                                           int exitStatus);
+                                           int exitStatus) const override;
 
 
 private:
 
-    bool logLineSearch = false;
     JobIdentifier id;
     hid_t file_id = 0;
 };

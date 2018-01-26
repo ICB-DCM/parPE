@@ -95,9 +95,9 @@ JobResultAmiciSimulation MultiConditionGradientFunction::runAndLogSimulation(ami
 
     printSimulationResult(path, jobId, udata, rdata.get(), timeSeconds);
 
-    if (resultWriter) {
+    if (resultWriter && (udata->sensi > amici::AMICI_SENSI_ORDER_NONE || logLineSearch)) {
         int iterationsUntilSteadystate = -1;
-        resultWriter->logSimulation(path, udata->p, rdata->llh[0], rdata->sllh,
+        logSimulation(resultWriter->getFileId(), resultWriter->getOptimizationPath(), udata->p, rdata->llh[0], rdata->sllh,
                 timeSeconds, model->np, model->nx, rdata->x,
                 rdata->sx, model->ny, rdata->y, jobId,
                 iterationsUntilSteadystate, *rdata->status);
@@ -406,6 +406,61 @@ GradientFunction::FunctionEvaluationStatus MultiConditionGradientFunction::evalu
 int MultiConditionGradientFunction::numParameters() const
 {
     return dataProvider->getNumOptimizationParameters();
+}
+
+void logSimulation(hid_t file_id, std::string pathStr, const double *theta, double llh, const double *gradient, double timeElapsedInSeconds, int nTheta, int numStates, double *states, double *stateSensi, int numY, double *y, int jobId, int iterationsUntilSteadystate, int status)
+{
+    // TODO replace by SimulationResultWriter
+    const char *fullGroupPath = pathStr.c_str();
+
+    hdf5CreateOrExtendAndWriteToDouble2DArray(
+        file_id, fullGroupPath, "simulationLogLikelihood", &llh, 1);
+
+    hdf5CreateOrExtendAndWriteToInt2DArray(file_id, fullGroupPath, "jobId",
+                                           &jobId, 1);
+
+    if (gradient) {
+        hdf5CreateOrExtendAndWriteToDouble2DArray(
+            file_id, fullGroupPath, "simulationLogLikelihoodGradient", gradient,
+            nTheta);
+    } else {
+        double dummyGradient[nTheta];
+        std::fill_n(dummyGradient, nTheta, NAN);
+        hdf5CreateOrExtendAndWriteToDouble2DArray(
+            file_id, fullGroupPath, "simulationLogLikelihoodGradient",
+            dummyGradient, nTheta);
+    }
+
+    if (theta)
+        hdf5CreateOrExtendAndWriteToDouble2DArray(
+            file_id, fullGroupPath, "simulationParameters", theta, nTheta);
+
+    hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath,
+                                              "simulationWallTimeInSec",
+                                              &timeElapsedInSeconds, 1);
+
+    if (states)
+        hdf5CreateOrExtendAndWriteToDouble2DArray(
+            file_id, fullGroupPath, "simulationStates", states, numStates);
+
+    if (y)
+        hdf5CreateOrExtendAndWriteToDouble2DArray(
+            file_id, fullGroupPath, "simulationObservables", y, numY);
+
+    hdf5CreateOrExtendAndWriteToInt2DArray(file_id, fullGroupPath,
+                                           "iterationsUntilSteadystate",
+                                           &iterationsUntilSteadystate, 1);
+
+    if (stateSensi)
+        hdf5CreateOrExtendAndWriteToDouble3DArray(
+            file_id, fullGroupPath, "simulationStateSensitivities", stateSensi,
+            numStates, nTheta);
+
+    hdf5CreateOrExtendAndWriteToInt2DArray(file_id, fullGroupPath,
+                                           "simulationStatus", &status, 1);
+
+    H5Fflush(file_id, H5F_SCOPE_LOCAL);
+
 }
 
 } // namespace parpe

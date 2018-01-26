@@ -92,7 +92,7 @@ public:
     virtual void saveLocalOptimizerResults(double finalNegLogLikelihood,
                                            const double *optimalParameters,
                                            int numParameters, double masterTime,
-                                           int exitStatus);
+                                           int exitStatus) const;
 
     void setRootPath(std::string const& path);
 
@@ -104,7 +104,7 @@ protected:
     /**
      * @brief Write buffered output to file
      */
-    virtual void flushResultWriter();
+    virtual void flushResultWriter() const;
 
 
 
@@ -112,12 +112,12 @@ private:
     int initResultHDFFile(const char *filename, bool overwrite);
 
     void closeResultHDFFile();
-    virtual std::string getOptimizationPath();
+    virtual std::string getOptimizationPath() const;
 
-    virtual std::string getIterationPath(int iterationIdx);
+    virtual std::string getIterationPath(int iterationIdx) const;
 
     // TODO move out of here
-    virtual void logParPEVersion();
+    virtual void logParPEVersion() const;
 
     hid_t file_id = 0;
 

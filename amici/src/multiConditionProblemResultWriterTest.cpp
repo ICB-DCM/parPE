@@ -30,7 +30,7 @@ TEST(multiConditionProblemResultWriter, testResultWriter) {
 
     w.logLocalOptimizerObjectiveFunctionEvaluation(NULL, 0, 1, NULL, 1, 2, 3);
 
-    w.logSimulation(id, NULL, 1, NULL, 1, 1, 2, NULL, NULL, 0, NULL, 1, 2, 0);
+    parpe::logSimulation(w.getFileId(), "/test", NULL, 1, NULL, 1, 1, 2, NULL, NULL, 0, NULL, 1, 2, 0);
 
     w.saveLocalOptimizerResults(1, NULL, 0, 12, 0);
 }

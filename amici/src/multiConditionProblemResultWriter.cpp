@@ -40,7 +40,7 @@ void MultiConditionProblemResultWriter::logLocalOptimizerObjectiveFunctionEvalua
 
 }
 
-std::string MultiConditionProblemResultWriter::getIterationPath(int iterationIdx) {
+std::string MultiConditionProblemResultWriter::getIterationPath(int iterationIdx) const {
 
     char fullGroupPath[1024];
     sprintf(fullGroupPath, "/multistarts/%d/iteration/%d/",
@@ -56,7 +56,7 @@ void MultiConditionProblemResultWriter::printObjectiveFunctionFailureMessage() c
                strBuf);
 }
 
-void MultiConditionProblemResultWriter::saveLocalOptimizerResults(double finalNegLogLikelihood, const double *optimalParameters, int numParameters, double masterTime, int exitStatus)
+void MultiConditionProblemResultWriter::saveLocalOptimizerResults(double finalNegLogLikelihood, const double *optimalParameters, int numParameters, double masterTime, int exitStatus) const
 {
     char strBuf[100];
     id.sprint(strBuf);
@@ -68,16 +68,7 @@ void MultiConditionProblemResultWriter::saveLocalOptimizerResults(double finalNe
                               masterTime, exitStatus);
 }
 
-std::string
-MultiConditionProblemResultWriter::getSimulationPath(JobIdentifier id) {
-    char fullGroupPath[1024];
-    sprintf(fullGroupPath, "/multistarts/%d/iteration/%d/condition/%d/",
-            id.idxLocalOptimization, id.idxLocalOptimizationIteration,
-            id.idxConditions);
-    return fullGroupPath;
-}
-
-std::string MultiConditionProblemResultWriter::getOptimizationPath() {
+std::string MultiConditionProblemResultWriter::getOptimizationPath() const {
     char fullGroupPath[1024];
     sprintf(fullGroupPath, "/multistarts/%d/", id.idxLocalOptimization);
     return fullGroupPath;
@@ -89,66 +80,5 @@ void MultiConditionProblemResultWriter::setJobId(JobIdentifier id) {
 }
 
 JobIdentifier MultiConditionProblemResultWriter::getJobId() { return id; }
-
-void MultiConditionProblemResultWriter::logSimulation(
-    JobIdentifier id, const double *theta, double llh, const double *gradient,
-    double timeElapsedInSeconds, int nTheta, int numStates, double *states,
-    double *stateSensi, int numY, double *y, int jobId,
-    int iterationsUntilSteadystate, int status) {
-    // TODO replace by SimulationResultWriter
-    if (!gradient && !logLineSearch)
-        return;
-
-    std::string pathStr = getSimulationPath(id);
-    const char *fullGroupPath = pathStr.c_str();
-
-    hdf5CreateOrExtendAndWriteToDouble2DArray(
-        file_id, fullGroupPath, "simulationLogLikelihood", &llh, 1);
-
-    hdf5CreateOrExtendAndWriteToInt2DArray(file_id, fullGroupPath, "jobId",
-                                           &jobId, 1);
-
-    if (gradient) {
-        hdf5CreateOrExtendAndWriteToDouble2DArray(
-            file_id, fullGroupPath, "simulationLogLikelihoodGradient", gradient,
-            nTheta);
-    } else {
-        double dummyGradient[nTheta];
-        std::fill_n(dummyGradient, nTheta, NAN);
-        hdf5CreateOrExtendAndWriteToDouble2DArray(
-            file_id, fullGroupPath, "simulationLogLikelihoodGradient",
-            dummyGradient, nTheta);
-    }
-
-    if (theta)
-        hdf5CreateOrExtendAndWriteToDouble2DArray(
-            file_id, fullGroupPath, "simulationParameters", theta, nTheta);
-
-    hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath,
-                                              "simulationWallTimeInSec",
-                                              &timeElapsedInSeconds, 1);
-
-    if (states)
-        hdf5CreateOrExtendAndWriteToDouble2DArray(
-            file_id, fullGroupPath, "simulationStates", states, numStates);
-
-    if (y)
-        hdf5CreateOrExtendAndWriteToDouble2DArray(
-            file_id, fullGroupPath, "simulationObservables", y, numY);
-
-    hdf5CreateOrExtendAndWriteToInt2DArray(file_id, fullGroupPath,
-                                           "iterationsUntilSteadystate",
-                                           &iterationsUntilSteadystate, 1);
-
-    if (stateSensi)
-        hdf5CreateOrExtendAndWriteToDouble3DArray(
-            file_id, fullGroupPath, "simulationStateSensitivities", stateSensi,
-            numStates, nTheta);
-
-    hdf5CreateOrExtendAndWriteToInt2DArray(file_id, fullGroupPath,
-                                           "simulationStatus", &status, 1);
-
-    flushResultWriter();
-}
 
 } // namespace parpe
