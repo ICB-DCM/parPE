@@ -9,12 +9,9 @@ namespace parpe {
 LocalOptimizationIpoptTNLP::LocalOptimizationIpoptTNLP(
     OptimizationProblem *problem, double& finalCost, std::vector<double>& finalParameters)
     : problem(problem), reporter(problem->getReporter()), finalCost(finalCost), finalParameters(finalParameters) {
+    cachedGradient.resize(problem->costFun->numParameters());
 }
 
-LocalOptimizationIpoptTNLP::~LocalOptimizationIpoptTNLP() {
-    if (lastGradient)
-        delete[] lastGradient;
-}
 
 bool LocalOptimizationIpoptTNLP::get_nlp_info(Index &n, Index &m,
                                               Index &nnz_jac_g,
@@ -73,23 +70,21 @@ bool LocalOptimizationIpoptTNLP::eval_f(Index n, const Number *x, bool new_x,
     if(reporter && reporter->beforeCostFunctionCall(n, x) != 0)
         return true;
 
-    if (new_x || !lastCostP) {
+    if (new_x || !haveCachedCost) {
         // Have to compute anew
         errors = problem->costFun->evaluate(x, obj_value, nullptr);
-        if (lastGradient) // invalidate
-            delete[] lastGradient;
-        lastGradient = nullptr;
-        lastErrors = errors;
-        lastCost = obj_value;
-        lastCostP = &lastCost;
+        cachedErrors = errors;
+        cachedCost = obj_value;
+        haveCachedCost = true;
+        haveCachedGradient = false;
     } else {
         // recycle old result
-        errors = lastErrors;
-        obj_value = lastCost;
+        errors = cachedErrors;
+        obj_value = cachedCost;
     }
 
-    if(reporter)
-        return (errors == 0) && !reporter->afterCostFunctionCall(n, x, lastCost, lastGradient);
+    if(reporter && reporter->afterCostFunctionCall(n, x, cachedCost, nullptr))
+        return true;
 
     return errors == 0;
 }
@@ -103,23 +98,21 @@ bool LocalOptimizationIpoptTNLP::eval_grad_f(Index n, const Number *x,
 
     int errors = 0;
 
-    if (new_x || !lastCostP || !lastGradient) {
+    if (new_x || !haveCachedGradient) {
         // Have to compute anew
-        errors = problem->costFun->evaluate(x, lastCost, grad_f);
-
-        if (!lastGradient)
-            lastGradient = new Number[n];
-        memcpy(lastGradient, grad_f, sizeof(Number) * n);
-        lastCostP = &lastCost;
-        lastErrors = errors;
+        errors = problem->costFun->evaluate(x, cachedCost, grad_f);
+        std::copy(grad_f, grad_f + n, cachedGradient.begin());
+        cachedErrors = errors;
+        haveCachedCost = true;
+        haveCachedGradient = true;
     } else {
         // recycle old result
-        memcpy(grad_f, lastGradient, sizeof(Number) * n);
-        errors = lastErrors;
+        std::copy(cachedGradient.begin(), cachedGradient.end(), grad_f);
+        errors = cachedErrors;
     }
 
     if(reporter)
-        return (errors == 0) && !reporter->afterCostFunctionCall(n, x, lastCost, lastGradient);
+        return (errors == 0) && !reporter->afterCostFunctionCall(n, x, cachedCost, cachedGradient.data());
 
     return errors == 0;
 }
@@ -138,10 +131,12 @@ bool LocalOptimizationIpoptTNLP::eval_jac_g(Index n, const Number *x,
                                             Number *values) {
     // no constraints, nothing to do here, but will be called once
 
-    if (new_x)
-        lastCostP = nullptr; // because next function will be called with
-                          // new_x==false, but we didn't prepare anything
-
+    if (new_x) {
+        // because next function will be called with
+        // new_x==false, but we didn't prepare anything
+        haveCachedCost = false;
+        haveCachedGradient = false;
+    }
     return true;
 }
 
@@ -156,7 +151,7 @@ bool LocalOptimizationIpoptTNLP::intermediate_callback(
     int status = reporter->iterationFinished(problem->costFun->numParameters(),
                                              nullptr,
                                              obj_value,
-                                             lastGradient);
+                                             haveCachedGradient?cachedGradient.data():nullptr);
 
 #ifdef INSTALL_SIGNAL_HANDLER
     if (caughtTerminationSignal) {

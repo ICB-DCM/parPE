@@ -54,7 +54,7 @@ class LocalOptimizationIpoptTNLP : public Ipopt::TNLP {
 
     LocalOptimizationIpoptTNLP(OptimizationProblem *problem, double& finalCost, std::vector<double>& finalParameters);
 
-    virtual ~LocalOptimizationIpoptTNLP();
+    virtual ~LocalOptimizationIpoptTNLP() = default;
 
     virtual bool get_nlp_info(Index &n, Index &m, Index &nnz_jac_g,
                               Index &nnz_h_lag,
@@ -97,16 +97,21 @@ private:
     OptimizationProblem *problem = nullptr;
 
     // for caching
-    Number *lastGradient = nullptr;
-    Number lastCost = INFINITY;
-    Number *lastCostP = nullptr;
-    int lastErrors = 0;
+    bool haveCachedCost = false;
+    bool haveCachedGradient = false;
+    std::vector<Number> cachedGradient;
+    Number cachedCost = INFINITY;
+    int cachedErrors = 0;
 
+    // to restrict access to IpOpt routines
     mutexIpOptType *mutexIpOpt = nullptr;
+
     std::unique_ptr<OptimizationReporter> reporter;
 
     double& finalCost;
     std::vector<double>& finalParameters;
+
+    // need to store, because IpOpt asks twice
     std::vector<double> initialParameters;
 };
 
