@@ -20,6 +20,10 @@ bool LoadBalancerWorker::waitForAndHandleJobs(messageHandlerFunc messageHandler)
     int rank, err;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
+#ifdef LOADBALANCERWORKER_REPORT_WAITING_TIME
+    double startTime = MPI_Wtime();
+#endif
+
 #if QUEUE_WORKER_H_VERBOSE >= 3
     printf("[%d] Waiting for work.\n", rank);
 #endif
@@ -46,6 +50,11 @@ bool LoadBalancerWorker::waitForAndHandleJobs(messageHandlerFunc messageHandler)
         return true;
     }
 
+#ifdef LOADBALANCERWORKER_REPORT_WAITING_TIME
+    double endTime = MPI_Wtime();
+    double waitedSeconds = (endTime - startTime);
+    printf("[%d] Message received after waiting %fs.\n", rank, waitedSeconds);
+#endif
 
     messageHandler(buffer, mpiStatus.MPI_TAG);
 

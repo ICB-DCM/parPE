@@ -366,15 +366,15 @@ void setIpOptOptions(SmartPtr<OptionsList> optionsIpOpt,
         optionsIpOpt->SetIntegerValue("print_level", 0);
         optionsIpOpt->SetStringValue("print_user_options", "no");
         optionsIpOpt->SetStringValue("sb",
-                                       "yes"); // suppress copyright message
+                                     "yes"); // suppress copyright message
     }
 
-   // TODO: move to HDF5 file
+    // TODO: move to HDF5 file
     optionsIpOpt->SetStringValue("hessian_approximation", "limited-memory");
     optionsIpOpt->SetStringValue("limited_memory_update_type", "bfgs");
 
     optionsIpOpt->SetIntegerValue(
-        "max_iter", problem->getOptimizationOptions().maxOptimizerIterations);
+                "max_iter", problem->getOptimizationOptions().maxOptimizerIterations);
 
     // set IpOpt options from OptimizationOptions
     problem->getOptimizationOptions().for_each<SmartPtr<OptionsList> *>(setIpOptOption, &optionsIpOpt);
@@ -384,7 +384,7 @@ OptimizerIpOpt::OptimizerIpOpt() {}
 
 std::tuple<int, double, std::vector<double> > OptimizerIpOpt::optimize(OptimizationProblem *problem) {
 
-    ApplicationReturnStatus status;
+    ApplicationReturnStatus status = Unrecoverable_Exception;
 
     std::vector<double> finalParameters;
     double finalCost = NAN;
@@ -394,22 +394,31 @@ std::tuple<int, double, std::vector<double> > OptimizerIpOpt::optimize(Optimizat
         // lock because we pass control to IpOpt
         auto lock = ipOptGetLock();
 
-        SmartPtr<TNLP> mynlp =
-            new LocalOptimizationIpoptTNLP(problem, finalCost, finalParameters);
-        SmartPtr<IpoptApplication> app = IpoptApplicationFactory();
-        app->RethrowNonIpoptException(true);
+        try {
+            SmartPtr<TNLP> mynlp =
+                    new LocalOptimizationIpoptTNLP(problem, finalCost, finalParameters);
+            SmartPtr<IpoptApplication> app = IpoptApplicationFactory();
+            app->RethrowNonIpoptException(true);
 
-        setIpOptOptions(app->Options(), problem);
+            setIpOptOptions(app->Options(), problem);
 
-        status = app->Initialize();
-        assert(status == Solve_Succeeded);
-        status = app->OptimizeTNLP(mynlp);
+            status = app->Initialize();
+            assert(status == Solve_Succeeded);
+            status = app->OptimizeTNLP(mynlp);
+        } catch (IpoptException& e) {
+            logmessage(LOGLVL_ERROR, "IpOpt exception: %s",  e.Message().c_str());
+        } catch (std::exception& e) {
+            logmessage(LOGLVL_ERROR, "Unknown exception occured during optimization: %s", e.what());
+        } catch (...) {
+            logmessage(LOGLVL_ERROR, "Unknown exception occured during optimization");
+        }
     }
 
-    if((int)status < Not_Enough_Degrees_Of_Freedom) {
-        // should exit, retrying probably makes no sense
-        throw ParPEException("Unrecoverable IpOpt problem - see messages above.");
-    }
+    // TODO: need smarter way to decide if should retry or not
+    //    if((int)status < Not_Enough_Degrees_Of_Freedom) {
+    //        // should exit, retrying probably makes no sense
+    //        throw ParPEException(std::string("Unrecoverable IpOpt problem - see messages above. Code ") + std::to_string(status));
+    //    }
 
     return std::tuple<int, double, std::vector<double> >((int)status < Maximum_Iterations_Exceeded, finalCost, finalParameters);
 }
