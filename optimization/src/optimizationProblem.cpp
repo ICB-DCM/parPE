@@ -181,10 +181,14 @@ bool OptimizationReporter::starting(int numParameters, const double * const init
 
 bool OptimizationReporter::iterationFinished(int numParameters, const double * const parameters, double objectiveFunctionValue, const double * const objectiveFunctionGradient)
 {
-    double wallTime = (double)(clock() - timeIterationBegin) / CLOCKS_PER_SEC;
+    double wallTimeIter = (double)(clock() - timeIterationBegin) / CLOCKS_PER_SEC;
+    double wallTimeOptim = (double)(clock() - timeOptimizationBegin) / CLOCKS_PER_SEC;
+
+    logmessage(LOGLVL_INFO, "iter: %d cost: %g time_iter: %gs time_optim: %gs", numIterations, objectiveFunctionValue, wallTimeIter, wallTimeOptim);
+
     if(resultWriter)
         resultWriter->logLocalOptimizerIteration(numIterations, parameters, numParameters, objectiveFunctionValue, objectiveFunctionGradient,
-                                                 wallTime);
+                                                 wallTimeIter);
     ++numIterations;
 
     return false;
