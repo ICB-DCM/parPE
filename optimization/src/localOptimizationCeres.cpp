@@ -16,8 +16,16 @@ void setCeresOption(const std::pair<const std::string, const std::string> &pair,
 class MyCeresFirstOrderFunction : public ceres::FirstOrderFunction {
 
   public:
-    MyCeresFirstOrderFunction(OptimizationProblem *problem)
-        : problem(problem) {}
+    MyCeresFirstOrderFunction(OptimizationProblem *problem, OptimizationReporter *reporter)
+        : problem(problem), reporter(reporter) {
+        numParameters = problem->costFun->numParameters();
+
+        // bounds are not natively supported by CERES; a naive check is currently implemented which fails function evaluation if parameters are out of bounds
+        parametersMin.resize(numParameters);
+        problem->fillParametersMin(parametersMin.data());
+        parametersMax.resize(numParameters);
+        problem->fillParametersMax(parametersMax.data());
+    }
 
     /**
      * @brief Evaluate cost function
@@ -28,29 +36,37 @@ class MyCeresFirstOrderFunction : public ceres::FirstOrderFunction {
      */
     virtual bool Evaluate(const double *parameters, double *cost,
                           double *gradient) const override {
-        static __thread int numFunctionCalls = 0;
-        ++numFunctionCalls;
 
-        if(!withinBounds(problem->getNumOptimizationParameters(), parameters,
-                         problem->getParametersMin(), problem->getParametersMax()))
+        // Naive bounds check: report failure if not within
+        if(!withinBounds(numParameters, parameters,
+                         parametersMin.data(), parametersMax.data()))
             return false;
 
-        double cpuTimeInSec = 0;
-        bool status =
-            problem->evaluateObjectiveFunction(parameters, cost, gradient);
+        if(reporter && reporter->beforeCostFunctionCall(numParameters, parameters) != 0)
+            return true;
 
-            problem->logObjectiveFunctionEvaluation(parameters, *cost, gradient,
-                                                numFunctionCalls, cpuTimeInSec);
+        bool errors =
+                problem->costFun->evaluate(parameters, *cost, gradient);
 
-        return status == 0;
+        if(reporter && reporter->afterCostFunctionCall(numParameters, parameters, *cost, gradient))
+            return false;
+
+        return errors == 0;
     }
 
     virtual int NumParameters() const override {
-        return problem->getNumOptimizationParameters();
+        return numParameters;
     }
 
   private:
     OptimizationProblem *problem;
+    int numParameters = 0;
+
+    // non-owning
+    OptimizationReporter* reporter;
+
+    std::vector<double> parametersMin;
+    std::vector<double> parametersMax;
 };
 
 
@@ -59,12 +75,15 @@ class MyCeresFirstOrderFunction : public ceres::FirstOrderFunction {
  */
 class MyIterationCallback : public ceres::IterationCallback {
   public:
-    MyIterationCallback(OptimizationProblem *problem) : problem(problem) {}
+    // Non-owning
+    MyIterationCallback(OptimizationReporter *reporter) : reporter(reporter) {}
 
     virtual ceres::CallbackReturnType
     operator()(const ceres::IterationSummary &summary) override {
-        int status = problem->intermediateFunction(
-                    0, summary.iteration, summary.cost, 0, 0, 0, 0, 0, 0, 0, 0);
+
+        // TODO: print here
+
+        int status = reporter->iterationFinished(0, nullptr, summary.cost, nullptr);
         switch (status) {
         case 0:
             return ceres::SOLVER_CONTINUE;
@@ -74,7 +93,7 @@ class MyIterationCallback : public ceres::IterationCallback {
     }
 
   private:
-    OptimizationProblem *problem = NULL;
+    OptimizationReporter *reporter = nullptr;
 };
 
 
@@ -93,36 +112,33 @@ ceres::GradientProblemSolver::Options getCeresOptions(
 }
 
 
-int OptimizerCeres::optimize(OptimizationProblem *problem) {
-    std::vector<double> parameters(problem->getNumOptimizationParameters());
+std::tuple<int, double, std::vector<double> > OptimizerCeres::optimize(OptimizationProblem *problem) {
 
-    const double *startingPoint = problem->getInitialParameters();
-    if (startingPoint) {
-        // copy, because will be update each iteration
-        memcpy(parameters.data(), startingPoint,
-               sizeof(double) * parameters.size());
-    } else {
-        problem->fillInitialParameters(parameters.data());
-    }
+    std::vector<double> parameters(problem->costFun->numParameters());
+    problem->fillInitialParameters(parameters.data());
 
-    // GradientProblem takes ownership
-    ceres::GradientProblem ceresProblem(new MyCeresFirstOrderFunction(problem));
+    auto reporter = problem->getReporter();
+    // GradientProblem takes ownership of
+    ceres::GradientProblem ceresProblem(new MyCeresFirstOrderFunction(problem, reporter.get()));
 
     ceres::GradientProblemSolver::Options options = getCeresOptions(problem);
-    MyIterationCallback callback(problem);
+    // Can use reporter from unique_ptr here, since callback will be destroyed first
+    MyIterationCallback callback(reporter.get());
     options.callbacks.push_back(&callback);
 
     ceres::GradientProblemSolver::Summary summary;
+
+    reporter->starting(parameters.size(), parameters.data());
+
     ceres::Solve(options, ceresProblem, parameters.data(), &summary);
+    reporter->finished(summary.final_cost,
+                       parameters.data(),
+                       summary.termination_type);
 
     //    std::cout<<summary.FullReport();
 
-    problem->logOptimizerFinished(summary.final_cost, parameters.data(),
-                                  summary.total_time_in_seconds,
-                                  summary.termination_type);
-
-    return summary.termination_type == ceres::FAILURE ||
-           summary.termination_type == ceres::USER_FAILURE;
+    return std::tuple<int, double, std::vector<double> >(summary.termination_type == ceres::FAILURE ||
+           summary.termination_type == ceres::USER_FAILURE, summary.final_cost, parameters);
 }
 
 

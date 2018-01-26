@@ -34,30 +34,37 @@ int main(int argc, char **argv) {
     int commSize;
     MPI_Comm_size(MPI_COMM_WORLD, &commSize);
 
+    //        optimizationOptions.optimizer = parpe::OPTIMIZER_IPOPT;
+    //        optimizationOptions.printToStdout = true;
+    //        optimizationOptions.maxOptimizerIterations = 10;
+
     if (commSize == 1) {
         // run in serial mode
-        SteadystateProblemParallel problem {nullptr, dataFileName};
+        ExampleSteadystateGradientFunctionParallel costFun{nullptr, dataFileName};
+        ExampleSteadystateProblem problem {dataFileName};
         status = getLocalOptimum(&problem);
 
     } else {
         // run in parallel
-        SteadystateProblemParallel problem {nullptr, dataFileName};
 
         int mpiRank;
         MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
 
         if (mpiRank == 0) {
             parpe::LoadBalancerMaster lbm;
-            problem.loadBalancer = &lbm;
             lbm.run();
+
+            ExampleSteadystateProblem problem {dataFileName};
+            problem.costFun.reset(new ExampleSteadystateGradientFunctionParallel(&lbm, dataFileName));
 
             status = parpe::getLocalOptimum(&problem);
 
             lbm.terminate();
             lbm.sendTerminationSignalToAllWorkers();
         } else {
+            ExampleSteadystateGradientFunctionParallel costFun{nullptr, dataFileName};
             parpe::LoadBalancerWorker lbw;
-            lbw.run([&problem](std::vector<char> &buffer, int jobId) { problem.messageHandler(buffer, jobId); });
+            lbw.run([&costFun](std::vector<char> &buffer, int jobId) { costFun.messageHandler(buffer, jobId); });
         }
     }
 

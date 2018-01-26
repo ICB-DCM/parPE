@@ -36,9 +36,13 @@ class SteadyStateMultiConditionProblem : public parpe::MultiConditionProblem {
         std::unique_ptr<parpe::OptimizationOptions> options(parpe::OptimizationOptions::fromHDF5(
                                                                  dataProvider->getHdf5FileId()));
 
-        optimizationOptions = *options.get();
-        std::fill(initialParameters_.begin(), initialParameters_.end(), 0);
+        setOptimizationOptions(*options.get());
     }
+
+    void fillInitialParameters(double *buffer) const override {
+        std::fill(buffer, buffer + costFun->numParameters(), 0);
+    }
+
 };
 
 /**
@@ -66,8 +70,7 @@ class SteadystateApplication : public parpe::OptimizationApplication {
         problem->resultWriter->setJobId(id);
 
         if(parpe::getMpiRank() < 1)
-            dataProvider->copyInputData(resultWriter->file_id);
-
+            dataProvider->copyInputData(resultWriter->getFileId());
     }
 
     std::unique_ptr<SteadyStateMultiConditionDataProvider> dataProvider;

@@ -7,6 +7,7 @@
 #include <functional>
 #include <algorithm>
 #include <memory>
+#include <vector>
 
 namespace parpe {
 
@@ -39,7 +40,7 @@ class OptimizationOptions {
 
     static std::unique_ptr<OptimizationOptions> fromHDF5(hid_t fileId);
 
-    static double *getStartingPoint(hid_t fileId, int index);
+    static std::vector<double> getStartingPoint(hid_t fileId, int index);
 
     /** Number of starts for local optimization (only used for multi-start
      * optimization */

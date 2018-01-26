@@ -3,47 +3,51 @@
 
 #include "include/amici_interface_cpp.h"
 #include "optimizationProblem.h"
-#include <hdf5.h>
+#include <H5Cpp.h>
 #include <amici.h>
+
+
+/**
+ * @brief Cost function for the AMICI steady-state example
+ */
+class ExampleSteadystateGradientFunction : public parpe::GradientFunction {
+public:
+    ExampleSteadystateGradientFunction(hid_t fileId);
+    FunctionEvaluationStatus evaluate(
+            const double* const parameters,
+            double &fval,
+            double* gradient) const override;
+
+    int numParameters() const override;
+    void setupUserData(int conditionIdx);
+    void setupExpData(int conditionIdx);
+
+private:
+    void requireSensitivities(bool sensitivitiesRequired) const;
+    void readFixedParameters(int conditionIdx) const;
+    void readMeasurement(int conditionIdx) const;
+
+    std::unique_ptr<amici::UserData> udata;
+    std::unique_ptr<amici::ExpData> edata;
+    std::unique_ptr<amici::Model> model;
+    hid_t fileId = -1;
+};
+
+
+/**
+ * @brief Optimization problem for the AMICI steady-state example
+ */
 
 class ExampleSteadystateProblem : public parpe::OptimizationProblem {
   public:
     ExampleSteadystateProblem(std::string const& dataFileName);
 
-    int evaluateObjectiveFunction(const double *parameters, double *objFunVal,
-                                  double *objFunGrad) override;
+    void fillInitialParameters(double *buffer) const override;
+    void fillParametersMin(double *buffer) const override;
+    void fillParametersMax(double *buffer) const override;
 
-    int intermediateFunction(int alg_mod, int iter_count, double obj_value,
-                             double inf_pr, double inf_du, double mu,
-                             double d_norm, double regularization_size,
-                             double alpha_du, double alpha_pr,
-                             int ls_trials) override;
-
-    void logObjectiveFunctionEvaluation(const double *parameters,
-                                        double objectiveFunctionValue,
-                                        const double *objectiveFunctionGradient,
-                                        int numFunctionCalls,
-                                        double timeElapsed) override;
-
-    void logOptimizerFinished(double optimalCost,
-                              const double *optimalParameters,
-                              double masterTime, int exitStatus) override;
-
-    ~ExampleSteadystateProblem();
-
-    void requireSensitivities(bool sensitivitiesRequired);
-    void readFixedParameters(int conditionIdx);
-    void readMeasurement(int conditionIdx);
-
-    amici::UserData *udata = nullptr;
-    amici::ExpData *edata = nullptr;
-    amici::Model *model = nullptr;
-
-  protected:
-    void setupUserData(int conditionIdx);
-    void setupExpData(int conditionIdx);
-
-    hid_t fileId = -1;
+private:
+    H5::H5File file;
 };
 
 #endif // STEADYSTATEPROBLEM_H

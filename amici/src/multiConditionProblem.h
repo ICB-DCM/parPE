@@ -16,17 +16,16 @@ namespace parpe {
 class MultiConditionDataProvider;
 class MultiConditionProblemResultWriter;
 
-class MultiConditionProblem : public OptimizationProblem {
 
-  public:
-    MultiConditionProblem() = default;
+/**
+ * @brief The MultiConditionGradientFunction class represents a cost function based on an AMICI ODE model
+ */
 
-    MultiConditionProblem(MultiConditionDataProvider *dataProvider);
-
-    MultiConditionProblem(MultiConditionDataProvider *dataProvider,
-                          LoadBalancerMaster *loadBalancer);
-
-    ~MultiConditionProblem() = default;
+class MultiConditionGradientFunction : public GradientFunction {
+public:
+    MultiConditionGradientFunction() {} // TODO remove?
+    MultiConditionGradientFunction(MultiConditionDataProvider *dataProvider, LoadBalancerMaster *loadBalancer, MultiConditionProblemResultWriter *resultWriter = nullptr);
+    virtual ~MultiConditionGradientFunction() = default;
 
     /**
      * @brief Evaluate cost function at `optimiziationVariables`
@@ -36,70 +35,13 @@ class MultiConditionProblem : public OptimizationProblem {
      * `optimiziationVariables`
      * @return status code, non-zero on failure
      */
-    virtual int
-    evaluateObjectiveFunction(const double *optimiziationVariables,
-                              double *objectiveFunctionValue,
-                              double *objectiveFunctionGradient) override;
 
-    virtual int evaluateObjectiveFunction(const double *optimiziationVariables,
-                                          double *objectiveFunctionValue,
-                                          double *objectiveFunctionGradient,
-                                          int *dataIndices, int numDataIndices);
+    FunctionEvaluationStatus evaluate(
+            const double* const parameters,
+            double &fval,
+            double* gradient) const override;
 
-    /**
-     * @brief This function is called after each iteration. See IpOpt for
-     * arguments.
-     * Only some are passed for CERES.
-     * @param alg_mod
-     * @param iter_count
-     * @param obj_value
-     * @param inf_pr
-     * @param inf_du
-     * @param mu
-     * @param d_norm
-     * @param regularization_size
-     * @param alpha_du
-     * @param alpha_pr
-     * @param ls_trials
-     * @return status code, non-zero to abort optimization
-     */
-    virtual int intermediateFunction(int alg_mod, int iter_count,
-                                     double obj_value, double inf_pr,
-                                     double inf_du, double mu, double d_norm,
-                                     double regularization_size,
-                                     double alpha_du, double alpha_pr,
-                                     int ls_trials) override;
-
-    /**
-     * @brief Called after each cost function evaluation for logging results.
-     * @param parameters
-     * @param objectiveFunctionValue
-     * @param objectiveFunctionGradient
-     * @param numFunctionCalls
-     * @param timeElapsed
-     */
-    virtual void logObjectiveFunctionEvaluation(
-        const double *parameters, double objectiveFunctionValue,
-        const double *objectiveFunctionGradient, int numFunctionCalls,
-        double timeElapsed) override;
-
-    /**
-     * @brief Called at the end of an optimization for logging results
-     * @param optimalCost
-     * @param optimalParameters
-     * @param masterTime
-     * @param exitStatus
-     */
-    virtual void logOptimizerFinished(double optimalCost,
-                                      const double *optimalParameters,
-                                      double masterTime,
-                                      int exitStatus) override;
-
-    /**
-     * @brief earlyStopping
-     * @return stop the optimization run
-     */
-    virtual int earlyStopping();
+    int numParameters() const override;
 
     /**
      * @brief Is called by worker processes to run a simulation for the given
@@ -113,13 +55,10 @@ class MultiConditionProblem : public OptimizationProblem {
      * @param resultWriter
      * @return
      */
+    // TODO does not belong here
     JobResultAmiciSimulation runAndLogSimulation(amici::UserData *udata, JobIdentifier path,
-                                    int jobId);
+                                    int jobId) const;
 
-    MultiConditionDataProvider *getDataProvider();
-    virtual std::unique_ptr<double[]> getInitialParameters(int multiStartIndex) const override;
-
-    JobIdentifier path;
 
     /**
      * @brief Callback function for loadbalancer
@@ -127,16 +66,12 @@ class MultiConditionProblem : public OptimizationProblem {
      * @param msgSize In/out: size (bytes) of bufferobjFunVal
      * @param jobId: In: Identifier of the job (unique up to INT_MAX)
      */
-    virtual void messageHandler(std::vector<char> &buffer, int jobId);
+    virtual void messageHandler(std::vector<char> &buffer, int jobId) const;
 
-    virtual double getTime() const;
 
-    std::unique_ptr<MultiConditionProblemResultWriter> resultWriter;
-
-  protected:
-
+protected:// for testing
     void updateUserDataCommon(const double *simulationParameters,
-                              const double *objectiveFunctionGradient);
+                              const double *objectiveFunctionGradient) const;
 
     /**
      * @brief Run AMICI simulations for conditions with the given indices
@@ -150,7 +85,7 @@ class MultiConditionProblem : public OptimizationProblem {
     virtual int runSimulations(const double *optimizationVariables,
                                double *logLikelihood,
                                double *objectiveFunctionGradient,
-                               int *dataIndices, int numDataIndices);
+                               int *dataIndices, int numDataIndices) const;
 
     /**
      * @brief Aggregates loglikelihood received from workers.
@@ -163,9 +98,8 @@ class MultiConditionProblem : public OptimizationProblem {
      */
 
     int aggregateLikelihood(JobData &data, double *logLikelihood,
-                            double *objectiveFunctionGradient, int dataIdx);
+                            double *objectiveFunctionGradient, int dataIdx, double &simulationTimeInS) const;
 
-    void printObjectiveFunctionFailureMessage();
 
     /**
      * @brief Aggregates loglikelihood gradient received from workers.
@@ -177,20 +111,122 @@ class MultiConditionProblem : public OptimizationProblem {
 
     void addSimulationGradientToObjectiveFunctionGradient(
         int conditionIdx, const double *simulationGradient,
-        double *objectiveFunctionGradient, int numCommon);
+        double *objectiveFunctionGradient, int numCommon) const;
 
     void
     addSimulationGradientToObjectiveFunctionGradientConditionSpecificParameters(
         const double *simulationGradient, double *objectiveFunctionGradient,
         int numCommon, int numConditionSpecificParams,
-        int firstIndexOfCurrentConditionsSpecificOptimizationParameters);
+        int firstIndexOfCurrentConditionsSpecificOptimizationParameters) const;
 
     void queueSimulation(JobIdentifier path, JobData *d, int *jobDone,
                          pthread_cond_t *jobDoneChangedCondition,
                          pthread_mutex_t *jobDoneChangedMutex,
                          int lenSendBuffer);
 
-    void setSensitivityOptions(bool sensiRequired);
+    void setSensitivityOptions(bool sensiRequired) const;
+
+private:
+
+    FunctionEvaluationStatus evaluateObjectiveFunction(const double *optimiziationVariables,
+                                          double *objectiveFunctionValue,
+                                          double *objectiveFunctionGradient,
+                                          int *dataIndices, int numDataIndices) const;
+
+    MultiConditionDataProvider *dataProvider;
+    LoadBalancerMaster *loadBalancer = nullptr;
+    amici::Model *model = nullptr;
+    std::unique_ptr<amici::UserData> udata;
+    amici::UserData udataOriginal; // for saving sensitivity options which are changed depending on whether gradient is needed
+    MultiConditionProblemResultWriter *resultWriter = nullptr;
+    bool logLineSearch = false;
+
+};
+
+
+
+
+/**
+ * @brief The MultiConditionProblem class represents an optimization problem based
+ * on an MultiConditionGradientFunction (AMICI ODE model)
+ */
+
+class MultiConditionProblem : public OptimizationProblem {
+
+  public:
+    MultiConditionProblem() = default;
+
+    MultiConditionProblem(MultiConditionDataProvider *dataProvider);
+
+    MultiConditionProblem(MultiConditionDataProvider *dataProvider,
+                          LoadBalancerMaster *loadBalancer);
+
+    ~MultiConditionProblem() = default;
+
+
+    /**
+     * @brief This function is called after each iteration.
+     * @return status code, non-zero to abort optimization
+     */
+//    virtual int intermediateFunction(int alg_mod, int iter_count,
+//                                     double obj_value, double inf_pr,
+//                                     double inf_du, double mu, double d_norm,
+//                                     double regularization_size,
+//                                     double alpha_du, double alpha_pr,
+//                                     int ls_trials) override;
+
+    /**
+     * @brief Called after each cost function evaluation for logging results.
+     * @param parameters
+     * @param objectiveFunctionValue
+     * @param objectiveFunctionGradient
+     * @param numFunctionCalls
+     * @param timeElapsed
+     */
+//    virtual void logObjectiveFunctionEvaluation(
+//        const double *parameters, double objectiveFunctionValue,
+//        const double *objectiveFunctionGradient, int numFunctionCalls,
+//        double timeElapsed) override;
+
+    /**
+     * @brief Called at the end of an optimization for logging results
+     * @param optimalCost
+     * @param optimalParameters
+     * @param masterTime
+     * @param exitStatus
+     */
+//    virtual void logOptimizerFinished(double optimalCost,
+//                                      const double *optimalParameters,
+//                                      double masterTime,
+//                                      int exitStatus) override;
+
+
+    void fillParametersMin(double *buffer) const override;
+    void fillParametersMax(double *buffer) const override;
+    void fillInitialParameters(double *buffer) const override;
+
+    /**
+     * @brief earlyStopping
+     * @return stop the optimization run
+     */
+    virtual int earlyStopping();
+    MultiConditionDataProvider *getDataProvider();
+//    virtual std::unique_ptr<double[]> getInitialParameters(int multiStartIndex) const override;
+
+    JobIdentifier path;
+
+    virtual double getTime() const;
+
+    std::unique_ptr<MultiConditionProblemResultWriter> resultWriter;
+
+    MultiConditionGradientFunction *mcGradFun = nullptr;
+
+    void setInitialParameters(std::vector<double> startingPoint);
+
+    std::unique_ptr<OptimizationReporter> getReporter() const;
+
+  protected:
+
 
     /**
      * @brief Keep information from last evaluation to avoid recomputation for
@@ -203,23 +239,18 @@ class MultiConditionProblem : public OptimizationProblem {
     storeCurrentFunctionEvaluation(const double *optimizationParameters,
                                    double objectiveFunctionValue,
                                    const double *objectiveFunctionGradient);
-
+    //TODO
     std::unique_ptr<OptimizationProblem> validationProblem;
+
     MultiConditionDataProvider *dataProvider = nullptr;
-    LoadBalancerMaster *loadBalancer = nullptr;
-    amici::Model *model = nullptr;
-    std::unique_ptr<amici::UserData> udata;
-    amici::UserData udataOriginal; // for saving sensitivity options which are changed depending on whether gradient is needed
 
-    // keep track of previous results to avoid re-evaluation at the same
-    // parameters (using IpOpt new_x)
-    std::vector<double> lastOptimizationParameters;
-    std::vector<double> lastObjectiveFunctionGradient;
-    double lastObjectiveFunctionValue = NAN;
+private:
+    std::vector<double> startingPoint;
 
-    /** Time that was spent inside AMICI simulations since creating this object or last reset  */
-    double simulationTimeInS = 0.0;
 };
+
+
+
 
 /**
  * @brief The MultiConditionProblemGeneratorForMultiStart class generates new
@@ -227,12 +258,14 @@ class MultiConditionProblem : public OptimizationProblem {
  * optimization
  */
 
-class MultiConditionProblemMultiStartOptimization
-    : public MultiStartOptimization {
+class MultiConditionProblemMultiStartOptimizationProblem
+    : public MultiStartOptimizationProblem {
   public:
-    using MultiStartOptimization::MultiStartOptimization;
+    int getNumberOfStarts() const { return options.numStarts; }
 
-    std::unique_ptr<OptimizationProblem> getLocalProblemImpl(int multiStartIndex) override;
+    bool restartOnFailure() const { return options.retryOptimization; }
+
+    std::unique_ptr<OptimizationProblem> getLocalProblem(int multiStartIndex) const override;
 
     MultiConditionDataProvider *dp = nullptr;
     OptimizationOptions options;
@@ -242,7 +275,14 @@ class MultiConditionProblemMultiStartOptimization
 };
 
 
+
 void printSimulationResult(JobIdentifier const& path, int jobId, const amici::UserData *udata, const amici::ReturnData *rdata, double timeSeconds);
+
+void logSimulation(hid_t file_id, std::string path, const double *theta, double llh,
+                   const double *gradient, double timeElapsedInSeconds,
+                   int nTheta, int numStates, double *states,
+                   double *stateSensi, int numY, double *y, int jobId,
+                   int iterationsUntilSteadystate, int status);
 
 } // namespace parpe
 

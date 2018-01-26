@@ -8,17 +8,22 @@
 #include <localOptimizationToms611.h>
 #include <quadraticTestProblem.h>
 
-#include <toms611.h>
+#include <toms611.h> // must include last due to some interference with other headers
 
 // clang-format off
 TEST_GROUP(localOptimizationToms611){
-    void setup(){
+    void setup() {
+        mock().clear();
     }
 
-    void teardown(){
+    void teardown() {
+        mock().checkExpectations();
+        mock().clear();
     }
 };
 // clang-format on
+
+
 
 void calcf(integer &n, doublereal *x, integer &nf, doublereal &f,
            integer *uiparm, doublereal *urparm, void *ufparm) {
@@ -33,7 +38,7 @@ void calcg(integer &n, doublereal *x, integer &nf, doublereal *g,
     std::cout<<nf<<"g: "<<g[0]<<std::endl;
 }
 
-IGNORE_TEST(localOptimizationToms611, testOptimization) {
+TEST(localOptimizationToms611, testOptimization) {
     integer numOptimizationVariables = 1;
 
     integer liv = toms611_sumsl_iv_min_length;
@@ -65,16 +70,18 @@ IGNORE_TEST(localOptimizationToms611, testOptimization) {
 
 TEST(localOptimizationToms611, testOptimizationGetlocalOptimum) {
     parpe::QuadraticTestProblem problem;
-    problem.printDebug = true;
 
-    mock().expectOneCall("logFinish").withIntParameter("exitStatus", x_and_relative_function_convergence);
-    mock().expectNCalls(2, "testObj");
-    mock().expectNCalls(2, "testObjGrad");
+    mock().expectOneCall("OptimizationReporterTest::starting");
+    mock().expectOneCall("OptimizationReporterTest::finished").withIntParameter("exitStatus", x_and_relative_function_convergence);
+//    mock().expectNCalls(2, "testObj");
+//    mock().expectNCalls(2, "testObjGrad");
     mock().ignoreOtherCalls();
 
     parpe::OptimizerToms611TrustRegionSumsl optimizer;
-    optimizer.optimize(&problem);
+    auto result = optimizer.optimize(&problem);
 
-    DOUBLES_EQUAL(42.0, problem.optimalCost, 1e-12);
-    DOUBLES_EQUAL(-1.0, problem.optimalParameter, 1e-12);
+    // check status, cost, parameter
+    CHECK_EQUAL(0, std::get<0>(result));
+    DOUBLES_EQUAL(42.0, std::get<1>(result), 1e-12);
+    DOUBLES_EQUAL(-1.0, std::get<2>(result).at(0), 1e-8); // TODO adapt to optimizer tolerances
 }

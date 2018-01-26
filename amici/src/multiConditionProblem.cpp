@@ -24,139 +24,35 @@ namespace parpe {
 //#define NO_OBJ_FUN_EVAL
 
 MultiConditionProblem::MultiConditionProblem(
-    MultiConditionDataProvider *dataProvider)
+        MultiConditionDataProvider *dataProvider)
     : MultiConditionProblem(dataProvider, nullptr) {}
 
 MultiConditionProblem::MultiConditionProblem(
-    MultiConditionDataProvider *dataProvider, LoadBalancerMaster *loadBalancer)
-    : OptimizationProblem(dataProvider?dataProvider->getNumOptimizationParameters():0),
-      dataProvider(dataProvider), loadBalancer(loadBalancer),
-      model(dataProvider->getModel()),
-      udata(dataProvider->getUserDataForCondition(0)),
-      udataOriginal (*udata) {
-
-    if (udata == NULL)
-        abort();
-
-    dataProvider->getOptimizationParametersLowerBounds(parametersMin_.data());
-    dataProvider->getOptimizationParametersUpperBounds(parametersMax_.data());
-
-    lastOptimizationParameters.resize(numOptimizationParameters_);
-    lastObjectiveFunctionGradient.resize(numOptimizationParameters_);
-
+        MultiConditionDataProvider *dp, LoadBalancerMaster *loadBalancer)
+    : OptimizationProblem(std::unique_ptr<parpe::MultiConditionGradientFunction>(
+                              new parpe::MultiConditionGradientFunction(dp, loadBalancer))),
+      dataProvider(dp)
+{
 }
 
-
-int MultiConditionProblem::evaluateObjectiveFunction(const double *optimiziationVariables, double *objectiveFunctionValue,
-    double *objectiveFunctionGradient) {
-    // run on all data
-    int numDataIndices = dataProvider->getNumberOfConditions();
-    int dataIndices[numDataIndices];
-    std::iota(dataIndices, dataIndices + numDataIndices, 0);
-
-    return evaluateObjectiveFunction(
-        optimiziationVariables, objectiveFunctionValue,
-        objectiveFunctionGradient, dataIndices, numDataIndices);
+void MultiConditionProblem::fillParametersMin(double *buffer) const
+{
+    dataProvider->getOptimizationParametersLowerBounds(buffer);
 }
 
-int MultiConditionProblem::evaluateObjectiveFunction(
-    const double *optimiziationVariables, double *objectiveFunctionValue,
-    double *objectiveFunctionGradient, int *dataIndices, int numDataIndices) {
-#ifdef NO_OBJ_FUN_EVAL
-    if (objectiveFunctionGradient)
-        std::fill(objectiveFunctionGradient, objectiveFunctionGradient + numOptimizationParameters_, 0);
-    *objectiveFunctionValue = 1;
-    return 0;
-#endif
-    // update parameters that are identical for all simulations
-    updateUserDataCommon(optimiziationVariables, objectiveFunctionGradient);
-
-    *objectiveFunctionValue = 0;
-
-    if (objectiveFunctionGradient)
-        amici::zeros(objectiveFunctionGradient, numOptimizationParameters_);
-
-    int errors =
-        runSimulations(optimiziationVariables, objectiveFunctionValue,
-                       objectiveFunctionGradient,
-                       dataIndices, numDataIndices);
-
-    if (errors) {
-        printObjectiveFunctionFailureMessage();
-        *objectiveFunctionValue = INFINITY;
-    }
-
-    storeCurrentFunctionEvaluation(optimiziationVariables,
-                                   *objectiveFunctionValue,
-                                   objectiveFunctionGradient);
-
-    return errors;
+void MultiConditionProblem::fillParametersMax(double *buffer) const
+{
+    dataProvider->getOptimizationParametersUpperBounds(buffer);
 }
 
-int MultiConditionProblem::intermediateFunction(
-    int alg_mod, int iter_count, double obj_value, double inf_pr, double inf_du,
-    double mu, double d_norm, double regularization_size, double alpha_du,
-    double alpha_pr, int ls_trials) {
-
-//    static double startTime = 0;
-    // Wall time on master. NOTE: This also includes waiting time for the job
-    // being sent to workers.
-//    double duration = startTime ? (getTime() - startTime) : 0;
-
-    bool stop = false;
-
-    // update iteration counter for logging
-    path.idxLocalOptimizationIteration = iter_count;
-
-    char strBuf[50];
-    path.sprint(strBuf);
-    //    logmessage(LOGLVL_INFO, "%s: %d %d %e %e %e %e %e %e %e %e %d",
-    //    strBuf,
-    //               alg_mod, iter_count, obj_value, inf_pr, inf_du,
-    //               mu, d_norm, regularization_size, alpha_du, alpha_pr,
-    //               ls_trials);
-
-    if (resultWriter) {
-        resultWriter->setJobId(path);
-        resultWriter->logLocalOptimizerIteration(
-            iter_count, lastOptimizationParameters.data(), numOptimizationParameters_,
-            obj_value, lastObjectiveFunctionGradient.data(), simulationTimeInS, alg_mod, inf_pr,
-            inf_du, mu, d_norm, regularization_size, alpha_du, alpha_pr,
-            ls_trials);
-    }
-
-    // save start time of the following iteration
-//    startTime = getTime();
-
-    stop = stop || earlyStopping();
-
-    return stop;
+void MultiConditionProblem::fillInitialParameters(double *buffer) const
+{
+    if(startingPoint.size())
+        std::copy(startingPoint.begin(), startingPoint.end(), buffer);
+    else
+        OptimizationProblem::fillInitialParameters(buffer);
 }
 
-void MultiConditionProblem::logObjectiveFunctionEvaluation(
-    const double *parameters, double objectiveFunctionValue,
-    const double *objectiveFunctionGradient, int numFunctionCalls,
-    double timeElapsed) {
-    if (resultWriter)
-        resultWriter->logLocalOptimizerObjectiveFunctionEvaluation(
-            parameters, numOptimizationParameters_, objectiveFunctionValue,
-            objectiveFunctionGradient, numFunctionCalls, timeElapsed);
-}
-
-void MultiConditionProblem::logOptimizerFinished(
-    double optimalCost, const double *optimalParameters, double masterTime,
-    int exitStatus) {
-
-    char strBuf[100];
-    path.sprint(strBuf);
-    logmessage(LOGLVL_INFO, "%s: Optimizer status %d, final llh: %e, time: %f.",
-               strBuf, exitStatus, optimalCost, masterTime);
-
-    if (resultWriter)
-        resultWriter->saveLocalOptimizerResults(optimalCost, optimalParameters,
-                                                numOptimizationParameters_,
-                                                masterTime, exitStatus);
-}
 
 int MultiConditionProblem::earlyStopping() {
     bool stop = false;
@@ -176,15 +72,14 @@ int MultiConditionProblem::earlyStopping() {
     return stop;
 }
 
-JobResultAmiciSimulation MultiConditionProblem::runAndLogSimulation(amici::UserData *udata,
-                                                       JobIdentifier path,
-                                                       int jobId) {
+JobResultAmiciSimulation MultiConditionGradientFunction::runAndLogSimulation(amici::UserData *udata,
+                                                                             JobIdentifier path,
+                                                                             int jobId) const {
     double startTime = MPI_Wtime();
 
     auto model = dataProvider->getModel();
 
     // run simulation
-    int iterationsUntilSteadystate = -1;
 
     // update UserData::k for condition-specific variables (no parameter mapping
     // necessary here, this has been done by master)
@@ -200,19 +95,20 @@ JobResultAmiciSimulation MultiConditionProblem::runAndLogSimulation(amici::UserD
 
     printSimulationResult(path, jobId, udata, rdata.get(), timeSeconds);
 
-    if (resultWriter)
-        resultWriter->logSimulation(path, udata->p, rdata->llh[0], rdata->sllh,
-                                    timeSeconds, model->np, model->nx, rdata->x,
-                                    rdata->sx, model->ny, rdata->y, jobId,
-                                    iterationsUntilSteadystate, *rdata->status);
-
+    if (resultWriter && (udata->sensi > amici::AMICI_SENSI_ORDER_NONE || logLineSearch)) {
+        int iterationsUntilSteadystate = -1;
+        logSimulation(resultWriter->getFileId(), resultWriter->getOptimizationPath(), udata->p, rdata->llh[0], rdata->sllh,
+                timeSeconds, model->np, model->nx, rdata->x,
+                rdata->sx, model->ny, rdata->y, jobId,
+                iterationsUntilSteadystate, *rdata->status);
+    }
     int status = (int)*rdata->status;
     return JobResultAmiciSimulation(status, std::move(rdata), timeSeconds);
 }
 
 
-void MultiConditionProblem::messageHandler(std::vector<char> &buffer,
-                                           int jobId) {
+void MultiConditionGradientFunction::messageHandler(std::vector<char> &buffer,
+                                                    int jobId) const {
     // unpack
     auto udata = std::unique_ptr<amici::UserData>(dataProvider->getUserData());
     JobIdentifier path;
@@ -269,14 +165,22 @@ double MultiConditionProblem::getTime() const {
     // return MPI_Wtime();
 }
 
-std::unique_ptr<double[]> MultiConditionProblem::getInitialParameters(int multiStartIndex) const {
-    return std::unique_ptr<double[]>(OptimizationOptions::getStartingPoint(dataProvider->getHdf5FileId(),
-                                                 multiStartIndex));
+void MultiConditionProblem::setInitialParameters(std::vector<double> startingPoint)
+{
+    this->startingPoint = startingPoint;
 }
 
-void MultiConditionProblem::updateUserDataCommon(
-    const double *simulationParameters,
-    const double *objectiveFunctionGradient) {
+std::unique_ptr<OptimizationReporter> MultiConditionProblem::getReporter() const
+{
+
+    return std::make_unique<OptimizationReporter>(
+                std::make_unique<MultiConditionProblemResultWriter>(*resultWriter));
+}
+
+
+void MultiConditionGradientFunction::updateUserDataCommon(
+        const double *simulationParameters,
+        const double *objectiveFunctionGradient) const {
     setSensitivityOptions(objectiveFunctionGradient);
 
     // update common parameters in UserData, cell-line specific ones are updated
@@ -284,14 +188,14 @@ void MultiConditionProblem::updateUserDataCommon(
     memcpy(udata->p, simulationParameters, sizeof(double) * model->np);
 }
 
-int MultiConditionProblem::runSimulations(const double *optimizationVariables,
-                                          double *logLikelihood,
-                                          double *objectiveFunctionGradient,
-                                          int *dataIndices,
-                                          int numDataIndices) {
+int MultiConditionGradientFunction::runSimulations(const double *optimizationVariables,
+                                                   double *logLikelihood,
+                                                   double *objectiveFunctionGradient,
+                                                   int *dataIndices,
+                                                   int numDataIndices) const {
 
     int errors = 0;
-    JobIdentifier path = this->path;
+    JobIdentifier path; // TODO = this->path;
 
     SimulationRunner simRunner(
                 numDataIndices,
@@ -307,10 +211,11 @@ int MultiConditionProblem::runSimulations(const double *optimizationVariables,
         return path;
     },
     [&](JobData *job, int dataIdx) {
+        double simulationTimeSec = 0.0; // TODO not used
         errors += aggregateLikelihood(*job,
                                       logLikelihood,
                                       objectiveFunctionGradient,
-                                      dataIndices[dataIdx]);
+                                      dataIndices[dataIdx], simulationTimeSec);
     }, nullptr);
 
 
@@ -318,16 +223,16 @@ int MultiConditionProblem::runSimulations(const double *optimizationVariables,
         errors += simRunner.runDistributedMemory(loadBalancer);
     } else {
         errors += simRunner.runSharedMemory(
-            [&](std::vector<char> &buffer, int jobId) {
+                    [&](std::vector<char> &buffer, int jobId) {
                 messageHandler(buffer, jobId);
-            });
+    });
     }
 
     return errors;
 }
 
-int MultiConditionProblem::aggregateLikelihood(JobData &data, double *logLikelihood,
-                        double *objectiveFunctionGradient, int dataIdx) {
+int MultiConditionGradientFunction::aggregateLikelihood(JobData &data, double *logLikelihood,
+                                                        double *objectiveFunctionGradient, int dataIdx, double &simulationTimeInS) const {
     int errors = 0;
 
     // deserialize
@@ -343,52 +248,46 @@ int MultiConditionProblem::aggregateLikelihood(JobData &data, double *logLikelih
 
     if (objectiveFunctionGradient)
         addSimulationGradientToObjectiveFunctionGradient(
-            dataIdx, result.rdata->sllh, objectiveFunctionGradient,
-            dataProvider->getNumCommonParameters());
+                    dataIdx, result.rdata->sllh, objectiveFunctionGradient,
+                    dataProvider->getNumCommonParameters());
 
     return errors;
 }
 
 
-void MultiConditionProblem::printObjectiveFunctionFailureMessage() {
-    char strBuf[100];
-    path.sprint(strBuf);
-    logmessage(LOGLVL_ERROR, "%s: Objective function evaluation failed!",
-               strBuf);
-}
 
-void MultiConditionProblem::addSimulationGradientToObjectiveFunctionGradient(
-    int conditionIdx, const double *simulationGradient,
-    double *objectiveFunctionGradient, int numCommon) {
+void MultiConditionGradientFunction::addSimulationGradientToObjectiveFunctionGradient(
+        int conditionIdx, const double *simulationGradient,
+        double *objectiveFunctionGradient, int numCommon) const {
     // global parameters: simply add
     for (int paramIdx = 0; paramIdx < numCommon; ++paramIdx)
         objectiveFunctionGradient[paramIdx] -= simulationGradient[paramIdx];
 
     // map condition-specific parameters
     addSimulationGradientToObjectiveFunctionGradientConditionSpecificParameters(
-        simulationGradient, objectiveFunctionGradient, numCommon,
-        dataProvider->getNumConditionSpecificParametersPerSimulation(),
-        dataProvider->getIndexOfFirstConditionSpecificOptimizationParameter(
-            conditionIdx));
+                simulationGradient, objectiveFunctionGradient, numCommon,
+                dataProvider->getNumConditionSpecificParametersPerSimulation(),
+                dataProvider->getIndexOfFirstConditionSpecificOptimizationParameter(
+                    conditionIdx));
 }
 
-void MultiConditionProblem::
-    addSimulationGradientToObjectiveFunctionGradientConditionSpecificParameters(
+void MultiConditionGradientFunction::
+addSimulationGradientToObjectiveFunctionGradientConditionSpecificParameters(
         const double *simulationGradient, double *objectiveFunctionGradient,
         int numCommon, int numConditionSpecificParams,
-        int firstIndexOfCurrentConditionsSpecificOptimizationParameters) {
+        int firstIndexOfCurrentConditionsSpecificOptimizationParameters) const {
     // condition specific parameters: map simulation to optimization parameters
     for (int paramIdx = 0; paramIdx < numConditionSpecificParams; ++paramIdx) {
         int idxOpt =
-            firstIndexOfCurrentConditionsSpecificOptimizationParameters +
-            paramIdx;
+                firstIndexOfCurrentConditionsSpecificOptimizationParameters +
+                paramIdx;
         int idxSim = numCommon + paramIdx;
         objectiveFunctionGradient[idxOpt] -= simulationGradient[idxSim];
     }
 }
 
 
-void MultiConditionProblem::setSensitivityOptions(bool sensiRequired) {
+void MultiConditionGradientFunction::setSensitivityOptions(bool sensiRequired) const {
     // sensitivities requested?
     if (sensiRequired) {
         udata->sensi = udataOriginal.sensi;
@@ -399,21 +298,13 @@ void MultiConditionProblem::setSensitivityOptions(bool sensiRequired) {
     }
 }
 
-void MultiConditionProblem::storeCurrentFunctionEvaluation(
-    const double *optimizationParameters, double objectiveFunctionValue,
-    const double *objectiveFunctionGradient) {
-    lastObjectiveFunctionValue = objectiveFunctionValue;
-    std::copy(optimizationParameters, optimizationParameters + numOptimizationParameters_, lastOptimizationParameters.begin());
-    if (objectiveFunctionGradient)
-        std::copy(objectiveFunctionGradient, objectiveFunctionGradient + numOptimizationParameters_, lastObjectiveFunctionGradient.begin());
-}
 
 MultiConditionDataProvider *MultiConditionProblem::getDataProvider() {
     return dataProvider;
 }
 
-std::unique_ptr<OptimizationProblem> MultiConditionProblemMultiStartOptimization::getLocalProblemImpl(
-    int multiStartIndex) {
+std::unique_ptr<OptimizationProblem> MultiConditionProblemMultiStartOptimizationProblem::getLocalProblem(
+        int multiStartIndex) const {
     // generate new OptimizationProblem with data from dp
 
     assert(dp != nullptr);
@@ -432,8 +323,7 @@ std::unique_ptr<OptimizationProblem> MultiConditionProblemMultiStartOptimization
         problem->path.idxLocalOptimization = multiStartIndex;
     }
 
-    auto startingPoint = problem->getInitialParameters(multiStartIndex);
-    problem->setInitialParameters(startingPoint.get());
+    problem->setInitialParameters(options.getStartingPoint(dp->fileId, multiStartIndex));
 
     return std::move(problem);
 }
@@ -447,18 +337,130 @@ void printSimulationResult(const JobIdentifier &path, int jobId, amici::UserData
 
     // check for NaNs
     if (udata->sensi >= amici::AMICI_SENSI_ORDER_FIRST) {
-        for (int i = 0; i < udata->np; ++i)
+        for (int i = 0; i < udata->np; ++i) {
             if (std::isnan(rdata->sllh[i])) {
                 logmessage(LOGLVL_DEBUG, "Result for %s: contains NaN at %d",
                            pathStrBuf, i);
                 break;
-            }
-            else if (std::isinf(rdata->sllh[i])) {
+            } else if (std::isinf(rdata->sllh[i])) {
                 logmessage(LOGLVL_DEBUG, "Result for %s: contains Inf at %d",
                            pathStrBuf, i);
                 break;
             }
+        }
     }
+}
+
+MultiConditionGradientFunction::MultiConditionGradientFunction(MultiConditionDataProvider *dataProvider, LoadBalancerMaster *loadBalancer, MultiConditionProblemResultWriter *resultWriter)
+    : dataProvider(dataProvider), model(dataProvider->getModel()),
+      udata(dataProvider->getUserDataForCondition(0)),
+      udataOriginal (*udata), resultWriter(resultWriter)
+{
+    if (udata == nullptr)
+        abort();
+}
+
+GradientFunction::FunctionEvaluationStatus MultiConditionGradientFunction::evaluate(const double * const parameters, double &objectiveFunctionValue, double *objectiveFunctionGradient) const
+{
+    // run on all data
+    int numDataIndices = dataProvider->getNumberOfConditions();
+    int dataIndices[numDataIndices];
+    std::iota(dataIndices, dataIndices + numDataIndices, 0);
+
+    return evaluateObjectiveFunction(
+                parameters, &objectiveFunctionValue,
+                objectiveFunctionGradient, dataIndices, numDataIndices);
+}
+
+GradientFunction::FunctionEvaluationStatus MultiConditionGradientFunction::evaluateObjectiveFunction(
+        const double *optimiziationVariables, double *objectiveFunctionValue,
+        double *objectiveFunctionGradient, int *dataIndices, int numDataIndices) const {
+#ifdef NO_OBJ_FUN_EVAL
+    if (objectiveFunctionGradient)
+        std::fill(objectiveFunctionGradient, objectiveFunctionGradient + numOptimizationParameters_, 0);
+    *objectiveFunctionValue = 1;
+    return 0;
+#endif
+    // update parameters that are identical for all simulations
+    updateUserDataCommon(optimiziationVariables, objectiveFunctionGradient);
+
+    *objectiveFunctionValue = 0;
+
+    if (objectiveFunctionGradient)
+        amici::zeros(objectiveFunctionGradient, numParameters());
+
+    int errors =
+            runSimulations(optimiziationVariables, objectiveFunctionValue,
+                           objectiveFunctionGradient,
+                           dataIndices, numDataIndices);
+
+    if (errors) {
+        *objectiveFunctionValue = INFINITY;
+    }
+
+
+    return errors == 0 ? functionEvaluationSuccess : functionEvaluationFailure;
+}
+
+
+int MultiConditionGradientFunction::numParameters() const
+{
+    return dataProvider->getNumOptimizationParameters();
+}
+
+void logSimulation(hid_t file_id, std::string pathStr, const double *theta, double llh, const double *gradient, double timeElapsedInSeconds, int nTheta, int numStates, double *states, double *stateSensi, int numY, double *y, int jobId, int iterationsUntilSteadystate, int status)
+{
+    // TODO replace by SimulationResultWriter
+    const char *fullGroupPath = pathStr.c_str();
+
+    hdf5CreateOrExtendAndWriteToDouble2DArray(
+        file_id, fullGroupPath, "simulationLogLikelihood", &llh, 1);
+
+    hdf5CreateOrExtendAndWriteToInt2DArray(file_id, fullGroupPath, "jobId",
+                                           &jobId, 1);
+
+    if (gradient) {
+        hdf5CreateOrExtendAndWriteToDouble2DArray(
+            file_id, fullGroupPath, "simulationLogLikelihoodGradient", gradient,
+            nTheta);
+    } else {
+        double dummyGradient[nTheta];
+        std::fill_n(dummyGradient, nTheta, NAN);
+        hdf5CreateOrExtendAndWriteToDouble2DArray(
+            file_id, fullGroupPath, "simulationLogLikelihoodGradient",
+            dummyGradient, nTheta);
+    }
+
+    if (theta)
+        hdf5CreateOrExtendAndWriteToDouble2DArray(
+            file_id, fullGroupPath, "simulationParameters", theta, nTheta);
+
+    hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath,
+                                              "simulationWallTimeInSec",
+                                              &timeElapsedInSeconds, 1);
+
+    if (states)
+        hdf5CreateOrExtendAndWriteToDouble2DArray(
+            file_id, fullGroupPath, "simulationStates", states, numStates);
+
+    if (y)
+        hdf5CreateOrExtendAndWriteToDouble2DArray(
+            file_id, fullGroupPath, "simulationObservables", y, numY);
+
+    hdf5CreateOrExtendAndWriteToInt2DArray(file_id, fullGroupPath,
+                                           "iterationsUntilSteadystate",
+                                           &iterationsUntilSteadystate, 1);
+
+    if (stateSensi)
+        hdf5CreateOrExtendAndWriteToDouble3DArray(
+            file_id, fullGroupPath, "simulationStateSensitivities", stateSensi,
+            numStates, nTheta);
+
+    hdf5CreateOrExtendAndWriteToInt2DArray(file_id, fullGroupPath,
+                                           "simulationStatus", &status, 1);
+
+    H5Fflush(file_id, H5F_SCOPE_LOCAL);
+
 }
 
 } // namespace parpe

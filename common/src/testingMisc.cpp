@@ -67,7 +67,7 @@ std::string captureStreamToString(std::function<void()> f, std::FILE* captureStr
     char tempFileName[TMP_MAX];
     std::tmpnam(tempFileName);
 
-    int newStreamFd = open(tempFileName, O_CREAT | O_WRONLY);
+    int newStreamFd = open(tempFileName, O_CREAT | O_WRONLY, S_IRWXU);
     assert(newStreamFd >= 0);
 
     int oldStreamFd = dup(captureStreamFd);
@@ -84,6 +84,7 @@ std::string captureStreamToString(std::function<void()> f, std::FILE* captureStr
     close(oldStreamFd); // close remainingv copy
 
     std::ifstream ifs(tempFileName);
+
     return std::string ((std::istreambuf_iterator<char>(ifs)),
                      std::istreambuf_iterator<char>());
 }

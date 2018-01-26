@@ -10,6 +10,14 @@ namespace parpe {
 
 static_assert(sizeof(doublereal) == sizeof(double), "Float size mismatch");
 
+struct sumslUserData
+{
+    OptimizationProblem *problem = nullptr;
+    std::unique_ptr<OptimizationReporter> reporter;
+    std::vector<double> parametersMin;
+    std::vector<double> parametersMax;
+};
+
 // For C -> 0-based! (iv)
 enum toms611intOptionsIndices {
     inith = 24,
@@ -84,15 +92,20 @@ void setToms611Option(const std::pair<const std::string, const std::string> &pai
 
 
 void calcf(integer const &n, doublereal const *x, integer &nf, doublereal &f,
-           OptimizationProblem *problem, doublereal *urparm, void *ufparm) {
+           sumslUserData *userData, doublereal *urparm, void *ufparm) {
 
-    if(!withinBounds(n, x, problem->getParametersMin(), problem->getParametersMax())) {
+    // TODO check return code
+    userData->reporter->beforeCostFunctionCall(n, x);
+
+    if(!withinBounds(n, x, userData->parametersMin.data(), userData->parametersMax.data())) {
         nf = 0; // tells optimizer to choose a shorter step
         return;
     }
 
-    problem->evaluateObjectiveFunction(x, &f, nullptr);
+    userData->problem->costFun->evaluate(x, f, nullptr);
     *urparm = f;
+
+    userData->reporter->afterCostFunctionCall(n, x, f, nullptr);
 
     if(std::isnan(f)) {
         nf = 0; // tells optimizer to choose a shorter step
@@ -101,17 +114,20 @@ void calcf(integer const &n, doublereal const *x, integer &nf, doublereal &f,
 }
 
 void calcg(integer const &n, doublereal const *x, integer &nf, doublereal *g,
-           OptimizationProblem *problem, doublereal *urparm, void *ufparm) {
-    static __thread int numFunctionCalls = 0;
+           sumslUserData *userData, doublereal *urparm, void *ufparm) {
 
-    if(!withinBounds(n, x, problem->getParametersMin(), problem->getParametersMax())) {
+    userData->reporter->beforeCostFunctionCall(n, x);
+
+    if(!withinBounds(n, x, userData->parametersMin.data(), userData->parametersMax.data())) {
         nf = 0; // tells optimizer to choose a shorter step
         return;
     }
 
-    problem->evaluateObjectiveFunction(x, urparm, g);
-    problem->intermediateFunction(0, numFunctionCalls, *urparm, 0, 0, 0, 0, 0, 0, 0, 0);
-    ++numFunctionCalls;
+    userData->problem->costFun->evaluate(x, *urparm, g);
+
+    userData->reporter->afterCostFunctionCall(n, x, *urparm, nullptr);
+
+    userData->reporter->iterationFinished(n, x, *urparm, g);
 
     if(std::isnan(*urparm)) {
         nf = 0; // tells optimizer to choose a shorter step
@@ -120,9 +136,9 @@ void calcg(integer const &n, doublereal const *x, integer &nf, doublereal *g,
 }
 
 
-int OptimizerToms611TrustRegionSumsl::optimize(OptimizationProblem *problem)
+std::tuple<int, double, std::vector<double> > OptimizerToms611TrustRegionSumsl::optimize(OptimizationProblem *problem)
 {
-    integer numOptimizationVariables = problem->getNumOptimizationParameters();
+    integer numOptimizationVariables = problem->costFun->numParameters();
 
     // allocate toms 611 memory and set options
     integer liv = toms611_sumsl_iv_min_length;
@@ -151,11 +167,19 @@ int OptimizerToms611TrustRegionSumsl::optimize(OptimizationProblem *problem)
 
 
     doublereal parameters[numOptimizationVariables];
-    double const* startingPoint = problem->getInitialParameters();
-    std::copy(startingPoint, startingPoint + numOptimizationVariables, parameters);
+    problem->fillInitialParameters(parameters);
 
     double fval = NAN; // the last computed cost function value; is this necessarily the one for the final parameters?
-    clock_t timeBegin = clock();
+
+    sumslUserData userData;
+    userData.problem = problem;
+    userData.reporter = problem->getReporter();
+    userData.parametersMin.resize(numOptimizationVariables);
+    userData.parametersMax.resize(numOptimizationVariables);
+    problem->fillParametersMin(userData.parametersMin.data());
+    problem->fillParametersMax(userData.parametersMax.data());
+
+    userData.reporter->starting(numOptimizationVariables, parameters);
 
     sumsl_(numOptimizationVariables,
            scaling,
@@ -163,15 +187,12 @@ int OptimizerToms611TrustRegionSumsl::optimize(OptimizationProblem *problem)
            reinterpret_cast<S_fp>(calcf), (S_fp)calcg,
            iv, liv,
            lv, v.data(),
-           reinterpret_cast<integer *>(problem), // sumsl_ only lets us pass integer, real or function...
+           reinterpret_cast<integer *>(&userData), // sumsl_ only lets us pass integer, real or function...
            &fval, nullptr);
 
-    clock_t timeEnd = clock();
-    double wallTime = (double)(timeEnd - timeBegin) / CLOCKS_PER_SEC;
+    userData.reporter->finished(numOptimizationVariables, parameters, iv[0]);
 
-    problem->logOptimizerFinished(fval, parameters, wallTime, iv[0]);
-
-    return iv[0] >= first_error_code;
+    return std::tuple<int, double, std::vector<double> >(iv[0] >= first_error_code, fval, std::vector<double>(parameters, parameters + numOptimizationVariables));
 }
 
 

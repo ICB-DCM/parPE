@@ -1,9 +1,9 @@
-#include "CppUTest/TestHarness.h"
-#include "CppUTestExt/MockSupport.h"
-#include "localOptimizationIpopt.h"
-#include "optimizationOptions.h"
-#include "quadraticTestProblem.h"
-#include "testingMisc.h"
+#include <CppUTest/TestHarness.h>
+#include <CppUTestExt/MockSupport.h>
+#include <localOptimizationIpopt.h>
+#include <optimizationOptions.h>
+#include <quadraticTestProblem.h>
+#include <testingMisc.h>
 
 
 // clang-format off
@@ -22,16 +22,18 @@ TEST_GROUP(localOptimizationIpopt){
 
 TEST(localOptimizationIpopt, testOptimization) {
     parpe::QuadraticTestProblem problem;
-    //problem->optimizationOptions->functionTolerance = 1;
 
-    mock().expectOneCall("logFinish").withIntParameter("exitStatus", 0);
+    // mock().expectOneCall("OptimizationReporterTest::starting");
+    mock().expectOneCall("OptimizationReporterTest::finished").withIntParameter("exitStatus", 0);
     //    mock().expectNCalls(11, "testObj");
     //    mock().expectNCalls(12, "testObjGrad");
     mock().ignoreOtherCalls();
 
     parpe::OptimizerIpOpt optimizer;
-    optimizer.optimize(&problem);
+    auto result = optimizer.optimize(&problem);
 
-    DOUBLES_EQUAL(42.0, problem.optimalCost, 1e-12);
-    DOUBLES_EQUAL(-1.0, problem.optimalParameter, 1e-12);
+    // check status, cost, parameter
+    CHECK_EQUAL(0, std::get<0>(result));
+    DOUBLES_EQUAL(42.0, std::get<1>(result), 1e-12);
+    DOUBLES_EQUAL(-1.0, std::get<2>(result).at(0), 1e-12);
 }
