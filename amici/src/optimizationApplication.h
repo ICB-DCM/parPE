@@ -53,7 +53,7 @@ class OptimizationApplication {
         // TODO: Move out of here
         LoadBalancerWorker lbw;
         lbw.run([this](std::vector<char> &buffer, int jobId) {
-            problem->messageHandler(buffer, jobId);
+            problem->mcGradFun->messageHandler(buffer, jobId);
         });
 
         return 0;
@@ -130,6 +130,14 @@ protected:
     operationTypeEnum opType = OP_TYPE_PARAMETER_ESTIMATION;
     LoadBalancerMaster loadBalancer;
 };
+
+
+/**
+ * @brief CPU time for whole application run
+ * @param timeInSeconds
+ */
+void saveTotalCpuTime(hid_t file_id, const double timeInSeconds);
+
 
 } // namespace parpe
 

@@ -1,40 +1,52 @@
 #ifndef STEADYSTATEPROBLEM_PARALLEL_H
 #define STEADYSTATEPROBLEM_PARALLEL_H
 
-#include "steadystateProblem.h"
+#include "steadyStateMultiConditionDataprovider.h"
 #include <LoadBalancerMaster.h>
 #include <LoadBalancerWorker.h>
 #include <memory>
-#include "steadyStateMultiConditionDataprovider.h"
 
 /**
- * @brief The SteadystateProblemParallel class evaluates an ODE-constrained objective function in paralell.
+ * @brief The ExampleSteadystateGradientFunctionParallel class evaluates an ODE-constrained objective function in paralell.
  */
-class SteadystateProblemParallel : public parpe::OptimizationProblem {
-  public:
-    SteadystateProblemParallel(parpe::LoadBalancerMaster *loadBalancer, const std::string &dataFileName);
 
-    int evaluateObjectiveFunction(const double *parameters, double *objFunVal,
-                                  double *objFunGrad) override;
+class ExampleSteadystateGradientFunctionParallel : public parpe::GradientFunction {
+public:
+    ExampleSteadystateGradientFunctionParallel(parpe::LoadBalancerMaster *loadBalancer, const std::string &dataFileName);
 
-    int evaluateParallel(const double *parameters, double *objFunVal,
-                         double *objFunGrad);
+    FunctionEvaluationStatus evaluate(
+            const double* const parameters,
+            double &fval,
+            double* gradient) const override;
 
-    int evaluateSerial(const double *parameters, double *objFunVal,
-                       double *objFunGrad);
+    int numParameters() const override;
+    void setupUserData(int conditionIdx);
+    void setupExpData(int conditionIdx);
 
     void messageHandler(std::vector<char> &buffer, int jobId);
 
-    ~SteadystateProblemParallel();
 
-    parpe::LoadBalancerMaster *loadBalancer;
+private:
+
+    int evaluateParallel(const double *parameters, double &objFunVal,
+                         double *objFunGrad) const;
+
+    int evaluateSerial(const double *parameters, double &objFunVal,
+                       double *objFunGrad) const;
 
 
-  protected:
-    int numConditions;
-    std::unique_ptr<SteadyStateMultiConditionDataProvider> dataProvider;
-    std::unique_ptr<Model> model;
+    void requireSensitivities(bool sensitivitiesRequired) const;
+    void readFixedParameters(int conditionIdx) const;
+    void readMeasurement(int conditionIdx) const;
+
+    parpe::LoadBalancerMaster *loadBalancer = nullptr;
+
     std::unique_ptr<amici::UserData> udata;
+    std::unique_ptr<amici::ExpData> edata;
+    std::unique_ptr<amici::Model> model;
+    int numConditions;
+
+    std::unique_ptr<SteadyStateMultiConditionDataProvider> dataProvider;
 };
 
 #endif // STEADYSTATEPROBLEM_PARALLEL_H

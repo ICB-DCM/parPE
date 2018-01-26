@@ -28,12 +28,18 @@ class MultiConditionDataProviderTest : public parpe::MultiConditionDataProvider 
     ~MultiConditionDataProviderTest() { delete model; }
 };
 
-TEST_GROUP(multiConditionDataProvider){void setup(){parpe::initHDF5Mutex();
-}
 
-void teardown() { }
-}
-;
+// clang-format off
+TEST_GROUP(multiConditionDataProvider){
+    void setup() {
+        parpe::initHDF5Mutex();
+    }
+
+    void teardown() {
+    }
+};
+// clang-format on
+
 
 /**
  * @brief Test mapping simulation<->optimization parameters with no

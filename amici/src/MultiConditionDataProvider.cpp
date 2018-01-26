@@ -268,8 +268,6 @@ void MultiConditionDataProvider::copyInputData(H5::H5File target)
 
 hid_t MultiConditionDataProvider::getHdf5FileId() const { return fileId; }
 
-MultiConditionDataProvider::~MultiConditionDataProvider() {
-}
 
 void JobIdentifier::print() const {
     printf("%d.%d.%d.%d", idxMultiStart, idxLocalOptimization,

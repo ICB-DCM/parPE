@@ -8,16 +8,13 @@
 
 namespace parpe {
 
-MultiStartOptimization::MultiStartOptimization(int numberOfStarts,
-                                               bool restartOnFailure, bool runParallel)
-    : numberOfStarts(numberOfStarts),
-      restartOnFailure(restartOnFailure),
-      runParallel(runParallel) {}
 
-MultiStartOptimization::MultiStartOptimization(const OptimizationOptions &o)
-    : numberOfStarts(o.numStarts),
-      restartOnFailure(o.retryOptimization),
-      runParallel(o.multistartsInParallel) {}
+MultiStartOptimization::MultiStartOptimization(MultiStartOptimizationProblem &problem, bool runParallel)
+    : msProblem(problem), numberOfStarts(problem.getNumberOfStarts()),
+      restartOnFailure(problem.restartOnFailure()), runParallel(runParallel)
+{
+
+}
 
 int MultiStartOptimization::run() {
     if (runParallel)
@@ -35,7 +32,7 @@ int MultiStartOptimization::runMultiThreaded()
     std::vector<pthread_t> localOptimizationThreads(numberOfStarts);
 
     std::vector<OptimizationProblem *> localProblems =
-        createLocalOptimizationProblems();
+            createLocalOptimizationProblems();
     assert(localProblems.size() == (unsigned)numberOfStarts);
 
     pthread_attr_t threadAttr;
@@ -88,11 +85,11 @@ int MultiStartOptimization::runMultiThreaded()
                                ms);
                     ++lastStartIdx;
 
-                    localProblems[ms] = getLocalProblem(lastStartIdx).release();
+                    localProblems[ms] = msProblem.getLocalProblem(lastStartIdx).release();
                     logmessage(
-                        LOGLVL_DEBUG,
-                        "Spawning thread for local optimization #%d (%d)",
-                        lastStartIdx, ms);
+                                LOGLVL_DEBUG,
+                                "Spawning thread for local optimization #%d (%d)",
+                                lastStartIdx, ms);
                     pthread_create(&localOptimizationThreads[ms], &threadAttr,
                                    getLocalOptimumThreadWrapper,
                                    (void *)localProblems[ms]);
@@ -126,7 +123,7 @@ int MultiStartOptimization::runSingleThreaded()
         else if(ms == numberOfStarts)
             break;
 
-        auto problem = getLocalProblem(ms);
+        auto problem = msProblem.getLocalProblem(ms);
         auto result = getLocalOptimum(problem.get());
         if(result) {
             logmessage(LOGLVL_DEBUG,
@@ -150,19 +147,12 @@ void MultiStartOptimization::setRunParallel(bool runParallel)
     this->runParallel = runParallel;
 }
 
-std::unique_ptr<OptimizationProblem>
-MultiStartOptimization::getLocalProblem(int multiStartIndex) {
-    std::unique_ptr<OptimizationProblem> problem = getLocalProblemImpl(multiStartIndex);
-
-    return problem;
-}
-
 std::vector<OptimizationProblem *>
 MultiStartOptimization::createLocalOptimizationProblems() {
     std::vector<OptimizationProblem *> localProblems(numberOfStarts);
 
     for (int ms = 0; ms < numberOfStarts; ++ms) {
-        localProblems[ms] = getLocalProblem(ms).release();
+        localProblems[ms] = msProblem.getLocalProblem(ms).release();
     }
 
     return localProblems;

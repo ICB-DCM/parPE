@@ -101,7 +101,11 @@ TEST(optimizationOptions, fromHDF5) {
     char tmpName[TMP_MAX];
     std::tmpnam(tmpName);
 
-    CHECK_THROWS(parpe::HDF5Exception, parpe::OptimizationOptions::fromHDF5(tmpName));
+    // TODO: hide hdf5 errors
+    captureStreamToString([tmpName](){
+        std::cout<<tmpName<<" asdf";
+        CHECK_THROWS(parpe::HDF5Exception, parpe::OptimizationOptions::fromHDF5(tmpName));
+    }, stdout);
 
     // create file
     hid_t fileId = parpe::hdf5CreateFile(tmpName, false);
@@ -118,7 +122,6 @@ TEST(optimizationOptions, fromHDF5) {
     auto startingPoint = parpe::OptimizationOptions::getStartingPoint(fileId, 0);
     CHECK_EQUAL(1, startingPoint[0]);
     CHECK_EQUAL(4, startingPoint[1]);
-    delete[] startingPoint;
     H5Fclose(fileId);
 
     auto o = parpe::OptimizationOptions::fromHDF5(tmpName);

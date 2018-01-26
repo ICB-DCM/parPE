@@ -26,9 +26,12 @@ TEST(multiStartOptimization, testMultiStartOptimization) {
     // mock().ignoreOtherCalls();
 
     parpe::QuadraticOptimizationMultiStartProblem ms(numStarts, true);
-    ms.runMultiThreaded();
+    parpe::MultiStartOptimization optimizer(ms);
 
-    ms.runSingleThreaded();
+    optimizer.runMultiThreaded();
+
+    // TODO: check calls
+    optimizer.runSingleThreaded();
 }
 
 // TODO: test retry on error

@@ -32,6 +32,7 @@ TEST(optimizationProblem, quadraticTestFunction) {
 }
 
 
+
 TEST(optimizationProblem, gradientChecker) {
     parpe::QuadraticTestProblem problem {};
     int numParameterIndices {1};

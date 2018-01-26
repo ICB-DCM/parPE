@@ -56,6 +56,7 @@ struct JobIdentifier {
  * cond_(numConditions-1)_(numConditionSpecificParametersPerSimulation-1) ]
  */
 
+// TODO split; separate optimization from simulation
 class MultiConditionDataProvider {
   public:
     MultiConditionDataProvider() = default;
@@ -77,7 +78,7 @@ class MultiConditionDataProvider {
     MultiConditionDataProvider(amici::Model *model, std::string hdf5Filename,
                                std::string rootPath);
 
-    virtual ~MultiConditionDataProvider();
+    virtual ~MultiConditionDataProvider() = default;
 
     /**
      * @brief Provides the number of conditions for which data is available and
@@ -186,6 +187,11 @@ class MultiConditionDataProvider {
     hid_t getHdf5FileId() const;
 
     /**
+     * @brief The model for which the data is to be read
+     */
+    amici::Model *model = nullptr;
+
+    /**
      * @brief Absolute paths in the HDF5 file to the datasets
      * from which the respective data is to be read
      */
@@ -204,10 +210,6 @@ class MultiConditionDataProvider {
     H5::H5File file;
     hid_t fileId = 0;
 
-    /**
-     * @brief The model for which the data is to be read
-     */
-    amici::Model *model = nullptr;
 };
 
 } // namespace parpe

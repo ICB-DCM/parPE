@@ -7,19 +7,52 @@
 #include <IpIpoptApplication.hpp>
 #undef HAVE_CSTDDEF
 
-#include <math.h>
-#include <pthread.h>
+#include <cmath>
+#include <memory>
+#include <mutex>
 
 namespace parpe {
+
 using namespace Ipopt;
 
+
+/** Mutex for managing access to IpOpt routines which are not thread-safe */
+typedef std::recursive_mutex mutexIpOptType;
+
+/**
+ * @brief ipoptMutex Ipopt seems not to be thread safe. Lock this mutex every
+ * time that control is passed to ipopt functions.
+ */
+static mutexIpOptType mutexIpOpt {};
+
+
+class InverseUniqueLock;
+InverseUniqueLock ipOptReleaseLock();
+
+std::unique_lock<mutexIpOptType> ipOptGetLock();
+
+/**
+ * @brief The Like std::unique_lock, but unlocking a mutex on construction and locking on destruction.
+ */
+class InverseUniqueLock {
+public:
+    InverseUniqueLock(mutexIpOptType *mutex);
+
+    ~InverseUniqueLock();
+
+private:
+    mutexIpOptType *mutex = nullptr;
+};
+
+
+
 class OptimizationProblem;
+class OptimizationReporter;
 
 class LocalOptimizationIpoptTNLP : public Ipopt::TNLP {
   public:
 
-    LocalOptimizationIpoptTNLP(OptimizationProblem *problem,
-                               pthread_mutex_t *ipoptMutex);
+    LocalOptimizationIpoptTNLP(OptimizationProblem *problem, double& finalCost, std::vector<double>& finalParameters);
 
     virtual ~LocalOptimizationIpoptTNLP();
 
@@ -60,20 +93,25 @@ class LocalOptimizationIpoptTNLP : public Ipopt::TNLP {
                                    const Number *lambda, Number obj_value,
                                    const IpoptData *ip_data,
                                    IpoptCalculatedQuantities *ip_cq) override;
-
-    OptimizationProblem *problem;
-    clock_t timeBegin;
+private:
+    OptimizationProblem *problem = nullptr;
 
     // for caching
-    Number *lastGradient = NULL;
+    Number *lastGradient = nullptr;
     Number lastCost = INFINITY;
-    Number *lastCostP = &lastCost;
+    Number *lastCostP = nullptr;
     int lastErrors = 0;
 
-    pthread_mutex_t *ipoptMutex;
+    mutexIpOptType *mutexIpOpt = nullptr;
+    std::unique_ptr<OptimizationReporter> reporter;
+
+    double& finalCost;
+    std::vector<double>& finalParameters;
+    std::vector<double> initialParameters;
 };
 
 void setIpOptOption(const std::pair<const std::string, const std::string> &pair, SmartPtr<OptionsList>* o);
+
 } // namespace parpe
 
 #endif // LOCALOPTIMIZATIONIPOPTTNLP_H

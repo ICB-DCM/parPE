@@ -7,14 +7,27 @@
 
 namespace parpe {
 
+/**
+ * @brief Interface for multi-start optimization problems
+ */
+class MultiStartOptimizationProblem {
+public:
+    virtual int getNumberOfStarts() const = 0;
+
+    virtual bool restartOnFailure() const { return false; }
+
+    virtual std::unique_ptr<OptimizationProblem> getLocalProblem(int multiStartIndex) const = 0;
+};
+
+
+/**
+ * @brief The MultiStartOptimization class runs multiple optimization runs
+ */
+
 class MultiStartOptimization {
 
   public:
-    MultiStartOptimization() = default;
-
-    MultiStartOptimization(int numberOfStarts, bool restartOnFailure, bool runParallel = true);
-
-    MultiStartOptimization(OptimizationOptions const& o);
+    MultiStartOptimization(MultiStartOptimizationProblem& problem, bool runParallel = true);
 
     /**
      * @brief Start multi-start optimization
@@ -29,14 +42,11 @@ class MultiStartOptimization {
 
     void setRunParallel(bool runParallel);
 
-  protected:
-
-    std::unique_ptr<OptimizationProblem> getLocalProblem(int multiStartIndex);
+  private:
 
     std::vector<OptimizationProblem *> createLocalOptimizationProblems();
 
-    virtual std::unique_ptr<OptimizationProblem> getLocalProblemImpl(int multiStartIndex) = 0;
-
+    MultiStartOptimizationProblem& msProblem;
     int numberOfStarts = 1;
     bool restartOnFailure = false;
     bool runParallel = true;

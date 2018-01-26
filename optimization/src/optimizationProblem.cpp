@@ -24,9 +24,9 @@ namespace parpe {
 
 int getLocalOptimum(OptimizationProblem *problem) {
     Optimizer *optimizer = problem->getOptimizationOptions().createOptimizer();
-    int status = optimizer->optimize(problem);
+    auto status = optimizer->optimize(problem);
     delete optimizer;
-    return status;
+    return std::get<0>(status);
 }
 
 /**
@@ -51,9 +51,10 @@ void runOptimizationsParallel(const OptimizationProblem **problems,
 
 void optimizationProblemGradientCheck(OptimizationProblem *problem,
                                       int numParameterIndicesToCheck, double epsilon) {
-    numParameterIndicesToCheck = std::min(numParameterIndicesToCheck, problem->getNumOptimizationParameters());
+    int numParameters = problem->costFun->numParameters();
+    numParameterIndicesToCheck = std::min(numParameterIndicesToCheck, numParameters);
     // choose random parameters to check
-    std::vector<int> parameterIndices(problem->getNumOptimizationParameters());
+    std::vector<int> parameterIndices(numParameters);
     std::iota(parameterIndices.begin(), parameterIndices.end(), 0);
     std::random_device rd;
     std::mt19937 g(rd());
@@ -67,11 +68,11 @@ void optimizationProblemGradientCheck(OptimizationProblem *problem,
                                       const int parameterIndices[],
                                       int numParameterIndices, double epsilon) {
     double fc = 0; // f(theta)
-    std::vector<double> theta(problem->getNumOptimizationParameters());
+    std::vector<double> theta(problem->costFun->numParameters());
     problem->fillInitialParameters(theta.data());
 
     std::vector<double> gradient(theta.size());
-    problem->evaluateObjectiveFunction(theta.data(), &fc, gradient.data());
+    problem->costFun->evaluate(theta.data(), fc, gradient.data());
 
     std::vector<double> thetaTmp(theta);
 
@@ -83,10 +84,10 @@ void optimizationProblemGradientCheck(OptimizationProblem *problem,
         double fb = 0, ff = 0; // f(theta + eps) , f(theta - eps)
 
         thetaTmp[curInd] = theta[curInd] + epsilon;
-        problem->evaluateObjectiveFunction(thetaTmp.data(), &ff, nullptr);
+        problem->costFun->evaluate(thetaTmp.data(), ff, nullptr);
 
         thetaTmp[curInd] = theta[curInd] - epsilon;
-        problem->evaluateObjectiveFunction(thetaTmp.data(), &fb, nullptr);
+        problem->costFun->evaluate(thetaTmp.data(), fb, nullptr);
 
         double fd_f = (ff - fc) / epsilon;
 
@@ -99,10 +100,10 @@ void optimizationProblemGradientCheck(OptimizationProblem *problem,
         double curGrad = gradient[curInd];
         char status[] = " ";
         if(!((fd_c >= fd_f && fd_c <= fd_b)
-                || (fd_c <= fd_f && fd_c >= fd_b)))
+             || (fd_c <= fd_f && fd_c >= fd_b)))
             status[0] = '!';
         if(!((curGrad >= fd_f && curGrad <= fd_b)
-                || (curGrad <= fd_f && curGrad >= fd_b)))
+             || (curGrad <= fd_f && curGrad >= fd_b)))
             status[0] = '!';
 
 
@@ -115,60 +116,10 @@ void optimizationProblemGradientCheck(OptimizationProblem *problem,
     }
 }
 
-OptimizationProblem::OptimizationProblem(int numOptimizationParameters)
-    : numOptimizationParameters_(numOptimizationParameters),
-      parametersMin_(numOptimizationParameters),
-      parametersMax_(numOptimizationParameters),
-      initialParameters_(numOptimizationParameters)
+OptimizationProblem::OptimizationProblem(std::unique_ptr<GradientFunction> costFun)
+    : costFun(std::move(costFun))
 {
 
-}
-
-int OptimizationProblem::intermediateFunction(
-    int alg_mod, int iter_count, double obj_value, double inf_pr, double inf_du,
-    double mu, double d_norm, double regularization_size, double alpha_du,
-    double alpha_pr, int ls_trials) {
-    return 0;
-}
-
-void OptimizationProblem::logObjectiveFunctionEvaluation(const double *parameters, double objectiveFunctionValue,
-    const double *objectiveFunctionGradient, int numFunctionCalls,
-    double cpuTimeInSec) {}
-
-void OptimizationProblem::logOptimizerFinished(double optimalCost,
-                                               const double *optimalParameters,
-                                               double masterTime,
-                                               int exitStatus) {}
-
-OptimizationProblem::~OptimizationProblem() {}
-
-std::unique_ptr<double[]> OptimizationProblem::getInitialParameters(int multiStartIndex) const {
-    std::unique_ptr<double[]> buf(new double[getNumOptimizationParameters()]);
-    fillInitialParameters(buf.get());
-    return buf;
-}
-
-double const* OptimizationProblem::getInitialParameters() const {
-    return initialParameters_.data();
-}
-
-void OptimizationProblem::setInitialParameters(double const *initialParameters) {
-    if(initialParameters == nullptr)
-        return;
-    initialParameters_.resize(numOptimizationParameters_);
-    std::copy(initialParameters, initialParameters + numOptimizationParameters_, initialParameters_.begin());
-}
-
-int OptimizationProblem::getNumOptimizationParameters() const {
-    return numOptimizationParameters_;
-}
-
-const double *OptimizationProblem::getParametersMin() const {
-    return parametersMin_.data();
-}
-
-const double *OptimizationProblem::getParametersMax() const {
-    return parametersMax_.data();
 }
 
 const OptimizationOptions &OptimizationProblem::getOptimizationOptions() const
@@ -181,24 +132,91 @@ void OptimizationProblem::setOptimizationOptions(const OptimizationOptions &opti
     optimizationOptions = options;
 }
 
-void OptimizationProblem::setNumOptimizationParameters(int n)
+std::unique_ptr<OptimizationReporter> OptimizationProblem::getReporter() const
 {
-    numOptimizationParameters_ = n;
-    parametersMin_.resize(numOptimizationParameters_);
-    parametersMax_.resize(numOptimizationParameters_);
-    initialParameters_.resize(numOptimizationParameters_);
+    return std::unique_ptr<OptimizationReporter>(new OptimizationReporter());
 }
+
 
 void OptimizationProblem::fillInitialParameters(double *buffer) const {
-    getRandomStartingpoint(getParametersMin(), getParametersMax(),
-                           getNumOptimizationParameters(), buffer);
+    int numParameters = costFun->numParameters();
+    std::vector<double> parametersMin(numParameters);
+    std::vector<double> parametersMax(numParameters);
+    fillParametersMin(parametersMin.data());
+    fillParametersMax(parametersMax.data());
+
+    fillArrayRandomDoubleIndividualInterval(parametersMin.data(), parametersMax.data(),
+                                            numParameters, buffer);
 }
 
-void OptimizationProblem::getRandomStartingpoint(const double *min,
-                                                 const double *max,
-                                                 int numParameters,
-                                                 double *buffer) {
-    fillArrayRandomDoubleIndividualInterval(min, max, numParameters, buffer);
+
+OptimizationReporter::OptimizationReporter()
+{
+
+}
+
+OptimizationReporter::OptimizationReporter(std::unique_ptr<OptimizationResultWriter> rw) : resultWriter(std::move(rw))
+{
+
+}
+
+bool OptimizationReporter::starting(int numParameters, const double * const initialParameters)
+{
+    // If this is called multiple times (happens via IpOpt), don't do anything
+    if(started)
+        return false;
+
+    this->numParameters = numParameters;
+    timeOptimizationBegin = clock();
+    timeIterationBegin = timeOptimizationBegin;
+    timeCostEvaluationBegin = timeOptimizationBegin;
+
+    if(resultWriter)
+        resultWriter->starting(numParameters, initialParameters);
+
+    started = true;
+
+    return false;
+}
+
+bool OptimizationReporter::iterationFinished(int numParameters, const double * const parameters, double objectiveFunctionValue, const double * const objectiveFunctionGradient)
+{
+    double wallTime = (double)(clock() - timeIterationBegin) / CLOCKS_PER_SEC;
+    if(resultWriter)
+        resultWriter->logLocalOptimizerIteration(numIterations, parameters, numParameters, objectiveFunctionValue, objectiveFunctionGradient,
+                                                 wallTime);
+    ++numIterations;
+
+    return false;
+}
+
+bool OptimizationReporter::beforeCostFunctionCall(int numParameters, const double * const parameters)
+{
+    ++numFunctionCalls;
+    timeCostEvaluationBegin = clock();
+
+    return false;
+}
+
+bool OptimizationReporter::afterCostFunctionCall(int numParameters, const double * const parameters, double objectiveFunctionValue, const double * const objectiveFunctionGradient)
+{
+    clock_t timeCostEvaluationEnd = clock();
+
+    double wallTime = (double)(timeCostEvaluationEnd - timeCostEvaluationBegin) / CLOCKS_PER_SEC;
+
+    if(resultWriter)
+        resultWriter->logLocalOptimizerObjectiveFunctionEvaluation(parameters, numParameters, objectiveFunctionValue,
+                                                                   objectiveFunctionGradient, numIterations, numFunctionCalls, wallTime);
+    return false;
+}
+
+void OptimizationReporter::finished(double optimalCost, const double *optimalParameters, int exitStatus)
+{
+    clock_t timeEnd = clock();
+    double timeElapsed = (double)(timeEnd - timeOptimizationBegin) / CLOCKS_PER_SEC;
+
+    if(resultWriter)
+        resultWriter->saveLocalOptimizerResults(optimalCost, optimalParameters,  numParameters, timeElapsed, exitStatus);
 }
 
 } // namespace parpe

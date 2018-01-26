@@ -1,40 +1,38 @@
 #include "steadystateProblemParallel.h"
 #include "wrapfunctions.h"
+#include <logging.h>
 #include <LoadBalancerMaster.h>
 #include <cstring>
 #include <mpi.h>
 #include <pthread.h>
 #include <unistd.h>
 
-SteadystateProblemParallel::SteadystateProblemParallel(
-    parpe::LoadBalancerMaster *loadBalancer, std::string const& dataFileName)
-    : loadBalancer(loadBalancer), model(std::unique_ptr<Model>(getModel())) {
 
-    setNumOptimizationParameters(model->np);
-    fillArray(initialParameters_.data(), model->np, 0);
-    fillArray(parametersMin_.data(), model->np, -5);
-    fillArray(parametersMax_.data(), model->np, 5);
-
+ExampleSteadystateGradientFunctionParallel::ExampleSteadystateGradientFunctionParallel(parpe::LoadBalancerMaster *loadBalancer, const std::string &dataFileName)
+    :loadBalancer(loadBalancer), model(std::unique_ptr<Model>(getModel()))
+{
     dataProvider = std::make_unique<SteadyStateMultiConditionDataProvider>(model.get(), dataFileName);
     udata = dataProvider->getUserData();
     numConditions = dataProvider->getNumberOfConditions();
-
-    optimizationOptions.optimizer = parpe::OPTIMIZER_IPOPT;
-    optimizationOptions.printToStdout = true;
-    optimizationOptions.maxOptimizerIterations = 10;
 }
 
-int SteadystateProblemParallel::evaluateObjectiveFunction(const double *parameters, double *objFunVal, double *objFunGrad) {
+parpe::GradientFunction::FunctionEvaluationStatus ExampleSteadystateGradientFunctionParallel::evaluate(const double * const parameters, double &fval, double *gradient) const
+{
     if (parpe::getMpiCommSize() > 1) {
-        return evaluateParallel(parameters, objFunVal, objFunGrad);
+        return evaluateParallel(parameters, fval, gradient) ? functionEvaluationFailure : functionEvaluationSuccess;
     } else {
-        return evaluateSerial(parameters, objFunVal, objFunGrad);
+        return evaluateSerial(parameters, fval, gradient) ? functionEvaluationFailure : functionEvaluationSuccess;
     }
 }
 
-int SteadystateProblemParallel::evaluateParallel(const double *parameters,
-                                                 double *objFunVal,
-                                                 double *objFunGrad) {
+int ExampleSteadystateGradientFunctionParallel::numParameters() const
+{
+    return model->np;
+}
+
+int ExampleSteadystateGradientFunctionParallel::evaluateParallel(const double *parameters,
+                                                                 double &objFunVal,
+                                                                 double *objFunGrad) const {
     // TODO: always computes gradient; ignores simulation status
 
     // create load balancer job for each simulation
@@ -67,22 +65,22 @@ int SteadystateProblemParallel::evaluateParallel(const double *parameters,
     // wait for simulations to finish
     pthread_mutex_lock(&simulationsMutex);
     while (numJobsFinished < numConditions) // TODO handle finished simulations
-                                            // here, don't wait for all to
-                                            // complete; stop early if errors
-                                            // occured
+        // here, don't wait for all to
+        // complete; stop early if errors
+        // occured
         pthread_cond_wait(&simulationsCond, &simulationsMutex);
     pthread_mutex_unlock(&simulationsMutex);
     pthread_mutex_destroy(&simulationsMutex);
     pthread_cond_destroy(&simulationsCond);
 
     // aggregate likelihood
-    *objFunVal = 0;
+    objFunVal = 0;
     if (objFunGrad)
         fillArray(objFunGrad, dataProvider->getNumOptimizationParameters(), 0.0);
 
     for (int i = 0; i < numConditions; ++i) {
         double *buffer = (double *)(jobdata[i].recvBuffer.data());
-        *objFunVal -= buffer[0];
+        objFunVal -= buffer[0];
 
         if (objFunGrad)
             for (int ip = 0; ip < model->np; ++ip)
@@ -94,14 +92,14 @@ int SteadystateProblemParallel::evaluateParallel(const double *parameters,
     return 0;
 }
 
-int SteadystateProblemParallel::evaluateSerial(const double *parameters,
-                                               double *objFunVal,
-                                               double *objFunGrad) {
+int ExampleSteadystateGradientFunctionParallel::evaluateSerial(const double *parameters,
+                                                               double &objFunVal,
+                                                               double *objFunGrad) const {
     int status = 0;
     udata->setParameters(parameters);
     //    printArray(parameters, udata->np);printf("\n");
 
-    *objFunVal = 0;
+    objFunVal = 0;
 
     if (objFunGrad) {
         udata->sensi = AMICI_SENSI_ORDER_FIRST;
@@ -119,7 +117,7 @@ int SteadystateProblemParallel::evaluateSerial(const double *parameters,
         ReturnData *rdata = getSimulationResults(model.get(), udata.get(), edata.get());
         status += (int)*rdata->status;
 
-        *objFunVal -= *rdata->llh;
+        objFunVal -= *rdata->llh;
 
         if (objFunGrad)
             for (int ip = 0; ip < model->np; ++ip)
@@ -127,15 +125,15 @@ int SteadystateProblemParallel::evaluateSerial(const double *parameters,
 
         delete rdata;
     }
+
     return status;
 }
 
-void SteadystateProblemParallel::messageHandler(std::vector<char> &buffer,
-                                                int jobId) {
+void ExampleSteadystateGradientFunctionParallel::messageHandler(std::vector<char> &buffer,
+                                                                int jobId) {
     //    int mpiRank;
     //    MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
-    //    logmessage(LOGLVL_DEBUG, "Worker #%d: Job #%d received.", mpiRank,
-    //    jobId);
+    //    parpe::logmessage(parpe::LOGLVL_DEBUG, "Worker #%d: Job #%d received.", mpiRank, jobId);
 
     // unpack parameters
 
@@ -155,7 +153,6 @@ void SteadystateProblemParallel::messageHandler(std::vector<char> &buffer,
         udata->sensi_meth = AMICI_SENSI_NONE;
     }
 
-
     // run simulation
     ReturnData *rdata = getSimulationResults(model.get(), udata.get(), edata.get());
     // printf("Result for %d: %f\n", conditionIdx, *rdata->llh);
@@ -170,5 +167,3 @@ void SteadystateProblemParallel::messageHandler(std::vector<char> &buffer,
 
     delete rdata;
 }
-
-SteadystateProblemParallel::~SteadystateProblemParallel() {}

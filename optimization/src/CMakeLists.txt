@@ -9,7 +9,6 @@ set(SRC_LIST
     optimizationProblem.cpp
     multiStartOptimization.cpp
     optimizationResultWriter.cpp
-    optimizer.cpp
     optimizationOptions.cpp
 )
 

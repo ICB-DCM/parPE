@@ -189,12 +189,14 @@ int OptimizationApplication::runMaster() {
         // to CVODES threading issues
 
         if (problem->getOptimizationOptions().numStarts > 0) {
-            MultiConditionProblemMultiStartOptimization ms(problem->getOptimizationOptions());
+            MultiConditionProblemMultiStartOptimizationProblem ms;
             ms.options = problem->getOptimizationOptions();
             ms.resultWriter = problem->resultWriter.get();
             ms.dp = problem->getDataProvider();
             ms.loadBalancer = &loadBalancer;
-            ms.run();
+            // TODO: use uniqe_ptr, not ref
+            MultiStartOptimization optimizer(ms, true);
+            optimizer.run();
         }
 
         break;
@@ -217,13 +219,14 @@ int OptimizationApplication::runSingleMpiProcess() {
     case OP_TYPE_PARAMETER_ESTIMATION:
     default:
         if (problem->getOptimizationOptions().numStarts > 0) {
-            MultiConditionProblemMultiStartOptimization ms(problem->getOptimizationOptions());
+            MultiConditionProblemMultiStartOptimizationProblem ms;
             ms.options = problem->getOptimizationOptions();
             ms.resultWriter = problem->resultWriter.get();
             ms.dp = problem->getDataProvider();
+            MultiStartOptimization optimizer(ms);
             // Can only run single start because of non-threadsafe sundials
-            ms.setRunParallel(false);
-            return ms.run();
+            optimizer.setRunParallel(false);
+            return optimizer.run();
         } else {
             return getLocalOptimum(problem.get());
         }
@@ -248,7 +251,7 @@ void OptimizationApplication::finalizeTiming(clock_t begin) {
         logmessage(LOGLVL_INFO, "Walltime on master: %fs, all processes: %fs",
                    wallTimeSeconds, totalTimeInSeconds);
         if (resultWriter)
-            resultWriter->saveTotalCpuTime(totalTimeInSeconds);
+            saveTotalCpuTime(resultWriter->getFileId(), totalTimeInSeconds);
     }
 }
 
@@ -295,6 +298,19 @@ OptimizationApplication::~OptimizationApplication() {
     resultWriter.reset(nullptr);
     if(getMpiActive())
         MPI_Finalize();
+}
+
+void saveTotalCpuTime(hid_t file_id, const double timeInSeconds)
+{
+    hsize_t dims[1] = {1};
+
+    auto lock = hdf5MutexGetLock();
+
+    //std::string pathStr = rootPath + "/totalTimeInSec";
+    std::string pathStr = "/totalTimeInSec";
+    H5LTmake_dataset(file_id, pathStr.c_str(), 1, dims, H5T_NATIVE_DOUBLE,
+                     &timeInSeconds);
+
 }
 
 } // namespace parpe

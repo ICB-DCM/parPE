@@ -6,15 +6,18 @@
 #include <vector>
 #include <hdf5.h>
 #include <optimizationOptions.h>
+#include <ctime>
 
 namespace parpe {
 
 class OptimizationResultWriter;
 
+
 /**
  * @brief The GradientFunction class is an interface for an
  * arbitrary function f(x) and its gradient.
  */
+
 class GradientFunction {
 public:
     enum FunctionEvaluationStatus {
@@ -39,6 +42,73 @@ public:
 
 
 
+/**
+ * @brief The OptimizationReporter class is called from the optimizer and takes care of
+ * things like of logging intermediate results, timing and can tell the optimizer to exit
+ */
+
+class OptimizationReporter {
+public:
+    OptimizationReporter();
+
+    OptimizationReporter(std::unique_ptr<OptimizationResultWriter> rw);
+
+    /**
+     * @brief Is called just before the optimizer starts. Must be called before other functions.
+     * @param numParameters
+     * @param initialParameters
+     * @return Quit optimization?
+     */
+    virtual bool starting(int numParameters, double const *const initialParameters);
+
+
+    /**
+     * @brief Is called after each iteration except for the last one
+     * @param numParameters
+     * @param parameters
+     * @param currentIter
+     * @return Quit optimization?
+     */
+    virtual bool iterationFinished(int numParameters, double const *const parameters, double objectiveFunctionValue,
+                      double const *const objectiveFunctionGradient);
+
+    virtual bool beforeCostFunctionCall(int numParameters, double const *const parameters);
+
+    virtual bool afterCostFunctionCall(int numParameters, double const *const parameters,
+                      double objectiveFunctionValue,
+                      double const *const objectiveFunctionGradient);
+
+    /**
+     * @brief Is called after optimization finished
+     */
+    virtual void finished(double optimalCost,
+                  const double *optimalParameters, int exitStatus);
+
+
+    // TODO how to pass optimizer-specific info? pass OptimizerStatus class ?
+
+//    virtual int intermediateFunction(int alg_mod, int iter_count,
+//                                     double obj_value, double inf_pr,
+//                                     double inf_du, double mu, double d_norm,
+//                                     double regularization_size,
+//                                     double alpha_du, double alpha_pr,
+//                                     int ls_trials);
+
+private:
+    clock_t timeOptimizationBegin;
+    clock_t timeIterationBegin;
+    clock_t timeCostEvaluationBegin;
+
+    std::unique_ptr<OptimizationResultWriter> resultWriter;
+    int numFunctionCalls = 0;
+    int numIterations = 0;
+    int numParameters = 0;
+
+    bool started = false;
+
+};
+
+
 
 /**
  * @brief The OptimizationProblem class describes an optimization problem.
@@ -48,84 +118,38 @@ public:
  *
  * Additional constraints are currently not supported.
  *
- * TODO: rename GradientProblem?
+ * TODO: rename GradientProblem? Turn into interface
+ * should not have state; so cannot track iterations in there
  */
 
 class OptimizationProblem {
 
   public:
     OptimizationProblem() = default;
-    OptimizationProblem(int numOptimizationParameters);
-    /**
-     * Callback function for objective function gradient evaluation at
-     * parameters.
-     * Non-zero return status indicates failure. If objFunGrad is not null,
-     * gradient information is expected.
-     */
-    virtual int evaluateObjectiveFunction(const double *parameters,
-                                          double *objFunVal,
-                                          double *objFunGrad) = 0;
+    OptimizationProblem(std::unique_ptr<GradientFunction> costFun);
 
-    /**
-     * Callback function which is called after each optimizer iteration.
-     * Non-zero return status indicates failure.
-     */
-    virtual int intermediateFunction(int alg_mod, int iter_count,
-                                     double obj_value, double inf_pr,
-                                     double inf_du, double mu, double d_norm,
-                                     double regularization_size,
-                                     double alpha_du, double alpha_pr,
-                                     int ls_trials);
+    virtual ~OptimizationProblem() = default;
 
-    virtual void
-    logObjectiveFunctionEvaluation(const double *parameters,
-                                   double objectiveFunctionValue,
-                                   const double *objectiveFunctionGradient,
-                                   int numFunctionCalls, double cpuTimeInSec);
+    /** Default implementation: random starting points are drawn from [parametersMin, parametersMax] */
+    virtual void fillInitialParameters(double *buffer) const;
 
-    virtual void logOptimizerFinished(double optimalCost,
-                                      const double *optimalParameters,
-                                      double masterTime, int exitStatus);
+    /** lower bound of parameter values */
+    virtual void fillParametersMin(double *buffer) const = 0;
 
-    virtual ~OptimizationProblem();
-
-    virtual std::unique_ptr<double[]> getInitialParameters(int multiStartIndex) const;
-
-    virtual double const* getInitialParameters() const;
-
-    /** random starting points are drawn from [parametersMin, parametersMax] */
-
-    void fillInitialParameters(double *buffer) const;
-
-    static void getRandomStartingpoint(const double *min, const double *max,
-                                       int numParameters, double *buffer);
-
-    void setInitialParameters(const double *initialParameters);
-
-    int getNumOptimizationParameters() const;
-
-    const double *getParametersMin() const;
-
-    const double *getParametersMax() const;
+    /** upper bound of parameter values */
+    // TODO:     template <class RandomAccessIterator>
+    virtual void fillParametersMax(double *buffer) const = 0;
 
     OptimizationOptions const& getOptimizationOptions() const;
 
     void setOptimizationOptions(OptimizationOptions const& options);
 
-    void setNumOptimizationParameters(int n);
+    // const?
+    std::unique_ptr<GradientFunction> costFun;
 
-  protected:
-    /** number of optimization parameters */
-    int numOptimizationParameters_ = 0;
+    virtual std::unique_ptr<OptimizationReporter> getReporter() const;
 
-    /** lowest allowed parameter values */
-    std::vector<double> parametersMin_;
-
-    /** highest allowed parameter values */
-    std::vector<double> parametersMax_;
-
-    std::vector<double> initialParameters_;
-
+  private:
     OptimizationOptions optimizationOptions;
 };
 
@@ -142,6 +166,9 @@ void optimizationProblemGradientCheck(OptimizationProblem *problem,
 void optimizationProblemGradientCheck(OptimizationProblem *problem,
                                       const int parameterIndices[],
                                       int numParameterIndices, double epsilon);
+
+void getRandomStartingpoint(const double *min, const double *max,
+                                   int numParameters, double *buffer);
 
 } // namespace parpe
 

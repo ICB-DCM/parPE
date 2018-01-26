@@ -5,10 +5,10 @@
 
 namespace parpe {
 
+
 LocalOptimizationIpoptTNLP::LocalOptimizationIpoptTNLP(
-    OptimizationProblem *problem, pthread_mutex_t *ipoptMutex)
-    : problem(problem), ipoptMutex(ipoptMutex) {
-    timeBegin = clock();
+    OptimizationProblem *problem, double& finalCost, std::vector<double>& finalParameters)
+    : problem(problem), reporter(problem->getReporter()), finalCost(finalCost), finalParameters(finalParameters) {
 }
 
 LocalOptimizationIpoptTNLP::~LocalOptimizationIpoptTNLP() {
@@ -20,15 +20,12 @@ bool LocalOptimizationIpoptTNLP::get_nlp_info(Index &n, Index &m,
                                               Index &nnz_jac_g,
                                               Index &nnz_h_lag,
                                               IndexStyleEnum &index_style) {
-    pthread_mutex_unlock(ipoptMutex);
 
-    n = problem->getNumOptimizationParameters();
+    n = problem->costFun->numParameters();
     m = 0;                       // number of constrants
     nnz_jac_g = 0;               // numNonZeroElementsConstraintJacobian
     nnz_h_lag = 0;               // numNonZeroElementsLagrangianHessian
     index_style = TNLP::C_STYLE; // array layout for sparse matrices
-
-    pthread_mutex_lock(ipoptMutex);
 
     return true;
 }
@@ -37,10 +34,10 @@ bool LocalOptimizationIpoptTNLP::get_bounds_info(Index n, Number *x_l,
                                                  Number *x_u, Index m,
                                                  Number *g_l, Number *g_u) {
     // parameter bounds
-    memcpy(x_l, problem->getParametersMin(), sizeof(Number) * n);
-    memcpy(x_u, problem->getParametersMax(), sizeof(Number) * n);
+    problem->fillParametersMin(x_l);
+    problem->fillParametersMax(x_u);
 
-    // no constraints -> no constraint bounds
+    // no constraints supported for now -> no constraint bounds
 
     return true;
 }
@@ -50,13 +47,16 @@ bool LocalOptimizationIpoptTNLP::get_starting_point(Index n, bool init_x,
                                                     Number *z_L, Number *z_U,
                                                     Index m, bool init_lambda,
                                                     Number *lambda) {
+    /* this function is called twice by IpOpt which is a problem if problem->fillInitialParameters provides random parameters, therefore initial point needs to be stored */
+
     if (init_x) {
-        const double *startingPoint = problem->getInitialParameters();
-        if (startingPoint) {
-            memcpy(x, startingPoint, sizeof(Number) * n);
-        } else {
-            problem->fillInitialParameters(x);
+        if(initialParameters.size() == 0) {
+            initialParameters.resize(n);
+            problem->fillInitialParameters(initialParameters.data());
+            if(reporter && reporter->starting(n, initialParameters.data()))
+                return false;
         }
+        std::copy(initialParameters.begin(), initialParameters.end(), x);
     }
 
     assert(init_z == false);
@@ -67,80 +67,68 @@ bool LocalOptimizationIpoptTNLP::get_starting_point(Index n, bool init_x,
 
 bool LocalOptimizationIpoptTNLP::eval_f(Index n, const Number *x, bool new_x,
                                         Number &obj_value) {
-    static __thread int numFunctionCalls = 0;
-    ++numFunctionCalls;
-    // logmessage(LOGLVL_DEBUG, "Eval_F (%d) #%d.", new_x, numFunctionCalls);
-
-    pthread_mutex_unlock(ipoptMutex);
+    auto unlockIpOpt = ipOptReleaseLock();
 
     int errors = 0;
-
-    clock_t timeBegin = clock();
+    if(reporter && reporter->beforeCostFunctionCall(n, x) != 0)
+        return true;
 
     if (new_x || !lastCostP) {
-        errors = problem->evaluateObjectiveFunction(x, &obj_value, NULL);
+        // Have to compute anew
+        errors = problem->costFun->evaluate(x, obj_value, nullptr);
         if (lastGradient) // invalidate
             delete[] lastGradient;
-        lastGradient = NULL;
+        lastGradient = nullptr;
         lastErrors = errors;
         lastCost = obj_value;
         lastCostP = &lastCost;
     } else {
+        // recycle old result
         errors = lastErrors;
         obj_value = lastCost;
     }
 
-    clock_t timeEnd = clock();
-    double wallTime = (double)(timeEnd - timeBegin) / CLOCKS_PER_SEC;
-
-    problem->logObjectiveFunctionEvaluation(x, obj_value, NULL,
-                                            numFunctionCalls, wallTime);
-
-    pthread_mutex_lock(ipoptMutex);
+    if(reporter)
+        return (errors == 0) && !reporter->afterCostFunctionCall(n, x, lastCost, lastGradient);
 
     return errors == 0;
 }
 
 bool LocalOptimizationIpoptTNLP::eval_grad_f(Index n, const Number *x,
                                              bool new_x, Number *grad_f) {
-    static __thread int numFunctionCalls = 0;
-    ++numFunctionCalls;
-    // logmessage(LOGLVL_DEBUG, "Eval_Grad_F (%d) #%d", new_x,
-    // numFunctionCalls);
+    auto unlockIpOpt = ipOptReleaseLock();
 
-    pthread_mutex_unlock(ipoptMutex);
+    if(reporter && reporter->beforeCostFunctionCall(n, x) != 0)
+        return true;
 
     int errors = 0;
 
-    clock_t timeBegin = clock();
-
     if (new_x || !lastCostP || !lastGradient) {
-        errors = problem->evaluateObjectiveFunction(x, &lastCost, grad_f);
+        // Have to compute anew
+        errors = problem->costFun->evaluate(x, lastCost, grad_f);
 
         if (!lastGradient)
-            lastGradient = new Number[problem->getNumOptimizationParameters()];
+            lastGradient = new Number[n];
         memcpy(lastGradient, grad_f, sizeof(Number) * n);
         lastCostP = &lastCost;
         lastErrors = errors;
     } else {
+        // recycle old result
         memcpy(grad_f, lastGradient, sizeof(Number) * n);
         errors = lastErrors;
     }
 
-    clock_t timeEnd = clock();
-    double timeElapsed = (double)(timeEnd - timeBegin) / CLOCKS_PER_SEC;
-
-    problem->logObjectiveFunctionEvaluation(x, lastCost, grad_f,
-                                            numFunctionCalls, timeElapsed);
-
-    pthread_mutex_lock(ipoptMutex);
+    if(reporter)
+        return (errors == 0) && !reporter->afterCostFunctionCall(n, x, lastCost, lastGradient);
 
     return errors == 0;
 }
 
 bool LocalOptimizationIpoptTNLP::eval_g(Index n, const Number *x, bool new_x,
                                         Index m, Number *g) {
+
     assert(false && "no constraints, should never get here");
+
     return false;
 }
 
@@ -151,7 +139,7 @@ bool LocalOptimizationIpoptTNLP::eval_jac_g(Index n, const Number *x,
     // no constraints, nothing to do here, but will be called once
 
     if (new_x)
-        lastCostP = NULL; // because next function will be called with
+        lastCostP = nullptr; // because next function will be called with
                           // new_x==false, but we didn't prepare anything
 
     return true;
@@ -163,12 +151,12 @@ bool LocalOptimizationIpoptTNLP::intermediate_callback(
     Number alpha_du, Number alpha_pr, Index ls_trials, const IpoptData *ip_data,
     IpoptCalculatedQuantities *ip_cq) {
 
-    pthread_mutex_unlock(ipoptMutex);
+    auto unlockIpOpt = ipOptReleaseLock();
 
-    int status = true;
-    status = problem->intermediateFunction(
-        (int)mode, iter, obj_value, inf_pr, inf_du, mu, d_norm,
-        regularization_size, alpha_du, alpha_pr, ls_trials);
+    int status = reporter->iterationFinished(problem->costFun->numParameters(),
+                                             nullptr,
+                                             obj_value,
+                                             lastGradient);
 
 #ifdef INSTALL_SIGNAL_HANDLER
     if (caughtTerminationSignal) {
@@ -176,8 +164,6 @@ bool LocalOptimizationIpoptTNLP::intermediate_callback(
         return false;
     }
 #endif
-
-    pthread_mutex_lock(ipoptMutex);
 
     return status == 0;
 }
@@ -187,14 +173,35 @@ void LocalOptimizationIpoptTNLP::finalize_solution(
     const Number *z_U, Index m, const Number *g, const Number *lambda,
     Number obj_value, const IpoptData *ip_data,
     IpoptCalculatedQuantities *ip_cq) {
-    pthread_mutex_unlock(ipoptMutex);
 
-    clock_t timeEnd = clock();
-    double timeElapsed = (double)(timeEnd - timeBegin) / CLOCKS_PER_SEC;
+    auto unlockIpOpt = ipOptReleaseLock();
 
-    problem->logOptimizerFinished(obj_value, x, timeElapsed, status);
+    finalCost = obj_value;
+    finalParameters.resize(n);
+    std::copy(x, x + n, finalParameters.begin());
 
-    pthread_mutex_lock(ipoptMutex);
+    reporter->finished(obj_value, x, status);
+}
+
+InverseUniqueLock ipOptReleaseLock()
+{
+    return InverseUniqueLock(&mutexIpOpt);
+}
+
+InverseUniqueLock::InverseUniqueLock(mutexIpOptType *mutex)
+    : mutex(mutex)
+{
+    mutex->unlock();
+}
+
+InverseUniqueLock::~InverseUniqueLock()
+{
+    mutex->lock();
+}
+
+std::unique_lock<mutexIpOptType> ipOptGetLock()
+{
+    return std::unique_lock<mutexIpOptType>(mutexIpOpt);
 }
 
 } // namespace parpe

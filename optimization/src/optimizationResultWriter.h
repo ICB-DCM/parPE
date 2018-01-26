@@ -12,17 +12,20 @@ class OptimizationProblem;
 
 /**
  * @brief The OptimizationResultWriter class receives results during an
- * optimizer run
- */
+ * optimizer run. A new instance is to be created for each run.
+ *
+ * TODO: change into interface; add OptimizationResultWriterHDF5
+*/
+
 class OptimizationResultWriter {
-  public:
+public:
     /**
      * @brief Default constructor, for testing only
      */
     OptimizationResultWriter();
 
     /**
-     * @brief Write to pre-opened HDF5 file
+     * @brief Write to pre-opened HDF5 file (will be re-opened)
      * @param problem
      * @param file_id
      */
@@ -36,12 +39,6 @@ class OptimizationResultWriter {
      */
     OptimizationResultWriter(const std::string &filename, bool overwrite);
 
-    virtual std::string getOptimizationPath();
-
-    virtual std::string getIterationPath(int iterationIdx);
-
-    virtual void logParPEVersion();
-
     /**
      * @brief Function to be called after each objective function f(x) or
      * gradient f'(x) evaluation
@@ -53,10 +50,9 @@ class OptimizationResultWriter {
      * @param timeElapsedInSeconds CPU time for the last objective function
      * evaluation (wall time)
      */
-    virtual void logLocalOptimizerObjectiveFunctionEvaluation(
-        const double *parameters, int numParameters,
-        double objectiveFunctionValue, const double *objectiveFunctionGradient,
-        int numFunctionCalls, double timeElapsedInSeconds);
+    virtual void logLocalOptimizerObjectiveFunctionEvaluation(const double *parameters, int numParameters,
+            double objectiveFunctionValue, const double *objectiveFunctionGradient, int numIterations,
+            int numFunctionCalls, double timeElapsedInSeconds);
 
     /**
      * @brief Function to be called after each optimizer iteration. (For
@@ -76,23 +72,15 @@ class OptimizationResultWriter {
      * @param alpha_pr
      * @param ls_trials
      */
-    virtual void logLocalOptimizerIteration(
-        int numIterations, double *theta, int numParameters,
-        double objectiveFunctionValue, const double *gradient,
-        double timeElapsedInSeconds, int alg_mod, double inf_pr, double inf_du,
-        double mu, double d_norm, double regularization_size, double alpha_du,
-        double alpha_pr, int ls_trials);
+    virtual void logLocalOptimizerIteration(int numIterations, const double * const theta, int numParameters,
+                                            double objectiveFunctionValue, const double * const gradient,
+                                            double timeElapsedInSeconds);
+    /*, int alg_mod, double inf_pr, double inf_du,
+    double mu, double d_norm, double regularization_size, double alpha_du,
+    double alpha_pr, int ls_trials*/
 
-    /**
-     * @brief Write buffered output to file
-     */
-    virtual void flushResultWriter();
+    virtual void starting(int numParameters, double const *const initialParameters);
 
-    /**
-     * @brief CPU time for whole application run
-     * @param timeInSeconds
-     */
-    virtual void saveTotalCpuTime(const double timeInSeconds);
 
     /**
      * @brief Function to be called when local optimization is finished.
@@ -110,14 +98,29 @@ class OptimizationResultWriter {
 
     virtual ~OptimizationResultWriter();
 
-    hid_t file_id;
+    hid_t getFileId() const;
 
-  protected:
+protected:
+    /**
+     * @brief Write buffered output to file
+     */
+    virtual void flushResultWriter();
+
+
+
+private:
     int initResultHDFFile(const char *filename, bool overwrite);
 
     void closeResultHDFFile();
+    virtual std::string getOptimizationPath();
 
-private:
+    virtual std::string getIterationPath(int iterationIdx);
+
+    // TODO move out of here
+    virtual void logParPEVersion();
+
+    hid_t file_id = 0;
+
     std::string rootPath = "/";
 
 };

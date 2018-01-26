@@ -1,8 +1,9 @@
-#include <cstdio>
-#include "optimizationOptions.h"
 #include "steadystateProblem.h"
+#include <optimizationOptions.h>
 #include <string>
 #include <iostream>
+#include <cstdio>
+
 /**
  * @file
  *
@@ -20,7 +21,7 @@ int main(int argc, char **argv) {
     }
 
     std::string dataFileName = argv[1];
-    ExampleSteadystateProblem problem = ExampleSteadystateProblem(dataFileName);
+    ExampleSteadystateProblem problem(dataFileName);
     parpe::OptimizationOptions options = problem.getOptimizationOptions();
 
     int status = 0;
@@ -65,3 +66,26 @@ int main(int argc, char **argv) {
 
     return status;
 }
+
+//TODO
+
+
+//void ExampleSteadystateProblem::logOptimizerFinished(
+//    double optimalCost, const double *optimalParameters, double masterTime,
+//    int exitStatus) {
+//    printf("Minimal cost: %f\n", optimalCost);
+//    printf("Optimal parameters  : ");
+//    printArray(optimalParameters, model->np);
+//    printf("\n");
+//    printf("True parameters were: ");
+
+//    hsize_t length;
+//    double *ptrue;
+//    AMI_HDF5_getDoubleArrayAttribute(fileId, "/parameters/", "ptrue", &ptrue,
+//                                     &length);
+//    printArray(ptrue, length);
+//    delete ptrue;
+//    printf("\n");
+
+//    printf("Wall time (min): %f\n", masterTime / 60);
+//}

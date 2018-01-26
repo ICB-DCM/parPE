@@ -4,13 +4,14 @@
 #include "MultiConditionDataProvider.h"
 #include "optimizationProblem.h"
 #include "optimizationResultWriter.h"
-#include <stdbool.h>
 
 namespace parpe {
 
+// TODO get rid of JobIdentifier
+// TODO merge with simulation resultwriter?
 class MultiConditionProblemResultWriter : public OptimizationResultWriter {
 
-  public:
+public:
     MultiConditionProblemResultWriter();
 
     MultiConditionProblemResultWriter(hid_t file_id);
@@ -21,6 +22,11 @@ class MultiConditionProblemResultWriter : public OptimizationResultWriter {
                                       JobIdentifier id);
 
     MultiConditionProblemResultWriter(MultiConditionProblemResultWriter const& other);
+
+    void logLocalOptimizerObjectiveFunctionEvaluation(
+            const double *parameters, int numParameters, double objectiveFunctionValue,
+            const double *objectiveFunctionGradient, int numIterations, int numFunctionCalls,
+            double timeElapsedInSeconds);
 
     std::string getIterationPath(int iterationIdx) override;
 
@@ -38,10 +44,19 @@ class MultiConditionProblemResultWriter : public OptimizationResultWriter {
                        double *stateSensi, int numY, double *y, int jobId,
                        int iterationsUntilSteadystate, int status);
 
-    bool logLineSearch = false;
+    void printObjectiveFunctionFailureMessage() const;
 
-  protected:
+    void saveLocalOptimizerResults(double finalNegLogLikelihood,
+                                           const double *optimalParameters,
+                                           int numParameters, double masterTime,
+                                           int exitStatus);
+
+
+private:
+
+    bool logLineSearch = false;
     JobIdentifier id;
+    hid_t file_id = 0;
 };
 
 } // namespace parpe

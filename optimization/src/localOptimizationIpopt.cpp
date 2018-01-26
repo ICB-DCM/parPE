@@ -13,9 +13,9 @@
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
-#include <pthread.h>
 
 namespace parpe {
+
 
 // https://www.coin-or.org/Ipopt/documentation/node40.html
 // grep -A1 -r "roptions->Add" ../ThirdParty/Ipopt-3.12.7
@@ -330,11 +330,6 @@ extern volatile sig_atomic_t caughtTerminationSignal;
 static_assert(sizeof(double) == sizeof(Number),
               "Sizeof IpOpt::Number != sizeof double");
 
-/**
- * @brief ipoptMutex Ipopt seems not to be thread safe. Lock this mutex every
- * time that control is passed to ipopt functions.
- */
-static pthread_mutex_t ipoptMutex = PTHREAD_MUTEX_INITIALIZER;
 
 using namespace Ipopt;
 
@@ -387,30 +382,36 @@ void setIpOptOptions(SmartPtr<OptionsList> optionsIpOpt,
 
 OptimizerIpOpt::OptimizerIpOpt() {}
 
-int OptimizerIpOpt::optimize(OptimizationProblem *problem) {
+std::tuple<int, double, std::vector<double> > OptimizerIpOpt::optimize(OptimizationProblem *problem) {
 
     ApplicationReturnStatus status;
 
-    pthread_mutex_lock(&ipoptMutex);
+    std::vector<double> finalParameters;
+    double finalCost = NAN;
+
     { // ensure all IpOpt objects are destroyed before mutex is unlocked
+
+        // lock because we pass control to IpOpt
+        auto lock = ipOptGetLock();
+
         SmartPtr<TNLP> mynlp =
-            new LocalOptimizationIpoptTNLP(problem, &ipoptMutex);
+            new LocalOptimizationIpoptTNLP(problem, finalCost, finalParameters);
         SmartPtr<IpoptApplication> app = IpoptApplicationFactory();
         app->RethrowNonIpoptException(true);
 
         setIpOptOptions(app->Options(), problem);
 
         status = app->Initialize();
+        assert(status == Solve_Succeeded);
         status = app->OptimizeTNLP(mynlp);
     }
-    pthread_mutex_unlock(&ipoptMutex);
 
     if((int)status < Not_Enough_Degrees_Of_Freedom) {
         // should exit, retrying probably makes no sense
         throw ParPEException("Unrecoverable IpOpt problem - see messages above.");
     }
 
-    return (int)status < Maximum_Iterations_Exceeded;
+    return std::tuple<int, double, std::vector<double> >((int)status < Maximum_Iterations_Exceeded, finalCost, finalParameters);
 }
 
 } // namespace parpe

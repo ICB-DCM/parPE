@@ -149,8 +149,8 @@ std::unique_ptr<OptimizationOptions> OptimizationOptions::fromHDF5(hid_t fileId)
  * @return The selected starting point or NULL if the dataset did not exist or
  * had less columns than `ìndex`
  */
-double *OptimizationOptions::getStartingPoint(hid_t fileId, int index) {
-    double *buffer = nullptr;
+std::vector<double> OptimizationOptions::getStartingPoint(hid_t fileId, int index) {
+    std::vector<double> startingPoint;
 
     const char *path = "/optimizationOptions/randomStarts";
 
@@ -177,8 +177,8 @@ double *OptimizationOptions::getStartingPoint(hid_t fileId, int index) {
         logmessage(LOGLVL_INFO, "Reading random initial theta %d from %s",
                    index, path);
 
-        buffer = new double[dims[0]];
-        hdf5Read2DDoubleHyperslab(fileId, path, dims[0], 1, 0, index, buffer);
+        startingPoint.resize(dims[0]);
+        hdf5Read2DDoubleHyperslab(fileId, path, dims[0], 1, 0, index, startingPoint.data());
     }
 
 freturn:
@@ -190,7 +190,7 @@ freturn:
     H5_RESTORE_ERROR_HANDLER;
     hdf5UnlockMutex();
 
-    return buffer;
+    return startingPoint;
 }
 
 std::string OptimizationOptions::toString() {

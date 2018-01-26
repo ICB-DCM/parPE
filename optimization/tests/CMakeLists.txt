@@ -10,6 +10,7 @@ set(SRC_LIST_CPP
     ../src/optimizationResultWriterTest.cpp
     ../src/optimizationOptionsTest.cpp
     ../src/optimizationProblemTest.cpp
+    ../../common/src/testingMisc.cpp
     quadraticTestProblem.cpp
 )
 

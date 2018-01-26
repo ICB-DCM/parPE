@@ -9,12 +9,16 @@
 #include "CppUTest/TestHarness.h"
 #include "CppUTestExt/MockSupport.h"
 
-TEST_GROUP(multiConditionProblemResultWriter){void setup(){parpe::initHDF5Mutex();
-}
+// clang-format off
+TEST_GROUP(multiConditionProblemResultWriter){
+    void setup() {
+        parpe::initHDF5Mutex();
+    }
 
-void teardown() {  }
-}
-;
+    void teardown() {
+    }
+};
+// clang-format on
 
 TEST(multiConditionProblemResultWriter, testResultWriter) {
     parpe::JobIdentifier id;
@@ -22,20 +26,13 @@ TEST(multiConditionProblemResultWriter, testResultWriter) {
 
     w.setRootPath("/bla/");
 
-    w.saveTotalCpuTime(100);
+    w.logLocalOptimizerIteration(1, NULL, 0, 2, NULL, 1);
 
-    w.flushResultWriter();
-
-    w.logLocalOptimizerIteration(1, NULL, 0, 2, NULL, 1, 2, 3, 4, 6, 7, 8, 9,
-                                 10, 11);
-
-    w.logLocalOptimizerObjectiveFunctionEvaluation(NULL, 0, 1, NULL, 2, 3);
+    w.logLocalOptimizerObjectiveFunctionEvaluation(NULL, 0, 1, NULL, 1, 2, 3);
 
     w.logSimulation(id, NULL, 1, NULL, 1, 1, 2, NULL, NULL, 0, NULL, 1, 2, 0);
 
     w.saveLocalOptimizerResults(1, NULL, 0, 12, 0);
-
-    w.flushResultWriter();
 }
 
 // IGNORE_TEST(multiConditionProblemResultWriter, testResultWriter) {

@@ -8,17 +8,19 @@
 namespace amici {
 int runAmiciSimulation(amici::UserData *, amici::ExpData const *, amici::ReturnData *) { return 0; }
 }
+
 /**
  * @brief Mock MultiConditionProblem
  */
-class MultiConditionProblemTest : public parpe::MultiConditionProblem {
+class MultiConditionGradientFunctionTest : public parpe::MultiConditionGradientFunction {
   public:
-    MultiConditionProblemTest() {}
+    MultiConditionGradientFunctionTest() {}
     void addSimulationGradientToObjectiveFunctionGradient(
         const double *simulationGradient, double *objectiveFunctionGradient,
         int numCommon, int numConditionSpecificParams,
         int firstIndexOfCurrentConditionsSpecificOptimizationParameters) {
-        MultiConditionProblem::
+
+        MultiConditionGradientFunction::
             addSimulationGradientToObjectiveFunctionGradientConditionSpecificParameters(
                 simulationGradient, objectiveFunctionGradient, numCommon,
                 numConditionSpecificParams,
@@ -26,18 +28,23 @@ class MultiConditionProblemTest : public parpe::MultiConditionProblem {
     }
 };
 
-TEST_GROUP(multiConditionProblem){void setup(){parpe::initHDF5Mutex();
-}
+// clang-format off
+TEST_GROUP(multiConditionProblem){
+    void setup() {
+        parpe::initHDF5Mutex();
+    }
 
-void teardown() {  }
-}
-;
+    void teardown() {
+    }
+};
+// clang-format on
+
 
 /**
 * @brief Check gradient aggregation
  */
 TEST(multiConditionProblem, testAggregateGradientAllCommon) {
-    MultiConditionProblemTest p;
+    MultiConditionGradientFunctionTest p;
 
     const double simulationGradient[] = {1.0, 2.0, 3.0, 4.0};
     const double objectiveFunctionGradientExpected[] = {-1, -1, -1, -1};
@@ -62,7 +69,7 @@ TEST(multiConditionProblem, testAggregateGradientAllCommon) {
  * @brief Check gradient aggregation
  */
 TEST(multiConditionProblem, testAggregateGradientSpecific) {
-    MultiConditionProblemTest p;
+    MultiConditionGradientFunctionTest p;
 
     const int numCommon = 2;
     const int numConditionSpecificParams = 2;
@@ -84,3 +91,5 @@ TEST(multiConditionProblem, testAggregateGradientSpecific) {
         CHECK_EQUAL(objectiveFunctionGradientExpected[i],
                     objectiveFunctionGradient[i]);
 }
+
+// TODO: check proper starting points are used
