@@ -16,12 +16,13 @@ ExampleSteadystateGradientFunctionParallel::ExampleSteadystateGradientFunctionPa
     numConditions = dataProvider->getNumberOfConditions();
 }
 
-parpe::GradientFunction::FunctionEvaluationStatus ExampleSteadystateGradientFunctionParallel::evaluate(const double * const parameters, double &fval, double *gradient) const
+parpe::FunctionEvaluationStatus ExampleSteadystateGradientFunctionParallel::evaluate(const double * const parameters, double &fval, double *gradient) const
+
 {
     if (parpe::getMpiCommSize() > 1) {
-        return evaluateParallel(parameters, fval, gradient) ? functionEvaluationFailure : functionEvaluationSuccess;
+        return evaluateParallel(parameters, fval, gradient) ? parpe::functionEvaluationFailure : parpe::functionEvaluationSuccess;
     } else {
-        return evaluateSerial(parameters, fval, gradient) ? functionEvaluationFailure : functionEvaluationSuccess;
+        return evaluateSerial(parameters, fval, gradient) ? parpe::functionEvaluationFailure : parpe::functionEvaluationSuccess;
     }
 }
 

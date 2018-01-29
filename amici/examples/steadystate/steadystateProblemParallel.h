@@ -14,7 +14,7 @@ class ExampleSteadystateGradientFunctionParallel : public parpe::GradientFunctio
 public:
     ExampleSteadystateGradientFunctionParallel(parpe::LoadBalancerMaster *loadBalancer, const std::string &dataFileName);
 
-    FunctionEvaluationStatus evaluate(
+    parpe::FunctionEvaluationStatus evaluate(
             const double* const parameters,
             double &fval,
             double* gradient) const override;

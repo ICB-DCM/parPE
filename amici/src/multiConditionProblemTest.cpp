@@ -12,16 +12,15 @@ int runAmiciSimulation(amici::UserData *, amici::ExpData const *, amici::ReturnD
 /**
  * @brief Mock MultiConditionProblem
  */
-class MultiConditionGradientFunctionTest : public parpe::MultiConditionGradientFunction {
+class AmiciSummedGradientFunctionTest : public parpe::AmiciSummedGradientFunction<int> {
   public:
-    MultiConditionGradientFunctionTest() {}
+    AmiciSummedGradientFunctionTest() {}
     void addSimulationGradientToObjectiveFunctionGradient(
         const double *simulationGradient, double *objectiveFunctionGradient,
         int numCommon, int numConditionSpecificParams,
         int firstIndexOfCurrentConditionsSpecificOptimizationParameters) {
 
-        MultiConditionGradientFunction::
-            addSimulationGradientToObjectiveFunctionGradientConditionSpecificParameters(
+        AmiciSummedGradientFunction::addSimulationGradientToObjectiveFunctionGradientConditionSpecificParameters(
                 simulationGradient, objectiveFunctionGradient, numCommon,
                 numConditionSpecificParams,
                 firstIndexOfCurrentConditionsSpecificOptimizationParameters);
@@ -44,7 +43,7 @@ TEST_GROUP(multiConditionProblem){
 * @brief Check gradient aggregation
  */
 TEST(multiConditionProblem, testAggregateGradientAllCommon) {
-    MultiConditionGradientFunctionTest p;
+    AmiciSummedGradientFunctionTest p;
 
     const double simulationGradient[] = {1.0, 2.0, 3.0, 4.0};
     const double objectiveFunctionGradientExpected[] = {-1, -1, -1, -1};
@@ -69,7 +68,7 @@ TEST(multiConditionProblem, testAggregateGradientAllCommon) {
  * @brief Check gradient aggregation
  */
 TEST(multiConditionProblem, testAggregateGradientSpecific) {
-    MultiConditionGradientFunctionTest p;
+    AmiciSummedGradientFunctionTest p;
 
     const int numCommon = 2;
     const int numConditionSpecificParams = 2;

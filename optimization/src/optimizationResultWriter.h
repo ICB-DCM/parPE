@@ -1,10 +1,12 @@
 #ifndef OPTIMIZATIONRESULTWRITER_H
 #define OPTIMIZATIONRESULTWRITER_H
 
-#include "optimizationProblem.h"
+#include <string>
+
 #include <hdf5.h>
 #include <hdf5_hl.h>
-#include <string>
+
+#include "optimizationProblem.h"
 
 namespace parpe {
 

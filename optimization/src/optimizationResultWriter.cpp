@@ -1,11 +1,13 @@
 #include "optimizationResultWriter.h"
-#include "hdf5Misc.h"
-#include "misc.h"
+
 #include <cassert>
 #include <cmath>
-#include <logging.h>
 #include <sstream>
 #include <iostream>
+
+#include <hdf5Misc.h>
+#include <misc.h>
+#include <logging.h>
 
 namespace parpe {
 

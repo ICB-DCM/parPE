@@ -13,7 +13,7 @@
 class ExampleSteadystateGradientFunction : public parpe::GradientFunction {
 public:
     ExampleSteadystateGradientFunction(hid_t fileId);
-    FunctionEvaluationStatus evaluate(
+    parpe::FunctionEvaluationStatus evaluate(
             const double* const parameters,
             double &fval,
             double* gradient) const override;

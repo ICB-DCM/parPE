@@ -1,47 +1,55 @@
 #ifndef PROBLEM_H
 #define PROBLEM_H
 
-#include "LoadBalancerMaster.h"
 #include "MultiConditionDataProvider.h"
-#include "multiStartOptimization.h"
-#include "optimizationProblem.h"
-#include <LoadBalancerWorker.h>
 #include <simulationWorkerAmici.h>
-#include <cmath> //NAN
-#include <amici.h>
 #include <multiConditionProblemResultWriter.h>
 
+#include <multiStartOptimization.h>
+#include <optimizationProblem.h>
+#include <LoadBalancerMaster.h>
+#include <LoadBalancerWorker.h>
+
+#include <amici.h>
+
+#include <memory>
+#include <cmath> //NAN
+
 namespace parpe {
+
+/** @file Interfaces between AMICI model and parPE optimization problem */
+
 
 class MultiConditionDataProvider;
 class MultiConditionProblemResultWriter;
 
-
 /**
- * @brief The MultiConditionGradientFunction class represents a cost function based on an AMICI ODE model
+ * @brief The AmiciSummedGradientFunction class represents a cost function based on simulations of an AMICI model for different datasets
  */
 
-class MultiConditionGradientFunction : public GradientFunction {
+template <typename T>
+class AmiciSummedGradientFunction : public SummedGradientFunction<T> {
 public:
-    MultiConditionGradientFunction() {} // TODO remove?
-    MultiConditionGradientFunction(MultiConditionDataProvider *dataProvider, LoadBalancerMaster *loadBalancer, MultiConditionProblemResultWriter *resultWriter = nullptr);
-    virtual ~MultiConditionGradientFunction() = default;
 
-    /**
-     * @brief Evaluate cost function at `optimiziationVariables`
-     * @param optimiziationVariables Current parameters
-     * @param objectiveFunctionValue Out: cost at `optimiziationVariables`
-     * @param objectiveFunctionGradient Out: cost gradient at
-     * `optimiziationVariables`
-     * @return status code, non-zero on failure
-     */
+    AmiciSummedGradientFunction(MultiConditionDataProvider *dataProvider,
+                                LoadBalancerMaster *loadBalancer,
+                                MultiConditionProblemResultWriter *resultWriter = nullptr);
 
-    FunctionEvaluationStatus evaluate(
+    virtual FunctionEvaluationStatus evaluate(
             const double* const parameters,
+            T dataset,
             double &fval,
             double* gradient) const override;
 
-    int numParameters() const override;
+
+    virtual FunctionEvaluationStatus evaluate(
+            const double* const parameters,
+            std::vector<T> datasets,
+            double &fval,
+            double* gradient) const override;
+
+    virtual int numParameters() const override;
+
 
     /**
      * @brief Is called by worker processes to run a simulation for the given
@@ -68,10 +76,12 @@ public:
      */
     virtual void messageHandler(std::vector<char> &buffer, int jobId) const;
 
-
 protected:// for testing
+    AmiciSummedGradientFunction() = default;
+
     void updateUserDataCommon(const double *simulationParameters,
                               const double *objectiveFunctionGradient) const;
+
 
     /**
      * @brief Run AMICI simulations for conditions with the given indices
@@ -83,9 +93,9 @@ protected:// for testing
      * @return Simulation status, != 0 indicates failure
      */
     virtual int runSimulations(const double *optimizationVariables,
-                               double *logLikelihood,
+                               double &logLikelihood,
                                double *objectiveFunctionGradient,
-                               int *dataIndices, int numDataIndices) const;
+                               std::vector<int> dataIndices) const;
 
     /**
      * @brief Aggregates loglikelihood received from workers.
@@ -97,7 +107,7 @@ protected:// for testing
      * @return *Negative* log likelihood.
      */
 
-    int aggregateLikelihood(JobData &data, double *logLikelihood,
+    int aggregateLikelihood(JobData &data, double &logLikelihood,
                             double *objectiveFunctionGradient, int dataIdx, double &simulationTimeInS) const;
 
 
@@ -127,20 +137,47 @@ protected:// for testing
     void setSensitivityOptions(bool sensiRequired) const;
 
 private:
-
-    FunctionEvaluationStatus evaluateObjectiveFunction(const double *optimiziationVariables,
-                                          double *objectiveFunctionValue,
-                                          double *objectiveFunctionGradient,
-                                          int *dataIndices, int numDataIndices) const;
-
-    MultiConditionDataProvider *dataProvider;
+    MultiConditionDataProvider *dataProvider = nullptr;
     LoadBalancerMaster *loadBalancer = nullptr;
     amici::Model *model = nullptr;
     std::unique_ptr<amici::UserData> udata;
     amici::UserData udataOriginal; // for saving sensitivity options which are changed depending on whether gradient is needed
     MultiConditionProblemResultWriter *resultWriter = nullptr;
     bool logLineSearch = false;
+};
 
+
+
+/**
+ * @brief The MultiConditionGradientFunction class represents a cost function based on an AMICI ODE model
+ */
+
+class MultiConditionGradientFunction : public GradientFunction {
+public:
+    MultiConditionGradientFunction(MultiConditionDataProvider *dataProvider,
+                                   LoadBalancerMaster *loadBalancer,
+                                   MultiConditionProblemResultWriter *resultWriter = nullptr);
+
+    /**
+     * @brief Evaluate cost function at `optimiziationVariables`
+     * @param optimiziationVariables Current parameters
+     * @param objectiveFunctionValue Out: cost at `optimiziationVariables`
+     * @param objectiveFunctionGradient Out: cost gradient at
+     * `optimiziationVariables`
+     * @return status code, non-zero on failure
+     */
+
+    FunctionEvaluationStatus evaluate(
+            const double* const parameters,
+            double &fval,
+            double* gradient) const override;
+
+    int numParameters() const override;
+
+    const std::unique_ptr<AmiciSummedGradientFunction<int>> summedGradFun;
+
+private:
+    int numConditions;
 };
 
 

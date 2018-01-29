@@ -1,20 +1,24 @@
 #include "multiConditionProblem.h"
+
 #include "multiConditionProblemResultWriter.h"
-#include "optimizationOptions.h"
 #include "simulationWorkerAmici.h"
 #include "steadystateSimulator.h"
+
+#include <optimizationOptions.h>
 #include <LoadBalancerMaster.h>
 #include <SimulationRunner.h>
-#include <amici_interface_cpp.h>
-#include <amici_model.h>
-#include <cassert>
-#include <cstring>
-#include <ctime>
 #include <logging.h>
 #include <misc.h>
+
+#include <amici_interface_cpp.h>
+#include <amici_model.h>
 #include <rdata.h>
 #include <udata.h>
 #include <amici_serialization.h>
+
+#include <cassert>
+#include <cstring>
+#include <ctime>
 #include <numeric>
 
 namespace parpe {
@@ -72,7 +76,8 @@ int MultiConditionProblem::earlyStopping() {
     return stop;
 }
 
-JobResultAmiciSimulation MultiConditionGradientFunction::runAndLogSimulation(amici::UserData *udata,
+template <typename T>
+JobResultAmiciSimulation AmiciSummedGradientFunction<T>::runAndLogSimulation(amici::UserData *udata,
                                                                              JobIdentifier path,
                                                                              int jobId) const {
     double startTime = MPI_Wtime();
@@ -107,7 +112,8 @@ JobResultAmiciSimulation MultiConditionGradientFunction::runAndLogSimulation(ami
 }
 
 
-void MultiConditionGradientFunction::messageHandler(std::vector<char> &buffer,
+template <typename T>
+void AmiciSummedGradientFunction<T>::messageHandler(std::vector<char> &buffer,
                                                     int jobId) const {
     // unpack
     auto udata = std::unique_ptr<amici::UserData>(dataProvider->getUserData());
@@ -178,7 +184,8 @@ std::unique_ptr<OptimizationReporter> MultiConditionProblem::getReporter() const
 }
 
 
-void MultiConditionGradientFunction::updateUserDataCommon(
+template<typename T>
+void AmiciSummedGradientFunction<T>::updateUserDataCommon(
         const double *simulationParameters,
         const double *objectiveFunctionGradient) const {
     setSensitivityOptions(objectiveFunctionGradient);
@@ -188,17 +195,18 @@ void MultiConditionGradientFunction::updateUserDataCommon(
     memcpy(udata->p, simulationParameters, sizeof(double) * model->np);
 }
 
-int MultiConditionGradientFunction::runSimulations(const double *optimizationVariables,
-                                                   double *logLikelihood,
+
+template <typename T>
+int AmiciSummedGradientFunction<T>::runSimulations(const double *optimizationVariables,
+                                                   double &logLikelihood,
                                                    double *objectiveFunctionGradient,
-                                                   int *dataIndices,
-                                                   int numDataIndices) const {
+                                                   std::vector<int> dataIndices) const {
 
     int errors = 0;
     JobIdentifier path; // TODO = this->path;
 
     SimulationRunner simRunner(
-                numDataIndices,
+                dataIndices.size(),
                 [&](int simulationIdx) {
         // extract parameters for simulation of current condition, instead
         // of sending whole  optimization parameter vector to worker
@@ -231,7 +239,8 @@ int MultiConditionGradientFunction::runSimulations(const double *optimizationVar
     return errors;
 }
 
-int MultiConditionGradientFunction::aggregateLikelihood(JobData &data, double *logLikelihood,
+template <typename T>
+int AmiciSummedGradientFunction<T>::aggregateLikelihood(JobData &data, double &logLikelihood,
                                                         double *objectiveFunctionGradient, int dataIdx, double &simulationTimeInS) const {
     int errors = 0;
 
@@ -243,7 +252,7 @@ int MultiConditionGradientFunction::aggregateLikelihood(JobData &data, double *l
     errors += result.status;
 
     // sum up
-    *logLikelihood -= *result.rdata->llh;
+    logLikelihood -= *result.rdata->llh;
     simulationTimeInS += result.simulationTimeInSec;
 
     if (objectiveFunctionGradient)
@@ -255,8 +264,8 @@ int MultiConditionGradientFunction::aggregateLikelihood(JobData &data, double *l
 }
 
 
-
-void MultiConditionGradientFunction::addSimulationGradientToObjectiveFunctionGradient(
+template <typename T>
+void AmiciSummedGradientFunction<T>::addSimulationGradientToObjectiveFunctionGradient(
         int conditionIdx, const double *simulationGradient,
         double *objectiveFunctionGradient, int numCommon) const {
     // global parameters: simply add
@@ -271,7 +280,8 @@ void MultiConditionGradientFunction::addSimulationGradientToObjectiveFunctionGra
                     conditionIdx));
 }
 
-void MultiConditionGradientFunction::
+template <typename T>
+void AmiciSummedGradientFunction<T>::
 addSimulationGradientToObjectiveFunctionGradientConditionSpecificParameters(
         const double *simulationGradient, double *objectiveFunctionGradient,
         int numCommon, int numConditionSpecificParams,
@@ -286,8 +296,8 @@ addSimulationGradientToObjectiveFunctionGradientConditionSpecificParameters(
     }
 }
 
-
-void MultiConditionGradientFunction::setSensitivityOptions(bool sensiRequired) const {
+template <typename T>
+void AmiciSummedGradientFunction<T>::setSensitivityOptions(bool sensiRequired) const {
     // sensitivities requested?
     if (sensiRequired) {
         udata->sensi = udataOriginal.sensi;
@@ -351,7 +361,8 @@ void printSimulationResult(const JobIdentifier &path, int jobId, amici::UserData
     }
 }
 
-MultiConditionGradientFunction::MultiConditionGradientFunction(MultiConditionDataProvider *dataProvider, LoadBalancerMaster *loadBalancer, MultiConditionProblemResultWriter *resultWriter)
+template <typename T>
+AmiciSummedGradientFunction<T>::AmiciSummedGradientFunction(MultiConditionDataProvider *dataProvider, LoadBalancerMaster *loadBalancer, MultiConditionProblemResultWriter *resultWriter)
     : dataProvider(dataProvider), model(dataProvider->getModel()),
       udata(dataProvider->getUserDataForCondition(0)),
       udataOriginal (*udata), resultWriter(resultWriter)
@@ -360,52 +371,36 @@ MultiConditionGradientFunction::MultiConditionGradientFunction(MultiConditionDat
         abort();
 }
 
-GradientFunction::FunctionEvaluationStatus MultiConditionGradientFunction::evaluate(const double * const parameters, double &objectiveFunctionValue, double *objectiveFunctionGradient) const
+template<typename T>
+FunctionEvaluationStatus AmiciSummedGradientFunction<T>::evaluate(const double * const parameters, T dataset, double &fval, double *gradient) const
 {
-    // run on all data
-    int numDataIndices = dataProvider->getNumberOfConditions();
-    int dataIndices[numDataIndices];
-    std::iota(dataIndices, dataIndices + numDataIndices, 0);
-
-    return evaluateObjectiveFunction(
-                parameters, &objectiveFunctionValue,
-                objectiveFunctionGradient, dataIndices, numDataIndices);
+    std::vector<T> datasets(1);
+    datasets.at(0) = dataset;
+    return evaluate(parameters, datasets, fval, gradient);
 }
 
-GradientFunction::FunctionEvaluationStatus MultiConditionGradientFunction::evaluateObjectiveFunction(
-        const double *optimiziationVariables, double *objectiveFunctionValue,
-        double *objectiveFunctionGradient, int *dataIndices, int numDataIndices) const {
-#ifdef NO_OBJ_FUN_EVAL
-    if (objectiveFunctionGradient)
-        std::fill(objectiveFunctionGradient, objectiveFunctionGradient + numOptimizationParameters_, 0);
-    *objectiveFunctionValue = 1;
-    return 0;
-#endif
-    // update parameters that are identical for all simulations
-    updateUserDataCommon(optimiziationVariables, objectiveFunctionGradient);
+MultiConditionGradientFunction::MultiConditionGradientFunction(MultiConditionDataProvider *dataProvider,
+                                                               LoadBalancerMaster *loadBalancer, MultiConditionProblemResultWriter *resultWriter)
+    : summedGradFun(std::make_unique<AmiciSummedGradientFunction<int>>(dataProvider, loadBalancer, resultWriter)),
+      numConditions(dataProvider->getNumberOfConditions())
+{
 
-    *objectiveFunctionValue = 0;
+}
 
-    if (objectiveFunctionGradient)
-        amici::zeros(objectiveFunctionGradient, numParameters());
+FunctionEvaluationStatus MultiConditionGradientFunction::evaluate(const double * const parameters, double &objectiveFunctionValue, double *objectiveFunctionGradient) const
+{
+    // run on all data
+    std::vector<int> dataIndices(numConditions);
+    std::iota(dataIndices.begin(), dataIndices.end(), 0);
 
-    int errors =
-            runSimulations(optimiziationVariables, objectiveFunctionValue,
-                           objectiveFunctionGradient,
-                           dataIndices, numDataIndices);
-
-    if (errors) {
-        *objectiveFunctionValue = INFINITY;
-    }
-
-
-    return errors == 0 ? functionEvaluationSuccess : functionEvaluationFailure;
+    return summedGradFun->evaluate(parameters, dataIndices, objectiveFunctionValue,
+                objectiveFunctionGradient);
 }
 
 
 int MultiConditionGradientFunction::numParameters() const
 {
-    return dataProvider->getNumOptimizationParameters();
+    return summedGradFun->numParameters();
 }
 
 void logSimulation(hid_t file_id, std::string pathStr, const double *theta, double llh, const double *gradient, double timeElapsedInSeconds, int nTheta, int numStates, double *states, double *stateSensi, int numY, double *y, int jobId, int iterationsUntilSteadystate, int status)
@@ -461,6 +456,41 @@ void logSimulation(hid_t file_id, std::string pathStr, const double *theta, doub
 
     H5Fflush(file_id, H5F_SCOPE_LOCAL);
 
+}
+
+template<typename T>
+FunctionEvaluationStatus AmiciSummedGradientFunction<T>::evaluate(const double * const parameters, std::vector<T> datasets, double &fval, double *gradient) const {
+#ifdef NO_OBJ_FUN_EVAL
+    if (objectiveFunctionGradient)
+        std::fill(objectiveFunctionGradient, objectiveFunctionGradient + numOptimizationParameters_, 0);
+    *objectiveFunctionValue = 1;
+    return 0;
+#endif
+    // update parameters that are identical for all simulations
+    updateUserDataCommon(parameters, gradient);
+
+    fval = 0;
+
+    if (gradient)
+        amici::zeros(gradient, numParameters());
+
+    int errors =
+            runSimulations(parameters, fval, gradient, datasets);
+
+    if (errors) {
+        fval = INFINITY;
+    }
+
+
+    return errors == 0 ? functionEvaluationSuccess : functionEvaluationFailure;
+
+
+}
+
+template<typename T>
+int AmiciSummedGradientFunction<T>::numParameters() const
+{
+    return dataProvider->getNumOptimizationParameters();
 }
 
 } // namespace parpe

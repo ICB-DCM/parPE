@@ -2,15 +2,25 @@
 #define OPTIMIZATION_PROBLEM_H
 
 #include "optimizationResultWriter.h"
+#include <optimizationOptions.h>
+
 #include <cstdlib>
 #include <vector>
-#include <hdf5.h>
-#include <optimizationOptions.h>
 #include <ctime>
+
+#include <hdf5.h>
 
 namespace parpe {
 
 class OptimizationResultWriter;
+class OptimizationReporter;
+
+
+enum FunctionEvaluationStatus {
+    functionEvaluationSuccess,
+    functionEvaluationFailure,
+};
+
 
 
 /**
@@ -20,10 +30,6 @@ class OptimizationResultWriter;
 
 class GradientFunction {
 public:
-    enum FunctionEvaluationStatus {
-        functionEvaluationSuccess,
-        functionEvaluationFailure,
-    };
 
     /**
      * @brief Evaluate the function f(x)
@@ -38,6 +44,67 @@ public:
             double* gradient) const = 0;
 
     virtual int numParameters() const = 0;
+};
+
+
+
+/**
+ * @brief The SummedGradientFunction class is an interface for cost functions and gradients that are a sum of functions evaluated on a number of data records.
+ * To be used e.g. for mini-batch optimization
+ */
+
+template<typename T>
+class SummedGradientFunction {
+public:
+    virtual FunctionEvaluationStatus evaluate(
+            const double* const parameters,
+            T dataset,
+            double &fval,
+            double* gradient) const = 0;
+
+    // TODO provide default implementation via function above
+    virtual FunctionEvaluationStatus evaluate(
+            const double* const parameters,
+            std::vector<T> datasets,
+            double &fval,
+            double* gradient) const = 0;
+
+    virtual int numParameters() const = 0;
+};
+
+
+
+
+template<typename T>
+class SummedGradientProblem {
+
+public:
+    SummedGradientProblem() = default;
+    SummedGradientProblem(std::unique_ptr<SummedGradientFunction<T>> costFun);
+
+    virtual ~SummedGradientProblem() = default;
+
+    /** Default implementation: random starting points are drawn from [parametersMin, parametersMax] */
+    virtual void fillInitialParameters(double *buffer) const;
+
+    /** lower bound of parameter values */
+    virtual void fillParametersMin(double *buffer) const = 0;
+
+    /** upper bound of parameter values */
+    // TODO:     template <class RandomAccessIterator>
+    virtual void fillParametersMax(double *buffer) const = 0;
+
+    OptimizationOptions const& getOptimizationOptions() const;
+
+    void setOptimizationOptions(OptimizationOptions const& options);
+
+    // const?
+    std::unique_ptr<SummedGradientFunction<T>> costFun;
+
+    virtual std::unique_ptr<OptimizationReporter> getReporter() const;
+
+private:
+    OptimizationOptions optimizationOptions;
 };
 
 
@@ -153,6 +220,7 @@ class OptimizationProblem {
     OptimizationOptions optimizationOptions;
 };
 
+
 int getLocalOptimum(OptimizationProblem *problem);
 
 void *getLocalOptimumThreadWrapper(void *optimizationProblemVp);
@@ -166,9 +234,6 @@ void optimizationProblemGradientCheck(OptimizationProblem *problem,
 void optimizationProblemGradientCheck(OptimizationProblem *problem,
                                       const int parameterIndices[],
                                       int numParameterIndices, double epsilon);
-
-void getRandomStartingpoint(const double *min, const double *max,
-                                   int numParameters, double *buffer);
 
 } // namespace parpe
 

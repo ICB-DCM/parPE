@@ -53,7 +53,7 @@ class OptimizationApplication {
         // TODO: Move out of here
         LoadBalancerWorker lbw;
         lbw.run([this](std::vector<char> &buffer, int jobId) {
-            problem->mcGradFun->messageHandler(buffer, jobId);
+            problem->mcGradFun->summedGradFun->messageHandler(buffer, jobId);
         });
 
         return 0;

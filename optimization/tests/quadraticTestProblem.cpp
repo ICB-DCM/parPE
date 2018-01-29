@@ -36,7 +36,7 @@ std::unique_ptr<OptimizationProblem> QuadraticOptimizationMultiStartProblem::get
     return std::unique_ptr<OptimizationProblem>(new QuadraticTestProblem());
 }
 
-GradientFunction::FunctionEvaluationStatus QuadraticGradientFunction::evaluate(
+FunctionEvaluationStatus QuadraticGradientFunction::evaluate(
         const double * const parameters,
         double &fval, double *gradient) const
 {

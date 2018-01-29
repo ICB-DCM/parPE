@@ -11,6 +11,7 @@ set(SRC_LIST
     simulationResultWriter.cpp
     standaloneSimulator.cpp
     amiciMisc.cpp
+    hierachicalOptimization.cpp
 )
 
 add_library(${PROJECT_NAME} ${SRC_LIST})

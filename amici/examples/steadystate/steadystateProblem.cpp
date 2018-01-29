@@ -92,7 +92,7 @@ ExampleSteadystateGradientFunction::ExampleSteadystateGradientFunction(hid_t fil
     setupExpData(0);
 }
 
-parpe::GradientFunction::FunctionEvaluationStatus ExampleSteadystateGradientFunction::evaluate(const double * const parameters, double &fval, double *gradient) const
+parpe::FunctionEvaluationStatus ExampleSteadystateGradientFunction::evaluate(const double * const parameters, double &fval, double *gradient) const
 {
 
     udata->setParameters(parameters);
@@ -110,7 +110,7 @@ parpe::GradientFunction::FunctionEvaluationStatus ExampleSteadystateGradientFunc
         for (int i = 0; i < model->np; ++i)
             gradient[i] = -rdata->sllh[i];
 
-    return status == 0 ? functionEvaluationSuccess : functionEvaluationFailure;
+    return status == 0 ? parpe::functionEvaluationSuccess : parpe::functionEvaluationFailure;
 }
 
 int ExampleSteadystateGradientFunction::numParameters() const
