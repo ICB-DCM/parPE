@@ -150,8 +150,9 @@ private:
 
 /**
  * @brief The MultiConditionGradientFunction class represents a cost function based on an AMICI ODE model
+ *
+ * TODO remove replace by SummedGradientFunctionGradientFunctionAdapter?
  */
-
 class MultiConditionGradientFunction : public GradientFunction {
 public:
     MultiConditionGradientFunction(MultiConditionDataProvider *dataProvider,

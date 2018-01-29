@@ -109,6 +109,33 @@ private:
 
 
 
+template<typename T>
+class SummedGradientFunctionGradientFunctionAdapter : public GradientFunction {
+public:
+    SummedGradientFunctionGradientFunctionAdapter(std::unique_ptr< SummedGradientFunction<T> > &gradFun,
+                                                  std::vector<T> datasets)
+        : gradFun(std::move(gradFun)), datasets(datasets)
+    {
+    }
+
+    FunctionEvaluationStatus evaluate(
+            const double* const parameters,
+            double &fval,
+            double* gradient) const override {
+        return gradFun->evaluate(parameters, datasets, fval, gradient);
+
+    }
+
+    int numParameters() const override { return gradFun->numParameters(); }
+
+private:
+    std::unique_ptr<SummedGradientFunction<T>> gradFun;
+    std::vector<T> datasets;
+};
+
+
+
+
 /**
  * @brief The OptimizationReporter class is called from the optimizer and takes care of
  * things like of logging intermediate results, timing and can tell the optimizer to exit
@@ -137,29 +164,29 @@ public:
      * @return Quit optimization?
      */
     virtual bool iterationFinished(int numParameters, double const *const parameters, double objectiveFunctionValue,
-                      double const *const objectiveFunctionGradient);
+                                   double const *const objectiveFunctionGradient);
 
     virtual bool beforeCostFunctionCall(int numParameters, double const *const parameters);
 
     virtual bool afterCostFunctionCall(int numParameters, double const *const parameters,
-                      double objectiveFunctionValue,
-                      double const *const objectiveFunctionGradient);
+                                       double objectiveFunctionValue,
+                                       double const *const objectiveFunctionGradient);
 
     /**
      * @brief Is called after optimization finished
      */
     virtual void finished(double optimalCost,
-                  const double *optimalParameters, int exitStatus);
+                          const double *optimalParameters, int exitStatus);
 
 
     // TODO how to pass optimizer-specific info? pass OptimizerStatus class ?
 
-//    virtual int intermediateFunction(int alg_mod, int iter_count,
-//                                     double obj_value, double inf_pr,
-//                                     double inf_du, double mu, double d_norm,
-//                                     double regularization_size,
-//                                     double alpha_du, double alpha_pr,
-//                                     int ls_trials);
+    //    virtual int intermediateFunction(int alg_mod, int iter_count,
+    //                                     double obj_value, double inf_pr,
+    //                                     double inf_du, double mu, double d_norm,
+    //                                     double regularization_size,
+    //                                     double alpha_du, double alpha_pr,
+    //                                     int ls_trials);
 
 private:
     clock_t timeOptimizationBegin;
@@ -191,7 +218,7 @@ private:
 
 class OptimizationProblem {
 
-  public:
+public:
     OptimizationProblem() = default;
     OptimizationProblem(std::unique_ptr<GradientFunction> costFun);
 
@@ -216,9 +243,40 @@ class OptimizationProblem {
 
     virtual std::unique_ptr<OptimizationReporter> getReporter() const;
 
-  private:
+private:
     OptimizationOptions optimizationOptions;
 };
+
+
+
+class OptimizationProblemImpl : public OptimizationProblem {
+
+public:
+    using OptimizationProblem::OptimizationProblem;
+
+    /** lower bound of parameter values */
+    void fillParametersMin(double *buffer) const {
+        std::copy(parametersMin.begin(), parametersMin.end(), buffer);
+    }
+
+    /** upper bound of parameter values */
+    void fillParametersMax(double *buffer) const {
+        std::copy(parametersMax.begin(), parametersMax.end(), buffer);
+    }
+
+    void setParametersMin(std::vector<double> parametersMin) {
+        this->parametersMin = parametersMin;
+    }
+
+    void setParametersMax(std::vector<double> parametersMax) {
+        this->parametersMax = parametersMax;
+    }
+
+private:
+    std::vector<double> parametersMin;
+    std::vector<double> parametersMax;
+};
+
 
 
 int getLocalOptimum(OptimizationProblem *problem);

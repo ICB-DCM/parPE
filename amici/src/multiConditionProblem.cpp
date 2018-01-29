@@ -1,11 +1,9 @@
 #include "multiConditionProblem.h"
 
-#include "multiConditionProblemResultWriter.h"
 #include "simulationWorkerAmici.h"
 #include "steadystateSimulator.h"
 
 #include <optimizationOptions.h>
-#include <LoadBalancerMaster.h>
 #include <SimulationRunner.h>
 #include <logging.h>
 #include <misc.h>

@@ -116,6 +116,7 @@ void optimizationProblemGradientCheck(OptimizationProblem *problem,
     }
 }
 
+
 OptimizationProblem::OptimizationProblem(std::unique_ptr<GradientFunction> costFun)
     : costFun(std::move(costFun))
 {
