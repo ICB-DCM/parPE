@@ -15,10 +15,9 @@
 #include <memory>
 #include <cmath> //NAN
 
-namespace parpe {
-
 /** @file Interfaces between AMICI model and parPE optimization problem */
 
+namespace parpe {
 
 class MultiConditionDataProvider;
 class MultiConditionProblemResultWriter;
@@ -50,6 +49,15 @@ public:
 
     virtual int numParameters() const override;
 
+    /**
+     * @brief Run simulations (no gradient) with given parameters and collect model outputs
+     * @param parameters Model parameters for simulation
+     * @param modelOutput in: some vector reference, will be resized.
+     * output: Vector of double vectors containing AMICI ReturnData::y (nt x ny, column-major)
+     * @return Simulation status
+     */
+
+    virtual FunctionEvaluationStatus getModelOutputs(const double * const parameters, std::vector<std::vector<double> > &modelOutput) const;
 
     /**
      * @brief Is called by worker processes to run a simulation for the given

@@ -156,8 +156,9 @@ void AmiciSummedGradientFunction<T>::messageHandler(std::vector<char> &buffer,
     delete[] result.rdata->xdot;
     result.rdata->xdot = nullptr;
 
-    delete[] result.rdata->y;
-    result.rdata->y = nullptr;
+    // will be required for hierarchical optimization
+//    delete[] result.rdata->y;
+//    result.rdata->y = nullptr;
 
     buffer = amici::serializeToStdVec<JobResultAmiciSimulation>(&result);
 }
@@ -464,6 +465,7 @@ FunctionEvaluationStatus AmiciSummedGradientFunction<T>::evaluate(const double *
     *objectiveFunctionValue = 1;
     return 0;
 #endif
+
     // update parameters that are identical for all simulations
     updateUserDataCommon(parameters, gradient);
 
@@ -489,6 +491,57 @@ template<typename T>
 int AmiciSummedGradientFunction<T>::numParameters() const
 {
     return dataProvider->getNumOptimizationParameters();
+}
+
+template<typename T>
+FunctionEvaluationStatus AmiciSummedGradientFunction<T>::getModelOutputs(const double * const parameters, std::vector<std::vector<double> >& modelOutput) const {
+    int errors = 0;
+    JobIdentifier path; // TODO = this->path;
+
+    std::vector<int> dataIndices(dataProvider->getNumberOfConditions());
+    std::iota(dataIndices.begin(), dataIndices.end(), 0);
+
+    setSensitivityOptions(false);
+
+    modelOutput.resize(dataIndices.size());
+
+    SimulationRunner simRunner(
+                dataIndices.size(),
+                [&](int simulationIdx) {
+        // extract parameters for simulation of current condition, instead
+        // of sending whole  optimization parameter vector to worker
+        dataProvider->updateConditionSpecificSimulationParameters(
+                    dataIndices[simulationIdx], parameters, udata.get());
+        return *udata;
+    },
+    [&](int simulationIdx) {
+        path.idxConditions = dataIndices[simulationIdx];
+        return path;
+    },
+    [&](JobData *job, int dataIdx) {
+        // deserialize
+        JobResultAmiciSimulation result =
+                amici::deserializeFromChar<JobResultAmiciSimulation>(
+                    job->recvBuffer.data(), job->recvBuffer.size());
+        job->recvBuffer = std::vector<char>(); // free buffer
+        errors += result.status;
+
+        modelOutput[dataIdx] = std::vector<double>(result.rdata->y, result.rdata->y
+                                                   + (result.rdata->nt * result.rdata->nytrue));
+
+    }, nullptr);
+
+
+    if (loadBalancer && loadBalancer->isRunning()) {
+        errors += simRunner.runDistributedMemory(loadBalancer);
+    } else {
+        errors += simRunner.runSharedMemory(
+                    [&](std::vector<char> &buffer, int jobId) {
+                messageHandler(buffer, jobId);
+    });
+    }
+
+    return errors == 0 ? functionEvaluationSuccess : functionEvaluationFailure;
 }
 
 } // namespace parpe
