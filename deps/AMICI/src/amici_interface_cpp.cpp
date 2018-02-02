@@ -7,6 +7,8 @@
 #include "include/amici_interface_cpp.h"
 #include "include/amici.h"
 #include <include/amici_model.h>
+#include <include/amici_exception.h>
+#include <include/amici_solver.h>
 
 #ifdef __APPLE__
 #include <Accelerate/Accelerate.h>
@@ -28,19 +30,24 @@ namespace amici {
  * model and return data and
  * then calls the core simulation routine.
  *
- * @param[in] model pointer to the model object, this is necessary to perform
+ * @param[in] model the model object, this is necessary to perform
  * dimension checks @type Model
- * @param[in] udata pointer to user data object @type UserData
  * @param[in] edata pointer to experimental data object @type ExpData
+ * @param[in] solver solver object @type Solver
  * @return rdata pointer to return data object @type ReturnData
  */
-ReturnData *getSimulationResults(Model *model, UserData *udata,
-                                 const ExpData *edata) {
+ReturnData *getSimulationResults(Model &model, const ExpData *edata, Solver &solver) {
 
-    ReturnData *rdata = new ReturnData(udata, model);
-
-    int status = runAmiciSimulation(udata, edata, rdata, model);
-    *rdata->status = status;
+    ReturnData *rdata = new ReturnData(solver, &model);
+    
+    try {
+        runAmiciSimulation(solver, edata, rdata, model);
+        *rdata->status = AMICI_SUCCESS;
+        rdata->applyChainRuleFactorToSimulationResults(&model);
+    } catch (amici::IntegrationFailure& ex) {
+        rdata->invalidate(ex.time);
+        *(rdata->status) = ex.error_code;
+    }
 
     return rdata;
 }

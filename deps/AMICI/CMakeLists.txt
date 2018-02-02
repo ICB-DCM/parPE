@@ -27,7 +27,6 @@ endforeach(FLAG)
 add_definitions(-DAMICI_WITHOUT_MATLAB)
 
 set(SUITESPARSE_DIR "${AMICI_DIR}/SuiteSparse/")
-set(SUITESPARSE_LIB_DIR "${AMICI_DIR}/SuiteSparse/lib")
 set(SUNDIALS_LIB_DIR "${AMICI_DIR}/sundials/build/lib")
 set(CMAKE_MODULE_PATH ${AMICI_DIR}/CMakeModules)
 
@@ -63,9 +62,7 @@ set(AMICI_SRC_LIST
     ${AMICI_DIR}/src/amici_interface_cpp.cpp
     ${AMICI_DIR}/src/amici.cpp
     ${AMICI_DIR}/src/amici_misc.cpp
-    ${AMICI_DIR}/src/udata.cpp
     ${AMICI_DIR}/src/rdata.cpp
-    ${AMICI_DIR}/src/tdata.cpp
     ${AMICI_DIR}/src/edata.cpp
     ${AMICI_DIR}/src/amici_hdf5.cpp
     ${AMICI_DIR}/src/spline.cpp
@@ -73,6 +70,8 @@ set(AMICI_SRC_LIST
     ${AMICI_DIR}/src/amici_solver_cvodes.cpp
     ${AMICI_DIR}/src/amici_solver_idas.cpp
     ${AMICI_DIR}/src/amici_model.cpp
+    ${AMICI_DIR}/src/amici_model_ode.cpp
+    ${AMICI_DIR}/src/amici_model_dae.cpp
     ${AMICI_DIR}/src/newton_solver.cpp
     ${AMICI_DIR}/src/forwardproblem.cpp
     ${AMICI_DIR}/src/steadystateproblem.cpp
@@ -81,21 +80,15 @@ set(AMICI_SRC_LIST
 
 add_library(${PROJECT_NAME} ${AMICI_SRC_LIST})
 
-if(APPLE)
-    set(SHARED_OBJECT_EXTENSION .dylib)
-else()
-    set(SHARED_OBJECT_EXTENSION .so)
-endif()
-
 target_link_libraries(${PROJECT_NAME}
-    ${SUNDIALS_LIB_DIR}/libsundials_nvecserial${SHARED_OBJECT_EXTENSION}
-    ${SUNDIALS_LIB_DIR}/libsundials_cvodes${SHARED_OBJECT_EXTENSION}
-    ${SUNDIALS_LIB_DIR}/libsundials_idas${SHARED_OBJECT_EXTENSION}
-    ${SUITESPARSE_LIB_DIR}/libcolamd${SHARED_OBJECT_EXTENSION}
-    ${SUITESPARSE_LIB_DIR}/libklu${SHARED_OBJECT_EXTENSION}
-    ${SUITESPARSE_LIB_DIR}/libbtf${SHARED_OBJECT_EXTENSION}
-    ${SUITESPARSE_LIB_DIR}/libamd${SHARED_OBJECT_EXTENSION}
-    ${SUITESPARSE_LIB_DIR}/libsuitesparseconfig${SHARED_OBJECT_EXTENSION}
+    ${SUNDIALS_LIB_DIR}/libsundials_nvecserial${CMAKE_STATIC_LIBRARY_SUFFIX}
+    ${SUNDIALS_LIB_DIR}/libsundials_cvodes${CMAKE_STATIC_LIBRARY_SUFFIX}
+    ${SUNDIALS_LIB_DIR}/libsundials_idas${CMAKE_STATIC_LIBRARY_SUFFIX}
+    ${SUITESPARSE_DIR}/KLU/Lib/libklu${CMAKE_STATIC_LIBRARY_SUFFIX}
+    ${SUITESPARSE_DIR}/COLAMD/Lib/libcolamd${CMAKE_STATIC_LIBRARY_SUFFIX}
+    ${SUITESPARSE_DIR}/BTF/Lib/libbtf${CMAKE_STATIC_LIBRARY_SUFFIX}
+    ${SUITESPARSE_DIR}/AMD/Lib/libamd${CMAKE_STATIC_LIBRARY_SUFFIX}
+    ${SUITESPARSE_DIR}/SuiteSparse_config/libsuitesparseconfig${CMAKE_STATIC_LIBRARY_SUFFIX}
     ${HDF5_HL_LIBRARIES}
     ${HDF5_C_LIBRARIES}
     ${BLAS_LIBRARIES}

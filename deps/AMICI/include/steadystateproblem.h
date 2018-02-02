@@ -1,18 +1,21 @@
-#ifndef STEADYSTATEPROBLEM_H
-#define STEADYSTATEPROBLEM_H
+#ifndef AMICI_STEADYSTATEPROBLEM_H
+#define AMICI_STEADYSTATEPROBLEM_H
 
 #include "include/amici_defines.h"
-#include <sundials/sundials_nvector.h>
+#include "include/amici_vector.h"
+#include <nvector/nvector_serial.h>
+#include <include/newton_solver.h>
 
 namespace amici {
 
-class UserData;
-class TempData;
 class ReturnData;
 class ExpData;
 class Solver;
 class Model;
 class NewtonSolver;
+class NewtonSolverDense;
+class NewtonSolverSparse;
+class NewtonSolverIterative;
 
 /**
  * @brief The SteadystateProblem class solves a steady-state problem using
@@ -21,32 +24,67 @@ class NewtonSolver;
 
 class SteadystateProblem {
   public:
-    static int workSteadyStateProblem(const UserData *udata, TempData *tdata,
-                                      ReturnData *rdata, Solver *solver,
+    void workSteadyStateProblem(ReturnData *rdata, Solver *solver,
                                       Model *model, int it);
 
     /**
      * applyNewtonsMethod applies Newtons method to the current state x to
      * find the steady state
      */
-    static int applyNewtonsMethod(const UserData *udata, ReturnData *rdata,
-                                  TempData *tdata, Model *model,
+    void applyNewtonsMethod(ReturnData *rdata, Model *model,
                                   NewtonSolver *newtonSolver, int newton_try);
 
-    static void getNewtonOutput(TempData *tdata, ReturnData *rdata,
+    void getNewtonOutput(ReturnData *rdata,
                                 Model *model, int newton_status,
                                 double run_time, int it);
 
-    static int getNewtonSimulation(const UserData *udata, TempData *tdata,
-                                   ReturnData *rdata, Solver *solver,
+    void getNewtonSimulation(ReturnData *rdata, Solver *solver,
                                    Model *model, int it);
     
-    static int linsolveSPBCG(const UserData *udata, ReturnData *rdata,
-                             TempData *tdata, Model *model, int ntry,
-                             int nnewt, N_Vector ns_delta);
+    
+    /** default constructor
+     * @param t pointer to time variable
+     * @param x pointer to state variables
+     * @param sx pointer to state sensitivity variables
+     */
+    SteadystateProblem(realtype *t, AmiVector *x, AmiVectorArray *sx) :
+    delta(x->getLength()),
+    rel_x_newton(x->getLength()),
+    x_newton(x->getLength()),
+    x_old(x->getLength()),
+    dx(x->getLength()),
+    xdot(x->getLength()),
+    xdot_old(x->getLength()),
+    sdx(x->getLength(),sx->getLength())
+    {
+        this->t = t;
+        this->x = x;
+        this->sx = sx;
+    }
 
   private:
-    SteadystateProblem();
+    realtype *t;
+    /** newton step? */
+    AmiVector delta;
+    /** container for relative error calcuation? */
+    AmiVector rel_x_newton;
+    /** container for absolute error calcuation? */
+    AmiVector x_newton;
+    /** state vector */
+    AmiVector *x;
+    /** old state vector */
+    AmiVector x_old;
+    /** differential state vector */
+    AmiVector dx;
+    /** time derivative state vector */
+    AmiVector xdot;
+    /** old time derivative state vector */
+    AmiVector xdot_old;
+    /** state sensitivities */
+    AmiVectorArray *sx;
+    /** state differential sensitivities */
+    AmiVectorArray sdx;
+    
 };
 
 } // namespace amici

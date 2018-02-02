@@ -1,9 +1,11 @@
-#ifndef _MY_EDATA
-#define _MY_EDATA
+#ifndef AMICI_EDATA_H
+#define AMICI_EDATA_H
+
+#include <vector>
+#include <include/amici_defines.h>
 
 namespace amici {
 
-class UserData;
 class Model;
 
 /** @brief struct that carries all information about experimental data */
@@ -12,8 +14,12 @@ class ExpData {
   public:
     /** default constructor */
     ExpData();
-    ExpData(const UserData *udata, Model *model);
+    ExpData(Model *model);
 
+    /**
+     * @brief ExpData is currently not copyable
+     * @param other object to copy from
+     */
     ExpData (const ExpData &other) = delete;
 
     void setObservedData(const double *observedData);
@@ -24,15 +30,15 @@ class ExpData {
     ~ExpData();
 
     /** observed data (dimension: nt x nytrue, column-major) */
-    double *my = nullptr;
+    std::vector<realtype> my;
     /** standard deviation of observed data (dimension: nt x nytrue, column-major) */
-    double *sigmay = nullptr;
+    std::vector<realtype> sigmay;
 
     /** observed events (dimension: nmaxevents x nztrue, column-major) */
-    double *mz = nullptr;
+    std::vector<realtype> mz;
     /** standard deviation of observed events/roots
      * (dimension: nmaxevents x nztrue, column-major)*/
-    double *sigmaz = nullptr;
+    std::vector<realtype> sigmaz;
     
     /** number of observables */
     const int nytrue;

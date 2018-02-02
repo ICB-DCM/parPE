@@ -1,13 +1,16 @@
 #include "include/amici_solver.h"
 #include "include/amici.h"
-#include <cstdio>
-#include <cstring>
+#include "include/amici_exception.h"
+#include "include/forwardproblem.h"
+#include "include/backwardproblem.h"
 #include <include/amici_model.h>
 #include <include/rdata.h>
-#include <include/tdata.h>
-#include <include/udata.h>
+
+#include <cmath>
+#include <cstdio>
+#include <cstring>
+
 #include <sundials/sundials_spgmr.h>
-// TODO: don't use cvodes includes here
 #include <cvodes/cvodes_spils.h>
 
 namespace amici {
@@ -15,361 +18,151 @@ namespace amici {
 
 /**
  * @brief setupAMIs initialises the ami memory object
- * @param[in] udata pointer to the user data object @type UserData
- * @param[in] tdata pointer to the temporary data object @type TempData
- * @param[in] model pointer to the model object @type Model
- * @return status flag indicating successful execution
+ * @param fwd pointer to forward problem
+ * @param model pointer to the model object
  */
-int Solver::setupAMI(const UserData *udata, TempData *tdata, Model *model) {
-    int status;
-    tdata->t = udata->tstart;
+void Solver::setupAMI(ForwardProblem *fwd, Model *model) {
+    model->initialize(fwd->getStatePointer(), fwd->getStateDerivativePointer());
 
-    if (model->initialize(udata, tdata) != AMICI_SUCCESS)
-        goto freturn;
-
-    /* Create AMIS object */
-    if (udata->lmm != CV_ADAMS && udata->lmm != CV_BDF) {
-        errMsgIdAndTxt("AMICI:mex:lmm", "Illegal value for lmm!");
-        goto freturn;
-    }
-    if (udata->iter != CV_NEWTON && udata->iter != CV_FUNCTIONAL) {
-        errMsgIdAndTxt("AMICI:mex:iter", "Illegal value for iter!");
-        goto freturn;
-    }
-    ami_mem = AMICreate(udata->lmm, udata->iter);
+    /* Create solver memory object */
+    ami_mem = AMICreate(lmm, iter);
     if (ami_mem == NULL)
-        goto freturn;
-
+        throw AmiException("Failed to allocated solver memory!");
+    try {
     /* Initialize AMIS solver*/
-    if (init(tdata->x, tdata->dx, udata->tstart) != AMICI_SUCCESS)
-        goto freturn;
-
+    init(fwd->getStatePointer(), fwd->getStateDerivativePointer(), model->t0());
     /* Specify integration tolerances */
-    if (AMISStolerances(RCONST(udata->rtol), RCONST(udata->atol)) !=
-        AMICI_SUCCESS)
-        goto freturn;
-
+    AMISStolerances(RCONST(rtol), RCONST(atol));
     /* Set optional inputs */
-    if (AMISetErrHandlerFn() != AMICI_SUCCESS)
-        goto freturn;
-
+    AMISetErrHandlerFn();
     /* attaches userdata*/
-    if (AMISetUserData(tdata) != AMICI_SUCCESS)
-        goto freturn;
-
+    AMISetUserData(model);
     /* specify maximal number of steps */
-    if (AMISetMaxNumSteps(udata->maxsteps) != AMICI_SUCCESS)
-        goto freturn;
-
+    AMISetMaxNumSteps(maxsteps);
     /* activates stability limit detection */
-    if (AMISetStabLimDet(udata->stldet) != AMICI_SUCCESS)
-        goto freturn;
-
-    if (rootInit(model->ne) != AMICI_SUCCESS)
-        goto freturn;
-
-    status = setLinearSolver(udata, model);
-    if (status != AMICI_SUCCESS)
-        goto freturn;
-
-    if (udata->sensi >= AMICI_SENSI_ORDER_FIRST) {
+    AMISetStabLimDet(stldet);
+    
+    rootInit(model->ne);
+    
+    initializeLinearSolver(model);
+        
+    if (sensi >= AMICI_SENSI_ORDER_FIRST) {
         
         if (model->nx > 0) {
-
             /* initialise sensitivities, this can either be user provided or
              * come from the model definition */
-            realtype *sx_tmp;
-
-            if (!udata->sx0data) {
-                if (model->fsx0(tdata->sx, tdata->x, tdata->dx, tdata) !=
-                    AMICI_SUCCESS)
-                    goto freturn;
+            std::vector<double> sx0 = model->getInitialStateSensitivities();
+            if (sx0.empty()) {
+                model->fsx0(fwd->getStateSensitivityPointer(), fwd->getStatePointer());
             } else {
-                for (int ip = 0; ip < udata->nplist; ip++) {
-                    sx_tmp = NV_DATA_S(tdata->sx[ip]);
-                    if (!sx_tmp)
-                        goto freturn;
+                AmiVectorArray *sx = fwd->getStateSensitivityPointer();
+                for (int ip = 0; ip < model->nplist(); ip++) {
                     for (int ix = 0; ix < model->nx; ix++) {
-                        sx_tmp[ix] =
-                            (realtype)udata->sx0data[ix + model->nx * ip];
+                        sx->at(ix,ip) =
+                            (realtype)sx0.at(ix + model->nx * ip);
                     }
                 }
             }
 
-            if (model->fsdx0(tdata->sdx, tdata->x, tdata->dx, tdata) !=
-                AMICI_SUCCESS)
-                goto freturn;
+            model->fsdx0();
             
-            if (udata->sensi_meth == AMICI_SENSI_FSA) {
-                
-                /* Activate sensitivity calculations */
-                if (sensInit1(tdata->sx, tdata->sdx, udata) != AMICI_SUCCESS)
-                    goto freturn;
-
+            if (sensi_meth == AMICI_SENSI_FSA) {
                 /* Set sensitivity analysis optional inputs */
-                if (AMISetSensParams(tdata->p, udata->pbar, udata->plist) !=
-                    AMICI_SUCCESS)
-                    goto freturn;
+                auto plist = model->getParameterList();
+                auto par = model->getUnscaledParameters();
+                auto pbar = model->getParameterScaling();
 
-                if (AMISetSensErrCon(TRUE) != AMICI_SUCCESS)
-                    goto freturn;
-
-                if (AMISensEEtolerances() != AMICI_SUCCESS)
-                    goto freturn;
+                /* Activate sensitivity calculations */
+                sensInit1(fwd->getStateSensitivityPointer(), fwd->getStateDerivativeSensitivityPointer(), plist.size());
+                AMISetSensParams(par.data(), pbar.data(), plist.data());
+                AMISetSensErrCon(TRUE);
+                AMISensEEtolerances();
             }
         }
 
-        if (udata->sensi_meth == AMICI_SENSI_ASA) {
+        if (sensi_meth == AMICI_SENSI_ASA) {
             if (model->nx > 0) {
                 /* Allocate space for the adjoint computation */
-                if (AMIAdjInit(udata->maxsteps, udata->interpType) !=
-                    AMICI_SUCCESS)
-                    goto freturn;
+                AMIAdjInit(maxsteps, interpType);
             }
         }
     }
 
-    if (AMISetId(model) != AMICI_SUCCESS)
-        goto freturn;
-
-    if (AMISetSuppressAlg(TRUE) != AMICI_SUCCESS)
-        goto freturn;
-    
+    AMISetId(model);
+    AMISetSuppressAlg(TRUE);
     /* calculate consistent DAE initial conditions (no effect for ODE) */
-    //if(udata->nt>1){
-    //    if (AMICalcIC(udata->ts[1]) != AMICI_SUCCESS)
-    //        goto freturn;
-    //}
-
-    return AMICI_SUCCESS;
-
-freturn:
-    if (ami_mem)
+    if(model->nt()>1)
+        AMICalcIC(model->t(1), fwd->getStatePointer(), fwd->getStateDerivativePointer());
+    } catch (...) {
         AMIFree();
-    return AMICI_ERROR_SETUP;
+        throw AmiException("setupAMI routine failed!");
+    }
 }
 
 /**
  * setupAMIB initialises the AMI memory object for the backwards problem
- * @param[in] udata pointer to the user data object @type UserData
- * @param[in] tdata pointer to the temporary data object @type TempData
- * @param[in] model pointer to the model object @type Model
- * @return status flag indicating successful execution
+ * @param bwd pointer to backward problem
+ * @param model pointer to the model object
  */
-int Solver::setupAMIB(const UserData *udata, TempData *tdata, Model *model) {
-    int status = AMICI_SUCCESS;
+void Solver::setupAMIB(BackwardProblem *bwd, Model *model) {
 
     /* write initial conditions */
-    if (!tdata->xB)
-        return AMICI_ERROR_SETUPB;
-    realtype *xB_tmp = NV_DATA_S(tdata->xB);
-    if (!xB_tmp)
-        return AMICI_ERROR_SETUPB;
-    memset(xB_tmp, 0, sizeof(realtype) * model->nxtrue * model->nJ);
+    std::vector<realtype> dJydx = bwd->getdJydx();
+    AmiVector *xB = bwd->getxBptr();
+    xB->reset();
     for (int ix = 0; ix < model->nxtrue; ++ix)
         for (int iJ = 0; iJ < model->nJ; ++iJ)
-            xB_tmp[ix + iJ * model->nxtrue] +=
-                tdata->dJydx[tdata->rdata->nt - 1 +
-                             (iJ + ix * model->nJ) * tdata->rdata->nt];
-
-    if (!tdata->dxB)
-        return AMICI_ERROR_SETUPB;
-    if (!NV_DATA_S(tdata->dxB))
-        return AMICI_ERROR_SETUPB;
-    memset(NV_DATA_S(tdata->dxB), 0, sizeof(realtype) * model->nx);
-
-    if (!tdata->xQB)
-        return AMICI_ERROR_SETUPB;
-    if (!NV_DATA_S(tdata->xQB))
-        return AMICI_ERROR_SETUPB;
-    memset(NV_DATA_S(tdata->xQB), 0,
-           sizeof(realtype) * model->nJ * tdata->rdata->nplist);
-
-    /* create backward problem */
-    if (udata->lmm > 2 || udata->lmm < 1) {
-        errMsgIdAndTxt("AMICI:mex:lmm", "Illegal value for lmm!");
-    }
-    if (udata->iter > 2 || udata->iter < 1) {
-        errMsgIdAndTxt("AMICI:mex:iter", "Illegal value for iter!");
-    }
+            xB->at(ix + iJ * model->nxtrue) +=
+                dJydx.at(iJ + ( ix + (model->nt() - 1)  * model->nx ) * model->nJ);
+    bwd->getdxBptr()->reset();
+    bwd->getxQBptr()->reset();
 
     /* allocate memory for the backward problem */
-    status = AMICreateB(udata->lmm, udata->iter, &(tdata->which));
-    if (status != AMICI_SUCCESS)
-        return status;
+    AMICreateB(lmm, iter, bwd->getwhichptr());
 
     /* initialise states */
-    status = binit(tdata->which, tdata->xB, tdata->dxB, tdata->t);
-    if (status != AMICI_SUCCESS)
-        return status;
+    binit(bwd->getwhich(), bwd->getxBptr(), bwd->getdxBptr(), bwd->gett());
 
     /* specify integration tolerances for backward problem */
-    status = AMISStolerancesB(tdata->which, RCONST(udata->rtol),
-                              RCONST(udata->atol));
-    if (status != AMICI_SUCCESS)
-        return status;
+    AMISStolerancesB(bwd->getwhich(), RCONST(rtol), RCONST(atol));
 
     /* Attach user data */
-    status = AMISetUserDataB(tdata->which, tdata);
-    if (status != AMICI_SUCCESS)
-        return status;
+    AMISetUserDataB(bwd->getwhich(), model);
 
     /* Number of maximal internal steps */
-    if (AMISetMaxNumStepsB(tdata->which, 100 * udata->maxsteps) !=
-        AMICI_SUCCESS)
-        return AMICI_ERROR_SETUPB;
-
-    switch (udata->linsol) {
-
-    /* DIRECT SOLVERS */
-
-    case AMICI_DENSE:
-        status = AMIDenseB(tdata->which, model->nx);
-        if (status != AMICI_SUCCESS)
-            return status;
-
-        status = setDenseJacFnB(tdata->which);
-        if (status != AMICI_SUCCESS)
-            return status;
-
-        break;
-
-    case AMICI_BAND:
-        status = AMIBandB(tdata->which, model->nx, model->ubw, model->lbw);
-        if (status != AMICI_SUCCESS)
-            return status;
-
-        status = setBandJacFnB(tdata->which);
-        if (status != AMICI_SUCCESS)
-            return status;
-
-        break;
-
-    case AMICI_LAPACKDENSE:
-
-        /* #if SUNDIALS_BLAS_LAPACK
-                 status = CVLapackDenseB(ami_mem, tdata->which, nx);
-                 if (status != AMICI_SUCCESS) return;
-
-                 status = SetDenseJacFnB(ami_mem, tdata->which);
-                 if (status != AMICI_SUCCESS) return;
-                 #else*/
-        errMsgIdAndTxt("AMICI:mex:lapack", "Solver currently not supported!");
-        /* #endif*/
-        break;
-
-    case AMICI_LAPACKBAND:
-
-        /* #if SUNDIALS_BLAS_LAPACK
-                 status = CVLapackBandB(ami_mem, tdata->which, nx, ubw, lbw);
-                 if (status != AMICI_SUCCESS) return;
-
-                 status = SetBandJacFnB(ami_mem, tdata->which);
-                 if (status != AMICI_SUCCESS) return;
-                 #else*/
-        errMsgIdAndTxt("AMICI:mex:lapack", "Solver currently not supported!");
-        /* #endif*/
-        break;
-
-    case AMICI_DIAG:
-        status = AMIDiagB(tdata->which);
-        if (status != AMICI_SUCCESS)
-            return status;
-
-        status = setDenseJacFnB(tdata->which);
-        if (status != AMICI_SUCCESS)
-            return status;
-
-        break;
-
-    /* ITERATIVE SOLVERS */
-
-    case AMICI_SPGMR:
-        status = AMISpgmrB(tdata->which, PREC_NONE, CVSPILS_MAXL);
-        if (status != AMICI_SUCCESS)
-            return status;
-
-        status = setJacTimesVecFnB(tdata->which);
-        if (status != AMICI_SUCCESS)
-            return status;
-
-        break;
-
-    case AMICI_SPBCG:
-        status = AMISpbcgB(tdata->which, PREC_NONE, CVSPILS_MAXL);
-        if (status != AMICI_SUCCESS)
-            return status;
-
-        status = setJacTimesVecFnB(tdata->which);
-        if (status != AMICI_SUCCESS)
-            return status;
-
-        break;
-
-    case AMICI_SPTFQMR:
-        status = AMISptfqmrB(tdata->which, PREC_NONE, CVSPILS_MAXL);
-        if (status != AMICI_SUCCESS)
-            return status;
-
-        status = setJacTimesVecFnB(tdata->which);
-        if (status != AMICI_SUCCESS)
-            return status;
-
-        break;
-
-    /* SPARSE SOLVERS */
-
-    case AMICI_KLU:
-        status = AMIKLUB(tdata->which, model->nx, model->nnz, CSC_MAT);
-        if (status != AMICI_SUCCESS)
-            return status;
-
-        status = setSparseJacFnB(tdata->which);
-        if (status != AMICI_SUCCESS)
-            return status;
-
-        status = AMIKLUSetOrderingB(tdata->which, udata->ordering);
-        if (status != AMICI_SUCCESS)
-            return status;
-
-        break;
-
-    default:
-        break;
+    AMISetMaxNumStepsB(bwd->getwhich(), (maxstepsB == 0) ? maxsteps * 100 : maxstepsB);
+    
+    initializeLinearSolverB(model, bwd->getwhich());
+    
+    /* Initialise quadrature calculation */
+    qbinit(bwd->getwhich(), bwd->getxQBptr());
+    
+    double quad_rtol = isNaN(this->quad_rtol) ? rtol : this->quad_rtol;
+    double quad_atol = isNaN(this->quad_atol) ? atol : this->quad_atol;
+    
+    /* Enable Quadrature Error Control */
+    if (std::isinf(quad_atol) || std::isinf(quad_rtol)) {
+        AMISetQuadErrConB(bwd->getwhich(), FALSE);
+    } else {
+        AMISetQuadErrConB(bwd->getwhich(), TRUE);
     }
 
-    /* Initialise quadrature calculation */
-    status = qbinit(tdata->which, tdata->xQB);
-    if (status != AMICI_SUCCESS)
-        return status;
+    AMIQuadSStolerancesB(bwd->getwhich(), RCONST(quad_rtol),
+                         RCONST(quad_atol));
 
-    /* Enable Quadrature Error Control */
-    status = AMISetQuadErrConB(tdata->which, TRUE);
-    if (status != AMICI_SUCCESS)
-        return status;
-
-    status = AMIQuadSStolerancesB(tdata->which, RCONST(udata->rtol),
-                                  RCONST(udata->atol));
-    if (status != AMICI_SUCCESS)
-        return status;
-
-    status = AMISetStabLimDetB(tdata->which, udata->stldet);
-    if (status != AMICI_SUCCESS)
-        return status;
-
-    return status;
+    AMISetStabLimDetB(bwd->getwhich(), stldet);
 }
 
 /**
  * ErrHandlerFn extracts diagnosis information from solver memory block and
  * writes them into the return data object for the backward problem
  *
- * @param[in] error_code error identifier @type int
- * @param[in] module name of the module in which the error occured @type char
- * @param[in] function name of the function in which the error occured @type
+ * @param error_code error identifier
+ * @param module name of the module in which the error occured
+ * @param function name of the function in which the error occured @type
  * char
- * @param[in] msg error message @type char
- * @param[in] eh_data unused input
+ * @param msg error message
+ * @param eh_data unused input
  */
 void Solver::wrapErrHandlerFn(int error_code, const char *module,
                               const char *function, char *msg, void *eh_data) {
@@ -379,27 +172,27 @@ void Solver::wrapErrHandlerFn(int error_code, const char *module,
             function, msg);
     switch (error_code) {
     case 99:
-        sprintf(buffid, "AMICI:mex:%s:%s:CV_WARNING", module, function);
+        sprintf(buffid, "AMICI:mex:%s:%s:WARNING", module, function);
         break;
 
     case -1:
-        sprintf(buffid, "AMICI:mex:%s:%s:CV_TOO_MUCH_WORK", module, function);
+        sprintf(buffid, "AMICI:mex:%s:%s:TOO_MUCH_WORK", module, function);
         break;
 
     case -2:
-        sprintf(buffid, "AMICI:mex:%s:%s:CV_TOO_MUCH_ACC", module, function);
+        sprintf(buffid, "AMICI:mex:%s:%s:TOO_MUCH_ACC", module, function);
         break;
 
     case -3:
-        sprintf(buffid, "AMICI:mex:%s:%s:CV_ERR_FAILURE", module, function);
+        sprintf(buffid, "AMICI:mex:%s:%s:ERR_FAILURE", module, function);
         break;
 
     case -4:
-        sprintf(buffid, "AMICI:mex:%s:%s:CV_CONV_FAILURE", module, function);
+        sprintf(buffid, "AMICI:mex:%s:%s:CONV_FAILURE", module, function);
         break;
 
     default:
-        sprintf(buffid, "AMICI:mex:%s:%s:CV_OTHER", module, function);
+        sprintf(buffid, "AMICI:mex:%s:%s:OTHER", module, function);
         break;
     }
 
@@ -410,176 +203,241 @@ void Solver::wrapErrHandlerFn(int error_code, const char *module,
  * getDiagnosis extracts diagnosis information from solver memory block and
  * writes them into the return data object
  *
- * @param[in] it time-point index @type int
- * @param[out] rdata pointer to the return data object @type ReturnData
- * @return status flag indicating success of execution @type int
+ * @param it time-point index
+ * @param rdata pointer to the return data object
  */
-int Solver::getDiagnosis(const int it, ReturnData *rdata) {
+void Solver::getDiagnosis(const int it, ReturnData *rdata) {
     long int number;
-    int status = AMICI_SUCCESS;
     int order;
 
-    status = AMIGetNumSteps(ami_mem, &number);
-    if (status != AMICI_SUCCESS)
-        return status;
-    rdata->numsteps[it] = (double)number;
-
-    status = AMIGetNumRhsEvals(ami_mem, &number);
-    if (status != AMICI_SUCCESS)
-        return status;
-    rdata->numrhsevals[it] = (double)number;
-
-    status = AMIGetNumErrTestFails(ami_mem, &number);
-    if (status != AMICI_SUCCESS)
-        return status;
-    rdata->numerrtestfails[it] = (double)number;
-
-    status = AMIGetNumNonlinSolvConvFails(ami_mem, &number);
-    if (status != AMICI_SUCCESS)
-        return status;
-    rdata->numnonlinsolvconvfails[it] = (double)number;
-
-    status = AMIGetLastOrder(ami_mem, &order);
-    if (status != AMICI_SUCCESS)
-        return status;
-    rdata->order[it] = (double)order;
-
-    return status;
+    if(solverWasCalled) {
+        AMIGetNumSteps(ami_mem, &number);
+        rdata->numsteps[it] = (double)number;
+        
+        AMIGetNumRhsEvals(ami_mem, &number);
+        rdata->numrhsevals[it] = (double)number;
+        
+        AMIGetNumErrTestFails(ami_mem, &number);
+        rdata->numerrtestfails[it] = (double)number;
+        
+        AMIGetNumNonlinSolvConvFails(ami_mem, &number);
+        rdata->numnonlinsolvconvfails[it] = (double)number;
+        
+        AMIGetLastOrder(ami_mem, &order);
+        rdata->order[it] = (double)order;
+    }
 }
 
 /**
  * getDiagnosisB extracts diagnosis information from solver memory block and
  * writes them into the return data object for the backward problem
  *
- * @param[in] it time-point index @type int
- * @param[out] rdata pointer to the return data object @type ReturnData
- * @param[out] tdata pointer to the temporary data object @type TempData
- * @return status flag indicating success of execution @type int
+ * @param it time-point index
+ * @param rdata pointer to the return data object
+ * @param bwd pointer to backward problem
  */
-int Solver::getDiagnosisB(const int it, ReturnData *rdata,
-                          const TempData *tdata) {
+void Solver::getDiagnosisB(const int it, ReturnData *rdata, const BackwardProblem *bwd) {
     long int number;
-    int status = AMICI_SUCCESS;
 
-    void *ami_memB = AMIGetAdjBmem(ami_mem, tdata->which);
-
-    status = AMIGetNumSteps(ami_memB, &number);
-    if (status != AMICI_SUCCESS)
-        return status;
-    rdata->numstepsB[it] = (double)number;
-
-    status = AMIGetNumRhsEvals(ami_memB, &number);
-    if (status != AMICI_SUCCESS)
-        return status;
-    rdata->numrhsevalsB[it] = (double)number;
-
-    status = AMIGetNumErrTestFails(ami_memB, &number);
-    if (status != AMICI_SUCCESS)
-        return status;
-    rdata->numerrtestfailsB[it] = (double)number;
-
-    status = AMIGetNumNonlinSolvConvFails(ami_memB, &number);
-    if (status != AMICI_SUCCESS)
-        return status;
-    rdata->numnonlinsolvconvfailsB[it] = (double)number;
-
-    return status;
+    void *ami_memB = AMIGetAdjBmem(ami_mem, bwd->getwhich());
+    
+    if(solverWasCalled && ami_memB) {
+        AMIGetNumSteps(ami_memB, &number);
+        rdata->numstepsB[it] = (double)number;
+        
+        AMIGetNumRhsEvals(ami_memB, &number);
+        rdata->numrhsevalsB[it] = (double)number;
+        
+        AMIGetNumErrTestFails(ami_memB, &number);
+        rdata->numerrtestfailsB[it] = (double)number;
+        
+        AMIGetNumNonlinSolvConvFails(ami_memB, &number);
+        rdata->numnonlinsolvconvfailsB[it] = (double)number;
+    }
 }
 
 /**
- * setLinearSolver sets the linear solver
+ * setLinearSolver sets the linear solver for the forward problem
  *
- * @param[out] udata pointer to the user data object @type UserData
- * @param[in] model pointer to the model object @type Model
- * @return status flag indicating success of execution @type int
+ * @param model pointer to the model object
  */
-int Solver::setLinearSolver(const UserData *udata, Model *model) {
-    int status;
+void Solver::initializeLinearSolver(Model *model) {
     /* Attach linear solver module */
 
-    switch (udata->linsol) {
+    switch (linsol) {
 
-    /* DIRECT SOLVERS */
-
-    case AMICI_DENSE:
-
-        status = AMIDense(model->nx);
-        if (status != AMICI_SUCCESS)
-            return status;
-
-        return setDenseJacFn();
-
-    case AMICI_BAND:
-        status = AMIBand(model->nx, model->ubw, model->lbw);
-        if (status != AMICI_SUCCESS)
-            return status;
-
-        return setBandJacFn();
-
-    case AMICI_LAPACKDENSE:
-        errMsgIdAndTxt("AMICI:mex:lapack", "Solver currently not supported!");
-        /* status = CVLapackDense(ami_mem, nx);
+            /* DIRECT SOLVERS */
+            
+        case AMICI_DENSE:
+            AMIDense(model->nx);
+            setDenseJacFn();
+            break;
+            
+        case AMICI_BAND:
+            AMIBand(model->nx, model->ubw, model->lbw);
+            setBandJacFn();
+            break;
+            
+        case AMICI_LAPACKDENSE:
+            throw AmiException("Solver currently not supported!");
+            /* status = CVLapackDense(ami_mem, nx);
              if (status != AMICI_SUCCESS) return;
-
+             
              status = SetDenseJacFn(ami_mem);
              if (status != AMICI_SUCCESS) return;
-        */
-        return AMICI_ERROR_NOT_IMPLEMENTED;
-
-    case AMICI_LAPACKBAND:
-
-        errMsgIdAndTxt("AMICI:mex:lapack", "Solver currently not supported!");
-        /* status = CVLapackBand(ami_mem, nx);
+             */
+            
+        case AMICI_LAPACKBAND:
+            throw AmiException("Solver currently not supported!");
+            /* status = CVLapackBand(ami_mem, nx);
              if (status != AMICI_SUCCESS) return;
-
+             
              status = SetBandJacFn(ami_mem);
              if (status != AMICI_SUCCESS) return;
-        */
-        return AMICI_ERROR_NOT_IMPLEMENTED;
-
-    case AMICI_DIAG:
-        return AMIDiag();
-
-    /* ITERATIVE SOLVERS */
-
-    case AMICI_SPGMR:
-        status = AMISpgmr(PREC_NONE, CVSPILS_MAXL);
-        if (status != AMICI_SUCCESS)
-            return status;
-
-        return setJacTimesVecFn();
-
-    case AMICI_SPBCG:
-        status = AMISpbcg(PREC_NONE, CVSPILS_MAXL);
-        if (status != AMICI_SUCCESS)
-            return status;
-
-        return setJacTimesVecFn();
-
-    case AMICI_SPTFQMR:
-        status = AMISptfqmr(PREC_NONE, CVSPILS_MAXL);
-        if (status != AMICI_SUCCESS)
-            return status;
-
-        return setJacTimesVecFn();
-
-    /* SPARSE SOLVERS */
-
-    case AMICI_KLU:
-        status = AMIKLU(model->nx, model->nnz, CSC_MAT);
-        if (status != AMICI_SUCCESS)
-            return status;
-
-        status = setSparseJacFn();
-        if (status != AMICI_SUCCESS)
-            return status;
-
-        return AMIKLUSetOrdering(udata->ordering);
+             */
+            
+        case AMICI_DIAG:
+            AMIDiag();
+            break;
+            
+            
+            /* ITERATIVE SOLVERS */
+            
+        case AMICI_SPGMR:
+            AMISpgmr(PREC_NONE, CVSPILS_MAXL);
+            setJacTimesVecFn();
+            break;
+            
+        case AMICI_SPBCG:
+            AMISpbcg(PREC_NONE, CVSPILS_MAXL);
+            setJacTimesVecFn();
+            break;
+            
+        case AMICI_SPTFQMR:
+            AMISptfqmr(PREC_NONE, CVSPILS_MAXL);
+            setJacTimesVecFn();
+            break;
+            
+            /* SPARSE SOLVERS */
+            
+        case AMICI_KLU:
+            AMIKLU(model->nx, model->nnz, CSC_MAT);
+            setSparseJacFn();
+            AMIKLUSetOrdering(getStateOrdering());
+            break;
+            
+        default:
+            throw AmiException("Invalid choice of solver!");
+            
     }
-
-    errMsgIdAndTxt("AMICI:mex:solver", "Invalid choice of solver!");
-
-    return AMICI_ERROR_OTHER;
 }
+    
+    /**
+     * Sets the linear solver for the backward problem
+     *
+     * @param model pointer to the model object
+     * @param which index of the backward problem
+     */
+void Solver::initializeLinearSolverB(Model *model, const int which) {
+    switch (linsol) {
+            
+            /* DIRECT SOLVERS */
+            
+        case AMICI_DENSE:
+            AMIDenseB(which, model->nx);
+            setDenseJacFnB(which);
+            break;
+            
+        case AMICI_BAND:
+            AMIBandB(which, model->nx, model->ubw, model->lbw);
+            setBandJacFnB(which);
+            break;
+            
+        case AMICI_LAPACKDENSE:
+            
+            /* #if SUNDIALS_BLAS_LAPACK
+             status = CVLapackDenseB(ami_mem, bwd->getwhich(), nx);
+             if (status != AMICI_SUCCESS) return;
+             
+             status = SetDenseJacFnB(ami_mem, bwd->getwhich());
+             if (status != AMICI_SUCCESS) return;
+             #else*/
+            throw AmiException("Solver currently not supported!");
+            /* #endif*/
+            break;
+            
+        case AMICI_LAPACKBAND:
+            
+            /* #if SUNDIALS_BLAS_LAPACK
+             status = CVLapackBandB(ami_mem, bwd->getwhich(), nx, ubw, lbw);
+             if (status != AMICI_SUCCESS) return;
+             
+             status = SetBandJacFnB(ami_mem, bwd->getwhich());
+             if (status != AMICI_SUCCESS) return;
+             #else*/
+            throw AmiException("Solver currently not supported!");
+            /* #endif*/
+            break;
+            
+        case AMICI_DIAG:
+            AMIDiagB(which);
+            setDenseJacFnB(which);
+            break;
+            
+            /* ITERATIVE SOLVERS */
+            
+        case AMICI_SPGMR:
+            AMISpgmrB(which, PREC_NONE, CVSPILS_MAXL);
+            setJacTimesVecFnB(which);
+            break;
+            
+        case AMICI_SPBCG:
+            AMISpbcgB(which, PREC_NONE, CVSPILS_MAXL);
+            setJacTimesVecFnB(which);
+            break;
+            
+        case AMICI_SPTFQMR:
+            AMISptfqmrB(which, PREC_NONE, CVSPILS_MAXL);
+            setJacTimesVecFnB(which);
+            break;
+            
+            /* SPARSE SOLVERS */
+            
+        case AMICI_KLU:
+            AMIKLUB(which, model->nx, model->nnz, CSC_MAT);
+            setSparseJacFnB(which);
+            AMIKLUSetOrderingB(which, getStateOrdering());
+            break;
+            
+        default:
+            throw AmiException("Invalid local Solver!");
+            break;
+    }
+}
+
+bool operator ==(const Solver &a, const Solver &b)
+{
+    return (a.sensi_meth == b.sensi_meth)
+            && (a.sensi_meth == b.sensi_meth)
+            && (a.interpType == b.interpType)
+            && (a.lmm == b.lmm)
+            && (a.iter == b.iter)
+            && (a.stldet == b.stldet)
+            && (a.ordering == b.ordering)
+            && (a.newton_maxsteps == b.newton_maxsteps)
+            && (a.newton_maxlinsteps == b.newton_maxlinsteps)
+            && (a.newton_preeq == b.newton_preeq)
+            && (a.newton_precon == b.newton_precon)
+            && (a.ism == b.ism)
+            && (a.linsol == b.linsol)
+            && (a.atol == b.atol)
+            && (a.rtol == b.rtol)
+            && (a.maxsteps == b.maxsteps)
+            && (a.quad_atol == b.quad_atol)
+            && (a.quad_rtol == b.quad_rtol)
+            && (a.maxstepsB == b.maxstepsB)
+            && (a.sensi == b.sensi);
+}
+
 
 } // namespace amici

@@ -1,5 +1,3 @@
-#include "include/amici_solver_cvodes.h"
-
 #include <cvodes/cvodes.h>
 /*#include <cvodes/cvodes_lapack.h>*/
 #include <cvodes/cvodes_band.h>
@@ -17,389 +15,695 @@
 #include <klu.h>
 
 #include <include/amici.h>
-#include <include/amici_model.h>
-#include <include/amici_solver.h>
-#include <include/tdata.h>
-#include <include/udata.h>
+#include <include/amici_misc.h>
+#include <include/amici_model_ode.h>
+#include <include/amici_solver_cvodes.h>
+#include <include/amici_exception.h>
+
+/**
+ * @ brief extract information from a property of a matlab class (matrix)
+ * @ param OPTION name of the property
+ */
 
 namespace amici {
 
-int CVodeSolver::init(N_Vector x, N_Vector dx, realtype t) {
-    return CVodeInit(ami_mem, resultFunction, RCONST(t), x);
+void CVodeSolver::init(AmiVector *x, AmiVector *dx, realtype t) {
+    int status = CVodeInit(ami_mem, fxdot, RCONST(t), x->getNVector());
+    if(status != CV_SUCCESS)
+         throw CvodeException(status,"CVodeInit");
 }
 
-int CVodeSolver::binit(int which, N_Vector xB, N_Vector dxB, realtype t) {
-    return CVodeInitB(ami_mem, which, resultFunctionB, RCONST(t), xB);
+void CVodeSolver::binit(int which, AmiVector *xB, AmiVector *dxB, realtype t) {
+    int status = CVodeInitB(ami_mem, which, fxBdot, RCONST(t), xB->getNVector());
+    if(status != CV_SUCCESS)
+         throw CvodeException(status,"CVodeInitB");
 }
 
-int CVodeSolver::qbinit(int which, N_Vector qBdot) {
-    return CVodeQuadInitB(ami_mem, which, fqBdot, qBdot);
+void CVodeSolver::qbinit(int which, AmiVector *qBdot) {
+    int status = CVodeQuadInitB(ami_mem, which, fqBdot, qBdot->getNVector());
+    if(status != CV_SUCCESS)
+         throw CvodeException(status,"CVodeQuadInitB");
 }
 
-int CVodeSolver::rootInit(int ne) {
-    return CVodeRootInit(ami_mem, ne, rootFunction);
+void CVodeSolver::rootInit(int ne) {
+    int status = CVodeRootInit(ami_mem, ne, froot);
+    if(status != CV_SUCCESS)
+         throw CvodeException(status,"CVodeRootInit");
 }
 
-int CVodeSolver::sensInit1(N_Vector *sx, N_Vector *sdx, const UserData *udata) {
-    return CVodeSensInit1(ami_mem, udata->nplist, udata->sensi_meth, fsxdot,
-                          sx);
+void CVodeSolver::sensInit1(AmiVectorArray *sx, AmiVectorArray *sdx, int nplist) {
+    int status = CVodeSensInit1(ami_mem, nplist, getSensitivityMethod(), fsxdot,
+                          sx->getNVectorArray());
+    if(status != CV_SUCCESS)
+         throw CvodeException(status,"CVodeSensInit1");
 }
 
-int CVodeSolver::setDenseJacFn() { return CVDlsSetDenseJacFn(ami_mem, J); }
-
-int CVodeSolver::setSparseJacFn() {
-    return CVSlsSetSparseJacFn(ami_mem, fJSparse);
+void CVodeSolver::setDenseJacFn() {
+    int status = CVDlsSetDenseJacFn(ami_mem, fJ);
+    if(status != CV_SUCCESS)
+        throw CvodeException(status,"CVDlsSetDenseJacFn");
 }
 
-int CVodeSolver::setBandJacFn() { return CVDlsSetBandJacFn(ami_mem, fJBand); }
-
-int CVodeSolver::setJacTimesVecFn() {
-    return CVSpilsSetJacTimesVecFn(ami_mem, fJv);
+void CVodeSolver::setSparseJacFn() {
+    int status = CVSlsSetSparseJacFn(ami_mem, fJSparse);
+    if(status != CV_SUCCESS)
+         throw CvodeException(status,"CVSlsSetSparseJacFn");
 }
 
-int CVodeSolver::setDenseJacFnB(int which) {
-    return CVDlsSetDenseJacFnB(ami_mem, which, fJB);
+void CVodeSolver::setBandJacFn() {
+    int status = CVDlsSetBandJacFn(ami_mem, fJBand);
+    if(status != CV_SUCCESS)
+        throw CvodeException(status,"CVDlsSetBandJacFn");
 }
 
-int CVodeSolver::setSparseJacFnB(int which) {
-    return CVSlsSetSparseJacFnB(ami_mem, which, fJSparseB);
+void CVodeSolver::setJacTimesVecFn() {
+    int status = CVSpilsSetJacTimesVecFn(ami_mem, fJv);
+    if(status != CV_SUCCESS)
+         throw CvodeException(status,"CVSpilsSetJacTimesVecFn");
 }
 
-int CVodeSolver::setBandJacFnB(int which) {
-    return CVDlsSetBandJacFnB(ami_mem, which, fJBandB);
+void CVodeSolver::setDenseJacFnB(int which) {
+    int status = CVDlsSetDenseJacFnB(ami_mem, which, fJB);
+    if(status != CV_SUCCESS)
+         throw CvodeException(status,"CVDlsSetDenseJacFnB");
 }
 
-int CVodeSolver::setJacTimesVecFnB(int which) {
-    return CVSpilsSetJacTimesVecFnB(ami_mem, which, fJvB);
+void CVodeSolver::setSparseJacFnB(int which) {
+    int status = CVSlsSetSparseJacFnB(ami_mem, which, fJSparseB);
+    if(status != CV_SUCCESS)
+         throw CvodeException(status,"CVSlsSetSparseJacFnB");
+}
+
+void CVodeSolver::setBandJacFnB(int which) {
+    int status = CVDlsSetBandJacFnB(ami_mem, which, fJBandB);
+    if(status != CV_SUCCESS)
+         throw CvodeException(status,"CVDlsSetBandJacFnB");
+}
+
+void CVodeSolver::setJacTimesVecFnB(int which) {
+    int status = CVSpilsSetJacTimesVecFnB(ami_mem, which, fJvB);
+    if(status != CV_SUCCESS)
+         throw CvodeException(status,"CVSpilsSetJacTimesVecFnB");
 }
 
 void *CVodeSolver::AMICreate(int lmm, int iter) {
     return CVodeCreate(lmm, iter);
 }
 
-int CVodeSolver::AMISStolerances(double rtol, double atol) {
-    return CVodeSStolerances(ami_mem, rtol, atol);
+void CVodeSolver::AMISStolerances(double rtol, double atol) {
+    int status = CVodeSStolerances(ami_mem, rtol, atol);
+    if(status != CV_SUCCESS)
+         throw CvodeException(status,"CVodeSStolerances");
 }
 
-int CVodeSolver::AMISensEEtolerances() {
-    return CVodeSensEEtolerances(ami_mem);
+void CVodeSolver::AMISensEEtolerances() {
+    int status = CVodeSensEEtolerances(ami_mem);
+    if(status != CV_SUCCESS)
+         throw CvodeException(status,"CVodeSensEEtolerances");
 }
 
-int CVodeSolver::AMISetSensErrCon(bool error_corr) {
-    return CVodeSetSensErrCon(ami_mem, error_corr);
+void CVodeSolver::AMISetSensErrCon(bool error_corr) {
+    int status = CVodeSetSensErrCon(ami_mem, error_corr);
+    if(status != CV_SUCCESS)
+         throw CvodeException(status,"CVodeSetSensErrCon");
 }
 
-int CVodeSolver::AMISetQuadErrConB(int which, bool flag) {
-    return CVodeSetQuadErrConB(ami_mem, which, flag);
+void CVodeSolver::AMISetQuadErrConB(int which, bool flag) {
+    int status = CVodeSetQuadErrConB(ami_mem, which, flag);
+    if(status != CV_SUCCESS)
+         throw CvodeException(status,"CVodeSetQuadErrConB");
 }
 
-int CVodeSolver::AMIGetRootInfo(int *rootsfound) {
-    return CVodeGetRootInfo(ami_mem, rootsfound);
+void CVodeSolver::AMIGetRootInfo(int *rootsfound) {
+    int status = CVodeGetRootInfo(ami_mem, rootsfound);
+    if(status != CV_SUCCESS)
+         throw CvodeException(status,"CVodeGetRootInfo");
 }
 
-int CVodeSolver::AMISetErrHandlerFn() {
-    return CVodeSetErrHandlerFn(ami_mem, wrapErrHandlerFn, NULL);
+void CVodeSolver::AMISetErrHandlerFn() {
+    int status = CVodeSetErrHandlerFn(ami_mem, wrapErrHandlerFn, NULL);
+    if(status != CV_SUCCESS)
+         throw CvodeException(status,"CVodeSetErrHandlerFn");
 }
 
-int CVodeSolver::AMISetUserData(void *user_data) {
-    return CVodeSetUserData(ami_mem, user_data);
+void CVodeSolver::AMISetUserData(Model *model) {
+    int status = CVodeSetUserData(ami_mem, model);
+    if(status != CV_SUCCESS)
+         throw CvodeException(status,"CVodeSetUserData");
 }
 
-int CVodeSolver::AMISetUserDataB(int which, void *user_data) {
-    return CVodeSetUserDataB(ami_mem, which, user_data);
+void CVodeSolver::AMISetUserDataB(int which, Model *model) {
+    int status = CVodeSetUserDataB(ami_mem, which, model);
+    if(status != CV_SUCCESS)
+         throw CvodeException(status,"CVodeSetUserDataB");
 }
 
-int CVodeSolver::AMISetMaxNumSteps(long mxsteps) {
-    return CVodeSetMaxNumSteps(ami_mem, mxsteps);
+void CVodeSolver::AMISetMaxNumSteps(long mxsteps) {
+    int status = CVodeSetMaxNumSteps(ami_mem, mxsteps);
+    if(status != CV_SUCCESS)
+         throw CvodeException(status,"CVodeSetMaxNumSteps");
 }
 
-int CVodeSolver::AMISetStabLimDet(int stldet) {
-    return CVodeSetStabLimDet(ami_mem, stldet);
+void CVodeSolver::AMISetStabLimDet(int stldet) {
+    int status = CVodeSetStabLimDet(ami_mem, stldet);
+    if(status != CV_SUCCESS)
+         throw CvodeException(status,"CVodeSetStabLimDet");
 }
 
-int CVodeSolver::AMISetStabLimDetB(int which, int stldet) {
-    return CVodeSetStabLimDetB(ami_mem, which, stldet);
+void CVodeSolver::AMISetStabLimDetB(int which, int stldet) {
+    int status = CVodeSetStabLimDetB(ami_mem, which, stldet);
+    if(status != CV_SUCCESS)
+         throw CvodeException(status,"CVodeSetStabLimDetB");
 }
 
-int CVodeSolver::AMISetId(Model *model) { return (0); }
+void CVodeSolver::AMISetId(Model *model) { return; }
 
-int CVodeSolver::AMISetSuppressAlg(bool flag) { return (0); }
+void CVodeSolver::AMISetSuppressAlg(bool flag) { return; }
 
-int CVodeSolver::AMIReInit(realtype t0, N_Vector yy0, N_Vector yp0) {
-    return CVodeReInit(ami_mem, t0, yy0);
+void CVodeSolver::AMIReInit(realtype t0, AmiVector *yy0, AmiVector *yp0) {
+    int status = CVodeReInit(ami_mem, t0, yy0->getNVector());
+    if(status != CV_SUCCESS)
+         throw CvodeException(status,"CVodeReInit");
 }
 
-int CVodeSolver::AMISensReInit(int ism, N_Vector *yS0, N_Vector *ypS0) {
-    return CVodeSensReInit(ami_mem, ism, yS0);
+void CVodeSolver::AMISensReInit(int ism, AmiVectorArray *yS0, AmiVectorArray *ypS0) {
+    int status = CVodeSensReInit(ami_mem, ism, yS0->getNVectorArray());
+    if(status != CV_SUCCESS)
+         throw CvodeException(status,"CVodeSensReInit");
 }
 
-int CVodeSolver::AMISetSensParams(realtype *p, realtype *pbar, int *plist) {
-    return CVodeSetSensParams(ami_mem, p, pbar, plist);
+void CVodeSolver::AMISetSensParams(realtype *p, realtype *pbar, int *plist) {
+    int status = CVodeSetSensParams(ami_mem, p, pbar, plist);
+    if(status != CV_SUCCESS)
+         throw CvodeException(status,"CVodeSetSensParams");
 }
 
-int CVodeSolver::AMIGetDky(realtype t, int k, N_Vector dky) {
-    return CVodeGetDky(ami_mem, t, k, dky);
+void CVodeSolver::AMIGetDky(realtype t, int k, AmiVector *dky) {
+    int status = CVodeGetDky(ami_mem, t, k, dky->getNVector());
+    if(status != CV_SUCCESS)
+         throw CvodeException(status,"CVodeGetDky");
 }
 
-int CVodeSolver::AMIGetSens(realtype *tret, N_Vector *yySout) {
-    return CVodeGetSens(ami_mem, tret, yySout);
+void CVodeSolver::AMIGetSens(realtype *tret, AmiVectorArray *yySout) {
+    int status = CVodeGetSens(ami_mem, tret, yySout->getNVectorArray());
+    if(status != CV_SUCCESS)
+         throw CvodeException(status,"CVodeGetSens");
 }
-
-// int CVodeSolver::AMIRootInit(int nrtfn, RootFn ptr) {
-//    return CVodeRootInit( ami_mem, nrtfn, ptr);
-//}
-
+    
 void CVodeSolver::AMIFree() {
     CVodeFree(&ami_mem);
     ami_mem = NULL;
 }
 
-int CVodeSolver::AMIAdjInit(long steps, int interp) {
-    return CVodeAdjInit(ami_mem, steps, interp);
+void CVodeSolver::AMIAdjInit(long steps, int interp) {
+    int status = CVodeAdjInit(ami_mem, steps, interp);
+    if(status != CV_SUCCESS)
+         throw CvodeException(status,"CVodeAdjInit");
 }
 
-int CVodeSolver::AMICreateB(int lmm, int iter, int *which) {
-    return CVodeCreateB(ami_mem, lmm, iter, which);
+void CVodeSolver::AMICreateB(int lmm, int iter, int *which) {
+    int status = CVodeCreateB(ami_mem, lmm, iter, which);
+    if(status != CV_SUCCESS)
+         throw CvodeException(status,"CVodeCreateB");
 }
 
-int CVodeSolver::AMIReInitB(int which, realtype tB0, N_Vector yyB0,
-                            N_Vector ypB0) {
-    return CVodeReInitB(ami_mem, which, tB0, yyB0);
+void CVodeSolver::AMIReInitB(int which, realtype tB0, AmiVector *yyB0,
+                            AmiVector *ypB0) {
+    int status = CVodeReInitB(ami_mem, which, tB0, yyB0->getNVector());
+    if(status != CV_SUCCESS)
+         throw CvodeException(status,"CVodeReInitB");
 }
 
-int CVodeSolver::AMISStolerancesB(int which, realtype relTolB,
+void CVodeSolver::AMISStolerancesB(int which, realtype relTolB,
                                   realtype absTolB) {
-    return CVodeSStolerancesB(ami_mem, which, relTolB, absTolB);
+    int status = CVodeSStolerancesB(ami_mem, which, relTolB, absTolB);
+    if(status != CV_SUCCESS)
+         throw CvodeException(status,"CVodeSStolerancesB");
 }
 
-int CVodeSolver::AMIQuadReInitB(int which, N_Vector yQB0) {
-    return CVodeQuadReInitB(ami_mem, which, yQB0);
+void CVodeSolver::AMIQuadReInitB(int which, AmiVector *yQB0) {
+    int status = CVodeQuadReInitB(ami_mem, which, yQB0->getNVector());
+    if(status != CV_SUCCESS)
+         throw CvodeException(status,"CVodeQuadReInitB");
 }
 
-int CVodeSolver::AMIQuadSStolerancesB(int which, realtype reltolQB,
+void CVodeSolver::AMIQuadSStolerancesB(int which, realtype reltolQB,
                                       realtype abstolQB) {
-    return CVodeQuadSStolerancesB(ami_mem, which, reltolQB, abstolQB);
+    int status = CVodeQuadSStolerancesB(ami_mem, which, reltolQB, abstolQB);
+    if(status != CV_SUCCESS)
+         throw CvodeException(status,"CVodeQuadSStolerancesB");
 }
 
-int CVodeSolver::AMISolve(realtype tout, N_Vector yret, N_Vector ypret,
+int CVodeSolver::AMISolve(realtype tout, AmiVector *yret, AmiVector *ypret,
                           realtype *tret, int itask) {
-    return CVode(ami_mem, tout, yret, tret, itask);
+    int status = CVode(ami_mem, tout, yret->getNVector(), tret, itask);
+    if(status<0) {
+        throw IntegrationFailure(status,*tret);
+    } else{
+        solverWasCalled = true;
+        return status;
+    }
 }
 
-int CVodeSolver::AMISolveF(realtype tout, N_Vector yret, N_Vector ypret,
+int CVodeSolver::AMISolveF(realtype tout, AmiVector *yret, AmiVector *ypret,
                            realtype *tret, int itask, int *ncheckPtr) {
-    return CVodeF(ami_mem, tout, yret, tret, itask, ncheckPtr);
+    int status = CVodeF(ami_mem, tout, yret->getNVector(), tret, itask, ncheckPtr);
+    if(status<0) {
+        throw IntegrationFailure(status,*tret);
+    } else{
+        solverWasCalled = true;
+        return status;
+    }
 }
 
-int CVodeSolver::AMISolveB(realtype tBout, int itaskB) {
-    return CVodeB(ami_mem, tBout, itaskB);
+void CVodeSolver::AMISolveB(realtype tBout, int itaskB) {
+    int status = CVodeB(ami_mem, tBout, itaskB);
+    if(status != CV_SUCCESS)
+         throw IntegrationFailure(status,tBout);
 }
 
-int CVodeSolver::AMISetMaxNumStepsB(int which, long mxstepsB) {
-    return CVodeSetMaxNumStepsB(ami_mem, which, mxstepsB);
+void CVodeSolver::AMISetMaxNumStepsB(int which, long mxstepsB) {
+    int status = CVodeSetMaxNumStepsB(ami_mem, which, mxstepsB);
+    if(status != CV_SUCCESS)
+         throw CvodeException(status,"CVodeSetMaxNumStepsB");
 }
 
-int CVodeSolver::AMIGetB(int which, realtype *tret, N_Vector yy, N_Vector yp) {
-    return CVodeGetB(ami_mem, which, tret, yy);
+void CVodeSolver::AMIGetB(int which, realtype *tret, AmiVector *yy, AmiVector *yp) {
+    int status = CVodeGetB(ami_mem, which, tret, yy->getNVector());
+    if(status != CV_SUCCESS)
+         throw CvodeException(status,"CVodeGetB");
 }
 
-int CVodeSolver::AMIGetQuadB(int which, realtype *tret, N_Vector qB) {
-    return CVodeGetQuadB(ami_mem, which, tret, qB);
+void CVodeSolver::AMIGetQuadB(int which, realtype *tret, AmiVector *qB) {
+    int status = CVodeGetQuadB(ami_mem, which, tret, qB->getNVector());
+    if(status != CV_SUCCESS)
+         throw CvodeException(status,"CVodeGetQuadB");
 }
 
-int CVodeSolver::AMIDense(int nx) { return CVDense(ami_mem, nx); }
-
-int CVodeSolver::AMIDenseB(int which, int nx) {
-    return CVDenseB(ami_mem, which, nx);
+void CVodeSolver::AMIDense(int nx) {
+    int status = CVDense(ami_mem, nx);
+    if(status != CV_SUCCESS)
+        throw CvodeException(status,"CVDense");
 }
 
-int CVodeSolver::AMIBand(int nx, int ubw, int lbw) {
-    return CVBand(ami_mem, nx, ubw, lbw);
+void CVodeSolver::AMIDenseB(int which, int nx) {
+    int status = CVDenseB(ami_mem, which, nx);
+    if(status != CV_SUCCESS)
+         throw CvodeException(status,"CVDenseB");
 }
 
-int CVodeSolver::AMIBandB(int which, int nx, int ubw, int lbw) {
-    return CVBandB(ami_mem, which, nx, ubw, lbw);
+void CVodeSolver::AMIBand(int nx, int ubw, int lbw) {
+    int status = CVBand(ami_mem, nx, ubw, lbw);
+    if(status != CV_SUCCESS)
+         throw CvodeException(status,"CVBand");
 }
 
-int CVodeSolver::AMIDiag() { return CVDiag(ami_mem); }
-
-int CVodeSolver::AMIDiagB(int which) { return CVDiagB(ami_mem, which); }
-
-int CVodeSolver::AMISpgmr(int prectype, int maxl) {
-    return CVSpgmr(ami_mem, prectype, maxl);
+void CVodeSolver::AMIBandB(int which, int nx, int ubw, int lbw) {
+    int status = CVBandB(ami_mem, which, nx, ubw, lbw);
+    if(status != CV_SUCCESS)
+         throw CvodeException(status,"CVBandB");
 }
 
-int CVodeSolver::AMISpgmrB(int which, int prectype, int maxl) {
-    return CVSpgmrB(ami_mem, which, prectype, maxl);
+void CVodeSolver::AMIDiag() {
+    int status = CVDiag(ami_mem);
+    if(status != CV_SUCCESS)
+        throw CvodeException(status,"CVDiag");
 }
 
-int CVodeSolver::AMISpbcg(int prectype, int maxl) {
-    return CVSpbcg(ami_mem, prectype, maxl);
+void CVodeSolver::AMIDiagB(int which) {
+    int status = CVDiagB(ami_mem, which);
+        if(status != CV_SUCCESS)
+            throw CvodeException(status,"CVDiagB");
 }
 
-int CVodeSolver::AMISpbcgB(int which, int prectype, int maxl) {
-    return CVSpbcgB(ami_mem, which, prectype, maxl);
+void CVodeSolver::AMISpgmr(int prectype, int maxl) {
+    int status = CVSpgmr(ami_mem, prectype, maxl);
+    if(status != CV_SUCCESS)
+         throw CvodeException(status,"CVSpgmr");
 }
 
-int CVodeSolver::AMISptfqmr(int prectype, int maxl) {
-    return CVSptfqmr(ami_mem, prectype, maxl);
+void CVodeSolver::AMISpgmrB(int which, int prectype, int maxl) {
+    int status = CVSpgmrB(ami_mem, which, prectype, maxl);
+    if(status != CV_SUCCESS)
+        throw CvodeException(status,"CVSpgmrB");
 }
 
-int CVodeSolver::AMISptfqmrB(int which, int prectype, int maxl) {
-    return CVSptfqmrB(ami_mem, which, prectype, maxl);
+void CVodeSolver::AMISpbcg(int prectype, int maxl) {
+    int status = CVSpbcg(ami_mem, prectype, maxl);
+    if(status != CV_SUCCESS)
+         throw CvodeException(status,"CVSpbcg");
 }
 
-int CVodeSolver::AMIKLU(int nx, int nnz, int sparsetype) {
-    return CVKLU(ami_mem, nx, nnz, sparsetype);
+void CVodeSolver::AMISpbcgB(int which, int prectype, int maxl) {
+    int status = CVSpbcgB(ami_mem, which, prectype, maxl);
+    if(status != CV_SUCCESS)
+         throw CvodeException(status,"CVSpbcgB");
 }
 
-int CVodeSolver::AMIKLUSetOrdering(int ordering) {
-    return CVKLUSetOrdering(ami_mem, ordering);
+void CVodeSolver::AMISptfqmr(int prectype, int maxl) {
+    int status = CVSptfqmr(ami_mem, prectype, maxl);
+    if(status != CV_SUCCESS)
+         throw CvodeException(status,"AMISptfqmr");
 }
 
-int CVodeSolver::AMIKLUSetOrderingB(int which, int ordering) {
-    return CVKLUSetOrderingB(ami_mem, which, ordering);
+void CVodeSolver::AMISptfqmrB(int which, int prectype, int maxl) {
+    int status = CVSptfqmrB(ami_mem, which, prectype, maxl);
+    if(status != CV_SUCCESS)
+         throw CvodeException(status,"CVSptfqmrB");
 }
 
-int CVodeSolver::AMIKLUB(int which, int nx, int nnz, int sparsetype) {
-    return CVKLUB(ami_mem, which, nx, nnz, sparsetype);
+void CVodeSolver::AMIKLU(int nx, int nnz, int sparsetype) {
+    int status = CVKLU(ami_mem, nx, nnz, sparsetype);
+    if(status != CV_SUCCESS)
+         throw CvodeException(status,"CVKLU");
 }
 
-int CVodeSolver::AMIGetNumSteps(void *ami_mem, long *numsteps) {
-    return CVodeGetNumSteps(ami_mem, numsteps);
+void CVodeSolver::AMIKLUSetOrdering(int ordering) {
+    int status = CVKLUSetOrdering(ami_mem, ordering);
+    if(status != CV_SUCCESS)
+         throw CvodeException(status,"CVKLUSetOrdering");
 }
 
-int CVodeSolver::AMIGetNumRhsEvals(void *ami_mem, long *numrhsevals) {
-    return CVodeGetNumRhsEvals(ami_mem, numrhsevals);
+void CVodeSolver::AMIKLUSetOrderingB(int which, int ordering) {
+    int status = CVKLUSetOrderingB(ami_mem, which, ordering);
+    if(status != CV_SUCCESS)
+         throw CvodeException(status,"CVKLUSetOrderingB");
 }
 
-int CVodeSolver::AMIGetNumErrTestFails(void *ami_mem, long *numerrtestfails) {
-    return CVodeGetNumErrTestFails(ami_mem, numerrtestfails);
+void CVodeSolver::AMIKLUB(int which, int nx, int nnz, int sparsetype) {
+    int status = CVKLUB(ami_mem, which, nx, nnz, sparsetype);
+    if(status != CV_SUCCESS)
+         throw CvodeException(status,"CVKLUB");
 }
 
-int CVodeSolver::AMIGetNumNonlinSolvConvFails(void *ami_mem,
+void CVodeSolver::AMIGetNumSteps(void *ami_mem, long *numsteps) {
+    int status = CVodeGetNumSteps(ami_mem, numsteps);
+    if(status != CV_SUCCESS)
+         throw CvodeException(status,"CVodeGetNumSteps");
+}
+
+void CVodeSolver::AMIGetNumRhsEvals(void *ami_mem, long *numrhsevals) {
+    int status = CVodeGetNumRhsEvals(ami_mem, numrhsevals);
+    if(status != CV_SUCCESS)
+         throw CvodeException(status,"CVodeGetNumRhsEvals");
+}
+
+void CVodeSolver::AMIGetNumErrTestFails(void *ami_mem, long *numerrtestfails) {
+    int status = CVodeGetNumErrTestFails(ami_mem, numerrtestfails);
+    if(status != CV_SUCCESS)
+         throw CvodeException(status,"CVodeGetNumErrTestFails");
+}
+
+void CVodeSolver::AMIGetNumNonlinSolvConvFails(void *ami_mem,
                                               long *numnonlinsolvconvfails) {
-    return CVodeGetNumNonlinSolvConvFails(ami_mem, numnonlinsolvconvfails);
+    int status = CVodeGetNumNonlinSolvConvFails(ami_mem, numnonlinsolvconvfails);
+    if(status != CV_SUCCESS)
+         throw CvodeException(status,"CVodeGetNumNonlinSolvConvFails");
 }
 
-int CVodeSolver::AMIGetLastOrder(void *ami_ami_mem, int *order) {
-    return CVodeGetLastOrder(ami_mem, order);
+void CVodeSolver::AMIGetLastOrder(void *ami_ami_mem, int *order) {
+    int status = CVodeGetLastOrder(ami_mem, order);
+    if(status != CV_SUCCESS)
+         throw CvodeException(status,"CVodeGetLastOrder");
 }
 
 void *CVodeSolver::AMIGetAdjBmem(void *ami_mem, int which) {
     return CVodeGetAdjCVodeBmem(ami_mem, which);
 }
 
-int CVodeSolver::AMICalcIC(realtype tout1) { return (0); }
+void CVodeSolver::AMICalcIC(realtype tout1, AmiVector *x, AmiVector *dx) { };
 
-int CVodeSolver::AMICalcICB(int which, realtype tout1, N_Vector xB,
-                            N_Vector dxB) {
-    return (0);
+void CVodeSolver::AMICalcICB(int which, realtype tout1, AmiVector *xB,
+                             AmiVector *dxB) {};
+
+void CVodeSolver::AMISetStopTime(realtype tstop) {
+    int status = CVodeSetStopTime(ami_mem, tstop);
+    if(status != CV_SUCCESS)
+         throw CvodeException(status,"CVodeSetStopTime");
 }
 
-int CVodeSolver::AMISetStopTime(realtype tstop) {
-    return CVodeSetStopTime(ami_mem, tstop);
+void CVodeSolver::turnOffRootFinding() {
+    int status = CVodeRootInit(ami_mem, 0, NULL);
+    if(status != CV_SUCCESS)
+         throw CvodeException(status,"CVodeRootInit");
 }
-
-int CVodeSolver::turnOffRootFinding() {
-    return CVodeRootInit(ami_mem, 0, NULL);
-}
-
-int CVodeSolver::resultFunction(realtype t, N_Vector y, N_Vector ydot,
-                                void *user_data) {
-    TempData *tdata = (TempData *)user_data;
-
-    return tdata->model->fxdot(t, y, NULL, ydot, user_data);
-}
-
-int CVodeSolver::resultFunctionB(realtype t, N_Vector y, N_Vector yB,
-                                 N_Vector yBdot, void *user_dataB) {
-    TempData *tdata = (TempData *)user_dataB;
-
-    return tdata->model->fxBdot(t, y, NULL, yB, NULL, yBdot, user_dataB);
-}
-
-int CVodeSolver::rootFunction(realtype t, N_Vector x, realtype *root,
-                              void *user_data) {
-    TempData *tdata = (TempData *)user_data;
-    return tdata->model->froot(t, x, NULL, root, user_data);
-}
-
-int CVodeSolver::J(long N, realtype t, N_Vector x, N_Vector xdot, DlsMat J,
-                   void *user_data, N_Vector tmp1, N_Vector tmp2,
-                   N_Vector tmp3) {
-    TempData *tdata = (TempData *)user_data;
-    return tdata->model->fJ(N, t, 0.0, x, NULL, xdot, J, user_data, tmp1, tmp2,
-                            tmp3);
-}
-
-int CVodeSolver::fqBdot(realtype t, N_Vector x, N_Vector xB, N_Vector qBdot,
-                        void *user_data) {
-    TempData *tdata = (TempData *)user_data;
-    return tdata->model->fqBdot(t, x, NULL, xB, NULL, qBdot, user_data);
-}
-
-int CVodeSolver::fsxdot(int Ns, realtype t, N_Vector x, N_Vector xdot, int ip,
-                        N_Vector sx, N_Vector sxdot, void *user_data,
-                        N_Vector tmp1, N_Vector tmp2) {
-    TempData *tdata = (TempData *)user_data;
-    return tdata->model->fsxdot(Ns, t, x, NULL, xdot, ip, sx, NULL, sxdot, user_data, tmp1,
-                                tmp2, NULL);
-}
-
-int CVodeSolver::fJSparse(realtype t, N_Vector x, N_Vector xdot, SlsMat J,
-                          void *user_data, N_Vector tmp1, N_Vector tmp2,
-                          N_Vector tmp3) {
-    TempData *tdata = (TempData *)user_data;
-    return tdata->model->fJSparse(t, 0.0, x, NULL, xdot, J, user_data, tmp1, tmp2, tmp3);
-}
-
-int CVodeSolver::fJBand(long N, long mupper, long mlower, realtype t,
-                        N_Vector x, N_Vector xdot, DlsMat J, void *user_data,
-                        N_Vector tmp1, N_Vector tmp2, N_Vector tmp3) {
-    TempData *tdata = (TempData *)user_data;
-    return tdata->model->fJBand(N, mupper, mlower, t, 0.0, x, NULL, xdot, J, user_data,
-                                tmp1, tmp2, tmp3);
-}
-
-int CVodeSolver::fJv(N_Vector v, N_Vector Jv, realtype t, N_Vector x,
-                     N_Vector xdot, void *user_data, N_Vector tmp) {
-    TempData *tdata = (TempData *)user_data;
-    return tdata->model->fJv(t, x, NULL, xdot, v, Jv, 0.0, user_data, tmp, NULL);
-}
-
-int CVodeSolver::fJB(long int NeqBdot, realtype t, N_Vector x, N_Vector xB,
-                     N_Vector xBdot, DlsMat JB, void *user_data, N_Vector tmp1B,
-                     N_Vector tmp2B, N_Vector tmp3B) {
-    TempData *tdata = (TempData *)user_data;
-    return tdata->model->fJB(NeqBdot, t, 0.0, x, NULL, xB, NULL, xBdot, JB, user_data, tmp1B,
-                             tmp2B, tmp3B);
-}
-
-int CVodeSolver::fJSparseB(realtype t, N_Vector x, N_Vector xB, N_Vector xBdot,
-                           SlsMat JB, void *user_data, N_Vector tmp1B,
-                           N_Vector tmp2B, N_Vector tmp3B) {
-    TempData *tdata = (TempData *)user_data;
-    return tdata->model->fJSparseB(t, 0.0, x, NULL, xB, NULL, xBdot, JB, user_data, tmp1B, tmp2B,
-                                   tmp3B);
-}
-
-int CVodeSolver::fJBandB(long int NeqBdot, long int mupper, long int mlower,
-                         realtype t, N_Vector x, N_Vector xB, N_Vector xBdot,
-                         DlsMat JB, void *user_data, N_Vector tmp1B,
+    
+    /** Jacobian of xdot with respect to states x
+     * @param N number of state variables
+     * @param t timepoint
+     * @param x Vector with the states
+     * @param xdot Vector with the right hand side
+     * @param J Matrix to which the Jacobian will be written
+     * @param user_data object with user input @type Model_ODE
+     * @param tmp1 temporary storage vector
+     * @param tmp2 temporary storage vector
+     * @param tmp3 temporary storage vector
+     * @return status flag indicating successful execution
+     **/
+    int CVodeSolver::fJ(long int N, realtype t, N_Vector x, N_Vector xdot,
+           DlsMat J, void *user_data, N_Vector tmp1,
+           N_Vector tmp2, N_Vector tmp3) {
+        Model_ODE *model = static_cast<Model_ODE*>(user_data);
+        model->fJ(t, x, xdot, J);
+        return isFinite(N,J->data,"Jacobian");
+    }
+    
+    /** Jacobian of xBdot with respect to adjoint state xB
+     * @param NeqBdot number of adjoint state variables
+     * @param t timepoint
+     * @param x Vector with the states
+     * @param xB Vector with the adjoint states
+     * @param xBdot Vector with the adjoint right hand side
+     * @param JB Matrix to which the Jacobian will be written
+     * @param user_data object with user input @type Model_ODE
+     * @param tmp1B temporary storage vector
+     * @param tmp2B temporary storage vector
+     * @param tmp3B temporary storage vector
+     * @return status flag indicating successful execution
+     **/
+    int CVodeSolver::fJB(long int NeqBdot, realtype t, N_Vector x, N_Vector xB,
+                   N_Vector xBdot, DlsMat JB, void *user_data, N_Vector tmp1B,
+                   N_Vector tmp2B, N_Vector tmp3B) {
+        Model_ODE *model = static_cast<Model_ODE*>(user_data);
+        model->fJB(t, x, xB, xBdot, JB);
+        return isFinite(NeqBdot,JB->data,"Jacobian");
+    }
+    
+    /** J in sparse form (for sparse solvers from the SuiteSparse Package)
+     * @param t timepoint
+     * @param x Vector with the states
+     * @param xdot Vector with the right hand side
+     * @param J Matrix to which the Jacobian will be written
+     * @param user_data object with user input @type Model_ODE
+     * @param tmp1 temporary storage vector
+     * @param tmp2 temporary storage vector
+     * @param tmp3 temporary storage vector
+     * @return status flag indicating successful execution
+     */
+    int CVodeSolver::fJSparse(realtype t, N_Vector x, N_Vector xdot, SlsMat J,
+                        void *user_data, N_Vector tmp1, N_Vector tmp2,
+                        N_Vector tmp3) {
+        Model_ODE *model = static_cast<Model_ODE*>(user_data);
+        model->fJSparse(t, x, J);
+        return isFinite(J->NNZ,J->data,"Jacobian");
+    }
+    
+    /** JB in sparse form (for sparse solvers from the SuiteSparse Package)
+     * @param t timepoint
+     * @param x Vector with the states
+     * @param xB Vector with the adjoint states
+     * @param xBdot Vector with the adjoint right hand side
+     * @param JB Matrix to which the Jacobian will be written
+     * @param user_data object with user input @type Model_ODE
+     * @param tmp1B temporary storage vector
+     * @param tmp2B temporary storage vector
+     * @param tmp3B temporary storage vector
+     * @return status flag indicating successful execution
+     */
+    int CVodeSolver::fJSparseB(realtype t, N_Vector x, N_Vector xB, N_Vector xBdot,
+                         SlsMat JB, void *user_data, N_Vector tmp1B,
                          N_Vector tmp2B, N_Vector tmp3B) {
-    TempData *tdata = (TempData *)user_data;
-    return tdata->model->fJBandB(NeqBdot, mupper, mlower, t, 0.0, x, NULL, xB, NULL, xBdot, JB,
-                                 user_data, tmp1B, tmp2B, tmp3B);
-}
+        Model_ODE *model = static_cast<Model_ODE*>(user_data);
+        model->fJSparseB(t, x, xB, xBdot, JB);
+        return isFinite(JB->NNZ,JB->data,"Jacobian");
+    }
+    
+    /** J in banded form (for banded solvers)
+     * @param N number of states
+     * @param mupper upper matrix bandwidth
+     * @param mlower lower matrix bandwidth
+     * @param t timepoint
+     * @param x Vector with the states
+     * @param xdot Vector with the right hand side
+     * @param J Matrix to which the Jacobian will be written
+     * @param user_data object with user input @type Model_ODE
+     * @param tmp1 temporary storage vector
+     * @param tmp2 temporary storage vector
+     * @param tmp3 temporary storage vector
+     * @return status flag indicating successful execution
+     */
+    int CVodeSolver::fJBand(long int N, long int mupper, long int mlower, realtype t,
+                      N_Vector x, N_Vector xdot, DlsMat J, void *user_data,
+                      N_Vector tmp1, N_Vector tmp2, N_Vector tmp3) {
+        return fJ(N,t,x,xdot,J,user_data,tmp1,tmp2,tmp3);
+    }
+    
+    /** JB in banded form (for banded solvers)
+     * @param NeqBdot number of states
+     * @param mupper upper matrix bandwidth
+     * @param mlower lower matrix bandwidth
+     * @param t timepoint
+     * @param x Vector with the states
+     * @param xB Vector with the adjoint states
+     * @param xBdot Vector with the adjoint right hand side
+     * @param JB Matrix to which the Jacobian will be written
+     * @param user_data object with user input @type Model_ODE
+     * @param tmp1B temporary storage vector
+     * @param tmp2B temporary storage vector
+     * @param tmp3B temporary storage vector
+     * @return status flag indicating successful execution
+     */
+    int CVodeSolver::fJBandB(long int NeqBdot, long int mupper, long int mlower,
+                       realtype t, N_Vector x, N_Vector xB, N_Vector xBdot,
+                       DlsMat JB, void *user_data, N_Vector tmp1B,
+                       N_Vector tmp2B, N_Vector tmp3B) {
+        return fJB(NeqBdot,t,x,xB,xBdot,JB,user_data,tmp1B,tmp2B,tmp3B);
+    }
+    
+    /** diagonalized Jacobian (for preconditioning)
+     * @param t timepoint
+     * @param JDiag Vector to which the Jacobian diagonal will be written
+     * @param x Vector with the states
+     * @param user_data object with user input @type Model_ODE
+     **/
+    int CVodeSolver::fJDiag(realtype t, N_Vector JDiag, N_Vector x,
+                      void *user_data) {
+        Model_ODE *model = static_cast<Model_ODE*>(user_data);
+        model->fJDiag(t, JDiag, x);
+        return isFinite(model->nx,N_VGetArrayPointer(JDiag),"Jacobian");
+    }
+    
+    /** Matrix vector product of J with a vector v (for iterative solvers)
+     * @param t timepoint
+     * @param x Vector with the states
+     * @param xdot Vector with the right hand side
+     * @param v Vector with which the Jacobian is multiplied
+     * @param Jv Vector to which the Jacobian vector product will be
+     *written
+     * @param user_data object with user input @type Model_ODE
+     * @param tmp temporary storage vector
+     * @return status flag indicating successful execution
+     **/
+    int CVodeSolver::fJv(N_Vector v, N_Vector Jv, realtype t, N_Vector x, N_Vector xdot,
+                   void *user_data, N_Vector tmp) {
+        Model_ODE *model = static_cast<Model_ODE*>(user_data);
+        model->fJv(v,Jv,t,x);
+        return isFinite(model->nx,N_VGetArrayPointer(Jv),"Jacobian");
+    }
+    
+    /** Matrix vector product of JB with a vector v (for iterative solvers)
+     * @param t timepoint
+     * @param x Vector with the states
+     * @param xB Vector with the adjoint states
+     * @param xBdot Vector with the adjoint right hand side
+     * @param vB Vector with which the Jacobian is multiplied
+     * @param JvB Vector to which the Jacobian vector product will be
+     *written
+     * @param user_data object with user input @type Model_ODE
+     * @param tmpB temporary storage vector
+     * @return status flag indicating successful execution
+     **/
+    int CVodeSolver::fJvB(N_Vector vB, N_Vector JvB, realtype t, N_Vector x, N_Vector xB, N_Vector xBdot,
+                    void *user_data, N_Vector tmpB) {
+        Model_ODE *model = static_cast<Model_ODE*>(user_data);
+        model->fJvB(vB, JvB, t, x, xB);
+        return isFinite(model->nx,N_VGetArrayPointer(JvB),"Jacobian");
+    }
+    
+    /** Event trigger function for events
+     * @param t timepoint
+     * @param x Vector with the states
+     * @param root array with root function values
+     * @param user_data object with user input @type Model_ODE
+     * @return status flag indicating successful execution
+     */
+    int CVodeSolver::froot(realtype t, N_Vector x, realtype *root,
+                     void *user_data) {
+        Model_ODE *model = static_cast<Model_ODE*>(user_data);
+        model->froot(t, x, root);
+        return isFinite(model->ne,root,"root function");
+    }
+    
+    /** residual function of the ODE
+     * @param t timepoint
+     * @param x Vector with the states
+     * @param xdot Vector with the right hand side
+     * @param user_data object with user input @type Model_ODE
+     * @return status flag indicating successful execution
+     */
+    int CVodeSolver::fxdot(realtype t, N_Vector x, N_Vector xdot, void *user_data) {
+        Model_ODE *model = static_cast<Model_ODE*>(user_data);
+        model->fxdot(t, x, xdot);
+        return isFinite(model->nx,N_VGetArrayPointer(xdot),"residual function");
+    }
+    
+    /** Right hand side of differential equation for adjoint state xB
+     * @param t timepoint
+     * @param x Vector with the states
+     * @param xB Vector with the adjoint states
+     * @param xBdot Vector with the adjoint right hand side
+     * @param user_data object with user input @type Model_ODE
+     * @return status flag indicating successful execution
+     */
+    int CVodeSolver::fxBdot(realtype t, N_Vector x, N_Vector xB,
+                      N_Vector xBdot, void *user_data) {
+        Model_ODE *model = static_cast<Model_ODE*>(user_data);
+        model->fxBdot(t, x, xB, xBdot);
+        return isFinite(model->nx,N_VGetArrayPointer(xBdot),"adjoint residual function");
+    }
+    
+    /** Right hand side of integral equation for quadrature states qB
+     * @param t timepoint
+     * @param x Vector with the states
+     * @param xB Vector with the adjoint states
+     * @param qBdot Vector with the adjoint quadrature right hand side
+     * @param user_data pointer to temp data object
+     * @return status flag indicating successful execution
+     */
+    int CVodeSolver::fqBdot(realtype t, N_Vector x, N_Vector xB, N_Vector qBdot,
+                      void *user_data) {
+        Model_ODE *model = static_cast<Model_ODE*>(user_data);
+        model->fqBdot(t, x, xB, qBdot);
+        return isFinite(model->nplist()*model->nJ,N_VGetArrayPointer(qBdot),"adjoint quadrature function");
+    }
+    
+    /** Right hand side of differential equation for state sensitivities sx
+     * @param Ns number of parameters
+     * @param t timepoint
+     * @param x Vector with the states
+     * @param xdot Vector with the right hand side
+     * @param ip parameter index
+     * @param sx Vector with the state sensitivities
+     * @param sxdot Vector with the sensitivity right hand side
+     * @param user_data object with user input @type Model_ODE
+     * @param tmp1 temporary storage vector
+     * @param tmp2 temporary storage vector
+     * @param tmp3 temporary storage vector
+     * @return status flag indicating successful execution
+     */
+    int CVodeSolver::fsxdot(int Ns, realtype t, N_Vector x, N_Vector xdot, int ip,
+                      N_Vector sx, N_Vector sxdot, void *user_data,
+                      N_Vector tmp1, N_Vector tmp2) {
+        Model_ODE *model = static_cast<Model_ODE*>(user_data);
+        model->fsxdot(t, x, ip, sx, sxdot);
+        return isFinite(model->nx,N_VGetArrayPointer(sxdot),"sensitivity rhs");
+    }
 
-int CVodeSolver::fJvB(N_Vector vB, N_Vector JvB, realtype t, N_Vector x,
-                      N_Vector xB, N_Vector xBdot, void *user_data,
-                      N_Vector tmpB) {
-    TempData *tdata = (TempData *)user_data;
-    return tdata->model->fJvB(t, x, NULL, xB, NULL, xBdot, vB, JvB, 0.0, user_data, tmpB, NULL);
-}
+    CVodeSolver::~CVodeSolver() { AMIFree(); }
 
-CVodeSolver::~CVodeSolver() { AMIFree(); }
+    bool operator ==(const CVodeSolver &a, const CVodeSolver &b)
+    {
+        return static_cast<Solver const&>(a) == static_cast<Solver const&>(b);
+    }
 
 } // namespace amici

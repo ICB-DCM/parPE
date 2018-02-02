@@ -1,10 +1,12 @@
-#ifndef _MY_RDATA
-#define _MY_RDATA
-#include <include/udata.h>
+#ifndef AMICI_RDATA_H
+#define AMICI_RDATA_H
+
+#include <include/amici_defines.h>
 
 namespace amici {
 class Model;
 class ReturnData;
+class Solver;
 }
 
 namespace boost {
@@ -15,7 +17,7 @@ void serialize(Archive &ar, amici::ReturnData &u, const unsigned int version);
 
 namespace amici {
 
-/** @brief struct that stores all data which is later returned by the mex
+/** @brief class that stores all data which is later returned by the mex
  * function
  *
  * NOTE: multidimensional arrays are stored in column-major order
@@ -25,17 +27,17 @@ class ReturnData {
   public:
     ReturnData();
 
-    ReturnData(const UserData *udata, const Model *model);
+    ReturnData(Solver const& solver, const Model *model);
 
-    void invalidate();
+    void invalidate(const realtype t);
+    void invalidateLLH();
 
     void setLikelihoodSensitivityFirstOrderNaN();
 
     void setLikelihoodSensitivitySecondOrderNaN();
 
-    int
-    applyChainRuleFactorToSimulationResults(const UserData *udata,
-                                            const realtype *unscaledParameters);
+    void 
+    applyChainRuleFactorToSimulationResults(const Model *model);
 
     virtual ~ReturnData();
 
@@ -161,10 +163,8 @@ class ReturnData {
 
   protected:
 
-    ReturnData(const UserData *udata, const Model *model,
+    ReturnData(const Solver &solver, const Model *model,
                bool initializeFields);
-
-    virtual void copyFromUserData(const UserData *udata);
 
     virtual void initFields();
 

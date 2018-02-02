@@ -13,6 +13,12 @@ classdef amioption < matlab.mixin.CustomDisplay
         rtol = 1e-8;
         % maximum number of integration steps
         maxsteps = 1e4;
+        % absolute integration tolerace
+        quad_atol = 1e-12;
+        % relative integration tolerace
+        quad_rtol = 1e-8;
+        % maximum number of integration steps
+        maxstepsB = 0;
         % index of parameters for which the sensitivities are computed
         sens_ind = double.empty();
         % index of states for which positivity should be enforced
@@ -63,12 +69,6 @@ classdef amioption < matlab.mixin.CustomDisplay
         % unscaled parameters p
         % use "" for default as specified in the model (fallback: 'lin')
         pscale = '';
-    end
-    
-    properties (Hidden)
-
-        % flag for DAE variables
-        id = double.empty();
     end
     
     methods
@@ -198,6 +198,8 @@ classdef amioption < matlab.mixin.CustomDisplay
                         this.sensi_meth = 1;
                     case 'adjoint' 
                         this.sensi_meth = 2;
+                    case 'ss'
+                        this.sensi_meth = 3;
                     otherwise
                         error('Unknown sensitivity method. Must be either ''forward'' or ''adjoint''!');
                 end
