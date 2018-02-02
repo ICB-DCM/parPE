@@ -112,7 +112,7 @@ private:
 template<typename T>
 class SummedGradientFunctionGradientFunctionAdapter : public GradientFunction {
 public:
-    SummedGradientFunctionGradientFunctionAdapter(std::unique_ptr< SummedGradientFunction<T> > &gradFun,
+    SummedGradientFunctionGradientFunctionAdapter(std::unique_ptr< SummedGradientFunction<T> > gradFun,
                                                   std::vector<T> datasets)
         : gradFun(std::move(gradFun)), datasets(datasets)
     {

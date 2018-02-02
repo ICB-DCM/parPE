@@ -1,0 +1,156 @@
+#ifndef HIERACHICALOPTIMIZATION_H
+#define HIERACHICALOPTIMIZATION_H
+
+#include <optimizationProblem.h>
+#include <multiConditionProblem.h>
+#include <misc.h>
+#include <parpeException.h>
+
+#include <memory>
+#include <cmath>
+#include <numeric>
+
+#include <H5Cpp.h>
+
+namespace parpe {
+
+class ScalingFactorHdf5Reader;
+
+/**
+ * @brief The HierachicalOptimizationWrapper class is a wrapper for hierarchical optimization of
+ * scaling parameters.
+ *
+ * Parameters with the given indices are hidden by the wrapper and computed analytically internally.
+ */
+class HierachicalOptimizationWrapper : GradientFunction
+{
+public:
+    HierachicalOptimizationWrapper(std::unique_ptr<AmiciSummedGradientFunction<int>> fun,
+                                   std::unique_ptr<ScalingFactorHdf5Reader> reader,
+                                   int numConditions,
+                                   int numObservables,
+                                   int numTimepoints);
+
+    virtual FunctionEvaluationStatus evaluate(
+            const double* const parameters,
+            double &fval,
+            double* gradient) const override;
+
+    /**
+     * @brief Run simulations with scaling parameters set to 1.0 and collect model outputs
+     * @param reducedParameters parameter vector for `fun` without scaling parameters
+     * @return Vector of double vectors containing AMICI ReturnData::y (nt x ny, column-major)
+     */
+    std::vector <std::vector<double>> getModelOutputs(double const * const reducedParameters) const;
+
+
+    /**
+     * @brief Compute proportionality factors
+     * @param modelOutputs Model outputs as provided by getModelOutputs
+     * @return the computed scaling factors
+     */
+    std::vector<double> computeAnalyticalScalings(std::vector <std::vector<double>>& modelOutputs) const;
+
+
+    void applyOptimalScaling(int scalingIdx, double scaling, std::vector <std::vector<double>>&  modelOutputs) const;
+
+
+    /**
+     * @brief Compute the proportionality factor for the given observable.
+     *
+     * See Supplement 1.1 of [1].
+     *
+     * [1] Loos, Krause, Hasenauer. Hierarchical optimization for the efficient parametrization of ODE models.
+     * @param
+     * @return
+     */
+
+    virtual double optimalScaling(int scalingIdx, std::vector <std::vector<double>> const& modelOutputsUnscaled,
+                                  std::vector <std::vector<double>> const& measurements) const;
+
+    virtual FunctionEvaluationStatus evaluateWithScalings(
+            const double* const reducedParameters, std::vector<double> const &scalings,
+            std::vector <std::vector<double>> const& modelOutputsScaled,
+            double &fval,
+            double* gradient) const;
+
+
+    /**
+     * @brief Compute loglikelihood for normal distribution based on the model outputs and measurements.
+     * @param modelOutputsScaled
+     * @return
+     */
+    double computeLikelihood(std::vector <std::vector<double>> const& modelOutputsScaled) const;
+
+
+    /**
+     * @brief Assemble full parameter vector of wrapped problem from scaling parameters and numerically optimized parameters
+     * @param reducedParameters
+     * @param scalingFactors
+     * @return Full parameter vector for `fun`
+     */
+    virtual std::vector<double> getFullParameters(double const * const reducedParameters, std::vector<double> const& scalingFactors) const;
+
+    virtual int numParameters() const override;
+
+    int numScalingFactors() const;
+
+    const std::unique_ptr<AmiciSummedGradientFunction<int>> fun;
+
+private:
+    /** Sorted list of the indices of the scaling parameters
+      * (sorting makes it easier to splice scaling and remaining parameters in getFullParameters) */
+    std::unique_ptr<ScalingFactorHdf5Reader> reader;
+    std::vector<int> proportionalityFactorIndices;
+    int numConditions;
+    int numObservables;
+    int numTimepoints;
+};
+
+
+/**
+ * @brief The ScalingFactorHdf5Reader class reads the dependencies of experimental conditions
+ * and observables on scaling factors from an HDF5 file.
+ *
+ * TODO interface
+ */
+class ScalingFactorHdf5Reader {
+public:
+    ScalingFactorHdf5Reader(H5::H5File file, std::string rootPath = "/");
+
+    /**
+     * @brief Get vector of condition indices for which the scaling factor with the given index is used.
+     * @param scalingIdx
+     * @return
+     */
+    std::vector<int> getConditionsForScalingParameter(int scalingIdx) const;
+
+    /**
+     * @brief Get vector of observable indices for the specified condition for which the specified scaling factor is used.
+     * @param scalingIdx
+     * @return
+     */
+    std::vector<int> const& getObservablesForScalingParameter(int scalingIdx, int conditionIdx) const;
+
+    /**
+     * @brief Vector with indices of the proportionality factors with the overall parameter vector
+     * @return
+     */
+    std::vector<int> getProportionalityFactorIndices();
+
+private:
+    void readFromFile();
+
+    H5::H5File file;
+    std::string rootPath;
+    std::string mapPath;
+    std::string scalingParameterIndicesPath;
+
+    // x[scalingIdx][conditionIdx] -> std::vector of observableIndicies
+    std::vector<std::map<int, std::vector<int>>> mapping;
+    std::vector<int> proportionalityFactorIndices;
+};
+
+} //namespace parpe
+
+#endif // HIERACHICALOPTIMIZATION_H

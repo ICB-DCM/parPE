@@ -5,7 +5,9 @@
 #include <string>
 #include <amici.h>
 #include <memory>
+#include <vector>
 #include <H5Cpp.h>
+
 
 namespace parpe {
 
@@ -108,6 +110,8 @@ class MultiConditionDataProvider {
 
     virtual std::unique_ptr<amici::ExpData> getExperimentalDataForCondition(int conditionIdx,
                                     const amici::UserData *udata) const;
+
+    std::vector<std::vector<double> > getAllMeasurements() const;
 
     /**
      * @brief getOptimizationParametersLowerBounds Get lower parameter bounds

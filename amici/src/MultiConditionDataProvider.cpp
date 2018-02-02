@@ -134,8 +134,19 @@ std::unique_ptr<amici::ExpData> MultiConditionDataProvider::getExperimentalDataF
     return edata;
 }
 
+std::vector<std::vector<double> > MultiConditionDataProvider::getAllMeasurements() const {
+    std::vector<std::vector<double>> result(getNumberOfConditions());
+    for(int conditionIdx = 0; (unsigned) conditionIdx < result.size(); ++conditionIdx) {
+        result[conditionIdx].resize(model->getUserData().nt * model->nytrue);
+        hdf5Read3DDoubleHyperslab(fileId, hdf5MeasurementPath.c_str(),
+                                  1, model->nytrue, model->getUserData().nt,
+                                  conditionIdx, 0, 0, result[conditionIdx].data());
+    }
+    return result;
+}
+
 void MultiConditionDataProvider::getOptimizationParametersLowerBounds(
-    double *buffer) const {
+        double *buffer) const {
 
     auto dataset = file.openDataSet(hdf5ParameterMinPath);
 

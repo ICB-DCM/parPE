@@ -59,6 +59,8 @@ public:
 
     virtual FunctionEvaluationStatus getModelOutputs(const double * const parameters, std::vector<std::vector<double> > &modelOutput) const;
 
+    virtual std::vector<std::vector<double>> getAllMeasurements() const;
+
     /**
      * @brief Is called by worker processes to run a simulation for the given
      * condition

@@ -126,7 +126,7 @@ TEST(optimizationProblem, linearModelToGradientFun) {
     // Test that the SummedGradientFunction <-> GradientFunction Adapter works with the linear model
     std::vector<double> dataset {2.0, 3.0};
     auto model = std::unique_ptr<parpe::SummedGradientFunction<double>>(new SummedGradientFunctionLinearModelTest());
-    parpe::SummedGradientFunctionGradientFunctionAdapter<double> gradFun(model, dataset);
+    parpe::SummedGradientFunctionGradientFunctionAdapter<double> gradFun(std::move(model), dataset);
 
     std::vector<double> parameters {1.0, 2.0};
     double fval = NAN;
@@ -145,7 +145,9 @@ TEST(optimizationProblem, linearModelToGradientFunOptimization) {
     // does not do anything meaningful yet
     std::vector<double> dataset {2.0, 3.0};
     auto model = std::unique_ptr<parpe::SummedGradientFunction<double>>(new SummedGradientFunctionLinearModelTest());
-    auto gradFun = std::unique_ptr<parpe::GradientFunction>(new parpe::SummedGradientFunctionGradientFunctionAdapter<double>(model, dataset));
+    auto gradFun = std::unique_ptr<parpe::GradientFunction>(
+                new parpe::SummedGradientFunctionGradientFunctionAdapter<double>(
+                    std::move(model), dataset));
     parpe::OptimizationProblemImpl problem {std::move(gradFun)};
 
     std::vector<double> parametersMin {-100, -100};

@@ -544,4 +544,9 @@ FunctionEvaluationStatus AmiciSummedGradientFunction<T>::getModelOutputs(const d
     return errors == 0 ? functionEvaluationSuccess : functionEvaluationFailure;
 }
 
+template<typename T>
+std::vector<std::vector<double> > AmiciSummedGradientFunction<T>::getAllMeasurements() const {
+    return dataProvider->getAllMeasurements();
+}
+
 } // namespace parpe
