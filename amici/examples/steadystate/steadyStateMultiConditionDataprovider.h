@@ -1,13 +1,17 @@
 #ifndef STEADYSTATEMULTICONDITIONPROBLEM_H
 #define STEADYSTATEMULTICONDITIONPROBLEM_H
 
-#include "MultiConditionDataProvider.h"
-#include "assert.h"
-#include "multiConditionProblem.h"
 #include "steadystateProblem.h"
-#include "wrapfunctions.h"
+
+#include <MultiConditionDataProvider.h>
+#include <multiConditionProblem.h>
+
 #include <amici_hdf5.h>
+
 #include <memory>
+#include <assert.h>
+
+#include "wrapfunctions.h"
 
 /**
  * @brief The SteadyStateMultiConditionDataProvider class provides the interface

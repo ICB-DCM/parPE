@@ -22,7 +22,7 @@ class ScalingFactorHdf5Reader;
  *
  * Parameters with the given indices are hidden by the wrapper and computed analytically internally.
  */
-class HierachicalOptimizationWrapper : GradientFunction
+class HierachicalOptimizationWrapper : public GradientFunction
 {
 public:
     HierachicalOptimizationWrapper(std::unique_ptr<AmiciSummedGradientFunction<int>> fun,

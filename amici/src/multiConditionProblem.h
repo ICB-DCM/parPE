@@ -185,7 +185,7 @@ public:
 
     int numParameters() const override;
 
-    const std::unique_ptr<AmiciSummedGradientFunction<int>> summedGradFun;
+    std::unique_ptr<GradientFunction> summedGradFun;
 
 private:
     int numConditions;

@@ -128,8 +128,8 @@ public:
 
     int numParameters() const override { return gradFun->numParameters(); }
 
-private:
     std::unique_ptr<SummedGradientFunction<T>> gradFun;
+private:
     std::vector<T> datasets;
 };
 

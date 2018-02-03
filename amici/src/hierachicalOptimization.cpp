@@ -17,6 +17,14 @@ HierachicalOptimizationWrapper::HierachicalOptimizationWrapper(std::unique_ptr<A
 
 FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluate(const double * const parameters, double &fval, double *gradient) const {
 
+    if(numScalingFactors() == 0) {
+        // nothing to do, just pass through
+        std::vector<int> dataIndices(numConditions);
+        std::iota(dataIndices.begin(), dataIndices.end(), 0);
+
+        return fun->evaluate(parameters, dataIndices, fval, gradient);
+    }
+
     // evaluate with scaling parameters set to 1
     auto modelOutput = getModelOutputs(parameters);
 
@@ -183,58 +191,67 @@ const std::vector<int> &ScalingFactorHdf5Reader::getObservablesForScalingParamet
 
 std::vector<int> ScalingFactorHdf5Reader::getProportionalityFactorIndices() {
     auto lock = hdf5MutexGetLock();
-    auto dataset = file.openDataSet(scalingParameterIndicesPath);
-    auto dataspace = dataset.getSpace();
+    std::vector<int> proportionalityFactorIndices;
+    try {
+        auto dataset = file.openDataSet(scalingParameterIndicesPath);
+        auto dataspace = dataset.getSpace();
 
-    auto ndims = dataspace.getSimpleExtentNdims();
-    if(ndims != 1)
-        throw ParPEException("Invalid dimension in getProportionalityFactorIndices.");
-    hsize_t numScalings = 0;
-    dataspace.getSimpleExtentDims(&numScalings);
+        auto ndims = dataspace.getSimpleExtentNdims();
+        if(ndims != 1)
+            throw ParPEException("Invalid dimension in getProportionalityFactorIndices.");
+        hsize_t numScalings = 0;
+        dataspace.getSimpleExtentDims(&numScalings);
 
-    std::vector<int> proportionalityFactorIndices(numScalings);
-    dataset.read(proportionalityFactorIndices.data(), H5::PredType::NATIVE_INT);
+        proportionalityFactorIndices.resize(numScalings);
+        dataset.read(proportionalityFactorIndices.data(), H5::PredType::NATIVE_INT);
+    } catch (H5::FileIException e) {
+    }
 
     return proportionalityFactorIndices;
 }
 
 void ScalingFactorHdf5Reader::readFromFile() {
     auto lock = hdf5MutexGetLock();
-    auto dataset = file.openDataSet(mapPath);
-    auto dataspace = dataset.getSpace();
+    try {
+        auto dataset = file.openDataSet(mapPath);
+        auto dataspace = dataset.getSpace();
 
-    auto attribute = dataset.openAttribute("numScalings");
-    auto type = attribute.getDataType();
-    int numScalings = 0;
-    attribute.read(type, &numScalings);
-    if(numScalings == 0)
+        auto attribute = dataset.openAttribute("numScalings");
+        auto type = attribute.getDataType();
+        int numScalings = 0;
+        attribute.read(type, &numScalings);
+        if(numScalings == 0)
+            return;
+
+        auto ndims = dataspace.getSimpleExtentNdims();
+        if(ndims != 2)
+            throw ParPEException("Invalid dimension for scaling parameter map, expected 2.");
+        hsize_t dims[ndims];
+        dataspace.getSimpleExtentDims(dims);
+        hsize_t const nRows = dims[0];
+        hsize_t const nCols = dims[1];
+        if(nRows && nCols != 3)
+            throw ParPEException("Invalid dimension for scaling parameter map, expected 2.");
+
+        // column indices in dataspace
+        constexpr int scalingCol = 0;
+        constexpr int conditionCol = 1;
+        constexpr int observableCol = 2;
+
+        std::vector<int> rawMap(nRows * nCols);
+        dataset.read(rawMap.data(), H5::PredType::NATIVE_INT);
+
+        mapping.resize(numScalings);
+        for(int i = 0; (unsigned)i < nRows; ++i) {
+            int scalingIdx = rawMap[i * nCols + scalingCol];
+            int conditionIdx = rawMap[i * nCols + conditionCol];
+            int observableIdx = rawMap[i * nCols + observableCol];
+            mapping[scalingIdx][conditionIdx].push_back(observableIdx);
+        }
+    } catch (H5::FileIException e) {
         return;
-
-    auto ndims = dataspace.getSimpleExtentNdims();
-    if(ndims != 2)
-        throw ParPEException("Invalid dimension for scaling parameter map, expected 2.");
-    hsize_t dims[ndims];
-    dataspace.getSimpleExtentDims(dims);
-    hsize_t const nRows = dims[0];
-    hsize_t const nCols = dims[1];
-    if(nRows && nCols != 3)
-        throw ParPEException("Invalid dimension for scaling parameter map, expected 2.");
-
-    // column indices in dataspace
-    constexpr int scalingCol = 0;
-    constexpr int conditionCol = 1;
-    constexpr int observableCol = 2;
-
-    std::vector<int> rawMap(nRows * nCols);
-    dataset.read(rawMap.data(), H5::PredType::NATIVE_INT);
-
-    mapping.resize(numScalings);
-    for(int i = 0; (unsigned)i < nRows; ++i) {
-        int scalingIdx = rawMap[i * nCols + scalingCol];
-        int conditionIdx = rawMap[i * nCols + conditionCol];
-        int observableIdx = rawMap[i * nCols + observableCol];
-        mapping[scalingIdx][conditionIdx].push_back(observableIdx);
     }
+
 }
 
 

@@ -5,6 +5,8 @@
 #include "multiConditionProblemResultWriter.h"
 #include <LoadBalancerMaster.h>
 #include <LoadBalancerWorker.h>
+#include <hierachicalOptimization.h>
+
 #include <getopt.h>
 #include <string>
 
@@ -53,7 +55,8 @@ class OptimizationApplication {
         // TODO: Move out of here
         LoadBalancerWorker lbw;
         lbw.run([this](std::vector<char> &buffer, int jobId) {
-            problem->mcGradFun->summedGradFun->messageHandler(buffer, jobId);
+            // TODO this is ugly
+            dynamic_cast<HierachicalOptimizationWrapper*>(problem->costFun.get())->fun->messageHandler(buffer, jobId);
         });
 
         return 0;
