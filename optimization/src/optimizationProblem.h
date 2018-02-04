@@ -44,6 +44,8 @@ public:
             double* gradient) const = 0;
 
     virtual int numParameters() const = 0;
+
+    virtual ~GradientFunction() = default;
 };
 
 
@@ -70,6 +72,8 @@ public:
             double* gradient) const = 0;
 
     virtual int numParameters() const = 0;
+
+    virtual ~SummedGradientFunction() = default;
 };
 
 
