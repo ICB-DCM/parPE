@@ -9,6 +9,7 @@ set(SRC_LIST_CPP
     ../src/multiConditionDataProviderTest.cpp
     ../src/multiConditionProblemTest.cpp
     ../src/simulationResultWriterTest.cpp
+    ../src/hierarchicalOptimizationTest.cpp
     ../../common/src/testingMisc.cpp
 )
 

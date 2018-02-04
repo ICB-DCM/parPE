@@ -61,6 +61,8 @@ public:
 
     virtual FunctionEvaluationStatus getModelOutputs(const double * const parameters, std::vector<std::vector<double> > &modelOutput) const;
 
+    virtual std::vector<std::vector<double>> getAllMeasurements() const;
+
     /**
      * @brief Is called by worker processes to run a simulation for the given
      * condition
@@ -189,7 +191,7 @@ public:
 
     int numParameters() const override;
 
-    const std::unique_ptr<AmiciSummedGradientFunction<int>> summedGradFun;
+    std::unique_ptr<GradientFunction> summedGradFun;
 
 private:
     int numConditions;

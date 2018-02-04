@@ -209,8 +209,10 @@ int OptimizationApplication::runWorker() {
     // TODO: Move out of here
     LoadBalancerWorker lbw;
     lbw.run([this](std::vector<char> &buffer, int jobId) {
+        static_cast<HierachicalOptimizationWrapper *>(
         static_cast<MultiConditionGradientFunction*>(problem->costFun.get())
-                ->summedGradFun->messageHandler(buffer, jobId);
+                ->summedGradFun.get())->fun->messageHandler(buffer, jobId);
+        //AmiciSummedGradientFunction<T>
     });
 
     return 0;

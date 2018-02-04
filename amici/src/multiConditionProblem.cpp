@@ -7,6 +7,7 @@
 #include <SimulationRunner.h>
 #include <logging.h>
 #include <misc.h>
+#include <hierachicalOptimization.h>
 
 #include <amici_interface_cpp.h>
 #include <amici_model.h>
@@ -384,19 +385,23 @@ FunctionEvaluationStatus AmiciSummedGradientFunction<T>::evaluate(const double *
 
 MultiConditionGradientFunction::MultiConditionGradientFunction(MultiConditionDataProvider *dataProvider,
                                                                LoadBalancerMaster *loadBalancer, MultiConditionProblemResultWriter *resultWriter)
-    : summedGradFun(std::make_unique<AmiciSummedGradientFunction<int>>(dataProvider, loadBalancer, resultWriter)),
-      numConditions(dataProvider->getNumberOfConditions())
-{
-
-}
-
-FunctionEvaluationStatus MultiConditionGradientFunction::evaluate(const double * const parameters, double &objectiveFunctionValue, double *objectiveFunctionGradient) const
+    : numConditions(dataProvider->getNumberOfConditions())
 {
     // run on all data
     std::vector<int> dataIndices(numConditions);
     std::iota(dataIndices.begin(), dataIndices.end(), 0);
 
-    return summedGradFun->evaluate(parameters, dataIndices, objectiveFunctionValue,
+    summedGradFun.reset(new HierachicalOptimizationWrapper(
+                                std::make_unique<AmiciSummedGradientFunction<int>>(dataProvider, loadBalancer, resultWriter),
+                                std::make_unique<ScalingFactorHdf5Reader>(dataProvider->file, "/"),
+                                dataProvider->getNumberOfConditions(),
+                                dataProvider->model->nytrue,
+                                dataProvider->model->nt()));
+}
+
+FunctionEvaluationStatus MultiConditionGradientFunction::evaluate(const double * const parameters, double &objectiveFunctionValue, double *objectiveFunctionGradient) const
+{
+    return summedGradFun->evaluate(parameters, objectiveFunctionValue,
                 objectiveFunctionGradient);
 }
 
@@ -547,6 +552,11 @@ FunctionEvaluationStatus AmiciSummedGradientFunction<T>::getModelOutputs(const d
     }
 
     return errors == 0 ? functionEvaluationSuccess : functionEvaluationFailure;
+}
+
+template<typename T>
+std::vector<std::vector<double> > AmiciSummedGradientFunction<T>::getAllMeasurements() const {
+    return dataProvider->getAllMeasurements();
 }
 
 } // namespace parpe

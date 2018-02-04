@@ -1,12 +1,14 @@
 #include "steadyStateMultiConditionDataprovider.h"
-#include "optimizationOptions.h"
 #include "wrapfunctions.h"
+
+#include <optimizationOptions.h>
 #include <LoadBalancerWorker.h>
 #include <hdf5Misc.h>
 #include <logging.h>
 #include <multiConditionProblemResultWriter.h>
 #include <optimizationApplication.h>
 #include <misc.h>
+
 #include <iostream>
 #include <unistd.h>
 

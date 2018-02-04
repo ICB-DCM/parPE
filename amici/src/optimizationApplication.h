@@ -5,6 +5,8 @@
 #include "multiConditionProblemResultWriter.h"
 #include <LoadBalancerMaster.h>
 #include <LoadBalancerWorker.h>
+#include <hierachicalOptimization.h>
+
 #include <getopt.h>
 #include <string>
 
