@@ -32,9 +32,12 @@ struct JobAmiciSimulation {
         ::boost::iostreams::stream<::boost::iostreams::back_insert_device<std::string>>
             s(inserter);
         ::boost::archive::binary_oarchive oar(s);
+        // older version boost::serialization can only serialize lvalues?!
+        auto p = model->getParameters();
+        auto sens = solver->getSensitivityMethod();
         oar << *data
-            << model->getParameters()
-            << solver->getSensitivityMethod();
+            << p
+            << sens;
 
         s.flush();
 

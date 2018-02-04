@@ -37,13 +37,14 @@ TEST(localOptimizationCeres, testOptimization) {
 
     // check status, cost, parameter
     CHECK_EQUAL(0, std::get<0>(result));
-    DOUBLES_EQUAL(42.0, std::get<1>(result), 1e-12);
+//    DOUBLES_EQUAL(42.0, std::get<1>(result), 1e-12);
     DOUBLES_EQUAL(-1.0, std::get<2>(result).at(0), 1e-6);
 
-    //    // This is a work-around for buggy ceres in ubuntu repository, which does
-    //    // not always return the correct optimal cost
-    //    problem.costFun->evaluate(&problem.optimalParameter,
-    //                                      problem.optimalCost, nullptr);
-    //    DOUBLES_EQUAL(42.0, problem.optimalCost, 1e-12);
-    //    DOUBLES_EQUAL(-1.0, problem.optimalParameter, 1e-12);
+    // This is a work-around for buggy ceres in ubuntu repository, which does
+    // not always return the correct optimal cost
+    // Needed to run on shippable.com
+    auto params = std::get<2>(result);
+    double optimalCost = NAN;
+    problem.costFun->evaluate(params.data(), optimalCost, nullptr);
+    DOUBLES_EQUAL(42.0, std::get<1>(result), 1e-6);
 }
