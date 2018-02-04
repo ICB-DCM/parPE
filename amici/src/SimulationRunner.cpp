@@ -31,9 +31,10 @@ int SimulationRunner::runDistributedMemory(LoadBalancerMaster *loadBalancer) {
         // UserData::k
         JobIdentifier path = getJobIdentifier(simulationIdx);
 
-        amici::UserData udata = getUserData(simulationIdx);
+        auto modelSolver = getUserData(simulationIdx);
 
-        queueSimulation(loadBalancer, path, &jobs[simulationIdx], &udata,
+        queueSimulation(loadBalancer, path, &jobs[simulationIdx],
+                        modelSolver.second.get(), modelSolver.first.get(),
                         &numJobsFinished, &simulationsCond, &simulationsMutex,
                         simulationIdx);
         // printf("Queued work: "); printDatapath(path);
@@ -67,9 +68,9 @@ int SimulationRunner::runSharedMemory(LoadBalancerWorker::messageHandlerFunc mes
     for (int simulationIdx = 0; simulationIdx < numJobsTotal; ++simulationIdx) {
         JobIdentifier path = getJobIdentifier(simulationIdx);
 
-        amici::UserData udata = getUserData(simulationIdx);
+        auto udata = getUserData(simulationIdx);
 
-        JobAmiciSimulation<JobIdentifier> work(&udata, &path);
+        JobAmiciSimulation<JobIdentifier> work(udata.second.get(), udata.first.get(), &path);
         std::vector<char> buffer = work.serialize();
         messageHandler(buffer, simulationIdx);
 
@@ -89,14 +90,14 @@ int SimulationRunner::runSharedMemory(LoadBalancerWorker::messageHandlerFunc mes
 
 void SimulationRunner::queueSimulation(LoadBalancerMaster *loadBalancer,
                                        JobIdentifier path, JobData *d,
-                                       amici::UserData *udata, int *jobDone,
+                                       amici::Solver *solver, amici::Model *model, int *jobDone,
                                        pthread_cond_t *jobDoneChangedCondition,
                                        pthread_mutex_t *jobDoneChangedMutex,
                                        int simulationIdx) {
 
     *d = JobData(jobDone, jobDoneChangedCondition, jobDoneChangedMutex);
 
-    JobAmiciSimulation<JobIdentifier> work(udata, &path);
+    JobAmiciSimulation<JobIdentifier> work(solver, model, &path);
     d->sendBuffer = work.serialize();
 
     if(callbackJobFinished)

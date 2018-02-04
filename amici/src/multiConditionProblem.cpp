@@ -11,7 +11,6 @@
 #include <amici_interface_cpp.h>
 #include <amici_model.h>
 #include <rdata.h>
-#include <udata.h>
 #include <amici_serialization.h>
 
 #include <cassert>
@@ -31,8 +30,8 @@ MultiConditionProblem::MultiConditionProblem(
 
 MultiConditionProblem::MultiConditionProblem(
         MultiConditionDataProvider *dp, LoadBalancerMaster *loadBalancer)
-    : OptimizationProblem(std::unique_ptr<parpe::MultiConditionGradientFunction>(
-                              new parpe::MultiConditionGradientFunction(dp, loadBalancer))),
+    : OptimizationProblem(
+          std::make_unique<parpe::MultiConditionGradientFunction>(dp, loadBalancer)),
       dataProvider(dp)
 {
 }
@@ -75,34 +74,34 @@ int MultiConditionProblem::earlyStopping() {
 }
 
 template <typename T>
-JobResultAmiciSimulation AmiciSummedGradientFunction<T>::runAndLogSimulation(amici::UserData *udata,
+JobResultAmiciSimulation AmiciSummedGradientFunction<T>::runAndLogSimulation(amici::Solver &solver,
+                                                                             amici::Model &model,
                                                                              JobIdentifier path,
                                                                              int jobId) const {
     double startTime = MPI_Wtime();
-
-    auto model = dataProvider->getModel();
 
     // run simulation
 
     // update UserData::k for condition-specific variables (no parameter mapping
     // necessary here, this has been done by master)
-    dataProvider->updateFixedSimulationParameters(path.idxConditions, *udata);
+    dataProvider->updateFixedSimulationParameters(path.idxConditions, model);
 
-    auto edata = dataProvider->getExperimentalDataForCondition(path.idxConditions, udata);
+    auto edata = dataProvider->getExperimentalDataForCondition(path.idxConditions);
 
     auto rdata = std::unique_ptr<amici::ReturnData>(
-                amici::getSimulationResults(model, udata, edata.get()));
+                amici::getSimulationResults(model, edata.get(), solver));
 
     double endTime = MPI_Wtime();
     double timeSeconds = (endTime - startTime);
 
-    printSimulationResult(path, jobId, udata, rdata.get(), timeSeconds);
+    printSimulationResult(path, jobId, rdata.get(), timeSeconds);
 
-    if (resultWriter && (udata->sensi > amici::AMICI_SENSI_ORDER_NONE || logLineSearch)) {
+    if (resultWriter && (solver.getSensitivityOrder() > amici::AMICI_SENSI_ORDER_NONE || logLineSearch)) {
         int iterationsUntilSteadystate = -1;
-        logSimulation(resultWriter->getFileId(), resultWriter->getOptimizationPath(), udata->p, rdata->llh[0], rdata->sllh,
-                timeSeconds, model->np, model->nx, rdata->x,
-                rdata->sx, model->ny, rdata->y, jobId,
+        logSimulation(resultWriter->getFileId(), resultWriter->getOptimizationPath(),
+                      model.getParameters(), rdata->llh[0], rdata->sllh,
+                timeSeconds, model.np(), model.nx, rdata->x,
+                rdata->sx, model.ny, rdata->y, jobId,
                 iterationsUntilSteadystate, *rdata->status);
     }
     int status = (int)*rdata->status;
@@ -114,9 +113,10 @@ template <typename T>
 void AmiciSummedGradientFunction<T>::messageHandler(std::vector<char> &buffer,
                                                     int jobId) const {
     // unpack
-    auto udata = std::unique_ptr<amici::UserData>(dataProvider->getUserData());
     JobIdentifier path;
-    JobAmiciSimulation<JobIdentifier> sim(udata.get(), &path);
+    auto solver = dataProvider->getSolver();
+    auto model = dataProvider->getModel();
+    JobAmiciSimulation<JobIdentifier> sim(solver.get(), model.get(), &path);
     sim.deserialize(buffer.data(), buffer.size());
 
 #if QUEUE_WORKER_H_VERBOSE >= 2
@@ -127,7 +127,7 @@ void AmiciSummedGradientFunction<T>::messageHandler(std::vector<char> &buffer,
 #endif
 
     // do work
-    JobResultAmiciSimulation result = runAndLogSimulation(udata.get(), path, jobId);
+    JobResultAmiciSimulation result = runAndLogSimulation(*solver, *model, path, jobId);
 
 #if QUEUE_WORKER_H_VERBOSE >= 2
     printf("[%d] Work done. ", mpiRank);
@@ -160,7 +160,7 @@ void AmiciSummedGradientFunction<T>::messageHandler(std::vector<char> &buffer,
 //    delete[] result.rdata->y;
 //    result.rdata->y = nullptr;
 
-    buffer = amici::serializeToStdVec<JobResultAmiciSimulation>(&result);
+    buffer = amici::serializeToStdVec<JobResultAmiciSimulation>(result);
 }
 
 double MultiConditionProblem::getTime() const {
@@ -191,7 +191,9 @@ void AmiciSummedGradientFunction<T>::updateUserDataCommon(
 
     // update common parameters in UserData, cell-line specific ones are updated
     // later
-    memcpy(udata->p, simulationParameters, sizeof(double) * model->np);
+    auto p = model->getParameters();
+    std::copy(simulationParameters, simulationParameters + model->np(), p.data());
+    model->setParameters(p);
 }
 
 
@@ -209,9 +211,10 @@ int AmiciSummedGradientFunction<T>::runSimulations(const double *optimizationVar
                 [&](int simulationIdx) {
         // extract parameters for simulation of current condition, instead
         // of sending whole  optimization parameter vector to worker
+        auto myModel = std::unique_ptr<amici::Model>(model->clone());
         dataProvider->updateConditionSpecificSimulationParameters(
-                    dataIndices[simulationIdx], optimizationVariables, udata.get());
-        return *udata;
+                    dataIndices[simulationIdx], optimizationVariables, *myModel);
+        return std::pair<std::unique_ptr<amici::Model>,std::unique_ptr<amici::Solver>>(std::move(myModel), std::unique_ptr<amici::Solver>(solver->clone()));
     },
     [&](int simulationIdx) {
         path.idxConditions = dataIndices[simulationIdx];
@@ -232,7 +235,7 @@ int AmiciSummedGradientFunction<T>::runSimulations(const double *optimizationVar
         errors += simRunner.runSharedMemory(
                     [&](std::vector<char> &buffer, int jobId) {
                 messageHandler(buffer, jobId);
-    });
+    }, true); //TODO reenvable
     }
 
     return errors;
@@ -299,11 +302,11 @@ template <typename T>
 void AmiciSummedGradientFunction<T>::setSensitivityOptions(bool sensiRequired) const {
     // sensitivities requested?
     if (sensiRequired) {
-        udata->sensi = udataOriginal.sensi;
-        udata->sensi_meth = udataOriginal.sensi_meth;
+        solver->setSensitivityOrder(solverOriginal->getSensitivityOrder());
+        solver->setSensitivityMethod(solverOriginal->getSensitivityMethod());
     } else {
-        udata->sensi = amici::AMICI_SENSI_ORDER_NONE;
-        udata->sensi_meth = amici::AMICI_SENSI_NONE;
+        solver->setSensitivityOrder(amici::AMICI_SENSI_ORDER_NONE);
+        solver->setSensitivityMethod(amici::AMICI_SENSI_NONE);
     }
 }
 
@@ -337,7 +340,7 @@ std::unique_ptr<OptimizationProblem> MultiConditionProblemMultiStartOptimization
     return std::move(problem);
 }
 
-void printSimulationResult(const JobIdentifier &path, int jobId, amici::UserData const* udata, amici::ReturnData const* rdata, double timeSeconds) {
+void printSimulationResult(const JobIdentifier &path, int jobId, amici::ReturnData const* rdata, double timeSeconds) {
     char pathStrBuf[100];
     path.sprint(pathStrBuf);
     logmessage(LOGLVL_DEBUG, "Result for %s (%d): %g (%d) (%.4fs)", pathStrBuf,
@@ -345,8 +348,8 @@ void printSimulationResult(const JobIdentifier &path, int jobId, amici::UserData
 
 
     // check for NaNs
-    if (udata->sensi >= amici::AMICI_SENSI_ORDER_FIRST) {
-        for (int i = 0; i < udata->np; ++i) {
+    if (rdata->sensi >= amici::AMICI_SENSI_ORDER_FIRST) {
+        for (int i = 0; i < rdata->np; ++i) {
             if (std::isnan(rdata->sllh[i])) {
                 logmessage(LOGLVL_DEBUG, "Result for %s: contains NaN at %d",
                            pathStrBuf, i);
@@ -362,12 +365,13 @@ void printSimulationResult(const JobIdentifier &path, int jobId, amici::UserData
 
 template <typename T>
 AmiciSummedGradientFunction<T>::AmiciSummedGradientFunction(MultiConditionDataProvider *dataProvider, LoadBalancerMaster *loadBalancer, MultiConditionProblemResultWriter *resultWriter)
-    : dataProvider(dataProvider), model(dataProvider->getModel()),
-      udata(dataProvider->getUserDataForCondition(0)),
-      udataOriginal (*udata), resultWriter(resultWriter)
+    : dataProvider(dataProvider),
+      loadBalancer(loadBalancer),
+      model(dataProvider->getModelForCondition(0)),
+      solver(dataProvider->getSolver()),
+      solverOriginal(solver->clone()),
+      resultWriter(resultWriter)
 {
-    if (udata == nullptr)
-        abort();
 }
 
 template<typename T>
@@ -402,7 +406,7 @@ int MultiConditionGradientFunction::numParameters() const
     return summedGradFun->numParameters();
 }
 
-void logSimulation(hid_t file_id, std::string pathStr, const double *theta, double llh, const double *gradient, double timeElapsedInSeconds, int nTheta, int numStates, double *states, double *stateSensi, int numY, double *y, int jobId, int iterationsUntilSteadystate, int status)
+void logSimulation(hid_t file_id, std::string pathStr, std::vector<double> const& theta, double llh, const double *gradient, double timeElapsedInSeconds, int nTheta, int numStates, double *states, double *stateSensi, int numY, double *y, int jobId, int iterationsUntilSteadystate, int status)
 {
     // TODO replace by SimulationResultWriter
     const char *fullGroupPath = pathStr.c_str();
@@ -425,9 +429,9 @@ void logSimulation(hid_t file_id, std::string pathStr, const double *theta, doub
             dummyGradient, nTheta);
     }
 
-    if (theta)
+    if (theta.size())
         hdf5CreateOrExtendAndWriteToDouble2DArray(
-            file_id, fullGroupPath, "simulationParameters", theta, nTheta);
+            file_id, fullGroupPath, "simulationParameters", theta.data(), theta.size());
 
     hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath,
                                               "simulationWallTimeInSec",
@@ -510,9 +514,10 @@ FunctionEvaluationStatus AmiciSummedGradientFunction<T>::getModelOutputs(const d
                 [&](int simulationIdx) {
         // extract parameters for simulation of current condition, instead
         // of sending whole  optimization parameter vector to worker
+        auto myModel = std::unique_ptr<amici::Model>(model->clone());
         dataProvider->updateConditionSpecificSimulationParameters(
-                    dataIndices[simulationIdx], parameters, udata.get());
-        return *udata;
+                    dataIndices[simulationIdx], parameters, *myModel);
+        return std::pair<std::unique_ptr<amici::Model>,std::unique_ptr<amici::Solver>>(std::move(myModel), std::unique_ptr<amici::Solver>(solver->clone()));
     },
     [&](int simulationIdx) {
         path.idxConditions = dataIndices[simulationIdx];

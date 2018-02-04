@@ -49,15 +49,7 @@ class OptimizationApplication {
      * @brief Code to be run on worker processes. Waits for jobs to be sent to
      * messageHandler()
      */
-    virtual int runWorker() {
-        // TODO: Move out of here
-        LoadBalancerWorker lbw;
-        lbw.run([this](std::vector<char> &buffer, int jobId) {
-            problem->mcGradFun->summedGradFun->messageHandler(buffer, jobId);
-        });
-
-        return 0;
-    }
+    virtual int runWorker();
 
     /**
      * @brief Code to be run if the application is running on only 1 process

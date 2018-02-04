@@ -7,14 +7,14 @@
 #include <amici_model.h>
 #include "steadyStateMultiConditionDataprovider.h"
 
-amici::Model *getModel();
+std::unique_ptr<amici::Model> getModel();
 
 int run(parpe::StandaloneSimulator &sim, std::string resultFileName, std::string resultPath,
         parpe::LoadBalancerMaster *loadBalancer) {
 
     // for each parameters in resultFileName
     auto model = getModel();
-    std::vector<double> parameters(model->np, 1);
+    std::vector<double> parameters(model->np(), 1);
     int errors = 0;
     errors += sim.run(resultFileName, resultPath, parameters, loadBalancer);
     return errors;
@@ -33,8 +33,7 @@ int main(int argc, char **argv) {
     std::string resultPath = argv[4];
 
     int status = 0;
-    auto model = getModel();
-    SteadyStateMultiConditionDataProvider dp(model, dataFileName, "/inputData");
+    SteadyStateMultiConditionDataProvider dp(getModel(), dataFileName, "/inputData");
     parpe::StandaloneSimulator sim(&dp);
 
     int commSize = parpe::getMpiCommSize();

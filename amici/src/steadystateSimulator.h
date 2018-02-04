@@ -3,7 +3,6 @@
 
 #include <edata.h>
 #include <rdata.h>
-#include <udata.h>
 #include <amici.h>
 
 namespace parpe {
@@ -17,20 +16,20 @@ class SteadystateSimulator {
   public:
     /**
      * @brief SteadystateSimulator::getSteadystateSolution
-     * @param udata Note: Content of udata->x0 will be overwritten.
+     * @param model Note: Content of model->x0 will be overwritten.
      * @param edata
      * @param status
      * @param iterationDone
      * @return
      */
 
-    static amici::ReturnData *getSteadystateSolution(amici::Model *model, amici::UserData *udata,
+    static amici::ReturnData *getSteadystateSolution(amici::Model &model, amici::Solver &solver,
                                               amici::ExpData *edata, int *status,
                                               int *iterationDone);
 
     /**
      * @brief getSteadystateSolution Simulate the model until steady state
-     * @param udata: Model data and options
+     * @param model: Model data and options
      * @param edata: ExpData TODO: could remove in case of no events?
      * @param status: return status, 0 if successful
      * @param iterationDone: Iterations of simulation to t=10^9 until

@@ -2,7 +2,6 @@
 #include <hdf5Misc.h>
 #include "testingMisc.h"
 #include <amici_model.h>
-#include <udata.h>
 #include <edata.h>
 #include <rdata.h>
 #include "CppUTest/TestHarness.h"
@@ -10,7 +9,9 @@
 #include <vector>
 #include <algorithm>
 #include <numeric>
+#include <amici_solver_cvodes.h>
 
+#include "../tests/cpputest/testfunctions.h" // for Modell_Test
 
 // clang-format off
 TEST_GROUP(simulationResultWriter){
@@ -38,18 +39,21 @@ TEST(simulationResultWriter, testResultWriter) {
 
     constexpr int numSimulations = 2;
 
-    amici::Model model(4, 3, 3, 1, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, amici::AMICI_O2MODE_NONE);
+    amici::Model_Test model( 3, 3, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0,
+                            amici::AMICI_O2MODE_NONE,std::vector<realtype>(),
+                            std::vector<realtype>(),std::vector<int>(),
+                            std::vector<realtype>(),std::vector<int>());
 
-    amici::UserData udata(model.np, model.nk, model.nx);
     std::vector<double> timepoints {1.0, 2.0};
-    udata.setTimepoints(timepoints.data(), timepoints.size());
+    model.setTimepoints(timepoints);
 
-    amici::ExpData edata(&udata, &model);
+    amici::ExpData edata(&model);
     std::vector<double> measurements {1.1, 2.1, 3.1, 4.1};
-    CHECK_TRUE(measurements.size() == (unsigned) model.nytrue * udata.nt);
+    CHECK_TRUE(measurements.size() == (unsigned) model.nytrue * model.nt());
     edata.setObservedData(measurements.data());
 
-    amici::ReturnData rdata(&udata, &model);
+    amici::CVodeSolver solver;
+    amici::ReturnData rdata(solver, &model);
     std::vector<double> xdot(model.nx);
     std::iota(xdot.begin(), xdot.end(), 0);
     std::copy(xdot.begin(), xdot.end(), rdata.xdot);
@@ -61,7 +65,7 @@ TEST(simulationResultWriter, testResultWriter) {
     auto file = rw.reopenFile();
 
     // write
-    rw.createDatasets(model, &udata, &edata, numSimulations);
+    rw.createDatasets(model, &edata, numSimulations);
 
     CHECK_TRUE(parpe::hdf5GroupExists(file.getId(), "/testResultWriter/"));
     CHECK_TRUE(parpe::hdf5DatasetExists(file.getId(), rw.llhPath.c_str()));
@@ -79,7 +83,7 @@ TEST(simulationResultWriter, testResultWriter) {
 
     std::vector<double> yMesAct(measurements.size());
     parpe::hdf5Read3DDoubleHyperslab(file.getId(), rw.yMesPath.c_str(),
-                                     1, udata.nt, model.ny, 1, 0, 0, yMesAct.data());
+                                     1, model.nt(), model.ny, 1, 0, 0, yMesAct.data());
     checkEqualArray(measurements.data(), yMesAct.data(), yMesAct.size(), 1e-16, 1e-16);
 
 }

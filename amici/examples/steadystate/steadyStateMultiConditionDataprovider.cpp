@@ -5,41 +5,50 @@
 #include <misc.h>
 #include <multiConditionProblemResultWriter.h>
 
-SteadyStateMultiConditionDataProvider::SteadyStateMultiConditionDataProvider(Model *model, std::string hdf5Filename, std::string rootPath)
-    : MultiConditionDataProvider(model, hdf5Filename, rootPath) {
+SteadyStateMultiConditionDataProvider::SteadyStateMultiConditionDataProvider(std::unique_ptr<amici::Model> model, std::string hdf5Filename, std::string rootPath)
+    : MultiConditionDataProvider(std::move(model), hdf5Filename, rootPath),
+      solver(this->model->getSolver())
+{
+    setupModelAndSolver(*this->model, *this->solver);
 
-    udata = std::unique_ptr<UserData>(getUserData());
 }
 
 int SteadyStateMultiConditionDataProvider::getNumConditionSpecificParametersPerSimulation() const {
     return 0;
 }
 
+std::unique_ptr<amici::Model> SteadyStateMultiConditionDataProvider::getModel() const
+{
+    return std::unique_ptr<amici::Model>(model->clone());
+}
 
-void SteadyStateMultiConditionDataProvider::setupUserData(
-    UserData *udata) const {
+std::unique_ptr<amici::Solver> SteadyStateMultiConditionDataProvider::getSolver() const
+{
+    return std::unique_ptr<amici::Solver>(solver->clone());
+}
+
+
+void SteadyStateMultiConditionDataProvider::setupModelAndSolver(amici::Model &model, amici::Solver &solver) const {
 
     hsize_t length;
     auto timePath = rootPath + "/parameters";
-    AMI_HDF5_getDoubleArrayAttribute(fileId, timePath.c_str(), "t", &udata->ts, &length);
-    udata->nt = length;
+    double *buf;
+    amici::AMI_HDF5_getDoubleArrayAttribute(fileId, timePath.c_str(), "t", &buf, &length);
+    model.setTimepoints(std::vector<double>(buf, buf+length));
+    delete[] buf;
 
     // calculate sensitivities for all parameters
-    udata->requireSensitivitiesForAllParameters();
+    model.requireSensitivitiesForAllParameters();
 
     // set model constants
-    updateFixedSimulationParameters(0, *udata);
+    updateFixedSimulationParameters(0, model);
 
-    udata->pscale = AMICI_SCALING_LOG10;
-    udata->sensi = AMICI_SENSI_ORDER_FIRST;
-    udata->sensi_meth = AMICI_SENSI_FSA;
-    udata->maxsteps = 1e4;
-    udata->newton_maxlinsteps = 100;
-    udata->newton_maxsteps = 40;
+    model.setParameterScale(amici::AMICI_SCALING_LOG10);
+
+    solver.setSensitivityOrder(amici::AMICI_SENSI_ORDER_FIRST);
+    solver.setSensitivityMethod(amici::AMICI_SENSI_FSA);
+    solver.setMaxSteps(1e4);
+    solver.setNewtonMaxLinearSteps(100);
+    solver.setNewtonMaxSteps(40);
 }
 
-std::unique_ptr<UserData> SteadyStateMultiConditionDataProvider::getUserData() const {
-    auto udata = std::unique_ptr<amici::UserData>(model->getNewUserData());
-    setupUserData(udata.get());
-    return udata;
-}

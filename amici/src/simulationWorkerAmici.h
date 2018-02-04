@@ -1,13 +1,13 @@
 #ifndef SIMULATION_WORKER_H
 #define SIMULATION_WORKER_H
 
+#include <misc.h>
+
 #include <include/rdata.h>
-#include <include/udata.h>
 #include <amici_serialization.h>
+
 #include <boost/serialization/array.hpp>
 #include <boost/serialization/vector.hpp>
-#include <misc.h>
-#include <udata.h>
 
 namespace parpe {
 
@@ -17,10 +17,11 @@ namespace parpe {
 template<typename USERDATA>
 struct JobAmiciSimulation {
   public:
-    JobAmiciSimulation(amici::UserData *udata, USERDATA *data)
-        : udata(udata), data(data)
+    JobAmiciSimulation(amici::Solver *solver, amici::Model *model, USERDATA *data)
+        : solver(solver), model(model), data(data)
     {}
-    amici::UserData *udata = nullptr;
+    amici::Solver *solver = nullptr;
+    amici::Model *model = nullptr;
 
     /** Simulation data or dataset Id */
     USERDATA *data = nullptr;
@@ -32,9 +33,8 @@ struct JobAmiciSimulation {
             s(inserter);
         ::boost::archive::binary_oarchive oar(s);
         oar << *data
-            << udata->np
-            << boost::serialization::make_array<double>(udata->p, udata->np)
-            << udata->sensi_meth;
+            << model->getParameters()
+            << solver->getSensitivityMethod();
 
         s.flush();
 
@@ -49,15 +49,17 @@ struct JobAmiciSimulation {
             device);
         ::boost::archive::binary_iarchive iar(s);
         iar >> *data;
-        int numSimulationParameters;
-        iar >> numSimulationParameters;
-        assert(numSimulationParameters == udata->np);
-        iar >> boost::serialization::make_array<double>(udata->p, numSimulationParameters);
+
+        std::vector<double> parameters;
+        iar >> parameters;
+        model->setParameters(parameters);
+
         int sensitivityMethod;
         iar >> sensitivityMethod;
-        udata->sensi_meth = (amici::AMICI_sensi_meth) sensitivityMethod;
-        udata->sensi = sensitivityMethod > 0 ? amici::AMICI_SENSI_ORDER_FIRST
-                                             : amici::AMICI_SENSI_ORDER_NONE;
+        solver->setSensitivityMethod(static_cast<amici::AMICI_sensi_meth>(sensitivityMethod));
+        solver->setSensitivityOrder(sensitivityMethod > 0 ?
+                                        amici::AMICI_SENSI_ORDER_FIRST
+                                      : amici::AMICI_SENSI_ORDER_NONE);
 
     }
 };
@@ -68,8 +70,7 @@ public:
     JobResultAmiciSimulation(int status, std::unique_ptr<amici::ReturnData> rdata, double simulationTimeInSec)
         : status(status), rdata(std::move(rdata)), simulationTimeInSec(simulationTimeInSec) {}
 
-    ~JobResultAmiciSimulation() {
-    }
+    ~JobResultAmiciSimulation() = default;
 
     JobResultAmiciSimulation ( JobResultAmiciSimulation && other) {
         std::swap(status, other.status);

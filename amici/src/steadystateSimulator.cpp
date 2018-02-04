@@ -11,12 +11,12 @@ namespace parpe {
 
 #define XDOT_REL_TOLERANCE 1e-6
 
-amici::ReturnData *SteadystateSimulator::getSteadystateSolution(amici::Model *model,
-                                                         amici::UserData *udata,
+amici::ReturnData *SteadystateSimulator::getSteadystateSolution(amici::Model &model,
+                                                         amici::Solver &solver,
                                                          amici::ExpData *edata,
                                                          int *status,
                                                          int *iterationDone) {
-    if (udata->nt > 1)
+    if (model.nt() > 1)
         throw(ParPEException("SteadystateSimulator::getSteadystateSolution "
                              "works only with nt == 1"));
 
@@ -27,7 +27,7 @@ amici::ReturnData *SteadystateSimulator::getSteadystateSolution(amici::Model *mo
     while (!inSteadyState) {
         ++iterations;
 
-        rdata = amici::getSimulationResults(model, udata, edata);
+        rdata = amici::getSimulationResults(model, edata, solver);
 
         if (*rdata->status < 0) {
             error("Failed to integrate."); // TODO add dataset info,
@@ -57,7 +57,7 @@ amici::ReturnData *SteadystateSimulator::getSteadystateSolution(amici::Model *mo
         }
 
         // use previous solution as initial conditions
-        updateInitialConditions(udata->x0data, rdata->x, rdata->nx);
+        model.setInitialStates(std::vector<double>(rdata->x, rdata->x + rdata->nx));
 
         delete rdata;
     }
@@ -69,11 +69,6 @@ amici::ReturnData *SteadystateSimulator::getSteadystateSolution(amici::Model *mo
     return rdata;
 }
 
-void SteadystateSimulator::updateInitialConditions(double destination[],
-                                                   const double src[],
-                                                   int count) {
-    memcpy(destination, src, count * sizeof(double));
-}
 
 bool SteadystateSimulator::reachedSteadyState(const double *xdot,
                                               const double *x,

@@ -67,7 +67,7 @@ class MultiConditionDataProvider {
      * The user is responsible for deleting the Model.
      * @param hdf5Filename Path to the HDF5 file from which the data is to be read
      */
-    MultiConditionDataProvider(amici::Model *model, std::string hdf5Filename);
+    MultiConditionDataProvider(std::unique_ptr<amici::Model> model, std::string hdf5Filename);
 
     /**
      * @brief See above.
@@ -75,7 +75,7 @@ class MultiConditionDataProvider {
      * @param hdf5Filename
      * @param rootPath The name of the HDF5 group under which the data is stored.
      */
-    MultiConditionDataProvider(amici::Model *model, std::string hdf5Filename,
+    MultiConditionDataProvider(std::unique_ptr<amici::Model> model, std::string hdf5Filename,
                                std::string rootPath);
 
     virtual ~MultiConditionDataProvider() = default;
@@ -104,10 +104,9 @@ class MultiConditionDataProvider {
      * @return Status, 0 on success, non-zero otherwise
      */
     virtual int updateFixedSimulationParameters(int conditionIdx,
-                                                amici::UserData &udata) const;
+                                                amici::Model &model) const;
 
-    virtual std::unique_ptr<amici::ExpData> getExperimentalDataForCondition(int conditionIdx,
-                                    const amici::UserData *udata) const;
+    virtual std::unique_ptr<amici::ExpData> getExperimentalDataForCondition(int conditionIdx) const;
 
     /**
      * @brief getOptimizationParametersLowerBounds Get lower parameter bounds
@@ -141,24 +140,19 @@ class MultiConditionDataProvider {
      * @brief Returns a pointer to the underlying AMICI model
      * @return The model
      */
-    virtual amici::Model *getModel() const;
+    virtual std::unique_ptr<amici::Model> getModel() const;
+
+
+    virtual std::unique_ptr<amici::Solver> getSolver() const;
 
     /**
-     * @brief Returns a new UserData instance with options read from the HDF5
-     * file.
-     * Fixed and variable parameters are for no particular condition.
-     * @return A new UserData instance.
-     */
-    virtual std::unique_ptr<amici::UserData> getUserData() const;
-
-    /**
-     * @brief Returns a new UserData instance with options read from the HDF5
+     * @brief Returns a new Model instance with options read from the HDF5
      * file.
      * Fixed parameters are set for the specified condition (variable parameters
      * are not).
-     * @return A new UserData instance.
+     * @return A new Model instance.
      */
-    virtual std::unique_ptr<amici::UserData> getUserDataForCondition(int conditionIdx) const;
+    virtual std::unique_ptr<amici::Model> getModelForCondition(int conditionIdx) const;
 
     virtual int getIndexOfFirstConditionSpecificOptimizationParameter(
         int conditionIdx) const;
@@ -171,12 +165,11 @@ class MultiConditionDataProvider {
      * @param udata
      */
     void updateSimulationParameters(int conditionIndex, const double *optimizationParams,
-        amici::UserData *udata) const;
+        amici::Model &model) const;
 
 
-    virtual void updateConditionSpecificSimulationParameters(
-        int conditionIndex, const double *optimizationParams,
-        amici::UserData *udata) const;
+    virtual void updateConditionSpecificSimulationParameters(int conditionIndex, const double *optimizationParams,
+        amici::Model &model) const;
 
     void copyInputData(H5::H5File target);
 
@@ -189,7 +182,7 @@ class MultiConditionDataProvider {
     /**
      * @brief The model for which the data is to be read
      */
-    amici::Model *model = nullptr;
+    std::unique_ptr<amici::Model> model;
 
     /**
      * @brief Absolute paths in the HDF5 file to the datasets

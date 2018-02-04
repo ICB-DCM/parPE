@@ -18,7 +18,7 @@ class LoadBalancerMaster;
  */
 class SimulationRunner {
   public:
-    using getUserDataType         = std::function<amici::UserData (int)>;
+    using getUserDataType         = std::function<std::pair<std::unique_ptr<amici::Model>,std::unique_ptr<amici::Solver>> (int)>;
     using getJobIdentifierType    = std::function<JobIdentifier(int)>;
     using callbackJobFinishedType = std::function<void(JobData*, int)>;
     using callbackAllFinishedType = std::function<int(std::vector<JobData> &)>;
@@ -57,7 +57,7 @@ private:
     void queueSimulation(LoadBalancerMaster *loadBalancer,
                          JobIdentifier path,
                          JobData *d,
-                         amici::UserData *udata,
+                         amici::Solver *solver, amici::Model *model,
                          int *jobDone,
                          pthread_cond_t *jobDoneChangedCondition,
                          pthread_mutex_t *jobDoneChangedMutex,

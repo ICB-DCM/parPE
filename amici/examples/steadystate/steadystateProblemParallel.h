@@ -39,11 +39,11 @@ private:
     void readFixedParameters(int conditionIdx) const;
     void readMeasurement(int conditionIdx) const;
 
-    parpe::LoadBalancerMaster *loadBalancer = nullptr;
+    parpe::LoadBalancerMaster *loadBalancer = nullptr; // non-owning
 
-    std::unique_ptr<amici::UserData> udata;
     std::unique_ptr<amici::ExpData> edata;
     std::unique_ptr<amici::Model> model;
+    std::unique_ptr<amici::Solver> solver;
     int numConditions;
 
     std::unique_ptr<SteadyStateMultiConditionDataProvider> dataProvider;

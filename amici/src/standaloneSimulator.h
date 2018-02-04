@@ -1,11 +1,11 @@
 #ifndef STANDALONESIMULATOR_H
 #define STANDALONESIMULATOR_H
 
+#include <multiConditionProblem.h>
+
 #include <amici.h>
-#include <udata.h>
 #include <edata.h>
 #include <rdata.h>
-#include <multiConditionProblem.h>
 
 namespace parpe {
 
@@ -24,7 +24,7 @@ public:
 
 private:
 
-    JobResultAmiciSimulation runSimulation(amici::UserData *udata, JobIdentifier path,
+    JobResultAmiciSimulation runSimulation(JobIdentifier path,
                                     int jobId);
 
     MultiConditionDataProvider *dataProvider = nullptr;
