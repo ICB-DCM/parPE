@@ -59,11 +59,10 @@ class SteadystateApplication : public parpe::OptimizationApplication {
 
     virtual void initProblem(std::string inFileArgument,
                              std::string outFileArgument) override {
-        model = std::unique_ptr<Model>(getModel());
-        dataProvider = std::make_unique<SteadyStateMultiConditionDataProvider>(model.get(), inFileArgument);
+        model = std::unique_ptr<amici::Model>(getModel());
+        dataProvider = std::make_unique<SteadyStateMultiConditionDataProvider>(std::unique_ptr<amici::Model>(model->clone()), inFileArgument);
 
-        problem = std::unique_ptr<parpe::MultiConditionProblem>(
-                    new SteadyStateMultiConditionProblem(dataProvider.get(), &loadBalancer));
+        problem.reset(new SteadyStateMultiConditionProblem(dataProvider.get(), &loadBalancer));
 
         parpe::JobIdentifier id;
         resultWriter = std::make_unique<parpe::MultiConditionProblemResultWriter>(outFileArgument, true, id);
@@ -76,7 +75,7 @@ class SteadystateApplication : public parpe::OptimizationApplication {
     }
 
     std::unique_ptr<SteadyStateMultiConditionDataProvider> dataProvider;
-    std::unique_ptr<Model> model;
+    std::unique_ptr<amici::Model> model;
 };
 
 /**

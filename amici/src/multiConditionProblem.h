@@ -76,7 +76,7 @@ public:
      * @return
      */
     // TODO does not belong here
-    JobResultAmiciSimulation runAndLogSimulation(amici::UserData *udata, JobIdentifier path,
+    JobResultAmiciSimulation runAndLogSimulation(amici::Solver &solver, amici::Model &model, JobIdentifier path,
                                     int jobId) const;
 
 
@@ -149,12 +149,14 @@ protected:// for testing
     void setSensitivityOptions(bool sensiRequired) const;
 
 private:
+    // TODO: make owning
     MultiConditionDataProvider *dataProvider = nullptr;
+    // Non-owning
     LoadBalancerMaster *loadBalancer = nullptr;
-    amici::Model *model = nullptr;
-    std::unique_ptr<amici::UserData> udata;
-    amici::UserData udataOriginal; // for saving sensitivity options which are changed depending on whether gradient is needed
-    MultiConditionProblemResultWriter *resultWriter = nullptr;
+    std::unique_ptr<amici::Model> model;
+    std::unique_ptr<amici::Solver> solver;
+    std::unique_ptr<amici::Solver> solverOriginal; // for saving sensitivity options which are changed depending on whether gradient is needed
+    MultiConditionProblemResultWriter *resultWriter = nullptr; // TODO: owning?
     bool logLineSearch = false;
 };
 
@@ -269,8 +271,6 @@ class MultiConditionProblem : public OptimizationProblem {
 
     std::unique_ptr<MultiConditionProblemResultWriter> resultWriter;
 
-    MultiConditionGradientFunction *mcGradFun = nullptr;
-
     void setInitialParameters(std::vector<double> startingPoint);
 
     std::unique_ptr<OptimizationReporter> getReporter() const;
@@ -326,9 +326,9 @@ class MultiConditionProblemMultiStartOptimizationProblem
 
 
 
-void printSimulationResult(JobIdentifier const& path, int jobId, const amici::UserData *udata, const amici::ReturnData *rdata, double timeSeconds);
+void printSimulationResult(JobIdentifier const& path, int jobId, const amici::ReturnData *rdata, double timeSeconds);
 
-void logSimulation(hid_t file_id, std::string path, const double *theta, double llh,
+void logSimulation(hid_t file_id, std::string path, const std::vector<double> &theta, double llh,
                    const double *gradient, double timeElapsedInSeconds,
                    int nTheta, int numStates, double *states,
                    double *stateSensi, int numY, double *y, int jobId,

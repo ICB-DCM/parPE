@@ -6,7 +6,8 @@
 
 // mock amici
 namespace amici {
-int runAmiciSimulation(amici::UserData *, amici::ExpData const *, amici::ReturnData *) { return 0; }
+void runAmiciSimulation(Solver &solver, const ExpData *edata,
+                       ReturnData *rdata, Model &model);
 }
 
 /**

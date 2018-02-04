@@ -23,70 +23,72 @@ ExampleSteadystateProblem::ExampleSteadystateProblem(const std::string &dataFile
 
 void ExampleSteadystateProblem::fillInitialParameters(double *buffer) const
 {
-    fillArray(buffer, costFun->numParameters(), 0);
+    std::fill(buffer, buffer + costFun->numParameters(), 0.0);
 
 }
 
 void ExampleSteadystateProblem::fillParametersMin(double *buffer) const
 {
-    fillArray(buffer, costFun->numParameters(), -5);
+    std::fill(buffer, buffer + costFun->numParameters(), -5.0);
 
 }
 
 void ExampleSteadystateProblem::fillParametersMax(double *buffer) const
 {
-    fillArray(buffer, costFun->numParameters(), 5);
+    std::fill(buffer, buffer + costFun->numParameters(), 5.0);
 
 }
 
 void ExampleSteadystateGradientFunction::requireSensitivities(
     bool sensitivitiesRequired) const {
     if (sensitivitiesRequired) {
-        udata->sensi = AMICI_SENSI_ORDER_FIRST;
-        udata->sensi_meth = AMICI_SENSI_FSA;
+        solver->setSensitivityOrder(amici::AMICI_SENSI_ORDER_FIRST);
+        solver->setSensitivityMethod(amici::AMICI_SENSI_FSA);
     } else {
-        udata->sensi = AMICI_SENSI_ORDER_NONE;
-        udata->sensi_meth = AMICI_SENSI_NONE;
+        solver->setSensitivityOrder(amici::AMICI_SENSI_ORDER_NONE);
+        solver->setSensitivityMethod(amici::AMICI_SENSI_NONE);
     }
 }
 
 void ExampleSteadystateGradientFunction::setupUserData(int conditionIdx) {
-    udata.reset(model->getNewUserData());
-
     hsize_t length;
-    AMI_HDF5_getDoubleArrayAttribute(fileId, "parameters", "t", &udata->ts, &length);
-    udata->nt = length;
+    double *buf;
+    amici::AMI_HDF5_getDoubleArrayAttribute(fileId, "parameters", "t", &buf, &length);
+    model->setTimepoints(std::vector<double>(buf, buf+length));
+    delete[] buf;
 
     // set model constants
     readFixedParameters(conditionIdx);
 
-    udata->pscale = AMICI_SCALING_LOG10;
+    model->setParameterScale(amici::AMICI_SCALING_LOG10);
     requireSensitivities(true);
-    udata->requireSensitivitiesForAllParameters();
-    udata->maxsteps = 10000;
+    model->requireSensitivitiesForAllParameters();
+    solver->setMaxSteps(10000);
 }
 
 void ExampleSteadystateGradientFunction::setupExpData(int conditionIdx) {
-    edata.reset(new ExpData(udata.get(), model.get()));
+    edata.reset(new amici::ExpData(model.get()));
     readMeasurement(conditionIdx);
 }
 
 
 void ExampleSteadystateGradientFunction::readFixedParameters(int conditionIdx) const {
-    parpe::hdf5Read2DDoubleHyperslab(fileId, "/fixedParameters/k", model->nk, 1, 0, conditionIdx,
-                              udata->k);
+    std::vector<double> k(model->nk());
+    parpe::hdf5Read2DDoubleHyperslab(fileId, "/fixedParameters/k", k.size(), 1, 0, conditionIdx, k.data());
+    model->setFixedParameters(k);
 }
 
 void ExampleSteadystateGradientFunction::readMeasurement(int conditionIdx) const {
     parpe::hdf5Read3DDoubleHyperslab(fileId, "/measurements/y", 1, model->ny,
-                              udata->nt, conditionIdx, 0, 0, edata->my);
+                              model->nt(), conditionIdx, 0, 0, edata->my.data());
 
 
     parpe::hdf5Read3DDoubleHyperslab(fileId, "/measurements/ysigma", 1, edata->nytrue,
-                                     edata->nt, conditionIdx, 0, 0, edata->sigmay);
+                                     edata->nt, conditionIdx, 0, 0, edata->sigmay.data());
 }
 
-ExampleSteadystateGradientFunction::ExampleSteadystateGradientFunction(hid_t fileId) : model(getModel()), fileId(fileId)
+ExampleSteadystateGradientFunction::ExampleSteadystateGradientFunction(hid_t fileId)
+    : fileId(fileId), model(getModel()), solver(model->getSolver())
 {
     setupUserData(0);
     setupExpData(0);
@@ -95,19 +97,19 @@ ExampleSteadystateGradientFunction::ExampleSteadystateGradientFunction(hid_t fil
 parpe::FunctionEvaluationStatus ExampleSteadystateGradientFunction::evaluate(const double * const parameters, double &fval, double *gradient) const
 {
 
-    udata->setParameters(parameters);
+    model->setParameters(std::vector<double>(parameters, parameters + numParameters()));
 
     //    printArray(parameters, udata->np);printf("\n");
 
     requireSensitivities(gradient);
 
-    std::unique_ptr<amici::ReturnData> rdata {getSimulationResults(model.get(), udata.get(), edata.get())};
+    std::unique_ptr<amici::ReturnData> rdata {amici::getSimulationResults(*model, edata.get(), *solver)};
     int status = (int)*rdata->status;
 
     fval = -*rdata->llh;
 
     if (gradient)
-        for (int i = 0; i < model->np; ++i)
+        for (int i = 0; i < model->np(); ++i)
             gradient[i] = -rdata->sllh[i];
 
     return status == 0 ? parpe::functionEvaluationSuccess : parpe::functionEvaluationFailure;
@@ -115,5 +117,5 @@ parpe::FunctionEvaluationStatus ExampleSteadystateGradientFunction::evaluate(con
 
 int ExampleSteadystateGradientFunction::numParameters() const
 {
-    return model->np;
+    return model->np();
 }

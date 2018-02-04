@@ -15,8 +15,7 @@ StandaloneSimulator::StandaloneSimulator(MultiConditionDataProvider *dp)
 int StandaloneSimulator::run(const std::string& resultFile, const std::string& resultPath,
                              std::vector<double> parameters, LoadBalancerMaster *loadBalancer)
 {
-    auto udata = dataProvider->getUserData();
-    auto edata = dataProvider->getExperimentalDataForCondition(0, udata.get());
+    auto edata = dataProvider->getExperimentalDataForCondition(0);
     int errors = 0;
     JobIdentifier path;
 
@@ -26,16 +25,18 @@ int StandaloneSimulator::run(const std::string& resultFile, const std::string& r
     rw.saveLlh = true;
 
     auto model = dataProvider->getModel();
-    rw.createDatasets(*model, udata.get(), edata.get(), dataProvider->getNumberOfConditions());
+    auto solver = dataProvider->getSolver();
+    rw.createDatasets(*model, edata.get(), dataProvider->getNumberOfConditions());
 
     SimulationRunner simRunner(
                 dataProvider->getNumberOfConditions(),
                 [&](int simulationIdx) {
+        auto myModel = std::unique_ptr<amici::Model>(model->clone());
         // extract parameters for simulation of current condition, instead
         // of sending whole  optimization parameter vector to worker
         dataProvider->updateConditionSpecificSimulationParameters(
-                    simulationIdx, parameters.data(), udata.get());
-        return *udata;
+                    simulationIdx, parameters.data(), *myModel);
+        return std::pair<std::unique_ptr<amici::Model>,std::unique_ptr<amici::Solver>>(std::move(myModel), std::unique_ptr<amici::Solver>(solver->clone()));
     },
     [&](int simulationIdx) {
         path.idxConditions = simulationIdx;
@@ -48,7 +49,7 @@ int StandaloneSimulator::run(const std::string& resultFile, const std::string& r
                     job->recvBuffer.data(), job->recvBuffer.size());
         job->recvBuffer = std::vector<char>(); // free buffer
 
-        auto edata = dataProvider->getExperimentalDataForCondition(dataIdx, udata.get());
+        auto edata = dataProvider->getExperimentalDataForCondition(dataIdx);
 
         rw.saveSimulationResults(edata.get(), result.rdata.get(), dataIdx);
     }, nullptr);
@@ -70,9 +71,10 @@ int StandaloneSimulator::run(const std::string& resultFile, const std::string& r
 void StandaloneSimulator::messageHandler(std::vector<char> &buffer, int jobId)
 {
     // unpack
-    auto udata = std::unique_ptr<amici::UserData>(dataProvider->getUserData());
     JobIdentifier path;
-    JobAmiciSimulation<JobIdentifier> sim(udata.get(), &path);
+    auto model = dataProvider->getModelForCondition(0);
+    auto solver = dataProvider->getSolver();
+    JobAmiciSimulation<JobIdentifier> sim(solver.get(), model.get(), &path);
     sim.deserialize(buffer.data(), buffer.size());
 
 #if QUEUE_WORKER_H_VERBOSE >= 2
@@ -83,7 +85,7 @@ void StandaloneSimulator::messageHandler(std::vector<char> &buffer, int jobId)
 #endif
 
     // do work
-    JobResultAmiciSimulation result = runSimulation(udata.get(), path, jobId);
+    JobResultAmiciSimulation result = runSimulation(path, jobId);
 
 #if QUEUE_WORKER_H_VERBOSE >= 2
     printf("[%d] Work done. ", mpiRank);
@@ -112,22 +114,23 @@ void StandaloneSimulator::messageHandler(std::vector<char> &buffer, int jobId)
     delete[] result.rdata->xdot;
     result.rdata->xdot = nullptr;
 
-    buffer = amici::serializeToStdVec<JobResultAmiciSimulation>(&result);
+    buffer = amici::serializeToStdVec<JobResultAmiciSimulation>(result);
 }
 
 
-JobResultAmiciSimulation StandaloneSimulator::runSimulation(amici::UserData *udata, JobIdentifier path, int jobId)
+JobResultAmiciSimulation StandaloneSimulator::runSimulation(JobIdentifier path, int jobId)
 {
     auto model = dataProvider->getModel();
+    auto solver = dataProvider->getSolver();
 
-    dataProvider->updateFixedSimulationParameters(path.idxConditions, *udata);
+    dataProvider->updateFixedSimulationParameters(path.idxConditions, *model);
 
-    auto edata = dataProvider->getExperimentalDataForCondition(path.idxConditions, udata);
+    auto edata = dataProvider->getExperimentalDataForCondition(path.idxConditions);
 
     auto rdata = std::unique_ptr<amici::ReturnData>(
-                amici::getSimulationResults(model, udata, edata.get()));
+                amici::getSimulationResults(*model, edata.get(), *solver));
 
-    RELEASE_ASSERT(rdata.get() != NULL, "");
+    RELEASE_ASSERT(rdata != nullptr, "");
     int status = *rdata->status;
     return JobResultAmiciSimulation(status, std::move(rdata), 0.0);
 }

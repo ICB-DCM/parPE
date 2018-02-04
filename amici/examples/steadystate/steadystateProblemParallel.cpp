@@ -9,10 +9,12 @@
 
 
 ExampleSteadystateGradientFunctionParallel::ExampleSteadystateGradientFunctionParallel(parpe::LoadBalancerMaster *loadBalancer, const std::string &dataFileName)
-    :loadBalancer(loadBalancer), model(std::unique_ptr<Model>(getModel()))
+    :loadBalancer(loadBalancer),
+      model(std::unique_ptr<amici::Model>(getModel()))
 {
-    dataProvider = std::make_unique<SteadyStateMultiConditionDataProvider>(model.get(), dataFileName);
-    udata = dataProvider->getUserData();
+    dataProvider = std::make_unique<SteadyStateMultiConditionDataProvider>(
+                std::unique_ptr<amici::Model>(model->clone()),
+                dataFileName);
     numConditions = dataProvider->getNumberOfConditions();
 }
 
@@ -28,7 +30,7 @@ parpe::FunctionEvaluationStatus ExampleSteadystateGradientFunctionParallel::eval
 
 int ExampleSteadystateGradientFunctionParallel::numParameters() const
 {
-    return model->np;
+    return model->np();
 }
 
 int ExampleSteadystateGradientFunctionParallel::evaluateParallel(const double *parameters,
@@ -50,15 +52,15 @@ int ExampleSteadystateGradientFunctionParallel::evaluateParallel(const double *p
         job->jobDone = &numJobsFinished;
         job->jobDoneChangedCondition = &simulationsCond;
         job->jobDoneChangedMutex = &simulationsMutex;
-        job->sendBuffer.resize(sizeof(double) * model->np + 2 * sizeof(int));
+        job->sendBuffer.resize(sizeof(double) * model->np() + 2 * sizeof(int));
 
-        dataProvider->updateFixedSimulationParameters(i, *udata);
+        dataProvider->updateFixedSimulationParameters(i, *model);
         int needGradient = objFunGrad ? 1 : 0;
 
         memcpy(job->sendBuffer.data(), &i, sizeof(int));
         memcpy(job->sendBuffer.data() + sizeof(int), &needGradient, sizeof(int));
         memcpy(job->sendBuffer.data() + 2 * sizeof(int), parameters,
-               model->np * sizeof(double));
+               model->np() * sizeof(double));
 
         loadBalancer->queueJob(job);
     }
@@ -77,14 +79,14 @@ int ExampleSteadystateGradientFunctionParallel::evaluateParallel(const double *p
     // aggregate likelihood
     objFunVal = 0;
     if (objFunGrad)
-        fillArray(objFunGrad, dataProvider->getNumOptimizationParameters(), 0.0);
+        std::fill(objFunGrad, objFunGrad + dataProvider->getNumOptimizationParameters(), 0.0);
 
     for (int i = 0; i < numConditions; ++i) {
         double *buffer = (double *)(jobdata[i].recvBuffer.data());
         objFunVal -= buffer[0];
 
         if (objFunGrad)
-            for (int ip = 0; ip < model->np; ++ip)
+            for (int ip = 0; ip < model->np(); ++ip)
                 objFunGrad[ip] -= buffer[1 + ip];
     }
 
@@ -97,31 +99,31 @@ int ExampleSteadystateGradientFunctionParallel::evaluateSerial(const double *par
                                                                double &objFunVal,
                                                                double *objFunGrad) const {
     int status = 0;
-    udata->setParameters(parameters);
+    model->setParameters(std::vector<double>(parameters, parameters + numParameters()));
     //    printArray(parameters, udata->np);printf("\n");
 
     objFunVal = 0;
 
     if (objFunGrad) {
-        udata->sensi = AMICI_SENSI_ORDER_FIRST;
-        udata->sensi_meth = AMICI_SENSI_FSA;
-        fillArray(objFunGrad, dataProvider->getNumOptimizationParameters(), 0.0);
+        solver->setSensitivityOrder(amici::AMICI_SENSI_ORDER_FIRST);
+        solver->setSensitivityMethod(amici::AMICI_SENSI_FSA);
+        std::fill_n(objFunGrad, dataProvider->getNumOptimizationParameters(), 0.0);
     } else {
-        udata->sensi = AMICI_SENSI_ORDER_NONE;
-        udata->sensi_meth = AMICI_SENSI_NONE;
+        solver->setSensitivityOrder(amici::AMICI_SENSI_ORDER_NONE);
+        solver->setSensitivityMethod(amici::AMICI_SENSI_NONE);
     }
 
     for (int i = 0; i < numConditions; ++i) {
-        dataProvider->updateFixedSimulationParameters(i, *udata);
-        auto edata = dataProvider->getExperimentalDataForCondition(i, udata.get());
+        dataProvider->updateFixedSimulationParameters(i, *model);
+        auto edata = dataProvider->getExperimentalDataForCondition(i);
 
-        ReturnData *rdata = getSimulationResults(model.get(), udata.get(), edata.get());
+        auto rdata = amici::getSimulationResults(*model, edata.get(), *solver);
         status += (int)*rdata->status;
 
         objFunVal -= *rdata->llh;
 
         if (objFunGrad)
-            for (int ip = 0; ip < model->np; ++ip)
+            for (int ip = 0; ip < model->np(); ++ip)
                 objFunGrad[ip] -= rdata->sllh[ip];
 
         delete rdata;
@@ -140,30 +142,31 @@ void ExampleSteadystateGradientFunctionParallel::messageHandler(std::vector<char
 
     int conditionIdx = *(int*)buffer.data();
     int needGradient = *(int*)(buffer.data() + sizeof(int));
-    udata->setParameters(reinterpret_cast<double *>(buffer.data() + 2 * sizeof(int)));
+    double *pstart = reinterpret_cast<double *>(buffer.data() + 2 * sizeof(int));
+    model->setParameters(std::vector<double>(pstart, pstart + model->np()));
 
     // read data for current conditions
-    dataProvider->updateFixedSimulationParameters(conditionIdx, *udata);
-    auto edata = dataProvider->getExperimentalDataForCondition(conditionIdx, udata.get());
+    dataProvider->updateFixedSimulationParameters(conditionIdx, *model);
+    auto edata = dataProvider->getExperimentalDataForCondition(conditionIdx);
 
     if (needGradient) {
-        udata->sensi = AMICI_SENSI_ORDER_FIRST;
-        udata->sensi_meth = AMICI_SENSI_FSA;
+        solver->setSensitivityOrder(amici::AMICI_SENSI_ORDER_FIRST);
+        solver->setSensitivityMethod(amici::AMICI_SENSI_FSA);
     } else {
-        udata->sensi = AMICI_SENSI_ORDER_NONE;
-        udata->sensi_meth = AMICI_SENSI_NONE;
+        solver->setSensitivityOrder(amici::AMICI_SENSI_ORDER_NONE);
+        solver->setSensitivityMethod(amici::AMICI_SENSI_NONE);
     }
 
     // run simulation
-    ReturnData *rdata = getSimulationResults(model.get(), udata.get(), edata.get());
+    auto rdata = amici::getSimulationResults(*model, edata.get(), *solver);
     // printf("Result for %d: %f\n", conditionIdx, *rdata->llh);
     // pack results
-    buffer.resize(sizeof(double) * (udata->nplist + 1));
+    buffer.resize(sizeof(double) * (model->nplist() + 1));
     double *doubleBuffer = (double *) buffer.data();
 
     doubleBuffer[0] = rdata->llh[0];
     if (needGradient)
-        for (int i = 0; i < udata->nplist; ++i)
+        for (int i = 0; i < model->nplist(); ++i)
             doubleBuffer[1 + i] = rdata->sllh[i];
 
     delete rdata;

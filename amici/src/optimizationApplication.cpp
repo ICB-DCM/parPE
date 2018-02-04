@@ -205,6 +205,19 @@ int OptimizationApplication::runMaster() {
     return 0;
 }
 
+int OptimizationApplication::runWorker() {
+    // TODO: Move out of here
+    LoadBalancerWorker lbw;
+    lbw.run([this](std::vector<char> &buffer, int jobId) {
+        static_cast<HierachicalOptimizationWrapper *>(
+        static_cast<MultiConditionGradientFunction*>(problem->costFun.get())
+                ->summedGradFun.get())->fun->messageHandler(buffer, jobId);
+        //AmiciSummedGradientFunction<T>
+    });
+
+    return 0;
+}
+
 int OptimizationApplication::runSingleMpiProcess() {
     // run serially
     switch (opType) {

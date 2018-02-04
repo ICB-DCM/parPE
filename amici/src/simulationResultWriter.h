@@ -21,7 +21,7 @@ public:
      * @param numSimulations
      */
 
-    void createDatasets(const amici::Model &model, const amici::UserData *udata,
+    void createDatasets(const amici::Model &model,
                         const amici::ExpData *edata,
                         int numberOfSimulations = 1);
 

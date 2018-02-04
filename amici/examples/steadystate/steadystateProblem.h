@@ -27,10 +27,11 @@ private:
     void readFixedParameters(int conditionIdx) const;
     void readMeasurement(int conditionIdx) const;
 
-    std::unique_ptr<amici::UserData> udata;
+    hid_t fileId = -1;
+
     std::unique_ptr<amici::ExpData> edata;
     std::unique_ptr<amici::Model> model;
-    hid_t fileId = -1;
+    std::unique_ptr<amici::Solver> solver;
 };
 
 

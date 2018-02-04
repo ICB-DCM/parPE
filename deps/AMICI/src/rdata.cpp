@@ -2,7 +2,7 @@
 #include "include/amici_misc.h"
 #include "include/amici_model.h"
 #include "include/symbolic_functions.h"
-#include "include/udata.h"
+#include "include/amici_solver.h"
 #include <cstring>
 
 namespace amici {
@@ -16,29 +16,29 @@ ReturnData::ReturnData()
       pscale(AMICI_SCALING_NONE), o2mode(AMICI_O2MODE_NONE),
       sensi(AMICI_SENSI_ORDER_NONE), sensi_meth(AMICI_SENSI_NONE) {}
 
-ReturnData::ReturnData(const UserData *udata, const Model *model)
-    : ReturnData(udata, model, true) {
+ReturnData::ReturnData(const Solver &solver, const Model *model)
+    : ReturnData(solver, model, true) {
     /**
-     * @brief constructor that uses information from model and userdata to
+     * @brief constructor that uses information from model and solver to
      * appropriately initialize fields
-     * @param[in] udata pointer to the user data struct @type UserData
+     * @param[in] solver
      * @param[in] model pointer to model specification object @type Model
      */
 }
 
-ReturnData::ReturnData(const UserData *udata, const Model *model,
+ReturnData::ReturnData(const Solver &solver, const Model *model,
                        bool initializeFields)
-    : np(model->np), nk(model->nk), nx(model->nx), nxtrue(model->nxtrue),
+    : np(model->np()), nk(model->nk()), nx(model->nx), nxtrue(model->nxtrue),
       ny(model->ny), nytrue(model->nytrue), nz(model->nz),
       nztrue(model->nztrue), ne(model->ne), nJ(model->nJ),
-      nplist(udata->nplist), nmaxevent(udata->nmaxevent), nt(udata->nt),
-      newton_maxsteps(udata->newton_maxsteps), pscale(udata->pscale),
-      o2mode(model->o2mode), sensi(udata->sensi),
-      sensi_meth(udata->sensi_meth) {
+      nplist(model->nplist()), nmaxevent(model->nMaxEvent()), nt(model->nt()),
+      newton_maxsteps(solver.getNewtonMaxSteps()), pscale(model->getParameterScale()),
+      o2mode(model->o2mode), sensi(solver.getSensitivityOrder()),
+      sensi_meth(static_cast<AMICI_sensi_meth>(solver.getSensitivityMethod())) {
     /**
-     * @brief constructor that uses information from model and userdata to
+     * @brief constructor that uses information from model and solver to
      * appropriately initialize fields
-     * @param[in] udata pointer to the user data struct @type UserData
+     * @param[in] solver solver
      * @param[in] model pointer to model specification object @type Model
      * @param[in] initializeFields flag to initialize arrays (needs to happen elsewhere if false) @type
      * bool
@@ -46,21 +46,52 @@ ReturnData::ReturnData(const UserData *udata, const Model *model,
 
     if (initializeFields) {
         initFields();
-        copyFromUserData(udata);
+        auto const t = model->getTimepoints();
+        std::copy(t.begin(), t.end(), ts);
     }
 }
 
-void ReturnData::invalidate() {
+void ReturnData::invalidate(const realtype t) {
+    /**
+     * @brief routine to set likelihood, state variables, outputs and respective sensitivities to NaN
+     * (typically after integration failure)
+     * @param t time of integration failure
+     */
+    invalidateLLH();
+    
+    // find it corresponding to datapoint after integration failure
+    int it_start;
+    for (it_start = 0; it_start < nt; it_start++)
+        if(ts[it_start]>t)
+            break;
+    
+    for (int it = it_start; it < nt; it++){
+        for (int ix = 0; ix < nx; ix++)
+            x[ix * nt + it] = getNaN();
+        for (int iy = 0; iy < ny; iy++)
+            y[iy * nt + it] = getNaN();
+        for (int ip = 0; ip < np; ip++) {
+            if(sx)
+                for (int ix = 0; ix < nx; ix++)
+                    sx[(ip*nx + ix) * nt + it] = getNaN();
+            if(sy)
+                for (int iy = 0; iy < ny; iy++)
+                    sy[(ip*ny + iy) * nt + it] = getNaN();
+        }
+    }
+}
+    
+void ReturnData::invalidateLLH() {
     /**
      * @brief routine to set likelihood and respective sensitivities to NaN
      * (typically after integration failure)
      */
     if (llh)
-        *llh = amiGetNaN();
-
+        *llh = getNaN();
+    
     if (sllh)
         setLikelihoodSensitivityFirstOrderNaN();
-
+    
     if (s2llh)
         setLikelihoodSensitivitySecondOrderNaN();
 }
@@ -70,7 +101,7 @@ void ReturnData::setLikelihoodSensitivityFirstOrderNaN() {
      * @brief routine to set first order sensitivities to NaN (typically after
      * integration failure)
      */
-    fillArray(sllh, nplist, amiGetNaN());
+    fillArray(sllh, nplist, getNaN());
 }
 
 void ReturnData::setLikelihoodSensitivitySecondOrderNaN() {
@@ -78,58 +109,56 @@ void ReturnData::setLikelihoodSensitivitySecondOrderNaN() {
      * @brief routine to set second order sensitivities to NaN (typically after
      * integration failure)
      */
-    fillArray(s2llh, nplist * (nJ - 1), amiGetNaN());
+    fillArray(s2llh, nplist * (nJ - 1), getNaN());
 }
 
-int ReturnData::applyChainRuleFactorToSimulationResults(
-    const UserData *udata, const realtype *unscaledParameters) {
+void ReturnData::applyChainRuleFactorToSimulationResults(const Model *model) {
     /**
      * @brief applies the chain rule to account for parameter transformation
      * in the sensitivities of simulation results
-     * @param[in] udata pointer to the user data struct @type UserData
-     * @param[in] unscaledParameters pointer to the non-transformed parameters
-     * @type realtype
-     * @return status flag indicating success of execution @type int
+     * @param model Model from which the ReturnData was obtained
      */
     if (pscale == AMICI_SCALING_NONE)
-        return AMICI_SUCCESS;
+        return;
 
     // chain-rule factor: multiplier for am_p
     realtype coefficient;
-    realtype *pcoefficient, *augcoefficient;
 
-    pcoefficient = new realtype[nplist]();
-    augcoefficient = new realtype[np]();
+    std::vector<realtype> pcoefficient(nplist);
+    std::vector<realtype> unscaledParameters(np);
+    model->unscaleParameters(unscaledParameters.data());
+    std::vector<realtype> augcoefficient(np);
 
     switch (pscale) {
-    case AMICI_SCALING_LOG10:
-        coefficient = log(10.0);
-        for (int ip = 0; ip < nplist; ++ip)
-            pcoefficient[ip] = unscaledParameters[udata->plist[ip]] * log(10);
-        if (udata->sensi == 2)
-            if (o2mode == AMICI_O2MODE_FULL)
-                for (int ip = 0; ip < np; ++ip)
-                    augcoefficient[ip] = unscaledParameters[ip] * log(10);
-        break;
-    case AMICI_SCALING_LN:
-        coefficient = 1.0;
-        for (int ip = 0; ip < nplist; ++ip)
-            pcoefficient[ip] = unscaledParameters[udata->plist[ip]];
-        if (udata->sensi == 2)
-            if (o2mode == AMICI_O2MODE_FULL)
-                for (int ip = 0; ip < np; ++ip)
-                    augcoefficient[ip] = unscaledParameters[ip];
-        break;
-    case AMICI_SCALING_NONE:
-        // this should never be reached
-        break;
+        case AMICI_SCALING_LOG10:
+            coefficient = log(10.0);
+            for (int ip = 0; ip < nplist; ++ip)
+                pcoefficient[ip] = unscaledParameters[model->plist(ip)] * log(10);
+            if (sensi == AMICI_SENSI_ORDER_SECOND)
+                if (o2mode == AMICI_O2MODE_FULL)
+                    for (int ip = 0; ip < np; ++ip)
+                        augcoefficient[ip] = unscaledParameters[ip] * log(10);
+            break;
+        case AMICI_SCALING_LN:
+            coefficient = 1.0;
+            for (int ip = 0; ip < nplist; ++ip)
+                pcoefficient[ip] = unscaledParameters[model->plist(ip)];
+            if (sensi == AMICI_SENSI_ORDER_SECOND)
+                if (o2mode == AMICI_O2MODE_FULL)
+                    for (int ip = 0; ip < np; ++ip)
+                        augcoefficient[ip] = unscaledParameters[ip];
+            break;
+        case AMICI_SCALING_NONE:
+            // this should never be reached
+            break;
     }
+    
 
-    if (udata->sensi >= AMICI_SENSI_ORDER_FIRST) {
+    if (sensi >= AMICI_SENSI_ORDER_FIRST) {
         // recover first order sensitivies from states for adjoint sensitivity
         // analysis
-        if (udata->sensi == AMICI_SENSI_ORDER_SECOND) {
-            if (udata->sensi_meth == AMICI_SENSI_ASA) {
+        if (sensi == AMICI_SENSI_ORDER_SECOND) {
+            if (sensi_meth == AMICI_SENSI_ASA) {
                 if (x)
                     if (sx)
                         for (int ip = 0; ip < nplist; ++ip)
@@ -172,13 +201,13 @@ int ReturnData::applyChainRuleFactorToSimulationResults(
                         pcoefficient[ip];                                      \
                 }
 
-        chainRule(x, ix, nxtrue, nx, it, nt)
-            chainRule(y, iy, nytrue, ny, it, nt)
-                chainRule(sigmay, iy, nytrue, ny, it, nt)
-                    chainRule(z, iz, nztrue, nz, ie, nmaxevent)
-                        chainRule(sigmaz, iz, nztrue, nz, ie, nmaxevent)
-                            chainRule(rz, iz, nztrue, nz, ie, nmaxevent)
-                                chainRule(x0, ix, nxtrue, nx, it, 1)
+        chainRule(x, ix, nxtrue, nx, it, nt);
+        chainRule(y, iy, nytrue, ny, it, nt);
+        chainRule(sigmay, iy, nytrue, ny, it, nt);
+        chainRule(z, iz, nztrue, nz, ie, nmaxevent);
+        chainRule(sigmaz, iz, nztrue, nz, ie, nmaxevent);
+        chainRule(rz, iz, nztrue, nz, ie, nmaxevent);
+        chainRule(x0, ix, nxtrue, nx, it, 1);
     }
 
     if (o2mode == AMICI_O2MODE_FULL) { // full
@@ -188,7 +217,7 @@ int ReturnData::applyChainRuleFactorToSimulationResults(
                     for (int iJ = 1; iJ < nJ; ++iJ) {
                         s2llh[ip * nplist + (iJ - 1)] *=
                             pcoefficient[ip] * augcoefficient[iJ - 1];
-                        if (udata->plist[ip] == iJ - 1)
+                        if (model->plist(ip) == iJ - 1)
                             s2llh[ip * nplist + (iJ - 1)] +=
                                 sllh[ip] * coefficient;
                     }
@@ -204,19 +233,19 @@ int ReturnData::applyChainRuleFactorToSimulationResults(
                     for (int IND2 = 0; IND2 < N2; ++IND2) {                    \
                         s##QUANT[(ip * N1 + iJ * N1T + IND1) * N2 + IND2] *=   \
                             pcoefficient[ip] * augcoefficient[iJ - 1];         \
-                        if (udata->plist[ip] == iJ - 1)                        \
+                        if (model->plist(ip) == iJ - 1)                        \
                             s##QUANT[(ip * N1 + iJ * N1T + IND1) * N2 +        \
                                      IND2] +=                                  \
                                 s##QUANT[(ip * N1 + IND1) * N2 + IND2] *       \
                                 coefficient;                                   \
                     }
 
-        s2ChainRule(x, ix, nxtrue, nx, it, nt)
-            s2ChainRule(y, iy, nytrue, ny, it, nt)
-                s2ChainRule(sigmay, iy, nytrue, ny, it, nt)
-                    s2ChainRule(z, iz, nztrue, nz, ie, nmaxevent)
-                        s2ChainRule(sigmaz, iz, nztrue, nz, ie, nmaxevent)
-                            s2ChainRule(rz, iz, nztrue, nz, ie, nmaxevent)
+        s2ChainRule(x, ix, nxtrue, nx, it, nt);
+        s2ChainRule(y, iy, nytrue, ny, it, nt);
+        s2ChainRule(sigmay, iy, nytrue, ny, it, nt);
+        s2ChainRule(z, iz, nztrue, nz, ie, nmaxevent);
+        s2ChainRule(sigmaz, iz, nztrue, nz, ie, nmaxevent);
+        s2ChainRule(rz, iz, nztrue, nz, ie, nmaxevent);
     }
 
     if (o2mode == AMICI_O2MODE_DIR) { // directional
@@ -224,8 +253,8 @@ int ReturnData::applyChainRuleFactorToSimulationResults(
             if (sllh) {
                 for (int ip = 0; ip < nplist; ++ip) {
                     s2llh[ip] *= pcoefficient[ip];
-                    s2llh[ip] += udata->k[nk - nplist + ip] * sllh[ip] /
-                                 unscaledParameters[udata->plist[ip]];
+                    s2llh[ip] += model->k()[nk - nplist + ip] * sllh[ip] /
+                                 unscaledParameters[model->plist(ip)];
                 }
             }
         }
@@ -238,22 +267,19 @@ int ReturnData::applyChainRuleFactorToSimulationResults(
                     s##QUANT[(ip * N1 + N1T + IND1) * N2 + IND2] *=            \
                         pcoefficient[ip];                                      \
                     s##QUANT[(ip * N1 + N1T + IND1) * N2 + IND2] +=            \
-                        udata->k[nk - nplist + ip] *                           \
+                        model->k()[nk - nplist + ip] *                           \
                         s##QUANT[(ip * N1 + IND1) * N2 + IND2] /               \
-                        unscaledParameters[udata->plist[ip]];                  \
+                        unscaledParameters[model->plist(ip)];                  \
                 }
 
-        s2vecChainRule(x, ix, nxtrue, nx, it, nt)
-            s2vecChainRule(y, iy, nytrue, ny, it, nt)
-                s2vecChainRule(sigmay, iy, nytrue, ny, it, nt)
-                    s2vecChainRule(z, iz, nztrue, nz, ie, nmaxevent)
-                        s2vecChainRule(sigmaz, iz, nztrue, nz, ie, nmaxevent)
-                            s2vecChainRule(rz, iz, nztrue, nz, ie, nmaxevent)
+        s2vecChainRule(x, ix, nxtrue, nx, it, nt);
+        s2vecChainRule(y, iy, nytrue, ny, it, nt);
+        s2vecChainRule(sigmay, iy, nytrue, ny, it, nt);
+        s2vecChainRule(z, iz, nztrue, nz, ie, nmaxevent);
+        s2vecChainRule(sigmaz, iz, nztrue, nz, ie, nmaxevent);
+        s2vecChainRule(rz, iz, nztrue, nz, ie, nmaxevent);
     }
-
-    delete[] pcoefficient;
-    delete[] augcoefficient;
-    return AMICI_SUCCESS;
+    return;
 }
 
 ReturnData::~ReturnData() {
@@ -337,14 +363,6 @@ ReturnData::~ReturnData() {
         delete[] status;
 }
 
-void ReturnData::copyFromUserData(const UserData *udata) {
-    /**
-     * @brief copies measurement timepoints from UserData object
-     * @param[in] udata pointer to the user data struct @type UserData
-     */
-    memcpy(ts, udata->ts, nt * sizeof(realtype));
-}
-
 void ReturnData::initFields() {
     /**
      * @brief initialises sol object with the corresponding fields
@@ -375,7 +393,7 @@ void ReturnData::initFields() {
         initField2(&newton_numsteps, "newton_numsteps", 1, 2);
         initField2(&newton_numlinsteps, "newton_numlinsteps", newton_maxsteps,
                    2);
-        initField2(&newton_time, "newton_time", 1, 2);
+        initField2(&newton_time, "newton_time", 1, 1);
     }
     if (ny > 0) {
         initField2(&y, "y", nt, ny);

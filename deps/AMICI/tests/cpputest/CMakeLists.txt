@@ -13,7 +13,7 @@ set(CPPUTEST_INCLUDE_DIR "${CPPUTEST_DIR}/include" CACHE PATH "cppUTest include 
 set(CPPUTEST_LIBRARY "${CPPUTEST_DIR}/lib/libCppUTest.a" "${CPPUTEST_DIR}/lib/libCppUTestExt.a"  CACHE PATH "cppUTest libraries")
 
 set(CMAKE_CXX_FLAGS_OLD "${CMAKE_CXX_FLAGS}")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -include ${CPPUTEST_INCLUDE_DIR}/CppUTest/MemoryLeakDetectorNewMacros.h")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -include sstream -include ${CPPUTEST_INCLUDE_DIR}/CppUTest/MemoryLeakDetectorNewMacros.h")
 
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}")
 include_directories(${AmiciConfigIncludes})
@@ -34,6 +34,7 @@ add_subdirectory(nested_events)
 add_subdirectory(steadystate)
 add_subdirectory(jakstat_adjoint)
 add_subdirectory(neuron)
+add_subdirectory(robertson)
 add_subdirectory(jakstat_adjoint_o2)
 add_subdirectory(neuron_o2)
 

@@ -1,12 +1,12 @@
 #ifndef STEADYSTATEMULTICONDITIONPROBLEM_H
 #define STEADYSTATEMULTICONDITIONPROBLEM_H
 
+#include "MultiConditionDataProvider.h"
+#include "multiConditionProblem.h"
 #include "steadystateProblem.h"
 
-#include <MultiConditionDataProvider.h>
-#include <multiConditionProblem.h>
-
 #include <amici_hdf5.h>
+#include <amici.h>
 
 #include <memory>
 #include <assert.h>
@@ -21,19 +21,21 @@ class SteadyStateMultiConditionDataProvider
     : public parpe::MultiConditionDataProvider {
 
   public:
-    SteadyStateMultiConditionDataProvider(Model *model,
+    SteadyStateMultiConditionDataProvider(std::unique_ptr<amici::Model> model,
                                           std::string hdf5Filename, std::string rootPath = "");
 
     int getNumConditionSpecificParametersPerSimulation() const override;
 
-    std::unique_ptr<amici::UserData> getUserData() const override;
+    std::unique_ptr<amici::Model> getModel() const override;
+    std::unique_ptr<amici::Solver> getSolver() const override;
 
     ~SteadyStateMultiConditionDataProvider() = default;
 
 private:
-    void setupUserData(UserData *udata) const;
+    void setupModelAndSolver(amici::Model& model, amici::Solver& solver) const;
 
-    std::unique_ptr<UserData> udata;
+    std::unique_ptr<amici::Solver> solver;
+
 };
 
 #endif // STEADYSTATEMULTICONDITIONPROBLEM_H

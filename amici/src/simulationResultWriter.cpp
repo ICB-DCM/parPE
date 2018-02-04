@@ -1,10 +1,12 @@
 #include <simulationResultWriter.h>
 #include <hdf5Misc.h>
-#include <udata.h>
+
 #include <rdata.h>
 #include <edata.h>
 #include <amici_model.h>
+
 #include <cstdio>
+#include <math.h> // NAN
 
 namespace parpe {
 
@@ -24,14 +26,14 @@ SimulationResultWriter::SimulationResultWriter(std::string hdf5FileName, std::st
 }
 
 
-void SimulationResultWriter::createDatasets(const amici::Model &model, const amici::UserData *udata,
+void SimulationResultWriter::createDatasets(const amici::Model &model,
                                             const amici::ExpData *edata,
                                             int numberOfSimulations)
 {
     hsize_t numSimulations = static_cast<hsize_t>(numberOfSimulations);
     hsize_t ny = static_cast<hsize_t>(model.nytrue);
     hsize_t nx = static_cast<hsize_t>(model.nxtrue);
-    hsize_t nt = static_cast<hsize_t>(udata->nt);
+    hsize_t nt = static_cast<hsize_t>(model.nt());
 
     auto lock = parpe::hdf5MutexGetLock();
 
@@ -97,7 +99,7 @@ void SimulationResultWriter::saveSimulationResults(const amici::ExpData *edata, 
         hsize_t start2[] = {0, 0, 0};
         memspace.selectHyperslab(H5S_SELECT_SET, count, start2);
 
-        dataset.write(edata->my, H5::PredType::NATIVE_DOUBLE, memspace, filespace);
+        dataset.write(edata->my.data(), H5::PredType::NATIVE_DOUBLE, memspace, filespace);
     }
 
     if(saveYSim && edata->nt > 0 && edata->nytrue > 0) {

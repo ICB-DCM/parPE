@@ -4,6 +4,7 @@
 #include "CppUTest/TestHarness.h"
 #include "CppUTestExt/MockSupport.h"
 #include <amici_model.h>
+#include "../tests/cpputest/testfunctions.h" // for Modell_Test
 
 /**
  * @brief Mock MultiConditionDataProvider
@@ -11,8 +12,11 @@
 class MultiConditionDataProviderTest : public parpe::MultiConditionDataProvider {
   public:
     MultiConditionDataProviderTest() {
-        model = new amici::Model(10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22,
-                          23, 24, 25, amici::AMICI_O2MODE_NONE);
+
+        model = std::unique_ptr<amici::Model>(new amici::Model_Test(0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                                                                    amici::AMICI_O2MODE_NONE,std::vector<realtype>(10),
+                                                                    std::vector<realtype>(),std::vector<int>(),
+                                                                    std::vector<realtype>(),std::vector<int>()));
     }
 
     int getNumberOfConditions() const override { return numConditions; }
@@ -24,8 +28,6 @@ class MultiConditionDataProviderTest : public parpe::MultiConditionDataProvider 
     int numConditions = 1;
 
     int numCondSpecParamPerSim = 0;
-
-    ~MultiConditionDataProviderTest() { delete model; }
 };
 
 

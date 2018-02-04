@@ -1,10 +1,13 @@
 #ifndef AMICI_SERIALIZATION_H
 #define AMICI_SERIALIZATION_H
 
-#include "include/udata.h"
 #include "include/rdata.h"
+#include "include/amici_model.h"
+#include "include/amici_solver.h"
+#include "include/amici_solver_cvodes.h"
 #include <cassert>
 #include <boost/serialization/array.hpp>
+#include <boost/serialization/vector.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/text_iarchive.hpp>
@@ -19,7 +22,7 @@ namespace boost {
 namespace serialization {
 
 template <class Archive, typename T>
-void archiveRawArray(Archive &ar, T **p, int size) {
+void archiveVector(Archive &ar, T **p, int size) {
     if (Archive::is_loading::value) {
         if(*p != nullptr)
             delete[] *p;
@@ -33,15 +36,7 @@ void archiveRawArray(Archive &ar, T **p, int size) {
 }
 
 template <class Archive>
-void serialize(Archive &ar, amici::UserData &u, const unsigned int version) {
-    ar &const_cast<int &>(u.np);
-    ar &const_cast<int &>(u.nk);
-    ar &const_cast<int &>(u.nx);
-    ar &u.pscale;
-    ar &u.nmaxevent;
-    ar &u.nplist;
-    ar &u.nt;
-    ar &u.tstart;
+void serialize(Archive &ar, amici::Solver &u, const unsigned int version) {
     ar &u.sensi;
     ar &u.atol;
     ar &u.rtol;
@@ -54,22 +49,53 @@ void serialize(Archive &ar, amici::UserData &u, const unsigned int version) {
     ar &u.iter;
     ar &u.stldet;
     ar &u.ordering;
+}
 
-    archiveRawArray(ar, &u.qpositivex, u.nx);
-    archiveRawArray(ar, &u.plist, u.nplist);
-    archiveRawArray(ar, &u.p, u.np);
-    archiveRawArray(ar, &u.k, u.nk);
-    archiveRawArray(ar, &u.ts, u.nt);
-    archiveRawArray(ar, &u.pbar, u.np);
-    archiveRawArray(ar, &u.xbar, u.nx);
-    archiveRawArray(ar, &u.x0data, u.nx);
-    archiveRawArray(ar, &u.sx0data, u.np * u.nx);
+
+template <class Archive>
+void serialize(Archive &ar, amici::CVodeSolver &u, const unsigned int version) {
+    ar & static_cast<amici::Solver&>(u);
+}
+
+template <class Archive>
+void serialize(Archive &ar, amici::Model &u, const unsigned int version) {
+    ar &const_cast<int &>(u.nx);
+    ar &const_cast<int &>(u.nxtrue);
+    ar &const_cast<int &>(u.ny);
+    ar &const_cast<int &>(u.nytrue);
+    ar &const_cast<int &>(u.nz);
+    ar &const_cast<int &>(u.nztrue);
+    ar &const_cast<int &>(u.ne);
+    ar &const_cast<int &>(u.nw);
+    ar &const_cast<int &>(u.ndwdx);
+    ar &const_cast<int &>(u.ndwdp);
+    ar &const_cast<int &>(u.nnz);
+    ar &const_cast<int &>(u.nJ);
+    ar &const_cast<int &>(u.ubw);
+    ar &const_cast<int &>(u.lbw);
+    ar &const_cast<amici::AMICI_o2mode &>(u.o2mode);
+    ar &const_cast<std::vector<int> &>(u.z2event);
+    ar &const_cast<std::vector<realtype> &>(u.idlist);
+    ar &u.h;
+    ar &u.unscaledParameters;
+    ar &u.originalParameters;
+    ar &u.fixedParameters;
+    ar &u.plist_;
+    ar &u.x0data;
+    ar &u.sx0data;
+    ar &u.ts;
+    ar &u.pbar;
+    ar &u.qpositivex;
+    ar &u.nmaxevent;
+    ar &u.pscale;
+    ar &u.pscale;
+    ar &u.tstart;
+
 }
 
 
 template <class Archive>
 void serialize(Archive &ar, amici::ReturnData &r, const unsigned int version) {
-    ar &r.freeFieldsOnDestruction;
 
     ar &const_cast<int &>(r.np);
     ar &const_cast<int &>(r.nk);
@@ -90,45 +116,45 @@ void serialize(Archive &ar, amici::ReturnData &r, const unsigned int version) {
     ar &const_cast<amici::AMICI_sensi_order &>(r.sensi);
     ar &const_cast<amici::AMICI_sensi_meth &>(r.sensi_meth);
 
-    archiveRawArray(ar, &r.ts, r.nt);
-    archiveRawArray(ar, &r.xdot, r.nx);
-    archiveRawArray(ar, &r.J, r.nx * r.nx);
-    archiveRawArray(ar, &r.z, r.nmaxevent * r.nz);
-    archiveRawArray(ar, &r.sigmaz, r.nmaxevent * r.nz);
-    archiveRawArray(ar, &r.sz, r.nmaxevent * r.nz * r.nplist);
-    archiveRawArray(ar, &r.ssigmaz, r.nmaxevent * r.nz * r.nplist);
-    archiveRawArray(ar, &r.rz, r.nmaxevent * r.nz);
-    archiveRawArray(ar, &r.srz, r.nmaxevent * r.nz * r.nplist);
-    archiveRawArray(ar, &r.s2rz, r.nmaxevent * r.nz * r.nplist * r.nplist);
-    archiveRawArray(ar, &r.x, r.nt * r.nx);
-    archiveRawArray(ar, &r.sx, r.nt * r.nx * r.nplist);
-    archiveRawArray(ar, &r.y, r.nt * r.ny);
-    archiveRawArray(ar, &r.sigmay, r.nt * r.ny);
-    archiveRawArray(ar, &r.sy, r.nt * r.ny * r.nplist);
-    archiveRawArray(ar, &r.ssigmay, r.nt * r.ny * r.nplist);
+    archiveVector(ar, &r.ts, r.nt);
+    archiveVector(ar, &r.xdot, r.nx);
+    archiveVector(ar, &r.J, r.nx * r.nx);
+    archiveVector(ar, &r.z, r.nmaxevent * r.nz);
+    archiveVector(ar, &r.sigmaz, r.nmaxevent * r.nz);
+    archiveVector(ar, &r.sz, r.nmaxevent * r.nz * r.nplist);
+    archiveVector(ar, &r.ssigmaz, r.nmaxevent * r.nz * r.nplist);
+    archiveVector(ar, &r.rz, r.nmaxevent * r.nz);
+    archiveVector(ar, &r.srz, r.nmaxevent * r.nz * r.nplist);
+    archiveVector(ar, &r.s2rz, r.nmaxevent * r.nz * r.nplist * r.nplist);
+    archiveVector(ar, &r.x, r.nt * r.nx);
+    archiveVector(ar, &r.sx, r.nt * r.nx * r.nplist);
+    archiveVector(ar, &r.y, r.nt * r.ny);
+    archiveVector(ar, &r.sigmay, r.nt * r.ny);
+    archiveVector(ar, &r.sy, r.nt * r.ny * r.nplist);
+    archiveVector(ar, &r.ssigmay, r.nt * r.ny * r.nplist);
 
-    archiveRawArray(ar, &r.numsteps, r.nt);
-    archiveRawArray(ar, &r.numstepsB, r.nt);
-    archiveRawArray(ar, &r.numrhsevals, r.nt);
-    archiveRawArray(ar, &r.numrhsevalsB, r.nt);
-    archiveRawArray(ar, &r.numerrtestfails, r.nt);
-    archiveRawArray(ar, &r.numerrtestfailsB, r.nt);
-    archiveRawArray(ar, &r.numnonlinsolvconvfails, r.nt);
-    archiveRawArray(ar, &r.numnonlinsolvconvfailsB, r.nt);
-    archiveRawArray(ar, &r.order, r.nt);
+    archiveVector(ar, &r.numsteps, r.nt);
+    archiveVector(ar, &r.numstepsB, r.nt);
+    archiveVector(ar, &r.numrhsevals, r.nt);
+    archiveVector(ar, &r.numrhsevalsB, r.nt);
+    archiveVector(ar, &r.numerrtestfails, r.nt);
+    archiveVector(ar, &r.numerrtestfailsB, r.nt);
+    archiveVector(ar, &r.numnonlinsolvconvfails, r.nt);
+    archiveVector(ar, &r.numnonlinsolvconvfailsB, r.nt);
+    archiveVector(ar, &r.order, r.nt);
 
-    archiveRawArray(ar, &r.newton_status, r.nt);
-    archiveRawArray(ar, &r.newton_time, r.nt);
-    archiveRawArray(ar, &r.newton_numsteps, r.nt);
-    archiveRawArray(ar, &r.newton_numlinsteps, r.nt);
-    archiveRawArray(ar, &r.x0, r.nx);
-    archiveRawArray(ar, &r.sx0, r.nx * r.nplist);
+    archiveVector(ar, &r.newton_status, r.nt);
+    archiveVector(ar, &r.newton_time, r.nt);
+    archiveVector(ar, &r.newton_numsteps, r.nt);
+    archiveVector(ar, &r.newton_numlinsteps, r.nt);
+    archiveVector(ar, &r.x0, r.nx);
+    archiveVector(ar, &r.sx0, r.nx * r.nplist);
 
-    archiveRawArray(ar, &r.llh, 1);
-    archiveRawArray(ar, &r.chi2, 1);
-    archiveRawArray(ar, &r.sllh, r.nplist);
-    archiveRawArray(ar, &r.s2llh, r.nplist * r.nplist);
-    archiveRawArray(ar, &r.status, 1);
+    archiveVector(ar, &r.llh, 1);
+    archiveVector(ar, &r.chi2, 1);
+    archiveVector(ar, &r.sllh, r.nplist);
+    archiveVector(ar, &r.s2llh, r.nplist * r.nplist);
+    archiveVector(ar, &r.status, 1);
 }
 
 
@@ -138,13 +164,13 @@ void serialize(Archive &ar, amici::ReturnData &r, const unsigned int version) {
 namespace amici {
 
 template <typename T>
-char *serializeToChar(const T *data, int *size) {
+char *serializeToChar(T const& data, int *size) {
     std::string serialized;
     ::boost::iostreams::back_insert_device<std::string> inserter(serialized);
     ::boost::iostreams::stream<::boost::iostreams::back_insert_device<std::string>>
         s(inserter);
     ::boost::archive::binary_oarchive oar(s);
-    oar << *data;
+    oar << data;
     s.flush();
 
     char *charBuffer = new char[serialized.size()];
@@ -157,8 +183,7 @@ char *serializeToChar(const T *data, int *size) {
 }
 
 /**
- * @brief Deserialize AMICI::UserData that has been serialized using
- * serializeAmiciUserData
+ * @brief Deserialize object that has been serialized using serializeToChar
  * @param buffer
  * @param size
  * @return The deserialized object
@@ -192,13 +217,13 @@ std::string serializeToString(T const& data) {
 }
 
 template <typename T>
-std::vector<char> serializeToStdVec(const T *data) {
+std::vector<char> serializeToStdVec(T const& data) {
     std::string serialized;
     ::boost::iostreams::back_insert_device<std::string> inserter(serialized);
     ::boost::iostreams::stream<::boost::iostreams::back_insert_device<std::string>>
         s(inserter);
     ::boost::archive::binary_oarchive oar(s);
-    oar << *data;
+    oar << data;
     s.flush();
 
     std::vector<char> buf(serialized.begin(), serialized.end());

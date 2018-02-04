@@ -1,48 +1,30 @@
 #ifndef amici_h
 #define amici_h
 
-#include <cvodes/cvodes.h>
 #include <include/symbolic_functions.h>
 #include <include/amici_defines.h>
+#include <include/amici_model.h>
+#include <include/amici_solver.h>
+#include "include/amici_interface_cpp.h"
 
 namespace amici {
 
-class UserData;
-class TempData;
 class ReturnData;
 class ExpData;
-class Solver;
 class Model;
-
-// ensure definitions are in sync
-static_assert(AMICI_SUCCESS == CV_SUCCESS, "AMICI_SUCCESS != CV_SUCCESS");
-static_assert(AMICI_DATA_RETURN == CV_TSTOP_RETURN,
-              "AMICI_DATA_RETURN != CV_TSTOP_RETURN");
-static_assert(AMICI_ROOT_RETURN == CV_ROOT_RETURN,
-              "AMICI_ROOT_RETURN != CV_ROOT_RETURN");
-static_assert(AMICI_NORMAL == CV_NORMAL, "AMICI_NORMAL != CV_NORMAL");
-static_assert(AMICI_ONE_STEP == CV_ONE_STEP, "AMICI_ONE_STEP != CV_ONE_STEP");
-
+class Solver;
 
 void printErrMsgIdAndTxt(const char *identifier, const char *format, ...);
 
 void printWarnMsgIdAndTxt(const char *identifier, const char *format, ...);
-
-/**
- * @brief msgIdAndTxtFp
- * @param identifier string with error message identifier
- * @param format string with error message printf-style format
- * @param ... arguments to be formatted
- */
-typedef void (*msgIdAndTxtFp)(const char *identifier, const char *format, ...);
 
 // function pointers to process errors / warnings
 extern msgIdAndTxtFp errMsgIdAndTxt;
 extern msgIdAndTxtFp warnMsgIdAndTxt;
 
 
-int runAmiciSimulation(const UserData *udata, const ExpData *edata,
-                       ReturnData *rdata, Model *model);
+void runAmiciSimulation(Solver &solver, const ExpData *edata,
+                       ReturnData *rdata, Model &model);
 
 void amici_dgemv(AMICI_BLAS_LAYOUT layout, AMICI_BLAS_TRANSPOSE TransA,
                  const int M, const int N, const double alpha, const double *A,
