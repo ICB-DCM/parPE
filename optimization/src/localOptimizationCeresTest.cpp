@@ -46,5 +46,5 @@ TEST(localOptimizationCeres, testOptimization) {
     auto params = std::get<2>(result);
     double optimalCost = NAN;
     problem.costFun->evaluate(params.data(), optimalCost, nullptr);
-    DOUBLES_EQUAL(42.0, std::get<1>(result), 1e-6);
+    DOUBLES_EQUAL(42.0, optimalCost, 1e-6);
 }
