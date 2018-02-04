@@ -102,7 +102,7 @@ TEST(optimizationOptions, fromHDF5) {
     std::tmpnam(tmpName);
 
     // TODO: hide hdf5 errors
-    captureStreamToString([tmpName](){
+    parpe::captureStreamToString([tmpName](){
         std::cout<<tmpName<<" asdf";
         CHECK_THROWS(parpe::HDF5Exception, parpe::OptimizationOptions::fromHDF5(tmpName));
     }, stdout);

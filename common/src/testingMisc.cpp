@@ -10,6 +10,8 @@
 #include <fcntl.h> // O_WRONLY
 #include <cassert>
 
+namespace parpe {
+
 bool withinTolerance(double expected, double actual, double atol, double rtol, int index) {
     bool withinTol =  fabs(expected - actual) <= atol || fabs((expected - actual) / (rtol + expected)) <= rtol;
 
@@ -88,3 +90,5 @@ std::string captureStreamToString(std::function<void()> f, std::FILE* captureStr
     return std::string ((std::istreambuf_iterator<char>(ifs)),
                      std::istreambuf_iterator<char>());
 }
+
+} // namespace parpe

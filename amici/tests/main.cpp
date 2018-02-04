@@ -6,9 +6,6 @@
 #include <stdlib.h>
 #include <time.h>
 
-class Model;
-Model *getModel() { return NULL; }
-
 int main(int argc, char **argv) {
     srand(time(NULL));
 

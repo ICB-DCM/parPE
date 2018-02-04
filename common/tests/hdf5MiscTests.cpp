@@ -51,7 +51,7 @@ TEST(hdf5Misc, testErrorStackWalker) {
     hid_t fileId = H5Fcreate(tempFileName, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
     CHECK_TRUE(fileId <= 0);
 
-    auto s = captureStreamToString([](){
+    auto s = parpe::captureStreamToString([](){
         H5Ewalk2(H5E_DEFAULT, H5E_WALK_DOWNWARD, parpe::hdf5ErrorStackWalker_cb, nullptr);
     }, stdout);
 

@@ -79,12 +79,12 @@ TEST(simulationResultWriter, testResultWriter) {
     std::vector<double> xdotAct(xdot.size());
     parpe::hdf5Read2DDoubleHyperslab(file.getId(), rw.xDotPath.c_str(),
                                      1, model.nxtrue, 1, 0, xdotAct.data());
-    checkEqualArray(xdot.data(), xdotAct.data(), xdotAct.size(), 1e-16, 1e-16);
+    parpe::checkEqualArray(xdot.data(), xdotAct.data(), xdotAct.size(), 1e-16, 1e-16);
 
     std::vector<double> yMesAct(measurements.size());
     parpe::hdf5Read3DDoubleHyperslab(file.getId(), rw.yMesPath.c_str(),
                                      1, model.nt(), model.ny, 1, 0, 0, yMesAct.data());
-    checkEqualArray(measurements.data(), yMesAct.data(), yMesAct.size(), 1e-16, 1e-16);
+    parpe::checkEqualArray(measurements.data(), yMesAct.data(), yMesAct.size(), 1e-16, 1e-16);
 
 }
 
