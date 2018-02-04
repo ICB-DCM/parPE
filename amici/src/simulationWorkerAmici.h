@@ -32,8 +32,9 @@ struct JobAmiciSimulation {
         ::boost::iostreams::stream<::boost::iostreams::back_insert_device<std::string>>
             s(inserter);
         ::boost::archive::binary_oarchive oar(s);
+        auto p = model->getParameters();
         oar << *data
-            << model->getParameters()
+            << p
             << solver->getSensitivityMethod();
 
         s.flush();
