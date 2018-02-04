@@ -34,6 +34,8 @@ public:
                                 LoadBalancerMaster *loadBalancer,
                                 MultiConditionProblemResultWriter *resultWriter = nullptr);
 
+    virtual ~AmiciSummedGradientFunction() = default;
+
     virtual FunctionEvaluationStatus evaluate(
             const double* const parameters,
             T dataset,
