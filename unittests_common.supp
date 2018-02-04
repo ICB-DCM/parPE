@@ -7,12 +7,29 @@
 }
 
 {
+   <insert_a_suppression_name_here>
+   Memcheck:Cond
+   ...
+   fun:ompi_mpi_init
+   ...
+}
+
+{
    <OpenMPI opal_libevent2022_event_base_loop>
    Memcheck:Leak
    ...
    fun:opal_libevent2022_event_base_loop
    ...
    fun:start_thread
+   ...
+}
+
+{
+   <OpenMPI opal_libevent2022_event_base_loop>
+   Memcheck:Leak
+   fun:realloc
+   ...
+   fun:opal_libevent2022_event_base_loop
    ...
 }
 
@@ -64,6 +81,4 @@
    obj:/usr/bin/orterun
    ...
 }
-
-
 

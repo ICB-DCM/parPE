@@ -12,7 +12,7 @@ build:
         - export PARPE_BASE=`pwd`
         # workaround for https://bugs.launchpad.net/ubuntu/+source/ceres-solver/+bug/1595692 :
         - wget -O /usr/include/ceres/internal/config.h "https://raw.githubusercontent.com/ceres-solver/ceres-solver/master/config/ceres/internal/config.h"
-        - cd $PARPE_BASE/deps/AMICI/ && scripts/run-build.sh && scripts/run-cpputest.sh
+        - cd $PARPE_BASE/deps/AMICI/ && scripts/buildSuiteSparse.sh && scripts/buildSundials.sh && scripts/buildCpputest.sh && scripts/buildAmici.sh
         - cd $PARPE_BASE/ThirdParty && ./downloadPackages.sh
         # Download AMICI from github - cd $PARPE_BASE/ThirdParty && ./installAMICI.sh
         #- cd $PARPE_BASE/ThirdParty && ./installCeres.sh

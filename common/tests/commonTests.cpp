@@ -10,6 +10,8 @@
 #include <cmath>
 #include <vector>
 
+using namespace parpe;
+
 // clang-format off
 TEST_GROUP(testingMisc){
     void setup(){

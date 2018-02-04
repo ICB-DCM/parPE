@@ -37,7 +37,7 @@ TEST(simulationWorkerAmici, testSerializeResultPackageMessage) {
 
 TEST(simulationWorkerAmici, testSerializeWorkPackageMessage) {
     // serialize and deserialize workpackage with random content
-    int nTheta = randInt(0, 5000);
+    int nTheta = parpe::randInt(0, 5000);
 
     // setup userData
     amici::Model_Test m(0,0,0,0,0,0,0,0,0,0,0,0,0,0,amici::AMICI_O2MODE_NONE,std::vector<realtype>(nTheta),std::vector<realtype>(),std::vector<int>(),std::vector<realtype>(),std::vector<int>());

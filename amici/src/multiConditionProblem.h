@@ -173,6 +173,8 @@ public:
                                    LoadBalancerMaster *loadBalancer,
                                    MultiConditionProblemResultWriter *resultWriter = nullptr);
 
+    virtual ~MultiConditionGradientFunction() = default;
+
     /**
      * @brief Evaluate cost function at `optimiziationVariables`
      * @param optimiziationVariables Current parameters
