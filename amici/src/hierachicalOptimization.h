@@ -97,7 +97,7 @@ public:
 
     std::vector<int> const& getProportionalityFactorIndices() const;
 
-    const std::unique_ptr<AmiciSummedGradientFunction<int>> fun;
+    std::unique_ptr<AmiciSummedGradientFunction<int>> fun;
 
 private:
     /** Sorted list of the indices of the scaling parameters
@@ -161,7 +161,7 @@ private:
 class HierachicalOptimizationProblemWrapper : public OptimizationProblem {
 public:
     HierachicalOptimizationProblemWrapper() = default;
-    HierachicalOptimizationProblemWrapper(std::unique_ptr<OptimizationProblem> problemToWrap, MultiConditionDataProvider *dataProvider);
+    HierachicalOptimizationProblemWrapper(std::unique_ptr<OptimizationProblem> problemToWrap, MultiConditionDataProvider const* dataProvider);
 
     virtual ~HierachicalOptimizationProblemWrapper();
 
@@ -175,6 +175,8 @@ public:
 
     std::unique_ptr<OptimizationProblem> wrappedProblem;
 };
+
+void fillFilteredParams(std::vector<double> const& fullParams, const std::vector<int> &sortedFilterIndices, double *buffer);
 
 } //namespace parpe
 

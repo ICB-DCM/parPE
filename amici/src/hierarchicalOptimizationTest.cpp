@@ -1,5 +1,6 @@
 #include "hierachicalOptimization.h"
 #include "testingMisc.h"
+#include "../../optimization/tests/quadraticTestProblem.h"
 
 #include "CppUTest/TestHarness.h"
 #include "CppUTestExt/MockSupport.h"
@@ -131,4 +132,18 @@ TEST(hierarchicalOptimization, hierarchicalOptimization) {
 
 TEST(hierarchicalOptimization, filterParams) {
     // TODO
+}
+
+TEST(hierarchicalOptimization, problemWrapper) {
+    // TODO test wrapper; need dataprovider?!
+//    mock().ignoreOtherCalls();
+//    parpe::QuadraticTestProblem problem;
+
+//    parpe::OptimizerIpOpt optimizer;
+//    auto result = optimizer.optimize(&problem);
+
+//    // check status, cost, parameter
+//    CHECK_EQUAL(0, std::get<0>(result));
+//    DOUBLES_EQUAL(42.0, std::get<1>(result), 1e-12);
+//    DOUBLES_EQUAL(-1.0, std::get<2>(result).at(0), 1e-12);
 }

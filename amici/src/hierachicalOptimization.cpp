@@ -8,8 +8,11 @@
 namespace parpe {
 
 
-HierachicalOptimizationWrapper::HierachicalOptimizationWrapper(std::unique_ptr<AmiciSummedGradientFunction<int> > fun, std::unique_ptr<parpe::ScalingFactorHdf5Reader> reader, int numConditions, int numObservables, int numTimepoints)
-    : fun(fun.release()),
+HierachicalOptimizationWrapper::HierachicalOptimizationWrapper(
+        std::unique_ptr<AmiciSummedGradientFunction<int> > fun,
+        std::unique_ptr<parpe::ScalingFactorHdf5Reader> reader,
+        int numConditions, int numObservables, int numTimepoints)
+    : fun(std::move(fun)),
       reader(std::move(reader)),
       numConditions(numConditions),
       numObservables(numObservables),
@@ -75,6 +78,7 @@ void HierachicalOptimizationWrapper::applyOptimalScaling(int scalingIdx, double 
     for (auto const conditionIdx: dependentConditions) {
         auto dependentObservables = reader->getObservablesForScalingParameter(scalingIdx, conditionIdx);
         for(auto const observableIdx: dependentObservables) {
+            assert(observableIdx < numObservables);
             for(int timeIdx = 0; timeIdx < numTimepoints; ++timeIdx) {
                 modelOutputs[conditionIdx][observableIdx + timeIdx * numObservables] *= scaling;
             }
@@ -107,16 +111,23 @@ double HierachicalOptimizationWrapper::optimalScaling(int scalingIdx, const std:
     return proportionalityFactor;
 }
 
-FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluateWithScalings(const double * const reducedParameters, const std::vector<double> &scalings, const std::vector<std::vector<double> > &modelOutputsScaled, double &fval, double *gradient) const {
+FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluateWithScalings(
+        const double * const reducedParameters,
+        const std::vector<double> &scalings,
+        const std::vector<std::vector<double> > &modelOutputsScaled,
+        double &fval, double *gradient) const {
 
     if(gradient) {
         // simulate with updated theta for sensitivities
-        std::fill(gradient, gradient + numParameters(), 0.0);
         auto fullParameters = getFullParameters(reducedParameters, scalings);
-        // TODO: only those necessary
+        // TODO: only those necessary?
         std::vector<int> dataIndices(numConditions);
         std::iota(dataIndices.begin(), dataIndices.end(), 0);
-        fun->evaluate(fullParameters.data(), dataIndices, fval, gradient);
+
+        // Need intermediary buffer because optimizer expects fewer parameters
+        std::vector<double> fullGradient(fullParameters.size());
+        fun->evaluate(fullParameters.data(), dataIndices, fval, fullGradient.data());
+        fillFilteredParams(fullGradient, proportionalityFactorIndices, gradient);
 
     } else {
         // just compute
@@ -264,13 +275,18 @@ void ScalingFactorHdf5Reader::readFromFile() {
 
 }
 
-HierachicalOptimizationProblemWrapper::HierachicalOptimizationProblemWrapper(std::unique_ptr<OptimizationProblem> problemToWrap, MultiConditionDataProvider *dataProvider)
+HierachicalOptimizationProblemWrapper::HierachicalOptimizationProblemWrapper(
+        std::unique_ptr<OptimizationProblem> problemToWrap,
+        const MultiConditionDataProvider *dataProvider)
     : wrappedProblem(std::move(problemToWrap))
 {
-    auto wrappedFun = static_cast<SummedGradientFunctionGradientFunctionAdapter<int>*>(wrappedProblem->costFun.get());
+    auto wrappedFun = dynamic_cast<SummedGradientFunctionGradientFunctionAdapter<int>*>(
+                dynamic_cast<MultiConditionGradientFunction*>(wrappedProblem->costFun.get())
+                ->summedGradFun.get());
+
     costFun.reset(new HierachicalOptimizationWrapper(
                       std::unique_ptr<AmiciSummedGradientFunction<int>>(
-                          static_cast<AmiciSummedGradientFunction<int>*>(wrappedFun->gradFun.get())),
+                          dynamic_cast<AmiciSummedGradientFunction<int>*>(wrappedFun->gradFun.get())),
                       std::make_unique<ScalingFactorHdf5Reader>(dataProvider->file, "/"),
                       dataProvider->getNumberOfConditions(),
                       dataProvider->model->nytrue,
@@ -279,7 +295,8 @@ HierachicalOptimizationProblemWrapper::HierachicalOptimizationProblemWrapper(std
 
 HierachicalOptimizationProblemWrapper::~HierachicalOptimizationProblemWrapper()
 {
-    costFun.release(); // Avoid double delete. This will be destroyed when wrappedProblem goes out of scope!
+    // Avoid double delete. This will be destroyed when wrappedProblem goes out of scope!
+    dynamic_cast<HierachicalOptimizationWrapper *>(costFun.get())->fun.release();
 }
 
 void HierachicalOptimizationProblemWrapper::fillInitialParameters(double *buffer) const
@@ -305,12 +322,18 @@ void HierachicalOptimizationProblemWrapper::fillParametersMin(double *buffer) co
 
 void HierachicalOptimizationProblemWrapper::fillFilteredParams(const std::vector<double> &fullParams, double *buffer) const
 {
-    HierachicalOptimizationWrapper* hierarchical = static_cast<HierachicalOptimizationWrapper *>(wrappedProblem->costFun.get());
+    auto hierarchical = dynamic_cast<HierachicalOptimizationWrapper *>(costFun.get());
     auto proportionalityFactorIndices = hierarchical->getProportionalityFactorIndices();
+    parpe::fillFilteredParams(fullParams, proportionalityFactorIndices, buffer);
+}
+
+void fillFilteredParams(const std::vector<double> &fullParams, std::vector<int> const& sortedFilterIndices, double *buffer)
+{
     unsigned int nextScalingIdx = 0;
     unsigned int bufferIdx = 0;
     for(int i = 0; (unsigned)i < fullParams.size(); ++i) {
-        if(proportionalityFactorIndices[nextScalingIdx] == i) {
+        if(nextScalingIdx < sortedFilterIndices.size()
+                && sortedFilterIndices[nextScalingIdx] == i) {
             // skip
             ++nextScalingIdx;
         } else {
@@ -319,8 +342,9 @@ void HierachicalOptimizationProblemWrapper::fillFilteredParams(const std::vector
             ++bufferIdx;
         }
     }
-    assert(nextScalingIdx == proportionalityFactorIndices.size());
-    assert(bufferIdx == (unsigned)costFun->numParameters());
+    assert(nextScalingIdx == sortedFilterIndices.size());
+    assert(bufferIdx == (unsigned) fullParams.size() - sortedFilterIndices.size());
+
 }
 
 

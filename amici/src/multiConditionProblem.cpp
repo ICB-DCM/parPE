@@ -323,6 +323,7 @@ std::unique_ptr<OptimizationProblem> MultiConditionProblemMultiStartOptimization
     assert(dp != nullptr);
     assert(dp->getModel() != nullptr);
 
+
     std::unique_ptr<MultiConditionProblem> problem = std::make_unique<MultiConditionProblem>(dp, loadBalancer);
 
     problem->setOptimizationOptions(options);
@@ -338,7 +339,12 @@ std::unique_ptr<OptimizationProblem> MultiConditionProblemMultiStartOptimization
 
     problem->setInitialParameters(options.getStartingPoint(dp->fileId, multiStartIndex));
 
-    return std::move(problem);
+
+    return std::unique_ptr<OptimizationProblem>(
+                new parpe::HierachicalOptimizationProblemWrapper(std::move(problem), dp));
+
+
+//    return std::move(problem);
 }
 
 void printSimulationResult(const JobIdentifier &path, int jobId, amici::ReturnData const* rdata, double timeSeconds) {

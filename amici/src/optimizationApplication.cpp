@@ -209,10 +209,19 @@ int OptimizationApplication::runWorker() {
     // TODO: Move out of here
     LoadBalancerWorker lbw;
     lbw.run([this](std::vector<char> &buffer, int jobId) {
-        static_cast<HierachicalOptimizationWrapper *>(
-                    static_cast<MultiConditionGradientFunction*>(problem->costFun.get())
-                    ->summedGradFun.get())->fun->messageHandler(buffer, jobId);
-        //AmiciSummedGradientFunction<T>
+        // TODO: this is so damn ugly
+        auto mcGradFun = dynamic_cast<MultiConditionGradientFunction*>(problem->costFun.get());
+        if(mcGradFun) {
+            // non-hierarchical
+            auto sgf = dynamic_cast<SummedGradientFunctionGradientFunctionAdapter<int>*>(mcGradFun->summedGradFun.get());
+            assert(sgf);
+            dynamic_cast<AmiciSummedGradientFunction<int>*>(sgf->gradFun.get())->messageHandler(buffer, jobId);
+        } else {
+            // hierarchical
+            auto hierarch = dynamic_cast<HierachicalOptimizationWrapper *>(problem->costFun.get());
+            assert(hierarch);
+            hierarch->fun->messageHandler(buffer, jobId);
+        }
     });
 
     return 0;

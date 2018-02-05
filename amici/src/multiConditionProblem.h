@@ -322,7 +322,6 @@ class MultiConditionProblemMultiStartOptimizationProblem
     MultiConditionDataProvider *dp = nullptr;
     OptimizationOptions options;
     MultiConditionProblemResultWriter *resultWriter = nullptr;
-    amici::Model *model = nullptr;
     LoadBalancerMaster *loadBalancer = nullptr;
 };
 

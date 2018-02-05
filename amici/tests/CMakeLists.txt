@@ -11,6 +11,7 @@ set(SRC_LIST_CPP
     ../src/simulationResultWriterTest.cpp
     ../src/hierarchicalOptimizationTest.cpp
     ../../common/src/testingMisc.cpp
+    ../../optimization/tests/quadraticTestProblem.cpp
 )
 
 add_executable(${PROJECT_NAME} ${SRC_LIST_CPP})
