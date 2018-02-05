@@ -5,3 +5,8 @@ CMakeLists.txt.user
 /ThirdParty/*
 /doc/Doxyfile
 /doc/doxy/*
+
+.project
+.pydevproject
+.settings/
+
