@@ -169,6 +169,11 @@ int HierachicalOptimizationWrapper::numScalingFactors() const {
     return proportionalityFactorIndices.size();
 }
 
+const std::vector<int> &HierachicalOptimizationWrapper::getProportionalityFactorIndices() const
+{
+    return proportionalityFactorIndices;
+}
+
 ScalingFactorHdf5Reader::ScalingFactorHdf5Reader(H5::H5File file, std::string rootPath)
     :file(file), rootPath(rootPath)
 {
@@ -252,6 +257,65 @@ void ScalingFactorHdf5Reader::readFromFile() {
         return;
     }
 
+}
+
+HierachicalOptimizationProblemWrapper::HierachicalOptimizationProblemWrapper(std::unique_ptr<OptimizationProblem> problemToWrap, MultiConditionDataProvider *dataProvider)
+    : wrappedProblem(std::move(problemToWrap))
+{
+    auto wrappedFun = static_cast<SummedGradientFunctionGradientFunctionAdapter<int>*>(wrappedProblem->costFun.get());
+    costFun.reset(new HierachicalOptimizationWrapper(
+                      std::unique_ptr<AmiciSummedGradientFunction<int>>(
+                          static_cast<AmiciSummedGradientFunction<int>*>(wrappedFun->gradFun.get())),
+                      std::make_unique<ScalingFactorHdf5Reader>(dataProvider->file, "/"),
+                      dataProvider->getNumberOfConditions(),
+                      dataProvider->model->nytrue,
+                      dataProvider->model->nt()));
+}
+
+HierachicalOptimizationProblemWrapper::~HierachicalOptimizationProblemWrapper()
+{
+    costFun.release(); // Avoid double delete. This will be destroyed when wrappedProblem goes out of scope!
+}
+
+void HierachicalOptimizationProblemWrapper::fillInitialParameters(double *buffer) const
+{
+    std::vector<double> full(wrappedProblem->costFun->numParameters());
+    wrappedProblem->fillInitialParameters(full.data());
+    fillFilteredParams(full, buffer);
+}
+
+void HierachicalOptimizationProblemWrapper::fillParametersMax(double *buffer) const
+{
+    std::vector<double> full(wrappedProblem->costFun->numParameters());
+    wrappedProblem->fillParametersMax(full.data());
+    fillFilteredParams(full, buffer);
+}
+
+void HierachicalOptimizationProblemWrapper::fillParametersMin(double *buffer) const
+{
+    std::vector<double> full(wrappedProblem->costFun->numParameters());
+    wrappedProblem->fillParametersMin(full.data());
+    fillFilteredParams(full, buffer);
+}
+
+void HierachicalOptimizationProblemWrapper::fillFilteredParams(const std::vector<double> &fullParams, double *buffer) const
+{
+    HierachicalOptimizationWrapper* hierarchical = static_cast<HierachicalOptimizationWrapper *>(wrappedProblem->costFun.get());
+    auto proportionalityFactorIndices = hierarchical->getProportionalityFactorIndices();
+    unsigned int nextScalingIdx = 0;
+    unsigned int bufferIdx = 0;
+    for(int i = 0; (unsigned)i < fullParams.size(); ++i) {
+        if(proportionalityFactorIndices[nextScalingIdx] == i) {
+            // skip
+            ++nextScalingIdx;
+        } else {
+            // copy
+            buffer[bufferIdx] = fullParams[i];
+            ++bufferIdx;
+        }
+    }
+    assert(nextScalingIdx == proportionalityFactorIndices.size());
+    assert(bufferIdx == (unsigned)costFun->numParameters());
 }
 
 

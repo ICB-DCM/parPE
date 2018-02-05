@@ -26,7 +26,7 @@ class OptimizationApplication {
 
     /**
      * @brief User-provided problem initialization.
-     * Must set OptimizationApplication::problem and should set
+     * Must set OptimizationApplication::problem, OptimizationApplication::multiStartOptimization and should set
      * OptimizationApplication::resultWriter
      * @param inFileArgument
      * @param outFileArgument
@@ -100,6 +100,8 @@ private:
      */
     int init(int argc, char **argv);
 
+    int runMultiStarts(LoadBalancerMaster* lbm);
+
 protected:
     // command line option parsing
     const char *shortOptions = "dhvt:o:";
@@ -119,8 +121,12 @@ protected:
 
     std::string dataFileName;
     std::string resultFileName;
-    std::unique_ptr<MultiConditionProblem> problem;
+
+    // the need to be filled in by sub
+    std::unique_ptr<MultiStartOptimizationProblem> multiStartOptimizationProblem;
+    std::unique_ptr<OptimizationProblem> problem;
     std::unique_ptr<MultiConditionProblemResultWriter> resultWriter;
+
     operationTypeEnum opType = OP_TYPE_PARAMETER_ESTIMATION;
     LoadBalancerMaster loadBalancer;
 };

@@ -59,23 +59,32 @@ class SteadystateApplication : public parpe::OptimizationApplication {
 
     virtual void initProblem(std::string inFileArgument,
                              std::string outFileArgument) override {
-        model = std::unique_ptr<amici::Model>(getModel());
-        dataProvider = std::make_unique<SteadyStateMultiConditionDataProvider>(std::unique_ptr<amici::Model>(model->clone()), inFileArgument);
 
-        problem.reset(new SteadyStateMultiConditionProblem(dataProvider.get(), &loadBalancer));
+
+        dataProvider = std::make_unique<SteadyStateMultiConditionDataProvider>(
+                    getModel(), inFileArgument);
+
+        auto multiCondProb = new parpe::MultiConditionProblem(dataProvider.get(), &loadBalancer);
+        problem.reset(multiCondProb);
 
         parpe::JobIdentifier id;
         resultWriter = std::make_unique<parpe::MultiConditionProblemResultWriter>(outFileArgument, true, id);
 
-        problem->resultWriter = std::make_unique<parpe::MultiConditionProblemResultWriter>(*resultWriter);
-        problem->resultWriter->setJobId(id);
+        // Create one instance for the problem, one for the application for clear ownership
+        multiCondProb->resultWriter = std::make_unique<parpe::MultiConditionProblemResultWriter>(*resultWriter);
+        multiCondProb->resultWriter->setJobId(id);
 
         if(parpe::getMpiRank() < 1)
             dataProvider->copyInputData(resultWriter->getFileId());
+
+        auto ms = new parpe::MultiConditionProblemMultiStartOptimizationProblem();
+        ms->options = problem->getOptimizationOptions();
+        ms->resultWriter = multiCondProb->resultWriter.get();
+        ms->dp = multiCondProb->getDataProvider();
+        multiStartOptimizationProblem.reset(ms);
     }
 
     std::unique_ptr<SteadyStateMultiConditionDataProvider> dataProvider;
-    std::unique_ptr<amici::Model> model;
 };
 
 /**

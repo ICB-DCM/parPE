@@ -127,3 +127,8 @@ TEST(hierarchicalOptimization, hierarchicalOptimization) {
 
     CHECK_EQUAL(2, w.numParameters());
 }
+
+
+TEST(hierarchicalOptimization, filterParams) {
+    // TODO
+}

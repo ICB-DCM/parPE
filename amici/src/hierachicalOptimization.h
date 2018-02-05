@@ -95,6 +95,8 @@ public:
 
     int numScalingFactors() const;
 
+    std::vector<int> const& getProportionalityFactorIndices() const;
+
     const std::unique_ptr<AmiciSummedGradientFunction<int>> fun;
 
 private:
@@ -149,6 +151,29 @@ private:
     // x[scalingIdx][conditionIdx] -> std::vector of observableIndicies
     std::vector<std::map<int, std::vector<int>>> mapping;
     std::vector<int> proportionalityFactorIndices;
+};
+
+
+/**
+ * @brief The HierachicalOptimizationProblemWrapper class wraps an OptimizationProblem and hides the analytically optimizated parameters (from starting point, parameter bounds, ...)
+ *
+ */
+class HierachicalOptimizationProblemWrapper : public OptimizationProblem {
+public:
+    HierachicalOptimizationProblemWrapper() = default;
+    HierachicalOptimizationProblemWrapper(std::unique_ptr<OptimizationProblem> problemToWrap, MultiConditionDataProvider *dataProvider);
+
+    virtual ~HierachicalOptimizationProblemWrapper();
+
+    virtual void fillInitialParameters(double *buffer) const override;
+
+    virtual void fillParametersMin(double *buffer) const override;
+
+    virtual void fillParametersMax(double *buffer) const override;
+
+    void fillFilteredParams(std::vector<double> const& fullParams, double *buffer) const;
+
+    std::unique_ptr<OptimizationProblem> wrappedProblem;
 };
 
 } //namespace parpe

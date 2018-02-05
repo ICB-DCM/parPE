@@ -17,6 +17,8 @@ public:
     virtual bool restartOnFailure() const { return false; }
 
     virtual std::unique_ptr<OptimizationProblem> getLocalProblem(int multiStartIndex) const = 0;
+
+    virtual ~MultiStartOptimizationProblem() = default;
 };
 
 
@@ -28,6 +30,8 @@ class MultiStartOptimization {
 
   public:
     MultiStartOptimization(MultiStartOptimizationProblem& problem, bool runParallel = true);
+
+    ~MultiStartOptimization() = default;
 
     /**
      * @brief Start multi-start optimization

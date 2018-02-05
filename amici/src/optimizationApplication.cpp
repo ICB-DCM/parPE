@@ -3,17 +3,20 @@
 #include "hdf5Misc.h"
 #include "logging.h"
 #include "misc.h"
+#include <optimizationOptions.h>
+
 #include <cstring>
 #include <ctime>
-#include <mpi.h>
-#include <optimizationOptions.h>
 #include <pthread.h>
-#include <amici.h>
-#include <amiciMisc.h>
 #include <numeric>
 #include <algorithm>
 #include <random>
 #include <csignal>
+
+#include <amici.h>
+#include <amiciMisc.h>
+
+#include <mpi.h>
 
 namespace parpe {
 
@@ -54,6 +57,20 @@ int OptimizationApplication::init(int argc, char **argv) {
     amici::warnMsgIdAndTxt = printAmiciWarnMsgIdAndTxt;
 
     return status;
+}
+
+int OptimizationApplication::runMultiStarts(LoadBalancerMaster *lbm)
+{
+    // TODO: use uniqe_ptr, not ref
+    MultiStartOptimization optimizer(*multiStartOptimizationProblem, false);
+
+    // if numStarts > 1: need to use multiple MPI
+    // workers or run sequentially,
+    // otherwise simulation crashes due
+    // to CVODES threading issues
+    optimizer.setRunParallel(getMpiCommSize() > 1);
+
+    return optimizer.run();
 }
 
 int OptimizationApplication::parseOptions(int argc, char **argv) {
@@ -182,24 +199,7 @@ int OptimizationApplication::runMaster() {
     }
     case OP_TYPE_PARAMETER_ESTIMATION:
     default:
-        // startParameterEstimation(&dataProvider);
-
-        // if numStarts > 1: need to use multiple MPI
-        // workers, otherwise simulation crashes due
-        // to CVODES threading issues
-
-        if (problem->getOptimizationOptions().numStarts > 0) {
-            MultiConditionProblemMultiStartOptimizationProblem ms;
-            ms.options = problem->getOptimizationOptions();
-            ms.resultWriter = problem->resultWriter.get();
-            ms.dp = problem->getDataProvider();
-            ms.loadBalancer = &loadBalancer;
-            // TODO: use uniqe_ptr, not ref
-            MultiStartOptimization optimizer(ms, true);
-            optimizer.run();
-        }
-
-        break;
+        return runMultiStarts(&loadBalancer);
     }
 
     return 0;
@@ -210,8 +210,8 @@ int OptimizationApplication::runWorker() {
     LoadBalancerWorker lbw;
     lbw.run([this](std::vector<char> &buffer, int jobId) {
         static_cast<HierachicalOptimizationWrapper *>(
-        static_cast<MultiConditionGradientFunction*>(problem->costFun.get())
-                ->summedGradFun.get())->fun->messageHandler(buffer, jobId);
+                    static_cast<MultiConditionGradientFunction*>(problem->costFun.get())
+                    ->summedGradFun.get())->fun->messageHandler(buffer, jobId);
         //AmiciSummedGradientFunction<T>
     });
 
@@ -232,14 +232,7 @@ int OptimizationApplication::runSingleMpiProcess() {
     case OP_TYPE_PARAMETER_ESTIMATION:
     default:
         if (problem->getOptimizationOptions().numStarts > 0) {
-            MultiConditionProblemMultiStartOptimizationProblem ms;
-            ms.options = problem->getOptimizationOptions();
-            ms.resultWriter = problem->resultWriter.get();
-            ms.dp = problem->getDataProvider();
-            MultiStartOptimization optimizer(ms);
-            // Can only run single start because of non-threadsafe sundials
-            optimizer.setRunParallel(false);
-            return optimizer.run();
+            return runMultiStarts(nullptr);
         } else {
             return getLocalOptimum(problem.get());
         }
@@ -269,7 +262,7 @@ void OptimizationApplication::finalizeTiming(clock_t begin) {
 }
 
 std::string OptimizationApplication::processResultFilenameCommandLineArgument(
-    const char *commandLineArg) {
+        const char *commandLineArg) {
     std::size_t bufSize = 1024;
     char tmpFileName[bufSize];
     snprintf(tmpFileName, bufSize, "%s_rank%05d.h5", commandLineArg,

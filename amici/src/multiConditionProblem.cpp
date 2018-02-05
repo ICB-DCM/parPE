@@ -236,7 +236,7 @@ int AmiciSummedGradientFunction<T>::runSimulations(const double *optimizationVar
         errors += simRunner.runSharedMemory(
                     [&](std::vector<char> &buffer, int jobId) {
                 messageHandler(buffer, jobId);
-    }, true); //TODO reenvable
+    }, true);
     }
 
     return errors;
@@ -391,12 +391,9 @@ MultiConditionGradientFunction::MultiConditionGradientFunction(MultiConditionDat
     std::vector<int> dataIndices(numConditions);
     std::iota(dataIndices.begin(), dataIndices.end(), 0);
 
-    summedGradFun.reset(new HierachicalOptimizationWrapper(
-                                std::make_unique<AmiciSummedGradientFunction<int>>(dataProvider, loadBalancer, resultWriter),
-                                std::make_unique<ScalingFactorHdf5Reader>(dataProvider->file, "/"),
-                                dataProvider->getNumberOfConditions(),
-                                dataProvider->model->nytrue,
-                                dataProvider->model->nt()));
+    summedGradFun.reset(new SummedGradientFunctionGradientFunctionAdapter<int>(
+                            std::make_unique<AmiciSummedGradientFunction<int>>(dataProvider, loadBalancer, resultWriter),
+                            dataIndices));
 }
 
 FunctionEvaluationStatus MultiConditionGradientFunction::evaluate(const double * const parameters, double &objectiveFunctionValue, double *objectiveFunctionGradient) const
@@ -548,7 +545,7 @@ FunctionEvaluationStatus AmiciSummedGradientFunction<T>::getModelOutputs(const d
         errors += simRunner.runSharedMemory(
                     [&](std::vector<char> &buffer, int jobId) {
                 messageHandler(buffer, jobId);
-    });
+    }, true);
     }
 
     return errors == 0 ? functionEvaluationSuccess : functionEvaluationFailure;
