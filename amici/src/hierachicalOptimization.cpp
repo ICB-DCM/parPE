@@ -1,5 +1,10 @@
 #include "hierachicalOptimization.h"
 
+#ifdef __INTEL_COMPILER
+// constexpr did not work on icc (ICC) 16.0.4 20160811
+#define constexpr
+#endif
+
 namespace parpe {
 
 
