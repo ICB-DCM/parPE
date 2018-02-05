@@ -9,6 +9,7 @@
 #include <mpi.h>
 #include <cmath>
 #include <vector>
+#include <cstring> // strlen
 
 using namespace parpe;
 
@@ -178,7 +179,7 @@ TEST(commonMisc, strFormatCurrentLocaltime) {
     int buflen = 10;
     char buf[buflen];
     parpe::strFormatCurrentLocaltime(buf, buflen, "abc");
-    CHECK_EQUAL(3, strlen(buf));
+    CHECK_EQUAL(3, std::strlen(buf));
 }
 
 
