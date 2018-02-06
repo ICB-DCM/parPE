@@ -107,7 +107,9 @@ double HierachicalOptimizationWrapper::optimalScaling(int scalingIdx, const std:
     }
 
     double proportionalityFactor = enumerator / denominator;
-
+    // TODO: check parametrization
+    proportionalityFactor = log10(proportionalityFactor);
+    // TODO ensure positivity!
     return proportionalityFactor;
 }
 
