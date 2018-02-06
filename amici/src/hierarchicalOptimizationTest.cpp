@@ -107,7 +107,7 @@ TEST(hierarchicalOptimization, hierarchicalOptimization) {
     CHECK_TRUE(onesFullParameters == fun2->lastParameters);
 
     auto s = w.optimalScaling(0, outputs, fun2->getAllMeasurements());
-    CHECK_EQUAL(2.0, s);
+    CHECK_EQUAL(log10(2.0), s);
 
     w.applyOptimalScaling(0, 2.0, outputs);
     // output has to be equal to measurement for all points scaled with this parameter
