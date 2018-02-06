@@ -89,8 +89,15 @@ JobResultAmiciSimulation AmiciSummedGradientFunction<T>::runAndLogSimulation(ami
 
     auto edata = dataProvider->getExperimentalDataForCondition(path.idxConditions);
 
-    auto rdata = std::unique_ptr<amici::ReturnData>(
-                amici::getSimulationResults(model, edata.get(), solver));
+    auto rdata =  std::make_unique<amici::ReturnData>(solver, &model);
+
+    try {
+        amici::runAmiciSimulation(solver, edata.get(), rdata.get(), model);
+        *rdata->status = AMICI_SUCCESS;
+        rdata->applyChainRuleFactorToSimulationResults(&model);
+    } catch (std::exception &e) {
+        logmessage(LOGLVL_DEBUG, "Error during simulation: %s (%d)", e.what(), (int)*rdata->status);
+    }
 
     double endTime = MPI_Wtime();
     double timeSeconds = (endTime - startTime);
