@@ -630,11 +630,11 @@ int AmiciSummedGradientFunction<T>::numParameters() const
 template<typename T>
 FunctionEvaluationStatus AmiciSummedGradientFunction<T>::getModelOutputs(const double * const parameters, std::vector<std::vector<double> >& modelOutput) const {
     int errors = 0;
-    JobIdentifier path; // TODO = this->path;
+//    JobIdentifier path; // TODO = this->path;
 
     std::vector<int> dataIndices(dataProvider->getNumberOfConditions());
     std::iota(dataIndices.begin(), dataIndices.end(), 0);
-
+    updateUserDataCommon(parameters, nullptr);
     setSensitivityOptions(false);
 
     modelOutput.resize(dataIndices.size());

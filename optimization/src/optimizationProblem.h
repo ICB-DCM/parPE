@@ -238,9 +238,9 @@ public:
     // TODO:     template <class RandomAccessIterator>
     virtual void fillParametersMax(double *buffer) const = 0;
 
-    OptimizationOptions const& getOptimizationOptions() const;
+    virtual OptimizationOptions const& getOptimizationOptions() const;
 
-    void setOptimizationOptions(OptimizationOptions const& options);
+    virtual void setOptimizationOptions(OptimizationOptions const& options);
 
     // const?
     std::unique_ptr<GradientFunction> costFun;

@@ -133,13 +133,13 @@ FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluateWithScalings(
 
     } else {
         // just compute
-        fval = computeLikelihood(modelOutputsScaled);
+        fval = computeNegLogLikelihood(modelOutputsScaled);
     }
 
     return functionEvaluationSuccess;
 }
 
-double HierachicalOptimizationWrapper::computeLikelihood(const std::vector<std::vector<double> > &modelOutputsScaled) const {
+double HierachicalOptimizationWrapper::computeNegLogLikelihood(const std::vector<std::vector<double> > &modelOutputsScaled) const {
     double llh = 0.0;
     constexpr double pi = atan(1)*4;
     auto measurements = fun->getAllMeasurements();

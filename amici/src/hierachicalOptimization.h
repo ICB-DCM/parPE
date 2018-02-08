@@ -80,7 +80,7 @@ public:
      * @param modelOutputsScaled
      * @return
      */
-    double computeLikelihood(std::vector <std::vector<double>> const& modelOutputsScaled) const;
+    double computeNegLogLikelihood(std::vector <std::vector<double>> const& modelOutputsScaled) const;
 
 
     /**
@@ -172,6 +172,10 @@ public:
     virtual void fillParametersMax(double *buffer) const override;
 
     void fillFilteredParams(std::vector<double> const& fullParams, double *buffer) const;
+
+    OptimizationOptions const& getOptimizationOptions() const override { return wrappedProblem->getOptimizationOptions(); }
+    void setOptimizationOptions(OptimizationOptions const& options) override { wrappedProblem->setOptimizationOptions(options); }
+
 
     std::unique_ptr<OptimizationProblem> wrappedProblem;
 };
