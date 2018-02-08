@@ -12,6 +12,10 @@
 
 #include <amici.h>
 
+#include <amici_serialization.h>
+#include <boost/serialization/map.hpp>
+#include <SimulationRunner.h>
+
 #include <memory>
 #include <cmath> //NAN
 
@@ -76,7 +80,7 @@ public:
      * @return
      */
     // TODO does not belong here
-    JobResultAmiciSimulation runAndLogSimulation(amici::Solver &solver, amici::Model &model, JobIdentifier path,
+    SimulationRunnerSimple::AmiciResultPackageSimple  runAndLogSimulation(amici::Solver &solver, amici::Model &model, JobIdentifier path,
                                     int jobId) const;
 
 
@@ -120,7 +124,7 @@ protected:// for testing
      */
 
     int aggregateLikelihood(JobData &data, double &logLikelihood,
-                            double *objectiveFunctionGradient, int dataIdx, double &simulationTimeInS) const;
+                            double *objectiveFunctionGradient, double &simulationTimeInS) const;
 
 
     /**
@@ -334,6 +338,7 @@ void logSimulation(hid_t file_id, std::string path, const std::vector<double> &t
                    int nTheta, int numStates, double *states,
                    double *stateSensi, int numY, double *y, int jobId,
                    int iterationsUntilSteadystate, int status);
+
 
 } // namespace parpe
 
