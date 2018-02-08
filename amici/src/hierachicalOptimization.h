@@ -176,6 +176,8 @@ public:
     OptimizationOptions const& getOptimizationOptions() const override { return wrappedProblem->getOptimizationOptions(); }
     void setOptimizationOptions(OptimizationOptions const& options) override { wrappedProblem->setOptimizationOptions(options); }
 
+    // TODO: need to ensure that this will work with the reduced number of parameters
+    virtual std::unique_ptr<OptimizationReporter> getReporter() const override { return wrappedProblem->getReporter(); }
 
     std::unique_ptr<OptimizationProblem> wrappedProblem;
 };
