@@ -40,7 +40,7 @@ public:
 
     H5::H5File reopenFile();
 
-    bool saveXDot = false;
+    bool saveX = false;
     bool saveLlh = false;
 //    bool saveSllh = false;
     bool saveYSim = false;
@@ -50,7 +50,7 @@ public:
 
     std::string yMesPath;
     std::string ySimPath;
-    std::string xDotPath;
+    std::string xPath;
     std::string llhPath;
 
 private:
