@@ -2,6 +2,9 @@
 #include <SimulationRunner.h>
 #include <simulationResultWriter.h>
 #include <amici_interface_cpp.h>
+#include <LoadBalancerMaster.h>
+#include <LoadBalancerWorker.h>
+#include <optimizationOptions.h>
 
 #include <iostream>
 
@@ -61,9 +64,9 @@ int StandaloneSimulator::run(const std::string& resultFile, const std::string& r
         errors += simRunner.runDistributedMemory(loadBalancer);
     } else {
         errors += simRunner.runSharedMemory(
-            [&](std::vector<char> &buffer, int jobId) {
+                    [&](std::vector<char> &buffer, int jobId) {
                 messageHandler(buffer, jobId);
-            });
+    });
     }
 
     return errors;
@@ -218,8 +221,6 @@ int runAlongTrajectory(StandaloneSimulator &sim, std::string inFileName, std::st
     H5::H5File file(inFileName, H5F_ACC_RDONLY);
     int errors = 0;
 
-    auto o = parpe::OptimizationOptions::fromHDF5(file.getId());
-
     for(int i = 0; i < getNumStarts(file); ++i) {
         try {
 
@@ -238,7 +239,47 @@ int runAlongTrajectory(StandaloneSimulator &sim, std::string inFileName, std::st
     }
 
     return errors;
-
 }
+
+int runSimulationTasks(StandaloneSimulator &sim, std::string simulationMode,
+                       std::string inFileName, std::string dataFilePath,
+                       std::string resultFileName, std::string resultPath,
+                       LoadBalancerMaster *loadBalancer) {
+
+    if(simulationMode == "--at-optimum") {
+        return parpe::runFinalParameters(sim, inFileName, resultFileName, resultPath, loadBalancer);
+    } else if (simulationMode == "--along-trajectory") {
+        return parpe::runAlongTrajectory(sim, inFileName, resultFileName, resultPath, loadBalancer);
+    }
+
+    return -1;
+}
+
+int runSimulator(MultiConditionDataProvider &dp, std::string simulationMode, std::string dataFileName, std::string dataFilePath, std::string resultFileName, std::string resultPath)
+{
+    parpe::StandaloneSimulator sim(&dp);
+    int status = 0;
+    int commSize = parpe::getMpiCommSize();
+
+    if (commSize > 1) {
+        if (parpe::getMpiRank() == 0) {
+            parpe::LoadBalancerMaster loadBalancer;
+            loadBalancer.run();
+            status = runSimulationTasks(sim, simulationMode, dataFileName, dataFilePath, resultFileName, resultPath, &loadBalancer);
+            loadBalancer.terminate();
+            loadBalancer.sendTerminationSignalToAllWorkers();
+        } else {
+            parpe::LoadBalancerWorker lbw;
+            lbw.run([&sim](std::vector<char> &buffer, int jobId) {
+                sim.messageHandler(buffer, jobId);
+            });
+        }
+    } else {
+        status = runSimulationTasks(sim, simulationMode, dataFileName, dataFilePath, resultFileName, resultPath, nullptr);
+    }
+
+    return status;
+}
+
 
 } // namespace parpe

@@ -35,6 +35,8 @@ private:
     MultiConditionDataProvider *dataProvider = nullptr;
 };
 
+enum class SimulatorOpType {finalParameters};
+
 /**
  * @brief Read the final parameter set from parPE result file for the given local optimization index
  * @param startIndex
@@ -52,6 +54,17 @@ int runFinalParameters(parpe::StandaloneSimulator &sim, std::string inFileName, 
 
 int runAlongTrajectory(parpe::StandaloneSimulator &sim, std::string inFileName, std::string resultFileName, std::string resultPath,
         parpe::LoadBalancerMaster *loadBalancer);
+
+
+int runSimulator(parpe::StandaloneSimulator &sim, std::string simulationMode,
+        std::string inFileName, std::string dataFilePath,
+        std::string resultFileName, std::string resultPath,
+        parpe::LoadBalancerMaster *loadBalancer);
+
+int runSimulator(MultiConditionDataProvider &dp, std::string simulationMode,
+        std::string inFileName, std::string dataFilePath,
+        std::string resultFileName, std::string resultPath);
+
 
 } // namespace parpe
 
