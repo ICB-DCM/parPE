@@ -3,6 +3,7 @@
 
 #include "optimizationResultWriter.h"
 #include <optimizationOptions.h>
+#include <misc.h>
 
 #include <cstdlib>
 #include <vector>
@@ -193,9 +194,10 @@ public:
     //                                     int ls_trials);
 
 private:
-    clock_t timeOptimizationBegin;
-    clock_t timeIterationBegin;
-    clock_t timeCostEvaluationBegin;
+    WallTimer wallTimer;
+//    clock_t timeOptimizationBegin;
+//    clock_t timeIterationBegin;
+//    clock_t timeCostEvaluationBegin;
 
     std::unique_ptr<OptimizationResultWriter> resultWriter;
     int numFunctionCalls = 0;

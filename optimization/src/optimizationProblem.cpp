@@ -168,9 +168,10 @@ bool OptimizationReporter::starting(int numParameters, const double * const init
         return false;
 
     this->numParameters = numParameters;
-    timeOptimizationBegin = clock();
-    timeIterationBegin = timeOptimizationBegin;
-    timeCostEvaluationBegin = timeOptimizationBegin;
+    wallTimer.reset();
+//    timeOptimizationBegin = clock();
+//    timeIterationBegin = timeOptimizationBegin;
+//    timeCostEvaluationBegin = timeOptimizationBegin;
 
     if(resultWriter)
         resultWriter->starting(numParameters, initialParameters);
@@ -182,8 +183,8 @@ bool OptimizationReporter::starting(int numParameters, const double * const init
 
 bool OptimizationReporter::iterationFinished(int numParameters, const double * const parameters, double objectiveFunctionValue, const double * const objectiveFunctionGradient)
 {
-    double wallTimeIter = (double)(clock() - timeIterationBegin) / CLOCKS_PER_SEC;
-    double wallTimeOptim = (double)(clock() - timeOptimizationBegin) / CLOCKS_PER_SEC;
+    double wallTimeIter = wallTimer.getRound(); //(double)(clock() - timeIterationBegin) / CLOCKS_PER_SEC;
+    double wallTimeOptim = wallTimer.getTotal(); //double)(clock() - timeOptimizationBegin) / CLOCKS_PER_SEC;
 
     logmessage(LOGLVL_INFO, "iter: %d cost: %g time_iter: %gs time_optim: %gs", numIterations, objectiveFunctionValue, wallTimeIter, wallTimeOptim);
 
@@ -198,16 +199,16 @@ bool OptimizationReporter::iterationFinished(int numParameters, const double * c
 bool OptimizationReporter::beforeCostFunctionCall(int numParameters, const double * const parameters)
 {
     ++numFunctionCalls;
-    timeCostEvaluationBegin = clock();
+    //timeCostEvaluationBegin = clock();
 
     return false;
 }
 
 bool OptimizationReporter::afterCostFunctionCall(int numParameters, const double * const parameters, double objectiveFunctionValue, const double * const objectiveFunctionGradient)
 {
-    clock_t timeCostEvaluationEnd = clock();
+    //clock_t timeCostEvaluationEnd = clock();
 
-    double wallTime = (double)(timeCostEvaluationEnd - timeCostEvaluationBegin) / CLOCKS_PER_SEC;
+    double wallTime = wallTimer.getTotal();//(double)(timeCostEvaluationEnd - timeCostEvaluationBegin) / CLOCKS_PER_SEC;
 
     if(resultWriter)
         resultWriter->logLocalOptimizerObjectiveFunctionEvaluation(parameters, numParameters, objectiveFunctionValue,
@@ -217,8 +218,7 @@ bool OptimizationReporter::afterCostFunctionCall(int numParameters, const double
 
 void OptimizationReporter::finished(double optimalCost, const double *optimalParameters, int exitStatus)
 {
-    clock_t timeEnd = clock();
-    double timeElapsed = (double)(timeEnd - timeOptimizationBegin) / CLOCKS_PER_SEC;
+    double timeElapsed = wallTimer.getTotal();
 
     if(resultWriter)
         resultWriter->saveLocalOptimizerResults(optimalCost, optimalParameters,  numParameters, timeElapsed, exitStatus);
