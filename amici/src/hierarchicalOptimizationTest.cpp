@@ -102,13 +102,13 @@ TEST(hierarchicalOptimization, hierarchicalOptimization) {
     std::vector<double> onesFullParameters {0.0, 0.0, 3.0, 2.0}; // last 2 are scalings
 
     std::vector<double> scalingDummy(w.numScalingFactors(), 0.0);
-    CHECK_TRUE(onesFullParameters == w.getFullParameters(reducedParameters.data(), scalingDummy));
+    CHECK_TRUE(onesFullParameters == w.spliceParameters(reducedParameters.data(), reducedParameters.size(), scalingDummy));
 
     // Ensure it is called with proper parameter vector:
     auto outputs = w.getUnscaledModelOutputs(fullParameters.data());
     CHECK_TRUE(onesFullParameters == fun2->lastParameters);
 
-    auto s = w.computeAnalyticalScalings(0, outputs, fun2->getAllMeasurements());
+    auto s = w.computeAnalyticalScalings(0, outputs, fun2->measurements);
     CHECK_EQUAL(log10(2.0), s);
 
     w.applyOptimalScaling(0, 2.0, outputs);
@@ -119,7 +119,7 @@ TEST(hierarchicalOptimization, hierarchicalOptimization) {
     CHECK_TRUE(outputs[2][3] == fun2->measurements[2][3]);
 
     // likelihood without offset must be 0 after scaling and if all other measurements/observables agree
-    auto llh = w.computeNegLogLikelihood(outputs);
+    auto llh = w.computeNegLogLikelihood(fun2->measurements, outputs);
     constexpr double pi = atan(1)*4;
     double llhOffset = 0.5 * log(2 * pi) * 20;
     DOUBLES_EQUAL(llh - llhOffset, 0, 1e-10);

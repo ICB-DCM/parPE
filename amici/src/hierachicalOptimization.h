@@ -48,6 +48,8 @@ public:
             double &fval,
             double* gradient) const override;
 
+    std::vector<double> getDefaultScalingFactors() const;
+
     /**
      * @brief Run simulations with scaling parameters set to 1.0 and collect model outputs
      * @param reducedParameters parameter vector for `fun` without scaling parameters
@@ -61,7 +63,7 @@ public:
      * @param modelOutputs Model outputs as provided by getModelOutputs
      * @return the computed scaling factors
      */
-    std::vector<double> computeAnalyticalScalings(std::vector <std::vector<double>>& modelOutputs) const;
+    std::vector<double> computeAnalyticalScalings(const std::vector<std::vector<double> > &measurements, std::vector <std::vector<double>>& modelOutputs) const;
 
     void applyOptimalScalings(std::vector<double> const& proportionalityFactors, std::vector<std::vector<double> > &modelOutputs) const;
 
@@ -92,7 +94,7 @@ public:
      * @param modelOutputsScaled
      * @return
      */
-    double computeNegLogLikelihood(std::vector <std::vector<double>> const& modelOutputsScaled) const;
+    double computeNegLogLikelihood(std::vector <std::vector<double>> const& measurements, std::vector <std::vector<double>> const& modelOutputsScaled) const;
 
 
     /**
@@ -101,7 +103,7 @@ public:
      * @param scalingFactors
      * @return Full parameter vector for `fun`
      */
-    virtual std::vector<double> getFullParameters(double const * const reducedParameters, std::vector<double> const& scalingFactors) const;
+    virtual std::vector<double> spliceParameters(double const * const reducedParameters, int numReduced, std::vector<double> const& scalingFactors) const;
 
     virtual int numParameters() const override;
 

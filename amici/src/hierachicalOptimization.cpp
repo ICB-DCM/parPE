@@ -44,7 +44,7 @@ FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluate(const double *
     auto modelOutput = getUnscaledModelOutputs(parameters);
 
     // compute correct scaling factors analytically
-    auto scalings = computeAnalyticalScalings(modelOutput);
+    auto scalings = computeAnalyticalScalings(fun->getAllMeasurements(), modelOutput);
 
     // evaluate with analytical scaling parameters
     auto status = evaluateWithScalings(parameters, scalings, modelOutput, fval, gradient);
@@ -52,9 +52,8 @@ FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluate(const double *
     return status;
 }
 
-std::vector<std::vector<double> > HierachicalOptimizationWrapper::getUnscaledModelOutputs(const double * const reducedParameters) const {
-    // run simulations (no gradient!) with scaling parameters == 1, collect outputs
-
+std::vector<double> HierachicalOptimizationWrapper::getDefaultScalingFactors() const
+{
     double scaling = NAN;
     switch (parameterTransformation) {
     case ParameterTransformation::log10:
@@ -65,9 +64,15 @@ std::vector<std::vector<double> > HierachicalOptimizationWrapper::getUnscaledMod
         break;
     }
 
-    std::vector<double> scalingDummy(numScalingFactors(), scaling);
+    return std::vector<double>(numScalingFactors(), scaling);
+}
+
+std::vector<std::vector<double> > HierachicalOptimizationWrapper::getUnscaledModelOutputs(const double * const reducedParameters) const {
+    // run simulations (no gradient!) with scaling parameters == 1, collect outputs
+
+    auto scalingDummy = getDefaultScalingFactors();
     // splice hidden scaling parameter and external parameters
-    auto fullParameters = getFullParameters(reducedParameters, scalingDummy);
+    auto fullParameters = spliceParameters(reducedParameters, fun->numParameters(), scalingDummy);
 
     std::vector<std::vector<double> > modelOutput(numConditions);
     fun->getModelOutputs(fullParameters.data(), modelOutput);
@@ -75,13 +80,11 @@ std::vector<std::vector<double> > HierachicalOptimizationWrapper::getUnscaledMod
     return modelOutput;
 }
 
-std::vector<double> HierachicalOptimizationWrapper::computeAnalyticalScalings(std::vector<std::vector<double> > &modelOutputs) const {
+std::vector<double> HierachicalOptimizationWrapper::computeAnalyticalScalings(std::vector<std::vector<double>> const& measurements, std::vector<std::vector<double> > &modelOutputs) const {
     // NOTE: does not handle replicates, assumes normal distribution, does not compute sigmas
 
     int numProportionalityFactors = proportionalityFactorIndices.size();
     std::vector<double> proportionalityFactors(numProportionalityFactors);
-
-    auto measurements = fun->getAllMeasurements();
 
     for(int i = 0; i < numProportionalityFactors; ++i) {
         proportionalityFactors[i] = computeAnalyticalScalings(i, modelOutputs, measurements);
@@ -162,7 +165,7 @@ FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluateWithScalings(
 
     if(gradient) {
         // simulate with updated theta for sensitivities
-        auto fullParameters = getFullParameters(reducedParameters, scalings);
+        auto fullParameters = spliceParameters(reducedParameters, fun->numParameters(), scalings);
         // TODO: only those necessary?
         std::vector<int> dataIndices(numConditions);
         std::iota(dataIndices.begin(), dataIndices.end(), 0);
@@ -175,16 +178,16 @@ FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluateWithScalings(
     } else {
         applyOptimalScalings(scalings, modelOutputsUnscaled);
         // just compute
-        fval = computeNegLogLikelihood(modelOutputsUnscaled);
+        fval = computeNegLogLikelihood(modelOutputsUnscaled, fun->getAllMeasurements());
     }
 
     return functionEvaluationSuccess;
 }
 
-double HierachicalOptimizationWrapper::computeNegLogLikelihood(const std::vector<std::vector<double> > &modelOutputsScaled) const {
+double HierachicalOptimizationWrapper::computeNegLogLikelihood(std::vector <std::vector<double>> const& measurements, const std::vector<std::vector<double> > &modelOutputsScaled) const {
     double llh = 0.0;
     constexpr double pi = atan(1)*4;
-    auto measurements = fun->getAllMeasurements();
+
     double sigmaSquared = 1.0; // NOTE: no user-provided sigma supported at the moment
 
     for (int conditionIdx = 0; conditionIdx < numConditions; ++conditionIdx) {
@@ -205,8 +208,8 @@ double HierachicalOptimizationWrapper::computeNegLogLikelihood(const std::vector
     return llh;
 }
 
-std::vector<double> HierachicalOptimizationWrapper::getFullParameters(const double * const reducedParameters, const std::vector<double> &scalingFactors) const {
-    std::vector<double> fullParameters(fun->numParameters());
+std::vector<double> HierachicalOptimizationWrapper::spliceParameters(const double * const reducedParameters, int numReduced, const std::vector<double> &scalingFactors) const {
+    std::vector<double> fullParameters(numReduced + scalingFactors.size());
     int idxScaling = 0;
     int idxRegular = 0;
 
