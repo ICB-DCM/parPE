@@ -98,9 +98,10 @@ TEST(hierarchicalOptimization, hierarchicalOptimization) {
 
     std::vector<double> reducedParameters {3.0, 2.0};
     std::vector<double> fullParameters {3.0, 2.0, 1.5, 1.3}; // last 2 are scalings
-    std::vector<double> onesFullParameters {1.0, 1.0, 3.0, 2.0}; // last 2 are scalings
+    // scalings set to log10(1)
+    std::vector<double> onesFullParameters {0.0, 0.0, 3.0, 2.0}; // last 2 are scalings
 
-    std::vector<double> scalingDummy(w.numScalingFactors(), 1);
+    std::vector<double> scalingDummy(w.numScalingFactors(), 0.0);
     CHECK_TRUE(onesFullParameters == w.getFullParameters(reducedParameters.data(), scalingDummy));
 
     // Ensure it is called with proper parameter vector:
