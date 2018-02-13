@@ -75,10 +75,15 @@ public:
 
     ~JobResultAmiciSimulation() = default;
 
+    friend void swap(JobResultAmiciSimulation& first, JobResultAmiciSimulation& second) {
+        using std::swap;
+        swap(first.status, second.status);
+        swap(first.simulationTimeInSec, second.simulationTimeInSec);
+        swap(first.rdata, second.rdata);
+    }
+
     JobResultAmiciSimulation ( JobResultAmiciSimulation && other) {
-        std::swap(status, other.status);
-        std::swap(rdata, other.rdata);
-        std::swap(simulationTimeInSec, other.simulationTimeInSec);
+        swap(*this, other);
     }
 
     /** simulation return status */
