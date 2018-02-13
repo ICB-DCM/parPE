@@ -91,7 +91,8 @@ TEST(hierarchicalOptimization, hierarchicalOptimization) {
     auto fun2 = fun.get();
     auto r = std::make_unique<parpe::ScalingFactorHdf5Reader>(H5::H5File(TESTFILE, H5F_ACC_RDONLY), "/");
     parpe::HierachicalOptimizationWrapper w(std::move(fun), std::move(r),
-                                            fun->numConditions, fun->numObservables, fun->numTimepoints);
+                                            fun->numConditions, fun->numObservables, fun->numTimepoints,
+                                            parpe::ParameterTransformation::log10, parpe::ErrorModel::normal);
 
     CHECK_TRUE(w.numScalingFactors() == 2);
 
@@ -103,10 +104,10 @@ TEST(hierarchicalOptimization, hierarchicalOptimization) {
     CHECK_TRUE(onesFullParameters == w.getFullParameters(reducedParameters.data(), scalingDummy));
 
     // Ensure it is called with proper parameter vector:
-    auto outputs = w.getModelOutputs(fullParameters.data());
+    auto outputs = w.getUnscaledModelOutputs(fullParameters.data());
     CHECK_TRUE(onesFullParameters == fun2->lastParameters);
 
-    auto s = w.optimalScaling(0, outputs, fun2->getAllMeasurements());
+    auto s = w.computeAnalyticalScalings(0, outputs, fun2->getAllMeasurements());
     CHECK_EQUAL(log10(2.0), s);
 
     w.applyOptimalScaling(0, 2.0, outputs);

@@ -14,6 +14,9 @@
 
 namespace parpe {
 
+enum class ParameterTransformation { none, log10 };
+enum class ErrorModel { normal }; // TODO logNormal, laplace
+
 class ScalingFactorHdf5Reader;
 
 /**
@@ -29,8 +32,17 @@ public:
                                    std::unique_ptr<ScalingFactorHdf5Reader> reader,
                                    int numConditions,
                                    int numObservables,
-                                   int numTimepoints);
+                                   int numTimepoints,
+                                   ParameterTransformation parameterTransformation,
+                                   ErrorModel errorModel);
 
+    /**
+     * @brief See base class
+     * @param parameters
+     * @param fval
+     * @param gradient
+     * @return
+     */
     virtual FunctionEvaluationStatus evaluate(
             const double* const parameters,
             double &fval,
@@ -41,7 +53,7 @@ public:
      * @param reducedParameters parameter vector for `fun` without scaling parameters
      * @return Vector of double vectors containing AMICI ReturnData::y (nt x ny, column-major)
      */
-    std::vector <std::vector<double>> getModelOutputs(double const * const reducedParameters) const;
+    std::vector <std::vector<double>> getUnscaledModelOutputs(double const * const reducedParameters) const;
 
 
     /**
@@ -51,6 +63,7 @@ public:
      */
     std::vector<double> computeAnalyticalScalings(std::vector <std::vector<double>>& modelOutputs) const;
 
+    void applyOptimalScalings(std::vector<double> const& proportionalityFactors, std::vector<std::vector<double> > &modelOutputs) const;
 
     void applyOptimalScaling(int scalingIdx, double scaling, std::vector <std::vector<double>>&  modelOutputs) const;
 
@@ -65,12 +78,11 @@ public:
      * @return
      */
 
-    virtual double optimalScaling(int scalingIdx, std::vector <std::vector<double>> const& modelOutputsUnscaled,
+    virtual double computeAnalyticalScalings(int scalingIdx, std::vector <std::vector<double>> const& modelOutputsUnscaled,
                                   std::vector <std::vector<double>> const& measurements) const;
 
-    virtual FunctionEvaluationStatus evaluateWithScalings(
-            const double* const reducedParameters, std::vector<double> const &scalings,
-            std::vector <std::vector<double>> const& modelOutputsScaled,
+    virtual FunctionEvaluationStatus evaluateWithScalings(const double* const reducedParameters, std::vector<double> const &scalings,
+            std::vector<std::vector<double> > &modelOutputsUnscaled,
             double &fval,
             double* gradient) const;
 
@@ -107,6 +119,9 @@ private:
     int numConditions;
     int numObservables;
     int numTimepoints;
+
+    ParameterTransformation parameterTransformation;
+    ErrorModel errorModel;
 };
 
 
