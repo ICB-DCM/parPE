@@ -3,6 +3,8 @@
 #include <simulationResultWriter.h>
 #include <amici_interface_cpp.h>
 
+#include <iostream>
+
 namespace parpe {
 
 StandaloneSimulator::StandaloneSimulator(MultiConditionDataProvider *dp)
@@ -136,5 +138,107 @@ JobResultAmiciSimulation StandaloneSimulator::runSimulation(JobIdentifier path, 
 }
 
 
+
+std::vector<double> getFinalParameters(std::string startIndex, H5::H5File &file)
+{
+
+    // read from last iteration (last column in /multistarts/$/iterCostFunParameters)
+    std::string parameterPath = std::string("/multistarts/") + startIndex + "/iterCostFunParameters";
+    H5::DataSet dataset = file.openDataSet(parameterPath);
+
+    H5::DataSpace filespace = dataset.getSpace();
+    int rank = filespace.getSimpleExtentNdims();
+    RELEASE_ASSERT(rank == 2, "Rank mismatch");
+
+    hsize_t dims[2];
+    filespace.getSimpleExtentDims(dims, NULL);
+    int numIter = dims[1];
+    int numParam = dims[0];
+
+    std::vector<double> parameters(numParam);
+
+    parpe::hdf5Read2DDoubleHyperslab(file.getId(), parameterPath.c_str(),
+                                     numParam, 1, 0, numIter - 1,
+                                     parameters.data());
+    return parameters;
+}
+
+std::vector<std::vector<double>> getParameterTrajectory(std::string startIndex, H5::H5File &file)
+{
+    std::string parameterPath = std::string("/multistarts/") + startIndex + "/iterCostFunParameters";
+    H5::DataSet dataset = file.openDataSet(parameterPath);
+
+    H5::DataSpace filespace = dataset.getSpace();
+    int rank = filespace.getSimpleExtentNdims();
+    RELEASE_ASSERT(rank == 2, "Rank mismatch");
+
+    hsize_t dims[2];
+    filespace.getSimpleExtentDims(dims, NULL);
+    int numIter = dims[1];
+    int numParam = dims[0];
+
+    std::vector<std::vector<double>> parameters(numIter);
+
+    for(int iter = 0; iter < numIter; ++iter) {
+        parameters[iter] = std::vector<double>(numParam);
+        parpe::hdf5Read2DDoubleHyperslab(file.getId(), parameterPath.c_str(),
+                                         numParam, 1, 0, iter,
+                                         parameters[iter].data());
+    }
+
+    return parameters;
+}
+
+int getNumStarts(H5::H5File file, std::string rootPath)  {
+    auto o = parpe::OptimizationOptions::fromHDF5(file.getId());
+    return o->numStarts;
+}
+
+int runFinalParameters(StandaloneSimulator &sim, std::string inFileName, std::string resultFileName, std::string resultPath, LoadBalancerMaster *loadBalancer) {
+
+    H5::H5File file(inFileName, H5F_ACC_RDONLY);
+    int errors = 0;
+
+    for(int i = 0; i < getNumStarts(file); ++i) {
+        std::cout<<"Running for start "<<i<<std::endl;
+        try {
+            auto parameters = parpe::getFinalParameters(std::to_string(i), file);
+            std::string curResultPath = resultPath + "multistarts/" + std::to_string(i);
+            errors += sim.run(resultFileName, curResultPath, parameters, loadBalancer);
+        } catch (std::exception e) {
+            std::cerr<<e.what()<<std::endl;
+        }
+    }
+
+    return errors;
+}
+
+int runAlongTrajectory(StandaloneSimulator &sim, std::string inFileName, std::string resultFileName, std::string resultPath, LoadBalancerMaster *loadBalancer)
+{
+    H5::H5File file(inFileName, H5F_ACC_RDONLY);
+    int errors = 0;
+
+    auto o = parpe::OptimizationOptions::fromHDF5(file.getId());
+
+    for(int i = 0; i < getNumStarts(file); ++i) {
+        try {
+
+            auto parameters = getParameterTrajectory(std::to_string(i), file);
+
+            for(int iter = 0; (unsigned) iter < parameters.size(); ++iter) {
+                std::cout<<"Running for start "<<i<<" iter "<<iter<<std::endl;
+                std::string curResultPath = resultPath + "multistarts/" + std::to_string(i) + "/iter/" + std::to_string(iter);
+
+                errors += sim.run(resultFileName, curResultPath, parameters[iter], loadBalancer);
+            }
+        } catch (std::exception e) {
+            std::cerr<<e.what()<<std::endl;
+        }
+
+    }
+
+    return errors;
+
+}
 
 } // namespace parpe
