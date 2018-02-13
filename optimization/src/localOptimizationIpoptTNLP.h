@@ -109,9 +109,10 @@ private:
     std::unique_ptr<OptimizationReporter> reporter;
 
     double& finalCost;
+    // keeps the most recent parameters
     std::vector<double>& finalParameters;
 
-    // need to store, because IpOpt asks twice
+    // need to store initial parameters, because IpOpt asks twice
     std::vector<double> initialParameters;
 };
 

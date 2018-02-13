@@ -2,6 +2,8 @@
 #include "optimizationProblem.h"
 #include <cassert>
 #include <cstring>
+#include <IpIpoptData.hpp>
+#include <IpIpoptCalculatedQuantities.hpp>
 
 namespace parpe {
 
@@ -66,6 +68,10 @@ bool LocalOptimizationIpoptTNLP::eval_f(Index n, const Number *x, bool new_x,
                                         Number &obj_value) {
     auto unlockIpOpt = ipOptReleaseLock();
 
+    // update cached parameters
+    finalParameters.resize(n);
+    std::copy(x, x + n, finalParameters.begin());
+
     int errors = 0;
     if(reporter && reporter->beforeCostFunctionCall(n, x) != 0)
         return true;
@@ -92,6 +98,10 @@ bool LocalOptimizationIpoptTNLP::eval_f(Index n, const Number *x, bool new_x,
 bool LocalOptimizationIpoptTNLP::eval_grad_f(Index n, const Number *x,
                                              bool new_x, Number *grad_f) {
     auto unlockIpOpt = ipOptReleaseLock();
+
+    // update cached parameters
+    finalParameters.resize(n);
+    std::copy(x, x + n, finalParameters.begin());
 
     if(reporter && reporter->beforeCostFunctionCall(n, x) != 0)
         return true;
@@ -148,8 +158,9 @@ bool LocalOptimizationIpoptTNLP::intermediate_callback(
 
     auto unlockIpOpt = ipOptReleaseLock();
 
+    // better: find x in ip_data->curr()->x();
     int status = reporter->iterationFinished(problem->costFun->numParameters(),
-                                             nullptr,
+                                             finalParameters.data(),
                                              obj_value,
                                              haveCachedGradient?cachedGradient.data():nullptr);
 
