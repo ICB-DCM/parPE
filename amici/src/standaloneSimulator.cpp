@@ -5,6 +5,8 @@
 #include <LoadBalancerMaster.h>
 #include <LoadBalancerWorker.h>
 #include <optimizationOptions.h>
+#include <misc.h>
+#include <hierachicalOptimization.h>
 
 #include <iostream>
 
@@ -18,9 +20,8 @@ StandaloneSimulator::StandaloneSimulator(MultiConditionDataProvider *dp)
 
 
 int StandaloneSimulator::run(const std::string& resultFile, const std::string& resultPath,
-                             std::vector<double> parameters, LoadBalancerMaster *loadBalancer)
+                             std::vector<double> const& optimizationParameters, LoadBalancerMaster *loadBalancer)
 {
-    auto edata = dataProvider->getExperimentalDataForCondition(0);
     int errors = 0;
     JobIdentifier path;
 
@@ -31,7 +32,31 @@ int StandaloneSimulator::run(const std::string& resultFile, const std::string& r
 
     auto model = dataProvider->getModel();
     auto solver = dataProvider->getSolver();
-    rw.createDatasets(*model, edata.get(), dataProvider->getNumberOfConditions());
+    solver->setSensitivityOrder(amici::AMICI_SENSI_ORDER_NONE);
+
+
+    std::vector<double> parameters;
+    auto hierarchicalReader = new ScalingFactorHdf5Reader (H5::H5File(dataProvider->getHdf5FileId()), "/inputData");
+    auto proportionalityFactorIndices = hierarchicalReader->getProportionalityFactorIndices();
+    HierachicalOptimizationWrapper hierarchical(nullptr, std::unique_ptr<ScalingFactorHdf5Reader>(hierarchicalReader),
+                                   dataProvider->getNumberOfConditions(), model->nytrue, model->nt(),
+                                   ParameterTransformation::log10, ErrorModel::normal);
+    if(proportionalityFactorIndices.size() > 0) {
+        // expand parameter vector
+        auto scalingDummy = hierarchical.getDefaultScalingFactors();
+        parameters = hierarchical.spliceParameters(optimizationParameters.data(), optimizationParameters.size(), scalingDummy);
+
+        // get outputs, scale
+        // TODO need to pass aggreate function for writing
+    } else {
+        // is already the correct length
+        parameters = optimizationParameters;
+    }
+
+
+    RELEASE_ASSERT(parameters.size() == (unsigned)dataProvider->getNumOptimizationParameters(), "Size of supplied parameter vector does not match model dimensions.");
+
+    rw.createDatasets(*model, dataProvider->getNumberOfConditions());
 
     SimulationRunner simRunner(
                 dataProvider->getNumberOfConditions(),
@@ -39,15 +64,16 @@ int StandaloneSimulator::run(const std::string& resultFile, const std::string& r
         auto myModel = std::unique_ptr<amici::Model>(model->clone());
         // extract parameters for simulation of current condition, instead
         // of sending whole  optimization parameter vector to worker
-        dataProvider->updateConditionSpecificSimulationParameters(
+        dataProvider->updateSimulationParameters(
                     simulationIdx, parameters.data(), *myModel);
         return std::pair<std::unique_ptr<amici::Model>,std::unique_ptr<amici::Solver>>(std::move(myModel), std::unique_ptr<amici::Solver>(solver->clone()));
     },
     [&](int simulationIdx) {
         path.idxConditions = simulationIdx;
         return path;
-    },
-    [&](JobData *job, int dataIdx) {
+    }, [&](JobData *job, int dataIdx) {
+        if(proportionalityFactorIndices.size() > 0)
+            return;
 
         JobResultAmiciSimulation result =
                 amici::deserializeFromChar<JobResultAmiciSimulation>(
@@ -57,7 +83,38 @@ int StandaloneSimulator::run(const std::string& resultFile, const std::string& r
         auto edata = dataProvider->getExperimentalDataForCondition(dataIdx);
 
         rw.saveSimulationResults(edata.get(), result.rdata.get(), dataIdx);
-    }, nullptr);
+    },
+    [&](std::vector<JobData> &jobs) -> int {
+        if(proportionalityFactorIndices.size() == 0)
+            return 0;
+
+        // must wait for all jobs to finish because of hierarchical optimization and scaling factors
+        std::vector<JobResultAmiciSimulation> jobResults(jobs.size());
+        std::vector<std::vector<double> > modelOutputs(jobs.size());
+
+        for(int dataIdx = 0; (unsigned) dataIdx < jobs.size(); ++dataIdx) {
+            auto& job = jobs[dataIdx];
+            JobResultAmiciSimulation result = amici::deserializeFromChar<JobResultAmiciSimulation>(
+                        job.recvBuffer.data(), job.recvBuffer.size());
+            swap(jobResults[dataIdx], result);
+            job.recvBuffer = std::vector<char>(); // free buffer
+            modelOutputs[dataIdx].resize(model->nt() * model->nytrue);
+            std::copy_n(jobResults[dataIdx].rdata->y, modelOutputs[dataIdx].size(), modelOutputs[dataIdx].data());
+        }
+
+        auto scalings = hierarchical.computeAnalyticalScalings(dataProvider->getAllMeasurements(), modelOutputs);
+        hierarchical.applyOptimalScalings(scalings, modelOutputs);
+        // TODO: what else needs to be scaled?
+
+        for(int dataIdx = 0; (unsigned) dataIdx < jobs.size(); ++dataIdx) {
+            JobResultAmiciSimulation& result = jobResults[dataIdx];
+            std::copy(modelOutputs[dataIdx].begin(), modelOutputs[dataIdx].end(), result.rdata->y);
+            *result.rdata->llh = -hierarchical.computeNegLogLikelihood(dataProvider->getAllMeasurements(), modelOutputs);
+            auto edata = dataProvider->getExperimentalDataForCondition(dataIdx);
+            rw.saveSimulationResults(edata.get(), result.rdata.get(), dataIdx);
+        }
+        return 0;
+    });
 
 
     if (loadBalancer && loadBalancer->isRunning()) {
@@ -81,6 +138,7 @@ void StandaloneSimulator::messageHandler(std::vector<char> &buffer, int jobId)
     auto solver = dataProvider->getSolver();
     JobAmiciSimulation<JobIdentifier> sim(solver.get(), model.get(), &path);
     sim.deserialize(buffer.data(), buffer.size());
+    solver->setSensitivityOrder(amici::AMICI_SENSI_ORDER_NONE);
 
 #if QUEUE_WORKER_H_VERBOSE >= 2
     int mpiRank;
@@ -90,7 +148,7 @@ void StandaloneSimulator::messageHandler(std::vector<char> &buffer, int jobId)
 #endif
 
     // do work
-    JobResultAmiciSimulation result = runSimulation(path, jobId);
+    JobResultAmiciSimulation result = runSimulation(path, jobId, *solver, *model);
 
 #if QUEUE_WORKER_H_VERBOSE >= 2
     printf("[%d] Work done. ", mpiRank);
@@ -123,17 +181,15 @@ void StandaloneSimulator::messageHandler(std::vector<char> &buffer, int jobId)
 }
 
 
-JobResultAmiciSimulation StandaloneSimulator::runSimulation(JobIdentifier path, int jobId)
+JobResultAmiciSimulation StandaloneSimulator::runSimulation(JobIdentifier path, int jobId,
+                                                            amici::Solver& solver, amici::Model& model)
 {
-    auto model = dataProvider->getModel();
-    auto solver = dataProvider->getSolver();
-
-    dataProvider->updateFixedSimulationParameters(path.idxConditions, *model);
+    dataProvider->updateFixedSimulationParameters(path.idxConditions, model);
 
     auto edata = dataProvider->getExperimentalDataForCondition(path.idxConditions);
 
     auto rdata = std::unique_ptr<amici::ReturnData>(
-                amici::getSimulationResults(*model, edata.get(), *solver));
+                amici::getSimulationResults(model, edata.get(), solver));
 
     RELEASE_ASSERT(rdata != nullptr, "");
     int status = *rdata->status;

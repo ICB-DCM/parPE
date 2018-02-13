@@ -23,14 +23,14 @@ class StandaloneSimulator
 public:
     StandaloneSimulator(MultiConditionDataProvider *dp);
 
-    int run(const std::string &resultFile, const std::string &resultPath, std::vector<double> parameters, LoadBalancerMaster *loadBalancer);
+    int run(const std::string &resultFile, const std::string &resultPath, std::vector<double> const& parameters, LoadBalancerMaster *loadBalancer);
 
     void messageHandler(std::vector<char> &buffer, int jobId);
 
 private:
 
     JobResultAmiciSimulation runSimulation(JobIdentifier path,
-                                    int jobId);
+                                    int jobId, amici::Solver &solver, amici::Model &model);
 
     MultiConditionDataProvider *dataProvider = nullptr;
 };
