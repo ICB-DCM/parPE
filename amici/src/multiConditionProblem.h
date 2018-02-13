@@ -167,44 +167,6 @@ private:
 
 
 /**
- * @brief The MultiConditionGradientFunction class represents a cost function based on an AMICI ODE model
- *
- * TODO remove replace by SummedGradientFunctionGradientFunctionAdapter?
- */
-class MultiConditionGradientFunction : public GradientFunction {
-public:
-    MultiConditionGradientFunction(MultiConditionDataProvider *dataProvider,
-                                   LoadBalancerMaster *loadBalancer,
-                                   MultiConditionProblemResultWriter *resultWriter = nullptr);
-
-    virtual ~MultiConditionGradientFunction() = default;
-
-    /**
-     * @brief Evaluate cost function at `optimiziationVariables`
-     * @param optimiziationVariables Current parameters
-     * @param objectiveFunctionValue Out: cost at `optimiziationVariables`
-     * @param objectiveFunctionGradient Out: cost gradient at
-     * `optimiziationVariables`
-     * @return status code, non-zero on failure
-     */
-
-    FunctionEvaluationStatus evaluate(
-            const double* const parameters,
-            double &fval,
-            double* gradient) const override;
-
-    int numParameters() const override;
-
-    std::unique_ptr<GradientFunction> summedGradFun;
-
-private:
-    int numConditions;
-};
-
-
-
-
-/**
  * @brief The MultiConditionProblem class represents an optimization problem based
  * on an MultiConditionGradientFunction (AMICI ODE model)
  */

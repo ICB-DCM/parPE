@@ -212,11 +212,9 @@ int OptimizationApplication::runWorker() {
     LoadBalancerWorker lbw;
     lbw.run([this](std::vector<char> &buffer, int jobId) {
         // TODO: this is so damn ugly
-        auto mcGradFun = dynamic_cast<MultiConditionGradientFunction*>(problem->costFun.get());
-        if(mcGradFun) {
+        auto sgf = dynamic_cast<SummedGradientFunctionGradientFunctionAdapter<int>*>(problem->costFun.get());
+        if(sgf) {
             // non-hierarchical
-            auto sgf = dynamic_cast<SummedGradientFunctionGradientFunctionAdapter<int>*>(mcGradFun->summedGradFun.get());
-            assert(sgf);
             dynamic_cast<AmiciSummedGradientFunction<int>*>(sgf->gradFun.get())->messageHandler(buffer, jobId);
         } else {
             // hierarchical

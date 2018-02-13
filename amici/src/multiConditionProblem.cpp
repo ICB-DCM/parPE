@@ -30,10 +30,16 @@ MultiConditionProblem::MultiConditionProblem(
 
 MultiConditionProblem::MultiConditionProblem(
         MultiConditionDataProvider *dp, LoadBalancerMaster *loadBalancer)
-    : OptimizationProblem(
-          std::make_unique<parpe::MultiConditionGradientFunction>(dp, loadBalancer)),
-      dataProvider(dp)
+    :dataProvider(dp)
 {
+    // run on all data
+    std::vector<int> dataIndices(dataProvider->getNumberOfConditions());
+    std::iota(dataIndices.begin(), dataIndices.end(), 0);
+
+    costFun = std::make_unique<parpe::SummedGradientFunctionGradientFunctionAdapter<int>>(
+                                                                                             std::make_unique<AmiciSummedGradientFunction<int>>(dataProvider, loadBalancer),
+                                                                                             dataIndices
+                                                                                             );
 }
 
 void MultiConditionProblem::fillParametersMin(double *buffer) const
@@ -511,30 +517,6 @@ FunctionEvaluationStatus AmiciSummedGradientFunction<T>::evaluate(const double *
     return evaluate(parameters, datasets, fval, gradient);
 }
 
-MultiConditionGradientFunction::MultiConditionGradientFunction(MultiConditionDataProvider *dataProvider,
-                                                               LoadBalancerMaster *loadBalancer, MultiConditionProblemResultWriter *resultWriter)
-    : numConditions(dataProvider->getNumberOfConditions())
-{
-    // run on all data
-    std::vector<int> dataIndices(numConditions);
-    std::iota(dataIndices.begin(), dataIndices.end(), 0);
-
-    summedGradFun.reset(new SummedGradientFunctionGradientFunctionAdapter<int>(
-                            std::make_unique<AmiciSummedGradientFunction<int>>(dataProvider, loadBalancer, resultWriter),
-                            dataIndices));
-}
-
-FunctionEvaluationStatus MultiConditionGradientFunction::evaluate(const double * const parameters, double &objectiveFunctionValue, double *objectiveFunctionGradient) const
-{
-    return summedGradFun->evaluate(parameters, objectiveFunctionValue,
-                objectiveFunctionGradient);
-}
-
-
-int MultiConditionGradientFunction::numParameters() const
-{
-    return summedGradFun->numParameters();
-}
 
 void logSimulation(hid_t file_id, std::string pathStr, std::vector<double> const& theta, double llh, const double *gradient, double timeElapsedInSeconds, int nTheta, int numStates, double *states, double *stateSensi, int numY, double *y, int jobId, int iterationsUntilSteadystate, int status)
 {
