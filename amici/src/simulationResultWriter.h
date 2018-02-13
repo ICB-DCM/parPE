@@ -7,6 +7,11 @@
 
 namespace parpe {
 
+/**
+ * @brief The SimulationResultWriter class saves AMICI simulation results
+ * for one or multiple conditions to an HDF5 file.
+ */
+
 class SimulationResultWriter {
 public:
 
@@ -22,7 +27,6 @@ public:
      */
 
     void createDatasets(const amici::Model &model,
-                        const amici::ExpData *edata,
                         int numberOfSimulations = 1);
 
     /**

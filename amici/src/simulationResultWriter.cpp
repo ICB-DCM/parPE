@@ -27,7 +27,6 @@ SimulationResultWriter::SimulationResultWriter(std::string hdf5FileName, std::st
 
 
 void SimulationResultWriter::createDatasets(const amici::Model &model,
-                                            const amici::ExpData *edata,
                                             int numberOfSimulations)
 {
     hsize_t numSimulations = static_cast<hsize_t>(numberOfSimulations);
@@ -44,7 +43,7 @@ void SimulationResultWriter::createDatasets(const amici::Model &model,
 
     parpe::hdf5EnsureGroupExists(file.getId(), rootPath.c_str());
 
-    if((saveYMes || saveYSim) && edata->nt > 0 && edata->nytrue > 0) {
+    if((saveYMes || saveYSim) && model.nt() > 0 && model.nytrue > 0) {
         // observables
         constexpr int rank = 3;
         hsize_t dims[rank] = {numSimulations, nt, ny};

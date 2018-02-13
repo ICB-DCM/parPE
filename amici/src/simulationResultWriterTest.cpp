@@ -65,7 +65,7 @@ TEST(simulationResultWriter, testResultWriter) {
     auto file = rw.reopenFile();
 
     // write
-    rw.createDatasets(model, &edata, numSimulations);
+    rw.createDatasets(model, numSimulations);
 
     CHECK_TRUE(parpe::hdf5GroupExists(file.getId(), "/testResultWriter/"));
     CHECK_TRUE(parpe::hdf5DatasetExists(file.getId(), rw.llhPath.c_str()));
