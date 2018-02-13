@@ -11,7 +11,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <time.h>
+#include <ctime>
 #include <unistd.h>
 #include <mpi.h>
 
@@ -158,6 +158,49 @@ int getMpiActive()
 
     MPI_Finalized(&result);
     return !result;
+}
+
+void CpuTimer::reset()
+{
+    start = roundStart = clock();
+}
+
+double CpuTimer::getRound()
+{
+    auto now = clock();
+    auto timeRound = (double)(now - roundStart) / CLOCKS_PER_SEC;
+    roundStart = now;
+
+    return timeRound;
+}
+
+double CpuTimer::getTotal()
+{
+    auto now = clock();
+    return (double)(now - start) / CLOCKS_PER_SEC;
+}
+
+WallTimer::WallTimer()
+{
+    reset();
+}
+
+void WallTimer::reset()
+{
+    roundStart = start = std::chrono::system_clock::now();
+}
+
+double WallTimer::getRound()
+{
+    std::chrono::duration<double> duration = (std::chrono::system_clock::now() - roundStart);
+    roundStart = std::chrono::system_clock::now();
+    return duration.count();
+}
+
+double WallTimer::getTotal()
+{
+    std::chrono::duration<double> duration = (std::chrono::system_clock::now() - start);
+    return duration.count();
 }
 
 } // namespace parpe
