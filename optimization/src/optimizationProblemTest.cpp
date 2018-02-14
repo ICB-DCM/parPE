@@ -94,7 +94,7 @@ TEST(optimizationProblem, quadraticTestFunction) {
 
 TEST(optimizationProblem, gradientChecker) {
     parpe::QuadraticTestProblem problem {};
-    int numParameterIndices {1};
+    constexpr int numParameterIndices {1};
     int parameterIndices[numParameterIndices] {0};
 
     parpe::optimizationProblemGradientCheck(&problem, parameterIndices, numParameterIndices, 1e-6);

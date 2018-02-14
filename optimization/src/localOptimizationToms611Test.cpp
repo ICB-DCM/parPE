@@ -39,7 +39,7 @@ void calcg(integer &n, doublereal *x, integer &nf, doublereal *g,
 }
 
 TEST(localOptimizationToms611, testOptimization) {
-    integer numOptimizationVariables = 1;
+    constexpr integer numOptimizationVariables = 1;
 
     integer liv = toms611_sumsl_iv_min_length;
     integer iv[liv];
@@ -51,7 +51,8 @@ TEST(localOptimizationToms611, testOptimization) {
     doublereal scaling[numOptimizationVariables] = {1};
     doublereal startingPoint[numOptimizationVariables] = {1234567890};
 
-    sumsl_(numOptimizationVariables,
+    integer numOptimizationVariables2 = numOptimizationVariables;
+    sumsl_(numOptimizationVariables2,
            scaling,
            startingPoint,
            reinterpret_cast<S_fp>(calcf), (S_fp)calcg,

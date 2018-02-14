@@ -2,8 +2,8 @@
 #include "optimizationProblem.h"
 #include <cassert>
 #include <cstring>
-#include <IpIpoptData.hpp>
-#include <IpIpoptCalculatedQuantities.hpp>
+//#include <IpIpoptData.hpp>
+//#include <IpIpoptCalculatedQuantities.hpp>
 
 namespace parpe {
 

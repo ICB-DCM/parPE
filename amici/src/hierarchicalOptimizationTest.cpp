@@ -120,7 +120,7 @@ TEST(hierarchicalOptimization, hierarchicalOptimization) {
 
     // likelihood without offset must be 0 after scaling and if all other measurements/observables agree
     auto llh = w.computeNegLogLikelihood(fun2->measurements, outputs);
-    constexpr double pi = atan(1)*4;
+    double pi = atan(1)*4;
     double llhOffset = 0.5 * log(2 * pi) * 20;
     DOUBLES_EQUAL(llh - llhOffset, 0, 1e-10);
 
