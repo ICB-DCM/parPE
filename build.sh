@@ -14,7 +14,7 @@ cd $PARPE_ROOT
 mkdir -p build
 cd build
 CC=mpicc CXX=mpiCC cmake -DAMICI_DIR=$AMICI_DIR \
-      -DIPOPT_DIR=${PARPE_ROOT}/ThirdParty/Ipopt-3.12.7/install \
+      -DIPOPT_DIR=${PARPE_ROOT}/ThirdParty/Ipopt-3.12.9/install \
       -DCERES_LIBRARIES="${PARPE_ROOT}/ThirdParty/ceres-solver-1.13.0/build/install/lib/libceres.a;`pkg-config --libs blas`;cxsparse;lapack;cholmod;camd;colamd" \
       -DCERES_INCLUDE_DIRS="${PARPE_ROOT}/ThirdParty/ceres-solver-1.13.0/build/install/include/;${PARPE_ROOT}/ThirdParty/ceres-solver-1.13.0/build/install/include/ceres/internal/miniglog/;${PARPE_ROOT}/ThirdParty/eigen-eigen-67e894c6cd8f/build/install/include/eigen3/" \
       -DCPPUTEST_DIR=$AMICI_DIR/ThirdParty/cpputest-master/build-noleakcheck/install \
