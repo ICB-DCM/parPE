@@ -1,5 +1,6 @@
 #include "hierachicalOptimization.h"
 
+#include <assert.h>
 #include <exception>
 
 #ifdef __INTEL_COMPILER
@@ -138,6 +139,7 @@ double HierachicalOptimizationWrapper::computeAnalyticalScalings(int scalingIdx,
                 double mes = measurements[conditionIdx][observableIdx + timeIdx * numObservables];
                 if(!std::isnan(mes)) {
                     double sim = modelOutputsUnscaled[conditionIdx][observableIdx + timeIdx * numObservables];
+                    assert(!std::isnan(sim));
                     enumerator += sim * mes;
                     denominator += sim * sim;
                 }
@@ -180,7 +182,7 @@ FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluateWithScalings(
     } else {
         applyOptimalScalings(scalings, modelOutputsUnscaled);
         // just compute
-        fval = computeNegLogLikelihood(modelOutputsUnscaled, fun->getAllMeasurements());
+        fval = computeNegLogLikelihood(fun->getAllMeasurements(), modelOutputsUnscaled);
     }
 
     return functionEvaluationSuccess;
@@ -198,6 +200,7 @@ double HierachicalOptimizationWrapper::computeNegLogLikelihood(std::vector <std:
                 double mes = measurements[conditionIdx][observableIdx + timeIdx * numObservables];
                 if(!std::isnan(mes)) {
                     double sim = modelOutputsScaled[conditionIdx][observableIdx + timeIdx * numObservables];
+                    assert(!std::isnan(sim));
                     double diff = mes - sim;
                     diff *= diff;
                     llh += log(2.0 * pi * sigmaSquared) + diff / sigmaSquared;
