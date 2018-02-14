@@ -61,6 +61,7 @@ Other sample build scripts are provided as `/build*.sh`.
 
 * GCC 4.8.3
 * GCC 5.4.0
+* GCC 7 (IpOpt 1.2.9 requires libgfortran.so.4)
 * Intel 16.0.4
 
 
