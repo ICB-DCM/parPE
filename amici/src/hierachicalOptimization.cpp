@@ -214,7 +214,7 @@ std::vector<double> HierachicalOptimizationWrapper::spliceParameters(const doubl
     int idxRegular = 0;
 
     for(int i = 0; i < (signed) fullParameters.size(); ++i) {
-        if(proportionalityFactorIndices[idxScaling] == i)
+        if((unsigned)idxScaling < proportionalityFactorIndices.size() && proportionalityFactorIndices[idxScaling] == i)
             fullParameters[i] = scalingFactors[idxScaling++];
         else
             fullParameters[i] = reducedParameters[idxRegular++];
