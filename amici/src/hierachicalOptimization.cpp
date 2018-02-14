@@ -1,5 +1,7 @@
 #include "hierachicalOptimization.h"
 
+#include <exception>
+
 #ifdef __INTEL_COMPILER
 // constexpr did not work on icc (ICC) 16.0.4 20160811
 #define constexpr
@@ -72,7 +74,7 @@ std::vector<std::vector<double> > HierachicalOptimizationWrapper::getUnscaledMod
 
     auto scalingDummy = getDefaultScalingFactors();
     // splice hidden scaling parameter and external parameters
-    auto fullParameters = spliceParameters(reducedParameters, fun->numParameters(), scalingDummy);
+    auto fullParameters = spliceParameters(reducedParameters, numParameters(), scalingDummy);
 
     std::vector<std::vector<double> > modelOutput(numConditions);
     fun->getModelOutputs(fullParameters.data(), modelOutput);
@@ -165,7 +167,7 @@ FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluateWithScalings(
 
     if(gradient) {
         // simulate with updated theta for sensitivities
-        auto fullParameters = spliceParameters(reducedParameters, fun->numParameters(), scalings);
+        auto fullParameters = spliceParameters(reducedParameters, numParameters(), scalings);
         // TODO: only those necessary?
         std::vector<int> dataIndices(numConditions);
         std::iota(dataIndices.begin(), dataIndices.end(), 0);
@@ -216,8 +218,10 @@ std::vector<double> HierachicalOptimizationWrapper::spliceParameters(const doubl
     for(int i = 0; i < (signed) fullParameters.size(); ++i) {
         if((unsigned)idxScaling < proportionalityFactorIndices.size() && proportionalityFactorIndices[idxScaling] == i)
             fullParameters[i] = scalingFactors[idxScaling++];
-        else
+        else if(idxRegular < numReduced)
             fullParameters[i] = reducedParameters[idxRegular++];
+        else
+            throw std::exception();
     }
 
     return fullParameters;

@@ -451,8 +451,6 @@ std::unique_ptr<OptimizationProblem> MultiConditionProblemMultiStartOptimization
     // generate new OptimizationProblem with data from dp
 
     assert(dp != nullptr);
-    assert(dp->getModel() != nullptr);
-
 
     std::unique_ptr<MultiConditionProblem> problem = std::make_unique<MultiConditionProblem>(dp, loadBalancer);
 
