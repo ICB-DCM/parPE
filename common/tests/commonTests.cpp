@@ -149,8 +149,8 @@ TEST(commonMisc, testFillArrayRandomDoubleIndividualInterval) {
 
 
 TEST(commonMisc, testMpi) {
-#if CPPUTEST_USE_MEM_LEAK_DETECTION
-    MemoryLeakWarningPlugin::turnOffNewDeleteOverloads();
+#if IGNORE_ALL_LEAKS_IN_TEST
+    IGNORE_ALL_LEAKS_IN_TEST()
 #endif
 
     // Before MPI initialized
@@ -167,9 +167,6 @@ TEST(commonMisc, testMpi) {
     CHECK_EQUAL(-1, parpe::getMpiRank());
     CHECK_EQUAL(-1, parpe::getMpiCommSize());
 
-#if CPPUTEST_USE_MEM_LEAK_DETECTION
-    MemoryLeakWarningPlugin::turnOnNewDeleteOverloads();
-#endif
 }
 
 
