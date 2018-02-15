@@ -19,8 +19,7 @@ make install
 
 mkdir -p ${AMICI_PATH}/build
 cd ${AMICI_PATH}/build
-cmake -DCMAKE_BUILD_TYPE=Debug \
-        -DBoost_INCLUDE_DIR=${BOOST_INCDIR} \
+cmake -DCMAKE_BUILD_TYPE=Release \
         -DBLAS=MKL \
         -DBLAS_LIBRARIES=${MKL_LIB} \
         -DBLAS_INCLUDE_DIRS=${MKL_INCDIR} \
@@ -44,7 +43,7 @@ mkdir -p build && cd build
 CC=mpicc CXX=mpiCC HDF5_ROOT=${HDF5_BASE} BOOST_ROOT=${BOOST_BASE} MPI_HOME=${MPI_BASE} cmake \
       -DBoost_USE_STATIC_LIBS=TRUE \
       -DIPOPT_DIR=`pwd`/../ThirdParty/Ipopt-3.12.9/install \
-      -DCERES_LIBRARIES=${CERES_INSTALL_DIR}/lib64/libceres.so \
+      -DCERES_LIBRARIES="${CERES_INSTALL_DIR}/lib64/libceres.a;${MKL_LIB}" \
       -DCERES_INCLUDE_DIRS="${CERES_INSTALL_DIR}/include/;${CERES_INSTALL_DIR}/include/ceres/internal/miniglog/;`pwd`/../ThirdParty/eigen-eigen-67e894c6cd8f/build/install/include/eigen3/" \
       -DCPPUTEST_DIR=${CPPUTEST_PATH} \
       ..
