@@ -158,6 +158,7 @@ void OptimizationResultWriter::starting(int numParameters, const double * const 
         hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath,
                                                   "initialParameters",
                                                   initialParameters, numParameters);
+        flushResultWriter();
     }
 }
 

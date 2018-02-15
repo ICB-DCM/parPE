@@ -146,7 +146,9 @@ void OptimizationApplication::initMPI(int *argc, char ***argv) {
 }
 
 int OptimizationApplication::run(int argc, char **argv) {
-    clock_t begin = clock();
+    WallTimer wallTimer;
+    CpuTimer cpuTimer;
+
 
     int status = init(argc, argv);
     if(status)
@@ -171,17 +173,17 @@ int OptimizationApplication::run(int argc, char **argv) {
 
             loadBalancer.terminate();
             loadBalancer.sendTerminationSignalToAllWorkers();
-            finalizeTiming(begin);
+            finalizeTiming(wallTimer.getTotal(), cpuTimer.getTotal());
             logmessage(LOGLVL_INFO, "Sent termination signal to workers.");
 
         } else {
             status = runWorker();
-            finalizeTiming(begin);
+            finalizeTiming(wallTimer.getTotal(), cpuTimer.getTotal());
         }
     } else {
         runSingleMpiProcess();
 
-        finalizeTiming(begin);
+        finalizeTiming(wallTimer.getTotal(), cpuTimer.getTotal());
     }
 
     return status;
@@ -210,11 +212,9 @@ int OptimizationApplication::runWorker() {
     LoadBalancerWorker lbw;
     lbw.run([this](std::vector<char> &buffer, int jobId) {
         // TODO: this is so damn ugly
-        auto mcGradFun = dynamic_cast<MultiConditionGradientFunction*>(problem->costFun.get());
-        if(mcGradFun) {
+        auto sgf = dynamic_cast<SummedGradientFunctionGradientFunctionAdapter<int>*>(problem->costFun.get());
+        if(sgf) {
             // non-hierarchical
-            auto sgf = dynamic_cast<SummedGradientFunctionGradientFunctionAdapter<int>*>(mcGradFun->summedGradFun.get());
-            assert(sgf);
             dynamic_cast<AmiciSummedGradientFunction<int>*>(sgf->gradFun.get())->messageHandler(buffer, jobId);
         } else {
             // hierarchical
@@ -250,23 +250,21 @@ int OptimizationApplication::runSingleMpiProcess() {
     return 0;
 }
 
-void OptimizationApplication::finalizeTiming(clock_t begin) {
-    // wall-time for current process
-    clock_t end = clock();
-    double wallTimeSeconds = (double)(end - begin) / CLOCKS_PER_SEC;
+void OptimizationApplication::finalizeTiming(double wallTimeSeconds, double cpuTimeSeconds) {
+    // wall-time for current MPI process
 
     // total run-time
-    double totalTimeInSeconds = 0;
-    MPI_Reduce(&wallTimeSeconds, &totalTimeInSeconds, 1, MPI_DOUBLE, MPI_SUM, 0,
+    double totalCpuTimeInSeconds = 0;
+    MPI_Reduce(&cpuTimeSeconds, &totalCpuTimeInSeconds, 1, MPI_DOUBLE, MPI_SUM, 0,
                MPI_COMM_WORLD);
 
     int mpiRank = getMpiRank();
 
     if (mpiRank == 0) {
-        logmessage(LOGLVL_INFO, "Walltime on master: %fs, all processes: %fs",
-                   wallTimeSeconds, totalTimeInSeconds);
+        logmessage(LOGLVL_INFO, "Walltime on master: %fs, CPU time of all processes: %fs",
+                   wallTimeSeconds, totalCpuTimeInSeconds);
         if (resultWriter)
-            saveTotalCpuTime(resultWriter->getFileId(), totalTimeInSeconds);
+            saveTotalCpuTime(resultWriter->getFileId(), totalCpuTimeInSeconds);
     }
 }
 

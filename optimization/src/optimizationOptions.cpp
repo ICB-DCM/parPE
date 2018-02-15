@@ -71,7 +71,6 @@ std::unique_ptr<OptimizationOptions> OptimizationOptions::fromHDF5(const char *f
     try {
         file = H5::H5File(fileName, H5F_ACC_RDONLY);
     } catch (...) {
-        printBacktrace(20);
         throw HDF5Exception(
                     "OptimizationOptions::fromHDF5 failed to open HDF5 file '%s'.",
                     fileName);

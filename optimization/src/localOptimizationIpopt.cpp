@@ -342,16 +342,19 @@ void setIpOptOption(const std::pair<const std::string, const std::string> &pair,
     const std::string &key = pair.first;
     const std::string &val = pair.second;
 
+    bool success = true;
     if(std::find(strOpts.begin(), strOpts.end(), key) != strOpts.end())
-        options->SetStringValue(key, val);
+        success = options->SetStringValue(key, val);
     else if(std::find(intOpts.begin(), intOpts.end(), key) != intOpts.end())
-        options->SetIntegerValue(key, std::stoi(val));
+        success = options->SetIntegerValue(key, std::stoi(val));
     else if(std::find(dblOpts.begin(), dblOpts.end(), key) != dblOpts.end())
-        options->SetNumericValue(key, std::stod(val));
+        success = options->SetNumericValue(key, std::stod(val));
     else {
         logmessage(LOGLVL_WARNING, "Ignoring unknown optimization option %s.", key.c_str());
         return;
     }
+
+    RELEASE_ASSERT(success, "Problem setting IpOpt option");
 
     logmessage(LOGLVL_DEBUG, "Set optimization option %s to %s.", key.c_str(), val.c_str());
 }
@@ -401,6 +404,9 @@ std::tuple<int, double, std::vector<double> > OptimizerIpOpt::optimize(Optimizat
             app->RethrowNonIpoptException(true);
 
             setIpOptOptions(app->Options(), problem);
+
+            // TODO: for output redirection
+            // app->Jnlst()->AddJournal();
 
             status = app->Initialize();
             assert(status == Solve_Succeeded);

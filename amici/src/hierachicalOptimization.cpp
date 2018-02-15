@@ -1,5 +1,8 @@
 #include "hierachicalOptimization.h"
 
+#include <assert.h>
+#include <exception>
+
 #ifdef __INTEL_COMPILER
 // constexpr did not work on icc (ICC) 16.0.4 20160811
 #define constexpr
@@ -11,12 +14,20 @@ namespace parpe {
 HierachicalOptimizationWrapper::HierachicalOptimizationWrapper(
         std::unique_ptr<AmiciSummedGradientFunction<int> > fun,
         std::unique_ptr<parpe::ScalingFactorHdf5Reader> reader,
-        int numConditions, int numObservables, int numTimepoints)
+        int numConditions, int numObservables, int numTimepoints,
+        ParameterTransformation parameterTransformation,
+        ErrorModel errorModel)
     : fun(std::move(fun)),
       reader(std::move(reader)),
       numConditions(numConditions),
       numObservables(numObservables),
-      numTimepoints(numTimepoints) {
+      numTimepoints(numTimepoints),
+      parameterTransformation(parameterTransformation),
+      errorModel(errorModel) {
+
+    if(parameterTransformation != ParameterTransformation::log10 || errorModel != ErrorModel::normal) {
+        throw ParPEException("Only log10 and gaussian noise are supported so far.");
+    }
 
     proportionalityFactorIndices = this->reader->getProportionalityFactorIndices();
     std::sort(this->proportionalityFactorIndices.begin(),
@@ -24,7 +35,6 @@ HierachicalOptimizationWrapper::HierachicalOptimizationWrapper(
 }
 
 FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluate(const double * const parameters, double &fval, double *gradient) const {
-
     if(numScalingFactors() == 0) {
         // nothing to do, just pass through
         std::vector<int> dataIndices(numConditions);
@@ -34,10 +44,10 @@ FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluate(const double *
     }
 
     // evaluate with scaling parameters set to 1
-    auto modelOutput = getModelOutputs(parameters);
+    auto modelOutput = getUnscaledModelOutputs(parameters);
 
     // compute correct scaling factors analytically
-    auto scalings = computeAnalyticalScalings(modelOutput);
+    auto scalings = computeAnalyticalScalings(fun->getAllMeasurements(), modelOutput);
 
     // evaluate with analytical scaling parameters
     auto status = evaluateWithScalings(parameters, scalings, modelOutput, fval, gradient);
@@ -45,11 +55,27 @@ FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluate(const double *
     return status;
 }
 
-std::vector<std::vector<double> > HierachicalOptimizationWrapper::getModelOutputs(const double * const reducedParameters) const {
+std::vector<double> HierachicalOptimizationWrapper::getDefaultScalingFactors() const
+{
+    double scaling = NAN;
+    switch (parameterTransformation) {
+    case ParameterTransformation::log10:
+        scaling = 0.0;
+        break;
+    case ParameterTransformation::none:
+        scaling = 1.0;
+        break;
+    }
+
+    return std::vector<double>(numScalingFactors(), scaling);
+}
+
+std::vector<std::vector<double> > HierachicalOptimizationWrapper::getUnscaledModelOutputs(const double * const reducedParameters) const {
     // run simulations (no gradient!) with scaling parameters == 1, collect outputs
 
-    std::vector<double> scalingDummy(numScalingFactors(), 1);
-    auto fullParameters = getFullParameters(reducedParameters, scalingDummy);
+    auto scalingDummy = getDefaultScalingFactors();
+    // splice hidden scaling parameter and external parameters
+    auto fullParameters = spliceParameters(reducedParameters, numParameters(), scalingDummy);
 
     std::vector<std::vector<double> > modelOutput(numConditions);
     fun->getModelOutputs(fullParameters.data(), modelOutput);
@@ -57,21 +83,35 @@ std::vector<std::vector<double> > HierachicalOptimizationWrapper::getModelOutput
     return modelOutput;
 }
 
-std::vector<double> HierachicalOptimizationWrapper::computeAnalyticalScalings(std::vector<std::vector<double> > &modelOutputs) const {
+std::vector<double> HierachicalOptimizationWrapper::computeAnalyticalScalings(std::vector<std::vector<double>> const& measurements, std::vector<std::vector<double> > &modelOutputs) const {
     // NOTE: does not handle replicates, assumes normal distribution, does not compute sigmas
 
     int numProportionalityFactors = proportionalityFactorIndices.size();
     std::vector<double> proportionalityFactors(numProportionalityFactors);
 
-    auto measurements = fun->getAllMeasurements();
-
     for(int i = 0; i < numProportionalityFactors; ++i) {
-        proportionalityFactors[i] = optimalScaling(i, modelOutputs, measurements);
-        applyOptimalScaling(i, proportionalityFactors[i], modelOutputs);
+        proportionalityFactors[i] = computeAnalyticalScalings(i, modelOutputs, measurements);
     }
 
     return proportionalityFactors;
 }
+
+void HierachicalOptimizationWrapper::applyOptimalScalings(std::vector<double> const& proportionalityFactors, std::vector<std::vector<double> > &modelOutputs) const {
+
+    for(int i = 0; (unsigned) i < proportionalityFactors.size(); ++i) {
+        double scaling = proportionalityFactors[i];
+
+        switch(parameterTransformation) {
+        case ParameterTransformation::none:
+            break;
+        case ParameterTransformation::log10:
+            scaling = pow(10, scaling);
+            break;
+        }
+        applyOptimalScaling(i, scaling, modelOutputs);
+    }
+}
+
 
 void HierachicalOptimizationWrapper::applyOptimalScaling(int scalingIdx, double scaling, std::vector<std::vector<double> > &modelOutputs) const {
     auto dependentConditions = reader->getConditionsForScalingParameter(scalingIdx);
@@ -86,7 +126,7 @@ void HierachicalOptimizationWrapper::applyOptimalScaling(int scalingIdx, double 
     }
 }
 
-double HierachicalOptimizationWrapper::optimalScaling(int scalingIdx, const std::vector<std::vector<double> > &modelOutputsUnscaled, const std::vector<std::vector<double> > &measurements) const {
+double HierachicalOptimizationWrapper::computeAnalyticalScalings(int scalingIdx, const std::vector<std::vector<double> > &modelOutputsUnscaled, const std::vector<std::vector<double> > &measurements) const {
     auto dependentConditions = reader->getConditionsForScalingParameter(scalingIdx);
 
     double enumerator = 0.0;
@@ -99,6 +139,7 @@ double HierachicalOptimizationWrapper::optimalScaling(int scalingIdx, const std:
                 double mes = measurements[conditionIdx][observableIdx + timeIdx * numObservables];
                 if(!std::isnan(mes)) {
                     double sim = modelOutputsUnscaled[conditionIdx][observableIdx + timeIdx * numObservables];
+                    assert(!std::isnan(sim));
                     enumerator += sim * mes;
                     denominator += sim * sim;
                 }
@@ -107,8 +148,15 @@ double HierachicalOptimizationWrapper::optimalScaling(int scalingIdx, const std:
     }
 
     double proportionalityFactor = enumerator / denominator;
-    // TODO: check parametrization
-    proportionalityFactor = log10(proportionalityFactor);
+
+    switch (parameterTransformation) {
+    case ParameterTransformation::log10:
+        proportionalityFactor = log10(proportionalityFactor);
+        break;
+    case ParameterTransformation::none:
+        break;
+    }
+
     // TODO ensure positivity!
     return proportionalityFactor;
 }
@@ -116,12 +164,12 @@ double HierachicalOptimizationWrapper::optimalScaling(int scalingIdx, const std:
 FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluateWithScalings(
         const double * const reducedParameters,
         const std::vector<double> &scalings,
-        const std::vector<std::vector<double> > &modelOutputsScaled,
+        std::vector<std::vector<double> > &modelOutputsUnscaled,
         double &fval, double *gradient) const {
 
     if(gradient) {
         // simulate with updated theta for sensitivities
-        auto fullParameters = getFullParameters(reducedParameters, scalings);
+        auto fullParameters = spliceParameters(reducedParameters, numParameters(), scalings);
         // TODO: only those necessary?
         std::vector<int> dataIndices(numConditions);
         std::iota(dataIndices.begin(), dataIndices.end(), 0);
@@ -132,17 +180,18 @@ FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluateWithScalings(
         fillFilteredParams(fullGradient, proportionalityFactorIndices, gradient);
 
     } else {
+        applyOptimalScalings(scalings, modelOutputsUnscaled);
         // just compute
-        fval = computeLikelihood(modelOutputsScaled);
+        fval = computeNegLogLikelihood(fun->getAllMeasurements(), modelOutputsUnscaled);
     }
 
     return functionEvaluationSuccess;
 }
 
-double HierachicalOptimizationWrapper::computeLikelihood(const std::vector<std::vector<double> > &modelOutputsScaled) const {
+double HierachicalOptimizationWrapper::computeNegLogLikelihood(std::vector <std::vector<double>> const& measurements, const std::vector<std::vector<double> > &modelOutputsScaled) const {
     double llh = 0.0;
     constexpr double pi = atan(1)*4;
-    auto measurements = fun->getAllMeasurements();
+
     double sigmaSquared = 1.0; // NOTE: no user-provided sigma supported at the moment
 
     for (int conditionIdx = 0; conditionIdx < numConditions; ++conditionIdx) {
@@ -151,6 +200,7 @@ double HierachicalOptimizationWrapper::computeLikelihood(const std::vector<std::
                 double mes = measurements[conditionIdx][observableIdx + timeIdx * numObservables];
                 if(!std::isnan(mes)) {
                     double sim = modelOutputsScaled[conditionIdx][observableIdx + timeIdx * numObservables];
+                    assert(!std::isnan(sim));
                     double diff = mes - sim;
                     diff *= diff;
                     llh += log(2.0 * pi * sigmaSquared) + diff / sigmaSquared;
@@ -160,20 +210,21 @@ double HierachicalOptimizationWrapper::computeLikelihood(const std::vector<std::
     }
 
     llh /= 2.0;
-
     return llh;
 }
 
-std::vector<double> HierachicalOptimizationWrapper::getFullParameters(const double * const reducedParameters, const std::vector<double> &scalingFactors) const {
-    std::vector<double> fullParameters(fun->numParameters());
+std::vector<double> HierachicalOptimizationWrapper::spliceParameters(const double * const reducedParameters, int numReduced, const std::vector<double> &scalingFactors) const {
+    std::vector<double> fullParameters(numReduced + scalingFactors.size());
     int idxScaling = 0;
     int idxRegular = 0;
 
     for(int i = 0; i < (signed) fullParameters.size(); ++i) {
-        if(proportionalityFactorIndices[idxScaling] == i)
+        if((unsigned)idxScaling < proportionalityFactorIndices.size() && proportionalityFactorIndices[idxScaling] == i)
             fullParameters[i] = scalingFactors[idxScaling++];
-        else
+        else if(idxRegular < numReduced)
             fullParameters[i] = reducedParameters[idxRegular++];
+        else
+            throw std::exception();
     }
 
     return fullParameters;
@@ -282,9 +333,7 @@ HierachicalOptimizationProblemWrapper::HierachicalOptimizationProblemWrapper(
         const MultiConditionDataProvider *dataProvider)
     : wrappedProblem(std::move(problemToWrap))
 {
-    auto wrappedFun = dynamic_cast<SummedGradientFunctionGradientFunctionAdapter<int>*>(
-                dynamic_cast<MultiConditionGradientFunction*>(wrappedProblem->costFun.get())
-                ->summedGradFun.get());
+    auto wrappedFun = dynamic_cast<SummedGradientFunctionGradientFunctionAdapter<int>*>(wrappedProblem->costFun.get());
 
     costFun.reset(new HierachicalOptimizationWrapper(
                       std::unique_ptr<AmiciSummedGradientFunction<int>>(
@@ -292,7 +341,8 @@ HierachicalOptimizationProblemWrapper::HierachicalOptimizationProblemWrapper(
                       std::make_unique<ScalingFactorHdf5Reader>(dataProvider->file, "/"),
                       dataProvider->getNumberOfConditions(),
                       dataProvider->model->nytrue,
-                      dataProvider->model->nt()));
+                      dataProvider->model->nt(), ParameterTransformation::log10,
+                      ErrorModel::normal));
 }
 
 HierachicalOptimizationProblemWrapper::~HierachicalOptimizationProblemWrapper()

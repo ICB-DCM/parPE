@@ -14,9 +14,9 @@ SimulationResultWriter::SimulationResultWriter(std::string hdf5FileName, std::st
     : rootPath(rootPath)
 {
     try {
-        // crashes on exit H5::Exception::dontPrint();
+        H5_SAVE_ERROR_HANDLER;
         file = H5::H5File(hdf5FileName, H5F_ACC_RDWR);
-        // TODO reset dontPrint
+        H5_RESTORE_ERROR_HANDLER;
     } catch (H5::FileIException e) {
         // create if doesn't exist
         file = H5::H5File(hdf5FileName, H5F_ACC_EXCL);
@@ -27,7 +27,6 @@ SimulationResultWriter::SimulationResultWriter(std::string hdf5FileName, std::st
 
 
 void SimulationResultWriter::createDatasets(const amici::Model &model,
-                                            const amici::ExpData *edata,
                                             int numberOfSimulations)
 {
     hsize_t numSimulations = static_cast<hsize_t>(numberOfSimulations);
@@ -44,7 +43,7 @@ void SimulationResultWriter::createDatasets(const amici::Model &model,
 
     parpe::hdf5EnsureGroupExists(file.getId(), rootPath.c_str());
 
-    if((saveYMes || saveYSim) && edata->nt > 0 && edata->nytrue > 0) {
+    if((saveYMes || saveYSim) && model.nt() > 0 && model.nytrue > 0) {
         // observables
         constexpr int rank = 3;
         hsize_t dims[rank] = {numSimulations, nt, ny};
@@ -58,12 +57,13 @@ void SimulationResultWriter::createDatasets(const amici::Model &model,
             file.createDataSet(ySimPath, H5::PredType::NATIVE_DOUBLE, dataspace, propList);
     }
 
-    if(saveXDot) {
-        hsize_t dims[] = {numSimulations, nx};
-        H5::DataSpace dataspace(2, dims);
-        hsize_t chunkDims[] = {1, dims[1]};
-        propList.setChunk(2, chunkDims);
-        file.createDataSet(xDotPath, H5::PredType::NATIVE_DOUBLE, dataspace, propList);
+    if(saveX) {
+        int rank = 3;
+        hsize_t dims[] = {numSimulations, nt, nx};
+        H5::DataSpace dataspace(rank, dims);
+        hsize_t chunkDims[] = {1, dims[1], dims[2]};
+        propList.setChunk(rank, chunkDims);
+        file.createDataSet(xPath, H5::PredType::NATIVE_DOUBLE, dataspace, propList);
     }
 
     if(saveLlh) {
@@ -117,19 +117,19 @@ void SimulationResultWriter::saveSimulationResults(const amici::ExpData *edata, 
         dataset.write(rdata->y, H5::PredType::NATIVE_DOUBLE, memspace, filespace);
     }
 
-    if(saveXDot) {
-        auto dataset = file.openDataSet(xDotPath);
+    if(saveX) {
+        auto dataset = file.openDataSet(xPath);
 
         auto filespace = dataset.getSpace();
-        hsize_t count[] = {1, nx};
-        hsize_t start[] = {simulationIdx, 0};
+        hsize_t count[] = {1, nt, nx};
+        hsize_t start[] = {simulationIdx, 0, 0};
         filespace.selectHyperslab(H5S_SELECT_SET, count, start);
 
         auto memspace = dataset.getSpace();
-        hsize_t start2[] = {0, 0};
+        hsize_t start2[] = {0, 0, 0};
         memspace.selectHyperslab(H5S_SELECT_SET, count, start2);
 
-        dataset.write(rdata->xdot, H5::PredType::NATIVE_DOUBLE, memspace, filespace);
+        dataset.write(rdata->x, H5::PredType::NATIVE_DOUBLE, memspace, filespace);
     }
 
     if(saveLlh) {
@@ -159,7 +159,7 @@ void SimulationResultWriter::updatePaths()
 {
     yMesPath = rootPath + "/yMes";
     ySimPath = rootPath + "/ySim";
-    xDotPath = rootPath + "/xDot";
+    xPath = rootPath + "/x";
     llhPath  = rootPath + "/llh";
 
 }

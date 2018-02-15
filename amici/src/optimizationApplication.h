@@ -62,7 +62,7 @@ class OptimizationApplication {
      * @brief Writes the total programm runtime
      * @param begin
      */
-    virtual void finalizeTiming(clock_t begin);
+    virtual void finalizeTiming(double walltimeInSec, double cpuTimeSeconds);
 
     std::string
     processResultFilenameCommandLineArgument(const char *commandLineArg);

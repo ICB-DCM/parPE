@@ -91,22 +91,24 @@ TEST(hierarchicalOptimization, hierarchicalOptimization) {
     auto fun2 = fun.get();
     auto r = std::make_unique<parpe::ScalingFactorHdf5Reader>(H5::H5File(TESTFILE, H5F_ACC_RDONLY), "/");
     parpe::HierachicalOptimizationWrapper w(std::move(fun), std::move(r),
-                                            fun->numConditions, fun->numObservables, fun->numTimepoints);
+                                            fun->numConditions, fun->numObservables, fun->numTimepoints,
+                                            parpe::ParameterTransformation::log10, parpe::ErrorModel::normal);
 
     CHECK_TRUE(w.numScalingFactors() == 2);
 
     std::vector<double> reducedParameters {3.0, 2.0};
     std::vector<double> fullParameters {3.0, 2.0, 1.5, 1.3}; // last 2 are scalings
-    std::vector<double> onesFullParameters {1.0, 1.0, 3.0, 2.0}; // last 2 are scalings
+    // scalings set to log10(1)
+    std::vector<double> onesFullParameters {0.0, 0.0, 3.0, 2.0}; // last 2 are scalings
 
-    std::vector<double> scalingDummy(w.numScalingFactors(), 1);
-    CHECK_TRUE(onesFullParameters == w.getFullParameters(reducedParameters.data(), scalingDummy));
+    std::vector<double> scalingDummy(w.numScalingFactors(), 0.0);
+    CHECK_TRUE(onesFullParameters == w.spliceParameters(reducedParameters.data(), reducedParameters.size(), scalingDummy));
 
     // Ensure it is called with proper parameter vector:
-    auto outputs = w.getModelOutputs(fullParameters.data());
+    auto outputs = w.getUnscaledModelOutputs(fullParameters.data());
     CHECK_TRUE(onesFullParameters == fun2->lastParameters);
 
-    auto s = w.optimalScaling(0, outputs, fun2->getAllMeasurements());
+    auto s = w.computeAnalyticalScalings(0, outputs, fun2->measurements);
     CHECK_EQUAL(log10(2.0), s);
 
     w.applyOptimalScaling(0, 2.0, outputs);
@@ -117,8 +119,8 @@ TEST(hierarchicalOptimization, hierarchicalOptimization) {
     CHECK_TRUE(outputs[2][3] == fun2->measurements[2][3]);
 
     // likelihood without offset must be 0 after scaling and if all other measurements/observables agree
-    auto llh = w.computeLikelihood(outputs);
-    constexpr double pi = atan(1)*4;
+    auto llh = w.computeNegLogLikelihood(fun2->measurements, outputs);
+    double pi = atan(1)*4;
     double llhOffset = 0.5 * log(2 * pi) * 20;
     DOUBLES_EQUAL(llh - llhOffset, 0, 1e-10);
 

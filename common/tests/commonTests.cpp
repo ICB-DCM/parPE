@@ -149,6 +149,10 @@ TEST(commonMisc, testFillArrayRandomDoubleIndividualInterval) {
 
 
 TEST(commonMisc, testMpi) {
+#if IGNORE_ALL_LEAKS_IN_TEST
+    IGNORE_ALL_LEAKS_IN_TEST()
+#endif
+
     // Before MPI initialized
     CHECK_EQUAL(-1, parpe::getMpiRank());
     CHECK_EQUAL(-1, parpe::getMpiCommSize());
@@ -162,6 +166,7 @@ TEST(commonMisc, testMpi) {
     // Should not make invalid calls after mpi_finalize
     CHECK_EQUAL(-1, parpe::getMpiRank());
     CHECK_EQUAL(-1, parpe::getMpiCommSize());
+
 }
 
 

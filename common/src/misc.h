@@ -4,8 +4,38 @@
 #include <stdlib.h>
 #include <memory>
 #include <cstdio>
+#include <chrono>
 
 namespace parpe {
+
+class WallTimer {
+public:
+    WallTimer();
+
+    void reset();
+
+    double getRound();
+
+    double getTotal();
+
+    std::chrono::time_point<std::chrono::high_resolution_clock> start;
+    std::chrono::time_point<std::chrono::high_resolution_clock> roundStart;
+
+};
+
+class CpuTimer {
+public:
+    CpuTimer() = default;
+
+    void reset();
+
+    double getRound();
+
+    double getTotal();
+
+    clock_t start = clock();
+    clock_t roundStart = clock();
+};
 
 #define RELEASE_ASSERT(expr, msg) \
     if(!(expr)) { \
@@ -36,6 +66,8 @@ void runInParallelAndWaitForFinish(void *(*function)(void *),
                                            void **args, int numArgs);
 
 void printBacktrace(int depth = 20);
+
+std::string getBacktrace(int depth = 20);
 
 double randDouble(double min, double max);
 

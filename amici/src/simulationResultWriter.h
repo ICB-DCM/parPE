@@ -7,6 +7,11 @@
 
 namespace parpe {
 
+/**
+ * @brief The SimulationResultWriter class saves AMICI simulation results
+ * for one or multiple conditions to an HDF5 file.
+ */
+
 class SimulationResultWriter {
 public:
 
@@ -22,7 +27,6 @@ public:
      */
 
     void createDatasets(const amici::Model &model,
-                        const amici::ExpData *edata,
                         int numberOfSimulations = 1);
 
     /**
@@ -40,7 +44,7 @@ public:
 
     H5::H5File reopenFile();
 
-    bool saveXDot = false;
+    bool saveX = false;
     bool saveLlh = false;
 //    bool saveSllh = false;
     bool saveYSim = false;
@@ -50,7 +54,7 @@ public:
 
     std::string yMesPath;
     std::string ySimPath;
-    std::string xDotPath;
+    std::string xPath;
     std::string llhPath;
 
 private:

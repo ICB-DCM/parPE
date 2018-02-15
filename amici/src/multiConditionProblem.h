@@ -12,6 +12,10 @@
 
 #include <amici.h>
 
+#include <amici_serialization.h>
+#include <boost/serialization/map.hpp>
+#include <SimulationRunner.h>
+
 #include <memory>
 #include <cmath> //NAN
 
@@ -76,7 +80,7 @@ public:
      * @return
      */
     // TODO does not belong here
-    JobResultAmiciSimulation runAndLogSimulation(amici::Solver &solver, amici::Model &model, JobIdentifier path,
+    SimulationRunnerSimple::AmiciResultPackageSimple  runAndLogSimulation(amici::Solver &solver, amici::Model &model, JobIdentifier path,
                                     int jobId) const;
 
 
@@ -120,7 +124,7 @@ protected:// for testing
      */
 
     int aggregateLikelihood(JobData &data, double &logLikelihood,
-                            double *objectiveFunctionGradient, int dataIdx, double &simulationTimeInS) const;
+                            double *objectiveFunctionGradient, double &simulationTimeInS) const;
 
 
     /**
@@ -159,44 +163,6 @@ private:
     MultiConditionProblemResultWriter *resultWriter = nullptr; // TODO: owning?
     bool logLineSearch = false;
 };
-
-
-
-/**
- * @brief The MultiConditionGradientFunction class represents a cost function based on an AMICI ODE model
- *
- * TODO remove replace by SummedGradientFunctionGradientFunctionAdapter?
- */
-class MultiConditionGradientFunction : public GradientFunction {
-public:
-    MultiConditionGradientFunction(MultiConditionDataProvider *dataProvider,
-                                   LoadBalancerMaster *loadBalancer,
-                                   MultiConditionProblemResultWriter *resultWriter = nullptr);
-
-    virtual ~MultiConditionGradientFunction() = default;
-
-    /**
-     * @brief Evaluate cost function at `optimiziationVariables`
-     * @param optimiziationVariables Current parameters
-     * @param objectiveFunctionValue Out: cost at `optimiziationVariables`
-     * @param objectiveFunctionGradient Out: cost gradient at
-     * `optimiziationVariables`
-     * @return status code, non-zero on failure
-     */
-
-    FunctionEvaluationStatus evaluate(
-            const double* const parameters,
-            double &fval,
-            double* gradient) const override;
-
-    int numParameters() const override;
-
-    std::unique_ptr<GradientFunction> summedGradFun;
-
-private:
-    int numConditions;
-};
-
 
 
 
@@ -334,6 +300,7 @@ void logSimulation(hid_t file_id, std::string path, const std::vector<double> &t
                    int nTheta, int numStates, double *states,
                    double *stateSensi, int numY, double *y, int jobId,
                    int iterationsUntilSteadystate, int status);
+
 
 } // namespace parpe
 

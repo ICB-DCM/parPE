@@ -33,7 +33,7 @@ TEST(simulationResultWriter, testResultWriter) {
     parpe::SimulationResultWriter rw(tmpName, "/testResultWriter/");
 
     rw.saveLlh = true;
-    rw.saveXDot = true;
+    rw.saveX = true;
     rw.saveYMes = true;
     rw.saveYSim = true;
 
@@ -54,9 +54,9 @@ TEST(simulationResultWriter, testResultWriter) {
 
     amici::CVodeSolver solver;
     amici::ReturnData rdata(solver, &model);
-    std::vector<double> xdot(model.nx);
-    std::iota(xdot.begin(), xdot.end(), 0);
-    std::copy(xdot.begin(), xdot.end(), rdata.xdot);
+    std::vector<double> x(model.nt() * model.nx);
+    std::iota(x.begin(), x.end(), 0);
+    std::copy(x.begin(), x.end(), rdata.x);
     *rdata.llh = 1.2345;
     std::vector<double> ysim(measurements.size());
     std::iota(ysim.begin(), ysim.end(), 10);
@@ -65,21 +65,22 @@ TEST(simulationResultWriter, testResultWriter) {
     auto file = rw.reopenFile();
 
     // write
-    rw.createDatasets(model, &edata, numSimulations);
+    rw.createDatasets(model, numSimulations);
 
     CHECK_TRUE(parpe::hdf5GroupExists(file.getId(), "/testResultWriter/"));
     CHECK_TRUE(parpe::hdf5DatasetExists(file.getId(), rw.llhPath.c_str()));
-    CHECK_TRUE(parpe::hdf5DatasetExists(file.getId(), rw.xDotPath.c_str()));
+    CHECK_TRUE(parpe::hdf5DatasetExists(file.getId(), rw.xPath.c_str()));
     CHECK_TRUE(parpe::hdf5DatasetExists(file.getId(), rw.yMesPath.c_str()));
     CHECK_TRUE(parpe::hdf5DatasetExists(file.getId(), rw.ySimPath.c_str()));
 
     rw.saveSimulationResults(&edata, &rdata, 1);
 
     // verify
-    std::vector<double> xdotAct(xdot.size());
-    parpe::hdf5Read2DDoubleHyperslab(file.getId(), rw.xDotPath.c_str(),
-                                     1, model.nxtrue, 1, 0, xdotAct.data());
-    parpe::checkEqualArray(xdot.data(), xdotAct.data(), xdotAct.size(), 1e-16, 1e-16);
+    std::vector<double> xAct(x.size());
+    parpe::hdf5Read3DDoubleHyperslab(file.getId(), rw.xPath.c_str(),
+                                     1, model.nt(), model.nxtrue,
+                                     1, 0, 0, xAct.data());
+    parpe::checkEqualArray(x.data(), xAct.data(), xAct.size(), 1e-16, 1e-16);
 
     std::vector<double> yMesAct(measurements.size());
     parpe::hdf5Read3DDoubleHyperslab(file.getId(), rw.yMesPath.c_str(),

@@ -14,6 +14,9 @@
 
 namespace parpe {
 
+enum class ParameterTransformation { none, log10 };
+enum class ErrorModel { normal }; // TODO logNormal, laplace
+
 class ScalingFactorHdf5Reader;
 
 /**
@@ -29,19 +32,30 @@ public:
                                    std::unique_ptr<ScalingFactorHdf5Reader> reader,
                                    int numConditions,
                                    int numObservables,
-                                   int numTimepoints);
+                                   int numTimepoints,
+                                   ParameterTransformation parameterTransformation,
+                                   ErrorModel errorModel);
 
+    /**
+     * @brief See base class
+     * @param parameters
+     * @param fval
+     * @param gradient
+     * @return
+     */
     virtual FunctionEvaluationStatus evaluate(
             const double* const parameters,
             double &fval,
             double* gradient) const override;
+
+    std::vector<double> getDefaultScalingFactors() const;
 
     /**
      * @brief Run simulations with scaling parameters set to 1.0 and collect model outputs
      * @param reducedParameters parameter vector for `fun` without scaling parameters
      * @return Vector of double vectors containing AMICI ReturnData::y (nt x ny, column-major)
      */
-    std::vector <std::vector<double>> getModelOutputs(double const * const reducedParameters) const;
+    std::vector <std::vector<double>> getUnscaledModelOutputs(double const * const reducedParameters) const;
 
 
     /**
@@ -49,8 +63,9 @@ public:
      * @param modelOutputs Model outputs as provided by getModelOutputs
      * @return the computed scaling factors
      */
-    std::vector<double> computeAnalyticalScalings(std::vector <std::vector<double>>& modelOutputs) const;
+    std::vector<double> computeAnalyticalScalings(const std::vector<std::vector<double> > &measurements, std::vector <std::vector<double>>& modelOutputs) const;
 
+    void applyOptimalScalings(std::vector<double> const& proportionalityFactors, std::vector<std::vector<double> > &modelOutputs) const;
 
     void applyOptimalScaling(int scalingIdx, double scaling, std::vector <std::vector<double>>&  modelOutputs) const;
 
@@ -65,12 +80,11 @@ public:
      * @return
      */
 
-    virtual double optimalScaling(int scalingIdx, std::vector <std::vector<double>> const& modelOutputsUnscaled,
+    virtual double computeAnalyticalScalings(int scalingIdx, std::vector <std::vector<double>> const& modelOutputsUnscaled,
                                   std::vector <std::vector<double>> const& measurements) const;
 
-    virtual FunctionEvaluationStatus evaluateWithScalings(
-            const double* const reducedParameters, std::vector<double> const &scalings,
-            std::vector <std::vector<double>> const& modelOutputsScaled,
+    virtual FunctionEvaluationStatus evaluateWithScalings(const double* const reducedParameters, std::vector<double> const &scalings,
+            std::vector<std::vector<double> > &modelOutputsUnscaled,
             double &fval,
             double* gradient) const;
 
@@ -80,7 +94,7 @@ public:
      * @param modelOutputsScaled
      * @return
      */
-    double computeLikelihood(std::vector <std::vector<double>> const& modelOutputsScaled) const;
+    double computeNegLogLikelihood(std::vector <std::vector<double>> const& measurements, std::vector <std::vector<double>> const& modelOutputsScaled) const;
 
 
     /**
@@ -89,7 +103,7 @@ public:
      * @param scalingFactors
      * @return Full parameter vector for `fun`
      */
-    virtual std::vector<double> getFullParameters(double const * const reducedParameters, std::vector<double> const& scalingFactors) const;
+    virtual std::vector<double> spliceParameters(double const * const reducedParameters, int numReduced, std::vector<double> const& scalingFactors) const;
 
     virtual int numParameters() const override;
 
@@ -107,6 +121,9 @@ private:
     int numConditions;
     int numObservables;
     int numTimepoints;
+
+    ParameterTransformation parameterTransformation;
+    ErrorModel errorModel;
 };
 
 
@@ -172,6 +189,12 @@ public:
     virtual void fillParametersMax(double *buffer) const override;
 
     void fillFilteredParams(std::vector<double> const& fullParams, double *buffer) const;
+
+    OptimizationOptions const& getOptimizationOptions() const override { return wrappedProblem->getOptimizationOptions(); }
+    void setOptimizationOptions(OptimizationOptions const& options) override { wrappedProblem->setOptimizationOptions(options); }
+
+    // TODO: need to ensure that this will work with the reduced number of parameters
+    virtual std::unique_ptr<OptimizationReporter> getReporter() const override { return wrappedProblem->getReporter(); }
 
     std::unique_ptr<OptimizationProblem> wrappedProblem;
 };

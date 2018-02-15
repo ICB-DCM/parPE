@@ -11,8 +11,11 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <time.h>
+#include <ctime>
 #include <unistd.h>
+#include <dlfcn.h> // dladdr
+#include <cxxabi.h> // __cxa_demangle
+#include <sstream>
 #include <mpi.h>
 
 // void printMatlabArray(const double *buffer, int len)
@@ -110,6 +113,42 @@ void printBacktrace(int depth) {
     backtrace_symbols_fd(array, size, STDERR_FILENO);
 }
 
+std::string getBacktrace(int nMaxFrames)
+{
+    std::ostringstream oss;
+
+    void *callstack[nMaxFrames];
+    int nFrames = backtrace(callstack, nMaxFrames);
+    char **symbols = backtrace_symbols(callstack, nFrames);
+
+    char buf[1024];
+    for (int i = 0; i < nFrames; i++) {
+        Dl_info info;
+        if (dladdr(callstack[i], &info) && info.dli_sname) {
+            char *demangled = NULL;
+            int status = -1;
+            if (info.dli_sname[0] == '_')
+                demangled = abi::__cxa_demangle(info.dli_sname, NULL, 0, &status);
+            snprintf(buf, sizeof(buf), "%-3d %*p %s + %zd\n",
+                     i, int(2 + sizeof(void*) * 2), callstack[i],
+                     status == 0 ? demangled :
+                     info.dli_sname == 0 ? symbols[i] : info.dli_sname,
+                     (char *)callstack[i] - (char *)info.dli_saddr);
+            free(demangled);
+        } else {
+            snprintf(buf, sizeof(buf), "%-3d %*p %s\n",
+                     i, int(2 + sizeof(void*) * 2), callstack[i], symbols[i]);
+        }
+        oss << buf;
+    }
+    free(symbols);
+    if (nFrames == nMaxFrames)
+        oss << "[truncated]\n";
+
+    return oss.str();
+
+}
+
 double randDouble(double min, double max) {
     return min + rand() / (double)RAND_MAX * (max - min);
 }
@@ -159,5 +198,49 @@ int getMpiActive()
     MPI_Finalized(&result);
     return !result;
 }
+
+void CpuTimer::reset()
+{
+    start = roundStart = clock();
+}
+
+double CpuTimer::getRound()
+{
+    auto now = clock();
+    auto timeRound = (double)(now - roundStart) / CLOCKS_PER_SEC;
+    roundStart = now;
+
+    return timeRound;
+}
+
+double CpuTimer::getTotal()
+{
+    auto now = clock();
+    return (double)(now - start) / CLOCKS_PER_SEC;
+}
+
+WallTimer::WallTimer()
+{
+    reset();
+}
+
+void WallTimer::reset()
+{
+    roundStart = start = std::chrono::system_clock::now();
+}
+
+double WallTimer::getRound()
+{
+    std::chrono::duration<double> duration = (std::chrono::system_clock::now() - roundStart);
+    roundStart = std::chrono::system_clock::now();
+    return duration.count();
+}
+
+double WallTimer::getTotal()
+{
+    std::chrono::duration<double> duration = (std::chrono::system_clock::now() - start);
+    return duration.count();
+}
+
 
 } // namespace parpe

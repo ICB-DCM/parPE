@@ -1,59 +1,32 @@
-#include <cstdio>
-#include <LoadBalancerMaster.h>
-#include <LoadBalancerWorker.h>
-#include <standaloneSimulator.h>
-#include <string>
-#include <iostream>
-#include <amici_model.h>
 #include "steadyStateMultiConditionDataprovider.h"
+#include <standaloneSimulator.h>
+
+#include <cstdio> // remove
+#include <iostream>
+
+#include <amici_model.h>
 
 std::unique_ptr<amici::Model> getModel();
 
-int run(parpe::StandaloneSimulator &sim, std::string resultFileName, std::string resultPath,
-        parpe::LoadBalancerMaster *loadBalancer) {
-
-    // for each parameters in resultFileName
-    auto model = getModel();
-    std::vector<double> parameters(model->np(), 1);
-    int errors = 0;
-    errors += sim.run(resultFileName, resultPath, parameters, loadBalancer);
-    return errors;
-}
-
 int main(int argc, char **argv) {
-    if(argc != 5) {
+    if(argc != 6) {
         std::cerr<<"Error: wrong number of arguments.\n";
-        std::cerr<<"Usage: ... INFILENAME INFILEPATH OUTFILENAME OUTFILEPATH";
+        std::cerr<<"Usage: ... INFILENAME INFILEPATH OUTFILENAME OUTFILEPATH --at-optimum|--along-trajectory|--parameter-matrix=PATH-UNSUPPORTED";
         return EXIT_FAILURE;
     }
 
     std::string dataFileName = argv[1];
-    std::string parameterPath = argv[2];
+    std::string dataFilePath = argv[2];
     std::string resultFileName = argv[3];
     std::string resultPath = argv[4];
+    std::string simulationMode = argv[5];
 
-    int status = 0;
-    SteadyStateMultiConditionDataProvider dp(getModel(), dataFileName, "/inputData");
-    parpe::StandaloneSimulator sim(&dp);
+    // TODO: testing-only remove result file
+    remove(resultFileName.c_str());
 
-    int commSize = parpe::getMpiCommSize();
+    SteadyStateMultiConditionDataProvider dp(getModel(), dataFileName, dataFilePath + "/inputData");
 
-    if (commSize > 1) {
-        if (parpe::getMpiRank() == 0) {
-            parpe::LoadBalancerMaster loadBalancer;
-            loadBalancer.run();
-            status = run(sim, resultFileName, resultPath, &loadBalancer);
-            loadBalancer.terminate();
-            loadBalancer.sendTerminationSignalToAllWorkers();
-        } else {
-            parpe::LoadBalancerWorker lbw;
-            lbw.run([&sim](std::vector<char> &buffer, int jobId) {
-                sim.messageHandler(buffer, jobId);
-            });
-        }
-    } else {
-        status = run(sim, resultFileName, resultPath, nullptr);
-    }
+    int status = parpe::runSimulator(dp, simulationMode, dataFileName, dataFilePath, resultFileName, resultPath);
 
     return status;
 }
