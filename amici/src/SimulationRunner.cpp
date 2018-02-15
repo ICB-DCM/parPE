@@ -178,7 +178,7 @@ int SimulationRunnerSimple::runSharedMemory(LoadBalancerWorker::messageHandlerFu
         omp_set_num_threads(1);
 
     #pragma omp parallel for
-    for (int simulationIdx = 0; simulationIdx < conditionIndices.size(); ++simulationIdx) {
+    for (int simulationIdx = 0; simulationIdx < (signed)conditionIndices.size(); ++simulationIdx) {
         auto curConditionIndices = std::vector<int> {simulationIdx};
         AmiciWorkPackageSimple work {optimizationParameters, sensitivityOrder, curConditionIndices};
         auto buffer = amici::serializeToStdVec<AmiciWorkPackageSimple>(work);
