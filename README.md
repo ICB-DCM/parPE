@@ -69,3 +69,11 @@ Other sample build scripts are provided as `/build*.sh`.
 
 No extensive full-text documentation is available yet. See `*/examples` and `*/tests` for usage examples. 
 Little documentation is available in `doc` and among github issues. 
+
+## FAQ
+
+Q: The program is killed due to memory exhaustion, what should I do?
+
+A: When running with MPI, the master process (rank 0) is consuming more memory than the others.
+Consider reserving more memory for this one. For LoadLeveler, this can be done conveniently via
+`#@ first_node_tasks`.
