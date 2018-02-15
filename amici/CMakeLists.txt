@@ -1,5 +1,6 @@
 find_package(Amici HINTS ${CMAKE_CURRENT_LIST_DIR}/../deps/AMICI/build)
 
+set(Boost_USE_STATIC_LIBS TRUE)
 find_package(Boost COMPONENTS serialization REQUIRED)
 
 get_property(AmiciConfigIncludes TARGET Upstream::amici PROPERTY INCLUDE_DIRECTORIES)
