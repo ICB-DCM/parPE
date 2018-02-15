@@ -1,5 +1,6 @@
 #ifndef HDF5_MISC_H
 #define HDF5_MISC_H
+#include <misc.h>
 
 #include <hdf5.h>
 #include <hdf5_hl.h>
@@ -14,13 +15,16 @@ namespace parpe {
 
 class HDF5Exception : public std::exception {
 public:
-    HDF5Exception(std::string msg = "") : msg(msg) {}
+    HDF5Exception(std::string msg = "") : msg(msg) {
+        stackTrace = getBacktrace(20);
+    }
+
     HDF5Exception(const char *format, ...);
 
     const char* what() const noexcept override { return msg.c_str(); }
 
     std::string msg;
-
+    std::string stackTrace;
 };
 
 

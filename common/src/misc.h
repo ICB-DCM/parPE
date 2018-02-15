@@ -67,6 +67,8 @@ void runInParallelAndWaitForFinish(void *(*function)(void *),
 
 void printBacktrace(int depth = 20);
 
+std::string getBacktrace(int depth = 20);
+
 double randDouble(double min, double max);
 
 /**
