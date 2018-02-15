@@ -3,6 +3,7 @@
 #include <iostream>
 #include "optimizationOptions.h"
 #include "testingMisc.h"
+#include <hdf5Misc.h>
 #include "localOptimizationIpopt.h"
 #include "localOptimizationIpoptTNLP.h"
 #include <ceres/gradient_problem_solver.h>
@@ -102,10 +103,11 @@ TEST(optimizationOptions, fromHDF5) {
     std::tmpnam(tmpName);
 
     // TODO: hide hdf5 errors
-    parpe::captureStreamToString([tmpName](){
-        std::cout<<tmpName<<" asdf";
+//    parpe::captureStreamToString([tmpName](){
+    H5_SAVE_ERROR_HANDLER;
         CHECK_THROWS(parpe::HDF5Exception, parpe::OptimizationOptions::fromHDF5(tmpName));
-    }, stdout);
+    H5_RESTORE_ERROR_HANDLER;
+//    }, stdout);
 
     // create file
     hid_t fileId = parpe::hdf5CreateFile(tmpName, false);
