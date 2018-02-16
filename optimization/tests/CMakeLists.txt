@@ -47,3 +47,22 @@ if(${ENABLE_TOMS611})
         ${GCOV_LIBRARY}
     )
 endif(${ENABLE_TOMS611})
+
+
+if(${ENABLE_FSQP})
+    project(unittests_optimization_fsqp)
+
+    add_executable(${PROJECT_NAME}
+        main.cpp
+        ../src/localOptimizationFsqpTest.cpp
+        quadraticTestProblem.cpp
+    )
+
+    target_link_libraries(${PROJECT_NAME}
+        fsqp
+        parpeoptimization
+        parpecommon
+        ${CPPUTEST_LIBRARY}
+        ${GCOV_LIBRARY}
+    )
+endif(${ENABLE_FSQP})
