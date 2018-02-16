@@ -138,10 +138,16 @@ public:
 
     std::tuple<int, double, std::vector<double> > optimize()
     {
+        if(reporter)
+            reporter->starting(nparam, x.data());
+
         ffsqp_(nparam, nf, nineqn, nineq, neq, neqn, mode, iprint, miter, inform,
                bigbnd, eps, epseqn, udelta, bl.data(), bu.data(),
                x.data(), f.data(), g.data(), iw.data(), iwsize, &w[1], nwsize,
                 obj, constr, gradob, gradcn);
+
+        if(reporter)
+            reporter->finished(f[0], x.data(), inform);
 
         std::cout<<"Final cost "<<f[0]<<std::endl;
 
@@ -264,9 +270,19 @@ void gradob (integer &nparam, integer &j, doublereal *x, doublereal *gradfj, dou
     //std::cerr<<"gradfj "<<gradfj-nwgrf+1<<std::endl;
     memcpy(&problem, gradfj-nwgrf+1, sizeof(problem));
 
+    if(problem->reporter && problem->reporter->beforeCostFunctionCall(nparam, x) != 0)
+        return;
+
     static_assert(sizeof(double) == sizeof(doublereal), "");
     doublereal fj;
     problem->problem->costFun->evaluate(x, fj, gradfj);
+
+    if(problem->reporter && problem->reporter->afterCostFunctionCall(nparam, x, fj, gradfj))
+        return;
+
+    if(problem->reporter && problem->reporter->iterationFinished(nparam, x, fj, gradfj))
+        return;
+
 
     std::cout<<"np:"<<nparam<<" j:"<<j<<" x:"<<x[0]<<" gradfj:"<<gradfj<<std::endl;
 }

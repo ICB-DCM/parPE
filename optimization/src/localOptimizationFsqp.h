@@ -11,8 +11,6 @@ namespace parpe {
  * @brief Interface to the FSQP solver. (Tested with FFSQP Version 3.7b)
  *
  * This solver is not included in the parPE repository. A license must be obtained separately.
- *
- * TODO: OptimizationReporter is not yet called properly!
  */
 
 class OptimizerFsqp : public Optimizer {
