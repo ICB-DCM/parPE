@@ -7,10 +7,10 @@
 #include <stdexcept>
 #include <optimizationResultWriter.h>
 
-
 extern "C" {
 #include <f2c.h>
 #undef max
+}
 
 // callback functions types for FFSQP, see below
 using objType    = void (*) (integer &nparam, integer &j, doublereal *x, doublereal &fj);
@@ -19,12 +19,7 @@ using gradobType = void (*) (integer &nparam, integer &j, doublereal *x, doubler
 using gradcnType = void (*) (integer &nparam, integer &j, doublereal *x, doublereal *gradgj, doublereal *dummy);
 
 
-// FFSQP callback functions
-void obj(integer &nparam, integer &j, doublereal *x, doublereal &fj);
-void constr (integer &nparam, integer &j, doublereal *x, doublereal &gj);
-void gradob (integer &nparam, integer &j, doublereal *x, doublereal *gradfj, doublereal *dummy);
-void gradcn (integer &nparam, integer &j, doublereal *x, doublereal *gradgj, doublereal *dummy);
-
+extern "C" {
 // These two functions are needed for linking by ql0001, so far they were never called though
 integer lnblnk_(char *a, ftnlen) {
     throw std::runtime_error("FSQP: lnblnk_ was called but is not implemented");
@@ -80,8 +75,27 @@ int ffsqp_(integer &nparam, integer &nf, integer &nineqn,
 //#include "ffsqp.c"
 }
 
-enum class iprint { nothing, firstLast, eachIteration, eachIterationDetailed };
-enum class inform {
+
+namespace parpe {
+
+extern "C" {
+// FFSQP callback functions
+void obj(integer &nparam, integer &j, doublereal *x, doublereal &fj);
+void constr (integer &nparam, integer &j, doublereal *x, doublereal &gj);
+void gradob (integer &nparam, integer &j, doublereal *x, doublereal *gradfj, doublereal *dummy);
+void gradcn (integer &nparam, integer &j, doublereal *x, doublereal *gradgj, doublereal *dummy);
+}
+
+// FFSQP print level options
+enum class iprintPrintLevel {
+    nothing,
+    firstLast,
+    eachIteration,
+    eachIterationDetailed
+};
+
+// FFSQP exit status
+enum class informExitStatus {
     converged,
     infeasibleStartingPointByLinearContraints,
     infeasibleStartingPointByNonLinearContraints,
@@ -97,8 +111,11 @@ enum class inform {
 // make sure float sizes match; otherwise data must be copied to new containers first
 static_assert(sizeof(double) == sizeof(doublereal), "");
 
-namespace parpe {
-
+/**
+ * @brief Wrapper for a FFSQP optimization problem.
+ *
+ * An instance of this class is slipped into the FFSQP callback functions
+ */
 class FsqpProblem {
 public:
     FsqpProblem(OptimizationProblem *problem)
@@ -144,7 +161,7 @@ public:
         ffsqp_(nparam, nf, nineqn, nineq, neq, neqn, mode, iprint, miter, inform,
                bigbnd, eps, epseqn, udelta, bl.data(), bu.data(),
                x.data(), f.data(), g.data(), iw.data(), iwsize, &w[1], nwsize,
-                obj, constr, gradob, gradcn);
+                parpe::obj, parpe::constr, parpe::gradob, parpe::gradcn);
 
         if(reporter)
             reporter->finished(f[0], x.data(), inform);
@@ -155,8 +172,40 @@ public:
                     inform,
                     f[0],
                 x);
-
     }
+
+    void obj(integer &nparam, integer &j, doublereal *x, doublereal &fj) {
+        if(reporter && reporter->beforeCostFunctionCall(nparam, x) != 0)
+            return;
+
+        problem->costFun->evaluate(x, fj, nullptr);
+
+        if(reporter && reporter->afterCostFunctionCall(nparam, x, fj, nullptr))
+            return;
+
+        std::cout<<"np:"<<nparam<<" j:"<<j<<" x:"<<x[0]<<" fj:"<<fj<<std::endl;
+    }
+
+    // Once we want contraints: void constr (integer &nparam, integer &j, doublereal *x, doublereal &gj) {    }
+
+    void gradob (integer &nparam, integer &j, doublereal *x, doublereal *gradfj, doublereal *dummy) {
+        if(reporter && reporter->beforeCostFunctionCall(nparam, x) != 0)
+            return;
+
+        static_assert(sizeof(double) == sizeof(doublereal), "");
+        doublereal fj;
+        problem->costFun->evaluate(x, fj, gradfj);
+
+        if(reporter && reporter->afterCostFunctionCall(nparam, x, fj, gradfj))
+            return;
+
+        if(reporter && reporter->iterationFinished(nparam, x, fj, gradfj))
+            return;
+
+        std::cout<<"np:"<<nparam<<" j:"<<j<<" x:"<<x[0]<<" gradfj:"<<gradfj<<std::endl;
+    }
+
+    // Once we want contraints: void gradcn (integer &nparam, integer &j, doublereal *x, doublereal *gradgj, doublereal *dummy) {}
 
     OptimizationProblem *problem = nullptr;
     std::unique_ptr<OptimizationReporter> reporter;
@@ -176,7 +225,7 @@ public:
     // TODO enum
     integer mode = 0 + 10 * 0 + 100 * 1;
     // Print level
-    integer iprint = static_cast<integer>(iprint::eachIteration);
+    integer iprint = static_cast<integer>(iprintPrintLevel::eachIteration);
     // Maximum allowed iterations
     integer miter = 0;
     // Status (see enum inform above)
@@ -213,7 +262,71 @@ public:
     std::vector<doublereal> w;
 };
 
-} // namespace parpe
+std::tuple<int, double, std::vector<double> > OptimizerFsqp::optimize(parpe::OptimizationProblem *problem)
+{
+    FsqpProblem p(problem);
+    return p.optimize();
+}
+
+/**
+ * @brief Get the position of ff in w (see FFSQP source)
+ * @param nparam
+ * @param j
+ * @return nwff
+ */
+constexpr int getNwff(int nparam, int j) {
+    return 1 + nparam*nparam + (nparam+1)*(nparam+1) + j;
+}
+
+/**
+ * @brief Get the position of nwgrf in w (see FFSQP source)
+ * @param nparam
+ * @param j
+ * @return nwgrf
+ */
+constexpr int getNwgrf(int nparam, int j) {
+    // Where does the last "- nparam" come from?
+    return getNwff(nparam, j) + 1 + 1 + 3 * (nparam + 1) + 1 + 1 * nparam + 1 - nparam;
+}
+
+/**
+ * @brief Recover out data that was hidden in front of FFSQP's w. Find from provided fj.
+ * @param fj
+ * @param nparam
+ * @param j
+ * @return
+ */
+FsqpProblem *getProblemFromFj(doublereal &fj, integer nparam, integer j) {
+    // need to go relative to fj because location of x changes; for position see "nwff"
+
+    parpe::FsqpProblem *problem = nullptr;
+    int nwff = getNwff(nparam, j);
+
+    // std::cerr<<"obj "<<&fj - nwff + 1<<std::endl;
+
+    memcpy(&problem, &fj - nwff + 1, sizeof(problem));
+
+    return problem;
+}
+
+/**
+ * @brief Recover out data that was hidden in front of FFSQP's w. Find from provided gradfj.
+ * @param gradfj
+ * @param nparam
+ * @param j
+ * @return
+ */
+FsqpProblem *getProblemFromGradFj(doublereal *gradfj, integer nparam, integer j) {
+    parpe::FsqpProblem *problem = nullptr;
+    int nwgrf = getNwgrf(nparam, j);
+
+    //std::cerr<<"gradfj "<<gradfj-nwgrf+1<<std::endl;
+
+    // NOTE: Will have to change that once we want to include constraints
+    memcpy(&problem, gradfj - nwgrf + 1, sizeof(problem));
+
+    return problem;
+}
 
 
 /**
@@ -224,22 +337,8 @@ public:
  * @param fj (out) Function value for objective j
  */
 void obj(integer &nparam, integer &j, doublereal *x, doublereal &fj) {
-    // Recover user-data:
-    parpe::FsqpProblem *problem = nullptr;
-    // need to go relative to fj because location of x changes; for position see "nwff"
-    int nwff = 1 + nparam*nparam + (nparam+1)*(nparam+1) + j;
-    // std::cerr<<"obj "<<&fj - nwff + 1<<std::endl;
-    memcpy(&problem, &fj - nwff + 1, sizeof(problem));
-
-    if(problem->reporter && problem->reporter->beforeCostFunctionCall(nparam, x) != 0)
-        return;
-
-    problem->problem->costFun->evaluate(x, fj, nullptr);
-
-    if(problem->reporter && problem->reporter->afterCostFunctionCall(nparam, x, fj, nullptr))
-        return;
-
-    std::cout<<"np:"<<nparam<<" j:"<<j<<" x:"<<x[0]<<" fj:"<<fj<<std::endl;
+    auto problem = getProblemFromFj(fj, nparam, j);
+    problem->obj(nparam, j, x, fj);
 }
 
 /**
@@ -262,29 +361,8 @@ void constr (integer &nparam, integer &j, doublereal *x, doublereal &gj) {
  * @param dummy Passed to gradob for forward difference calculation
  */
 void gradob (integer &nparam, integer &j, doublereal *x, doublereal *gradfj, doublereal *dummy) {
-    parpe::FsqpProblem *problem = nullptr;
-    // See nwgrf
-    int nwff = 1 + nparam*nparam + (nparam+1)*(nparam+1) + j;
-    // NOTE: Will have to change that once we want to include constraints
-    int nwgrf = nwff + 1 + 1 + 3 * (nparam + 1) + 1 + 1 * nparam + 1 - nparam; // Where does the last "- nparam" come from?
-    //std::cerr<<"gradfj "<<gradfj-nwgrf+1<<std::endl;
-    memcpy(&problem, gradfj-nwgrf+1, sizeof(problem));
-
-    if(problem->reporter && problem->reporter->beforeCostFunctionCall(nparam, x) != 0)
-        return;
-
-    static_assert(sizeof(double) == sizeof(doublereal), "");
-    doublereal fj;
-    problem->problem->costFun->evaluate(x, fj, gradfj);
-
-    if(problem->reporter && problem->reporter->afterCostFunctionCall(nparam, x, fj, gradfj))
-        return;
-
-    if(problem->reporter && problem->reporter->iterationFinished(nparam, x, fj, gradfj))
-        return;
-
-
-    std::cout<<"np:"<<nparam<<" j:"<<j<<" x:"<<x[0]<<" gradfj:"<<gradfj<<std::endl;
+    auto problem = getProblemFromGradFj(gradfj, nparam, j);
+    problem->gradob(nparam, j, x, gradfj, dummy);
 }
 
 /**
@@ -299,12 +377,6 @@ void gradcn (integer &nparam, integer &j, doublereal *x, doublereal *gradgj, dou
     // no constraints currently supported
 }
 
-namespace parpe {
 
-std::tuple<int, double, std::vector<double> > OptimizerFsqp::optimize(parpe::OptimizationProblem *problem)
-{
-    FsqpProblem p(problem);
-    return p.optimize();
-}
+} // namespace parpe
 
-}
