@@ -28,6 +28,7 @@ set(CERES_INCLUDE_DIRS "" "/usr/include/eigen3" CACHE PATH "CERES include direct
 set(CERES_LIBRARIES "" CACHE STRINGS "CERES libraries")
 set(ENABLE_DLIB FALSE CACHE BOOL "Enable dlib optimizers?")
 set(ENABLE_TOMS611 FALSE CACHE BOOL "Enable toms611 optimizers?")
+set(ENABLE_FSQP FALSE CACHE BOOL "Enable FSQP optimizers?")
 
 # Enable MPI? Currently mandatory.
 set(USE_MPI ON)
@@ -45,6 +46,10 @@ endif(${ENABLE_DLIB})
 if(${ENABLE_TOMS611})
     add_definitions(-DPARPE_TOMS611_ENABLED)
 endif(${ENABLE_TOMS611})
+
+if(${ENABLE_FSQP})
+    add_definitions(-DPARPE_FSQP_ENABLED)
+endif(${ENABLE_FSQP})
 
 # PThreads
 set(THREADS_PREFER_PTHREAD_FLAG ON)

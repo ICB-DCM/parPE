@@ -20,6 +20,10 @@ if(${ENABLE_TOMS611})
     set(SRC_LIST ${SRC_LIST} localOptimizationToms611.cpp)
 endif(${ENABLE_TOMS611})
 
+if(${ENABLE_FSQP})
+    set(SRC_LIST ${SRC_LIST} localOptimizationFsqp.cpp)
+endif(${ENABLE_FSQP})
+
 add_library(${PROJECT_NAME} ${SRC_LIST})
 
 target_link_libraries(${PROJECT_NAME}
@@ -38,6 +42,10 @@ endif(${ENABLE_DLIB})
 if(${ENABLE_TOMS611})
     target_link_libraries(${PROJECT_NAME} toms611)
 endif(${ENABLE_TOMS611})
+
+if(${ENABLE_FSQP})
+    target_link_libraries(${PROJECT_NAME} fsqp)
+endif(${ENABLE_FSQP})
 
 get_target_property(PARPEOPTIMIZATION_INCLUDE_DIRS ${PROJECT_NAME} INCLUDE_DIRECTORIES)
 set_property(GLOBAL PROPERTY PARPEOPTIMIZATION_INCLUDE_DIRS "${PARPELOADBALANCER_INCLUDE_DIRS}")
