@@ -120,6 +120,7 @@ class FsqpProblem {
 public:
     FsqpProblem(OptimizationProblem *problem)
         : problem(problem),
+          reporter(problem->getReporter()),
           nparam(problem->costFun->numParameters()),
           miter(problem->getOptimizationOptions().maxOptimizerIterations),
           bl(std::vector<doublereal>(nparam)),
