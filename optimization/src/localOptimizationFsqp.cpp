@@ -179,7 +179,15 @@ public:
         if(reporter && reporter->beforeCostFunctionCall(nparam, x) != 0)
             return;
 
-        problem->costFun->evaluate(x, fj, nullptr);
+        if(cachedParameters.size() && arrayEqual(x, cachedParameters.data(), cachedParameters.size())) {
+            fj = cachedCost;
+        } else {
+            //problem->costFun->evaluate(x, fj, nullptr);
+            cachedParameters.assign(x, x + nparam);
+            cachedGradient.resize(nparam, NAN);
+            problem->costFun->evaluate(x, cachedCost, cachedGradient.data());
+            fj = cachedCost;
+        }
 
         if(reporter && reporter->afterCostFunctionCall(nparam, x, fj, nullptr))
             return;
@@ -194,22 +202,33 @@ public:
             return;
 
         static_assert(sizeof(double) == sizeof(doublereal), "");
-        doublereal fj;
-        problem->costFun->evaluate(x, fj, gradfj);
 
-        if(reporter && reporter->afterCostFunctionCall(nparam, x, fj, gradfj))
+        if(cachedParameters.size() && arrayEqual(x, cachedParameters.data(), cachedParameters.size())) {
+            std::copy(cachedGradient.begin(), cachedGradient.end(), gradfj);
+        } else {
+            cachedParameters.assign(x, x + nparam);
+            cachedGradient.resize(nparam, NAN);
+            problem->costFun->evaluate(x, cachedCost, cachedGradient.data());
+        }
+
+        if(reporter && reporter->afterCostFunctionCall(nparam, x, cachedCost, gradfj))
             return;
 
-        if(reporter && reporter->iterationFinished(nparam, x, fj, gradfj))
+        if(reporter && reporter->iterationFinished(nparam, x, cachedCost, gradfj))
             return;
 
-        std::cout<<"np:"<<nparam<<" j:"<<j<<" x:"<<x[0]<<" gradfj:"<<gradfj<<std::endl;
+        std::cout<<"np:"<<nparam<<" j:"<<j<<" x:"<<x[0]<<" gradfj:"<<gradfj[0]<<std::endl;
     }
 
     // Once we want contraints: void gradcn (integer &nparam, integer &j, doublereal *x, doublereal *gradgj, doublereal *dummy) {}
 
     OptimizationProblem *problem = nullptr;
     std::unique_ptr<OptimizationReporter> reporter;
+
+    // Do gradient evaluation always during `obj` and save results, so that we can fail in obj if current parameters are infeasible. Otherwise ffsqp will terminate "successfully".
+    doublereal cachedCost = NAN;
+    std::vector<doublereal> cachedGradient;
+    std::vector<doublereal> cachedParameters;
 
     // Number of optimization variables
     integer nparam = 0;

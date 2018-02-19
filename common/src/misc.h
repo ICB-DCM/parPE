@@ -104,6 +104,14 @@ bool withinBounds(long int n, T_TEST const *x, const T_BOUNDS *min, const T_BOUN
     return true;
 }
 
+template<typename A, typename B>
+bool arrayEqual(A const& a, B const& b, int length) {
+    for(int i = 0; i < length; ++i)
+        if(a[i] != b[i])
+            return false;
+
+    return true;
+}
 
 } // namespace parpe
 
