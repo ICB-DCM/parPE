@@ -51,13 +51,13 @@ void SimulationResultWriter::createDatasets(const amici::Model &model,
         hsize_t chunkDims[rank] = {1, dims[1], dims[2]};
         propList.setChunk(rank, chunkDims);
 
-        if(saveYMes)
+        if(saveYMes && !hdf5DatasetExists(file.getId(), yMesPath.c_str())) // TODO should check dimensions if exists
             file.createDataSet(yMesPath, H5::PredType::NATIVE_DOUBLE, dataspace, propList);
-        if(saveYSim)
+        if(saveYSim && !hdf5DatasetExists(file.getId(), ySimPath.c_str()))
             file.createDataSet(ySimPath, H5::PredType::NATIVE_DOUBLE, dataspace, propList);
     }
 
-    if(saveX) {
+    if(saveX && !hdf5DatasetExists(file.getId(), xPath.c_str())) {
         int rank = 3;
         hsize_t dims[] = {numSimulations, nt, nx};
         H5::DataSpace dataspace(rank, dims);
@@ -66,7 +66,7 @@ void SimulationResultWriter::createDatasets(const amici::Model &model,
         file.createDataSet(xPath, H5::PredType::NATIVE_DOUBLE, dataspace, propList);
     }
 
-    if(saveLlh) {
+    if(saveLlh && !hdf5DatasetExists(file.getId(), llhPath.c_str())) {
         hsize_t dims[] = {numSimulations};
         H5::DataSpace dataspace(1, dims);
         hsize_t one = 1;
