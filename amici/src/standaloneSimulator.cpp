@@ -249,7 +249,7 @@ std::vector<std::vector<double>> getParameterTrajectory(std::string startIndex, 
 }
 
 int getNumStarts(H5::H5File file, std::string rootPath)  {
-    auto o = parpe::OptimizationOptions::fromHDF5(file.getId());
+    auto o = parpe::OptimizationOptions::fromHDF5(file.getId(), rootPath + "/inputData/optimizationOptions");
     return o->numStarts;
 }
 
@@ -258,7 +258,8 @@ int runFinalParameters(StandaloneSimulator &sim, std::string inFileName, std::st
     H5::H5File file(inFileName, H5F_ACC_RDONLY);
     int errors = 0;
 
-    for(int i = 0; i < getNumStarts(file); ++i) {
+    int numStarts = getNumStarts(file);
+    for(int i = 0; i < numStarts; ++i) {
         std::cout<<"Running for start "<<i<<std::endl;
         try {
             auto parameters = parpe::getFinalParameters(std::to_string(i), file);

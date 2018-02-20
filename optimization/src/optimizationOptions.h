@@ -38,7 +38,7 @@ class OptimizationOptions {
 
     static std::unique_ptr<OptimizationOptions> fromHDF5(const char *fileName);
 
-    static std::unique_ptr<OptimizationOptions> fromHDF5(hid_t fileId);
+    static std::unique_ptr<OptimizationOptions> fromHDF5(hid_t fileId, std::string path = "/optimizationOptions");
 
     static std::vector<double> getStartingPoint(hid_t fileId, int index);
 

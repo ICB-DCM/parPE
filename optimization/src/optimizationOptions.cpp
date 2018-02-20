@@ -82,10 +82,10 @@ std::unique_ptr<OptimizationOptions> OptimizationOptions::fromHDF5(const char *f
     return fromHDF5(file.getId());
 }
 
-std::unique_ptr<OptimizationOptions> OptimizationOptions::fromHDF5(hid_t fileId) {
+std::unique_ptr<OptimizationOptions> OptimizationOptions::fromHDF5(hid_t fileId, std::string path) {
     auto o = std::make_unique<OptimizationOptions>();
 
-    const char *hdf5path = "/optimizationOptions";
+    const char *hdf5path = path.c_str();
 
 
     if (hdf5AttributeExists(fileId, hdf5path, "optimizer")) {
