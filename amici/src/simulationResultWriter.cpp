@@ -10,17 +10,26 @@
 
 namespace parpe {
 
+SimulationResultWriter::SimulationResultWriter(H5::H5File file, std::string rootPath)
+    :file(file)
+{
+    updatePaths();
+}
+
 SimulationResultWriter::SimulationResultWriter(std::string hdf5FileName, std::string rootPath)
     : rootPath(rootPath)
 {
+    auto lock = hdf5MutexGetLock();
+
+    //H5_SAVE_ERROR_HANDLER;
+
     try {
-        H5_SAVE_ERROR_HANDLER;
         file = H5::H5File(hdf5FileName, H5F_ACC_RDWR);
-        H5_RESTORE_ERROR_HANDLER;
     } catch (H5::FileIException e) {
         // create if doesn't exist
         file = H5::H5File(hdf5FileName, H5F_ACC_EXCL);
     }
+    //H5_RESTORE_ERROR_HANDLER;
 
     updatePaths();
 }
