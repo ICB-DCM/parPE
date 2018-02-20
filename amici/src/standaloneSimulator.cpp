@@ -22,6 +22,7 @@ StandaloneSimulator::StandaloneSimulator(MultiConditionDataProvider *dp)
 int StandaloneSimulator::run(const std::string& resultFile, const std::string& resultPath,
                              std::vector<double> const& optimizationParameters, LoadBalancerMaster *loadBalancer)
 {
+    // std::cout<<"file: "<<resultFile<<" path: "<<resultPath<<" lbm:"<<loadBalancer<<std::endl;
     int errors = 0;
     JobIdentifier path;
 
@@ -266,7 +267,7 @@ int runFinalParameters(StandaloneSimulator &sim, std::string inFileName, std::st
             std::string curResultPath = resultPath + "multistarts/" + std::to_string(i);
             errors += sim.run(resultFileName, curResultPath, parameters, loadBalancer);
         } catch (std::exception e) {
-            std::cerr<<e.what()<<std::endl;
+            std::cerr<<"Exception during start " << i << " "<<e.what()<<std::endl;
         }
     }
 
