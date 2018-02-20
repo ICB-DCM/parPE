@@ -21,7 +21,7 @@ SimulationResultWriter::SimulationResultWriter(std::string hdf5FileName, std::st
 {
     auto lock = hdf5MutexGetLock();
 
-    //H5_SAVE_ERROR_HANDLER;
+    H5_SAVE_ERROR_HANDLER;
 
     try {
         file = H5::H5File(hdf5FileName, H5F_ACC_RDWR);
@@ -29,7 +29,7 @@ SimulationResultWriter::SimulationResultWriter(std::string hdf5FileName, std::st
         // create if doesn't exist
         file = H5::H5File(hdf5FileName, H5F_ACC_EXCL);
     }
-    //H5_RESTORE_ERROR_HANDLER;
+    H5_RESTORE_ERROR_HANDLER;
 
     updatePaths();
 }
