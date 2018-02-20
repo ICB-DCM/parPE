@@ -18,6 +18,11 @@ if(${ENABLE_DLIB})
     include_directories(${dlib_INCLUDE_DIRS})
 endif(${ENABLE_DLIB})
 
+if(${ENABLE_FSQP})
+    add_subdirectory(../ThirdParty/ffsqp ffsqp)
+    include_directories(../ThirdParty/ffsqp/)
+endif(${ENABLE_FSQP})
+
 add_subdirectory(src)
 
 if(${BUILD_TESTS})

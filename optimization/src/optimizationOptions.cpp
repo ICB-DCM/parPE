@@ -7,6 +7,9 @@
 #ifdef PARPE_TOMS611_ENABLED
 #include "localOptimizationToms611.h"
 #endif
+#ifdef PARPE_FSQP_ENABLED
+#include "localOptimizationFsqp.h"
+#endif
 #include "logging.h"
 #include "misc.h"
 #include <cassert>
@@ -258,6 +261,13 @@ Optimizer* optimizerFactory(optimizerEnum optimizer)
 #else
         return nullptr;
 #endif
+    case OPTIMIZER_FSQP:
+#ifdef PARPE_FSQP_ENABLED
+        return new OptimizerFsqp();
+#else
+        return nullptr;
+#endif
+
     }
 
     return nullptr;
