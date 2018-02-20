@@ -201,6 +201,7 @@ JobResultAmiciSimulation StandaloneSimulator::runSimulation(JobIdentifier path, 
 
 std::vector<double> getFinalParameters(std::string startIndex, H5::H5File &file)
 {
+    auto lock = hdf5MutexGetLock();
 
     // read from last iteration (last column in /multistarts/$/iterCostFunParameters)
     std::string parameterPath = std::string("/multistarts/") + startIndex + "/iterCostFunParameters";
@@ -225,6 +226,8 @@ std::vector<double> getFinalParameters(std::string startIndex, H5::H5File &file)
 
 std::vector<std::vector<double>> getParameterTrajectory(std::string startIndex, H5::H5File &file)
 {
+    auto lock = hdf5MutexGetLock();
+
     std::string parameterPath = std::string("/multistarts/") + startIndex + "/iterCostFunParameters";
     H5::DataSet dataset = file.openDataSet(parameterPath);
 
@@ -266,8 +269,9 @@ int runFinalParameters(StandaloneSimulator &sim, std::string inFileName, std::st
             auto parameters = parpe::getFinalParameters(std::to_string(i), file);
             std::string curResultPath = resultPath + "multistarts/" + std::to_string(i);
             errors += sim.run(resultFileName, curResultPath, parameters, loadBalancer);
-        } catch (std::exception e) {
-            std::cerr<<"Exception during start " << i << " "<<e.what()<<std::endl;
+        } catch (H5::FileIException e) {
+            std::cerr<<"Exception during start " << i << " "<<e.getDetailMsg()<<std::endl;
+            std::cerr<<"... skipping"<<std::endl;
         }
     }
 
