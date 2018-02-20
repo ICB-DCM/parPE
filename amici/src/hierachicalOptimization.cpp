@@ -266,6 +266,7 @@ const std::vector<int> &ScalingFactorHdf5Reader::getObservablesForScalingParamet
 std::vector<int> ScalingFactorHdf5Reader::getProportionalityFactorIndices() {
     auto lock = hdf5MutexGetLock();
     std::vector<int> proportionalityFactorIndices;
+    H5_SAVE_ERROR_HANDLER; // don't show error if dataset is missing
     try {
         auto dataset = file.openDataSet(scalingParameterIndicesPath);
         auto dataspace = dataset.getSpace();
@@ -280,12 +281,14 @@ std::vector<int> ScalingFactorHdf5Reader::getProportionalityFactorIndices() {
         dataset.read(proportionalityFactorIndices.data(), H5::PredType::NATIVE_INT);
     } catch (H5::FileIException e) {
     }
+    H5_RESTORE_ERROR_HANDLER;
 
     return proportionalityFactorIndices;
 }
 
 void ScalingFactorHdf5Reader::readFromFile() {
     auto lock = hdf5MutexGetLock();
+    H5_SAVE_ERROR_HANDLER;
     try {
         auto dataset = file.openDataSet(mapPath);
         auto dataspace = dataset.getSpace();
@@ -325,6 +328,7 @@ void ScalingFactorHdf5Reader::readFromFile() {
     } catch (H5::FileIException e) {
         return;
     }
+    H5_RESTORE_ERROR_HANDLER;
 
 }
 
