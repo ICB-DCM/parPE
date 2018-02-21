@@ -113,6 +113,31 @@ bool arrayEqual(A const& a, B const& b, int length) {
     return true;
 }
 
+
+/**
+ * @brief The Like std::unique_lock, but unlocking a mutex on construction and locking on destruction.
+ */
+template<typename MUTEX>
+class InverseUniqueLock {
+public:
+    InverseUniqueLock(MUTEX *mutex)
+        : mutex(mutex)
+    {
+        mutex->unlock();
+    }
+
+    ~InverseUniqueLock()
+    {
+        mutex->lock();
+    }
+
+private:
+    MUTEX *mutex = nullptr;
+};
+
+
+
+
 } // namespace parpe
 
 #if __cplusplus < 201402L

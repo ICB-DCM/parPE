@@ -10,6 +10,7 @@
 #include <cmath>
 #include <memory>
 #include <mutex>
+#include <misc.h>
 
 namespace parpe {
 
@@ -26,24 +27,9 @@ typedef std::recursive_mutex mutexIpOptType;
 static mutexIpOptType mutexIpOpt {};
 
 
-class InverseUniqueLock;
-InverseUniqueLock ipOptReleaseLock();
+InverseUniqueLock<mutexIpOptType> ipOptReleaseLock();
 
 std::unique_lock<mutexIpOptType> ipOptGetLock();
-
-/**
- * @brief The Like std::unique_lock, but unlocking a mutex on construction and locking on destruction.
- */
-class InverseUniqueLock {
-public:
-    InverseUniqueLock(mutexIpOptType *mutex);
-
-    ~InverseUniqueLock();
-
-private:
-    mutexIpOptType *mutex = nullptr;
-};
-
 
 
 class OptimizationProblem;

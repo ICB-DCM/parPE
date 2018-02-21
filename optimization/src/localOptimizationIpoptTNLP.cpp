@@ -189,25 +189,15 @@ void LocalOptimizationIpoptTNLP::finalize_solution(
     reporter->finished(obj_value, x, status);
 }
 
-InverseUniqueLock ipOptReleaseLock()
-{
-    return InverseUniqueLock(&mutexIpOpt);
-}
-
-InverseUniqueLock::InverseUniqueLock(mutexIpOptType *mutex)
-    : mutex(mutex)
-{
-    mutex->unlock();
-}
-
-InverseUniqueLock::~InverseUniqueLock()
-{
-    mutex->lock();
-}
 
 std::unique_lock<mutexIpOptType> ipOptGetLock()
 {
     return std::unique_lock<mutexIpOptType>(mutexIpOpt);
+}
+
+InverseUniqueLock<mutexIpOptType> ipOptReleaseLock()
+{
+    return InverseUniqueLock<mutexIpOptType>(&mutexIpOpt);
 }
 
 } // namespace parpe
