@@ -6,6 +6,7 @@
 #include <cstring>
 #include <stdexcept>
 #include <optimizationResultWriter.h>
+#include <misc.h>
 
 extern "C" {
 #include <f2c.h>
@@ -111,10 +112,29 @@ enum class informExitStatus {
 // make sure float sizes match; otherwise data must be copied to new containers first
 static_assert(sizeof(double) == sizeof(doublereal), "");
 
+/** Mutex for managing access to FFSQP routines which are not thread-safe */
+typedef std::recursive_mutex mutexFsqpType;
+static mutexFsqpType mutexFsqp {};
+
+std::unique_lock<mutexFsqpType> fsqpGetLock()
+{
+    return std::unique_lock<mutexFsqpType>(mutexFsqp);
+}
+
+InverseUniqueLock<mutexFsqpType> fsqpReleaseLock()
+{
+    return InverseUniqueLock<mutexFsqpType>(&mutexFsqp);
+}
+
+
 /**
  * @brief Wrapper for a FFSQP optimization problem.
  *
- * An instance of this class is slipped into the FFSQP callback functions
+ * An instance of this class is slipped into the FFSQP callback functions.
+ *
+ * NOTE: FFSQP is not thread-safe, therefore we lock a mutex when passing control to
+ * FFSQP routines. Not sure if strictly necessary, but in FFSQP code consider
+ * changing `static` to `static __thread` for non-`fmt_` variables.
  */
 class FsqpProblem {
 public:
@@ -158,6 +178,9 @@ public:
     {
         if(reporter)
             reporter->starting(nparam, x.data());
+
+        // lock while ffsqp has control
+        auto lock = fsqpGetLock();
 
         ffsqp_(nparam, nf, nineqn, nineq, neq, neqn, mode, iprint, miter, inform,
                bigbnd, eps, epseqn, udelta, bl.data(), bu.data(),
@@ -357,6 +380,8 @@ FsqpProblem *getProblemFromGradFj(doublereal *gradfj, integer nparam, integer j)
  * @param fj (out) Function value for objective j
  */
 void obj(integer &nparam, integer &j, doublereal *x, doublereal &fj) {
+    auto unlockFsqp = fsqpReleaseLock();
+
     auto problem = getProblemFromFj(fj, nparam, j);
     problem->obj(nparam, j, x, fj);
 }
@@ -369,6 +394,8 @@ void obj(integer &nparam, integer &j, doublereal *x, doublereal &fj) {
  * @param gj Value of constraint j
  */
 void constr (integer &nparam, integer &j, doublereal *x, doublereal &gj) {
+    //auto unlockFsqp = fsqpReleaseLock();
+
     // no constraints currently supported
 }
 
@@ -381,6 +408,8 @@ void constr (integer &nparam, integer &j, doublereal *x, doublereal &gj) {
  * @param dummy Passed to gradob for forward difference calculation
  */
 void gradob (integer &nparam, integer &j, doublereal *x, doublereal *gradfj, doublereal *dummy) {
+    auto unlockFsqp = fsqpReleaseLock();
+
     auto problem = getProblemFromGradFj(gradfj, nparam, j);
     problem->gradob(nparam, j, x, gradfj, dummy);
 }
@@ -394,6 +423,8 @@ void gradob (integer &nparam, integer &j, doublereal *x, doublereal *gradfj, dou
  * @param dummy Passed to gradob for forward difference calculation
  */
 void gradcn (integer &nparam, integer &j, doublereal *x, doublereal *gradgj, doublereal *dummy) {
+    //auto unlockFsqp = fsqpReleaseLock();
+
     // no constraints currently supported
 }
 

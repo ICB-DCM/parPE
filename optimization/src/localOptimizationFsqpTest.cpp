@@ -36,3 +36,16 @@ TEST(localOptimizationFsqp, testOptimizationGetlocalOptimum) {
     DOUBLES_EQUAL(42.0, std::get<1>(result), 1e-12);
     DOUBLES_EQUAL(-1.0, std::get<2>(result).at(0), 1e-8); // TODO adapt to optimizer tolerances
 }
+
+
+
+IGNORE_TEST(localOptimizationFsqp, testParallelMultistart) {
+    mock().disable(); // mock() is not thread-safe
+    // TODO set optimizer properly before reenable
+    parpe::QuadraticOptimizationMultiStartProblem msp(15, false);
+    parpe::MultiStartOptimization mso(msp);
+
+    mso.runMultiThreaded();
+    //mock().ignoreOtherCalls();
+    mock().enable();
+}
