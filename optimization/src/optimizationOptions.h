@@ -13,7 +13,15 @@ namespace parpe {
 
 class Optimizer;
 
-typedef enum optimizer_tag { OPTIMIZER_IPOPT, OPTIMIZER_CERES, OPTIMIZER_DLIB, OPTIMIZER_TOMS611, OPTIMIZER_FSQP } optimizerEnum;
+enum class optimizerName {
+    OPTIMIZER_IPOPT,
+    OPTIMIZER_CERES,
+    OPTIMIZER_DLIB,
+    OPTIMIZER_TOMS611,
+    OPTIMIZER_FSQP
+};
+
+
 
 /** Type to describe an optimization (minimization) problem */
 
@@ -25,7 +33,7 @@ class OptimizationOptions {
     Optimizer *createOptimizer() const;
 
     /** Optimizer to use */
-    optimizerEnum optimizer = OPTIMIZER_IPOPT;
+    optimizerName optimizer = optimizerName::OPTIMIZER_IPOPT;
 
     /** Optimizer log file */
     char *logFile = nullptr;
@@ -73,7 +81,7 @@ private:
     std::map<std::string, std::string> options;
 };
 
-Optimizer* optimizerFactory(optimizerEnum optimizer);
+Optimizer* optimizerFactory(optimizerName optimizer);
 
 } // namespace parpe
 

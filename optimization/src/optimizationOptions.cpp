@@ -115,13 +115,13 @@ std::unique_ptr<OptimizationOptions> OptimizationOptions::fromHDF5(hid_t fileId,
     std::string optimizerPath;
 
     switch(o->optimizer) {
-    case OPTIMIZER_CERES:
+    case optimizerName::OPTIMIZER_CERES:
         optimizerPath = std::string(hdf5path) + "/ceres";
         break;
-    case OPTIMIZER_TOMS611:
+    case optimizerName::OPTIMIZER_TOMS611:
         optimizerPath = std::string(hdf5path) + "/toms611";
         break;
-    case OPTIMIZER_IPOPT:
+    case optimizerName::OPTIMIZER_IPOPT:
     default:
         optimizerPath = std::string(hdf5path) + "/ipopt";
     }
@@ -197,7 +197,7 @@ freturn:
 
 std::string OptimizationOptions::toString() {
     std::string s;
-    s += "optimizer: " + patch::to_string(optimizer) + "\n";
+    s += "optimizer: " + patch::to_string(static_cast<int>(optimizer)) + "\n";
     s += "maxIter: " + patch::to_string(maxOptimizerIterations) + "\n";
     s += "printToStdout: " + patch::to_string(printToStdout) + "\n";
     s += "numStarts: " + patch::to_string(numStarts) + "\n";
@@ -242,26 +242,26 @@ void OptimizationOptions::setOption(std::string key, std::string value)
     options[key] = value;
 }
 
-Optimizer* optimizerFactory(optimizerEnum optimizer)
+Optimizer* optimizerFactory(optimizerName optimizer)
 {
     switch (optimizer) {
-    case OPTIMIZER_IPOPT:
+    case optimizerName::OPTIMIZER_IPOPT:
         return new OptimizerIpOpt();
-    case OPTIMIZER_CERES:
+    case optimizerName::OPTIMIZER_CERES:
         return new OptimizerCeres();
-    case OPTIMIZER_DLIB:
+    case optimizerName::OPTIMIZER_DLIB:
 #ifdef PARPE_DLIB_ENABLED
         return new OptimizerDlibLineSearch();
 #else
         return nullptr;
 #endif
-    case OPTIMIZER_TOMS611:
+    case optimizerName::OPTIMIZER_TOMS611:
 #ifdef PARPE_TOMS611_ENABLED
         return new OptimizerToms611TrustRegionSumsl();
 #else
         return nullptr;
 #endif
-    case OPTIMIZER_FSQP:
+    case optimizerName::OPTIMIZER_FSQP:
 #ifdef PARPE_FSQP_ENABLED
         return new OptimizerFsqp();
 #else

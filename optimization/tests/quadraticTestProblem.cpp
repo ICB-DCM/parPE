@@ -11,7 +11,7 @@ QuadraticTestProblem::QuadraticTestProblem()
     : OptimizationProblem(std::unique_ptr<GradientFunction>(new QuadraticGradientFunction())) {
     auto options = getOptimizationOptions();
     options.maxOptimizerIterations = 12;
-    options.optimizer = OPTIMIZER_IPOPT;
+    options.optimizer = optimizerName::OPTIMIZER_IPOPT;
     setOptimizationOptions(options);
 }
 

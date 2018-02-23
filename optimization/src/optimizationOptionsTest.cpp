@@ -127,7 +127,7 @@ TEST(optimizationOptions, fromHDF5) {
     H5Fclose(fileId);
 
     auto o = parpe::OptimizationOptions::fromHDF5(tmpName);
-    CHECK_EQUAL(optimizer, o->optimizer);
+    CHECK_EQUAL(optimizer, static_cast<int>(o->optimizer));
     CHECK_EQUAL(optimizer, o->getIntOption("someOption"));
     CHECK_TRUE(o->toString().size() > 50);
 

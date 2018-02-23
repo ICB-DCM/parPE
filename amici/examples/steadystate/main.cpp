@@ -36,7 +36,7 @@ int main(int argc, char **argv) {
     printf("# CERES #\n");
     printf("#########\n");
 
-    options.optimizer = parpe::OPTIMIZER_CERES;
+    options.optimizer = parpe::optimizerName::OPTIMIZER_CERES;
     problem.setOptimizationOptions(options);
 
     status += parpe::getLocalOptimum(&problem);
@@ -47,7 +47,7 @@ int main(int argc, char **argv) {
     printf("# Dlib  #\n");
     printf("#########\n");
 
-    options.optimizer = parpe::OPTIMIZER_DLIB;
+    options.optimizer = parpe::optimizerName::OPTIMIZER_DLIB;
     problem.setOptimizationOptions(options);
 
     status += parpe::getLocalOptimum(&problem);
@@ -58,7 +58,7 @@ int main(int argc, char **argv) {
     printf("# TOMS611  #\n");
     printf("#########\n");
 
-    options.optimizer = parpe::OPTIMIZER_TOMS611;
+    options.optimizer = parpe::optimizerName::OPTIMIZER_TOMS611;
     problem.setOptimizationOptions(options);
 
     status += parpe::getLocalOptimum(&problem);

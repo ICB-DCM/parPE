@@ -13,7 +13,7 @@ ExampleSteadystateProblem::ExampleSteadystateProblem(const std::string &dataFile
     : file(H5::H5File(dataFileName, H5F_ACC_RDONLY))
 {
     auto optimizationOptions = getOptimizationOptions();
-    optimizationOptions.optimizer = parpe::OPTIMIZER_IPOPT;
+    optimizationOptions.optimizer = parpe::optimizerName::OPTIMIZER_IPOPT;
     optimizationOptions.printToStdout = true;
     optimizationOptions.maxOptimizerIterations = 100;
     setOptimizationOptions(optimizationOptions);
