@@ -7,6 +7,11 @@ include_directories(
     ${HDF5_INCLUDE_DIRS}
 )
 
+set(PARPE_CERES_MINIGLOG_REDIRECT FALSE CACHE BOOL "Custom treatment of Ceres output? Requires miniglog headers in ceres directory.")
+if(${PARPE_CERES_MINIGLOG_REDIRECT})
+    add_definitions(-DPARPE_CERES_MINIGLOG_REDIRECT)
+endif(${PARPE_CERES_MINIGLOG_REDIRECT})
+
 if(${ENABLE_TOMS611})
     add_subdirectory(../ThirdParty/toms611/ toms611)
     include_directories(../ThirdParty/toms611/)

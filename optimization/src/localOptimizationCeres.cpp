@@ -5,12 +5,16 @@
 #include <misc.h>
 
 #include <ceres/ceres.h>
+
+#ifdef PARPE_CERES_MINIGLOG_REDIRECT
 #include <ceres/../../../../internal/ceres/miniglog/glog/logging.h>
+#endif
 
 namespace parpe {
 
 void setCeresOption(const std::pair<const std::string, const std::string> &pair, ceres::GradientProblemSolver::Options* options);
 
+#ifdef PARPE_CERES_MINIGLOG_REDIRECT
 /**
  * @brief LogSinkAdapter redirectsceres miniglog output to logging.cpp.
  */
@@ -56,6 +60,7 @@ private:
 };
 
 int LogSinkAdapter::counter = 0;
+#endif
 
 /**
  * @brief Adapter class for parpe::OptimizationProblem and ceres::FirstOrderFunction
@@ -161,11 +166,11 @@ ceres::GradientProblemSolver::Options getCeresOptions(
 
 
 std::tuple<int, double, std::vector<double> > OptimizerCeres::optimize(OptimizationProblem *problem) {
-
+#ifdef PARPE_CERES_MINIGLOG_REDIRECT
     // Redirect ceres output (actually it's copied; can't remove ceres sink)
     LogSinkAdapter log;
     google::AddLogSink(&log);
-
+#endif
 
     std::vector<double> parameters(problem->costFun->numParameters());
     problem->fillInitialParameters(parameters.data());
@@ -190,8 +195,9 @@ std::tuple<int, double, std::vector<double> > OptimizerCeres::optimize(Optimizat
 
     //    std::cout<<summary.FullReport();
 
+#ifdef PARPE_CERES_MINIGLOG_REDIRECT
     google::RemoveLogSink(&log); // before going out of scope
-
+#endif
 
     return std::tuple<int, double, std::vector<double> >(summary.termination_type == ceres::FAILURE ||
            summary.termination_type == ceres::USER_FAILURE, summary.final_cost, parameters);
