@@ -1,14 +1,61 @@
 #include "localOptimizationCeres.h"
 #include "optimizationOptions.h"
 #include "optimizationProblem.h"
-#include <ceres/ceres.h>
 #include <logging.h>
 #include <misc.h>
+
+#include <ceres/ceres.h>
+#include <ceres/../../../../internal/ceres/miniglog/glog/logging.h>
 
 namespace parpe {
 
 void setCeresOption(const std::pair<const std::string, const std::string> &pair, ceres::GradientProblemSolver::Options* options);
 
+/**
+ * @brief LogSinkAdapter redirectsceres miniglog output to logging.cpp.
+ */
+class LogSinkAdapter : public google::LogSink {
+public:
+    LogSinkAdapter() {
+        id = counter++;
+    }
+    void send(google::LogSeverity severity,
+                      const char* full_filename,
+                      const char* base_filename,
+                      int line,
+                      const struct tm* tm_time,
+                      const char* message,
+                      size_t message_len) override {
+        // Map log levels
+        loglevel lvl = LOGLVL_INFO;
+        switch (severity) {
+        case google::INFO:
+            lvl = LOGLVL_INFO;
+            break;
+        case google::WARNING:
+            lvl = LOGLVL_WARNING;
+            break;
+        case google::ERROR:
+            lvl = LOGLVL_ERROR;
+            break;
+        case google::FATAL:
+            lvl = LOGLVL_CRITICAL;
+            break;
+        }
+
+        parpe::logmessage(lvl, "ceres #%d: %s", id, message);
+
+    }
+    void WaitTillSent() override {}
+
+private:
+    /** count instantiations */
+    static int counter;
+    /** prefix for logging output to identifiy concurrent optimizer runs */
+    int id = 0;
+};
+
+int LogSinkAdapter::counter = 0;
 
 /**
  * @brief Adapter class for parpe::OptimizationProblem and ceres::FirstOrderFunction
@@ -101,8 +148,9 @@ ceres::GradientProblemSolver::Options getCeresOptions(
                      OptimizationProblem *problem) {
     ceres::GradientProblemSolver::Options options;
 
-    options.minimizer_progress_to_stdout =
-        problem->getOptimizationOptions().printToStdout;
+    // don't: use vlog which we can redirect more easily
+    //options.minimizer_progress_to_stdout =
+    //    problem->getOptimizationOptions().printToStdout;
     options.max_num_iterations =
         problem->getOptimizationOptions().maxOptimizerIterations;
 
@@ -113,6 +161,11 @@ ceres::GradientProblemSolver::Options getCeresOptions(
 
 
 std::tuple<int, double, std::vector<double> > OptimizerCeres::optimize(OptimizationProblem *problem) {
+
+    // Redirect ceres output (actually it's copied; can't remove ceres sink)
+    LogSinkAdapter log;
+    google::AddLogSink(&log);
+
 
     std::vector<double> parameters(problem->costFun->numParameters());
     problem->fillInitialParameters(parameters.data());
@@ -137,14 +190,21 @@ std::tuple<int, double, std::vector<double> > OptimizerCeres::optimize(Optimizat
 
     //    std::cout<<summary.FullReport();
 
+    google::RemoveLogSink(&log); // before going out of scope
+
+
     return std::tuple<int, double, std::vector<double> >(summary.termination_type == ceres::FAILURE ||
            summary.termination_type == ceres::USER_FAILURE, summary.final_cost, parameters);
 }
 
-
+/**
+ * @brief Set string options to ceres options object.
+ *
+ * Used for iterating over OptimizationOptions map.
+ * @param pair key => value pair
+ * @param options
+ */
 void setCeresOption(const std::pair<const std::string, const std::string> &pair, ceres::GradientProblemSolver::Options* options) {
-    // for iterating over OptimizationOptions
-
     const std::string &key = pair.first;
     const std::string &val = pair.second;
 
