@@ -111,7 +111,11 @@ void LoadBalancerMaster::freeEmptiedSendBuffers() {
         MPI_Testany(sendRequests.size(), sendRequests.data(), &emptiedBufferIdx,
                     &anySendCompleted, MPI_STATUS_IGNORE);
 
-        if (anySendCompleted && emptiedBufferIdx != MPI_UNDEFINED) {
+        if (anySendCompleted && emptiedBufferIdx != MPI_UNDEFINED
+                && sentJobsData[emptiedBufferIdx]) {
+            /* By the time we check for send to be finished, we might have received the reply
+             * already and the pointed-to object might have been already destroyed. This
+             * is therefore set to nullptr when receiving the reply. */
             sentJobsData[emptiedBufferIdx]->sendBuffer = std::vector<char>();
         } else {
             break;
@@ -231,6 +235,7 @@ int LoadBalancerMaster::handleReply(MPI_Status *mpiStatus) {
 
     int workerIdx = mpiStatus->MPI_SOURCE - 1;
     JobData *data = sentJobsData[workerIdx];
+    sentJobsData[workerIdx] = nullptr;
 
     // allocate memory for result
     int lenRecvBuffer = 0;
