@@ -90,6 +90,7 @@ void fillArrayRandomDoubleSameInterval(double min, double max,
 int getMpiRank();
 int getMpiCommSize();
 int getMpiActive();
+bool launchedWithMpi();
 
 template <typename T_TEST, typename T_BOUNDS>
 bool withinBounds(long int n, T_TEST const *x, const T_BOUNDS *min, const T_BOUNDS *max ) {

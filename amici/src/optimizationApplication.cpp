@@ -37,7 +37,7 @@ int OptimizationApplication::init(int argc, char **argv) {
     sigaction(SIGSEGV, &act, &oldact);
     sigaction(SIGHUP, &act, nullptr);
 
-    if(!getMpiActive())
+    if(launchedWithMpi() && !getMpiActive())
         initMPI(&argc, &argv);
 
     printMPIInfo();

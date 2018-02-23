@@ -7,7 +7,6 @@
 #include <math.h>
 #include <stdarg.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -17,6 +16,7 @@
 #include <cxxabi.h> // __cxa_demangle
 #include <sstream>
 #include <mpi.h>
+#include <cstdlib> // getenv
 
 // void printMatlabArray(const double *buffer, int len)
 //{
@@ -240,6 +240,16 @@ double WallTimer::getTotal()
 {
     std::chrono::duration<double> duration = (std::chrono::system_clock::now() - start);
     return duration.count();
+}
+
+bool launchedWithMpi()
+{
+    if(std::getenv("OMPI_COMM_WORLD_SIZE"))
+        return true; // OpenMPI
+    if(std::getenv("LOADL_TOTAL_TASKS"))
+        return true; // Not necessarily launched by MPI launcher, but operating on some compute node
+
+    return false;
 }
 
 
