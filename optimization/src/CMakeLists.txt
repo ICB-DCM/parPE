@@ -10,6 +10,7 @@ set(SRC_LIST
     multiStartOptimization.cpp
     optimizationResultWriter.cpp
     optimizationOptions.cpp
+    minibatchOptimization.cpp
 )
 
 if(${ENABLE_DLIB})

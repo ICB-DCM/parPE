@@ -6,12 +6,14 @@
 #include <cstring>
 #include <mpi.h>
 
+#include <logging.h>
 namespace parpe {
 
 void LoadBalancerWorker::run(messageHandlerFunc messageHandler) {
     bool terminate = false;
 
     while (!terminate) {
+        logProcessStats();
         terminate = waitForAndHandleJobs(messageHandler);
     }
 }

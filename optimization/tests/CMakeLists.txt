@@ -7,6 +7,7 @@ set(SRC_LIST_CPP
     ../src/localOptimizationIpoptTest.cpp
     ../src/localOptimizationCeresTest.cpp
     ../src/multiStartOptimizationTest.cpp
+    ../src/minibatchOptimizationTest.cpp
     ../src/optimizationResultWriterTest.cpp
     ../src/optimizationOptionsTest.cpp
     ../src/optimizationProblemTest.cpp
