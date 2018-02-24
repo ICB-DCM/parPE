@@ -77,7 +77,7 @@ FunctionEvaluationStatus LinearModelMSE::evaluate(const double * const parameter
         }
     }
 
-    return functionEvaluationFailure;
+    return functionEvaluationSuccess;
 }
 
 }

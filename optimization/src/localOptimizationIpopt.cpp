@@ -411,6 +411,10 @@ std::tuple<int, double, std::vector<double> > OptimizerIpOpt::optimize(Optimizat
             status = app->Initialize();
             assert(status == Solve_Succeeded);
             status = app->OptimizeTNLP(mynlp);
+
+            if(status == Invalid_Number_Detected) {
+                // TODO: print where
+            }
         } catch (IpoptException& e) {
             logmessage(LOGLVL_ERROR, "IpOpt exception: %s",  e.Message().c_str());
         } catch (std::exception& e) {
