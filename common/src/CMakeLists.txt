@@ -5,6 +5,7 @@ set(SRC_LIST
     logging.cpp
     hdf5Misc.cpp
     parpeException.cpp
+    functions.cpp
 )
 
 add_library(${PROJECT_NAME} ${SRC_LIST})
