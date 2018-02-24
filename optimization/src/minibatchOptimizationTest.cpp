@@ -138,7 +138,7 @@ TEST_GROUP(minibatchOptimizationLinearModel){
 // clang-format on
 
 
-#include <localOptimizationFsqp.h>
+
 
 TEST(minibatchOptimizationLinearModel, testCostWithTrueParametersIsZeroIndivdually) {
     // verify cost gradient with true parameters is 0
@@ -184,12 +184,18 @@ TEST(minibatchOptimizationLinearModel, linearModelCheckCostGradient) {
     // TODO: check results automatically
 }
 
-
+//#include <localOptimizationFsqp.h>
+#include <localOptimizationIpopt.h>
 TEST(minibatchOptimizationLinearModel, linearModelTestBatchOptimizerSucceeds) {
     // test batch optimizer
     auto p = getOptimizationProblem();
 
-    parpe::OptimizerFsqp o;
+    //parpe::OptimizerFsqp o;
+    parpe::OptimizerIpOpt o;
+    auto oo = p->getOptimizationOptions();
+    oo.maxOptimizerIterations = 20;
+    p->setOptimizationOptions(oo);
+
     auto resultBatchOpt = o.optimize(p.get());
     DOUBLES_EQUAL(0.0, std::get<1>(resultBatchOpt), 1e-8);
     for(int i = 0; (unsigned) i < trueParameters.size(); ++i)
