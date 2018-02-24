@@ -254,7 +254,9 @@ private:
 };
 
 
-
+/**
+ * @brief Mixin class for handling parameter bounds
+ */
 class OptimizationProblemImpl : public OptimizationProblem {
 
 public:
@@ -278,9 +280,23 @@ public:
         this->parametersMax = parametersMax;
     }
 
+    void setInitialParameters(std::vector<double> initial) {
+        parametersStart = initial;
+    }
+
+    void fillInitialParameters(double *buffer) const override {
+        if(parametersStart.size()) {
+            std::copy(parametersStart.begin(), parametersStart.end(), buffer);
+        } else {
+            OptimizationProblem::fillInitialParameters(buffer);
+        }
+    }
+
 private:
     std::vector<double> parametersMin;
     std::vector<double> parametersMax;
+    std::vector<double> parametersStart;
+
 };
 
 
