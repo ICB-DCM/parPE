@@ -5,6 +5,17 @@
 #include <memory>
 #include <cstdio>
 #include <chrono>
+#include <vector>
+#include <ostream>
+
+template<typename T>
+std::ostream& operator <<(std::ostream& o, std::vector<T> const& v) {
+    o << "[ ";
+    for(auto const& e: v)
+        o << e << " ";
+    o << "]";
+    return o;
+}
 
 namespace parpe {
 
@@ -135,9 +146,6 @@ public:
 private:
     MUTEX *mutex = nullptr;
 };
-
-
-
 
 } // namespace parpe
 
