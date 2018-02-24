@@ -1,5 +1,5 @@
-#include "CppUTest/TestHarness.h"
-#include "CppUTestExt/MockSupport.h"
+#include <CppUTest/TestHarness.h>
+#include <CppUTestExt/MockSupport.h>
 
 #include "optimizationProblem.h"
 #include "quadraticTestProblem.h"
@@ -20,6 +20,14 @@ TEST_GROUP(optimizationProblem){
 // clang-format on
 
 
+/**
+ * @brief The SummedGradientFunctionLinearModelTest class is a linear model with
+ * mean squared error cost function.
+ *
+ * y = a * x + b
+ *
+ * cost = MSE = 1/N \sum_i^N (\bar{y} - y)^2
+ */
 class SummedGradientFunctionLinearModelTest : public parpe::SummedGradientFunction<double> {
 public:
     virtual parpe::FunctionEvaluationStatus evaluate(
@@ -38,6 +46,15 @@ public:
         return parpe::functionEvaluationSuccess;
     }
 
+    /**
+     * @brief Evaluate cost function on a set of training points. Calls evaluate for every
+     * data points. This is far from efficient and intended to be used only for testing.
+     * @param parameters
+     * @param datasets
+     * @param fval
+     * @param gradient
+     * @return
+     */
     virtual parpe::FunctionEvaluationStatus evaluate(
             const double* const parameters,
             std::vector<double> datasets,

@@ -17,7 +17,9 @@ namespace parpe {
 class OptimizationResultWriter;
 class OptimizationReporter;
 
-
+/**
+ * TODO: will we use this for minibatch?
+ */
 template<typename T>
 class SummedGradientProblem {
 
