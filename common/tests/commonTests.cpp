@@ -151,10 +151,10 @@ TEST(commonMisc, testFillArrayRandomDoubleIndividualInterval) {
 TEST(commonMisc, testMpi) {
 #if IGNORE_ALL_LEAKS_IN_TEST
     IGNORE_ALL_LEAKS_IN_TEST()
-#endif
+        #endif
 
-    // Before MPI initialized
-    CHECK_EQUAL(-1, parpe::getMpiRank());
+            // Before MPI initialized
+            CHECK_EQUAL(-1, parpe::getMpiRank());
     CHECK_EQUAL(-1, parpe::getMpiCommSize());
 
     // MPI initialized
@@ -231,5 +231,136 @@ TEST(logging, logProcessStats) {
 
     CHECK_TRUE(s.size() > 200);
 }
+
+
+
+#include <costFunction.h>
+#include <model.h>
+// clang-format off
+TEST_GROUP(costFunction){
+    void setup(){
+
+    }
+
+    void teardown(){
+        mock().checkExpectations();
+        mock().clear();
+    }
+};
+// clang-format on
+
+
+TEST(costFunction, mseZero) {
+    parpe::MeanSquaredError mse;
+    std::vector<double> label = {1.0, 1.0};
+    std::vector<double> prediction = {1.0, 1.0};
+    double costExp = 0.0;
+    double costAct = NAN;
+    mse.evaluate(label, prediction, costAct);
+    CHECK_EQUAL(costExp, costAct);
+
+    std::vector<double> predictionGradient0 = {1.0, 1.0};
+    std::vector<double*> predictionGradient = { &predictionGradient0[0], &predictionGradient0[1]};
+
+    std::vector<double> costGradientExp = {0.0};
+    std::vector<double> costGradientAct = {NAN};
+
+    mse.evaluate(label, prediction,
+                 1, predictionGradient,
+                 costAct, costGradientAct.data());
+
+    CHECK_EQUAL(costExp, costAct);
+    CHECK_TRUE(costGradientExp == costGradientAct);
+
+}
+
+TEST(costFunction, mseNonzero) {
+    parpe::MeanSquaredError mse;
+    std::vector<double> label = {1.0, 1.0};
+    std::vector<double> prediction = {1.0, 2.0};
+    double costExp = 0.5;
+    double costAct = NAN;
+    mse.evaluate(label, prediction, costAct);
+    CHECK_EQUAL(costExp, costAct);
+
+    std::vector<double> predictionGradient0 = {5.0, 3.0};
+    std::vector<double*> predictionGradient = { &predictionGradient0[0], &predictionGradient0[1]};
+
+    std::vector<double> costGradientExp = {3.0};
+    std::vector<double> costGradientAct = {NAN};
+
+    mse.evaluate(label, prediction,
+                 1, predictionGradient,
+                 costAct, costGradientAct.data());
+
+    CHECK_EQUAL(costExp, costAct);
+    CHECK_TRUE(costGradientExp == costGradientAct);
+
+}
+
+
+TEST(costFunction, linearModel) {
+    std::vector<double> parameters = { 3.0, 2.0 }; // x = 3.0, b = 2.0
+    std::vector<std::vector<double>> features = { { 4.0 } };
+    // y = A x + b = 4.0 * 3.0 + 2.0 = 14.0
+    std::vector<double> outputsExp {14.0};
+    std::vector<double> outputsAct(features.size(), NAN);
+
+    LinearModel lm;
+    lm.evaluate(parameters.data(), features, outputsAct);
+
+    CHECK_TRUE(outputsExp == outputsAct);
+
+    std::vector<std::vector<double>> gradExp = {{4.0, 1.0}};
+
+    auto gradAct = std::vector<std::vector<double>>(features.size(), std::vector<double>(parameters.size(), NAN));
+
+    lm.evaluate(parameters.data(), features, outputsAct, gradAct);
+    CHECK_TRUE(gradExp == gradAct);
+}
+
+TEST(costFunction, linearModel2) {
+    std::vector<double> parameters = { 3.0, 1.0, 2.0 };
+    std::vector<std::vector<double>> features = { { 4.0, 1.0 } };
+    // y = A x + b = 4.0 * 3.0 + 1.0*1.0 + 2.0 = 15.0
+    std::vector<double> outputsExp {15.0};
+    std::vector<double> outputsAct(features.size(), NAN);
+
+    LinearModel lm;
+    lm.evaluate(parameters.data(), features, outputsAct);
+
+    CHECK_TRUE(outputsExp == outputsAct);
+
+    std::vector<std::vector<double>> gradExp = {{4.0, 1.0, 1.0}};
+
+    auto gradAct = std::vector<std::vector<double>>(features.size(), std::vector<double>(parameters.size(), NAN));
+
+    lm.evaluate(parameters.data(), features, outputsAct, gradAct);
+    CHECK_TRUE(gradExp == gradAct);
+}
+
+TEST(costFunction, linearModel3) {
+    std::vector<double> parameters = { 3.0, 1.0, 2.0 };
+    std::vector<std::vector<double>> features = { { 4.0, 1.0 },  { 8.0, 2.0 }};
+    // y = A x + b = 4.0 * 3.0 + 1.0*1.0 + 2.0 = 15.0
+    // y2= 8.0 * 3.0 + 2.0*1.0 + 2.0 = 28
+    std::vector<double> outputsExp {15.0, 28.0};
+    std::vector<double> outputsAct(features.size(), NAN);
+
+    parpe::LinearModel lm;
+    lm.evaluate(parameters.data(), features, outputsAct);
+
+    CHECK_TRUE(outputsExp == outputsAct);
+
+    std::vector<std::vector<double>> gradExp = {{4.0, 1.0, 1.0}, {8.0, 2.0, 1.0}};
+
+    auto gradAct = std::vector<std::vector<double>>(features.size(), std::vector<double>(parameters.size(), NAN));
+
+    lm.evaluate(parameters.data(), features, outputsAct, gradAct);
+    CHECK_TRUE(gradExp == gradAct);
+
+}
+
+
 
 

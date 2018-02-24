@@ -5,6 +5,8 @@ set(SRC_LIST
     logging.cpp
     hdf5Misc.cpp
     parpeException.cpp
+    model.cpp
+    costFunction.cpp
     functions.cpp
 )
 
