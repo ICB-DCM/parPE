@@ -16,8 +16,6 @@ class Optimizer {
   public:
     virtual std::tuple<int, double, std::vector<double> > optimize(OptimizationProblem *) = 0;
 
-    OptimizationOptions *options = nullptr;
-
     virtual ~Optimizer() = default;
 };
 

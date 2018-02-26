@@ -64,6 +64,18 @@ TEST(minibatchOptimization, updateParameters) {
     CHECK_TRUE(parametersExp == parameters);
 }
 
+TEST(minibatchOptimization, updateParametersRMSProp) {
+    std::vector<double> gradient {1.0, 2.0};
+    std::vector<double> parameters {2.0, 3.0};
+    //std::vector<double> parametersExp {1.5, 2.0};
+
+    parpe::ParameterUpdaterRmsProp pu;
+    pu.updateParameters(gradient, parameters);
+    pu.updateParameters(gradient, parameters);
+    //CHECK_TRUE(parametersExp == parameters);
+}
+
+
 
 
 // clang-format off
@@ -219,7 +231,7 @@ TEST(minibatchOptimizationLinearModel, linearModel) {
 
     parpe::MinibatchOptimizer<int> mb;
     mb.maxEpochs = 100;
-    mb.parameterUpdater = std::make_unique<parpe::ParameterUpdaterVanilla>(0.02);
+    //mb.parameterUpdater = std::make_unique<parpe::ParameterUpdaterVanilla>(0.02);
     mb.parameterUpdater = std::make_unique<parpe::ParameterUpdaterRmsProp>();
     auto result = mb.optimize(*lm3, dataIndices, batchSize, startingPoint);
 
