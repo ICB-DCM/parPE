@@ -13,7 +13,6 @@ void LoadBalancerWorker::run(messageHandlerFunc messageHandler) {
     bool terminate = false;
 
     while (!terminate) {
-        logProcessStats();
         terminate = waitForAndHandleJobs(messageHandler);
     }
 }
