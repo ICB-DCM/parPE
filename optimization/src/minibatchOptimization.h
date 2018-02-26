@@ -55,6 +55,7 @@ double getVectorNorm(std::vector<double> const& v) {
 class ParameterUpdater {
 public:
     virtual void updateParameters(std::vector<double> const& gradient, std::vector<double>& parameters) = 0;
+    virtual ~ParameterUpdater() = default;
 };
 
 class ParameterUpdaterVanilla : public ParameterUpdater {
