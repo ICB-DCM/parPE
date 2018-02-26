@@ -7,6 +7,7 @@
 #include <stdexcept>
 #include <optimizationResultWriter.h>
 #include <misc.h>
+#include <logging.h>
 
 extern "C" {
 #include <f2c.h>
@@ -166,7 +167,7 @@ public:
         assert(sizeof(doublereal) >= sizeof(&thisthis));
         memcpy(w.data(), &thisthis, 1 * sizeof(&thisthis));
 
-        // std::cerr<<"w0 "<<&w.data()[0]<<std::endl;
+        logmessage(LOGLVL_DEBUG, "w0 %p", &w.data()[0]);
 
         problem->fillInitialParameters(x.data());
         problem->fillParametersMin(bl.data());
@@ -345,9 +346,11 @@ FsqpProblem *getProblemFromFj(doublereal &fj, integer nparam, integer j) {
     parpe::FsqpProblem *problem = nullptr;
     int nwff = getNwff(nparam, j);
 
-    // std::cerr<<"obj "<<&fj - nwff + 1<<std::endl;
+    logmessage(LOGLVL_DEBUG, "w0 obj: %p", &fj - nwff + 1);
 
     memcpy(&problem, &fj - nwff + 1, sizeof(problem));
+
+    RELEASE_ASSERT(problem, "Error retrieving FsqpProblem.");
 
     return problem;
 }
@@ -363,10 +366,12 @@ FsqpProblem *getProblemFromGradFj(doublereal *gradfj, integer nparam, integer j)
     parpe::FsqpProblem *problem = nullptr;
     int nwgrf = getNwgrf(nparam, j);
 
-    //std::cerr<<"gradfj "<<gradfj-nwgrf+1<<std::endl;
+    logmessage(LOGLVL_DEBUG, "w0 gradobj: %p", gradfj - nwgrf + 1);
 
     // NOTE: Will have to change that once we want to include constraints
     memcpy(&problem, gradfj - nwgrf + 1, sizeof(problem));
+
+    RELEASE_ASSERT(problem, "Error retrieving FsqpProblem.");
 
     return problem;
 }
