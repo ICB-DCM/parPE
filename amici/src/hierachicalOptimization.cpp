@@ -176,7 +176,10 @@ FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluateWithScalings(
 
         // Need intermediary buffer because optimizer expects fewer parameters
         std::vector<double> fullGradient(fullParameters.size());
-        fun->evaluate(fullParameters.data(), dataIndices, fval, fullGradient.data());
+        auto status = fun->evaluate(fullParameters.data(), dataIndices, fval, fullGradient.data());
+        if(status != functionEvaluationSuccess)
+            return status;
+
         fillFilteredParams(fullGradient, proportionalityFactorIndices, gradient);
 
     } else {
