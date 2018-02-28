@@ -208,16 +208,17 @@ double HierachicalOptimizationWrapper::computeNegLogLikelihood(std::vector<doubl
 
     double sigmaSquared = 1.0; // NOTE: no user-JobResultAmiciSimulationprovided sigma supported at the moment
 
-    for(int observableIdx = 0; observableIdx < numObservables; ++observableIdx) {
-        for(int timeIdx = 0; timeIdx < numTimepoints; ++timeIdx) {
-            double mes = measurements[observableIdx + timeIdx * numObservables];
-            if(!std::isnan(mes)) {
-                double sim = modelOutputsScaled[observableIdx + timeIdx * numObservables];
-                assert(!std::isnan(sim));
-                double diff = mes - sim;
-                diff *= diff;
-                llh += log(2.0 * pi * sigmaSquared) + diff / sigmaSquared;
-            }
+    // No need to pay respect to timepoints and observables, as long as the order is the same for both measurements and simulations
+    RELEASE_ASSERT(measurements.size() == modelOutputsScaled.size(), "measurement/simulation output dimension mismatch");
+    for(int i = 0; (unsigned) i < measurements.size(); ++i) {
+        double mes = measurements[i];
+        if(!std::isnan(mes)) {
+            double sim = modelOutputsScaled[i];
+            assert(!std::isnan(sim));
+            double diff = mes - sim;
+            diff *= diff;
+            llh += log(2.0 * pi * sigmaSquared) + diff / sigmaSquared;
+
         }
     }
 
