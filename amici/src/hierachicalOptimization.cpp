@@ -191,23 +191,32 @@ FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluateWithScalings(
     return functionEvaluationSuccess;
 }
 
-double HierachicalOptimizationWrapper::computeNegLogLikelihood(std::vector <std::vector<double>> const& measurements, const std::vector<std::vector<double> > &modelOutputsScaled) const {
+double HierachicalOptimizationWrapper::computeNegLogLikelihood(std::vector <std::vector<double>> const& measurements,
+                                                               const std::vector<std::vector<double> > &modelOutputsScaled) const {
+    double llh = 0.0;
+
+    for (int conditionIdx = 0; conditionIdx < numConditions; ++conditionIdx) {
+        llh += computeNegLogLikelihood(measurements[conditionIdx], modelOutputsScaled[conditionIdx]);
+    }
+
+    return llh;
+}
+double HierachicalOptimizationWrapper::computeNegLogLikelihood(std::vector<double> const& measurements,
+                                                               std::vector<double> const& modelOutputsScaled) const {
     double llh = 0.0;
     constexpr double pi = atan(1)*4;
 
-    double sigmaSquared = 1.0; // NOTE: no user-provided sigma supported at the moment
+    double sigmaSquared = 1.0; // NOTE: no user-JobResultAmiciSimulationprovided sigma supported at the moment
 
-    for (int conditionIdx = 0; conditionIdx < numConditions; ++conditionIdx) {
-        for(int observableIdx = 0; observableIdx < numObservables; ++observableIdx) {
-            for(int timeIdx = 0; timeIdx < numTimepoints; ++timeIdx) {
-                double mes = measurements[conditionIdx][observableIdx + timeIdx * numObservables];
-                if(!std::isnan(mes)) {
-                    double sim = modelOutputsScaled[conditionIdx][observableIdx + timeIdx * numObservables];
-                    assert(!std::isnan(sim));
-                    double diff = mes - sim;
-                    diff *= diff;
-                    llh += log(2.0 * pi * sigmaSquared) + diff / sigmaSquared;
-                }
+    for(int observableIdx = 0; observableIdx < numObservables; ++observableIdx) {
+        for(int timeIdx = 0; timeIdx < numTimepoints; ++timeIdx) {
+            double mes = measurements[observableIdx + timeIdx * numObservables];
+            if(!std::isnan(mes)) {
+                double sim = modelOutputsScaled[observableIdx + timeIdx * numObservables];
+                assert(!std::isnan(sim));
+                double diff = mes - sim;
+                diff *= diff;
+                llh += log(2.0 * pi * sigmaSquared) + diff / sigmaSquared;
             }
         }
     }
@@ -215,6 +224,7 @@ double HierachicalOptimizationWrapper::computeNegLogLikelihood(std::vector <std:
     llh /= 2.0;
     return llh;
 }
+
 
 std::vector<double> HierachicalOptimizationWrapper::spliceParameters(const double * const reducedParameters, int numReduced, const std::vector<double> &scalingFactors) const {
     std::vector<double> fullParameters(numReduced + scalingFactors.size());

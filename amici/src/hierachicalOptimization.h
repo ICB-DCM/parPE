@@ -90,11 +90,18 @@ public:
 
 
     /**
-     * @brief Compute loglikelihood for normal distribution based on the model outputs and measurements.
+     * @brief Compute loglikelihood for normal distribution based on the model outputs and measurements for multiple conditions.
      * @param modelOutputsScaled
      * @return
      */
     double computeNegLogLikelihood(std::vector <std::vector<double>> const& measurements, std::vector <std::vector<double>> const& modelOutputsScaled) const;
+
+    /**
+     * @brief Compute loglikelihood for normal distribution based on the model outputs and measurements for a single condition.
+     * @param modelOutputsScaled
+     * @return
+     */
+    double computeNegLogLikelihood(std::vector<double> const& measurements, std::vector<double> const& modelOutputsScaled) const;
 
 
     /**
