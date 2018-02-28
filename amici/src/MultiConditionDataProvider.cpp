@@ -149,6 +149,7 @@ std::vector<std::vector<double> > MultiConditionDataProvider::getAllMeasurements
 
 void MultiConditionDataProvider::getOptimizationParametersLowerBounds(
         double *buffer) const {
+    auto lock = hdf5MutexGetLock();
 
     auto dataset = file.openDataSet(hdf5ParameterMinPath);
 
@@ -163,6 +164,8 @@ void MultiConditionDataProvider::getOptimizationParametersLowerBounds(
 
 void MultiConditionDataProvider::getOptimizationParametersUpperBounds(
     double *buffer) const {
+    auto lock = hdf5MutexGetLock();
+
     auto dataset = file.openDataSet(hdf5ParameterMaxPath);
 
     auto dataspace = dataset.getSpace();
@@ -189,6 +192,8 @@ std::unique_ptr<amici::Model> MultiConditionDataProvider::getModel() const { ret
 std::unique_ptr<amici::Solver> MultiConditionDataProvider::getSolver() const
 {
     auto solver = model->getSolver();
+    auto lock = hdf5MutexGetLock();
+
     amici::readSolverSettingsFromHDF5(fileId, *solver, hdf5AmiciOptionPath.c_str());
     return solver;
 }
@@ -252,6 +257,8 @@ void MultiConditionDataProvider::updateConditionSpecificSimulationParameters(int
 
 void MultiConditionDataProvider::copyInputData(H5::H5File target)
 {
+    auto lock = hdf5MutexGetLock();
+
     H5Ocopy(fileId, "/", target.getId(), "/inputData", H5P_DEFAULT, H5P_DEFAULT);
     H5Fflush(target.getId(), H5F_SCOPE_LOCAL);
 }
