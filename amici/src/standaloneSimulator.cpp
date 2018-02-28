@@ -93,6 +93,7 @@ int StandaloneSimulator::run(const std::string& resultFile, const std::string& r
         std::vector<JobResultAmiciSimulation> jobResults(jobs.size());
         std::vector<std::vector<double> > modelOutputs(jobs.size());
 
+        // collect all model outputs
         for(int dataIdx = 0; (unsigned) dataIdx < jobs.size(); ++dataIdx) {
             auto& job = jobs[dataIdx];
             JobResultAmiciSimulation result = amici::deserializeFromChar<JobResultAmiciSimulation>(
@@ -103,14 +104,16 @@ int StandaloneSimulator::run(const std::string& resultFile, const std::string& r
             std::copy_n(jobResults[dataIdx].rdata->y, modelOutputs[dataIdx].size(), modelOutputs[dataIdx].data());
         }
 
-        auto scalings = hierarchical.computeAnalyticalScalings(dataProvider->getAllMeasurements(), modelOutputs);
+        //  compute scaling factors
+        auto allMeasurements = dataProvider->getAllMeasurements();
+        auto scalings = hierarchical.computeAnalyticalScalings(allMeasurements, modelOutputs);
         hierarchical.applyOptimalScalings(scalings, modelOutputs);
         // TODO: what else needs to be scaled?
 
         for(int dataIdx = 0; (unsigned) dataIdx < jobs.size(); ++dataIdx) {
             JobResultAmiciSimulation& result = jobResults[dataIdx];
             std::copy(modelOutputs[dataIdx].begin(), modelOutputs[dataIdx].end(), result.rdata->y);
-            *result.rdata->llh = -hierarchical.computeNegLogLikelihood(dataProvider->getAllMeasurements(), modelOutputs);
+            *result.rdata->llh = -hierarchical.computeNegLogLikelihood(allMeasurements[dataIdx], modelOutputs[dataIdx]);
             auto edata = dataProvider->getExperimentalDataForCondition(dataIdx);
             rw.saveSimulationResults(edata.get(), result.rdata.get(), dataIdx);
         }
