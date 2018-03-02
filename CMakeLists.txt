@@ -27,9 +27,11 @@ set(IPOPT_INCLUDE_DIRS "${IPOPT_DIR}/include/coin/"  CACHE PATH "IpOpt include d
 set(IPOPT_LIBRARIES ${IPOPT_DIR}/lib/libipopt.a ${IPOPT_DIR}/lib/libcoinhsl.a gfortran CACHE STRINGS "IpOpt library")
 set(CERES_INCLUDE_DIRS "" "/usr/include/eigen3" CACHE PATH "CERES include directories")
 set(CERES_LIBRARIES "" CACHE STRINGS "CERES libraries")
-set(ENABLE_DLIB FALSE CACHE BOOL "Enable dlib optimizers?")
-set(ENABLE_TOMS611 FALSE CACHE BOOL "Enable toms611 optimizers?")
-set(ENABLE_FSQP FALSE CACHE BOOL "Enable FSQP optimizers?")
+set(PARPE_ENABLE_IPOPT TRUE CACHE BOOL "Enable ipopt optimizer?")
+set(PARPE_ENABLE_CERES TRUE CACHE BOOL "Enable ceres optimizer?")
+set(PARPE_ENABLE_DLIB FALSE CACHE BOOL "Enable dlib optimizers?")
+set(PARPE_ENABLE_TOMS611 FALSE CACHE BOOL "Enable toms611 optimizers?")
+set(PARPE_ENABLE_FSQP FALSE CACHE BOOL "Enable FSQP optimizers?")
 
 # Enable MPI? Currently mandatory.
 set(USE_MPI ON)
@@ -41,16 +43,11 @@ endif(${USE_MPI})
 
 if(${ENABLE_DLIB})
     set(DLIB_DIR "${CMAKE_CURRENT_LIST_DIR}/ThirdParty/dlib-19.7" CACHE FILEPATH "DLIB base directory")
-    add_definitions(-DPARPE_DLIB_ENABLED)
 endif(${ENABLE_DLIB})
 
-if(${ENABLE_TOMS611})
-    add_definitions(-DPARPE_TOMS611_ENABLED)
-endif(${ENABLE_TOMS611})
 
-if(${ENABLE_FSQP})
-    add_definitions(-DPARPE_FSQP_ENABLED)
-endif(${ENABLE_FSQP})
+
+configure_file(${CMAKE_CURRENT_LIST_DIR}/common/src/parpeConfig.h.in ${CMAKE_CURRENT_LIST_DIR}/common/src/parpeConfig.h @ONLY)
 
 # PThreads
 set(THREADS_PREFER_PTHREAD_FLAG ON)

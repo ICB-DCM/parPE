@@ -6,6 +6,7 @@ CMakeLists.txt.user
 /doc/Doxyfile
 /doc/doxy/*
 /common/src/parpeVersion.h
+/common/src/parpeConfig.h
 .project
 .pydevproject
 .settings/

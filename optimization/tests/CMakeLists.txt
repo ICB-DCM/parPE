@@ -28,7 +28,7 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 
-if(${ENABLE_TOMS611})
+if(${PARPE_ENABLE_TOMS611})
     project(unittests_optimization_toms611)
 
     add_executable(${PROJECT_NAME}
@@ -47,7 +47,7 @@ if(${ENABLE_TOMS611})
         ${CPPUTEST_LIBRARY}
         ${GCOV_LIBRARY}
     )
-endif(${ENABLE_TOMS611})
+endif(${PARPE_ENABLE_TOMS611})
 
 
 if(${ENABLE_FSQP})

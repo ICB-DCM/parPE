@@ -1,13 +1,14 @@
 #include "optimizationOptions.h"
 #include "localOptimizationCeres.h"
 #include "localOptimizationIpopt.h"
-#ifdef PARPE_DLIB_ENABLED
+#include "parpeConfig.h"
+#ifdef PARPE_ENABLE_DLIB
 #include "localOptimizationDlib.h"
 #endif
-#ifdef PARPE_TOMS611_ENABLED
+#ifdef PARPE_ENABLE_TOMS611
 #include "localOptimizationToms611.h"
 #endif
-#ifdef PARPE_FSQP_ENABLED
+#ifdef PARPE_ENABLE_FSQP
 #include "localOptimizationFsqp.h"
 #endif
 #include "logging.h"
@@ -250,19 +251,19 @@ Optimizer* optimizerFactory(optimizerName optimizer)
     case optimizerName::OPTIMIZER_CERES:
         return new OptimizerCeres();
     case optimizerName::OPTIMIZER_DLIB:
-#ifdef PARPE_DLIB_ENABLED
+#ifdef PARPE_ENABLE_DLIB
         return new OptimizerDlibLineSearch();
 #else
         return nullptr;
 #endif
     case optimizerName::OPTIMIZER_TOMS611:
-#ifdef PARPE_TOMS611_ENABLED
+#ifdef PARPE_ENABLE_TOMS611
         return new OptimizerToms611TrustRegionSumsl();
 #else
         return nullptr;
 #endif
     case optimizerName::OPTIMIZER_FSQP:
-#ifdef PARPE_FSQP_ENABLED
+#ifdef PARPE_ENABLE_FSQP
         return new OptimizerFsqp();
 #else
         return nullptr;

@@ -12,21 +12,21 @@ if(${PARPE_CERES_MINIGLOG_REDIRECT})
     add_definitions(-DPARPE_CERES_MINIGLOG_REDIRECT)
 endif(${PARPE_CERES_MINIGLOG_REDIRECT})
 
-if(${ENABLE_TOMS611})
+if(${PARPE_ENABLE_TOMS611})
     add_subdirectory(../ThirdParty/toms611/ toms611)
     include_directories(../ThirdParty/toms611/)
-endif(${ENABLE_TOMS611})
+endif(${PARPE_ENABLE_TOMS611})
 
-if(${ENABLE_DLIB})
+if(${PARPE_ENABLE_DLIB})
     find_package(dlib REQUIRED
         HINTS "${CMAKE_CURRENT_LIST_DIR}/../ThirdParty/dlib-19.7/build/install/lib/cmake/dlib/")
     include_directories(${dlib_INCLUDE_DIRS})
-endif(${ENABLE_DLIB})
+endif(${PARPE_ENABLE_DLIB})
 
-if(${ENABLE_FSQP})
+if(${PARPE_ENABLE_FSQP})
     add_subdirectory(../ThirdParty/ffsqp ffsqp)
     include_directories(../ThirdParty/ffsqp/)
-endif(${ENABLE_FSQP})
+endif(${PARPE_ENABLE_FSQP})
 
 add_subdirectory(src)
 

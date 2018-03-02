@@ -13,17 +13,17 @@ set(SRC_LIST
     minibatchOptimization.cpp
 )
 
-if(${ENABLE_DLIB})
+if(${PARPE_ENABLE_DLIB})
     set(SRC_LIST ${SRC_LIST} localOptimizationDlib.cpp)
-endif(${ENABLE_DLIB})
+endif(${PARPE_ENABLE_DLIB})
 
-if(${ENABLE_TOMS611})
+if(${PARPE_ENABLE_TOMS611})
     set(SRC_LIST ${SRC_LIST} localOptimizationToms611.cpp)
-endif(${ENABLE_TOMS611})
+endif(${PARPE_ENABLE_TOMS611})
 
-if(${ENABLE_FSQP})
+if(${PARPE_ENABLE_FSQP})
     set(SRC_LIST ${SRC_LIST} localOptimizationFsqp.cpp)
-endif(${ENABLE_FSQP})
+endif(${PARPE_ENABLE_FSQP})
 
 add_library(${PROJECT_NAME} ${SRC_LIST})
 
@@ -36,17 +36,17 @@ target_link_libraries(${PROJECT_NAME}
     ${CMAKE_THREAD_LIBS_INIT}
 )
 
-if(${ENABLE_DLIB})
+if(${PARPE_ENABLE_DLIB})
     target_link_libraries(${PROJECT_NAME} ${dlib_LIBRARIES})
-endif(${ENABLE_DLIB})
+endif(${PARPE_ENABLE_DLIB})
 
-if(${ENABLE_TOMS611})
+if(${PARPE_ENABLE_TOMS611})
     target_link_libraries(${PROJECT_NAME} toms611)
-endif(${ENABLE_TOMS611})
+endif(${PARPE_ENABLE_TOMS611})
 
-if(${ENABLE_FSQP})
+if(${PARPE_ENABLE_FSQP})
     target_link_libraries(${PROJECT_NAME} fsqp)
-endif(${ENABLE_FSQP})
+endif(${PARPE_ENABLE_FSQP})
 
 get_target_property(PARPEOPTIMIZATION_INCLUDE_DIRS ${PROJECT_NAME} INCLUDE_DIRECTORIES)
 set_property(GLOBAL PROPERTY PARPEOPTIMIZATION_INCLUDE_DIRS "${PARPELOADBALANCER_INCLUDE_DIRS}")
