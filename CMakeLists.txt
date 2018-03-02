@@ -6,13 +6,17 @@ cmake_minimum_required(VERSION 2.8.12)
 if(POLICY CMP0056) # for CMake 3.2 and above
     cmake_policy (SET CMP0056 OLD)
 endif()
-
+set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/CMakeModules/)
 set(CMAKE_DEBUG_POSTFIX "-dbg")
 set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -Wall -Wno-unused-function -fopenmp -D_GNU_SOURCE") # -D_GNU_SOURCE for pthread recursive mutex issues
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wno-unused-function -fopenmp -D_GNU_SOURCE") # -D_GNU_SOURCE for pthread recursive mutex issues
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/CMakeModules)
 
+include("getVersion")
+include("split_version")
+split_version(${PARPE_VERSION} libname major minor patch)
+message(STATUS "${libname} ${major} ${minor} ${patch}  ")
 
 # Build options
 set(BUILD_TESTS TRUE CACHE BOOL "Build tests? (requires cppUTest)")
