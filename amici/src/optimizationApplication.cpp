@@ -4,6 +4,7 @@
 #include "logging.h"
 #include "misc.h"
 #include <optimizationOptions.h>
+#include <parpeVersion.h>
 
 #include <cstring>
 #include <ctime>
@@ -95,7 +96,7 @@ int OptimizationApplication::parseOptions(int argc, char **argv) {
             resultFileName = processResultFilenameCommandLineArgument(optarg);
             break;
         case 'v':
-            printf("Version: %s\n", GIT_VERSION);
+            printf("Version: %s\n", PARPE_VERSION);
             return 1;
         case 'h':
             printUsage(argv[0]);

@@ -5,7 +5,7 @@ CMakeLists.txt.user
 /ThirdParty/*
 /doc/Doxyfile
 /doc/doxy/*
-
+/common/src/parpeVersion.h
 .project
 .pydevproject
 .settings/

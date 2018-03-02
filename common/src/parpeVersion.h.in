@@ -1,0 +1,6 @@
+#ifndef PARPE_VERSION_H
+#define PARPE_VERSION_H
+
+#define PARPE_VERSION "@PARPE_VERSION@"
+
+#endif

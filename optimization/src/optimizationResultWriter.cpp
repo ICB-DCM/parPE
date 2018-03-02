@@ -1,4 +1,5 @@
 #include "optimizationResultWriter.h"
+#include <parpeVersion.h>
 
 #include <cassert>
 #include <cmath>
@@ -46,7 +47,7 @@ std::string OptimizationResultWriter::getIterationPath(int iterationIdx) const {
 
 void OptimizationResultWriter::logParPEVersion() const {
     hdf5WriteStringAttribute(file_id, rootPath.c_str(), "PARPE_VERSION",
-                             GIT_VERSION);
+                             PARPE_VERSION);
 }
 
 

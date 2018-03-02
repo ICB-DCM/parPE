@@ -4,7 +4,7 @@ project(parpe)
 cmake_minimum_required(VERSION 2.8.12)
 
 if(POLICY CMP0056) # for CMake 3.2 and above
-   cmake_policy (SET CMP0056 OLD)
+    cmake_policy (SET CMP0056 OLD)
 endif()
 
 set(CMAKE_DEBUG_POSTFIX "-dbg")
@@ -57,10 +57,10 @@ find_package(Threads REQUIRED)
 
 
 # Version number from git
-execute_process(COMMAND sh -c "cd ${CMAKE_CURRENT_SOURCE_DIR} && git describe --abbrev=4 --dirty=-dirty --always --tags  | tr -d '\n'" OUTPUT_VARIABLE GIT_VERSION)
-message(STATUS "Building version ${GIT_VERSION}")
-add_definitions(-DGIT_VERSION="${GIT_VERSION}")
-
+add_custom_target(get_version ALL
+    COMMAND ${CMAKE_COMMAND} -DINFILE=${PROJECT_SOURCE_DIR}/common/src/parpeVersion.h.in
+    -DOUTFILE=${PROJECT_SOURCE_DIR}/common/src/parpeVersion.h
+    -P ${PROJECT_SOURCE_DIR}/CMakeModules/ConfigureVersion.cmake)
 
 # HDF5
 #set(HDF5_PREFER_PARALLEL TRUE)
@@ -71,7 +71,7 @@ include_directories(
     common/src/
     ${HDF5_INCLUDE_DIRS}
     ${MPI_INCLUDE_DIR}
-)
+    )
 
 
 # Build tests?
@@ -133,7 +133,7 @@ endif(${BUILD_TESTS})
 if(BUILD_DOCS)
     find_package(Doxygen)
     if(NOT DOXYGEN_FOUND)
-         message(FATAL_ERROR "Doxygen is needed to build the documentation.")
+        message(FATAL_ERROR "Doxygen is needed to build the documentation.")
     endif()
 
     set(doxyfile_in ${CMAKE_CURRENT_LIST_DIR}/doc/Doxyfile.in)
@@ -141,19 +141,19 @@ if(BUILD_DOCS)
     configure_file(${doxyfile_in} ${doxyfile} @ONLY)
 
     add_custom_target(doc
-                      COMMAND ${DOXYGEN_EXECUTABLE} ${doxyfile}
-                      WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
-                      COMMENT "Generating API documentation with Doxygen"
-                      VERBATIM)
+        COMMAND ${DOXYGEN_EXECUTABLE} ${doxyfile}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
+        COMMENT "Generating API documentation with Doxygen"
+        VERBATIM)
 endif()
 
 include(CMakeModules/clang-tools.cmake)
 
 add_custom_target(cloc
-                  COMMAND cloc misc amici common optimization loadbalancer --fullpath --not-match-d=amici/examples/steadystate/model/*
-                  WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
-                  COMMENT "Counting lines of code"
-                  VERBATIM)
+    COMMAND cloc misc amici common optimization loadbalancer --fullpath --not-match-d=amici/examples/steadystate/model/*
+    WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
+    COMMENT "Counting lines of code"
+    VERBATIM)
 
 
 add_subdirectory(common)
@@ -169,15 +169,15 @@ target_link_libraries(${PROJECT_NAME} parpecommon parpeloadbalancer parpeoptimiz
 include(GenerateExportHeader)
 generate_export_header(parpe)
 install(TARGETS ${PROJECT_NAME} EXPORT ParPETargets
-  LIBRARY DESTINATION lib
-  ARCHIVE DESTINATION lib
-  RUNTIME DESTINATION bin
-  INCLUDES DESTINATION include
-)
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
+    RUNTIME DESTINATION bin
+    INCLUDES DESTINATION include
+    )
 export(EXPORT ParPETargets
-  FILE "${CMAKE_CURRENT_BINARY_DIR}/ParPETargets.cmake"
-  NAMESPACE Upstream::
-)
+    FILE "${CMAKE_CURRENT_BINARY_DIR}/ParPETargets.cmake"
+    NAMESPACE Upstream::
+    )
 get_property(ParPEConfigIncludes DIRECTORY PROPERTY INCLUDE_DIRECTORIES)
 get_property(ParPEConfigIncludesCommon GLOBAL PROPERTY PARPECOMMON_INCLUDE_DIRS)
 get_property(ParPEConfigIncludesLoadbalancer GLOBAL PROPERTY PARPELOADBALANCER_INCLUDE_DIRS)
@@ -185,9 +185,9 @@ get_property(ParPEConfigIncludesOptimization GLOBAL PROPERTY PARPEOPTIMIZATION_I
 get_property(ParPEConfigIncludesAmici GLOBAL PROPERTY PARPEAMICI_INCLUDE_DIRS)
 
 configure_file(CMakeModules/ParPEConfig.cmake
-  "${CMAKE_CURRENT_BINARY_DIR}/ParPEConfig.cmake"
-  @ONLY
-)
+    "${CMAKE_CURRENT_BINARY_DIR}/ParPEConfig.cmake"
+    @ONLY
+    )
 # Register package
 export(PACKAGE ParPE)
 # </Export cmake configuration>
