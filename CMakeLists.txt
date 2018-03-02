@@ -189,3 +189,11 @@ configure_file(CMakeModules/ParPEConfig.cmake
 # Register package
 export(PACKAGE ParPE)
 # </Export cmake configuration>
+
+include("getVersion")
+include("split_version")
+split_version(${PARPE_VERSION} libname major minor patch)
+set (CPACK_PACKAGE_VERSION_MAJOR "${major}")
+set (CPACK_PACKAGE_VERSION_MINOR "${minor}")
+set (CPACK_PACKAGE_VERSION_PATCH "${patch}")
+include (CPack)

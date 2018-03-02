@@ -11,6 +11,7 @@ set(SRC_LIST
     optimizationResultWriter.cpp
     optimizationOptions.cpp
     minibatchOptimization.cpp
+    optimizer.h
 )
 
 if(${PARPE_ENABLE_DLIB})

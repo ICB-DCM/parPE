@@ -63,6 +63,13 @@ target_link_libraries(${PROJECT_NAME}
     ${GCOV_LIBRARY}
 )
 
+install(TARGETS ${PROJECT_NAME} EXPORT ParPETargets
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
+    RUNTIME DESTINATION bin
+    INCLUDES DESTINATION include
+    )
+
 if(${BUILD_TESTS})
     add_test (NAME ${PROJECT_NAME}
         COMMAND ${TESTS_MPIEXEC_COMMAND} ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME} -o ${PROJECT_NAME}-testresults ${CMAKE_CURRENT_LIST_DIR}/data.h5
@@ -90,6 +97,7 @@ target_link_libraries(${PROJECT_NAME}
     parpeamici
     ${GCOV_LIBRARY}
 )
+
 
 if(${BUILD_TESTS})
 #    add_test (NAME ${PROJECT_NAME}
