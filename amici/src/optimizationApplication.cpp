@@ -256,12 +256,16 @@ void OptimizationApplication::finalizeTiming(double wallTimeSeconds, double cpuT
 
     // total run-time
     double totalCpuTimeInSeconds = 0;
-    MPI_Reduce(&cpuTimeSeconds, &totalCpuTimeInSeconds, 1, MPI_DOUBLE, MPI_SUM, 0,
-               MPI_COMM_WORLD);
+    if(getMpiActive()) {
+        MPI_Reduce(&cpuTimeSeconds, &totalCpuTimeInSeconds, 1, MPI_DOUBLE, MPI_SUM, 0,
+                   MPI_COMM_WORLD);
+    } else {
+        totalCpuTimeInSeconds = cpuTimeSeconds;
+    }
 
     int mpiRank = getMpiRank();
 
-    if (mpiRank == 0) {
+    if (mpiRank < 1) {
         logmessage(LOGLVL_INFO, "Walltime on master: %fs, CPU time of all processes: %fs",
                    wallTimeSeconds, totalCpuTimeInSeconds);
         if (resultWriter)
