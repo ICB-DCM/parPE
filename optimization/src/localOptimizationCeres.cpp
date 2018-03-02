@@ -6,6 +6,8 @@
 
 #include <ceres/ceres.h>
 
+// !! Don't use. Leads to race conditions. Also: unable to assign sinks to specific ceres instances.
+#undef PARPE_CERES_MINIGLOG_REDIRECT
 #ifdef PARPE_CERES_MINIGLOG_REDIRECT
 #include <ceres/../../../../internal/ceres/miniglog/glog/logging.h>
 #endif
