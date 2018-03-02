@@ -2,5 +2,7 @@
 #define PARPE_VERSION_H
 
 #define PARPE_VERSION "@PARPE_VERSION@"
-
+#define PARPE_VERSION_MAJOR "@major@"
+#define PARPE_VERSION_MINOR "@minor@"
+#define PARPE_VERSION_PATCH "@patch@"
 #endif
