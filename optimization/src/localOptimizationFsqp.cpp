@@ -319,7 +319,7 @@ std::tuple<int, double, std::vector<double> > OptimizerFsqp::optimize(parpe::Opt
  * @return nwff
  */
 constexpr int getNwff(int nparam, int j) {
-    return 1 + nparam*nparam + (nparam+1)*(nparam+1) + j;
+    return 1 + nparam*nparam /* nwhes1*/ + (nparam+1)*(nparam+1) /* nwff */ + j;
 }
 
 /**
@@ -329,8 +329,9 @@ constexpr int getNwff(int nparam, int j) {
  * @return nwgrf
  */
 constexpr int getNwgrf(int nparam, int j) {
-    // Where does the last "- nparam" come from?
-    return getNwff(nparam, j) + 1 + 1 + 3 * (nparam + 1) + 1 + 1 * nparam + 1 - nparam;
+    return getNwff(nparam, j) + (1 + 1) /*nwx TODO: nobj*/
+            + 3 * (nparam + 1) /* nwdi, nwd, nwgm */
+            + 1 /* nwgrg */ +  (0 * nparam + 1) /* nwgrf */;
 }
 
 /**
