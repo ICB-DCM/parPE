@@ -246,8 +246,8 @@ bool launchedWithMpi()
 {
     if(std::getenv("OMPI_COMM_WORLD_SIZE"))
         return true; // OpenMPI
-    if(std::getenv("LOADL_TOTAL_TASKS"))
-        return true; // Not necessarily launched by MPI launcher, but operating on some compute node
+    if(atoi(std::getenv("MP_PROCS")) > 1)
+        return true;
 
     return false;
 }
