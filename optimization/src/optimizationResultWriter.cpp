@@ -29,7 +29,6 @@ OptimizationResultWriter::OptimizationResultWriter(const std::string &filename,
     if(file_id < 0)
         throw(HDF5Exception());
 
-    hdf5EnsureGroupExists(file_id, rootPath.c_str());
     logParPEVersion();
 }
 
@@ -46,6 +45,7 @@ std::string OptimizationResultWriter::getIterationPath(int iterationIdx) const {
 
 
 void OptimizationResultWriter::logParPEVersion() const {
+    hdf5EnsureGroupExists(file_id, rootPath.c_str());
     hdf5WriteStringAttribute(file_id, rootPath.c_str(), "PARPE_VERSION",
                              PARPE_VERSION);
 }
