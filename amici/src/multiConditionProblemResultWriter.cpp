@@ -20,7 +20,7 @@ MultiConditionProblemResultWriter::MultiConditionProblemResultWriter(
 
 MultiConditionProblemResultWriter::MultiConditionProblemResultWriter(
     std::string filename, bool overwrite, JobIdentifier id)
-    : OptimizationResultWriter(filename, overwrite), file_id(getFileId()) {
+    : OptimizationResultWriter(filename, overwrite), file_id(H5Freopen(getFileId())) {
     setJobId(id);
 }
 

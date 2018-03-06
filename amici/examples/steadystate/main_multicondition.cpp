@@ -71,8 +71,7 @@ class SteadystateApplication : public parpe::OptimizationApplication {
         resultWriter = std::make_unique<parpe::MultiConditionProblemResultWriter>(outFileArgument, true, id);
 
         // Create one instance for the problem, one for the application for clear ownership
-        multiCondProb->resultWriter = std::make_unique<parpe::MultiConditionProblemResultWriter>(*resultWriter);
-        multiCondProb->resultWriter->setJobId(id);
+        multiCondProb->resultWriter = std::make_unique<parpe::MultiConditionProblemResultWriter>(resultWriter->getFileId(), id);
 
         if(parpe::getMpiRank() < 1)
             dataProvider->copyInputData(resultWriter->getFileId());
