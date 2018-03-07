@@ -125,7 +125,7 @@ void calcg(integer const &n, doublereal const *x, integer &nf, doublereal *g,
 
     userData->problem->costFun->evaluate(x, *urparm, g);
 
-    userData->reporter->afterCostFunctionCall(n, x, *urparm, nullptr);
+    userData->reporter->afterCostFunctionCall(n, x, *urparm, g);
 
     userData->reporter->iterationFinished(n, x, *urparm, g);
 
