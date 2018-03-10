@@ -26,6 +26,11 @@ TEST_GROUP(testingMisc){
 };
 // clang-format on
 
+TEST(testingMisc, testTenToMinusInf) {
+    CHECK_EQUAL(0.0, pow10(-INFINITY));
+}
+
+
 TEST(testingMisc, testWithinTolerance) {
     captureStreamToString([](){
         double atol = 0.1;
