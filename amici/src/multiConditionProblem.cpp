@@ -389,8 +389,7 @@ int AmiciSummedGradientFunction<T>::aggregateLikelihood(JobData &data, double &l
         if (objectiveFunctionGradient)
             addSimulationGradientToObjectiveFunctionGradient(
                         result.first, result.second.gradient.data(),
-                        objectiveFunctionGradient,
-                        dataProvider->getNumCommonParameters());
+                        objectiveFunctionGradient);
 
     }
     return errors;
@@ -400,34 +399,11 @@ int AmiciSummedGradientFunction<T>::aggregateLikelihood(JobData &data, double &l
 template <typename T>
 void AmiciSummedGradientFunction<T>::addSimulationGradientToObjectiveFunctionGradient(
         int conditionIdx, const double *simulationGradient,
-        double *objectiveFunctionGradient, int numCommon) const {
-    // global parameters: simply add
-    for (int paramIdx = 0; paramIdx < numCommon; ++paramIdx)
-        objectiveFunctionGradient[paramIdx] -= simulationGradient[paramIdx];
-
-    // map condition-specific parameters
-    addSimulationGradientToObjectiveFunctionGradientConditionSpecificParameters(
-                simulationGradient, objectiveFunctionGradient, numCommon,
-                dataProvider->getNumConditionSpecificParametersPerSimulation(),
-                dataProvider->getIndexOfFirstConditionSpecificOptimizationParameter(
-                    conditionIdx));
+        double *objectiveFunctionGradient) const {
+    dataProvider->mapSimulationToOptimizationVariablesAddMultiply(
+                conditionIdx, simulationGradient, objectiveFunctionGradient, -1.0);
 }
 
-template <typename T>
-void AmiciSummedGradientFunction<T>::
-addSimulationGradientToObjectiveFunctionGradientConditionSpecificParameters(
-        const double *simulationGradient, double *objectiveFunctionGradient,
-        int numCommon, int numConditionSpecificParams,
-        int firstIndexOfCurrentConditionsSpecificOptimizationParameters) const {
-    // condition specific parameters: map simulation to optimization parameters
-    for (int paramIdx = 0; paramIdx < numConditionSpecificParams; ++paramIdx) {
-        int idxOpt =
-                firstIndexOfCurrentConditionsSpecificOptimizationParameters +
-                paramIdx;
-        int idxSim = numCommon + paramIdx;
-        objectiveFunctionGradient[idxOpt] -= simulationGradient[idxSim];
-    }
-}
 
 template <typename T>
 void AmiciSummedGradientFunction<T>::setSensitivityOptions(bool sensiRequired) const {

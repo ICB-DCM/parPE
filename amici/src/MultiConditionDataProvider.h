@@ -91,12 +91,13 @@ class MultiConditionDataProvider {
      */
     virtual int getNumberOfConditions() const;
 
-    /**
-     * @brief Number of model- oder optimization-parameters that are different
-     * between the different conditions.
-     * @return That number
-     */
-    virtual int getNumConditionSpecificParametersPerSimulation() const;
+    virtual std::vector<int> getSimulationToOptimizationParameterMapping(int conditionIdx) const;
+
+    virtual void mapSimulationToOptimizationVariablesAddMultiply(
+            int conditionIdx, const double *simulation, double *optimization, double coefficient = 1.0) const;
+
+    virtual void mapAndSetOptimizationToSimulationVariables(
+            int conditionIdx, const double *optimization, double *simulation) const;
 
     /**
      * @brief Update fixed model parameters in of the passed UserData object for
@@ -134,11 +135,6 @@ class MultiConditionDataProvider {
      */
     virtual int getNumOptimizationParameters() const;
 
-    /**
-     * @brief Get number of parameters common to all conditions.
-     * @return Number of parameters
-     */
-    virtual int getNumCommonParameters() const;
 
     /**
      * @brief Returns a pointer to the underlying AMICI model
@@ -158,9 +154,6 @@ class MultiConditionDataProvider {
      */
     virtual std::unique_ptr<amici::Model> getModelForCondition(int conditionIdx) const;
 
-    virtual int getIndexOfFirstConditionSpecificOptimizationParameter(
-        int conditionIdx) const;
-
     /**
      * @brief Based on the array of optimization parameters, set the simulation
      * parameters in the given UserData object to the ones for condition index.
@@ -169,10 +162,6 @@ class MultiConditionDataProvider {
      * @param udata
      */
     void updateSimulationParameters(int conditionIndex, const double *optimizationParams,
-        amici::Model &model) const;
-
-
-    virtual void updateConditionSpecificSimulationParameters(int conditionIndex, const double *optimizationParams,
         amici::Model &model) const;
 
     void copyInputData(H5::H5File target);

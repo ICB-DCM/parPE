@@ -56,6 +56,11 @@ function [ output_args ] = createExampleData(  )
     H5G.close(gid);
     H5F.close(fid);
     
+    h5create(hdfFile, '/parameters/parameterNames', numel(model.sym.p)); 
+    h5create(hdfFile, '/parameters/simulationParameterNames', numel(model.sym.p)); 
+    %h5rwrite(hdfFile, '/parameters/parameterNames', model.sym.p); TODO: to
+    %string
+    
     h5write(hdfFile, '/fixedParameters/k', kAll);
     h5writeatt(hdfFile, '/parameters/', 'ptrue', log10(p));
     h5writeatt(hdfFile, '/parameters/', 't', t);
