@@ -10,4 +10,4 @@ CMakeLists.txt.user
 .project
 .pydevproject
 .settings/
-
+__pycache__/
