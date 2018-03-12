@@ -246,7 +246,7 @@ bool launchedWithMpi()
 {
     if(std::getenv("OMPI_COMM_WORLD_SIZE"))
         return true; // OpenMPI
-    if(atoi(std::getenv("MP_PROCS")) > 1)
+    if(std::getenv("MP_PROCS") && atoi(std::getenv("MP_PROCS")) > 1)
         return true;
 
     return false;
