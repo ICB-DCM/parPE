@@ -135,15 +135,8 @@ protected:// for testing
      * @param Gradient of the *negative* log likelihood.
      */
 
-    void addSimulationGradientToObjectiveFunctionGradient(
-        int conditionIdx, const double *simulationGradient,
-        double *objectiveFunctionGradient, int numCommon) const;
-
-    void
-    addSimulationGradientToObjectiveFunctionGradientConditionSpecificParameters(
-        const double *simulationGradient, double *objectiveFunctionGradient,
-        int numCommon, int numConditionSpecificParams,
-        int firstIndexOfCurrentConditionsSpecificOptimizationParameters) const;
+    void addSimulationGradientToObjectiveFunctionGradient(int conditionIdx, const double *simulationGradient,
+        double *objectiveFunctionGradient) const;
 
     void queueSimulation(JobIdentifier path, JobData *d, int *jobDone,
                          pthread_cond_t *jobDoneChangedCondition,

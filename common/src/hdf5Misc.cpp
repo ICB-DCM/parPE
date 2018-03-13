@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/stat.h>
-#include <H5Cpp.h>
 #include <misc.h>
 
 namespace parpe {
@@ -385,6 +384,38 @@ int hdf5Read2DDoubleHyperslab(hid_t file_id, const char *path, hsize_t size0,
     H5Dclose(dataset);
 
     return 0;
+}
+
+
+std::vector<int> hdf5Read2DIntegerHyperslab(H5::H5File file, std::string const& path,
+                                            hsize_t size0, hsize_t size1, hsize_t offset0, hsize_t offset1) {
+    std::lock_guard<mutexHdfType> lock(mutexHdf);
+
+    H5::DataSet dataset = file.openDataSet(path);
+    H5::DataSpace filespace = dataset.getSpace();
+
+    const int ndims = filespace.getSimpleExtentNdims();
+    assert(ndims == 2 && "Only works for 2D arrays!");
+    hsize_t dims[ndims];
+    filespace.getSimpleExtentDims(dims);
+
+    hsize_t offset[] = {offset0, offset1};
+    hsize_t count[] = {size0, size1};
+    // printf("%lld %lld, %lld %lld, %lld %lld\n", dims[0], dims[1], offset0,
+    // offset1, size0, size1);
+    assert(dims[0] >= offset0 && dims[0] >= size0 &&
+           "Offset larger than dataspace dimensions!");
+    assert(dims[1] >= offset1 && dims[1] >= size1 &&
+           "Offset larger than dataspace dimensions!");
+
+    filespace.selectHyperslab(H5S_SELECT_SET, count, offset);
+
+    H5::DataSpace memspace(2, count);
+    std::vector<int> buffer(size0 * size1);
+
+    dataset.read(buffer.data(), H5T_NATIVE_DOUBLE, memspace, filespace);
+
+    return buffer;
 }
 
 int hdf5Read3DDoubleHyperslab(hid_t file_id, const char *path, hsize_t size0,

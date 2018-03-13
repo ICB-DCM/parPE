@@ -4,6 +4,7 @@
 
 #include <hdf5.h>
 #include <hdf5_hl.h>
+#include <H5Cpp.h>
 #include <pthread.h>
 #include <stdbool.h>
 #include <exception>
@@ -102,6 +103,9 @@ int hdf5Read2DDoubleHyperslab(hid_t file_id, const char *path, hsize_t size0,
 int hdf5Read3DDoubleHyperslab(hid_t file_id, const char *path, hsize_t size0,
                               hsize_t size1, hsize_t size2, hsize_t offset0,
                               hsize_t offset1, hsize_t offset2, double *buffer);
+
+std::vector<int> hdf5Read2DIntegerHyperslab(H5::H5File file, std::string const& path,
+                                            hsize_t size0, hsize_t size1, hsize_t offset0, hsize_t offset1);
 
 void hdf5GetDatasetDimensions(hid_t file_id, const char *path, hsize_t nDims, int *d1 = nullptr,
                                 int *d2 = nullptr, int *d3 = nullptr, int *d4 = nullptr);

@@ -13,10 +13,6 @@ SteadyStateMultiConditionDataProvider::SteadyStateMultiConditionDataProvider(std
 
 }
 
-int SteadyStateMultiConditionDataProvider::getNumConditionSpecificParametersPerSimulation() const {
-    return 0;
-}
-
 std::unique_ptr<amici::Model> SteadyStateMultiConditionDataProvider::getModel() const
 {
     return std::unique_ptr<amici::Model>(model->clone());

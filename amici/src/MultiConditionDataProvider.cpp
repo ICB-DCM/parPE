@@ -73,17 +73,35 @@ int MultiConditionDataProvider::getNumberOfConditions() const {
     return d1;
 }
 
-int MultiConditionDataProvider::getNumConditionSpecificParametersPerSimulation()
-    const {
-    auto lock = hdf5MutexGetLock();
 
-    int num = 0;
-    int status =
-        amici::AMI_HDF5_getIntScalarAttribute(fileId, hdf5ParameterPath.c_str(),
-                                       "numConditionSpecificParameters", &num);
-    assert(status >= 0);
 
-    return num;
+std::vector<int> MultiConditionDataProvider::getSimulationToOptimizationParameterMapping(int conditionIdx) const  {
+    std::string path = rootPath + "/parameters/optimizationSimulationMapping";
+    if(hdf5DatasetExists(fileId, path.c_str())) {
+        return hdf5Read2DIntegerHyperslab(file, path, model->np(), 1, 0, conditionIdx);
+    } else {
+        std::vector<int> defaultMap(model->np());
+        std::iota(defaultMap.begin(), defaultMap.end(), 0);
+        return defaultMap;
+    }
+}
+
+void MultiConditionDataProvider::mapSimulationToOptimizationVariablesAddMultiply(
+        int conditionIdx, const double *simulation, double *optimization, double coefficient) const {
+    auto mapping = getSimulationToOptimizationParameterMapping(conditionIdx);
+
+    for(int i = 0; i < model->np(); ++i) {
+        optimization[mapping[i]] = coefficient * simulation[i];
+    }
+}
+
+void MultiConditionDataProvider::mapAndSetOptimizationToSimulationVariables(int conditionIdx, const double *optimization, double *simulation) const
+{
+    auto mapping = getSimulationToOptimizationParameterMapping(conditionIdx);
+
+    for(int i = 0; i < model->np(); ++i) {
+        simulation[i] = optimization[mapping[i]];
+    }
 }
 
 /**
@@ -178,14 +196,12 @@ void MultiConditionDataProvider::getOptimizationParametersUpperBounds(
 }
 
 int MultiConditionDataProvider::getNumOptimizationParameters() const {
-    return getNumCommonParameters() +
-           getNumberOfConditions() *
-               getNumConditionSpecificParametersPerSimulation();
+    std::string path = rootPath + "/parameters/parameterNames";
+    int size = 0;
+    hdf5GetDatasetDimensions(fileId, path.c_str(), 1, &size);
+    return size;
 }
 
-int MultiConditionDataProvider::getNumCommonParameters() const {
-    return model->np() - getNumConditionSpecificParametersPerSimulation();
-}
 
 std::unique_ptr<amici::Model> MultiConditionDataProvider::getModel() const { return std::unique_ptr<amici::Model>(model->clone()); }
 
@@ -208,51 +224,11 @@ std::unique_ptr<amici::Model> MultiConditionDataProvider::getModelForCondition(i
     return newModel;
 }
 
-int MultiConditionDataProvider::
-    getIndexOfFirstConditionSpecificOptimizationParameter(
-        int conditionIdx) const {
-    return getNumCommonParameters() +
-            conditionIdx * getNumConditionSpecificParametersPerSimulation();
-}
-
 void MultiConditionDataProvider::updateSimulationParameters(int conditionIndex, const double *optimizationParams, amici::Model &model) const
 {
-    // copy all common parameters + conditionspecific parameters for first conditions to UserDaata
     auto p = model.getParameters();
-    std::copy(optimizationParams, optimizationParams + getNumCommonParameters(), p.data());
+    mapAndSetOptimizationToSimulationVariables(conditionIndex, optimizationParams, p.data());
     model.setParameters(p);
-    updateConditionSpecificSimulationParameters(conditionIndex, optimizationParams, model);
-}
-
-void MultiConditionDataProvider::updateConditionSpecificSimulationParameters(int conditionIndex, const double *optimizationParams,
-    amici::Model& model) const {
-    /* Optimization parameters are [commonParameters,
-     * condition1SpecificParameters, condition2SpecificParameters, ...]
-     * number of condition specific parameters is the same for all cell lines.
-     * Simulation parameters are [commonParameters,
-     * currentCelllineSpecificParameter]
-     */
-
-
-    const int numCommonParams = getNumCommonParameters();
-    const int numSpecificParams =
-        getNumConditionSpecificParametersPerSimulation();
-
-    // beginning of condition specific simulation parameters within optimization
-    // parameters
-    const double *pConditionSpecificOptimization =
-        &optimizationParams
-            [getIndexOfFirstConditionSpecificOptimizationParameter(
-                conditionIndex)];
-
-    auto p = model.getParameters();
-    // beginning of condition specific simulation parameters within simulation
-    // parameters
-    double *pConditionSpecificSimulation = &(p.data()[numCommonParams]);
-
-    std::copy(pConditionSpecificOptimization, pConditionSpecificOptimization + numSpecificParams, pConditionSpecificSimulation);
-    model.setParameters(p);
-
 }
 
 void MultiConditionDataProvider::copyInputData(H5::H5File target)

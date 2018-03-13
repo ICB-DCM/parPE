@@ -24,8 +24,6 @@ class SteadyStateMultiConditionDataProvider
     SteadyStateMultiConditionDataProvider(std::unique_ptr<amici::Model> model,
                                           std::string hdf5Filename, std::string rootPath = "");
 
-    int getNumConditionSpecificParametersPerSimulation() const override;
-
     std::unique_ptr<amici::Model> getModel() const override;
     std::unique_ptr<amici::Solver> getSolver() const override;
 
