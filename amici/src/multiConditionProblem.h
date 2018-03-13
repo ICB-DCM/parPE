@@ -4,17 +4,15 @@
 #include "MultiConditionDataProvider.h"
 #include <simulationWorkerAmici.h>
 #include <multiConditionProblemResultWriter.h>
-
 #include <multiStartOptimization.h>
 #include <optimizationProblem.h>
 #include <LoadBalancerMaster.h>
 #include <LoadBalancerWorker.h>
-
-#include <amici.h>
-
-#include <amici_serialization.h>
-#include <boost/serialization/map.hpp>
 #include <SimulationRunner.h>
+
+#include <amici/amici.h>
+#include <amici/amici_serialization.h>
+#include <boost/serialization/map.hpp>
 
 #include <memory>
 #include <cmath> //NAN

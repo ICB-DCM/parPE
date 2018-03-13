@@ -2,10 +2,12 @@
 #define SIMULATIONRUNNER_H
 
 #include <MultiConditionDataProvider.h> // JobIdentifier
+#include <LoadBalancerWorker.h>
+
+#include <amici/amici.h>
+
 #include <functional>
 #include <vector>
-#include <amici.h>
-#include <LoadBalancerWorker.h>
 
 namespace parpe {
 

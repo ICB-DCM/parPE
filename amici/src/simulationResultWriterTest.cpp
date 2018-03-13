@@ -1,15 +1,13 @@
 #include <simulationResultWriter.h>
 #include <hdf5Misc.h>
 #include "testingMisc.h"
-#include <amici_model.h>
-#include <edata.h>
-#include <rdata.h>
 #include "CppUTest/TestHarness.h"
 #include "CppUTestExt/MockSupport.h"
 #include <vector>
 #include <algorithm>
 #include <numeric>
-#include <amici_solver_cvodes.h>
+#include <amici/amici.h>
+#include <amici/amici_solver_cvodes.h>
 
 #include "../tests/cpputest/testfunctions.h" // for Modell_Test
 

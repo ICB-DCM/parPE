@@ -1,6 +1,5 @@
 #include "steadyStateMultiConditionDataprovider.h"
-#include "optimizationOptions.h"
-#include <amici_model.h>
+#include <optimizationOptions.h>
 #include <cstdio>
 #include <misc.h>
 #include <multiConditionProblemResultWriter.h>

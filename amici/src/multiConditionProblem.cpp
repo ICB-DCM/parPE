@@ -8,10 +8,9 @@
 #include <misc.h>
 #include <hierachicalOptimization.h>
 
-#include <amici_interface_cpp.h>
-#include <amici_model.h>
-#include <rdata.h>
-#include <amici_serialization.h>
+#include <amici/amici_model.h>
+#include <amici/rdata.h>
+#include <amici/amici_serialization.h>
 
 #include <cassert>
 #include <cstring>

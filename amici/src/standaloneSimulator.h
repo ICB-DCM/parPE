@@ -3,9 +3,7 @@
 
 #include <multiConditionProblem.h>
 
-#include <amici.h>
-#include <edata.h>
-#include <rdata.h>
+#include <amici/amici.h>
 
 namespace parpe {
 

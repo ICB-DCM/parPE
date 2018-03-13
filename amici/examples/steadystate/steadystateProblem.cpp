@@ -2,12 +2,11 @@
 #include "hdf5Misc.h"
 #include "optimizationOptions.h"
 #include "wrapfunctions.h"
-#include <amici_hdf5.h>
-#include <amici_model.h>
 #include <cassert>
 #include <cstring>
 #include <iostream>
 #include <misc.h>
+#include <amici/amici_hdf5.h>
 
 ExampleSteadystateProblem::ExampleSteadystateProblem(const std::string &dataFileName)
     : file(H5::H5File(dataFileName, H5F_ACC_RDONLY))

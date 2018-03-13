@@ -1,7 +1,6 @@
 #include "standaloneSimulator.h"
 #include <SimulationRunner.h>
 #include <simulationResultWriter.h>
-#include <amici_interface_cpp.h>
 #include <LoadBalancerMaster.h>
 #include <LoadBalancerWorker.h>
 #include <optimizationOptions.h>

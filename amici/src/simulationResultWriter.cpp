@@ -1,10 +1,6 @@
 #include <simulationResultWriter.h>
 #include <hdf5Misc.h>
 
-#include <rdata.h>
-#include <edata.h>
-#include <amici_model.h>
-
 #include <cstdio>
 #include <math.h> // NAN
 

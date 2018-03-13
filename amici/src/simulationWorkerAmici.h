@@ -3,8 +3,8 @@
 
 #include <misc.h>
 
-#include <include/rdata.h>
-#include <amici_serialization.h>
+#include <amici/rdata.h>
+#include <amici/amici_serialization.h>
 
 #include <boost/serialization/array.hpp>
 #include <boost/serialization/vector.hpp>

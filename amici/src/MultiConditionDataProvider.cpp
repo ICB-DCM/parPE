@@ -1,12 +1,13 @@
 #include "MultiConditionDataProvider.h"
 #include "logging.h"
 #include "misc.h"
-#include <amici_hdf5.h>
-#include <amici_misc.h>
-#include <amici_model.h>
+
+#include <amici/amici.h>
+#include <amici/amici_hdf5.h>
+
 #include <cassert>
 #include <cstring>
-#include <edata.h>
+
 
 namespace parpe {
 
@@ -67,8 +68,6 @@ int MultiConditionDataProvider::getNumberOfConditions() const {
 
     int d1, d2, d3;
     hdf5GetDatasetDimensions(fileId, hdf5MeasurementPath.c_str(), 3, &d1, &d2, &d3);
-
-    assert(d1 >= 0);
 
     return d1;
 }

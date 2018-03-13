@@ -2,10 +2,13 @@
 #define MULTICONDITIONDATAPROVIDER_H
 
 #include <hdf5Misc.h>
-#include <string>
-#include <amici.h>
+
+#include <amici/amici.h>
+
 #include <memory>
+#include <string>
 #include <vector>
+
 #include <H5Cpp.h>
 
 

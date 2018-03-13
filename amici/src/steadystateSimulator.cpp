@@ -1,11 +1,13 @@
 #include "steadystateSimulator.h"
-#include <amici_interface_cpp.h>
+
+#include <logging.h>
+#include <parpeException.h>
+
 #include <cassert>
 #include <cmath>
 #include <cstring>
-#include <logging.h>
+
 #include <mpi.h>
-#include <parpeException.h>
 
 namespace parpe {
 

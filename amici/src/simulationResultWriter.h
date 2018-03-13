@@ -2,7 +2,7 @@
 #define PARPE_AMICI_SIMULATION_RESULT_WRITER_H
 
 #include <string>
-#include <amici.h>
+#include <amici/amici.h>
 #include <H5Cpp.h>
 
 namespace parpe {
