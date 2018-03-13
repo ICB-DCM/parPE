@@ -2,11 +2,23 @@
 #define AMICI_HDF5_H
 
 #include <string>
+#include <memory>
+#include <vector>
 
-#include <hdf5.h>
-#include <hdf5_hl.h>
+#include <H5Cpp.h>
 
 #undef AMI_HDF5_H_DEBUG
+
+/* Macros for enabling/disabling  HDF5 error auto-printing
+ * AMICI_H5_SAVE_ERROR_HANDLER and AMICI_H5_RESTORE_ERROR_HANDLER must be called
+ * within the same context, otherwise the stack handler is lost. */
+#define AMICI_H5_SAVE_ERROR_HANDLER                                            \
+    herr_t (*old_func)(void *);                                                \
+    void *old_client_data;                                                     \
+    H5Eget_auto1(&old_func, &old_client_data);                                 \
+    H5Eset_auto1(NULL, NULL)
+
+#define AMICI_H5_RESTORE_ERROR_HANDLER H5Eset_auto1(old_func, old_client_data)
 
 namespace amici {
 
@@ -15,15 +27,25 @@ class ExpData;
 class Model;
 class Solver;
 
+namespace hdf5 {
+
+
 /* Functions for reading and writing AMICI data to/from HDF5 files. */
-// TODO: proper type checking, exception instead of return code, c++ api; check if all fields are read and saved
+
+/**
+ * @brief Open the given file for writing. Append if exists, create if not.
+ * @param hdf5filename
+ * @return
+ */
+H5::H5File createOrOpenForWriting(std::string const& hdf5filename);
+
 /**
  * @brief Read solver options from HDF5 file
  * @param fileId hdf5 file handle to read from
  * @param solver solver to set options on
  * @param datasetPath Path inside the HDF5 file
  */
-void readSolverSettingsFromHDF5(hid_t fileId, Solver& solver, std::string const& datasetPath);
+void readSolverSettingsFromHDF5(const H5::H5File &file, Solver& solver, std::string const& datasetPath);
 
 /**
  * @brief Read solver options from HDF5 file
@@ -47,95 +69,129 @@ void readModelDataFromHDF5(std::string const& hdffile, Model& model, std::string
  * @param model model to set data on
  * @param datasetPath Path inside the HDF5 file
  */
-void readModelDataFromHDF5(hid_t fileId, Model& model, std::string const& datasetPath);
+void readModelDataFromHDF5(H5::H5File const&file, Model& model, std::string const& datasetPath);
 
 
 /**
-  * @brief AMI_HDF5_writeReturnData writes ReturnData struct to attributes of an
- * HDF5 dataset
+  * @brief Write ReturnData struct to HDF5 dataset
   * @param rdata Data to write
   * @param hdffile Filename of HDF5 file
   * @param datasetPath Full dataset path inside the HDF5 file (will be created)
   */
 
-void AMI_HDF5_writeReturnData(const ReturnData *rdata,
-                                      const char *hdffile,
-                                      const char *datasetPath);
+void writeReturnData(const ReturnData &rdata,
+                     H5::H5File& file,
+                     const std::string& hdf5Location);
+
+void writeReturnData(const ReturnData &rdata,
+                     std::string const& hdf5Filename,
+                     const std::string& hdf5Location);
+
+void writeReturnDataDiagnosis(const ReturnData &rdata,
+                     H5::H5File& file,
+                     const std::string& hdf5Location);
+
 /**
- * @brief AMI_HDF5_readSimulationExpData reads AMICI experimental data from
+ * @brief Create the given group and possibly parents
+ * @param file
+ * @param groupPath
+ * @param recursively
+ */
+void createGroup(H5::H5File& file,
+                 std::string const& groupPath,
+                 bool recursively = true);
+
+/**
+ * @brief readSimulationExpData reads AMICI experimental data from
  * attributes in HDF5 file.
- * @param hdffile Name of HDF5 file
- * @param dataObject Path inside the HDF5 file to object having ExpData as
+ * @param hdf5Filename Name of HDF5 file
+ * @param hdf5Root Path inside the HDF5 file to object having ExpData as
  * attributes
+ * @param model The model for which data is to be read
  * @return
  */
 
-ExpData *AMI_HDF5_readSimulationExpData(const char *hdffile,
-                                                const char *dataObject,
-                                                Model *model);
+std::unique_ptr<ExpData> readSimulationExpData(const std::string &hdf5Filename,
+                                               const std::string &hdf5Root,
+                                               const Model &model);
 
 /**
- * @brief AMI_HDF5_attributeExists Check whether an attribute with the given
+ * @brief attributeExists Check whether an attribute with the given
  * name exists on the given dataset
  * @param fileId The HDF5 file object
  * @param datasetPath Dataset of which attributes should be checked
  * @param attributeName Name of the attribute of interest
  * @return
  */
-int AMI_HDF5_attributeExists(hid_t fileId, const char *datasetPath,
-                                     const char *attributeName);
+bool attributeExists(H5::H5File const& file,
+                     const std::string &optionsObject,
+                     const std::string &attributeName);
 
-// Helper functions to reading and writing HDF5 attributes:
+bool attributeExists(H5::H5Object const& object,
+                     const std::string &attributeName);
 
-herr_t AMI_HDF5_createAndWriteDouble2DAttribute(
-    hid_t dataset, const char *attributeName, const double *buffer, hsize_t m,
-    hsize_t n);
 
-herr_t AMI_HDF5_createAndWriteDouble3DAttribute(
-    hid_t dataset, const char *attributeName, const double *buffer, hsize_t m,
-    hsize_t n, hsize_t o);
+void createAndWriteInt1DDataset(H5::H5File& file,
+                                     std::string const& datasetName,
+                                     const int *buffer, hsize_t m);
 
-double AMI_HDF5_getDoubleScalarAttribute(hid_t file_id,
-                                                 const char *optionsObject,
-                                                 const char *attributeName, double *attributeValue);
+void createAndWriteInt1DDataset(H5::H5File& file,
+                                std::string const& datasetName,
+                                std::vector<int> const& buffer);
 
-int AMI_HDF5_getIntScalarAttribute(hid_t file_id,
-                                           const char *optionsObject,
-                                           const char *attributeName, int *attributeValue);
+void createAndWriteInt2DDataset(H5::H5File& file,
+                                     std::string const& datasetName,
+                                     const int *buffer, hsize_t m,
+                                     hsize_t n);
 
-int AMI_HDF5_getDoubleArrayAttribute(hid_t file_id,
-                                             const char *optionsObject,
-                                             const char *attributeName,
-                                             double **destination,
-                                             hsize_t *length);
+void createAndWriteDouble1DDataset(H5::H5File& file,
+                                     std::string const& datasetName,
+                                     const double *buffer, hsize_t m);
 
-void AMI_HDF5_getIntArrayAttribute(hid_t file_id,
-                                           const char *optionsObject,
-                                           const char *attributeName,
-                                           int **destination, hsize_t *length);
+void createAndWriteDouble2DDataset(H5::H5File& file,
+                                     std::string const& datasetName,
+                                     const double *buffer, hsize_t m,
+                                     hsize_t n);
 
-int AMI_HDF5_getDoubleArrayAttribute2D(hid_t file_id,
-                                                const char *optionsObject,
-                                                const char *attributeName,
-                                                double **destination,
-                                                hsize_t *m, hsize_t *n);
+void createAndWriteDouble3DDataset(H5::H5File& file,
+                                     std::string const& datasetName,
+                                     const double *buffer, hsize_t m,
+                                     hsize_t n, hsize_t o);
 
-int AMI_HDF5_getDoubleArrayAttribute3D(hid_t file_id,
-                                               const char *optionsObject,
-                                               const char *attributeName,
-                                               double **destination, hsize_t *m,
-                                               hsize_t *n, hsize_t *o);
+double getDoubleScalarAttribute(const H5::H5File &file,
+                                const std::string &optionsObject,
+                                const std::string &attributeName);
 
-void AMI_HDF5_getDoubleArrayAttribute4D(
-    hid_t file_id, const char *optionsObject, const char *attributeName,
-    double **destination, hsize_t *m, hsize_t *n, hsize_t *o, hsize_t *pp);
+int getIntScalarAttribute(const H5::H5File &file,
+                          const std::string &optionsObject,
+                          const std::string &attributeName);
 
-void AMI_HDF5_setAttributeIntFromDouble(hid_t file_id,
-                                                const char *obj_name,
-                                                const char *attr_name,
-                                                const double *bufferDouble,
-                                                size_t size);
 
+std::vector<int> getIntDataset1D(const H5::H5File &file,
+                                              std::string const& name);
+
+std::vector<double> getDoubleDataset1D(const H5::H5File &file,
+                                              std::string const& name);
+
+std::vector<double> getDoubleDataset2D(const H5::H5File &file,
+                                              std::string const& name,
+                                              hsize_t &m, hsize_t &n);
+
+std::vector<double> getDoubleDataset3D(const H5::H5File &file,
+                                              std::string const& name,
+                                              hsize_t &m, hsize_t &n, hsize_t &o);
+
+/**
+ * @brief Check if the given location (group, link or dataset) exists in the given file
+ * @param filename
+ * @param location
+ * @return
+ */
+bool locationExists(std::string const& filename, std::string const& location);
+
+bool locationExists(H5::H5File const& file, std::string const& location);
+
+} // namespace hdf5
 } // namespace amici
 
 #endif
