@@ -1,10 +1,10 @@
 /**
- * @file   amici_cblas.cpp
+ * @file   cblas.cpp
  * @brief  BLAS routines required by AMICI
  *
  **/
 
-#include "amici/amici_defines.h"
+#include "amici/defines.h"
 
 #ifdef __APPLE__
 #include <Accelerate/Accelerate.h>

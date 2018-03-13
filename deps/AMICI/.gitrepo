@@ -5,8 +5,8 @@
 ;
 [subrepo]
 	remote = git@github.com:ICB-DCM/AMICI.git
-	branch = feature_275_cleanup_headers
-	commit = 9130c25d4a7912f32f3658eb37c29873fc2171ed
-	parent = a890d580f63695b18488ea672a3b58afb78e22c1
+	branch = master
+	commit = 373f6a0c4a24909f393e6ad0b75bd69be4e55ff8
+	parent = 646fabbbe0af6d6a1fcbfd50d92d5702864a8d27
 	cmdver = 0.4.0
 	method = merge
