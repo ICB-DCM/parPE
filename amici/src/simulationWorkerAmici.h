@@ -4,7 +4,7 @@
 #include <misc.h>
 
 #include <amici/rdata.h>
-#include <amici/amici_serialization.h>
+#include <amici/serialization.h>
 
 #include <boost/serialization/array.hpp>
 #include <boost/serialization/vector.hpp>

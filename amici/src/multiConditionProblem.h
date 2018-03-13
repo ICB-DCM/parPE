@@ -11,7 +11,7 @@
 #include <SimulationRunner.h>
 
 #include <amici/amici.h>
-#include <amici/amici_serialization.h>
+#include <amici/serialization.h>
 #include <boost/serialization/map.hpp>
 
 #include <memory>

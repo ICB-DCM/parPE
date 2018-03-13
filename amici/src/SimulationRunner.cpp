@@ -4,7 +4,7 @@
 #include <LoadBalancerWorker.h>
 #include <omp.h>
 
-#include <amici/amici_serialization.h>
+#include <amici/serialization.h>
 #include <boost/serialization/map.hpp>
 
 namespace parpe {

@@ -7,7 +7,7 @@
 #include <algorithm>
 #include <numeric>
 #include <amici/amici.h>
-#include <amici/amici_solver_cvodes.h>
+#include <amici/solver_cvodes.h>
 
 #include "../tests/cpputest/testfunctions.h" // for Modell_Test
 

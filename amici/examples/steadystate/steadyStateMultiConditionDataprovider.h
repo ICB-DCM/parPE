@@ -5,7 +5,7 @@
 #include "multiConditionProblem.h"
 #include "steadystateProblem.h"
 
-#include <amici/amici_hdf5.h>
+#include <amici/hdf5.h>
 #include <amici/amici.h>
 
 #include <memory>

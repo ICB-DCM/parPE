@@ -3,7 +3,7 @@
 #include "misc.h"
 
 #include <amici/amici.h>
-#include <amici/amici_hdf5.h>
+#include <amici/hdf5.h>
 
 #include <cassert>
 #include <cstring>

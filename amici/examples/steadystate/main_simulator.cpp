@@ -4,7 +4,7 @@
 #include <cstdio> // remove
 #include <iostream>
 
-#include <amici/amici_model.h>
+#include <amici/model.h>
 
 std::unique_ptr<amici::Model> getModel();
 
