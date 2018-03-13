@@ -48,7 +48,7 @@ MultiConditionDataProvider::MultiConditionDataProvider(std::unique_ptr<amici::Mo
     hdf5ParameterMinPath = hdf5ParameterPath + "/lowerBound";
     hdf5ParameterMaxPath = hdf5ParameterPath + "/upperBound";
 
-    amici::readModelDataFromHDF5(fileId, *this->model, hdf5AmiciOptionPath.c_str());
+    amici::hdf5::readModelDataFromHDF5(fileId, *this->model, hdf5AmiciOptionPath.c_str());
 }
 
 /**
@@ -141,7 +141,7 @@ std::unique_ptr<amici::ExpData> MultiConditionDataProvider::getExperimentalDataF
     int conditionIdx) const {
     auto lock = hdf5MutexGetLock();
 
-    auto edata = std::make_unique<amici::ExpData>(model.get());
+    auto edata = std::make_unique<amici::ExpData>(*model);
     assert(edata && "Failed getting experimental data. Check data file.");
 
     hdf5Read3DDoubleHyperslab(fileId, hdf5MeasurementPath.c_str(),
@@ -210,7 +210,7 @@ std::unique_ptr<amici::Solver> MultiConditionDataProvider::getSolver() const
     auto solver = model->getSolver();
     auto lock = hdf5MutexGetLock();
 
-    amici::readSolverSettingsFromHDF5(fileId, *solver, hdf5AmiciOptionPath.c_str());
+    amici::hdf5::readSolverSettingsFromHDF5(fileId, *solver, hdf5AmiciOptionPath.c_str());
     return solver;
 }
 

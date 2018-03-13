@@ -5,6 +5,8 @@
 #include <rdata.h>
 #include <amici.h>
 
+#include <memory>
+
 namespace parpe {
 
 
@@ -23,7 +25,7 @@ class SteadystateSimulator {
      * @return
      */
 
-    static amici::ReturnData *getSteadystateSolution(amici::Model &model, amici::Solver &solver,
+    static std::unique_ptr<amici::ReturnData> getSteadystateSolution(amici::Model &model, amici::Solver &solver,
                                               amici::ExpData *edata, int *status,
                                               int *iterationDone);
 
