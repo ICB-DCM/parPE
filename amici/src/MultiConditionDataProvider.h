@@ -99,6 +99,16 @@ class MultiConditionDataProvider {
     virtual void mapAndSetOptimizationToSimulationVariables(
             int conditionIdx, const double *optimization, double *simulation) const;
 
+
+    /**
+     * @brief Check if the data in the HDF5 file has consistent dimensions.
+     * Aborts if not.
+     */
+    virtual void checkDataIntegrity() const;
+
+    // void printInfo() const;
+
+
     /**
      * @brief Update fixed model parameters in of the passed UserData object for
      * the specified condition.

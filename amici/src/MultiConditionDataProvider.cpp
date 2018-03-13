@@ -233,7 +233,6 @@ void MultiConditionDataProvider::updateSimulationParameters(int conditionIndex, 
 
 void MultiConditionDataProvider::copyInputData(H5::H5File target)
 {
-    auto lock = hdf5MutexGetLock();
 
     H5Ocopy(fileId, "/", target.getId(), "/inputData", H5P_DEFAULT, H5P_DEFAULT);
     H5Fflush(target.getId(), H5F_SCOPE_LOCAL);
@@ -241,6 +240,56 @@ void MultiConditionDataProvider::copyInputData(H5::H5File target)
 
 hid_t MultiConditionDataProvider::getHdf5FileId() const { return fileId; }
 
+
+//void MultiConditionDataProvider::printInfo() const {
+    //    int maxwidth = 25;
+    //    int numMultiStartRuns = getNumMultiStartRuns();
+    //    logmessage(LOGLVL_INFO, "%*s: %d", maxwidth, "Num multistart optims",
+    //    numMultiStartRuns);
+
+    //    for(int i = 0; i < numMultiStartRuns; ++i) {
+    //        int numStarts = getNumLocalOptimizationsForMultiStartRun(i);
+    //        logmessage(LOGLVL_INFO, "%*s: %d", maxwidth, "Num starts",
+    //        numStarts);
+    //        logmessage(LOGLVL_INFO, "%*s: %d", maxwidth, "Genotypes",
+    //        getNumGenotypes());
+    //    }
+
+    //    logmessage(LOGLVL_INFO, "%*s: %d", maxwidth, "Max iterations",
+    //    getMaxIter());
+//}
+
+
+
+void MultiConditionDataProvider::checkDataIntegrity() const {
+    int numConditions = getNumberOfConditions();
+
+    auto model = getModel();
+
+    int d1, d2, d3;
+
+    auto lock = hdf5MutexGetLock();
+
+    assert(H5Lexists(fileId, hdf5MeasurementPath.c_str(), H5P_DEFAULT));
+    assert(H5Lexists(fileId, hdf5MeasurementSigmaPath.c_str(), H5P_DEFAULT));
+
+    parpe::hdf5GetDatasetDimensions(fileId, hdf5MeasurementPath.c_str(),
+                                    3, &d1, &d2, &d3);
+    assert(d1 >= numConditions);
+    assert(d2 == model->nytrue);
+    assert(d3 >= model->nt());
+
+    parpe::hdf5GetDatasetDimensions(fileId, hdf5MeasurementSigmaPath.c_str(),
+                                    3, &d1, &d2, &d3);
+    assert(d1 >= numConditions);
+    assert(d2 == model->nytrue);
+    assert(d3 >= model->nt());
+
+    parpe::hdf5GetDatasetDimensions(fileId, hdf5ConditionPath.c_str(),
+                                    2, &d1, &d2);
+    assert(d1 == model->nk());
+    assert(d2 >= numConditions);
+}
 
 void JobIdentifier::print() const {
     printf("%d.%d.%d.%d", idxMultiStart, idxLocalOptimization,
@@ -251,5 +300,6 @@ void JobIdentifier::sprint(char *buffer) const {
     sprintf(buffer, "%d.%d.%d.%d", idxMultiStart, idxLocalOptimization,
             idxLocalOptimizationIteration, idxConditions);
 }
+
 
 } // namespace parpe

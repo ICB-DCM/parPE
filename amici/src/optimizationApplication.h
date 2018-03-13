@@ -22,7 +22,7 @@ class OptimizationApplication {
   public:
     OptimizationApplication() = default;
 
-    ~OptimizationApplication();
+    virtual ~OptimizationApplication();
 
     /**
      * @brief User-provided problem initialization.
