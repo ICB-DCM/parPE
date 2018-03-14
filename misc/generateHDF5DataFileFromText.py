@@ -641,7 +641,7 @@ class HDF5DataGenerator:
         g.attrs['linsol'] = 9
         g.attrs['lmm'] = 2
         g.attrs['maxsteps'] = 10000
-        g.attrs['newton_preeq'] = 1
+        g.attrs['newton_preeq'] = 0
         g.attrs['nmaxevent'] = 0
         g.attrs['ordering'] = 0
         g.attrs['rtol'] = 1e-8
