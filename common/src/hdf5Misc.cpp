@@ -413,7 +413,7 @@ std::vector<int> hdf5Read2DIntegerHyperslab(H5::H5File file, std::string const& 
     H5::DataSpace memspace(2, count);
     std::vector<int> buffer(size0 * size1);
 
-    dataset.read(buffer.data(), H5T_NATIVE_DOUBLE, memspace, filespace);
+    dataset.read(buffer.data(), H5T_NATIVE_INT, memspace, filespace);
 
     return buffer;
 }
