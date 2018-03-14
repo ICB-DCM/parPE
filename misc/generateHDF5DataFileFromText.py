@@ -527,7 +527,7 @@ class HDF5DataGenerator:
         dset = self.f.require_dataset("/offsetParametersMapToObservables", 
                                       shape=(len(use), 3), 
                                       dtype='<i4')
-        dset.attrs['numScalings'] = len(offsetsForHierarchicalIndices)
+        dset.attrs['numOffsets'] = len(offsetsForHierarchicalIndices)
         dset[:] = use
         
     def ensureOffsetIsOffsetWithPositiveSign(self, scaling):
@@ -650,12 +650,13 @@ class HDF5DataGenerator:
         self.f.require_dataset('/amiciOptions/ts', shape=(len(self.timepoints),), dtype="f8", data=self.timepoints)
 
         # set pscale based on whether is scaling parameter (log10 for non-hierarchical, lin for hierarchical)
+        linParametersAmiciIndices = []
+        np = self.f['/parameters/modelParameterNames'].shape[0]
         if '/offsetParameterIndices' in self.f:
-            np = self.f['/parameters/modelParameterNames'].shape[0]
             offsetNames = self.f['/parameters/parameterNames'][self.f['/offsetParameterIndices']]
-            amiciIdx = set([self.getGenericScalingParameterName(o) for o in offsetNames])
-            amiciIdx = [ self.f['/parameters/modelParameterNames'][:].tolist().index(p) for p in amiciIdx ]
-            self.f.require_dataset('/amiciOptions/pscale', shape=(np,), dtype="<i4", data=[2 * (ip not in amiciIdx) for ip in range(np) ])
+            linParametersAmiciIndices = set([self.getGenericScalingParameterName(o) for o in offsetNames])
+            linParametersAmiciIndices = [ self.f['/parameters/modelParameterNames'][:].tolist().index(p) for p in linParametersAmiciIndices ]
+        self.f.require_dataset('/amiciOptions/pscale', shape=(np,), dtype="<i4", data=[2 * (ip not in linParametersAmiciIndices) for ip in range(np) ])
 
 
     def writeOptimizationOptions(self):
