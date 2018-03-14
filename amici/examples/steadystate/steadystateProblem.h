@@ -1,10 +1,9 @@
 #ifndef STEADYSTATEPROBLEM_H
 #define STEADYSTATEPROBLEM_H
 
-#include "include/amici_interface_cpp.h"
 #include "optimizationProblem.h"
 #include <H5Cpp.h>
-#include <amici.h>
+#include <amici/amici.h>
 
 
 /**

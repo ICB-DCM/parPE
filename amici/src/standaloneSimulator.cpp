@@ -1,7 +1,6 @@
 #include "standaloneSimulator.h"
 #include <SimulationRunner.h>
 #include <simulationResultWriter.h>
-#include <amici_interface_cpp.h>
 #include <LoadBalancerMaster.h>
 #include <LoadBalancerWorker.h>
 #include <optimizationOptions.h>
@@ -100,8 +99,7 @@ int StandaloneSimulator::run(const std::string& resultFile, const std::string& r
                         job.recvBuffer.data(), job.recvBuffer.size());
             swap(jobResults[dataIdx], result);
             job.recvBuffer = std::vector<char>(); // free buffer
-            modelOutputs[dataIdx].resize(model->nt() * model->nytrue);
-            std::copy_n(jobResults[dataIdx].rdata->y, modelOutputs[dataIdx].size(), modelOutputs[dataIdx].data());
+            modelOutputs[dataIdx] = jobResults[dataIdx].rdata->y;
         }
 
         //  compute scaling factors
@@ -112,8 +110,8 @@ int StandaloneSimulator::run(const std::string& resultFile, const std::string& r
 
         for(int dataIdx = 0; (unsigned) dataIdx < jobs.size(); ++dataIdx) {
             JobResultAmiciSimulation& result = jobResults[dataIdx];
-            std::copy(modelOutputs[dataIdx].begin(), modelOutputs[dataIdx].end(), result.rdata->y);
-            *result.rdata->llh = -hierarchical.computeNegLogLikelihood(allMeasurements[dataIdx], modelOutputs[dataIdx]);
+            result.rdata->y = modelOutputs[dataIdx];
+            result.rdata->llh = -hierarchical.computeNegLogLikelihood(allMeasurements[dataIdx], modelOutputs[dataIdx]);
             auto edata = dataProvider->getExperimentalDataForCondition(dataIdx);
             rw.saveSimulationResults(edata.get(), result.rdata.get(), dataIdx);
         }
@@ -160,26 +158,13 @@ void StandaloneSimulator::messageHandler(std::vector<char> &buffer, int jobId)
 #endif
 
     // pack & cleanup
-    delete[] result.rdata->J;
-    result.rdata->J = nullptr;
-
-    delete[] result.rdata->sigmay;
-    result.rdata->sigmay = nullptr;
-
-    delete[] result.rdata->ssigmay;
-    result.rdata->ssigmay = nullptr;
-
-    delete[] result.rdata->sx0;
-    result.rdata->sx0 = nullptr;
-
-    delete[] result.rdata->x;
-    result.rdata->x = nullptr;
-
-    delete[] result.rdata->x0;
-    result.rdata->x0 = nullptr;
-
-    delete[] result.rdata->xdot;
-    result.rdata->xdot = nullptr;
+    result.rdata->J = std::vector<double>();
+    result.rdata->sigmay = std::vector<double>();
+    result.rdata->ssigmay = std::vector<double>();
+    result.rdata->sx0 = std::vector<double>();
+    result.rdata->x = std::vector<double>();
+    result.rdata->x0 = std::vector<double>();
+    result.rdata->xdot = std::vector<double>();
 
     buffer = amici::serializeToStdVec<JobResultAmiciSimulation>(result);
 }
@@ -192,12 +177,10 @@ JobResultAmiciSimulation StandaloneSimulator::runSimulation(JobIdentifier path, 
 
     auto edata = dataProvider->getExperimentalDataForCondition(path.idxConditions);
 
-    auto rdata = std::unique_ptr<amici::ReturnData>(
-                amici::getSimulationResults(model, edata.get(), solver));
+    auto rdata = amici::runAmiciSimulation(solver, edata.get(), model);
 
     RELEASE_ASSERT(rdata != nullptr, "");
-    int status = *rdata->status;
-    return JobResultAmiciSimulation(status, std::move(rdata), 0.0);
+    return JobResultAmiciSimulation(rdata->status, std::move(rdata), 0.0);
 }
 
 

@@ -2,12 +2,11 @@
 #include "hdf5Misc.h"
 #include "optimizationOptions.h"
 #include "wrapfunctions.h"
-#include <amici_hdf5.h>
-#include <amici_model.h>
 #include <cassert>
 #include <cstring>
 #include <iostream>
 #include <misc.h>
+#include <amici/hdf5.h>
 
 ExampleSteadystateProblem::ExampleSteadystateProblem(const std::string &dataFileName)
     : file(H5::H5File(dataFileName, H5F_ACC_RDONLY))
@@ -51,11 +50,8 @@ void ExampleSteadystateGradientFunction::requireSensitivities(
 }
 
 void ExampleSteadystateGradientFunction::setupUserData(int conditionIdx) {
-    hsize_t length;
-    double *buf;
-    amici::AMI_HDF5_getDoubleArrayAttribute(fileId, "parameters", "t", &buf, &length);
-    model->setTimepoints(std::vector<double>(buf, buf+length));
-    delete[] buf;
+    hsize_t m = 0, n = 0;
+    model->setTimepoints(amici::hdf5::getDoubleDataset2D(fileId, "/parameters/t", m, n));
 
     // set model constants
     readFixedParameters(conditionIdx);
@@ -67,7 +63,7 @@ void ExampleSteadystateGradientFunction::setupUserData(int conditionIdx) {
 }
 
 void ExampleSteadystateGradientFunction::setupExpData(int conditionIdx) {
-    edata.reset(new amici::ExpData(model.get()));
+    edata.reset(new amici::ExpData(*model));
     readMeasurement(conditionIdx);
 }
 
@@ -103,16 +99,15 @@ parpe::FunctionEvaluationStatus ExampleSteadystateGradientFunction::evaluate(con
 
     requireSensitivities(gradient);
 
-    std::unique_ptr<amici::ReturnData> rdata {amici::getSimulationResults(*model, edata.get(), *solver)};
-    int status = (int)*rdata->status;
+    auto rdata = amici::runAmiciSimulation(*solver, edata.get(), *model);
 
-    fval = -*rdata->llh;
+    fval = -rdata->llh;
 
     if (gradient)
         for (int i = 0; i < model->np(); ++i)
             gradient[i] = -rdata->sllh[i];
 
-    return status == 0 ? parpe::functionEvaluationSuccess : parpe::functionEvaluationFailure;
+    return rdata->status == 0 ? parpe::functionEvaluationSuccess : parpe::functionEvaluationFailure;
 }
 
 int ExampleSteadystateGradientFunction::numParameters() const

@@ -3,8 +3,7 @@
 #include "CppUTestExt/MockSupport.h"
 #include "misc.h"
 #include "testingMisc.h"
-#include <amici_model.h>
-#include <amici_solver_cvodes.h>
+#include <amici/amici.h>
 #include "../tests/cpputest/testfunctions.h" // for Modell_Test
 
 // clang-format off

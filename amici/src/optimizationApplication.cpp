@@ -14,7 +14,6 @@
 #include <random>
 #include <csignal>
 
-#include <amici.h>
 #include <amiciMisc.h>
 
 #include <mpi.h>

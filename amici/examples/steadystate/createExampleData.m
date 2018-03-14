@@ -62,8 +62,10 @@ function [ output_args ] = createExampleData(  )
     %string
     
     h5write(hdfFile, '/fixedParameters/k', kAll);
-    h5writeatt(hdfFile, '/parameters/', 'ptrue', log10(p));
-    h5writeatt(hdfFile, '/parameters/', 't', t);
+    h5create(hdfFile, '/parameters/ptrue', size(p));
+    h5write(hdfFile, '/parameters/ptrue', log10(p));
+    h5create(hdfFile, '/parameters/t', size(t));
+    h5write(hdfFile, '/parameters/t', t);
     h5write(hdfFile, '/measurements/ysigma', sigmaY * ones(numT, numY, numConditions));
 
     for i = 1:numConditions

@@ -8,10 +8,9 @@
 #include <misc.h>
 #include <hierachicalOptimization.h>
 
-#include <amici_interface_cpp.h>
-#include <amici_model.h>
-#include <rdata.h>
-#include <amici_serialization.h>
+#include <amici/model.h>
+#include <amici/rdata.h>
+#include <amici/serialization.h>
 
 #include <cassert>
 #include <cstring>
@@ -136,15 +135,11 @@ SimulationRunnerSimple::AmiciResultPackageSimple AmiciSummedGradientFunction<T>:
 
     auto edata = dataProvider->getExperimentalDataForCondition(path.idxConditions);
 
-    auto rdata =  std::make_unique<amici::ReturnData>(solver, &model);
-
+    std::unique_ptr<amici::ReturnData> rdata;
     try {
-        amici::runAmiciSimulation(solver, edata.get(), rdata.get(), model);
-        *rdata->status = AMICI_SUCCESS;
-        // TODO this should happen inside amici
-        rdata->applyChainRuleFactorToSimulationResults(&model);
+        rdata = amici::runAmiciSimulation(solver, edata.get(), model);
     } catch (std::exception &e) {
-        logmessage(LOGLVL_DEBUG, "Error during simulation: %s (%d)", e.what(), (int)*rdata->status);
+        logmessage(LOGLVL_DEBUG, "Error during simulation: %s (%d)", e.what(), rdata->status);
         rdata->invalidateLLH();
     }
 
@@ -156,17 +151,16 @@ SimulationRunnerSimple::AmiciResultPackageSimple AmiciSummedGradientFunction<T>:
     if (resultWriter && (solver.getSensitivityOrder() > amici::AMICI_SENSI_ORDER_NONE || logLineSearch)) {
         int iterationsUntilSteadystate = -1;
         logSimulation(resultWriter->getFileId(), resultWriter->getOptimizationPath(),
-                      model.getParameters(), rdata->llh[0], rdata->sllh,
-                timeSeconds, model.np(), model.nx, rdata->x,
-                rdata->sx, model.ny, rdata->y, jobId,
-                iterationsUntilSteadystate, *rdata->status);
+                      model.getParameters(), rdata->llh, rdata->sllh.data(),
+                timeSeconds, model.np(), model.nx, rdata->x.data(),
+                rdata->sx.data(), model.ny, rdata->y.data(), jobId,
+                      iterationsUntilSteadystate, rdata->status);
     }
-    int status = (int)*rdata->status;
     return SimulationRunnerSimple::AmiciResultPackageSimple {
-        *rdata->llh,
-                 (solver.getSensitivityOrder() > amici::AMICI_SENSI_ORDER_NONE)?std::vector<double>(rdata->sllh, rdata->sllh + rdata->np):std::vector<double>(),
-                std::vector<double>(rdata->y, rdata->y + rdata->nt * rdata->nytrue),
-                status
+        rdata->llh,
+                (solver.getSensitivityOrder() > amici::AMICI_SENSI_ORDER_NONE) ? rdata->sllh : std::vector<double>(),
+                rdata->y,
+                rdata->status
     };
 }
 
@@ -455,7 +449,7 @@ void printSimulationResult(const JobIdentifier &path, int jobId, amici::ReturnDa
     char pathStrBuf[100];
     path.sprint(pathStrBuf);
     logmessage(LOGLVL_DEBUG, "Result for %s (%d): %g (%d) (%.4fs)", pathStrBuf,
-               jobId, rdata->llh[0], (int)*rdata->status, timeSeconds);
+               jobId, rdata->llh, rdata->status, timeSeconds);
 
 
     // check for NaNs

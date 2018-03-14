@@ -1,17 +1,19 @@
 #include "steadystateSimulator.h"
-#include <amici_interface_cpp.h>
+
+#include <logging.h>
+#include <parpeException.h>
+
 #include <cassert>
 #include <cmath>
 #include <cstring>
-#include <logging.h>
+
 #include <mpi.h>
-#include <parpeException.h>
 
 namespace parpe {
 
 #define XDOT_REL_TOLERANCE 1e-6
 
-amici::ReturnData *SteadystateSimulator::getSteadystateSolution(amici::Model &model,
+std::unique_ptr<amici::ReturnData> SteadystateSimulator::getSteadystateSolution(amici::Model &model,
                                                          amici::Solver &solver,
                                                          amici::ExpData *edata,
                                                          int *status,
@@ -20,22 +22,22 @@ amici::ReturnData *SteadystateSimulator::getSteadystateSolution(amici::Model &mo
         throw(ParPEException("SteadystateSimulator::getSteadystateSolution "
                              "works only with nt == 1"));
 
-    amici::ReturnData *rdata = NULL;
+    std::unique_ptr<amici::ReturnData> rdata;
     bool inSteadyState = FALSE;
     int iterations = 0;
 
     while (!inSteadyState) {
         ++iterations;
 
-        rdata = amici::getSimulationResults(model, edata, solver);
+        rdata = amici::runAmiciSimulation(solver, edata, model);
 
-        if (*rdata->status < 0) {
+        if (rdata->status < 0) {
             error("Failed to integrate."); // TODO add dataset info,
                                            // case/control, celline
             return rdata;
         }
 
-        inSteadyState = reachedSteadyState(rdata->xdot, rdata->x, rdata->nt,
+        inSteadyState = reachedSteadyState(rdata->xdot.data(), rdata->x.data(), rdata->nt,
                                            rdata->nx, XDOT_REL_TOLERANCE);
 
         if (inSteadyState) {
@@ -57,9 +59,7 @@ amici::ReturnData *SteadystateSimulator::getSteadystateSolution(amici::Model &mo
         }
 
         // use previous solution as initial conditions
-        model.setInitialStates(std::vector<double>(rdata->x, rdata->x + rdata->nx));
-
-        delete rdata;
+        model.setInitialStates(rdata->x);
     }
     // logmessage(LOGLVL_DEBUG, "getSteadystateSolutionForExperiment:
     // steadystate after %d iterations", iterations);

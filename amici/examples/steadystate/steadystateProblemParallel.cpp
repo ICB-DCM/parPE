@@ -117,16 +117,14 @@ int ExampleSteadystateGradientFunctionParallel::evaluateSerial(const double *par
         dataProvider->updateFixedSimulationParameters(i, *model);
         auto edata = dataProvider->getExperimentalDataForCondition(i);
 
-        auto rdata = amici::getSimulationResults(*model, edata.get(), *solver);
-        status += (int)*rdata->status;
+        auto rdata = amici::runAmiciSimulation(*solver, edata.get(), *model);
+        status += rdata->status;
 
-        objFunVal -= *rdata->llh;
+        objFunVal -= rdata->llh;
 
         if (objFunGrad)
             for (int ip = 0; ip < model->np(); ++ip)
                 objFunGrad[ip] -= rdata->sllh[ip];
-
-        delete rdata;
     }
 
     return status;
@@ -158,16 +156,15 @@ void ExampleSteadystateGradientFunctionParallel::messageHandler(std::vector<char
     }
 
     // run simulation
-    auto rdata = amici::getSimulationResults(*model, edata.get(), *solver);
+    auto rdata = amici::runAmiciSimulation(*solver, edata.get(), *model);
     // printf("Result for %d: %f\n", conditionIdx, *rdata->llh);
     // pack results
     buffer.resize(sizeof(double) * (model->nplist() + 1));
     double *doubleBuffer = (double *) buffer.data();
 
-    doubleBuffer[0] = rdata->llh[0];
+    doubleBuffer[0] = rdata->llh;
     if (needGradient)
         for (int i = 0; i < model->nplist(); ++i)
             doubleBuffer[1 + i] = rdata->sllh[i];
 
-    delete rdata;
 }

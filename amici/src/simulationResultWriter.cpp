@@ -1,10 +1,6 @@
 #include <simulationResultWriter.h>
 #include <hdf5Misc.h>
 
-#include <rdata.h>
-#include <edata.h>
-#include <amici_model.h>
-
 #include <cstdio>
 #include <math.h> // NAN
 
@@ -123,7 +119,7 @@ void SimulationResultWriter::saveSimulationResults(const amici::ExpData *edata, 
         hsize_t start2[] = {0, 0, 0};
         memspace.selectHyperslab(H5S_SELECT_SET, count, start2);
 
-        dataset.write(rdata->y, H5::PredType::NATIVE_DOUBLE, memspace, filespace);
+        dataset.write(rdata->y.data(), H5::PredType::NATIVE_DOUBLE, memspace, filespace);
     }
 
     if(saveX) {
@@ -138,7 +134,7 @@ void SimulationResultWriter::saveSimulationResults(const amici::ExpData *edata, 
         hsize_t start2[] = {0, 0, 0};
         memspace.selectHyperslab(H5S_SELECT_SET, count, start2);
 
-        dataset.write(rdata->x, H5::PredType::NATIVE_DOUBLE, memspace, filespace);
+        dataset.write(rdata->x.data(), H5::PredType::NATIVE_DOUBLE, memspace, filespace);
     }
 
     if(saveLlh) {
@@ -153,7 +149,7 @@ void SimulationResultWriter::saveSimulationResults(const amici::ExpData *edata, 
         hsize_t start2[] = {0};
         memspace.selectHyperslab(H5S_SELECT_SET, count, start2);
 
-        dataset.write(rdata->llh, H5::PredType::NATIVE_DOUBLE, memspace, filespace);
+        dataset.write(&rdata->llh, H5::PredType::NATIVE_DOUBLE, memspace, filespace);
     }
 
     file.flush(H5F_SCOPE_LOCAL);

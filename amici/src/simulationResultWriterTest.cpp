@@ -1,15 +1,13 @@
 #include <simulationResultWriter.h>
 #include <hdf5Misc.h>
 #include "testingMisc.h"
-#include <amici_model.h>
-#include <edata.h>
-#include <rdata.h>
 #include "CppUTest/TestHarness.h"
 #include "CppUTestExt/MockSupport.h"
 #include <vector>
 #include <algorithm>
 #include <numeric>
-#include <amici_solver_cvodes.h>
+#include <amici/amici.h>
+#include <amici/solver_cvodes.h>
 
 #include "../tests/cpputest/testfunctions.h" // for Modell_Test
 
@@ -47,20 +45,19 @@ TEST(simulationResultWriter, testResultWriter) {
     std::vector<double> timepoints {1.0, 2.0};
     model.setTimepoints(timepoints);
 
-    amici::ExpData edata(&model);
+    amici::ExpData edata(model);
     std::vector<double> measurements {1.1, 2.1, 3.1, 4.1};
     CHECK_TRUE(measurements.size() == (unsigned) model.nytrue * model.nt());
     edata.setObservedData(measurements.data());
 
     amici::CVodeSolver solver;
     amici::ReturnData rdata(solver, &model);
-    std::vector<double> x(model.nt() * model.nx);
-    std::iota(x.begin(), x.end(), 0);
-    std::copy(x.begin(), x.end(), rdata.x);
-    *rdata.llh = 1.2345;
-    std::vector<double> ysim(measurements.size());
-    std::iota(ysim.begin(), ysim.end(), 10);
-    std::copy(ysim.begin(), ysim.end(), rdata.y);
+    rdata.x.resize(model.nt() * model.nx);
+    std::iota(rdata.x.begin(), rdata.x.end(), 0);
+
+    rdata.llh = 1.2345;
+    rdata.y.resize(measurements.size());
+    std::iota(rdata.y.begin(), rdata.y.end(), 10);
 
     auto file = rw.reopenFile();
 
@@ -76,11 +73,11 @@ TEST(simulationResultWriter, testResultWriter) {
     rw.saveSimulationResults(&edata, &rdata, 1);
 
     // verify
-    std::vector<double> xAct(x.size());
+    std::vector<double> xAct(rdata.x.size());
     parpe::hdf5Read3DDoubleHyperslab(file.getId(), rw.xPath.c_str(),
                                      1, model.nt(), model.nxtrue,
                                      1, 0, 0, xAct.data());
-    parpe::checkEqualArray(x.data(), xAct.data(), xAct.size(), 1e-16, 1e-16);
+    parpe::checkEqualArray(rdata.x.data(), xAct.data(), xAct.size(), 1e-16, 1e-16);
 
     std::vector<double> yMesAct(measurements.size());
     parpe::hdf5Read3DDoubleHyperslab(file.getId(), rw.yMesPath.c_str(),

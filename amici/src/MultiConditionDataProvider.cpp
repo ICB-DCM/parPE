@@ -1,12 +1,13 @@
 #include "MultiConditionDataProvider.h"
 #include "logging.h"
 #include "misc.h"
-#include <amici_hdf5.h>
-#include <amici_misc.h>
-#include <amici_model.h>
+
+#include <amici/amici.h>
+#include <amici/hdf5.h>
+
 #include <cassert>
 #include <cstring>
-#include <edata.h>
+
 
 namespace parpe {
 
@@ -48,7 +49,7 @@ MultiConditionDataProvider::MultiConditionDataProvider(std::unique_ptr<amici::Mo
     hdf5ParameterMinPath = hdf5ParameterPath + "/lowerBound";
     hdf5ParameterMaxPath = hdf5ParameterPath + "/upperBound";
 
-    amici::readModelDataFromHDF5(fileId, *this->model, hdf5AmiciOptionPath.c_str());
+    amici::hdf5::readModelDataFromHDF5(fileId, *this->model, hdf5AmiciOptionPath.c_str());
 }
 
 /**
@@ -67,8 +68,6 @@ int MultiConditionDataProvider::getNumberOfConditions() const {
 
     int d1, d2, d3;
     hdf5GetDatasetDimensions(fileId, hdf5MeasurementPath.c_str(), 3, &d1, &d2, &d3);
-
-    assert(d1 >= 0);
 
     return d1;
 }
@@ -141,7 +140,7 @@ std::unique_ptr<amici::ExpData> MultiConditionDataProvider::getExperimentalDataF
     int conditionIdx) const {
     auto lock = hdf5MutexGetLock();
 
-    auto edata = std::make_unique<amici::ExpData>(model.get());
+    auto edata = std::make_unique<amici::ExpData>(*model);
     assert(edata && "Failed getting experimental data. Check data file.");
 
     hdf5Read3DDoubleHyperslab(fileId, hdf5MeasurementPath.c_str(),
@@ -210,7 +209,7 @@ std::unique_ptr<amici::Solver> MultiConditionDataProvider::getSolver() const
     auto solver = model->getSolver();
     auto lock = hdf5MutexGetLock();
 
-    amici::readSolverSettingsFromHDF5(fileId, *solver, hdf5AmiciOptionPath.c_str());
+    amici::hdf5::readSolverSettingsFromHDF5(fileId, *solver, hdf5AmiciOptionPath.c_str());
     return solver;
 }
 

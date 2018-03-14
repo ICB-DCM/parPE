@@ -1,6 +1,5 @@
 #include "steadyStateMultiConditionDataprovider.h"
-#include "optimizationOptions.h"
-#include <amici_model.h>
+#include <optimizationOptions.h>
 #include <cstdio>
 #include <misc.h>
 #include <multiConditionProblemResultWriter.h>
@@ -25,20 +24,13 @@ std::unique_ptr<amici::Solver> SteadyStateMultiConditionDataProvider::getSolver(
 
 
 void SteadyStateMultiConditionDataProvider::setupModelAndSolver(amici::Model &model, amici::Solver &solver) const {
-
-    hsize_t length;
-    auto timePath = rootPath + "/parameters";
-    double *buf;
-    amici::AMI_HDF5_getDoubleArrayAttribute(fileId, timePath.c_str(), "t", &buf, &length);
-    model.setTimepoints(std::vector<double>(buf, buf+length));
-    delete[] buf;
-
-    // calculate sensitivities for all parameters
-    model.requireSensitivitiesForAllParameters();
-
+    hsize_t m = 0, n = 0;
+    model.setTimepoints(amici::hdf5::getDoubleDataset2D(fileId, rootPath + "/parameters/t", m, n));
     // set model constants
     updateFixedSimulationParameters(0, model);
 
+    // calculate sensitivities for all parameters
+    model.requireSensitivitiesForAllParameters();
     model.setParameterScale(amici::AMICI_SCALING_LOG10);
 
     solver.setSensitivityOrder(amici::AMICI_SENSI_ORDER_FIRST);
