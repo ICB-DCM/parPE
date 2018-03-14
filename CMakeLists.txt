@@ -140,6 +140,7 @@ if(BUILD_DOCS)
 
     add_custom_target(doc
         COMMAND ${DOXYGEN_EXECUTABLE} ${doxyfile}
+        COMMAND cd ${CMAKE_CURRENT_LIST_DIR}/doc/doxy/latex/ && pdflatex refman.tex
         WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
         COMMENT "Generating API documentation with Doxygen"
         VERBATIM)
