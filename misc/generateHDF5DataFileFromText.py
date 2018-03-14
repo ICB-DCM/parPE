@@ -647,11 +647,14 @@ class HDF5DataGenerator:
         g.attrs['rtol'] = 1e-8
         g.attrs['stldet'] = 1
 
+        np = self.f['/parameters/modelParameterNames'].shape[0]
+
+        self.f.require_dataset('/amiciOptions/sens_ind', shape=(np,), dtype="<i4", data=range(np))
+
         self.f.require_dataset('/amiciOptions/ts', shape=(len(self.timepoints),), dtype="f8", data=self.timepoints)
 
         # set pscale based on whether is scaling parameter (log10 for non-hierarchical, lin for hierarchical)
         linParametersAmiciIndices = []
-        np = self.f['/parameters/modelParameterNames'].shape[0]
         if '/offsetParameterIndices' in self.f:
             offsetNames = self.f['/parameters/parameterNames'][self.f['/offsetParameterIndices']]
             linParametersAmiciIndices = set([self.getGenericScalingParameterName(o) for o in offsetNames])
