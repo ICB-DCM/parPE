@@ -631,7 +631,6 @@ class HDF5DataGenerator:
         #g.attrs['qpositivex'] = [0.0] * len(self.amiciSyms.readStateNames())
         #g.attrs['kappa'] = [np.nan] * len(self.amiciSyms.readParameterNames())
         #g.attrs['theta'] = [np.nan] * self.nk
-        g.attrs['ts'] = self.timepoints
         g.attrs['sensi'] = 1
         g.attrs['sensi_meth'] = 2
         g.attrs['tstart'] = 0.0
@@ -648,9 +647,9 @@ class HDF5DataGenerator:
         g.attrs['rtol'] = 1e-8
         g.attrs['stldet'] = 1
 
+        self.f.require_dataset('/amiciOptions/ts', shape=(len(self.timepoints),), dtype="f8", data=self.timepoints)
 
         # set pscale based on whether is scaling parameter (log10 for non-hierarchical, lin for hierarchical)
-        
         if '/offsetParameterIndices' in self.f:
             np = self.f['/parameters/modelParameterNames'].shape[0]
             offsetNames = self.f['/parameters/parameterNames'][self.f['/offsetParameterIndices']]
