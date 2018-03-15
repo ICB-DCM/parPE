@@ -17,7 +17,7 @@ namespace parpe {
 enum class ParameterTransformation { none, log10 };
 enum class ErrorModel { normal }; // TODO logNormal, laplace
 
-class ScalingFactorHdf5Reader;
+class AnalyticalParameterHdf5Reader;
 
 /**
  * @brief The HierachicalOptimizationWrapper class is a wrapper for hierarchical optimization of
@@ -29,7 +29,15 @@ class HierachicalOptimizationWrapper : public GradientFunction
 {
 public:
     HierachicalOptimizationWrapper(std::unique_ptr<AmiciSummedGradientFunction<int>> fun,
-                                   std::unique_ptr<ScalingFactorHdf5Reader> reader,
+                                   H5::H5File file, std::string hdf5RootPath,
+                                   int numConditions,
+                                   int numObservables,
+                                   int numTimepoints,
+                                   ParameterTransformation parameterTransformation,
+                                   ErrorModel errorModel);
+
+    HierachicalOptimizationWrapper(std::unique_ptr<AmiciSummedGradientFunction<int>> fun,
+                                   std::unique_ptr<AnalyticalParameterHdf5Reader> reader,
                                    int numConditions,
                                    int numObservables,
                                    int numTimepoints,
@@ -123,7 +131,7 @@ public:
 private:
     /** Sorted list of the indices of the scaling parameters
       * (sorting makes it easier to splice scaling and remaining parameters in getFullParameters) */
-    std::unique_ptr<ScalingFactorHdf5Reader> reader;
+    std::unique_ptr<AnalyticalParameterHdf5Reader> reader;
     std::vector<int> proportionalityFactorIndices;
     int numConditions;
     int numObservables;
@@ -135,46 +143,60 @@ private:
 
 
 /**
- * @brief The ScalingFactorHdf5Reader class reads the dependencies of experimental conditions
- * and observables on scaling factors from an HDF5 file.
+ * @brief The AnalyticalParameterHdf5Reader class reads from an HDF5 file the dependencies of experimental conditions
+ * and observables on parameters which are to be computed analytically.
  *
- * TODO interface
+ * TODO:      * @param parameterScalingPath List stating whether the wrapped functions considers
+     * these parameters as log-scaled, or ... parameters
+ * This should come not from here, but from the wrapped functions above -> add method there
  */
-class ScalingFactorHdf5Reader {
+class AnalyticalParameterHdf5Reader {
 public:
-    ScalingFactorHdf5Reader(H5::H5File file, std::string rootPath = "/");
+    /**
+     * @brief AnalyticalParameterHdf5Reader
+     * @param file
+     * @param scalingParameterIndicesPath location in hdf5 file of the list of indices
+     * of the analytically determined parameters within the overall optimization parameters
+     * @param mapPath path of to the dataset with the parameter-oberservable-condition mapping
+     */
+    AnalyticalParameterHdf5Reader(H5::H5File file,
+                                  std::string analyticalParameterIndicesPath,
+                                  std::string mapPath);
 
     /**
-     * @brief Get vector of condition indices for which the scaling factor with the given index is used.
-     * @param scalingIdx
-     * @return
+     * @brief Get vector of condition indices for which the parameter with the given index is used.
+     * @param parameterIndex referring to the index in the analytical parameter list in the hdf5 file
+     * (*not* the optimization parameter index).
+     * @return Vector of condition indice
      */
-    std::vector<int> getConditionsForScalingParameter(int scalingIdx) const;
+    std::vector<int> getConditionsForParameter(int parameterIndex) const;
 
     /**
-     * @brief Get vector of observable indices for the specified condition for which the specified scaling factor is used.
-     * @param scalingIdx
+     * @brief Get vector of observable indices for the specified condition for which the specified parameter is used.
+     * @param parameterIndex
      * @return
      */
-    std::vector<int> const& getObservablesForScalingParameter(int scalingIdx, int conditionIdx) const;
+    std::vector<int> const& getObservablesForParameter(int parameterIndex, int conditionIdx) const;
 
     /**
-     * @brief Vector with indices of the proportionality factors with the overall parameter vector
+     * @brief Vector with indices of the of the analytically determined parameters within the
+     * overall optimization parameter vector
      * @return
      */
-    std::vector<int> getProportionalityFactorIndices();
+    std::vector<int> getOptimizationParameterIndices();
 
+    int getNumAnalyticalParameters(H5::DataSet &dataset) const;
 private:
-    void readFromFile();
+    void readParameterConditionObservableMappingFromFile();
+    std::vector<int> readRawMap(H5::DataSet& dataset, hsize_t &nRows, hsize_t &nCols);
 
     H5::H5File file;
     std::string rootPath;
     std::string mapPath;
-    std::string scalingParameterIndicesPath;
+    std::string analyticalParameterIndicesPath;
 
     // x[scalingIdx][conditionIdx] -> std::vector of observableIndicies
     std::vector<std::map<int, std::vector<int>>> mapping;
-    std::vector<int> proportionalityFactorIndices;
 };
 
 

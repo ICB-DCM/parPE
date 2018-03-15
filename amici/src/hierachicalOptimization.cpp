@@ -13,7 +13,32 @@ namespace parpe {
 
 HierachicalOptimizationWrapper::HierachicalOptimizationWrapper(
         std::unique_ptr<AmiciSummedGradientFunction<int> > fun,
-        std::unique_ptr<parpe::ScalingFactorHdf5Reader> reader,
+        H5::H5File file, std::string hdf5RootPath,
+        int numConditions, int numObservables, int numTimepoints,
+        ParameterTransformation parameterTransformation, ErrorModel errorModel)
+    : fun(std::move(fun)),
+      numConditions(numConditions),
+      numObservables(numObservables),
+      numTimepoints(numTimepoints),
+      parameterTransformation(parameterTransformation),
+      errorModel(errorModel) {
+    reader = std::make_unique<AnalyticalParameterHdf5Reader>(file,
+                                                             hdf5RootPath + "/scalingParameterIndices",
+                                                             hdf5RootPath + "/scalingParametersMapToObservables");
+
+    if(parameterTransformation != ParameterTransformation::log10 || errorModel != ErrorModel::normal) {
+        throw ParPEException("Only log10 and gaussian noise are supported so far.");
+    }
+
+    proportionalityFactorIndices = this->reader->getOptimizationParameterIndices();
+    std::sort(this->proportionalityFactorIndices.begin(),
+              this->proportionalityFactorIndices.end());
+
+}
+
+HierachicalOptimizationWrapper::HierachicalOptimizationWrapper(
+        std::unique_ptr<AmiciSummedGradientFunction<int> > fun,
+        std::unique_ptr<parpe::AnalyticalParameterHdf5Reader> reader,
         int numConditions, int numObservables, int numTimepoints,
         ParameterTransformation parameterTransformation,
         ErrorModel errorModel)
@@ -29,7 +54,7 @@ HierachicalOptimizationWrapper::HierachicalOptimizationWrapper(
         throw ParPEException("Only log10 and gaussian noise are supported so far.");
     }
 
-    proportionalityFactorIndices = this->reader->getProportionalityFactorIndices();
+    proportionalityFactorIndices = this->reader->getOptimizationParameterIndices();
     std::sort(this->proportionalityFactorIndices.begin(),
               this->proportionalityFactorIndices.end());
 }
@@ -114,9 +139,9 @@ void HierachicalOptimizationWrapper::applyOptimalScalings(std::vector<double> co
 
 
 void HierachicalOptimizationWrapper::applyOptimalScaling(int scalingIdx, double scaling, std::vector<std::vector<double> > &modelOutputs) const {
-    auto dependentConditions = reader->getConditionsForScalingParameter(scalingIdx);
+    auto dependentConditions = reader->getConditionsForParameter(scalingIdx);
     for (auto const conditionIdx: dependentConditions) {
-        auto dependentObservables = reader->getObservablesForScalingParameter(scalingIdx, conditionIdx);
+        auto dependentObservables = reader->getObservablesForParameter(scalingIdx, conditionIdx);
         for(auto const observableIdx: dependentObservables) {
             assert(observableIdx < numObservables);
             for(int timeIdx = 0; timeIdx < numTimepoints; ++timeIdx) {
@@ -127,13 +152,13 @@ void HierachicalOptimizationWrapper::applyOptimalScaling(int scalingIdx, double 
 }
 
 double HierachicalOptimizationWrapper::computeAnalyticalScalings(int scalingIdx, const std::vector<std::vector<double> > &modelOutputsUnscaled, const std::vector<std::vector<double> > &measurements) const {
-    auto dependentConditions = reader->getConditionsForScalingParameter(scalingIdx);
+    auto dependentConditions = reader->getConditionsForParameter(scalingIdx);
 
     double enumerator = 0.0;
     double denominator = 0.0;
 
     for (auto const conditionIdx: dependentConditions) {
-        auto dependentObservables = reader->getObservablesForScalingParameter(scalingIdx, conditionIdx);
+        auto dependentObservables = reader->getObservablesForParameter(scalingIdx, conditionIdx);
         for(auto const observableIdx: dependentObservables) {
             for(int timeIdx = 0; timeIdx < numTimepoints; ++timeIdx) {
                 double mes = measurements[conditionIdx][observableIdx + timeIdx * numObservables];
@@ -257,84 +282,85 @@ const std::vector<int> &HierachicalOptimizationWrapper::getProportionalityFactor
     return proportionalityFactorIndices;
 }
 
-ScalingFactorHdf5Reader::ScalingFactorHdf5Reader(H5::H5File file, std::string rootPath)
-    :file(file), rootPath(rootPath)
+
+AnalyticalParameterHdf5Reader::AnalyticalParameterHdf5Reader(H5::H5File file,
+                                                             std::string scalingParameterIndicesPath,
+                                                             std::string mapPath)
+    :file(file),
+      mapPath(mapPath),
+      analyticalParameterIndicesPath(scalingParameterIndicesPath)
 {
-    scalingParameterIndicesPath = rootPath + "/scalingParameterIndices";
-    mapPath = rootPath + "/scalingParametersMapToObservables";
-    readFromFile();
+    readParameterConditionObservableMappingFromFile();
 }
 
-std::vector<int> ScalingFactorHdf5Reader::getConditionsForScalingParameter(int scalingIdx) const {
+std::vector<int> AnalyticalParameterHdf5Reader::getConditionsForParameter(int parameterIndex) const {
     std::vector<int> result;
-    result.reserve(mapping[scalingIdx].size());
-    for (auto const& kvp : mapping[scalingIdx])
+    result.reserve(mapping[parameterIndex].size());
+    for (auto const& kvp : mapping[parameterIndex])
         result.push_back(kvp.first);
     return result;
 }
 
-const std::vector<int> &ScalingFactorHdf5Reader::getObservablesForScalingParameter(int scalingIdx, int conditionIdx) const {
-    return mapping[scalingIdx].at(conditionIdx);
+const std::vector<int> &AnalyticalParameterHdf5Reader::getObservablesForParameter(
+        int parameterIndex, int conditionIdx) const {
+    return mapping[parameterIndex].at(conditionIdx);
 }
 
-std::vector<int> ScalingFactorHdf5Reader::getProportionalityFactorIndices() {
+std::vector<int> AnalyticalParameterHdf5Reader::getOptimizationParameterIndices() {
     auto lock = hdf5MutexGetLock();
-    std::vector<int> proportionalityFactorIndices;
+    std::vector<int> analyticalParameterIndices;
     H5_SAVE_ERROR_HANDLER; // don't show error if dataset is missing
     try {
-        auto dataset = file.openDataSet(scalingParameterIndicesPath);
+        auto dataset = file.openDataSet(analyticalParameterIndicesPath);
         auto dataspace = dataset.getSpace();
 
         auto ndims = dataspace.getSimpleExtentNdims();
         if(ndims != 1)
-            throw ParPEException("Invalid dimension in getProportionalityFactorIndices.");
+            throw ParPEException("Invalid dimension in getOptimizationParameterIndices.");
         hsize_t numScalings = 0;
         dataspace.getSimpleExtentDims(&numScalings);
 
-        proportionalityFactorIndices.resize(numScalings);
-        dataset.read(proportionalityFactorIndices.data(), H5::PredType::NATIVE_INT);
+        analyticalParameterIndices.resize(numScalings);
+        dataset.read(analyticalParameterIndices.data(), H5::PredType::NATIVE_INT);
     } catch (H5::FileIException e) {
+        // we just return an empty list
     }
     H5_RESTORE_ERROR_HANDLER;
 
-    return proportionalityFactorIndices;
+    return analyticalParameterIndices;
 }
 
-void ScalingFactorHdf5Reader::readFromFile() {
+int AnalyticalParameterHdf5Reader::getNumAnalyticalParameters(H5::DataSet& dataset) const
+{
+    auto attribute = dataset.openAttribute("numScalings");
+    auto type = attribute.getDataType();
+    int numScalings = 0;
+    attribute.read(type, &numScalings);
+
+    return numScalings;
+}
+
+void AnalyticalParameterHdf5Reader::readParameterConditionObservableMappingFromFile() {
     auto lock = hdf5MutexGetLock();
     H5_SAVE_ERROR_HANDLER;
     try {
         auto dataset = file.openDataSet(mapPath);
-        auto dataspace = dataset.getSpace();
-
-        auto attribute = dataset.openAttribute("numScalings");
-        auto type = attribute.getDataType();
-        int numScalings = 0;
-        attribute.read(type, &numScalings);
+        int numScalings = getNumAnalyticalParameters(dataset);
         if(numScalings == 0)
             return;
 
-        auto ndims = dataspace.getSimpleExtentNdims();
-        if(ndims != 2)
-            throw ParPEException("Invalid dimension for scaling parameter map, expected 2.");
-        hsize_t dims[ndims];
-        dataspace.getSimpleExtentDims(dims);
-        hsize_t const nRows = dims[0];
-        hsize_t const nCols = dims[1];
-        if(nRows && nCols != 3)
-            throw ParPEException("Invalid dimension for scaling parameter map, expected 2.");
-
         // column indices in dataspace
-        constexpr int scalingCol = 0;
+        constexpr int parameterCol = 0;
         constexpr int conditionCol = 1;
         constexpr int observableCol = 2;
 
-        std::vector<int> rawMap(nRows * nCols);
-        dataset.read(rawMap.data(), H5::PredType::NATIVE_INT);
-
         mapping.resize(numScalings);
+
+        hsize_t nRows = 0, nCols = 0;
+        auto rawMap = readRawMap(dataset, nRows, nCols);
+
         for(int i = 0; (unsigned)i < nRows; ++i) {
-            int scalingIdx = rawMap[i * nCols + scalingCol];
+            int scalingIdx = rawMap[i * nCols + parameterCol];
             int conditionIdx = rawMap[i * nCols + conditionCol];
             int observableIdx = rawMap[i * nCols + observableCol];
             mapping[scalingIdx][conditionIdx].push_back(observableIdx);
@@ -344,6 +370,25 @@ void ScalingFactorHdf5Reader::readFromFile() {
     }
     H5_RESTORE_ERROR_HANDLER;
 
+}
+
+std::vector<int> AnalyticalParameterHdf5Reader::readRawMap(H5::DataSet& dataset, hsize_t& nRows, hsize_t& nCols)
+{
+    auto dataspace = dataset.getSpace();
+    auto ndims = dataspace.getSimpleExtentNdims();
+    if(ndims != 2)
+        throw ParPEException("Invalid dimension for analytical parameter map, expected 2.");
+    hsize_t dims[ndims];
+    dataspace.getSimpleExtentDims(dims);
+    nRows = dims[0];
+    nCols = dims[1];
+    if(nRows && nCols != 3)
+        throw ParPEException("Invalid dimension for analytical parameter map, expected 2.");
+
+    std::vector<int> rawMap(nRows * nCols);
+    dataset.read(rawMap.data(), H5::PredType::NATIVE_INT);
+
+    return rawMap;
 }
 
 HierachicalOptimizationProblemWrapper::HierachicalOptimizationProblemWrapper(
@@ -356,7 +401,7 @@ HierachicalOptimizationProblemWrapper::HierachicalOptimizationProblemWrapper(
     costFun.reset(new HierachicalOptimizationWrapper(
                       std::unique_ptr<AmiciSummedGradientFunction<int>>(
                           dynamic_cast<AmiciSummedGradientFunction<int>*>(wrappedFun->gradFun.get())),
-                      std::make_unique<ScalingFactorHdf5Reader>(dataProvider->file, "/"),
+                      dataProvider->file, "/",
                       dataProvider->getNumberOfConditions(),
                       dataProvider->model->nytrue,
                       dataProvider->model->nt(), ParameterTransformation::log10,

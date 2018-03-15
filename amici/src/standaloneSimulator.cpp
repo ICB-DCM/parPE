@@ -36,9 +36,12 @@ int StandaloneSimulator::run(const std::string& resultFile, const std::string& r
 
 
     std::vector<double> parameters;
-    auto hierarchicalReader = new ScalingFactorHdf5Reader (H5::H5File(dataProvider->getHdf5FileId()), "/inputData");
-    auto proportionalityFactorIndices = hierarchicalReader->getProportionalityFactorIndices();
-    HierachicalOptimizationWrapper hierarchical(nullptr, std::unique_ptr<ScalingFactorHdf5Reader>(hierarchicalReader),
+    auto hierarchicalReader = new AnalyticalParameterHdf5Reader (H5::H5File(dataProvider->getHdf5FileId()),
+                                                                 "/inputData/scalingParameterIndices",
+                                                                 "/inputData/scalingParametersMapToObservables");
+
+    auto proportionalityFactorIndices = hierarchicalReader->getOptimizationParameterIndices();
+    HierachicalOptimizationWrapper hierarchical(nullptr, std::unique_ptr<AnalyticalParameterHdf5Reader>(hierarchicalReader),
                                    dataProvider->getNumberOfConditions(), model->nytrue, model->nt(),
                                    ParameterTransformation::log10, ErrorModel::normal);
     if(proportionalityFactorIndices.size() > 0) {

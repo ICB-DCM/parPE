@@ -20,21 +20,23 @@ TEST_GROUP(hierarchicalOptimization){
 TEST(hierarchicalOptimization, reader) {
     //     mappingToObservable = np.array([[ 0, 1, 0], [ 0, 2, 0], [ 1, 1, 1], [1, 2, 1], [1, 3, 1]])
 
-    parpe::ScalingFactorHdf5Reader r(H5::H5File(TESTFILE, H5F_ACC_RDONLY), "/");
+    parpe::AnalyticalParameterHdf5Reader r(H5::H5File(TESTFILE, H5F_ACC_RDONLY),
+                                           "/scalingParameterIndices",
+                                           "/scalingParametersMapToObservables");
 
     auto exp1 = std::vector<int> {1, 2};
-    CHECK_TRUE(exp1 == r.getConditionsForScalingParameter(0));
+    CHECK_TRUE(exp1 == r.getConditionsForParameter(0));
 
     auto exp2 = std::vector<int> {1, 2, 3};
-    CHECK_TRUE(exp2 == r.getConditionsForScalingParameter(1));
+    CHECK_TRUE(exp2 == r.getConditionsForParameter(1));
 
-    CHECK_THROWS(std::out_of_range, r.getObservablesForScalingParameter(0, 0));
+    CHECK_THROWS(std::out_of_range, r.getObservablesForParameter(0, 0));
 
     auto exp3 = std::vector<int> {1};
-    CHECK_TRUE(exp3 == r.getObservablesForScalingParameter(1, 1));
+    CHECK_TRUE(exp3 == r.getObservablesForParameter(1, 1));
 
     auto exp4 = std::vector<int> {0, 1};
-    CHECK_TRUE(exp4 == r.getProportionalityFactorIndices());
+    CHECK_TRUE(exp4 == r.getOptimizationParameterIndices());
 }
 
 
@@ -89,7 +91,9 @@ TEST(hierarchicalOptimization, hierarchicalOptimization) {
 
     auto fun = std::make_unique<AmiciSummedGradientFunctionDummy>();
     auto fun2 = fun.get();
-    auto r = std::make_unique<parpe::ScalingFactorHdf5Reader>(H5::H5File(TESTFILE, H5F_ACC_RDONLY), "/");
+    auto r = std::make_unique<parpe::AnalyticalParameterHdf5Reader>(H5::H5File(TESTFILE, H5F_ACC_RDONLY),
+                                                                    "/scalingParameterIndices",
+                                                                    "/scalingParametersMapToObservables");
     parpe::HierachicalOptimizationWrapper w(std::move(fun), std::move(r),
                                             fun->numConditions, fun->numObservables, fun->numTimepoints,
                                             parpe::ParameterTransformation::log10, parpe::ErrorModel::normal);
