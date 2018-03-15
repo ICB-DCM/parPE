@@ -203,11 +203,9 @@ class HDF5DataGenerator:
         get the parameter name as specified in the sbml/amici model.
         
         (i.e. remove suffix from given scaling parameter)
-        
-        TODO: get rid of _genotypespecific
         """
         
-        return "_".join(scaling.split("_")[:-1]) + "_genotypespecific"
+        return "_".join(scaling.split("_")[:-1])
             
             
     def getGenericScalingParameterNames(self, scalingsUsed):
@@ -226,8 +224,6 @@ class HDF5DataGenerator:
         """
         Remove the "generic" names of the scaling parameter in the model and replace with the instances for the respective experiments 
         """
-        # TODO remove: shouldnt be necessary anymore
-        self.checkOrderingOfScalingParameters(parameterNames)
         
         scalingsUsed = self.getUsedScalingParameters()
         
@@ -239,22 +235,6 @@ class HDF5DataGenerator:
         parameterNames += scalingsUsed
         return parameterNames
     
-
-    def checkOrderingOfScalingParameters(self, parameterNames):
-        """
-        Ensure that parameters which are specific for each genotype are at the end of the parameter vector
-        
-        TODO: remove
-        """
-        foundFirst = False
-        for p in parameterNames:
-            match = re.match(r'.*(genotypespecific|offset|scaling).*', p)
-            if match:
-                foundFirst = True
-            elif foundFirst:
-                print('ERROR: Genotypespecific parameters must be at the end of the parameter vector!')
-                sys.exit(1)
-
     
     def generateFixedParameterMatrix(self):
         """
@@ -654,13 +634,27 @@ class HDF5DataGenerator:
         self.f.require_dataset('/amiciOptions/ts', shape=(len(self.timepoints),), dtype="f8", data=self.timepoints)
 
         # set pscale based on whether is scaling parameter (log10 for non-hierarchical, lin for hierarchical)
-        linParametersAmiciIndices = []
+        linParametersAmiciIndices = self.getAnalyticallyComputedParameterIndices()
+        self.f.require_dataset('/amiciOptions/pscale', shape=(np,), dtype="<i4", data=[2 * (ip not in linParametersAmiciIndices) for ip in range(np) ])
+        # TODO for above parameters, the bounds must be adapted for non-hierarchical optimization!
+        #  or use different pscale then
+        
+    def getAnalyticallyComputedParameterIndices(self):
+        indices = []
         if '/offsetParameterIndices' in self.f:
             offsetNames = self.f['/parameters/parameterNames'][self.f['/offsetParameterIndices']]
-            linParametersAmiciIndices = set([self.getGenericScalingParameterName(o) for o in offsetNames])
-            linParametersAmiciIndices = [ self.f['/parameters/modelParameterNames'][:].tolist().index(p) for p in linParametersAmiciIndices ]
-        self.f.require_dataset('/amiciOptions/pscale', shape=(np,), dtype="<i4", data=[2 * (ip not in linParametersAmiciIndices) for ip in range(np) ])
+            indices = set([self.getGenericScalingParameterName(o) for o in offsetNames])
+            
+        if '/scalingParameterIndices' in self.f:
+            offsetNames = self.f['/parameters/parameterNames'][self.f['/scalingParameterIndices']]
+            indices = set([self.getGenericScalingParameterName(o) for o in offsetNames])
 
+        if '/sigmaParameterIndices' in self.f:
+            offsetNames = self.f['/parameters/parameterNames'][self.f['/sigmaParameterIndices']]
+            indices = set([self.getGenericScalingParameterName(o) for o in offsetNames])
+
+        return [ self.f['/parameters/modelParameterNames'][:].tolist().index(p) for p in indices ]
+        
 
     def writeOptimizationOptions(self):
         """
