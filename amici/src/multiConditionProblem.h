@@ -90,6 +90,8 @@ public:
      */
     virtual void messageHandler(std::vector<char> &buffer, int jobId) const;
 
+    virtual amici::AMICI_parameter_scaling getParameterScaling(int parameterIndex) const;
+
 protected:// for testing
     AmiciSummedGradientFunction() = default;
 

@@ -256,6 +256,12 @@ void AmiciSummedGradientFunction<T>::messageHandler(std::vector<char> &buffer,
     buffer = amici::serializeToStdVec(results);
 }
 
+template<typename T>
+amici::AMICI_parameter_scaling AmiciSummedGradientFunction<T>::getParameterScaling(int parameterIndex) const
+{
+    return model->getParameterScale().at(parameterIndex);
+}
+
 double MultiConditionProblem::getTime() const {
     std::time_t result = std::time(nullptr);
     return result;
