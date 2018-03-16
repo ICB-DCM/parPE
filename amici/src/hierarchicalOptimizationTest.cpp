@@ -96,7 +96,7 @@ TEST(hierarchicalOptimization, hierarchicalOptimization) {
                                                                     "/scalingParametersMapToObservables");
     parpe::HierachicalOptimizationWrapper w(std::move(fun), std::move(r),
                                             fun->numConditions, fun->numObservables, fun->numTimepoints,
-                                            parpe::ParameterTransformation::log10, parpe::ErrorModel::normal);
+                                            parpe::ErrorModel::normal);
 
     CHECK_TRUE(w.numScalingFactors() == 2);
 

@@ -43,7 +43,7 @@ int StandaloneSimulator::run(const std::string& resultFile, const std::string& r
     auto proportionalityFactorIndices = hierarchicalReader->getOptimizationParameterIndices();
     HierachicalOptimizationWrapper hierarchical(nullptr, std::unique_ptr<AnalyticalParameterHdf5Reader>(hierarchicalReader),
                                    dataProvider->getNumberOfConditions(), model->nytrue, model->nt(),
-                                   ParameterTransformation::log10, ErrorModel::normal);
+                                   ErrorModel::normal);
     if(proportionalityFactorIndices.size() > 0) {
         // expand parameter vector
         auto scalingDummy = hierarchical.getDefaultScalingFactors();

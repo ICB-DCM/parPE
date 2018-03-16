@@ -11,23 +11,21 @@
 namespace parpe {
 
 
-HierachicalOptimizationWrapper::HierachicalOptimizationWrapper(
-        std::unique_ptr<AmiciSummedGradientFunction<int> > fun,
+HierachicalOptimizationWrapper::HierachicalOptimizationWrapper(std::unique_ptr<AmiciSummedGradientFunction<int> > fun,
         H5::H5File file, std::string hdf5RootPath,
-        int numConditions, int numObservables, int numTimepoints,
-        ParameterTransformation parameterTransformation, ErrorModel errorModel)
+        int numConditions, int numObservables, int numTimepoints, ErrorModel errorModel)
     : fun(std::move(fun)),
       numConditions(numConditions),
       numObservables(numObservables),
       numTimepoints(numTimepoints),
-      parameterTransformation(parameterTransformation),
-      errorModel(errorModel) {
+      errorModel(errorModel)
+{
     reader = std::make_unique<AnalyticalParameterHdf5Reader>(file,
                                                              hdf5RootPath + "/scalingParameterIndices",
                                                              hdf5RootPath + "/scalingParametersMapToObservables");
 
-    if(parameterTransformation != ParameterTransformation::log10 || errorModel != ErrorModel::normal) {
-        throw ParPEException("Only log10 and gaussian noise are supported so far.");
+    if(errorModel != ErrorModel::normal) {
+        throw ParPEException("Only gaussian noise is supported so far.");
     }
 
     proportionalityFactorIndices = this->reader->getOptimizationParameterIndices();
@@ -36,22 +34,19 @@ HierachicalOptimizationWrapper::HierachicalOptimizationWrapper(
 
 }
 
-HierachicalOptimizationWrapper::HierachicalOptimizationWrapper(
-        std::unique_ptr<AmiciSummedGradientFunction<int> > fun,
+HierachicalOptimizationWrapper::HierachicalOptimizationWrapper(std::unique_ptr<AmiciSummedGradientFunction<int> > fun,
         std::unique_ptr<parpe::AnalyticalParameterHdf5Reader> reader,
         int numConditions, int numObservables, int numTimepoints,
-        ParameterTransformation parameterTransformation,
         ErrorModel errorModel)
     : fun(std::move(fun)),
       reader(std::move(reader)),
       numConditions(numConditions),
       numObservables(numObservables),
       numTimepoints(numTimepoints),
-      parameterTransformation(parameterTransformation),
-      errorModel(errorModel) {
-
-    if(parameterTransformation != ParameterTransformation::log10 || errorModel != ErrorModel::normal) {
-        throw ParPEException("Only log10 and gaussian noise are supported so far.");
+      errorModel(errorModel)
+{
+    if(errorModel != ErrorModel::normal) {
+        throw ParPEException("Only gaussian noise is supported so far.");
     }
 
     proportionalityFactorIndices = this->reader->getOptimizationParameterIndices();
@@ -82,17 +77,22 @@ FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluate(const double *
 
 std::vector<double> HierachicalOptimizationWrapper::getDefaultScalingFactors() const
 {
-    double scaling = NAN;
-    switch (parameterTransformation) {
-    case ParameterTransformation::log10:
-        scaling = 0.0;
-        break;
-    case ParameterTransformation::none:
-        scaling = 1.0;
-        break;
+    auto result = std::vector<double>(numScalingFactors());
+
+    for(int i = 0; i < numScalingFactors(); ++i) {
+        switch (fun->getParameterScaling(proportionalityFactorIndices[i])) {
+        case amici::AMICI_SCALING_LOG10:
+            result[i] = 0.0;
+            break;
+        case amici::AMICI_SCALING_NONE:
+            result[i] = 1.0;
+            break;
+        default:
+            throw(ParPEException("Parameter scaling must be AMICI_SCALING_LOG10 or AMICI_SCALING_NONE."));
+        }
     }
 
-    return std::vector<double>(numScalingFactors(), scaling);
+    return result;
 }
 
 std::vector<std::vector<double> > HierachicalOptimizationWrapper::getUnscaledModelOutputs(const double * const reducedParameters) const {
@@ -126,12 +126,14 @@ void HierachicalOptimizationWrapper::applyOptimalScalings(std::vector<double> co
     for(int i = 0; (unsigned) i < proportionalityFactors.size(); ++i) {
         double scaling = proportionalityFactors[i];
 
-        switch(parameterTransformation) {
-        case ParameterTransformation::none:
+        switch (fun->getParameterScaling(proportionalityFactorIndices[i])) {
+        case amici::AMICI_SCALING_LOG10:
             break;
-        case ParameterTransformation::log10:
+        case amici::AMICI_SCALING_NONE:
             scaling = pow(10, scaling);
             break;
+        default:
+            throw(ParPEException("Parameter scaling must be AMICI_SCALING_LOG10 or AMICI_SCALING_NONE."));
         }
         applyOptimalScaling(i, scaling, modelOutputs);
     }
@@ -174,16 +176,17 @@ double HierachicalOptimizationWrapper::computeAnalyticalScalings(int scalingIdx,
 
     double proportionalityFactor = enumerator / denominator;
 
-    switch (parameterTransformation) {
-    case ParameterTransformation::log10:
+    switch (fun->getParameterScaling(proportionalityFactorIndices[scalingIdx])) {
+    case amici::AMICI_SCALING_LOG10:
         proportionalityFactor = log10(proportionalityFactor);
         break;
-    case ParameterTransformation::none:
+    case amici::AMICI_SCALING_NONE:
         break;
+    default:
+        throw(ParPEException("Parameter scaling must be AMICI_SCALING_LOG10 or AMICI_SCALING_NONE."));
     }
 
-    // TODO ensure positivity!
-    return proportionalityFactor;
+    return proportionalityFactor;       
 }
 
 FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluateWithScalings(
@@ -404,7 +407,7 @@ HierachicalOptimizationProblemWrapper::HierachicalOptimizationProblemWrapper(
                       dataProvider->file, "/",
                       dataProvider->getNumberOfConditions(),
                       dataProvider->model->nytrue,
-                      dataProvider->model->nt(), ParameterTransformation::log10,
+                      dataProvider->model->nt(),
                       ErrorModel::normal));
 }
 

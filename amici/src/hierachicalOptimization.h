@@ -14,7 +14,7 @@
 
 namespace parpe {
 
-enum class ParameterTransformation { none, log10 };
+// Currently using enum from amici enum class ParameterTransformation { none, log10 };
 enum class ErrorModel { normal }; // TODO logNormal, laplace
 
 class AnalyticalParameterHdf5Reader;
@@ -33,7 +33,6 @@ public:
                                    int numConditions,
                                    int numObservables,
                                    int numTimepoints,
-                                   ParameterTransformation parameterTransformation,
                                    ErrorModel errorModel);
 
     HierachicalOptimizationWrapper(std::unique_ptr<AmiciSummedGradientFunction<int>> fun,
@@ -41,7 +40,6 @@ public:
                                    int numConditions,
                                    int numObservables,
                                    int numTimepoints,
-                                   ParameterTransformation parameterTransformation,
                                    ErrorModel errorModel);
 
     /**
@@ -137,7 +135,6 @@ private:
     int numObservables;
     int numTimepoints;
 
-    ParameterTransformation parameterTransformation;
     ErrorModel errorModel;
 };
 
