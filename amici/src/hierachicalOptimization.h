@@ -18,6 +18,7 @@ enum class ParameterTransformation { none, log10 };
 enum class ErrorModel { normal }; // TODO logNormal, laplace
 
 class ScalingFactorHdf5Reader;
+class OffsetParameterHdf5Reader;
 
 /**
  * @brief The HierachicalOptimizationWrapper class is a wrapper for hierarchical optimization of
@@ -29,7 +30,8 @@ class HierachicalOptimizationWrapper : public GradientFunction
 {
 public:
     HierachicalOptimizationWrapper(std::unique_ptr<AmiciSummedGradientFunction<int>> fun,
-                                   std::unique_ptr<ScalingFactorHdf5Reader> reader,
+                                   std::unique_ptr<ScalingFactorHdf5Reader> scalingReader,
+                                   std::unique_ptr<OffsetParameterHdf5Reader> offsetReader,
                                    int numConditions,
                                    int numObservables,
                                    int numTimepoints,
@@ -50,6 +52,8 @@ public:
 
     std::vector<double> getDefaultScalingFactors() const;
 
+    std::vector<double> getDefaultOffsetParameters() const;
+
     /**
      * @brief Run simulations with scaling parameters set to 1.0 and collect model outputs
      * @param reducedParameters parameter vector for `fun` without scaling parameters
@@ -69,6 +73,17 @@ public:
 
     void applyOptimalScaling(int scalingIdx, double scaling, std::vector <std::vector<double>>&  modelOutputs) const;
 
+    /**
+     * @brief Compute offset parameters
+     * @param modelOutputs Model outputs as provided by getModelOutputs
+     * @return the computed offset parameters
+     */
+    std::vector<double> computeAnalyticalOffsets(const std::vector<std::vector<double> > &measurements, std::vector <std::vector<double>>& modelOutputs) const;
+
+    void applyOptimalOffsets(std::vector<double> const& proportionalityFactors, std::vector<std::vector<double> > &modelOutputs) const;
+
+    void applyOptimalOffset(int offsetIdx, double offset, std::vector <std::vector<double>>&  modelOutputs) const;
+
 
     /**
      * @brief Compute the proportionality factor for the given observable.
@@ -83,11 +98,14 @@ public:
     virtual double computeAnalyticalScalings(int scalingIdx, std::vector <std::vector<double>> const& modelOutputsUnscaled,
                                   std::vector <std::vector<double>> const& measurements) const;
 
-    virtual FunctionEvaluationStatus evaluateWithScalings(const double* const reducedParameters, std::vector<double> const &scalings,
+    virtual double computeAnalyticalOffsets(int offsetIdx, std::vector <std::vector<double>> const& modelOutputsUnscaled,
+                                  std::vector <std::vector<double>> const& measurements) const;
+
+    virtual FunctionEvaluationStatus evaluateWithScalings(const double * const reducedParameters, const std::vector<double> &scalings,
+            const std::vector<double> &offsets,
             std::vector<std::vector<double> > &modelOutputsUnscaled,
             double &fval,
-            double* gradient) const;
-
+            double *gradient) const;
 
     /**
      * @brief Compute loglikelihood for normal distribution based on the model outputs and measurements for multiple conditions.
@@ -110,7 +128,7 @@ public:
      * @param scalingFactors
      * @return Full parameter vector for `fun`
      */
-    virtual std::vector<double> spliceParameters(double const * const reducedParameters, int numReduced, std::vector<double> const& scalingFactors) const;
+    virtual std::vector<double> spliceParameters(const double * const reducedParameters, int numReduced, const std::vector<double> &scalingFactors, const std::vector<double> &offsetParameters) const;
 
     virtual int numParameters() const override;
 
@@ -118,13 +136,19 @@ public:
 
     std::vector<int> const& getProportionalityFactorIndices() const;
 
+    int numOffsetParameters() const;
+
+    std::vector<int> const& getOffsetParameterIndices() const;
+
     std::unique_ptr<AmiciSummedGradientFunction<int>> fun;
 
 private:
     /** Sorted list of the indices of the scaling parameters
       * (sorting makes it easier to splice scaling and remaining parameters in getFullParameters) */
-    std::unique_ptr<ScalingFactorHdf5Reader> reader;
+    std::unique_ptr<ScalingFactorHdf5Reader> scalingReader;
+    std::unique_ptr<OffsetParameterHdf5Reader> offsetReader;
     std::vector<int> proportionalityFactorIndices;
+    std::vector<int> offsetParameterIndices;
     int numConditions;
     int numObservables;
     int numTimepoints;
@@ -176,6 +200,50 @@ private:
     std::vector<std::map<int, std::vector<int>>> mapping;
     std::vector<int> proportionalityFactorIndices;
 };
+
+/**
+ * @brief The OffsetParameterHdf5Reader class reads the dependencies of experimental conditions
+ * and observables on offset parameters from an HDF5 file.
+ *
+ * TODO interface
+ */
+class OffsetParameterHdf5Reader {
+public:
+    OffsetParameterHdf5Reader(H5::H5File file, std::string rootPath = "/");
+
+    /**
+     * @brief Get vector of condition indices for which the offset parameter with the given index is used.
+     * @param offsetIdx
+     * @return
+     */
+    std::vector<int> getConditionsForOffsetParameter(int offsetIdx) const;
+
+    /**
+     * @brief Get vector of observable indices for the specified condition for which the specified scaling factor is used.
+     * @param scalingIdx
+     * @return
+     */
+    std::vector<int> const& getObservablesForOffsetParameter(int offsetIdx, int conditionIdx) const;
+
+    /**
+     * @brief Vector with indices of the proportionality factors with the overall parameter vector
+     * @return
+     */
+    std::vector<int> getOffsetParameterIndices();
+
+private:
+    void readFromFile();
+
+    H5::H5File file;
+    std::string rootPath;
+    std::string mapPath;
+    std::string offsetParameterIndicesPath;
+
+    // x[scalingIdx][conditionIdx] -> std::vector of observableIndicies
+    std::vector<std::map<int, std::vector<int>>> mapping;
+    std::vector<int> offsetParameterIndices;
+};
+
 
 
 /**
