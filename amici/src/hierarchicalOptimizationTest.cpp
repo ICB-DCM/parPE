@@ -1,6 +1,7 @@
 #include "hierachicalOptimization.h"
 #include "testingMisc.h"
 #include "../../optimization/tests/quadraticTestProblem.h"
+#include <amici/defines.h>
 
 #include "CppUTest/TestHarness.h"
 #include "CppUTestExt/MockSupport.h"
@@ -58,6 +59,10 @@ public:
             double &fval,
             double* gradient) const override {
         return parpe::functionEvaluationSuccess;
+    }
+
+    amici::AMICI_parameter_scaling getParameterScaling(int parameterIndex) const override {
+        return amici::AMICI_SCALING_LOG10;
     }
 
     int numParameters() const override { return numParameters_; }
