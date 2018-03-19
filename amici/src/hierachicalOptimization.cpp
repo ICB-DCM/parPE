@@ -600,25 +600,24 @@ void HierachicalOptimizationProblemWrapper::fillFilteredParams(const std::vector
     parpe::fillFilteredParams(fullParams, scalingParameterIndices, buffer);
 }
 
-void fillFilteredParams(const std::vector<double> &fullParams, std::vector<int> const& sortedFilterIndices, double *buffer)
+void fillFilteredParams(const std::vector<double> &valuesToFilter, std::vector<int> const& sortedIndicesToExclude, double *result)
 {
     // adapt to offsets
     unsigned int nextFilterIdx = 0;
-    unsigned int bufferIdx = 0;
-    for(int i = 0; (unsigned)i < fullParams.size(); ++i) {
-        if(nextFilterIdx < sortedFilterIndices.size()
-                && sortedFilterIndices[nextFilterIdx] == i) {
+    unsigned int resultIdx = 0;
+    for(int i = 0; (unsigned)i < valuesToFilter.size(); ++i) {
+        if(nextFilterIdx < sortedIndicesToExclude.size()
+                && sortedIndicesToExclude[nextFilterIdx] == i) {
             // skip
             ++nextFilterIdx;
         } else {
             // copy
-            buffer[bufferIdx] = fullParams[i];
-            ++bufferIdx;
+            result[resultIdx] = valuesToFilter[i];
+            ++resultIdx;
         }
     }
-    assert(nextFilterIdx == sortedFilterIndices.size());
-    assert(bufferIdx == (unsigned) fullParams.size() - sortedFilterIndices.size());
-
+    assert(nextFilterIdx == sortedIndicesToExclude.size());
+    assert(resultIdx == (unsigned) valuesToFilter.size() - sortedIndicesToExclude.size());
 }
 
 

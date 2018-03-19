@@ -106,6 +106,17 @@ public:
     virtual double computeAnalyticalOffsets(int offsetIdx, std::vector <std::vector<double>> const& modelOutputsUnscaled,
                                   std::vector <std::vector<double>> const& measurements) const;
 
+    /**
+     * @brief Evaluate `fun` using the computed optimal scaling and offset parameters.
+     * @param reducedParameters Parameter vector without scaling and offset parameters
+     * @param scalings Optimal scaling parameters
+     * @param offsets Optimal offset parameters
+     * @param modelOutputsUnscaled Model outputs before applying optimal offset and scaling parameters
+     * @param fval out: computed function value
+     * @param gradient out: computed function gradient
+     * @return
+     */
+
     virtual FunctionEvaluationStatus evaluateWithOptimalParameters(const double * const reducedParameters, const std::vector<double> &scalings,
             const std::vector<double> &offsets,
             std::vector<std::vector<double> > &modelOutputsUnscaled,
@@ -150,16 +161,24 @@ public:
 private:
     void init();
 
+    /** Reads scaling parameter information from HDF5 file */
     std::unique_ptr<AnalyticalParameterHdf5Reader> scalingReader;
+    /** Reads offset parameter information from HDF5 file */
     std::unique_ptr<AnalyticalParameterHdf5Reader> offsetReader;
+
     /** Sorted list of the indices of the scaling parameters
       * (sorting makes it easier to splice scaling and remaining parameters in getFullParameters) */
     std::vector<int> proportionalityFactorIndices;
     std::vector<int> offsetParameterIndices;
+
+    /** Total number of conditions used in `fun` */
     int numConditions;
+    /** Total number of observables occuring in `fun` */
     int numObservables;
+    /** Total number of timepoints used in `fun` */
     int numTimepoints;
 
+    /** Error model to use for computing analytical parameters and likelihood */
     ErrorModel errorModel;
 };
 
@@ -168,9 +187,6 @@ private:
  * @brief The AnalyticalParameterHdf5Reader class reads from an HDF5 file the dependencies of experimental conditions
  * and observables on parameters which are to be computed analytically.
  *
- * TODO:      * @param parameterScalingPath List stating whether the wrapped functions considers
-     * these parameters as log-scaled, or ... parameters
- * This should come not from here, but from the wrapped functions above -> add method there
  */
 class AnalyticalParameterHdf5Reader {
 public:
@@ -207,8 +223,14 @@ public:
      */
     std::vector<int> getOptimizationParameterIndices();
 
-    int getNumAnalyticalParameters(H5::DataSet &dataset) const;
 private:
+    /**
+     * @brief Get number of analytically computed parameters
+     * @param dataset Read information from this dataset.
+     * @return
+     */
+    int getNumAnalyticalParameters(H5::DataSet &dataset) const;
+
     void readParameterConditionObservableMappingFromFile();
     std::vector<int> readRawMap(H5::DataSet& dataset, hsize_t &nRows, hsize_t &nCols);
 
@@ -223,7 +245,8 @@ private:
 
 
 /**
- * @brief The HierachicalOptimizationProblemWrapper class wraps an OptimizationProblem and hides the analytically optimizated parameters (from starting point, parameter bounds, ...)
+ * @brief The HierachicalOptimizationProblemWrapper class wraps an OptimizationProblem
+ * and hides the analytically optimizated parameters (from starting point, parameter bounds, ...)
  *
  */
 class HierachicalOptimizationProblemWrapper : public OptimizationProblem {
@@ -247,10 +270,18 @@ public:
     // TODO: need to ensure that this will work with the reduced number of parameters
     virtual std::unique_ptr<OptimizationReporter> getReporter() const override { return wrappedProblem->getReporter(); }
 
+private:
     std::unique_ptr<OptimizationProblem> wrappedProblem;
 };
 
-void fillFilteredParams(std::vector<double> const& fullParams, const std::vector<int> &sortedFilterIndices, double *buffer);
+
+/**
+ * @brief Filter a vector using a list of exclude-indices. Write filter list to buffer.
+ * @param valuesToFilter Original list
+ * @param sortedIndicesToExclude Blacklist of indices
+ * @param result Buffer to write the filtered list to. Must be at least of length valuesToFilter.size()-sortedIndicesToExclude.size().
+ */
+void fillFilteredParams(std::vector<double> const& valuesToFilter, const std::vector<int> &sortedIndicesToExclude, double *result);
 
 } //namespace parpe
 
