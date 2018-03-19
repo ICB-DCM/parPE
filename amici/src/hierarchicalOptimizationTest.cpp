@@ -99,7 +99,10 @@ TEST(hierarchicalOptimization, hierarchicalOptimization) {
     auto r = std::make_unique<parpe::AnalyticalParameterHdf5Reader>(H5::H5File(TESTFILE, H5F_ACC_RDONLY),
                                                                     "/scalingParameterIndices",
                                                                     "/scalingParametersMapToObservables");
-    parpe::HierachicalOptimizationWrapper w(std::move(fun), std::move(r),
+    auto o = std::make_unique<parpe::AnalyticalParameterHdf5Reader>(H5::H5File(TESTFILE, H5F_ACC_RDONLY),
+                                                                    "/offsetParameterIndices",
+                                                                    "/offsetParametersMapToObservables");
+    parpe::HierachicalOptimizationWrapper w(std::move(fun), std::move(r), std::move(o),
                                             fun->numConditions, fun->numObservables, fun->numTimepoints,
                                             parpe::ErrorModel::normal);
 
@@ -111,7 +114,8 @@ TEST(hierarchicalOptimization, hierarchicalOptimization) {
     std::vector<double> onesFullParameters {0.0, 0.0, 3.0, 2.0}; // last 2 are scalings
 
     std::vector<double> scalingDummy(w.numScalingFactors(), 0.0);
-    CHECK_TRUE(onesFullParameters == w.spliceParameters(reducedParameters.data(), reducedParameters.size(), scalingDummy));
+    std::vector<double> offsetDummy(w.numOffsetParameters(),0.0);
+    CHECK_TRUE(onesFullParameters == w.spliceParameters(reducedParameters.data(), reducedParameters.size(), scalingDummy, offsetDummy));
 
     // Ensure it is called with proper parameter vector:
     auto outputs = w.getUnscaledModelOutputs(fullParameters.data());

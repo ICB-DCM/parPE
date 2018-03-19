@@ -36,7 +36,8 @@ public:
                                    ErrorModel errorModel);
 
     HierachicalOptimizationWrapper(std::unique_ptr<AmiciSummedGradientFunction<int>> fun,
-                                   std::unique_ptr<AnalyticalParameterHdf5Reader> reader,
+                                   std::unique_ptr<AnalyticalParameterHdf5Reader> scalingReader,
+                                   std::unique_ptr<AnalyticalParameterHdf5Reader> offsetReader,
                                    int numConditions,
                                    int numObservables,
                                    int numTimepoints,
@@ -55,6 +56,8 @@ public:
             double* gradient) const override;
 
     std::vector<double> getDefaultScalingFactors() const;
+
+    std::vector<double> getDefaultOffsetParameters() const;
 
     /**
      * @brief Run simulations with scaling parameters set to 1.0 and collect model outputs
@@ -75,6 +78,17 @@ public:
 
     void applyOptimalScaling(int scalingIdx, double scaling, std::vector <std::vector<double>>&  modelOutputs) const;
 
+    /**
+     * @brief Compute offset parameters
+     * @param modelOutputs Model outputs as provided by getModelOutputs
+     * @return the computed offset parameters
+     */
+    std::vector<double> computeAnalyticalOffsets(const std::vector<std::vector<double> > &measurements, std::vector <std::vector<double>>& modelOutputs) const;
+
+    void applyOptimalOffsets(std::vector<double> const& proportionalityFactors, std::vector<std::vector<double> > &modelOutputs) const;
+
+    void applyOptimalOffset(int offsetIdx, double offset, std::vector <std::vector<double>>&  modelOutputs) const;
+
 
     /**
      * @brief Compute the proportionality factor for the given observable.
@@ -89,11 +103,14 @@ public:
     virtual double computeAnalyticalScalings(int scalingIdx, std::vector <std::vector<double>> const& modelOutputsUnscaled,
                                   std::vector <std::vector<double>> const& measurements) const;
 
-    virtual FunctionEvaluationStatus evaluateWithScalings(const double* const reducedParameters, std::vector<double> const &scalings,
+    virtual double computeAnalyticalOffsets(int offsetIdx, std::vector <std::vector<double>> const& modelOutputsUnscaled,
+                                  std::vector <std::vector<double>> const& measurements) const;
+
+    virtual FunctionEvaluationStatus evaluateWithOptimalParameters(const double * const reducedParameters, const std::vector<double> &scalings,
+            const std::vector<double> &offsets,
             std::vector<std::vector<double> > &modelOutputsUnscaled,
             double &fval,
-            double* gradient) const;
-
+            double *gradient) const;
 
     /**
      * @brief Compute loglikelihood for normal distribution based on the model outputs and measurements for multiple conditions.
@@ -116,7 +133,7 @@ public:
      * @param scalingFactors
      * @return Full parameter vector for `fun`
      */
-    virtual std::vector<double> spliceParameters(double const * const reducedParameters, int numReduced, std::vector<double> const& scalingFactors) const;
+    virtual std::vector<double> spliceParameters(const double * const reducedParameters, int numReduced, const std::vector<double> &scalingFactors, const std::vector<double> &offsetParameters) const;
 
     virtual int numParameters() const override;
 
@@ -124,13 +141,21 @@ public:
 
     std::vector<int> const& getProportionalityFactorIndices() const;
 
+    int numOffsetParameters() const;
+
+    std::vector<int> const& getOffsetParameterIndices() const;
+
     std::unique_ptr<AmiciSummedGradientFunction<int>> fun;
 
 private:
+    void init();
+
+    std::unique_ptr<AnalyticalParameterHdf5Reader> scalingReader;
+    std::unique_ptr<AnalyticalParameterHdf5Reader> offsetReader;
     /** Sorted list of the indices of the scaling parameters
       * (sorting makes it easier to splice scaling and remaining parameters in getFullParameters) */
-    std::unique_ptr<AnalyticalParameterHdf5Reader> reader;
     std::vector<int> proportionalityFactorIndices;
+    std::vector<int> offsetParameterIndices;
     int numConditions;
     int numObservables;
     int numTimepoints;

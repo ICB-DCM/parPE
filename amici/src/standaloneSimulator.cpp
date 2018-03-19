@@ -36,18 +36,23 @@ int StandaloneSimulator::run(const std::string& resultFile, const std::string& r
 
 
     std::vector<double> parameters;
-    auto hierarchicalReader = new AnalyticalParameterHdf5Reader (H5::H5File(dataProvider->getHdf5FileId()),
-                                                                 "/inputData/scalingParameterIndices",
-                                                                 "/inputData/scalingParametersMapToObservables");
-
-    auto proportionalityFactorIndices = hierarchicalReader->getOptimizationParameterIndices();
-    HierachicalOptimizationWrapper hierarchical(nullptr, std::unique_ptr<AnalyticalParameterHdf5Reader>(hierarchicalReader),
-                                   dataProvider->getNumberOfConditions(), model->nytrue, model->nt(),
-                                   ErrorModel::normal);
+    auto hierarchicalScalingReader = new AnalyticalParameterHdf5Reader (H5::H5File(dataProvider->getHdf5FileId()),
+                                                                        "/inputData/scalingParameterIndices",
+                                                                        "/inputData/scalingParametersMapToObservables");
+    auto hierarchicalOffsetReader = new AnalyticalParameterHdf5Reader (H5::H5File(dataProvider->getHdf5FileId()),
+                                                                       "/inputData/offsetParameterIndices",
+                                                                       "/inputData/offsetParametersMapToObservables");
+    auto proportionalityFactorIndices = hierarchicalScalingReader->getOptimizationParameterIndices();
+    auto offsetParameterIndices = hierarchicalOffsetReader->getOptimizationParameterIndices();
+    HierachicalOptimizationWrapper hierarchical(nullptr, std::unique_ptr<AnalyticalParameterHdf5Reader>(hierarchicalScalingReader),
+                                                std::unique_ptr<AnalyticalParameterHdf5Reader>(hierarchicalOffsetReader),
+                                                dataProvider->getNumberOfConditions(), model->nytrue, model->nt(),
+                                                ErrorModel::normal);
     if(proportionalityFactorIndices.size() > 0) {
         // expand parameter vector
         auto scalingDummy = hierarchical.getDefaultScalingFactors();
-        parameters = hierarchical.spliceParameters(optimizationParameters.data(), optimizationParameters.size(), scalingDummy);
+        auto offsetDummy = hierarchical.getDefaultOffsetParameters();
+        parameters = hierarchical.spliceParameters(optimizationParameters.data(), optimizationParameters.size(), scalingDummy, offsetDummy);
 
         // get outputs, scale
         // TODO need to pass aggreate function for writing
@@ -105,10 +110,12 @@ int StandaloneSimulator::run(const std::string& resultFile, const std::string& r
             modelOutputs[dataIdx] = jobResults[dataIdx].rdata->y;
         }
 
-        //  compute scaling factors
+        //  compute scaling factors and offset parameters
         auto allMeasurements = dataProvider->getAllMeasurements();
         auto scalings = hierarchical.computeAnalyticalScalings(allMeasurements, modelOutputs);
+        auto offsets = hierarchical.computeAnalyticalOffsets(allMeasurements, modelOutputs);
         hierarchical.applyOptimalScalings(scalings, modelOutputs);
+        hierarchical.applyOptimalOffsets(offsets, modelOutputs);
         // TODO: what else needs to be scaled?
 
         for(int dataIdx = 0; (unsigned) dataIdx < jobs.size(); ++dataIdx) {
