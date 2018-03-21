@@ -33,7 +33,9 @@ std::unique_ptr<OptimizationReporter> QuadraticTestProblem::getReporter() const
 
 std::unique_ptr<OptimizationProblem> QuadraticOptimizationMultiStartProblem::getLocalProblem(
         int multiStartIndex) const {
-    return std::unique_ptr<OptimizationProblem>(new QuadraticTestProblem());
+    auto p = std::unique_ptr<OptimizationProblem>(new QuadraticTestProblem());
+    p->setOptimizationOptions(options);
+    return p;
 }
 
 FunctionEvaluationStatus QuadraticGradientFunction::evaluate(

@@ -75,7 +75,11 @@ public:
 class QuadraticOptimizationMultiStartProblem : public MultiStartOptimizationProblem {
 public:
     QuadraticOptimizationMultiStartProblem(int numberOfStarts, bool restartOnFailure = false)
-        : numberOfStarts(numberOfStarts), restartOnFailure_(restartOnFailure) {}
+        : numberOfStarts(numberOfStarts), restartOnFailure_(restartOnFailure)
+    {
+        QuadraticTestProblem p;
+        options = p.getOptimizationOptions();
+    }
 
     std::unique_ptr<OptimizationProblem> getLocalProblem(int multiStartIndex) const override;
 
@@ -83,8 +87,10 @@ public:
 
     virtual bool restartOnFailure() const override { return restartOnFailure_; }
 
+    OptimizationOptions options;
 
 private:
+
     int numberOfStarts = 1;
     bool restartOnFailure_ = false;
 };

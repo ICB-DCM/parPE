@@ -39,13 +39,20 @@ TEST(localOptimizationFsqp, testOptimizationGetlocalOptimum) {
 
 
 
-IGNORE_TEST(localOptimizationFsqp, testParallelMultistart) {
-    mock().disable(); // mock() is not thread-safe
-    // TODO set optimizer properly before reenable
-    parpe::QuadraticOptimizationMultiStartProblem msp(15, false);
-    parpe::MultiStartOptimization mso(msp);
+TEST(localOptimizationFsqp, testParallelMultistart) {
+    /* Test if thread-safe
+     * Test with:
+     *    while ./build/optimization/tests/unittests_optimization_fsqp; do :; done
+     */
 
+    mock().disable(); // mock() is not thread-safe
+
+    constexpr int numStarts {10};
+    parpe::QuadraticOptimizationMultiStartProblem msp(numStarts, false);
+    msp.options.optimizer = parpe::optimizerName::OPTIMIZER_FSQP;
+
+    parpe::MultiStartOptimization mso(msp);
     mso.runMultiThreaded();
-    //mock().ignoreOtherCalls();
+
     mock().enable();
 }
