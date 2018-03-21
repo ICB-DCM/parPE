@@ -50,7 +50,7 @@ if(${PARPE_ENABLE_TOMS611})
 endif(${PARPE_ENABLE_TOMS611})
 
 
-if(${ENABLE_FSQP})
+if(${PARPE_ENABLE_FSQP})
     project(unittests_optimization_fsqp)
 
     add_executable(${PROJECT_NAME}
@@ -66,4 +66,4 @@ if(${ENABLE_FSQP})
         ${CPPUTEST_LIBRARY}
         ${GCOV_LIBRARY}
     )
-endif(${ENABLE_FSQP})
+endif(${PARPE_ENABLE_FSQP})

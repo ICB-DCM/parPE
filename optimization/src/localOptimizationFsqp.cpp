@@ -386,6 +386,8 @@ FsqpProblem *getProblemFromGradFj(doublereal *gradfj, integer nparam, integer j)
  * @param fj (out) Function value for objective j
  */
 void obj(integer &nparam, integer &j, doublereal *x, doublereal &fj) {
+    RELEASE_ASSERT(j == 1, "Error: j > 1. Only a single objective is currently supported.");
+
     auto unlockFsqp = fsqpReleaseLock();
 
     auto problem = getProblemFromFj(fj, nparam, j);
@@ -414,6 +416,8 @@ void constr (integer &nparam, integer &j, doublereal *x, doublereal &gj) {
  * @param dummy Passed to gradob for forward difference calculation
  */
 void gradob (integer &nparam, integer &j, doublereal *x, doublereal *gradfj, doublereal *dummy) {
+    RELEASE_ASSERT(j == 1, "Error: j > 1. Only a single objective is currently supported.");
+
     auto unlockFsqp = fsqpReleaseLock();
 
     auto problem = getProblemFromGradFj(gradfj, nparam, j);
