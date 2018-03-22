@@ -7,7 +7,7 @@ set -e
 # Build amici
 AMICI_DIR=`pwd`/deps/AMICI/
 cd $AMICI_DIR
-scripts/run-build.sh
+scripts/buildAll.sh
 cd $PARPE_ROOT
 
 # build parpe
