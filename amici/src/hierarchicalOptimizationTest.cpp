@@ -1,4 +1,4 @@
-#include "hierachicalOptimization.h"
+#include "hierarchicalOptimization.h"
 #include "testingMisc.h"
 #include "../../optimization/tests/quadraticTestProblem.h"
 #include <amici/defines.h>

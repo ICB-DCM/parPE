@@ -1,4 +1,4 @@
-#include "hierachicalOptimization.h"
+#include "hierarchicalOptimization.h"
 
 #include <assert.h>
 #include <exception>

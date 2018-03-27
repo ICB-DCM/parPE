@@ -5,7 +5,7 @@
 #include <LoadBalancerWorker.h>
 #include <optimizationOptions.h>
 #include <misc.h>
-#include <hierachicalOptimization.h>
+#include <hierarchicalOptimization.h>
 
 #include <iostream>
 

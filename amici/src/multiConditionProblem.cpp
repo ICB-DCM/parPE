@@ -6,7 +6,7 @@
 #include <optimizationOptions.h>
 #include <logging.h>
 #include <misc.h>
-#include <hierachicalOptimization.h>
+#include <hierarchicalOptimization.h>
 
 #include <amici/model.h>
 #include <amici/rdata.h>
