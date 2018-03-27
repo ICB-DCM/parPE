@@ -50,7 +50,8 @@ class HDF5DataGenerator:
         self.loadSBMLModel(fileNameSBML)
 
         # scriptDir = os.path.dirname(os.path.realpath(__file__))
-           
+        # hdf5 dataset compression
+        self.compression = "gzip"
                
 
     def parseMeasurementFile(self, filename):
@@ -173,7 +174,7 @@ class HDF5DataGenerator:
         parameterMap = self.f.require_dataset('/parameters/optimizationSimulationMapping', 
                                               shape=(numSimulationParameters, self.numConditions), 
                                               chunks=(numSimulationParameters, 1), 
-                                              dtype='<i4', fillvalue=np.nan)
+                                              dtype='<i4', fillvalue=np.nan, compression=self.compression)
         for i in range(self.numConditions):
             parameterMap[:, i] = np.arange(numSimulationParameters)
             scalings = self.measurementDf.loc[self.measurementDf['condition'] == self.conditions[i], 'scalingParameter']
@@ -271,7 +272,7 @@ class HDF5DataGenerator:
         nk = len(fixedParameters)
         dset = self.f.create_dataset("/fixedParameters/k",
                                      (nk, self.numConditions),
-                                     dtype='f8', chunks=(nk, 1))
+                                     dtype='f8', chunks=(nk, 1), compression=self.compression)
 
         # set dimension scales 
         dset.dims.create_scale(self.f['/fixedParameters/parameterNames'], 'parameterNames')
@@ -370,11 +371,11 @@ class HDF5DataGenerator:
         dsetY = self.f.create_dataset("/measurements/y", 
                                       shape=(self.numConditions, self.ny, self.numTimepoints), 
                                       chunks=(1, self.ny, self.numTimepoints), 
-                                      fillvalue=np.nan, dtype='f8')
+                                      fillvalue=np.nan, dtype='f8', compression=self.compression)
         dsetSigmaY = self.f.create_dataset("/measurements/ysigma", 
                                            shape=(self.numConditions, self.ny, self.numTimepoints), 
                                            chunks=(1, self.ny, self.numTimepoints), 
-                                           fillvalue=1.0, dtype='f8')     
+                                           fillvalue=1.0, dtype='f8', compression=self.compression)     
         
         self.writeMeasurements(dsetY, dsetSigmaY)
         self.f.flush()
