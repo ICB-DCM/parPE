@@ -512,12 +512,7 @@ class HDF5DataGenerator:
                                       dtype='<i4')
         dset.attrs['numOffsets'] = len(offsetsForHierarchicalIndices)
         dset[:] = use
-        
-        dset = self.f.require_dataset("/offsetParameterScale", 
-                              shape=(len(offsetsForHierarchicalIndices),), 
-                              dtype='<i4', 
-                              data=np.full(len(offsetsForHierarchicalIndices), SCALING_LIN))
-        
+                
     def ensureOffsetIsOffsetWithPositiveSign(self, scaling):
         """
         Current parPE implementation of hierarchical optimization assumes that offset parameters have positive sign.
@@ -585,12 +580,7 @@ class HDF5DataGenerator:
                                       dtype='<i4')
         dset.attrs['numScalings'] = len(scalingsForHierarchicalIndices)
         dset[:] = use
-            
-        dset = self.f.require_dataset("/scalingParameterScale", 
-                      shape=(len(scalingsForHierarchical),), 
-                      dtype='<i4', 
-                      data=np.full(len(scalingsForHierarchical), SCALING_LIN))
-
+        
 
     def ensureProportionalityFactorIsProportionalityFactor(self, scaling):
         """
@@ -649,6 +639,11 @@ class HDF5DataGenerator:
         # set pscale based on whether is scaling parameter (log10 for non-hierarchical, lin for hierarchical)
         linParametersAmiciIndices = self.getAnalyticallyComputedSimulationParameterIndices()
         self.f.require_dataset('/amiciOptions/pscale', shape=(np,), dtype="<i4", data=[2 * (ip not in linParametersAmiciIndices) for ip in range(np) ])
+        
+        # TODO: move out of here 
+        np = self.f['/parameters/parameterNames'].shape[0]
+        linParametersOptimizationIndices = self.getAnalyticallyComputedOptimizationParameterIndices()
+        self.f.require_dataset('/parameters/parameterScaling', shape=(np,), dtype="<i4", data=[2 * (ip not in linParametersOptimizationIndices) for ip in range(np) ])
         # TODO for above parameters, the bounds must be adapted for non-hierarchical optimization!
         #  or use different pscale then
         
@@ -670,6 +665,23 @@ class HDF5DataGenerator:
             parameterNamesModel.extend(set([self.getGenericScalingParameterName(o) for o in parameterNamesOptimization]))
 
         return [ self.f['/parameters/modelParameterNames'][:].tolist().index(p) for p in set(parameterNamesModel) ]
+    
+    
+    def getAnalyticallyComputedOptimizationParameterIndices(self):
+        """
+        Get optimization parameter index of all analytically computed parameters
+        """
+        indices = []
+        if '/offsetParameterIndices' in self.f:
+            indices.extend(self.f['/offsetParameterIndices'])
+            
+        if '/scalingParameterIndices' in self.f:
+            indices.extend(self.f['/scalingParameterIndices'])
+
+        if '/sigmaParameterIndices' in self.f:
+            indices.extend(self.f['/sigmaParameterIndices'])
+
+        return list(set(indices))
         
 
     def writeOptimizationOptions(self):

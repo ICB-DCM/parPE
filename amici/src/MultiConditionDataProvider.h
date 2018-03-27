@@ -103,6 +103,8 @@ class MultiConditionDataProvider {
             int conditionIdx, const double *optimization, double *simulation) const;
 
 
+    virtual amici::AMICI_parameter_scaling getParameterScale(int optimizationParameterIndex) const;
+
     /**
      * @brief Check if the data in the HDF5 file has consistent dimensions.
      * Aborts if not.
@@ -202,6 +204,7 @@ class MultiConditionDataProvider {
     std::string hdf5ParameterPath;
     std::string hdf5ParameterMinPath;
     std::string hdf5ParameterMaxPath;
+    std::string hdf5ParameterScalingPath;
 
     /**
      * @brief HDF5 file handles for C++ and C API

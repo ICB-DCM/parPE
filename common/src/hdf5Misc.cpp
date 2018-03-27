@@ -386,6 +386,29 @@ int hdf5Read2DDoubleHyperslab(hid_t file_id, const char *path, hsize_t size0,
     return 0;
 }
 
+std::vector<int> hdf5Read1DIntegerHyperslab(H5::H5File file, std::string const& path,
+                                            hsize_t count, hsize_t offset) {
+    std::lock_guard<mutexHdfType> lock(mutexHdf);
+
+    H5::DataSet dataset = file.openDataSet(path);
+    H5::DataSpace filespace = dataset.getSpace();
+
+    const int ndims = filespace.getSimpleExtentNdims();
+    assert(ndims == 1 && "Only works for 1D arrays!");
+    hsize_t length;
+    filespace.getSimpleExtentDims(&length);
+
+    assert(length >= offset && "Offset larger than dataspace dimensions!");
+
+    filespace.selectHyperslab(H5S_SELECT_SET, &count, &offset);
+
+    H5::DataSpace memspace(1, &count);
+    std::vector<int> buffer(count);
+
+    dataset.read(buffer.data(), H5::PredType::NATIVE_INT, memspace, filespace);
+
+    return buffer;
+}
 
 std::vector<int> hdf5Read2DIntegerHyperslab(H5::H5File file, std::string const& path,
                                             hsize_t size0, hsize_t size1, hsize_t offset0, hsize_t offset1) {

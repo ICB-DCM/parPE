@@ -260,8 +260,7 @@ template<typename T>
 amici::AMICI_parameter_scaling AmiciSummedGradientFunction<T>::getParameterScaling(int parameterIndex) const
 {
     // parameterIndex is optimization parameter index, not necessarily model parameter index!
-
-    return model->getParameterScale().at(parameterIndex);
+    return dataProvider->getParameterScale(parameterIndex);
 }
 
 double MultiConditionProblem::getTime() const {

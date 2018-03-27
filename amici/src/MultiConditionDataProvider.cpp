@@ -48,6 +48,7 @@ MultiConditionDataProvider::MultiConditionDataProvider(std::unique_ptr<amici::Mo
     hdf5ParameterPath = rootPath + "/parameters";
     hdf5ParameterMinPath = hdf5ParameterPath + "/lowerBound";
     hdf5ParameterMaxPath = hdf5ParameterPath + "/upperBound";
+    hdf5ParameterScalingPath = hdf5ParameterPath + "/parameterScaling";
 
     amici::hdf5::readModelDataFromHDF5(fileId, *this->model, hdf5AmiciOptionPath.c_str());
 }
@@ -101,6 +102,13 @@ void MultiConditionDataProvider::mapAndSetOptimizationToSimulationVariables(int 
     for(int i = 0; i < model->np(); ++i) {
         simulation[i] = optimization[mapping[i]];
     }
+}
+
+amici::AMICI_parameter_scaling MultiConditionDataProvider::getParameterScale(int optimizationParameterIndex) const
+{
+    return static_cast<amici::AMICI_parameter_scaling>(
+                hdf5Read1DIntegerHyperslab(
+                    file, hdf5ParameterScalingPath, 1, optimizationParameterIndex).at(0));
 }
 
 /**
