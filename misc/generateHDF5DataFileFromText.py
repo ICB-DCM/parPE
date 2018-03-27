@@ -233,8 +233,9 @@ class HDF5DataGenerator:
         #print(scalingsUsed)
         for s in self.getGenericScalingParameterNames(scalingsUsed):
             #print(s)
-            parameterNames.remove(s)
-              
+            if s in parameterNames:
+                parameterNames.remove(s)
+            
         parameterNames += scalingsUsed
         return parameterNames
     
@@ -510,7 +511,6 @@ class HDF5DataGenerator:
         dset = self.f.require_dataset("/offsetParametersMapToObservables", 
                                       shape=(len(use), 3), 
                                       dtype='<i4')
-        dset.attrs['numOffsets'] = len(offsetsForHierarchicalIndices)
         dset[:] = use
                 
     def ensureOffsetIsOffsetWithPositiveSign(self, scaling):
@@ -578,7 +578,6 @@ class HDF5DataGenerator:
         dset = self.f.require_dataset("/scalingParametersMapToObservables", 
                                       shape=(len(use), 3), 
                                       dtype='<i4')
-        dset.attrs['numScalings'] = len(scalingsForHierarchicalIndices)
         dset[:] = use
         
 

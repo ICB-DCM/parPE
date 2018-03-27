@@ -485,12 +485,23 @@ std::vector<int> AnalyticalParameterHdf5Reader::getOptimizationParameterIndices(
 
 int AnalyticalParameterHdf5Reader::getNumAnalyticalParameters(H5::DataSet& dataset) const
 {
-    auto attribute = dataset.openAttribute("numScalings");
-    auto type = attribute.getDataType();
-    int numScalings = 0;
-    attribute.read(type, &numScalings);
+    hsize_t numAnalyticalParameters = 0;
+    auto lock = hdf5MutexGetLock();
 
-    return numScalings;
+    H5_SAVE_ERROR_HANDLER; // don't show error if dataset is missing
+    try {
+        auto dataset = file.openDataSet(analyticalParameterIndicesPath);
+        auto dataspace = dataset.getSpace();
+        auto ndims = dataspace.getSimpleExtentNdims();
+        if(ndims != 1)
+            throw ParPEException("Invalid dimension in getOptimizationParameterIndices.");
+        dataspace.getSimpleExtentDims(&numAnalyticalParameters);
+    } catch (H5::FileIException e) {
+        // 0
+    }
+    H5_RESTORE_ERROR_HANDLER;
+
+    return numAnalyticalParameters;
 }
 
 void AnalyticalParameterHdf5Reader::readParameterConditionObservableMappingFromFile() {
