@@ -17,6 +17,7 @@ namespace parpe {
 // Currently using enum from amici enum class ParameterTransformation { none, log10 };
 enum class ErrorModel { normal }; // TODO logNormal, laplace
 
+class AnalyticalParameterProvider;
 class AnalyticalParameterHdf5Reader;
 
 /**
@@ -36,8 +37,8 @@ public:
                                    ErrorModel errorModel);
 
     HierachicalOptimizationWrapper(std::unique_ptr<AmiciSummedGradientFunction<int>> fun,
-                                   std::unique_ptr<AnalyticalParameterHdf5Reader> scalingReader,
-                                   std::unique_ptr<AnalyticalParameterHdf5Reader> offsetReader,
+                                   std::unique_ptr<AnalyticalParameterProvider> scalingReader,
+                                   std::unique_ptr<AnalyticalParameterProvider> offsetReader,
                                    int numConditions,
                                    int numObservables,
                                    int numTimepoints,
@@ -162,9 +163,9 @@ private:
     void init();
 
     /** Reads scaling parameter information from HDF5 file */
-    std::unique_ptr<AnalyticalParameterHdf5Reader> scalingReader;
+    std::unique_ptr<AnalyticalParameterProvider> scalingReader;
     /** Reads offset parameter information from HDF5 file */
-    std::unique_ptr<AnalyticalParameterHdf5Reader> offsetReader;
+    std::unique_ptr<AnalyticalParameterProvider> offsetReader;
 
     /** Sorted list of the indices of the scaling parameters
       * (sorting makes it easier to splice scaling and remaining parameters in getFullParameters) */
@@ -184,11 +185,40 @@ private:
 
 
 /**
+ * @brief The AnalyticalParameterProvider class is an interface for providing information on
+ * optimization parameters to be computed analytically (proportionality factors, offsets, sigmas, ...).
+ */
+class AnalyticalParameterProvider {
+public:
+    /**
+     * @brief Get vector of condition indices for which the parameter with the given index is used.
+     * @param parameterIndex referring to the index in the analytical parameter list in the hdf5 file
+     * (*not* the optimization parameter index).
+     * @return Vector of condition indice
+     */
+    virtual std::vector<int> getConditionsForParameter(int parameterIndex) const = 0;
+
+    /**
+     * @brief Get vector of observable indices for the specified condition for which the specified parameter is used.
+     * @param parameterIndex
+     * @return
+     */
+    virtual std::vector<int> const& getObservablesForParameter(int parameterIndex, int conditionIdx) const = 0;
+
+    /**
+     * @brief Vector with indices of the of the analytically determined parameters within the
+     * overall optimization parameter vector
+     * @return
+     */
+    virtual std::vector<int> getOptimizationParameterIndices() const = 0;
+};
+
+/**
  * @brief The AnalyticalParameterHdf5Reader class reads from an HDF5 file the dependencies of experimental conditions
  * and observables on parameters which are to be computed analytically.
  *
  */
-class AnalyticalParameterHdf5Reader {
+class AnalyticalParameterHdf5Reader : public AnalyticalParameterProvider {
 public:
     /**
      * @brief AnalyticalParameterHdf5Reader
@@ -207,21 +237,21 @@ public:
      * (*not* the optimization parameter index).
      * @return Vector of condition indice
      */
-    std::vector<int> getConditionsForParameter(int parameterIndex) const;
+    std::vector<int> getConditionsForParameter(int parameterIndex) const override;
 
     /**
      * @brief Get vector of observable indices for the specified condition for which the specified parameter is used.
      * @param parameterIndex
      * @return
      */
-    std::vector<int> const& getObservablesForParameter(int parameterIndex, int conditionIdx) const;
+    std::vector<int> const& getObservablesForParameter(int parameterIndex, int conditionIdx) const override;
 
     /**
      * @brief Vector with indices of the of the analytically determined parameters within the
      * overall optimization parameter vector
      * @return
      */
-    std::vector<int> getOptimizationParameterIndices();
+    std::vector<int> getOptimizationParameterIndices() const override;
 
 private:
     /**
@@ -286,6 +316,12 @@ void fillFilteredParams(std::vector<double> const& valuesToFilter, const std::ve
 double getDefaultScalingFactor(amici::AMICI_parameter_scaling scaling);
 
 double getDefaultOffsetParameter(amici::AMICI_parameter_scaling scaling);
+
+double computeAnalyticalScalings(int scalingIdx, amici::AMICI_parameter_scaling scale,
+                                 const std::vector<std::vector<double> > &modelOutputsUnscaled,
+                                 const std::vector<std::vector<double> > &measurements,
+                                 AnalyticalParameterProvider& scalingReader,
+                                 int numObservables, int numTimepoints);
 
 } //namespace parpe
 

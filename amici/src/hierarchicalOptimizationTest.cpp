@@ -11,12 +11,17 @@
 // clang-format off
 TEST_GROUP(hierarchicalOptimization){
     void setup() {
+        mock().enable();
+        mock().clear();
     }
 
     void teardown() {
+        mock().checkExpectations();
+        mock().clear();
     }
 };
 // clang-format on
+
 
 TEST(hierarchicalOptimization, reader) {
     //     mappingToObservable = np.array([[ 0, 1, 0], [ 0, 2, 0], [ 1, 1, 1], [1, 2, 1], [1, 3, 1]])
@@ -41,14 +46,48 @@ TEST(hierarchicalOptimization, reader) {
 }
 
 
-class AmiciSummedGradientFunctionDummy : public parpe::AmiciSummedGradientFunction<int> {
+class AnalyticalParameterProviderMock : public parpe::AnalyticalParameterProvider {
+public:
+    AnalyticalParameterProviderMock() = default;
+
+    std::vector<int> getConditionsForParameter(int parameterIndex) const override {
+        mock().actualCall("AnalyticalParameterProviderMock::getConditionsForParameter")
+                .withIntParameter("parameterIndex", parameterIndex);
+
+        return conditionsForParameter[parameterIndex];
+    }
+
+    std::vector<int> const& getObservablesForParameter(int parameterIndex, int conditionIdx) const override {
+        mock().actualCall("AnalyticalParameterProviderMock::getObservablesForParameter")
+                .withIntParameter("parameterIndex", parameterIndex)
+                .withIntParameter("conditionIdx", conditionIdx);
+
+        return mapping[parameterIndex].at(conditionIdx);
+    }
+
+    std::vector<int> getOptimizationParameterIndices() const override {
+        mock().actualCall("AnalyticalParameterProviderMock::getOptimizationParameterIndices");
+
+        return optimizationParameterIndices;
+    }
+
+    std::vector <std::vector<int>> conditionsForParameter;
+    std::vector <int> optimizationParameterIndices;
+    // x[scalingIdx][conditionIdx] -> std::vector of observableIndicies
+    std::vector<std::map<int, std::vector<int>>> mapping;
+};
+
+
+class AmiciSummedGradientFunctionMock : public parpe::AmiciSummedGradientFunction<int> {
 public:
     parpe::FunctionEvaluationStatus getModelOutputs(const double * const parameters,
                                                     std::vector<std::vector<double> > &modelOutput) const override {
+        mock().actualCall("AmiciSummedGradientFunctionMock::getModelOutputs");
+
         modelOutput = this->modelOutput;
         lastParameters.assign(parameters, parameters + numParameters_);
-        return parpe::functionEvaluationSuccess;
 
+        return parpe::functionEvaluationSuccess;
     }
 
     std::vector<std::vector<double>> getAllMeasurements() const override { return measurements; }
@@ -58,6 +97,9 @@ public:
             std::vector<int> datasets,
             double &fval,
             double* gradient) const override {
+
+        mock().actualCall("AmiciSummedGradientFunctionMock::evaluate");
+
         return parpe::functionEvaluationSuccess;
     }
 
@@ -65,7 +107,22 @@ public:
         return amici::AMICI_SCALING_LOG10;
     }
 
-    int numParameters() const override { return numParameters_; }
+    parpe::FunctionEvaluationStatus evaluate(
+            const double* const parameters,
+            int dataset,
+            double &fval,
+            double* gradient) const override {
+
+        mock().actualCall("AmiciSummedGradientFunctionMock::evaluate");
+
+        return parpe::functionEvaluationSuccess;
+    }
+
+    int numParameters() const override {
+        mock().actualCall("AmiciSummedGradientFunctionMock::numParameters");
+
+        return numParameters_;
+    }
 
     int numParameters_ = 4;
     int numConditions = 4;
@@ -93,8 +150,9 @@ public:
 
 
 TEST(hierarchicalOptimization, hierarchicalOptimization) {
+    mock().ignoreOtherCalls();
 
-    auto fun = std::make_unique<AmiciSummedGradientFunctionDummy>();
+    auto fun = std::make_unique<AmiciSummedGradientFunctionMock>();
     auto fun2 = fun.get();
     auto r = std::make_unique<parpe::AnalyticalParameterHdf5Reader>(H5::H5File(TESTFILE, H5F_ACC_RDONLY),
                                                                     "/scalingParameterIndices",
@@ -142,6 +200,74 @@ TEST(hierarchicalOptimization, hierarchicalOptimization) {
     //    w.evaluateWithScalings();
 
     CHECK_EQUAL(2, w.numParameters());
+}
+
+TEST(hierarchicalOptimization, testNoAnalyticalParameters) {
+    // Should only call fun::evaluate, nothing else
+
+    // setup
+    auto fun = std::make_unique<AmiciSummedGradientFunctionMock>();
+    auto fun2 = fun.get();
+
+    auto scalingProvider = std::make_unique<AnalyticalParameterProviderMock>();
+    auto offsetProvider = std::make_unique<AnalyticalParameterProviderMock>();
+
+    // for offsets and proportionality factors
+    mock().expectNCalls(2, "AnalyticalParameterProviderMock::getOptimizationParameterIndices");
+
+    parpe::HierachicalOptimizationWrapper w(std::move(fun), std::move(scalingProvider), std::move(offsetProvider),
+                                            fun2->numConditions, fun2->numObservables, fun2->numTimepoints,
+                                            parpe::ErrorModel::normal);
+
+
+    mock().expectNCalls(1, "AmiciSummedGradientFunctionMock::evaluate");
+
+    std::vector<double> parameters;
+    double fval;
+    w.evaluate(parameters.data(), fval, nullptr);
+}
+
+
+TEST(hierarchicalOptimization, testComputeAnalyticalScalings) {
+    /* data
+     * measurement  = data * 10
+     * check scaling = 10
+     * */
+    int numObservables = 2;
+    int numTimepoints = 2;
+    int scalingIdx = 0;
+
+    std::vector<std::vector<double> > modelOutputsUnscaled { {1.0, 2.0, 3.0, 4.0} };
+    std::vector<std::vector<double> > measurements { {10.0, 20.0, 30.0, 40.0} };
+
+    AnalyticalParameterProviderMock scalingProvider;
+    scalingProvider.conditionsForParameter.push_back({0});
+    scalingProvider.mapping.resize(1);
+    scalingProvider.mapping[0][0] = {0};
+    // unused: scalingProvider.optimizationParameterIndices;
+
+    // TEST LIN
+    mock().expectNCalls(1, "AnalyticalParameterProviderMock::getConditionsForParameter")
+            .withIntParameter("parameterIndex", 0);
+    mock().expectNCalls(1, "AnalyticalParameterProviderMock::getObservablesForParameter")
+            .withIntParameter("parameterIndex", 0).withIntParameter("conditionIdx", 0);
+
+    auto scaling = parpe::computeAnalyticalScalings(scalingIdx, amici::AMICI_SCALING_NONE,
+                                                modelOutputsUnscaled, measurements,
+                                                scalingProvider, numObservables, numTimepoints);
+    CHECK_EQUAL(10.0, scaling);
+
+    // TEST LOG10
+    mock().expectNCalls(1, "AnalyticalParameterProviderMock::getConditionsForParameter")
+            .withIntParameter("parameterIndex", 0);
+    mock().expectNCalls(1, "AnalyticalParameterProviderMock::getObservablesForParameter")
+            .withIntParameter("parameterIndex", 0).withIntParameter("conditionIdx", 0);
+
+    scaling = parpe::computeAnalyticalScalings(scalingIdx, amici::AMICI_SCALING_LOG10,
+                                                modelOutputsUnscaled, measurements,
+                                                scalingProvider, numObservables, numTimepoints);
+    CHECK_EQUAL(1.0, scaling);
+
 }
 
 

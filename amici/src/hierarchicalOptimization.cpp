@@ -32,8 +32,8 @@ HierachicalOptimizationWrapper::HierachicalOptimizationWrapper(std::unique_ptr<A
 
 HierachicalOptimizationWrapper::HierachicalOptimizationWrapper(
         std::unique_ptr<AmiciSummedGradientFunction<int> > fun,
-        std::unique_ptr<parpe::AnalyticalParameterHdf5Reader> scalingReader,
-        std::unique_ptr<parpe::AnalyticalParameterHdf5Reader> offsetReader,
+        std::unique_ptr<parpe::AnalyticalParameterProvider> scalingReader,
+        std::unique_ptr<parpe::AnalyticalParameterProvider> offsetReader,
         int numConditions, int numObservables, int numTimepoints,
         ErrorModel errorModel)
     : fun(std::move(fun)),
@@ -172,6 +172,7 @@ void HierachicalOptimizationWrapper::applyOptimalScaling(int scalingIdx, double 
         for(auto const observableIdx: dependentObservables) {
             assert(observableIdx < numObservables);
             for(int timeIdx = 0; timeIdx < numTimepoints; ++timeIdx) {
+                // NOTE: this must be in sync with data ordering in AMICI (assumes row-major)
                 modelOutputs[conditionIdx][observableIdx + timeIdx * numObservables] *= scaling;
             }
         }
@@ -179,39 +180,11 @@ void HierachicalOptimizationWrapper::applyOptimalScaling(int scalingIdx, double 
 }
 
 double HierachicalOptimizationWrapper::computeAnalyticalScalings(int scalingIdx, const std::vector<std::vector<double> > &modelOutputsUnscaled, const std::vector<std::vector<double> > &measurements) const {
-    auto dependentConditions = scalingReader->getConditionsForParameter(scalingIdx);
 
-    double enumerator = 0.0;
-    double denominator = 0.0;
-
-    for (auto const conditionIdx: dependentConditions) {
-        auto dependentObservables = scalingReader->getObservablesForParameter(scalingIdx, conditionIdx);
-        for(auto const observableIdx: dependentObservables) {
-            for(int timeIdx = 0; timeIdx < numTimepoints; ++timeIdx) {
-                double mes = measurements[conditionIdx][observableIdx + timeIdx * numObservables];
-                if(!std::isnan(mes)) {
-                    double sim = modelOutputsUnscaled[conditionIdx][observableIdx + timeIdx * numObservables];
-                    assert(!std::isnan(sim));
-                    enumerator += sim * mes;
-                    denominator += sim * sim;
-                }
-            }
-        }
-    }
-
-    double proportionalityFactor = enumerator / denominator;
-
-    switch (fun->getParameterScaling(proportionalityFactorIndices[scalingIdx])) {
-    case amici::AMICI_SCALING_NONE:
-        break;
-    case amici::AMICI_SCALING_LOG10:
-        proportionalityFactor = log10(proportionalityFactor);
-        break;
-    default:
-        throw(ParPEException("Parameter scaling must be AMICI_SCALING_LOG10 or AMICI_SCALING_NONE."));
-    }
-
-    return proportionalityFactor;
+    return parpe::computeAnalyticalScalings(scalingIdx,
+                                            fun->getParameterScaling(proportionalityFactorIndices[scalingIdx]),
+                                            modelOutputsUnscaled, measurements,
+                                            *scalingReader, numObservables, numTimepoints);
 }
 
 // Offset code
@@ -443,7 +416,7 @@ const std::vector<int> &AnalyticalParameterHdf5Reader::getObservablesForParamete
 }
 
 
-std::vector<int> AnalyticalParameterHdf5Reader::getOptimizationParameterIndices() {
+std::vector<int> AnalyticalParameterHdf5Reader::getOptimizationParameterIndices() const {
     auto lock = hdf5MutexGetLock();
     std::vector<int> analyticalParameterIndices;
     H5_SAVE_ERROR_HANDLER; // don't show error if dataset is missing
@@ -639,5 +612,47 @@ double getDefaultOffsetParameter(amici::AMICI_parameter_scaling scaling)
     }
 }
 
+
+double computeAnalyticalScalings(int scalingIdx, amici::AMICI_parameter_scaling scale,
+                                 const std::vector<std::vector<double> > &modelOutputsUnscaled,
+                                 const std::vector<std::vector<double> > &measurements,
+                                 AnalyticalParameterProvider& scalingReader,
+                                 int numObservables, int numTimepoints) {
+
+    auto dependentConditions = scalingReader.getConditionsForParameter(scalingIdx);
+
+    double enumerator = 0.0;
+    double denominator = 0.0;
+
+    for (auto const conditionIdx: dependentConditions) {
+        auto dependentObservables = scalingReader.getObservablesForParameter(scalingIdx, conditionIdx);
+        for(auto const observableIdx: dependentObservables) {
+            for(int timeIdx = 0; timeIdx < numTimepoints; ++timeIdx) {
+                double mes = measurements[conditionIdx][observableIdx + timeIdx * numObservables];
+                if(!std::isnan(mes)) {
+                    // NOTE: this must be in sync with data ordering in AMICI (assumes row-major)
+                    double sim = modelOutputsUnscaled[conditionIdx][observableIdx + timeIdx * numObservables];
+                    assert(!std::isnan(sim));
+                    enumerator += sim * mes;
+                    denominator += sim * sim;
+                }
+            }
+        }
+    }
+
+    double proportionalityFactor = enumerator / denominator;
+
+    switch (scale) {
+    case amici::AMICI_SCALING_NONE:
+        break;
+    case amici::AMICI_SCALING_LOG10:
+        proportionalityFactor = log10(proportionalityFactor);
+        break;
+    default:
+        throw ParPEException("Parameter scaling must be AMICI_SCALING_LOG10 or AMICI_SCALING_NONE.");
+    }
+
+    return proportionalityFactor;
+}
 
 } // namespace parpe
