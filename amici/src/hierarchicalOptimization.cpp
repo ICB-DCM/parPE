@@ -66,6 +66,8 @@ void HierachicalOptimizationWrapper::init() {
 FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluate(const double * const parameters, double &fval, double *gradient) const {
     if(numScalingFactors() == 0 && numOffsetParameters() == 0) {
         // nothing to do, just pass through
+
+        // evaluate for all conditions
         std::vector<int> dataIndices(numConditions);
         std::iota(dataIndices.begin(), dataIndices.end(), 0);
 
@@ -95,16 +97,8 @@ std::vector<double> HierachicalOptimizationWrapper::getDefaultScalingFactors() c
     auto result = std::vector<double>(numScalingFactors());
 
     for(int i = 0; i < numScalingFactors(); ++i) {
-        switch (fun->getParameterScaling(proportionalityFactorIndices[i])) {
-        case amici::AMICI_SCALING_NONE:
-            result[i] = 1.0;
-            break;
-        case amici::AMICI_SCALING_LOG10:
-            result[i] = 0.0;
-            break;
-        default:
-            throw(ParPEException("Parameter scaling must be AMICI_SCALING_LOG10 or AMICI_SCALING_NONE."));
-        }
+        result[i] = getDefaultScalingFactor(
+                    fun->getParameterScaling(proportionalityFactorIndices[i]));
     }
 
     return result;
@@ -115,26 +109,18 @@ std::vector<double> HierachicalOptimizationWrapper::getDefaultOffsetParameters()
     auto result = std::vector<double>(numOffsetParameters());
 
     for(int i = 0; i < numOffsetParameters(); ++i) {
-        switch (fun->getParameterScaling(offsetParameterIndices[i])) {
-        case amici::AMICI_SCALING_NONE:
-            result[i] = 0.0;
-            break;
-        case amici::AMICI_SCALING_LOG10:
-            result[i] = -INFINITY;
-            break;
-        default:
-            throw(ParPEException("Parameter scaling must be AMICI_SCALING_LOG10 or AMICI_SCALING_NONE."));
-        }
+        result[i] = getDefaultOffsetParameter(
+                    fun->getParameterScaling(offsetParameterIndices[i]));
     }
 
     return result;
 }
 
 std::vector<std::vector<double> > HierachicalOptimizationWrapper::getUnscaledModelOutputs(const double * const reducedParameters) const {
-    // run simulations (no gradient!) with scaling parameters == 1, collect outputs
-
+    // run simulations, collect outputs
     auto scalingDummy = getDefaultScalingFactors();
     auto offsetDummy = getDefaultOffsetParameters();
+
     // splice hidden scaling parameter and external parameters
     auto fullParameters = spliceParameters(reducedParameters, numParameters(), scalingDummy, offsetDummy);
 
@@ -144,11 +130,9 @@ std::vector<std::vector<double> > HierachicalOptimizationWrapper::getUnscaledMod
     return modelOutput;
 }
 
-// Scaling code
-
 std::vector<double> HierachicalOptimizationWrapper::computeAnalyticalScalings(
         std::vector<std::vector<double>> const& measurements,
-        std::vector<std::vector<double> > &modelOutputs) const
+        std::vector<std::vector<double>> &modelOutputs) const
 {
     // NOTE: does not handle replicates, assumes normal distribution, does not compute sigmas
 
@@ -629,6 +613,30 @@ void fillFilteredParams(const std::vector<double> &valuesToFilter, std::vector<i
     }
     assert(nextFilterIdx == sortedIndicesToExclude.size());
     assert(resultIdx == (unsigned) valuesToFilter.size() - sortedIndicesToExclude.size());
+}
+
+double getDefaultScalingFactor(amici::AMICI_parameter_scaling scaling)
+{
+    switch (scaling) {
+    case amici::AMICI_SCALING_NONE:
+        return 1.0;
+    case amici::AMICI_SCALING_LOG10:
+        return 0.0;
+    default:
+        throw ParPEException("Parameter scaling must be AMICI_SCALING_LOG10 or AMICI_SCALING_NONE.");
+    }
+}
+
+double getDefaultOffsetParameter(amici::AMICI_parameter_scaling scaling)
+{
+    switch (scaling) {
+    case amici::AMICI_SCALING_NONE:
+        return 0.0;
+    case amici::AMICI_SCALING_LOG10:
+        return -INFINITY;
+    default:
+        throw ParPEException("Parameter scaling must be AMICI_SCALING_LOG10 or AMICI_SCALING_NONE.");
+    }
 }
 
 

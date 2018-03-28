@@ -283,6 +283,10 @@ private:
  */
 void fillFilteredParams(std::vector<double> const& valuesToFilter, const std::vector<int> &sortedIndicesToExclude, double *result);
 
+double getDefaultScalingFactor(amici::AMICI_parameter_scaling scaling);
+
+double getDefaultOffsetParameter(amici::AMICI_parameter_scaling scaling);
+
 } //namespace parpe
 
 #endif // HIERACHICALOPTIMIZATION_H
