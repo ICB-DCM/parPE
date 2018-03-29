@@ -174,7 +174,9 @@ TEST(hierarchicalOptimization, hierarchicalOptimization) {
 
     std::vector<double> scalingDummy(w.numScalingFactors(), 0.0);
     std::vector<double> offsetDummy(w.numOffsetParameters(),0.0);
-    CHECK_TRUE(onesFullParameters == w.spliceParameters(reducedParameters.data(), reducedParameters.size(), scalingDummy, offsetDummy));
+    CHECK_TRUE(onesFullParameters == parpe::spliceParameters(reducedParameters.data(), reducedParameters.size(),
+                                                             w.getProportionalityFactorIndices(), w.getOffsetParameterIndices(),
+                                                             scalingDummy, offsetDummy));
 
     // Ensure it is called with proper parameter vector:
     auto outputs = w.getUnscaledModelOutputs(fullParameters.data());
@@ -254,8 +256,8 @@ TEST(hierarchicalOptimization, testComputeAnalyticalScalings) {
             .withIntParameter("parameterIndex", 0).withIntParameter("conditionIdx", 0);
 
     auto scaling = parpe::computeAnalyticalScalings(scalingIdx, amici::AMICI_SCALING_NONE,
-                                                modelOutputsUnscaled, measurements,
-                                                scalingProvider, numObservables, numTimepoints);
+                                                    modelOutputsUnscaled, measurements,
+                                                    scalingProvider, numObservables, numTimepoints);
     CHECK_EQUAL(10.0, scaling);
 
     // TEST LOG10
@@ -265,8 +267,8 @@ TEST(hierarchicalOptimization, testComputeAnalyticalScalings) {
             .withIntParameter("parameterIndex", 0).withIntParameter("conditionIdx", 0);
 
     scaling = parpe::computeAnalyticalScalings(scalingIdx, amici::AMICI_SCALING_LOG10,
-                                                modelOutputsUnscaled, measurements,
-                                                scalingProvider, numObservables, numTimepoints);
+                                               modelOutputsUnscaled, measurements,
+                                               scalingProvider, numObservables, numTimepoints);
     CHECK_EQUAL(1.0, scaling);
 
     // TEST LOG10 NAN
@@ -278,8 +280,8 @@ TEST(hierarchicalOptimization, testComputeAnalyticalScalings) {
             .withIntParameter("parameterIndex", 0).withIntParameter("conditionIdx", 0);
 
     scaling = parpe::computeAnalyticalScalings(scalingIdx, amici::AMICI_SCALING_LOG10,
-                                                modelOutputsUnscaled, measurements,
-                                                scalingProvider, numObservables, numTimepoints);
+                                               modelOutputsUnscaled, measurements,
+                                               scalingProvider, numObservables, numTimepoints);
     CHECK_EQUAL(1.0, scaling);
 
 }
@@ -310,8 +312,8 @@ TEST(hierarchicalOptimization, testComputeAnalyticalOffsets) {
             .withIntParameter("parameterIndex", 0).withIntParameter("conditionIdx", 0);
 
     auto offset = parpe::computeAnalyticalOffsets(scalingIdx, amici::AMICI_SCALING_NONE,
-                                                modelOutputsUnscaled, measurements,
-                                                scalingProvider, numObservables, numTimepoints);
+                                                  modelOutputsUnscaled, measurements,
+                                                  scalingProvider, numObservables, numTimepoints);
     CHECK_EQUAL(10.0, offset);
 
     // TEST LOG10
@@ -321,8 +323,8 @@ TEST(hierarchicalOptimization, testComputeAnalyticalOffsets) {
             .withIntParameter("parameterIndex", 0).withIntParameter("conditionIdx", 0);
 
     offset = parpe::computeAnalyticalOffsets(scalingIdx, amici::AMICI_SCALING_LOG10,
-                                                modelOutputsUnscaled, measurements,
-                                                scalingProvider, numObservables, numTimepoints);
+                                             modelOutputsUnscaled, measurements,
+                                             scalingProvider, numObservables, numTimepoints);
     CHECK_EQUAL(1.0, offset);
 }
 
@@ -347,7 +349,7 @@ TEST(hierarchicalOptimization, applyOptimalScaling) {
             .withIntParameter("parameterIndex", 0).withIntParameter("conditionIdx", 0);
 
     parpe::applyOptimalScaling(scalingIdx, scaling, modelOutputs,
-                        scalingProvider, numObservables, numTimepoints);
+                               scalingProvider, numObservables, numTimepoints);
 
     CHECK_TRUE(modelOutputsScaledExpected == modelOutputs);
 }
@@ -374,11 +376,59 @@ TEST(hierarchicalOptimization, applyOptimalOffset) {
             .withIntParameter("parameterIndex", 0).withIntParameter("conditionIdx", 0);
 
     parpe::applyOptimalOffset(offsetIdx, offset, modelOutputs,
-                        offsetProvider, numObservables, numTimepoints);
+                              offsetProvider, numObservables, numTimepoints);
 
     CHECK_TRUE(modelOutputsScaledExpected == modelOutputs);
 }
 
+
+TEST(hierarchicalOptimization, testScaling) {
+    CHECK_EQUAL(42.0, parpe::getUnscaledParameter(42.0, amici::AMICI_SCALING_NONE));
+    CHECK_EQUAL(42.0, parpe::getScaledParameter(42.0, amici::AMICI_SCALING_NONE));
+
+    CHECK_EQUAL(2.0, parpe::getScaledParameter(100.0, amici::AMICI_SCALING_LOG10));
+    CHECK_EQUAL(100.0, parpe::getUnscaledParameter(2.0, amici::AMICI_SCALING_LOG10));
+
+    CHECK_THROWS(parpe::ParPEException, parpe::getUnscaledParameter(42.0, amici::AMICI_SCALING_LN));
+    CHECK_THROWS(parpe::ParPEException, parpe::getScaledParameter(42.0, amici::AMICI_SCALING_LN));
+
+}
+
+TEST(hierarchicalOptimization, spliceParameters) {
+    std::vector<double> fullParametersExp {0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0};
+
+    std::vector<double> reducedParameters {1.0, 5.0, 8.0};
+
+    std::vector<int> proportionalityFactorIndices {2, 3, 7};
+    std::vector<double> scalings {2.0, 3.0, 7.0};
+
+    std::vector<int> offsetParameterIndices {0, 4, 6};
+    std::vector<double> offsets {0.0, 4.0, 6.0};
+
+    auto fullParametersAct = parpe::spliceParameters(reducedParameters.data(), reducedParameters.size(),
+                                                     proportionalityFactorIndices, offsetParameterIndices,
+                                                     scalings, offsets);
+
+    CHECK_TRUE(fullParametersExp == fullParametersAct);
+}
+
+TEST(hierarchicalOptimization, spliceParametersNothingToDo) {
+    std::vector<double> fullParametersExp {0.0, 1.0, 2.0};
+
+    std::vector<double> reducedParameters {0.0, 1.0, 2.0};
+
+    std::vector<int> proportionalityFactorIndices;
+    std::vector<double> scalings;
+
+    std::vector<int> offsetParameterIndices;
+    std::vector<double> offsets;
+
+    auto fullParametersAct = parpe::spliceParameters(reducedParameters.data(), reducedParameters.size(),
+                                                     proportionalityFactorIndices, offsetParameterIndices,
+                                                     scalings, offsets);
+
+    CHECK_TRUE(fullParametersExp == fullParametersAct);
+}
 
 
 TEST(hierarchicalOptimization, filterParams) {
@@ -387,14 +437,14 @@ TEST(hierarchicalOptimization, filterParams) {
 
 TEST(hierarchicalOptimization, problemWrapper) {
     // TODO test wrapper; need dataprovider?!
-//    mock().ignoreOtherCalls();
-//    parpe::QuadraticTestProblem problem;
+    //    mock().ignoreOtherCalls();
+    //    parpe::QuadraticTestProblem problem;
 
-//    parpe::OptimizerIpOpt optimizer;
-//    auto result = optimizer.optimize(&problem);
+    //    parpe::OptimizerIpOpt optimizer;
+    //    auto result = optimizer.optimize(&problem);
 
-//    // check status, cost, parameter
-//    CHECK_EQUAL(0, std::get<0>(result));
-//    DOUBLES_EQUAL(42.0, std::get<1>(result), 1e-12);
-//    DOUBLES_EQUAL(-1.0, std::get<2>(result).at(0), 1e-12);
+    //    // check status, cost, parameter
+    //    CHECK_EQUAL(0, std::get<0>(result));
+    //    DOUBLES_EQUAL(42.0, std::get<1>(result), 1e-12);
+    //    DOUBLES_EQUAL(-1.0, std::get<2>(result).at(0), 1e-12);
 }

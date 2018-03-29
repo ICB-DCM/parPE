@@ -52,7 +52,9 @@ int StandaloneSimulator::run(const std::string& resultFile, const std::string& r
         // expand parameter vector
         auto scalingDummy = hierarchical.getDefaultScalingFactors();
         auto offsetDummy = hierarchical.getDefaultOffsetParameters();
-        parameters = hierarchical.spliceParameters(optimizationParameters.data(), optimizationParameters.size(), scalingDummy, offsetDummy);
+        parameters = spliceParameters(optimizationParameters.data(), optimizationParameters.size(),
+                                      proportionalityFactorIndices, offsetParameterIndices,
+                                      scalingDummy, offsetDummy);
 
         // get outputs, scale
         // TODO need to pass aggreate function for writing

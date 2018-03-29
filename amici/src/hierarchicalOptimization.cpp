@@ -122,7 +122,9 @@ std::vector<std::vector<double> > HierachicalOptimizationWrapper::getUnscaledMod
     auto offsetDummy = getDefaultOffsetParameters();
 
     // splice hidden scaling parameter and external parameters
-    auto fullParameters = spliceParameters(reducedParameters, numParameters(), scalingDummy, offsetDummy);
+    auto fullParameters = spliceParameters(reducedParameters, numParameters(),
+                                           proportionalityFactorIndices, offsetParameterIndices,
+                                           scalingDummy, offsetDummy);
 
     std::vector<std::vector<double> > modelOutput(numConditions);
     fun->getModelOutputs(fullParameters.data(), modelOutput);
@@ -212,7 +214,9 @@ FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluateWithOptimalPara
 
     if(gradient) {
         // simulate with updated theta for sensitivities
-        auto fullParameters = spliceParameters(reducedParameters, numParameters(), scalings, offsets);
+        auto fullParameters = spliceParameters(reducedParameters, numParameters(),
+                                               proportionalityFactorIndices, offsetParameterIndices,
+                                               scalings, offsets);
         // TODO: only those necessary?
         std::vector<int> dataIndices(numConditions);
         std::iota(dataIndices.begin(), dataIndices.end(), 0);
@@ -271,28 +275,6 @@ double HierachicalOptimizationWrapper::computeNegLogLikelihood(std::vector<doubl
     return llh;
 }
 
-
-std::vector<double> HierachicalOptimizationWrapper::spliceParameters(const double * const reducedParameters, int numReduced,
-                                                                     const std::vector<double> &scalingFactors,
-                                                                     const std::vector<double> &offsetParameters) const {
-    std::vector<double> fullParameters(numReduced + scalingFactors.size() + offsetParameters.size());
-    int idxScaling = 0;
-    int idxOffset = 0;
-    int idxRegular = 0;
-
-    for(int i = 0; i < (signed) fullParameters.size(); ++i) {
-        if((unsigned)idxScaling < proportionalityFactorIndices.size() && proportionalityFactorIndices[idxScaling] == i)
-            fullParameters[i] = scalingFactors[idxScaling++];
-        else if((unsigned)idxOffset < offsetParameterIndices.size() && offsetParameterIndices[idxOffset] == i)
-            fullParameters[i] = offsetParameters[idxOffset++];
-        else if(idxRegular < numReduced)
-            fullParameters[i] = reducedParameters[idxRegular++];
-        else
-            throw std::exception();
-    }
-
-    return fullParameters;
-}
 
 int HierachicalOptimizationWrapper::numParameters() const {
     return fun->numParameters() - numScalingFactors() - numOffsetParameters();
@@ -645,7 +627,6 @@ double getUnscaledParameter(double parameter, amici::AMICI_parameter_scaling sca
 }
 
 
-
 void applyOptimalOffset(int offsetIdx, double offsetLin,
                         std::vector<std::vector<double> > &modelOutputs,
                         AnalyticalParameterProvider& offsetReader,
@@ -662,5 +643,30 @@ void applyOptimalOffset(int offsetIdx, double offsetLin,
     }
 }
 
+
+
+std::vector<double> spliceParameters(const double * const reducedParameters, int numReduced,
+                                     const std::vector<int> &proportionalityFactorIndices,
+                                     const std::vector<int> &offsetParameterIndices,
+                                     const std::vector<double> &scalingFactors,
+                                     const std::vector<double> &offsetParameters) {
+    std::vector<double> fullParameters(numReduced + scalingFactors.size() + offsetParameters.size());
+    int idxScaling = 0;
+    int idxOffset = 0;
+    int idxRegular = 0;
+
+    for(int i = 0; i < (signed) fullParameters.size(); ++i) {
+        if((unsigned)idxScaling < proportionalityFactorIndices.size() && proportionalityFactorIndices[idxScaling] == i)
+            fullParameters[i] = scalingFactors[idxScaling++];
+        else if((unsigned)idxOffset < offsetParameterIndices.size() && offsetParameterIndices[idxOffset] == i)
+            fullParameters[i] = offsetParameters[idxOffset++];
+        else if(idxRegular < numReduced)
+            fullParameters[i] = reducedParameters[idxRegular++];
+        else
+            throw std::exception();
+    }
+
+    return fullParameters;
+}
 
 } // namespace parpe

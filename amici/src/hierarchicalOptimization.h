@@ -135,15 +135,6 @@ public:
      */
     double computeNegLogLikelihood(std::vector<double> const& measurements, std::vector<double> const& modelOutputsScaled) const;
 
-
-    /**
-     * @brief Assemble full parameter vector of wrapped problem from scaling parameters and numerically optimized parameters
-     * @param reducedParameters
-     * @param scalingFactors
-     * @return Full parameter vector for `fun`
-     */
-    virtual std::vector<double> spliceParameters(const double * const reducedParameters, int numReduced, const std::vector<double> &scalingFactors, const std::vector<double> &offsetParameters) const;
-
     virtual int numParameters() const override;
 
     int numScalingFactors() const;
@@ -344,6 +335,18 @@ void applyOptimalOffset(int offsetIdx, double offsetLin,
                         std::vector<std::vector<double> > &modelOutputs,
                         AnalyticalParameterProvider& offsetReader,
                         int numObservables, int numTimepoints);
+
+/**
+ * @brief Assemble full parameter vector of wrapped problem from scaling parameters and numerically optimized parameters
+ * @param reducedParameters
+ * @param scalingFactors
+ * @return Full parameter vector for `fun`
+ */
+std::vector<double> spliceParameters(const double * const reducedParameters, int numReduced,
+                                     const std::vector<int> &proportionalityFactorIndices,
+                                     const std::vector<int> &offsetParameterIndices,
+                                     const std::vector<double> &scalingFactors,
+                                     const std::vector<double> &offsetParameters);
 } //namespace parpe
 
 #endif // HIERACHICALOPTIMIZATION_H
