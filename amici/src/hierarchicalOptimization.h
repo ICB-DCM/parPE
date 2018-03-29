@@ -77,7 +77,6 @@ public:
 
     void applyOptimalScalings(std::vector<double> const& proportionalityFactors, std::vector<std::vector<double> > &modelOutputs) const;
 
-    void applyOptimalScaling(int scalingIdx, double scaling, std::vector <std::vector<double>>&  modelOutputs) const;
 
     /**
      * @brief Compute offset parameters
@@ -87,8 +86,6 @@ public:
     std::vector<double> computeAnalyticalOffsets(const std::vector<std::vector<double> > &measurements, std::vector <std::vector<double>>& modelOutputs) const;
 
     void applyOptimalOffsets(std::vector<double> const& proportionalityFactors, std::vector<std::vector<double> > &modelOutputs) const;
-
-    void applyOptimalOffset(int offsetIdx, double offset, std::vector <std::vector<double>>&  modelOutputs) const;
 
 
     /**
@@ -333,6 +330,20 @@ double computeAnalyticalOffsets(int offsetIdx,
                                 const std::vector<std::vector<double> > &measurements,
                                 AnalyticalParameterProvider& offsetReader,
                                 int numObservables, int numTimepoints);
+
+void applyOptimalScaling(int scalingIdx, double scalingLin,
+                         std::vector<std::vector<double> > &modelOutputs,
+                         AnalyticalParameterProvider& scalingReader,
+                         int numObservables, int numTimepoints);
+
+double getScaledParameter(double parameter, amici::AMICI_parameter_scaling scale);
+
+double getUnscaledParameter(double parameter, amici::AMICI_parameter_scaling scale);
+
+void applyOptimalOffset(int offsetIdx, double offsetLin,
+                        std::vector<std::vector<double> > &modelOutputs,
+                        AnalyticalParameterProvider& offsetReader,
+                        int numObservables, int numTimepoints);
 } //namespace parpe
 
 #endif // HIERACHICALOPTIMIZATION_H

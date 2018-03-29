@@ -157,11 +157,12 @@ TEST(hierarchicalOptimization, hierarchicalOptimization) {
     auto r = std::make_unique<parpe::AnalyticalParameterHdf5Reader>(H5::H5File(TESTFILE, H5F_ACC_RDONLY),
                                                                     "/scalingParameterIndices",
                                                                     "/scalingParametersMapToObservables");
+    auto scalingReader = r.get();
     auto o = std::make_unique<parpe::AnalyticalParameterHdf5Reader>(H5::H5File(TESTFILE, H5F_ACC_RDONLY),
                                                                     "/offsetParameterIndices",
                                                                     "/offsetParametersMapToObservables");
     parpe::HierachicalOptimizationWrapper w(std::move(fun), std::move(r), std::move(o),
-                                            fun->numConditions, fun->numObservables, fun->numTimepoints,
+                                            fun2->numConditions, fun2->numObservables, fun2->numTimepoints,
                                             parpe::ErrorModel::normal);
 
     CHECK_TRUE(w.numScalingFactors() == 2);
@@ -182,7 +183,7 @@ TEST(hierarchicalOptimization, hierarchicalOptimization) {
     auto s = w.computeAnalyticalScalings(0, outputs, fun2->measurements);
     CHECK_EQUAL(log10(2.0), s);
 
-    w.applyOptimalScaling(0, 2.0, outputs);
+    applyOptimalScaling(0, 2.0, outputs, *scalingReader, fun2->numObservables, fun2->numTimepoints);
     // output has to be equal to measurement for all points scaled with this parameter
     CHECK_TRUE(outputs[1][0] == fun2->measurements[1][0]);
     CHECK_TRUE(outputs[1][3] == fun2->measurements[1][3]);
@@ -267,6 +268,20 @@ TEST(hierarchicalOptimization, testComputeAnalyticalScalings) {
                                                 modelOutputsUnscaled, measurements,
                                                 scalingProvider, numObservables, numTimepoints);
     CHECK_EQUAL(1.0, scaling);
+
+    // TEST LOG10 NAN
+    measurements[0][0] = NAN;
+    modelOutputsUnscaled[0][0] = 2345; // not used
+    mock().expectNCalls(1, "AnalyticalParameterProviderMock::getConditionsForParameter")
+            .withIntParameter("parameterIndex", 0);
+    mock().expectNCalls(1, "AnalyticalParameterProviderMock::getObservablesForParameter")
+            .withIntParameter("parameterIndex", 0).withIntParameter("conditionIdx", 0);
+
+    scaling = parpe::computeAnalyticalScalings(scalingIdx, amici::AMICI_SCALING_LOG10,
+                                                modelOutputsUnscaled, measurements,
+                                                scalingProvider, numObservables, numTimepoints);
+    CHECK_EQUAL(1.0, scaling);
+
 }
 
 
@@ -309,6 +324,59 @@ TEST(hierarchicalOptimization, testComputeAnalyticalOffsets) {
                                                 modelOutputsUnscaled, measurements,
                                                 scalingProvider, numObservables, numTimepoints);
     CHECK_EQUAL(1.0, offset);
+}
+
+TEST(hierarchicalOptimization, applyOptimalScaling) {
+    int numObservables = 2;
+    int numTimepoints = 2;
+    int scalingIdx = 0;
+    double scaling = 0.5;
+    std::vector<std::vector<double> > modelOutputs { {2.0, 4.0, 6.0, 8.0} };
+    std::vector<std::vector<double> > modelOutputsScaledExpected { {1.0, 4.0, 3.0, 8.0} };
+
+    AnalyticalParameterProviderMock scalingProvider;
+    scalingProvider.conditionsForParameter.push_back({0});
+    scalingProvider.mapping.resize(1);
+    // applies to all timepoints for observable 0 (== element 0 and 2)
+    scalingProvider.mapping[0][0] = {0};
+    // unused: scalingProvider.optimizationParameterIndices;
+
+    mock().expectNCalls(1, "AnalyticalParameterProviderMock::getConditionsForParameter")
+            .withIntParameter("parameterIndex", 0);
+    mock().expectNCalls(1, "AnalyticalParameterProviderMock::getObservablesForParameter")
+            .withIntParameter("parameterIndex", 0).withIntParameter("conditionIdx", 0);
+
+    parpe::applyOptimalScaling(scalingIdx, scaling, modelOutputs,
+                        scalingProvider, numObservables, numTimepoints);
+
+    CHECK_TRUE(modelOutputsScaledExpected == modelOutputs);
+}
+
+
+TEST(hierarchicalOptimization, applyOptimalOffset) {
+    int numObservables = 2;
+    int numTimepoints = 2;
+    int offsetIdx = 0;
+    double offset = 5;
+    std::vector<std::vector<double> > modelOutputs { {-4.0, 4.0, -2.0, 8.0} };
+    std::vector<std::vector<double> > modelOutputsScaledExpected { {1.0, 4.0, 3.0, 8.0} };
+
+    AnalyticalParameterProviderMock offsetProvider;
+    offsetProvider.conditionsForParameter.push_back({0});
+    offsetProvider.mapping.resize(1);
+    // applies to all timepoints for observable 0 (== element 0 and 2)
+    offsetProvider.mapping[0][0] = {0};
+    // unused: scalingProvider.optimizationParameterIndices;
+
+    mock().expectNCalls(1, "AnalyticalParameterProviderMock::getConditionsForParameter")
+            .withIntParameter("parameterIndex", 0);
+    mock().expectNCalls(1, "AnalyticalParameterProviderMock::getObservablesForParameter")
+            .withIntParameter("parameterIndex", 0).withIntParameter("conditionIdx", 0);
+
+    parpe::applyOptimalOffset(offsetIdx, offset, modelOutputs,
+                        offsetProvider, numObservables, numTimepoints);
+
+    CHECK_TRUE(modelOutputsScaledExpected == modelOutputs);
 }
 
 

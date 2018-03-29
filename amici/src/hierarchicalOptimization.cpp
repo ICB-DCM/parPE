@@ -12,8 +12,8 @@ namespace parpe {
 
 
 HierachicalOptimizationWrapper::HierachicalOptimizationWrapper(std::unique_ptr<AmiciSummedGradientFunction<int> > fun,
-        H5::H5File file, std::string hdf5RootPath,
-        int numConditions, int numObservables, int numTimepoints, ErrorModel errorModel)
+                                                               H5::H5File file, std::string hdf5RootPath,
+                                                               int numConditions, int numObservables, int numTimepoints, ErrorModel errorModel)
     : fun(std::move(fun)),
       numConditions(numConditions),
       numObservables(numObservables),
@@ -21,11 +21,11 @@ HierachicalOptimizationWrapper::HierachicalOptimizationWrapper(std::unique_ptr<A
       errorModel(errorModel)
 {
     scalingReader = std::make_unique<AnalyticalParameterHdf5Reader>(file,
-                                                             hdf5RootPath + "/scalingParameterIndices",
-                                                             hdf5RootPath + "/scalingParametersMapToObservables");
+                                                                    hdf5RootPath + "/scalingParameterIndices",
+                                                                    hdf5RootPath + "/scalingParametersMapToObservables");
     offsetReader = std::make_unique<AnalyticalParameterHdf5Reader>(file,
-                                                             hdf5RootPath + "/offsetParameterIndices",
-                                                             hdf5RootPath + "/offsetParametersMapToObservables");
+                                                                   hdf5RootPath + "/offsetParameterIndices",
+                                                                   hdf5RootPath + "/offsetParametersMapToObservables");
 
     init();
 }
@@ -149,35 +149,14 @@ std::vector<double> HierachicalOptimizationWrapper::computeAnalyticalScalings(
 void HierachicalOptimizationWrapper::applyOptimalScalings(std::vector<double> const& proportionalityFactors, std::vector<std::vector<double> > &modelOutputs) const {
 
     for(int i = 0; (unsigned) i < proportionalityFactors.size(); ++i) {
-        double scaling = proportionalityFactors[i];
+        double scaling = getUnscaledParameter(proportionalityFactors[i],
+                                              fun->getParameterScaling(proportionalityFactorIndices[i]));
 
-        switch (fun->getParameterScaling(proportionalityFactorIndices[i])) {
-        case amici::AMICI_SCALING_NONE:
-            break;
-        case amici::AMICI_SCALING_LOG10:
-            scaling = pow(10, scaling);
-            break;
-        default:
-            throw(ParPEException("Parameter scaling must be AMICI_SCALING_LOG10 or AMICI_SCALING_NONE."));
-        }
-        applyOptimalScaling(i, scaling, modelOutputs);
+        applyOptimalScaling(i, scaling, modelOutputs,
+                            *scalingReader, numObservables, numTimepoints);
     }
 }
 
-
-void HierachicalOptimizationWrapper::applyOptimalScaling(int scalingIdx, double scaling, std::vector<std::vector<double> > &modelOutputs) const {
-    auto dependentConditions = scalingReader->getConditionsForParameter(scalingIdx);
-    for (auto const conditionIdx: dependentConditions) {
-        auto dependentObservables = scalingReader->getObservablesForParameter(scalingIdx, conditionIdx);
-        for(auto const observableIdx: dependentObservables) {
-            assert(observableIdx < numObservables);
-            for(int timeIdx = 0; timeIdx < numTimepoints; ++timeIdx) {
-                // NOTE: this must be in sync with data ordering in AMICI (assumes row-major)
-                modelOutputs[conditionIdx][observableIdx + timeIdx * numObservables] *= scaling;
-            }
-        }
-    }
-}
 
 double HierachicalOptimizationWrapper::computeAnalyticalScalings(int scalingIdx, const std::vector<std::vector<double> > &modelOutputsUnscaled, const std::vector<std::vector<double> > &measurements) const {
 
@@ -207,40 +186,19 @@ void HierachicalOptimizationWrapper::applyOptimalOffsets(std::vector<double> con
 
     // TODO: do we need to distinguish here?
     for(int i = 0; (unsigned) i < offsetParameters.size(); ++i) {
-        double offset = offsetParameters[i];
-
-        switch (fun->getParameterScaling(offsetParameterIndices[i])) {
-        case amici::AMICI_SCALING_NONE:
-            break;
-        case amici::AMICI_SCALING_LOG10:
-            offset = pow(10, offset);
-            break;
-        default:
-            throw(ParPEException("Parameter scaling must be AMICI_SCALING_LOG10 or AMICI_SCALING_NONE."));
-        }
-        applyOptimalOffset(i, offset, modelOutputs);
+        double offset = getUnscaledParameter(offsetParameters[i],
+                                             fun->getParameterScaling(offsetParameterIndices[i]));
+        applyOptimalOffset(i, offset, modelOutputs,
+                           *offsetReader, numObservables, numTimepoints);
     }
 }
 
-
-void HierachicalOptimizationWrapper::applyOptimalOffset(int offsetIdx, double offset, std::vector<std::vector<double> > &modelOutputs) const {
-    auto dependentConditions = offsetReader->getConditionsForParameter(offsetIdx);
-    for (auto const conditionIdx: dependentConditions) {
-        auto dependentObservables = offsetReader->getObservablesForParameter(offsetIdx, conditionIdx);
-        for(auto const observableIdx: dependentObservables) {
-            assert(observableIdx < numObservables);
-            for(int timeIdx = 0; timeIdx < numTimepoints; ++timeIdx) {
-                modelOutputs[conditionIdx][observableIdx + timeIdx * numObservables] += offset;
-            }
-        }
-    }
-}
 
 double HierachicalOptimizationWrapper::computeAnalyticalOffsets(int offsetIdx, const std::vector<std::vector<double> > &modelOutputsUnscaled, const std::vector<std::vector<double> > &measurements) const {
     return parpe::computeAnalyticalOffsets(offsetIdx,
-                                            fun->getParameterScaling(proportionalityFactorIndices[offsetIdx]),
-                                            modelOutputsUnscaled, measurements,
-                                            *offsetReader, numObservables, numTimepoints);
+                                           fun->getParameterScaling(proportionalityFactorIndices[offsetIdx]),
+                                           modelOutputsUnscaled, measurements,
+                                           *offsetReader, numObservables, numTimepoints);
 }
 
 
@@ -306,7 +264,6 @@ double HierachicalOptimizationWrapper::computeNegLogLikelihood(std::vector<doubl
             double diff = mes - sim;
             diff *= diff;
             llh += log(2.0 * pi * sigmaSquared) + diff / sigmaSquared;
-
         }
     }
 
@@ -609,17 +566,7 @@ double computeAnalyticalScalings(int scalingIdx, amici::AMICI_parameter_scaling 
         }
     }
 
-    double proportionalityFactor = enumerator / denominator;
-
-    switch (scale) {
-    case amici::AMICI_SCALING_NONE:
-        break;
-    case amici::AMICI_SCALING_LOG10:
-        proportionalityFactor = log10(proportionalityFactor);
-        break;
-    default:
-        throw ParPEException("Parameter scaling must be AMICI_SCALING_LOG10 or AMICI_SCALING_NONE.");
-    }
+    double proportionalityFactor = getScaledParameter(enumerator / denominator, scale);
 
     return proportionalityFactor;
 }
@@ -651,20 +598,69 @@ double computeAnalyticalOffsets(int offsetIdx,
         }
     }
 
-    double offsetParameter = enumerator / denominator;
-
-    switch (scale) {
-    case amici::AMICI_SCALING_NONE:
-        break;
-    case amici::AMICI_SCALING_LOG10:
-        offsetParameter = log10(offsetParameter);
-        break;
-    default:
-        throw(ParPEException("Parameter scaling must be AMICI_SCALING_LOG10 or AMICI_SCALING_NONE."));
-    }
+    double offsetParameter = getScaledParameter(enumerator / denominator, scale);
 
     // TODO ensure positivity!
     return offsetParameter;
 }
+
+
+void applyOptimalScaling(int scalingIdx, double scalingLin,
+                         std::vector<std::vector<double> > &modelOutputs,
+                         AnalyticalParameterProvider& scalingReader,
+                         int numObservables, int numTimepoints) {
+    auto dependentConditions = scalingReader.getConditionsForParameter(scalingIdx);
+    for (auto const conditionIdx: dependentConditions) {
+        auto dependentObservables = scalingReader.getObservablesForParameter(scalingIdx, conditionIdx);
+        for(auto const observableIdx: dependentObservables) {
+            assert(observableIdx < numObservables);
+            for(int timeIdx = 0; timeIdx < numTimepoints; ++timeIdx) {
+                // NOTE: this must be in sync with data ordering in AMICI (assumes row-major)
+                modelOutputs[conditionIdx][observableIdx + timeIdx * numObservables] *= scalingLin;
+            }
+        }
+    }
+}
+
+double getScaledParameter(double parameter, amici::AMICI_parameter_scaling scale) {
+    switch (scale) {
+    case amici::AMICI_SCALING_NONE:
+        return parameter;
+    case amici::AMICI_SCALING_LOG10:
+        return log10(parameter);
+    default:
+        throw(ParPEException("Parameter scaling must be AMICI_SCALING_LOG10 or AMICI_SCALING_NONE."));
+    }
+}
+
+double getUnscaledParameter(double parameter, amici::AMICI_parameter_scaling scale) {
+    switch (scale) {
+    case amici::AMICI_SCALING_NONE:
+        return parameter;
+    case amici::AMICI_SCALING_LOG10:
+        return pow(10, parameter);
+    default:
+        throw ParPEException("Parameter scaling must be AMICI_SCALING_LOG10 or AMICI_SCALING_NONE.");
+    }
+}
+
+
+
+void applyOptimalOffset(int offsetIdx, double offsetLin,
+                        std::vector<std::vector<double> > &modelOutputs,
+                        AnalyticalParameterProvider& offsetReader,
+                        int numObservables, int numTimepoints) {
+    auto dependentConditions = offsetReader.getConditionsForParameter(offsetIdx);
+    for (auto const conditionIdx: dependentConditions) {
+        auto dependentObservables = offsetReader.getObservablesForParameter(offsetIdx, conditionIdx);
+        for(auto const observableIdx: dependentObservables) {
+            assert(observableIdx < numObservables);
+            for(int timeIdx = 0; timeIdx < numTimepoints; ++timeIdx) {
+                modelOutputs[conditionIdx][observableIdx + timeIdx * numObservables] += offsetLin;
+            }
+        }
+    }
+}
+
 
 } // namespace parpe
