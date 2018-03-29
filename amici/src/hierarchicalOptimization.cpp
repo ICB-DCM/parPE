@@ -237,43 +237,12 @@ void HierachicalOptimizationWrapper::applyOptimalOffset(int offsetIdx, double of
 }
 
 double HierachicalOptimizationWrapper::computeAnalyticalOffsets(int offsetIdx, const std::vector<std::vector<double> > &modelOutputsUnscaled, const std::vector<std::vector<double> > &measurements) const {
-    auto dependentConditions = offsetReader->getConditionsForParameter(offsetIdx);
-
-    double enumerator = 0.0;
-    double denominator = 0.0;
-
-    for (auto const conditionIdx: dependentConditions) {
-        auto dependentObservables = offsetReader->getObservablesForParameter(offsetIdx, conditionIdx);
-        for(auto const observableIdx: dependentObservables) {
-            for(int timeIdx = 0; timeIdx < numTimepoints; ++timeIdx) {
-                double mes = measurements[conditionIdx][observableIdx + timeIdx * numObservables];
-                if(!std::isnan(mes)) {
-                    double sim = modelOutputsUnscaled[conditionIdx][observableIdx + timeIdx * numObservables];
-                    assert(!std::isnan(sim));
-                    enumerator += mes - sim;
-                    denominator += 1;
-                }
-            }
-        }
-    }
-
-    double offsetParameter = enumerator / denominator;
-
-    switch (fun->getParameterScaling(offsetParameterIndices[offsetIdx])) {
-    case amici::AMICI_SCALING_NONE:
-        break;
-    case amici::AMICI_SCALING_LOG10:
-        offsetParameter = log10(offsetParameter);
-        break;
-    default:
-        throw(ParPEException("Parameter scaling must be AMICI_SCALING_LOG10 or AMICI_SCALING_NONE."));
-    }
-
-    // TODO ensure positivity!
-    return offsetParameter;
+    return parpe::computeAnalyticalOffsets(offsetIdx,
+                                            fun->getParameterScaling(proportionalityFactorIndices[offsetIdx]),
+                                            modelOutputsUnscaled, measurements,
+                                            *offsetReader, numObservables, numTimepoints);
 }
 
-//
 
 FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluateWithOptimalParameters(
         // adapt to offsets
@@ -653,6 +622,49 @@ double computeAnalyticalScalings(int scalingIdx, amici::AMICI_parameter_scaling 
     }
 
     return proportionalityFactor;
+}
+
+
+double computeAnalyticalOffsets(int offsetIdx,
+                                amici::AMICI_parameter_scaling scale,
+                                const std::vector<std::vector<double> > &modelOutputsUnscaled,
+                                const std::vector<std::vector<double> > &measurements,
+                                AnalyticalParameterProvider& offsetReader,
+                                int numObservables, int numTimepoints) {
+    auto dependentConditions = offsetReader.getConditionsForParameter(offsetIdx);
+
+    double enumerator = 0.0;
+    double denominator = 0.0;
+
+    for (auto const conditionIdx: dependentConditions) {
+        auto dependentObservables = offsetReader.getObservablesForParameter(offsetIdx, conditionIdx);
+        for(auto const observableIdx: dependentObservables) {
+            for(int timeIdx = 0; timeIdx < numTimepoints; ++timeIdx) {
+                double mes = measurements[conditionIdx][observableIdx + timeIdx * numObservables];
+                if(!std::isnan(mes)) {
+                    double sim = modelOutputsUnscaled[conditionIdx][observableIdx + timeIdx * numObservables];
+                    assert(!std::isnan(sim));
+                    enumerator += mes - sim;
+                    denominator += 1.0;
+                }
+            }
+        }
+    }
+
+    double offsetParameter = enumerator / denominator;
+
+    switch (scale) {
+    case amici::AMICI_SCALING_NONE:
+        break;
+    case amici::AMICI_SCALING_LOG10:
+        offsetParameter = log10(offsetParameter);
+        break;
+    default:
+        throw(ParPEException("Parameter scaling must be AMICI_SCALING_LOG10 or AMICI_SCALING_NONE."));
+    }
+
+    // TODO ensure positivity!
+    return offsetParameter;
 }
 
 } // namespace parpe

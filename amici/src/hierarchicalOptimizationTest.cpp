@@ -267,8 +267,50 @@ TEST(hierarchicalOptimization, testComputeAnalyticalScalings) {
                                                 modelOutputsUnscaled, measurements,
                                                 scalingProvider, numObservables, numTimepoints);
     CHECK_EQUAL(1.0, scaling);
-
 }
+
+
+TEST(hierarchicalOptimization, testComputeAnalyticalOffsets) {
+    /* data
+     * measurement  = data + 10
+     * check offset = 10
+     * */
+    int numObservables = 2;
+    int numTimepoints = 2;
+    int scalingIdx = 0;
+
+    std::vector<std::vector<double> > modelOutputsUnscaled { {1.0, 2.0, 3.0, 4.0} };
+    std::vector<std::vector<double> > measurements { {11.0, 12.0, 13.0, 14.0} };
+
+    AnalyticalParameterProviderMock scalingProvider;
+    scalingProvider.conditionsForParameter.push_back({0});
+    scalingProvider.mapping.resize(1);
+    scalingProvider.mapping[0][0] = {0};
+    // unused: scalingProvider.optimizationParameterIndices;
+
+    // TEST LIN
+    mock().expectNCalls(1, "AnalyticalParameterProviderMock::getConditionsForParameter")
+            .withIntParameter("parameterIndex", 0);
+    mock().expectNCalls(1, "AnalyticalParameterProviderMock::getObservablesForParameter")
+            .withIntParameter("parameterIndex", 0).withIntParameter("conditionIdx", 0);
+
+    auto offset = parpe::computeAnalyticalOffsets(scalingIdx, amici::AMICI_SCALING_NONE,
+                                                modelOutputsUnscaled, measurements,
+                                                scalingProvider, numObservables, numTimepoints);
+    CHECK_EQUAL(10.0, offset);
+
+    // TEST LOG10
+    mock().expectNCalls(1, "AnalyticalParameterProviderMock::getConditionsForParameter")
+            .withIntParameter("parameterIndex", 0);
+    mock().expectNCalls(1, "AnalyticalParameterProviderMock::getObservablesForParameter")
+            .withIntParameter("parameterIndex", 0).withIntParameter("conditionIdx", 0);
+
+    offset = parpe::computeAnalyticalOffsets(scalingIdx, amici::AMICI_SCALING_LOG10,
+                                                modelOutputsUnscaled, measurements,
+                                                scalingProvider, numObservables, numTimepoints);
+    CHECK_EQUAL(1.0, offset);
+}
+
 
 
 TEST(hierarchicalOptimization, filterParams) {

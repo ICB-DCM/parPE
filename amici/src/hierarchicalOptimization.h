@@ -190,6 +190,9 @@ private:
  */
 class AnalyticalParameterProvider {
 public:
+
+    virtual ~AnalyticalParameterProvider() {}
+
     /**
      * @brief Get vector of condition indices for which the parameter with the given index is used.
      * @param parameterIndex referring to the index in the analytical parameter list in the hdf5 file
@@ -211,6 +214,7 @@ public:
      * @return
      */
     virtual std::vector<int> getOptimizationParameterIndices() const = 0;
+
 };
 
 /**
@@ -323,6 +327,12 @@ double computeAnalyticalScalings(int scalingIdx, amici::AMICI_parameter_scaling 
                                  AnalyticalParameterProvider& scalingReader,
                                  int numObservables, int numTimepoints);
 
+double computeAnalyticalOffsets(int offsetIdx,
+                                amici::AMICI_parameter_scaling scale,
+                                const std::vector<std::vector<double> > &modelOutputsUnscaled,
+                                const std::vector<std::vector<double> > &measurements,
+                                AnalyticalParameterProvider& offsetReader,
+                                int numObservables, int numTimepoints);
 } //namespace parpe
 
 #endif // HIERACHICALOPTIMIZATION_H
