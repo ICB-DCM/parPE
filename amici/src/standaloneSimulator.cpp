@@ -123,7 +123,7 @@ int StandaloneSimulator::run(const std::string& resultFile, const std::string& r
         for(int dataIdx = 0; (unsigned) dataIdx < jobs.size(); ++dataIdx) {
             JobResultAmiciSimulation& result = jobResults[dataIdx];
             result.rdata->y = modelOutputs[dataIdx];
-            result.rdata->llh = -hierarchical.computeNegLogLikelihood(allMeasurements[dataIdx], modelOutputs[dataIdx]);
+            result.rdata->llh = -parpe::computeNegLogLikelihood(allMeasurements[dataIdx], modelOutputs[dataIdx]);
             auto edata = dataProvider->getExperimentalDataForCondition(dataIdx);
             rw.saveSimulationResults(edata.get(), result.rdata.get(), dataIdx);
         }

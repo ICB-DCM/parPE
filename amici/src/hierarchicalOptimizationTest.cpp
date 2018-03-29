@@ -182,7 +182,9 @@ TEST(hierarchicalOptimization, hierarchicalOptimization) {
     auto outputs = w.getUnscaledModelOutputs(fullParameters.data());
     CHECK_TRUE(onesFullParameters == fun->lastParameters);
 
-    auto s = w.computeAnalyticalScalings(0, outputs, fun->measurements);
+    auto s = parpe::computeAnalyticalScalings(0, amici::AMICI_SCALING_LOG10,
+                                              outputs, fun->measurements,
+                                              *scalingReader, fun->numObservables, fun->numTimepoints);
     CHECK_EQUAL(log10(2.0), s);
 
     applyOptimalScaling(0, 2.0, outputs, *scalingReader, fun->numObservables, fun->numTimepoints);
@@ -193,7 +195,7 @@ TEST(hierarchicalOptimization, hierarchicalOptimization) {
     CHECK_TRUE(outputs[2][3] == fun->measurements[2][3]);
 
     // likelihood without offset must be 0 after scaling and if all other measurements/observables agree
-    auto llh = w.computeNegLogLikelihood(fun->measurements, outputs);
+    auto llh = parpe::computeNegLogLikelihood(fun->measurements, outputs);
     double pi = atan(1)*4;
     double llhOffset = 0.5 * log(2 * pi) * 20;
     DOUBLES_EQUAL(llh - llhOffset, 0, 1e-10);
@@ -505,8 +507,25 @@ TEST(hierarchicalOptimization, testWrappedFunIsCalledWithGradient) {
     w.evaluate(parameters.data(), fval, nullptr);
 }
 
+TEST(hierarchicalOptimization, likelihoodOfMatchingData) {
+    const std::vector<double> data {1.0, 2.0, 3.0};
+
+    const double pi = atan(1)*4;
+    const double llhOffset = 0.5 * log(2 * pi);
+    const double expected = llhOffset * data.size();
+
+    auto actual = parpe::computeNegLogLikelihood(data, data);
+    CHECK_EQUAL(expected, actual);
+}
+
 
 TEST(hierarchicalOptimization, problemWrapper) {
+    //std::unique_ptr<parpe::OptimizationProblem> problem(new parpe::QuadraticTestProblem());
+    //auto hCost = std::make_unique<parpe::HierachicalOptimizationWrapper>();
+    //auto wrappedFun = dynamic_cast<SummedGradientFunctionGradientFunctionAdapter<int>*>(wrappedProblem->costFun.get());
+
+    //parpe::HierachicalOptimizationProblemWrapper hw(std::move(problem), std::move(hCost));
+
     // TODO test wrapper; need dataprovider?!
     //    mock().ignoreOtherCalls();
     //    parpe::QuadraticTestProblem problem;

@@ -79,7 +79,7 @@ public:
      * @param modelOutputs Model outputs as provided by getModelOutputs
      * @return the computed scaling factors
      */
-    std::vector<double> computeAnalyticalScalings(const std::vector<std::vector<double> > &measurements, std::vector <std::vector<double>>& modelOutputs) const;
+    std::vector<double> computeAnalyticalScalings(const std::vector<std::vector<double> > &measurements, std::vector <std::vector<double>>& modelOutputsUnscaled) const;
 
     void applyOptimalScalings(std::vector<double> const& proportionalityFactors, std::vector<std::vector<double> > &modelOutputs) const;
 
@@ -89,26 +89,11 @@ public:
      * @param modelOutputs Model outputs as provided by getModelOutputs
      * @return the computed offset parameters
      */
-    std::vector<double> computeAnalyticalOffsets(const std::vector<std::vector<double> > &measurements, std::vector <std::vector<double>>& modelOutputs) const;
+    std::vector<double> computeAnalyticalOffsets(const std::vector<std::vector<double> > &measurements, std::vector <std::vector<double>>& modelOutputsUnscaled) const;
 
     void applyOptimalOffsets(std::vector<double> const& proportionalityFactors, std::vector<std::vector<double> > &modelOutputs) const;
 
 
-    /**
-     * @brief Compute the proportionality factor for the given observable.
-     *
-     * See Supplement 1.1 of [1].
-     *
-     * [1] Loos, Krause, Hasenauer. Hierarchical optimization for the efficient parametrization of ODE models.
-     * @param
-     * @return
-     */
-
-    virtual double computeAnalyticalScalings(int scalingIdx, std::vector <std::vector<double>> const& modelOutputsUnscaled,
-                                  std::vector <std::vector<double>> const& measurements) const;
-
-    virtual double computeAnalyticalOffsets(int offsetIdx, std::vector <std::vector<double>> const& modelOutputsUnscaled,
-                                  std::vector <std::vector<double>> const& measurements) const;
 
     /**
      * @brief Evaluate `fun` using the computed optimal scaling and offset parameters.
@@ -122,24 +107,10 @@ public:
      */
 
     virtual FunctionEvaluationStatus evaluateWithOptimalParameters(const double * const reducedParameters, const std::vector<double> &scalings,
-            const std::vector<double> &offsets,
+            const std::vector<double> &offsets, const std::vector<std::vector<double> > &measurements,
             std::vector<std::vector<double> > &modelOutputsUnscaled,
             double &fval,
             double *gradient) const;
-
-    /**
-     * @brief Compute loglikelihood for normal distribution based on the model outputs and measurements for multiple conditions.
-     * @param modelOutputsScaled
-     * @return
-     */
-    double computeNegLogLikelihood(std::vector <std::vector<double>> const& measurements, std::vector <std::vector<double>> const& modelOutputsScaled) const;
-
-    /**
-     * @brief Compute loglikelihood for normal distribution based on the model outputs and measurements for a single condition.
-     * @param modelOutputsScaled
-     * @return
-     */
-    double computeNegLogLikelihood(std::vector<double> const& measurements, std::vector<double> const& modelOutputsScaled) const;
 
     virtual int numParameters() const override;
 
@@ -284,7 +255,12 @@ private:
 class HierachicalOptimizationProblemWrapper : public OptimizationProblem {
 public:
     HierachicalOptimizationProblemWrapper() = default;
-    HierachicalOptimizationProblemWrapper(std::unique_ptr<OptimizationProblem> problemToWrap, MultiConditionDataProvider const* dataProvider);
+
+    HierachicalOptimizationProblemWrapper(std::unique_ptr<OptimizationProblem> problemToWrap,
+                                          MultiConditionDataProvider const* dataProvider);
+
+    HierachicalOptimizationProblemWrapper(std::unique_ptr<OptimizationProblem> problemToWrap,
+                                          std::unique_ptr<HierachicalOptimizationWrapper> costFun);
 
     virtual ~HierachicalOptimizationProblemWrapper();
 
@@ -318,6 +294,16 @@ void fillFilteredParams(std::vector<double> const& valuesToFilter, const std::ve
 double getDefaultScalingFactor(amici::AMICI_parameter_scaling scaling);
 
 double getDefaultOffsetParameter(amici::AMICI_parameter_scaling scaling);
+
+/**
+ * @brief Compute the proportionality factor for the given observable.
+ *
+ * See Supplement 1.1 of [1].
+ *
+ * [1] Loos, Krause, Hasenauer. Hierarchical optimization for the efficient parametrization of ODE models.
+ * @param
+ * @return
+ */
 
 double computeAnalyticalScalings(int scalingIdx, amici::AMICI_parameter_scaling scale,
                                  const std::vector<std::vector<double> > &modelOutputsUnscaled,
@@ -357,6 +343,23 @@ std::vector<double> spliceParameters(const double * const reducedParameters, int
                                      const std::vector<int> &offsetParameterIndices,
                                      const std::vector<double> &scalingFactors,
                                      const std::vector<double> &offsetParameters);
+
+/**
+ * @brief Compute loglikelihood for normal distribution based on the model outputs and measurements for multiple conditions.
+ * @param modelOutputsScaled
+ * @return
+ */
+double computeNegLogLikelihood(std::vector <std::vector<double>> const& measurements,
+                               std::vector <std::vector<double>> const& modelOutputsScaled);
+
+/**
+ * @brief Compute loglikelihood for normal distribution based on the model outputs and measurements for a single condition.
+ * @param modelOutputsScaled
+ * @return
+ */
+double computeNegLogLikelihood(std::vector<double> const& measurements,
+                               std::vector<double> const& modelOutputsScaled);
+
 } //namespace parpe
 
 #endif // HIERACHICALOPTIMIZATION_H
