@@ -30,6 +30,12 @@ class HierachicalOptimizationWrapper : public GradientFunction
 {
 public:
     HierachicalOptimizationWrapper(std::unique_ptr<AmiciSummedGradientFunction<int>> fun,
+                                   int numConditions = 0,
+                                   int numObservables = 0,
+                                   int numTimepoints = 0);
+
+
+    HierachicalOptimizationWrapper(std::unique_ptr<AmiciSummedGradientFunction<int>> fun,
                                    H5::H5File file, std::string hdf5RootPath,
                                    int numConditions,
                                    int numObservables,
@@ -170,7 +176,7 @@ private:
     int numTimepoints;
 
     /** Error model to use for computing analytical parameters and likelihood */
-    ErrorModel errorModel;
+    ErrorModel errorModel = ErrorModel::normal;
 };
 
 
@@ -214,6 +220,8 @@ public:
  */
 class AnalyticalParameterHdf5Reader : public AnalyticalParameterProvider {
 public:
+    AnalyticalParameterHdf5Reader() = default;
+
     /**
      * @brief AnalyticalParameterHdf5Reader
      * @param file

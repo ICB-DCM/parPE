@@ -100,7 +100,7 @@ if(${BUILD_TESTS})
             APPEND_COVERAGE_COMPILER_FLAGS()
             setup_target_for_coverage(
                 NAME ${PROJECT_NAME}_coverage
-                EXECUTABLE ctest
+                EXECUTABLE ctest -R unittests
                 DEPENDENCIES ${COVERAGE_DEPENDENCIES})
         else()
             message("Not creating coverage report, because coamici/examples/steadystate/modelamici/examples/steadystate/modelmpiler is not GCC but ${CMAKE_CXX_COMPILER_ID}.")

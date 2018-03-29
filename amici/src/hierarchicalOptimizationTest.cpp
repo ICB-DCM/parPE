@@ -98,7 +98,7 @@ public:
             double &fval,
             double* gradient) const override {
 
-        mock().actualCall("AmiciSummedGradientFunctionMock::evaluate");
+        mock().actualCall("AmiciSummedGradientFunctionMock::evaluate").withBoolParameter("gradient", gradient != nullptr);
 
         return parpe::functionEvaluationSuccess;
     }
@@ -113,7 +113,7 @@ public:
             double &fval,
             double* gradient) const override {
 
-        mock().actualCall("AmiciSummedGradientFunctionMock::evaluate");
+        mock().actualCall("AmiciSummedGradientFunctionMock::evaluate").withBoolParameter("gradient", gradient != nullptr);
 
         return parpe::functionEvaluationSuccess;
     }
@@ -152,17 +152,17 @@ public:
 TEST(hierarchicalOptimization, hierarchicalOptimization) {
     mock().ignoreOtherCalls();
 
-    auto fun = std::make_unique<AmiciSummedGradientFunctionMock>();
-    auto fun2 = fun.get();
-    auto r = std::make_unique<parpe::AnalyticalParameterHdf5Reader>(H5::H5File(TESTFILE, H5F_ACC_RDONLY),
-                                                                    "/scalingParameterIndices",
-                                                                    "/scalingParametersMapToObservables");
-    auto scalingReader = r.get();
-    auto o = std::make_unique<parpe::AnalyticalParameterHdf5Reader>(H5::H5File(TESTFILE, H5F_ACC_RDONLY),
-                                                                    "/offsetParameterIndices",
-                                                                    "/offsetParametersMapToObservables");
-    parpe::HierachicalOptimizationWrapper w(std::move(fun), std::move(r), std::move(o),
-                                            fun2->numConditions, fun2->numObservables, fun2->numTimepoints,
+    auto funUnqiue = std::make_unique<AmiciSummedGradientFunctionMock>();
+    auto fun = funUnqiue.get();
+    auto scalingReaderUnique = std::make_unique<parpe::AnalyticalParameterHdf5Reader>(H5::H5File(TESTFILE, H5F_ACC_RDONLY),
+                                                                                      "/scalingParameterIndices",
+                                                                                      "/scalingParametersMapToObservables");
+    auto scalingReader = scalingReaderUnique.get();
+    auto offsetReaderUnique = std::make_unique<parpe::AnalyticalParameterHdf5Reader>(H5::H5File(TESTFILE, H5F_ACC_RDONLY),
+                                                                                     "/offsetParameterIndices",
+                                                                                     "/offsetParametersMapToObservables");
+    parpe::HierachicalOptimizationWrapper w(std::move(funUnqiue), std::move(scalingReaderUnique), std::move(offsetReaderUnique),
+                                            fun->numConditions, fun->numObservables, fun->numTimepoints,
                                             parpe::ErrorModel::normal);
 
     CHECK_TRUE(w.numScalingFactors() == 2);
@@ -180,20 +180,20 @@ TEST(hierarchicalOptimization, hierarchicalOptimization) {
 
     // Ensure it is called with proper parameter vector:
     auto outputs = w.getUnscaledModelOutputs(fullParameters.data());
-    CHECK_TRUE(onesFullParameters == fun2->lastParameters);
+    CHECK_TRUE(onesFullParameters == fun->lastParameters);
 
-    auto s = w.computeAnalyticalScalings(0, outputs, fun2->measurements);
+    auto s = w.computeAnalyticalScalings(0, outputs, fun->measurements);
     CHECK_EQUAL(log10(2.0), s);
 
-    applyOptimalScaling(0, 2.0, outputs, *scalingReader, fun2->numObservables, fun2->numTimepoints);
+    applyOptimalScaling(0, 2.0, outputs, *scalingReader, fun->numObservables, fun->numTimepoints);
     // output has to be equal to measurement for all points scaled with this parameter
-    CHECK_TRUE(outputs[1][0] == fun2->measurements[1][0]);
-    CHECK_TRUE(outputs[1][3] == fun2->measurements[1][3]);
-    CHECK_TRUE(outputs[2][0] == fun2->measurements[2][0]);
-    CHECK_TRUE(outputs[2][3] == fun2->measurements[2][3]);
+    CHECK_TRUE(outputs[1][0] == fun->measurements[1][0]);
+    CHECK_TRUE(outputs[1][3] == fun->measurements[1][3]);
+    CHECK_TRUE(outputs[2][0] == fun->measurements[2][0]);
+    CHECK_TRUE(outputs[2][3] == fun->measurements[2][3]);
 
     // likelihood without offset must be 0 after scaling and if all other measurements/observables agree
-    auto llh = w.computeNegLogLikelihood(fun2->measurements, outputs);
+    auto llh = w.computeNegLogLikelihood(fun->measurements, outputs);
     double pi = atan(1)*4;
     double llhOffset = 0.5 * log(2 * pi) * 20;
     DOUBLES_EQUAL(llh - llhOffset, 0, 1e-10);
@@ -223,7 +223,7 @@ TEST(hierarchicalOptimization, testNoAnalyticalParameters) {
                                             parpe::ErrorModel::normal);
 
 
-    mock().expectNCalls(1, "AmiciSummedGradientFunctionMock::evaluate");
+    mock().expectNCalls(1, "AmiciSummedGradientFunctionMock::evaluate").withBoolParameter("gradient", false);
 
     std::vector<double> parameters;
     double fval;
@@ -247,7 +247,7 @@ TEST(hierarchicalOptimization, testComputeAnalyticalScalings) {
     scalingProvider.conditionsForParameter.push_back({0});
     scalingProvider.mapping.resize(1);
     scalingProvider.mapping[0][0] = {0};
-    // unused: scalingProvider.optimizationParameterIndices;
+    scalingProvider.optimizationParameterIndices.push_back(0);
 
     // TEST LIN
     mock().expectNCalls(1, "AnalyticalParameterProviderMock::getConditionsForParameter")
@@ -303,7 +303,7 @@ TEST(hierarchicalOptimization, testComputeAnalyticalOffsets) {
     scalingProvider.conditionsForParameter.push_back({0});
     scalingProvider.mapping.resize(1);
     scalingProvider.mapping[0][0] = {0};
-    // unused: scalingProvider.optimizationParameterIndices;
+    scalingProvider.optimizationParameterIndices.push_back(0);
 
     // TEST LIN
     mock().expectNCalls(1, "AnalyticalParameterProviderMock::getConditionsForParameter")
@@ -341,7 +341,7 @@ TEST(hierarchicalOptimization, applyOptimalScaling) {
     scalingProvider.mapping.resize(1);
     // applies to all timepoints for observable 0 (== element 0 and 2)
     scalingProvider.mapping[0][0] = {0};
-    // unused: scalingProvider.optimizationParameterIndices;
+    scalingProvider.optimizationParameterIndices.push_back(0);
 
     mock().expectNCalls(1, "AnalyticalParameterProviderMock::getConditionsForParameter")
             .withIntParameter("parameterIndex", 0);
@@ -369,7 +369,7 @@ TEST(hierarchicalOptimization, applyOptimalOffset) {
     offsetProvider.mapping.resize(1);
     // applies to all timepoints for observable 0 (== element 0 and 2)
     offsetProvider.mapping[0][0] = {0};
-    // unused: scalingProvider.optimizationParameterIndices;
+    offsetProvider.optimizationParameterIndices.push_back(0);
 
     mock().expectNCalls(1, "AnalyticalParameterProviderMock::getConditionsForParameter")
             .withIntParameter("parameterIndex", 0);
@@ -442,6 +442,69 @@ TEST(hierarchicalOptimization, fillFilteredParams) {
 
     CHECK_TRUE(resultExp == resultAct);
 }
+
+
+TEST(hierarchicalOptimization, testWrappedFunIsCalledWithGradient) {
+    // setup
+    auto fun = std::make_unique<AmiciSummedGradientFunctionMock>();
+    auto fun2 = fun.get();
+
+    auto scalingProvider = std::make_unique<AnalyticalParameterProviderMock>();
+    auto offsetProvider = std::make_unique<AnalyticalParameterProviderMock>();
+
+    scalingProvider->conditionsForParameter.push_back({0});
+    scalingProvider->mapping.resize(1);
+    // applies to all timepoints for observable 0 (== element 0 and 2)
+    scalingProvider->mapping[0][0] = {0};
+    scalingProvider->optimizationParameterIndices.push_back(0);
+
+
+    // for offsets and proportionality factors
+    mock().expectNCalls(2, "AnalyticalParameterProviderMock::getOptimizationParameterIndices");
+
+    parpe::HierachicalOptimizationWrapper w(std::move(fun), std::move(scalingProvider), std::move(offsetProvider),
+                                            fun2->numConditions, fun2->numObservables, fun2->numTimepoints,
+                                            parpe::ErrorModel::normal);
+
+    const std::vector<double> parameters { 1.0 };
+    double fval;
+    std::vector<double> gradient(parameters.size());
+
+    // ensure fun::evaluate is called with gradient
+
+    mock().expectNCalls(1, "AmiciSummedGradientFunctionMock::numParameters");
+    mock().expectNCalls(1, "AmiciSummedGradientFunctionMock::getModelOutputs");
+    mock().expectNCalls(1, "AnalyticalParameterProviderMock::getConditionsForParameter")
+            .withIntParameter("parameterIndex", 0);
+    mock().expectNCalls(1, "AnalyticalParameterProviderMock::getObservablesForParameter")
+            .withIntParameter("parameterIndex", 0)
+            .withIntParameter("conditionIdx", 0);
+    mock().expectNCalls(1, "AmiciSummedGradientFunctionMock::evaluate").withBoolParameter("gradient", true);
+    mock().expectNCalls(1, "AmiciSummedGradientFunctionMock::numParameters");
+
+    w.evaluate(parameters.data(), fval, gradient.data());
+
+    mock().checkExpectations();
+    mock().clear();
+
+    // test fun::evaluate is not called if no gradient (only get outputs)
+
+    mock().expectNCalls(1, "AmiciSummedGradientFunctionMock::numParameters");
+    mock().expectNCalls(1, "AmiciSummedGradientFunctionMock::getModelOutputs");
+    mock().expectNCalls(1, "AnalyticalParameterProviderMock::getConditionsForParameter")
+            .withIntParameter("parameterIndex", 0);
+    mock().expectNCalls(1, "AnalyticalParameterProviderMock::getObservablesForParameter")
+            .withIntParameter("parameterIndex", 0)
+            .withIntParameter("conditionIdx", 0);
+    mock().expectNCalls(1, "AnalyticalParameterProviderMock::getConditionsForParameter")
+            .withIntParameter("parameterIndex", 0);
+    mock().expectNCalls(1, "AnalyticalParameterProviderMock::getObservablesForParameter")
+            .withIntParameter("parameterIndex", 0)
+            .withIntParameter("conditionIdx", 0);
+
+    w.evaluate(parameters.data(), fval, nullptr);
+}
+
 
 TEST(hierarchicalOptimization, problemWrapper) {
     // TODO test wrapper; need dataprovider?!

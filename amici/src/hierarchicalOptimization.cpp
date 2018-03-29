@@ -11,6 +11,17 @@
 namespace parpe {
 
 
+HierachicalOptimizationWrapper::HierachicalOptimizationWrapper(std::unique_ptr<AmiciSummedGradientFunction<int> > fun, int numConditions, int numObservables, int numTimepoints)
+    : fun(std::move(fun)),
+      numConditions(numConditions),
+      numObservables(numObservables),
+      numTimepoints(numTimepoints)
+{
+    scalingReader = std::make_unique<AnalyticalParameterHdf5Reader>();
+    offsetReader = std::make_unique<AnalyticalParameterHdf5Reader>();
+    init();
+}
+
 HierachicalOptimizationWrapper::HierachicalOptimizationWrapper(std::unique_ptr<AmiciSummedGradientFunction<int> > fun,
                                                                H5::H5File file, std::string hdf5RootPath,
                                                                int numConditions, int numObservables, int numTimepoints, ErrorModel errorModel)
