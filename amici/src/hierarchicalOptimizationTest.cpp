@@ -468,7 +468,8 @@ TEST(hierarchicalOptimization, testWrappedFunIsCalledWithGradient) {
                                             fun2->numConditions, fun2->numObservables, fun2->numTimepoints,
                                             parpe::ErrorModel::normal);
 
-    const std::vector<double> parameters { 1.0 };
+    const std::vector<double> parameters { 1.0, 2.0, 3.0, 4.0 };
+    CHECK_EQUAL((unsigned) fun2->numParameters_, parameters.size());
     double fval;
     std::vector<double> gradient(parameters.size());
 
