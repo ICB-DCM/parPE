@@ -236,9 +236,9 @@ TEST(hierarchicalOptimization, testComputeAnalyticalScalings) {
      * measurement  = data * 10
      * check scaling = 10
      * */
-    int numObservables = 2;
-    int numTimepoints = 2;
-    int scalingIdx = 0;
+    constexpr int numObservables = 2;
+    constexpr int numTimepoints = 2;
+    constexpr int scalingIdx = 0;
 
     std::vector<std::vector<double> > modelOutputsUnscaled { {1.0, 2.0, 3.0, 4.0} };
     std::vector<std::vector<double> > measurements { {10.0, 20.0, 30.0, 40.0} };
@@ -292,12 +292,12 @@ TEST(hierarchicalOptimization, testComputeAnalyticalOffsets) {
      * measurement  = data + 10
      * check offset = 10
      * */
-    int numObservables = 2;
-    int numTimepoints = 2;
-    int scalingIdx = 0;
+    constexpr int numObservables = 2;
+    constexpr int numTimepoints = 2;
+    constexpr int scalingIdx = 0;
 
-    std::vector<std::vector<double> > modelOutputsUnscaled { {1.0, 2.0, 3.0, 4.0} };
-    std::vector<std::vector<double> > measurements { {11.0, 12.0, 13.0, 14.0} };
+    const std::vector<std::vector<double> > modelOutputsUnscaled { {1.0, 2.0, 3.0, 4.0} };
+    const std::vector<std::vector<double> > measurements { {11.0, 12.0, 13.0, 14.0} };
 
     AnalyticalParameterProviderMock scalingProvider;
     scalingProvider.conditionsForParameter.push_back({0});
@@ -329,12 +329,12 @@ TEST(hierarchicalOptimization, testComputeAnalyticalOffsets) {
 }
 
 TEST(hierarchicalOptimization, applyOptimalScaling) {
-    int numObservables = 2;
-    int numTimepoints = 2;
-    int scalingIdx = 0;
-    double scaling = 0.5;
+    constexpr int numObservables = 2;
+    constexpr int numTimepoints = 2;
+    constexpr int scalingIdx = 0;
+    constexpr double scaling = 0.5;
+    const std::vector<std::vector<double> > modelOutputsScaledExpected { {1.0, 4.0, 3.0, 8.0} };
     std::vector<std::vector<double> > modelOutputs { {2.0, 4.0, 6.0, 8.0} };
-    std::vector<std::vector<double> > modelOutputsScaledExpected { {1.0, 4.0, 3.0, 8.0} };
 
     AnalyticalParameterProviderMock scalingProvider;
     scalingProvider.conditionsForParameter.push_back({0});
@@ -356,12 +356,13 @@ TEST(hierarchicalOptimization, applyOptimalScaling) {
 
 
 TEST(hierarchicalOptimization, applyOptimalOffset) {
-    int numObservables = 2;
-    int numTimepoints = 2;
-    int offsetIdx = 0;
-    double offset = 5;
+    constexpr int numObservables = 2;
+    constexpr int numTimepoints = 2;
+    constexpr int offsetIdx = 0;
+    constexpr double offset = 5;
+    const std::vector<std::vector<double> > modelOutputsScaledExpected { {1.0, 4.0, 3.0, 8.0} };
     std::vector<std::vector<double> > modelOutputs { {-4.0, 4.0, -2.0, 8.0} };
-    std::vector<std::vector<double> > modelOutputsScaledExpected { {1.0, 4.0, 3.0, 8.0} };
+
 
     AnalyticalParameterProviderMock offsetProvider;
     offsetProvider.conditionsForParameter.push_back({0});
@@ -395,15 +396,15 @@ TEST(hierarchicalOptimization, testScaling) {
 }
 
 TEST(hierarchicalOptimization, spliceParameters) {
-    std::vector<double> fullParametersExp {0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0};
+    const std::vector<double> fullParametersExp {0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0};
 
-    std::vector<double> reducedParameters {1.0, 5.0, 8.0};
+    const std::vector<double> reducedParameters {1.0, 5.0, 8.0};
 
-    std::vector<int> proportionalityFactorIndices {2, 3, 7};
-    std::vector<double> scalings {2.0, 3.0, 7.0};
+    const std::vector<int> proportionalityFactorIndices {2, 3, 7};
+    const std::vector<double> scalings {2.0, 3.0, 7.0};
 
-    std::vector<int> offsetParameterIndices {0, 4, 6};
-    std::vector<double> offsets {0.0, 4.0, 6.0};
+    const std::vector<int> offsetParameterIndices {0, 4, 6};
+    const std::vector<double> offsets {0.0, 4.0, 6.0};
 
     auto fullParametersAct = parpe::spliceParameters(reducedParameters.data(), reducedParameters.size(),
                                                      proportionalityFactorIndices, offsetParameterIndices,
@@ -413,15 +414,15 @@ TEST(hierarchicalOptimization, spliceParameters) {
 }
 
 TEST(hierarchicalOptimization, spliceParametersNothingToDo) {
-    std::vector<double> fullParametersExp {0.0, 1.0, 2.0};
+    const std::vector<double> fullParametersExp {0.0, 1.0, 2.0};
 
-    std::vector<double> reducedParameters {0.0, 1.0, 2.0};
+    const std::vector<double> reducedParameters {0.0, 1.0, 2.0};
 
-    std::vector<int> proportionalityFactorIndices;
-    std::vector<double> scalings;
+    const std::vector<int> proportionalityFactorIndices;
+    const std::vector<double> scalings;
 
-    std::vector<int> offsetParameterIndices;
-    std::vector<double> offsets;
+    const std::vector<int> offsetParameterIndices;
+    const std::vector<double> offsets;
 
     auto fullParametersAct = parpe::spliceParameters(reducedParameters.data(), reducedParameters.size(),
                                                      proportionalityFactorIndices, offsetParameterIndices,
@@ -432,9 +433,10 @@ TEST(hierarchicalOptimization, spliceParametersNothingToDo) {
 
 
 TEST(hierarchicalOptimization, fillFilteredParams) {
-    std::vector<double> resultExp {1.0, 2.0, 3.0, 4.0, 5.0};
-    std::vector<double> valuesToFilter {9.0, 1.0, 2.0, 9.0, 9.0, 3.0, 4.0, 5.0, 9.0};
-    std::vector<int> sortedIndicesToExclude {0, 3, 4, 8};
+    const std::vector<double> resultExp {1.0, 2.0, 3.0, 4.0, 5.0};
+    const std::vector<double> valuesToFilter {9.0, 1.0, 2.0, 9.0, 9.0, 3.0, 4.0, 5.0, 9.0};
+    const std::vector<int> sortedIndicesToExclude {0, 3, 4, 8};
+
     auto resultAct = std::vector<double>(valuesToFilter.size() - sortedIndicesToExclude.size());
     parpe::fillFilteredParams(valuesToFilter, sortedIndicesToExclude, resultAct.data());
 
