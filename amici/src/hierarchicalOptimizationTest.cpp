@@ -431,8 +431,14 @@ TEST(hierarchicalOptimization, spliceParametersNothingToDo) {
 }
 
 
-TEST(hierarchicalOptimization, filterParams) {
-    // TODO
+TEST(hierarchicalOptimization, fillFilteredParams) {
+    std::vector<double> resultExp {1.0, 2.0, 3.0, 4.0, 5.0};
+    std::vector<double> valuesToFilter {9.0, 1.0, 2.0, 9.0, 9.0, 3.0, 4.0, 5.0, 9.0};
+    std::vector<int> sortedIndicesToExclude {0, 3, 4, 8};
+    auto resultAct = std::vector<double>(valuesToFilter.size() - sortedIndicesToExclude.size());
+    parpe::fillFilteredParams(valuesToFilter, sortedIndicesToExclude, resultAct.data());
+
+    CHECK_TRUE(resultExp == resultAct);
 }
 
 TEST(hierarchicalOptimization, problemWrapper) {

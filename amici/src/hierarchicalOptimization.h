@@ -145,6 +145,8 @@ public:
 
     std::vector<int> const& getOffsetParameterIndices() const;
 
+    std::vector<int> getAnalyticalParameterIndices() const;
+
     std::unique_ptr<AmiciSummedGradientFunction<int>> fun;
 
 private:

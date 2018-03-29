@@ -226,10 +226,9 @@ FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluateWithOptimalPara
         auto status = fun->evaluate(fullParameters.data(), dataIndices, fval, fullGradient.data());
         if(status != functionEvaluationSuccess)
             return status;
-        auto scalingParameterIndices = proportionalityFactorIndices;
-        scalingParameterIndices.insert(scalingParameterIndices.end(),offsetParameterIndices.begin(),offsetParameterIndices.end());
-        std::sort(scalingParameterIndices.begin(),scalingParameterIndices.end());
-        fillFilteredParams(fullGradient, scalingParameterIndices, gradient);
+
+        auto analyticalParameterIndices = getAnalyticalParameterIndices();
+        fillFilteredParams(fullGradient, analyticalParameterIndices, gradient);
 
     } else {
         applyOptimalScalings(scalings, modelOutputsUnscaled);
@@ -308,6 +307,15 @@ int HierachicalOptimizationWrapper::numOffsetParameters() const {
 const std::vector<int> &HierachicalOptimizationWrapper::getOffsetParameterIndices() const
 {
     return offsetParameterIndices;
+}
+
+std::vector<int> HierachicalOptimizationWrapper::getAnalyticalParameterIndices() const
+{
+    auto combinedIndices = proportionalityFactorIndices;
+    combinedIndices.insert(combinedIndices.end(), offsetParameterIndices.begin(), offsetParameterIndices.end());
+    std::sort(combinedIndices.begin(), combinedIndices.end());
+
+    return combinedIndices;
 }
 
 std::vector<int> AnalyticalParameterHdf5Reader::getConditionsForParameter(int parameterIndex) const {
@@ -468,12 +476,8 @@ void HierachicalOptimizationProblemWrapper::fillParametersMin(double *buffer) co
 void HierachicalOptimizationProblemWrapper::fillFilteredParams(const std::vector<double> &fullParams, double *buffer) const
 {
     auto hierarchical = dynamic_cast<HierachicalOptimizationWrapper *>(costFun.get());
-    auto proportionalityFactorIndices = hierarchical->getProportionalityFactorIndices();
-    auto offsetParameterIndices = hierarchical->getOffsetParameterIndices();
-    auto scalingParameterIndices = proportionalityFactorIndices;
-    scalingParameterIndices.insert(scalingParameterIndices.end(),offsetParameterIndices.begin(),offsetParameterIndices.end());
-    std::sort(scalingParameterIndices.begin(),scalingParameterIndices.end());
-    parpe::fillFilteredParams(fullParams, scalingParameterIndices, buffer);
+    auto combinedIndices = hierarchical->getAnalyticalParameterIndices();
+    parpe::fillFilteredParams(fullParams, combinedIndices, buffer);
 }
 
 void fillFilteredParams(const std::vector<double> &valuesToFilter, std::vector<int> const& sortedIndicesToExclude, double *result)
@@ -492,8 +496,8 @@ void fillFilteredParams(const std::vector<double> &valuesToFilter, std::vector<i
             ++resultIdx;
         }
     }
-    assert(nextFilterIdx == sortedIndicesToExclude.size());
-    assert(resultIdx == (unsigned) valuesToFilter.size() - sortedIndicesToExclude.size());
+    RELEASE_ASSERT(nextFilterIdx == sortedIndicesToExclude.size(), "");
+    RELEASE_ASSERT(resultIdx == (unsigned) valuesToFilter.size() - sortedIndicesToExclude.size(), "");
 }
 
 double getDefaultScalingFactor(amici::AMICI_parameter_scaling scaling)
