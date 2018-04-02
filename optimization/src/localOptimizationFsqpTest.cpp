@@ -56,3 +56,38 @@ TEST(localOptimizationFsqp, testParallelMultistart) {
 
     mock().enable();
 }
+
+
+
+TEST(localOptimizationFsqp, testReporterCalled) {
+    parpe::QuadraticTestProblem problem;
+    auto o = problem.getOptimizationOptions();
+    o.maxOptimizerIterations = 2;
+
+    problem.setOptimizationOptions(o);
+
+    // setup
+    mock().expectNCalls(2, "GradientFunction::numParameters");
+    mock().expectOneCall("OptimizationReporterTest::starting");
+
+    // starting point / iteration 0
+    mock().expectNCalls(2, "OptimizationReporterTest::beforeCostFunctionCall");
+    mock().expectOneCall("testObjGrad");
+    mock().expectOneCall("OptimizationReporterTest::iterationFinished");
+    mock().expectNCalls(2, "OptimizationReporterTest::afterCostFunctionCall");
+
+    // "normal" iterations
+    // "before" and "after" are called for f and g, but g is already cached
+    mock().expectNCalls(o.maxOptimizerIterations * 2, "OptimizationReporterTest::beforeCostFunctionCall");
+    mock().expectNCalls(o.maxOptimizerIterations, "testObjGrad");
+    mock().expectNCalls(o.maxOptimizerIterations * 2, "OptimizationReporterTest::afterCostFunctionCall");
+    mock().expectNCalls(o.maxOptimizerIterations, "OptimizationReporterTest::iterationFinished");
+
+    mock().expectOneCall("OptimizationReporterTest::finished").ignoreOtherParameters();
+
+    parpe::OptimizerFsqp optimizer;
+    optimizer.optimize(&problem);
+
+    // don't check results. could be anywhere, due to low iteration limit
+}
+
