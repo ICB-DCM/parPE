@@ -25,16 +25,34 @@ class AnalyticalParameterHdf5Reader;
  * scaling parameters.
  *
  * Parameters with the given indices are hidden by the wrapper and computed analytically internally.
+ *
+ * Computes the negative log likelihood for normally distributed measurement (others to be added).
  */
 class HierachicalOptimizationWrapper : public GradientFunction
 {
 public:
+    /**
+     * @brief For testing
+     * @param fun
+     * @param numConditions
+     * @param numObservables
+     * @param numTimepoints
+     */
     HierachicalOptimizationWrapper(std::unique_ptr<AmiciSummedGradientFunction<int>> fun,
                                    int numConditions = 0,
                                    int numObservables = 0,
                                    int numTimepoints = 0);
 
-
+    /**
+     * @brief Get information on analytically computed parameters from HDF5 file
+     * @param fun
+     * @param file
+     * @param hdf5RootPath
+     * @param numConditions
+     * @param numObservables
+     * @param numTimepoints
+     * @param errorModel
+     */
     HierachicalOptimizationWrapper(std::unique_ptr<AmiciSummedGradientFunction<int>> fun,
                                    H5::H5File file, std::string hdf5RootPath,
                                    int numConditions,
@@ -42,6 +60,16 @@ public:
                                    int numTimepoints,
                                    ErrorModel errorModel);
 
+    /**
+     * @brief Get information on analytically computed parameters from the provided objects.
+     * @param fun
+     * @param scalingReader
+     * @param offsetReader
+     * @param numConditions
+     * @param numObservables
+     * @param numTimepoints
+     * @param errorModel
+     */
     HierachicalOptimizationWrapper(std::unique_ptr<AmiciSummedGradientFunction<int>> fun,
                                    std::unique_ptr<AnalyticalParameterProvider> scalingReader,
                                    std::unique_ptr<AnalyticalParameterProvider> offsetReader,
@@ -62,8 +90,16 @@ public:
             double &fval,
             double* gradient) const override;
 
+    /**
+     * @brief Get parameters for initial function evaluation
+     * @return
+     */
     std::vector<double> getDefaultScalingFactors() const;
 
+    /**
+     * @brief Get parameters for initial function evaluation
+     * @return
+     */
     std::vector<double> getDefaultOffsetParameters() const;
 
     /**
@@ -79,9 +115,11 @@ public:
      * @param modelOutputs Model outputs as provided by getModelOutputs
      * @return the computed scaling factors
      */
-    std::vector<double> computeAnalyticalScalings(const std::vector<std::vector<double> > &measurements, std::vector <std::vector<double>>& modelOutputsUnscaled) const;
+    std::vector<double> computeAnalyticalScalings(const std::vector<std::vector<double> > &measurements,
+                                                  std::vector <std::vector<double>>& modelOutputsUnscaled) const;
 
-    void applyOptimalScalings(std::vector<double> const& proportionalityFactors, std::vector<std::vector<double> > &modelOutputs) const;
+    void applyOptimalScalings(std::vector<double> const& proportionalityFactors,
+                              std::vector<std::vector<double> > &modelOutputs) const;
 
 
     /**
@@ -89,9 +127,11 @@ public:
      * @param modelOutputs Model outputs as provided by getModelOutputs
      * @return the computed offset parameters
      */
-    std::vector<double> computeAnalyticalOffsets(const std::vector<std::vector<double> > &measurements, std::vector <std::vector<double>>& modelOutputsUnscaled) const;
+    std::vector<double> computeAnalyticalOffsets(const std::vector<std::vector<double> > &measurements,
+                                                 std::vector <std::vector<double>>& modelOutputsUnscaled) const;
 
-    void applyOptimalOffsets(std::vector<double> const& proportionalityFactors, std::vector<std::vector<double> > &modelOutputs) const;
+    void applyOptimalOffsets(std::vector<double> const& proportionalityFactors,
+                             std::vector<std::vector<double> > &modelOutputs) const;
 
 
 
@@ -106,12 +146,19 @@ public:
      * @return
      */
 
-    virtual FunctionEvaluationStatus evaluateWithOptimalParameters(const double * const reducedParameters, const std::vector<double> &scalings,
-            const std::vector<double> &offsets, const std::vector<std::vector<double> > &measurements,
+    virtual FunctionEvaluationStatus evaluateWithOptimalParameters(
+            const double * const reducedParameters,
+            const std::vector<double> &scalings,
+            const std::vector<double> &offsets,
+            const std::vector<std::vector<double> > &measurements,
             std::vector<std::vector<double> > &modelOutputsUnscaled,
             double &fval,
             double *gradient) const;
 
+    /**
+     * @brief Get number of parameters the function expects
+     * @return That
+     */
     virtual int numParameters() const override;
 
     int numScalingFactors() const;
