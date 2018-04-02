@@ -15,10 +15,13 @@
 namespace parpe {
 
 // Currently using enum from amici enum class ParameterTransformation { none, log10 };
+
 enum class ErrorModel { normal }; // TODO logNormal, laplace
 
 class AnalyticalParameterProvider;
 class AnalyticalParameterHdf5Reader;
+class HierachicalOptimizationProblemWrapper;
+class HierachicalOptimizationWrapper;
 
 /**
  * @brief The HierachicalOptimizationWrapper class is a wrapper for hierarchical optimization of

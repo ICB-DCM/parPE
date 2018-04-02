@@ -215,7 +215,7 @@ int OptimizationApplication::runWorker() {
         auto sgf = dynamic_cast<SummedGradientFunctionGradientFunctionAdapter<int>*>(problem->costFun.get());
         if(sgf) {
             // non-hierarchical
-            dynamic_cast<AmiciSummedGradientFunction<int>*>(sgf->gradFun.get())->messageHandler(buffer, jobId);
+            dynamic_cast<AmiciSummedGradientFunction<int>*>(sgf->getWrappedFunction())->messageHandler(buffer, jobId);
         } else {
             // hierarchical
             auto hierarch = dynamic_cast<HierachicalOptimizationWrapper *>(problem->costFun.get());

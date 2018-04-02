@@ -43,19 +43,34 @@ public:
 
 /**
  * @brief The SummedGradientFunction class is an interface for cost functions and gradients that are a sum of functions evaluated on a number of data records.
- * To be used e.g. for mini-batch optimization
+ * To be used e.g. for mini-batch optimization. Template parameter can be used for data indices
+ * or directly for data points.
  */
-
 template<typename T>
 class SummedGradientFunction {
 public:
+    /**
+     * @brief Evaluate on single data point
+     * @param parameters
+     * @param dataset
+     * @param fval
+     * @param gradient
+     * @return
+     */
     virtual FunctionEvaluationStatus evaluate(
             const double* const parameters,
             T dataset,
             double &fval,
             double* gradient) const = 0;
 
-    // TODO provide default implementation via function above
+    /**
+     * @brief Evaluate on vector of data points
+     * @param parameters
+     * @param datasets
+     * @param fval
+     * @param gradient
+     * @return
+     */
     virtual FunctionEvaluationStatus evaluate(
             const double* const parameters,
             std::vector<T> datasets,
@@ -69,13 +84,24 @@ public:
 
 
 
-
+/**
+ * Adapter / wrapper for SummedGradientFunction to GradientFunction.
+ *
+ * Simply evaluates SummedGradientFunction on all datasets.
+ */
 template<typename T>
 class SummedGradientFunctionGradientFunctionAdapter : public GradientFunction {
 public:
-    SummedGradientFunctionGradientFunctionAdapter(std::unique_ptr< SummedGradientFunction<T> > gradFun,
-                                                  std::vector<T> datasets)
-        : gradFun(std::move(gradFun)), datasets(datasets)
+    /**
+     * @brief SummedGradientFunctionGradientFunctionAdapter
+     * @param gradFun Function to be wrapped
+     * @param datasets Datasets on which to evaluate
+     */
+    SummedGradientFunctionGradientFunctionAdapter(
+            std::unique_ptr< SummedGradientFunction<T> > gradFun,
+            std::vector<T> datasets)
+        : gradFun(std::move(gradFun)),
+          datasets(datasets)
     {
     }
 
@@ -89,8 +115,10 @@ public:
 
     int numParameters() const override { return gradFun->numParameters(); }
 
-    std::unique_ptr<SummedGradientFunction<T>> gradFun;
+    SummedGradientFunction<T>* getWrappedFunction() const { return gradFun.get(); }
+
 private:
+    std::unique_ptr<SummedGradientFunction<T>> gradFun;
     std::vector<T> datasets;
 };
 

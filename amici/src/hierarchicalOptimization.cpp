@@ -418,7 +418,7 @@ HierachicalOptimizationProblemWrapper::HierachicalOptimizationProblemWrapper(
 
     costFun.reset(new HierachicalOptimizationWrapper(
                       std::unique_ptr<AmiciSummedGradientFunction<int>>(
-                          dynamic_cast<AmiciSummedGradientFunction<int>*>(wrappedFun->gradFun.get())),
+                          dynamic_cast<AmiciSummedGradientFunction<int>*>(wrappedFun->getWrappedFunction())),
                       dataProvider->file, "/",
                       dataProvider->getNumberOfConditions(),
                       dataProvider->model->nytrue,
