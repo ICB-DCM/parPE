@@ -56,7 +56,7 @@ FunctionEvaluationStatus QuadraticGradientFunction::evaluate(
 
 int QuadraticGradientFunction::numParameters() const
 {
-    mock().actualCall("OptimizationReporterTest::numParameters");
+    mock().actualCall("GradientFunction::numParameters");
 
     return 1;
 }
@@ -70,7 +70,7 @@ bool OptimizationReporterTest::starting(int numParameters, const double * const 
 
 bool OptimizationReporterTest::iterationFinished(int numParameters, const double * const parameters, double objectiveFunctionValue, const double * const objectiveFunctionGradient)
 {
-    mock().actualCall("OptimizationReporterTest::afterCostFunctionCall");
+    mock().actualCall("OptimizationReporterTest::iterationFinished");
 
     return false;
 }
