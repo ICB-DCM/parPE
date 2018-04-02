@@ -66,13 +66,15 @@ void HierachicalOptimizationWrapper::init() {
         throw ParPEException("Only gaussian noise is supported so far.");
     }
 
+    // some functions currently expect these lists to be sorted, therefore ensure sorting right away
+    // (if sorting here, also need to reorder/reindex scalingFactorIdx in mapping table -> difficult)
     proportionalityFactorIndices = this->scalingReader->getOptimizationParameterIndices();
-    std::sort(this->proportionalityFactorIndices.begin(),
-              this->proportionalityFactorIndices.end());
+    RELEASE_ASSERT(std::is_sorted(this->proportionalityFactorIndices.begin(),
+                                  this->proportionalityFactorIndices.end()), "");
 
     offsetParameterIndices = this->offsetReader->getOptimizationParameterIndices();
-    std::sort(this->offsetParameterIndices.begin(),
-              this->offsetParameterIndices.end());
+    RELEASE_ASSERT(std::is_sorted(this->offsetParameterIndices.begin(),
+                                  this->offsetParameterIndices.end()), "");
 }
 
 
