@@ -710,6 +710,10 @@ class HDF5DataGenerator:
         g = self.f.require_group('optimizationOptions/ceres')
         g.attrs['max_num_iterations'] = 100
         
+        # set toms611/SUMSL options
+        g = self.f.require_group('optimizationOptions/toms611')
+        g.attrs['mxfcal'] = 1e8
+    
         self.writeBounds()
         self.writeStartingPoints()
         
