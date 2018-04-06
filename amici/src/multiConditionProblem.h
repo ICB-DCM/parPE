@@ -213,11 +213,6 @@ class MultiConditionProblem : public OptimizationProblem {
 //                                      double masterTime,
 //                                      int exitStatus) override;
 
-
-    void fillParametersMin(double *buffer) const override;
-    void fillParametersMax(double *buffer) const override;
-    void fillInitialParameters(double *buffer) const override;
-
     /**
      * @brief earlyStopping
      * @return stop the optimization run
@@ -231,6 +226,12 @@ class MultiConditionProblem : public OptimizationProblem {
     std::unique_ptr<MultiConditionProblemResultWriter> resultWriter;
 
     void setInitialParameters(std::vector<double> startingPoint);
+    void setParametersMin(std::vector<double> lowerBounds);
+    void setParametersMax(std::vector<double> upperBounds);
+
+    void fillParametersMin(double *buffer) const override;
+    void fillParametersMax(double *buffer) const override;
+    void fillInitialParameters(double *buffer) const override;
 
     std::unique_ptr<OptimizationReporter> getReporter() const;
 
@@ -255,6 +256,8 @@ class MultiConditionProblem : public OptimizationProblem {
 
 private:
     std::vector<double> startingPoint;
+    std::vector<double> parametersMin;
+    std::vector<double> parametersMax;
 
 };
 

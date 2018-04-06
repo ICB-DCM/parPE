@@ -14,7 +14,7 @@ namespace parpe {
  * @param n
  * @return
  */
-double getLikelihoodOffset(int n);
+double getLogLikelihoodOffset(int n);
 
 int randInt(int min, int max);
 

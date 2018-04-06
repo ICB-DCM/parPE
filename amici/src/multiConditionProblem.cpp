@@ -38,16 +38,24 @@ MultiConditionProblem::MultiConditionProblem(
                                                                                              std::make_unique<AmiciSummedGradientFunction<int>>(dataProvider, loadBalancer),
                                                                                              dataIndices
                                                                                              );
+    if(auto hdp = dynamic_cast<MultiConditionDataProviderHDF5*>(dp)) {
+        parametersMin.resize(dp->getNumOptimizationParameters());
+        hdp->getOptimizationParametersLowerBounds(parametersMin.data());
+
+        parametersMax.resize(dp->getNumOptimizationParameters());
+        hdp->getOptimizationParametersUpperBounds(parametersMax.data());
+    }
+
 }
 
 void MultiConditionProblem::fillParametersMin(double *buffer) const
 {
-    dataProvider->getOptimizationParametersLowerBounds(buffer);
+    std::copy(parametersMin.begin(), parametersMin.end(), buffer);
 }
 
 void MultiConditionProblem::fillParametersMax(double *buffer) const
 {
-    dataProvider->getOptimizationParametersUpperBounds(buffer);
+    std::copy(parametersMax.begin(), parametersMax.end(), buffer);
 }
 
 void MultiConditionProblem::fillInitialParameters(double *buffer) const
@@ -268,6 +276,16 @@ void MultiConditionProblem::setInitialParameters(std::vector<double> startingPoi
     this->startingPoint = startingPoint;
 }
 
+void MultiConditionProblem::setParametersMin(std::vector<double> lowerBounds)
+{
+    parametersMin = lowerBounds;
+}
+
+void MultiConditionProblem::setParametersMax(std::vector<double> upperBounds)
+{
+    parametersMax = upperBounds;
+}
+
 std::unique_ptr<OptimizationReporter> MultiConditionProblem::getReporter() const
 {
 
@@ -471,7 +489,7 @@ template <typename T>
 AmiciSummedGradientFunction<T>::AmiciSummedGradientFunction(MultiConditionDataProvider *dataProvider, LoadBalancerMaster *loadBalancer, MultiConditionProblemResultWriter *resultWriter)
     : dataProvider(dataProvider),
       loadBalancer(loadBalancer),
-      model(dataProvider->getModelForCondition(0)),
+      model(dataProvider->getModel()),
       solver(dataProvider->getSolver()),
       solverOriginal(solver->clone()),
       resultWriter(resultWriter)

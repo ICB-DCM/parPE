@@ -83,22 +83,6 @@ class MultiConditionDataProvider {
     virtual std::vector<std::vector<double> > getAllMeasurements() const = 0;
 
     /**
-     * @brief getOptimizationParametersLowerBounds Get lower parameter bounds
-     * NOTE: Currently the same bounds are assumed for kinetic parameters and
-     * scaling parameters, ...
-     * @param dataPath (not yet used)
-     * @param buffer allocated memory to write parameter bounds
-     */
-    virtual void getOptimizationParametersLowerBounds(double *buffer) const = 0;
-
-    /**
-     * @brief getOptimizationParametersUpperBounds Get upper parameter bounds
-     * @param dataPath (not yet used)
-     * @param buffer allocated memory to write parameter bounds
-     */
-    virtual void getOptimizationParametersUpperBounds(double *buffer) const = 0;
-
-    /**
      * @brief Returns the number of optimization parameters of this problem
      * @return Number of parameters
      */
@@ -114,14 +98,75 @@ class MultiConditionDataProvider {
 
     virtual std::unique_ptr<amici::Solver> getSolver() const = 0;
 
+};
+
+
+class MultiConditionDataProviderDefault : public MultiConditionDataProvider {
+  public:
+    MultiConditionDataProviderDefault(std::unique_ptr<amici::Model> model);
+
+    virtual ~MultiConditionDataProviderDefault() = default;
+
     /**
-     * @brief Returns a new Model instance with options read from the HDF5
-     * file.
-     * Fixed parameters are set for the specified condition (variable parameters
-     * are not).
-     * @return A new Model instance.
+     * @brief Provides the number of conditions for which data is available and
+     * simulations need to be run.
+     * This is determined from the dimensions of the hdf5MeasurementPath
+     * dataset.
+     * @return Number of conditions
      */
-    virtual std::unique_ptr<amici::Model> getModelForCondition(int conditionIdx) const = 0;
+    virtual int getNumberOfConditions() const override;
+
+    virtual std::vector<int> getSimulationToOptimizationParameterMapping(int conditionIdx) const override;
+
+    virtual void mapSimulationToOptimizationVariablesAddMultiply(
+            int conditionIdx, const double *simulation, double *optimization, double coefficient = 1.0) const override;
+
+    virtual void mapAndSetOptimizationToSimulationVariables(
+            int conditionIdx, const double *optimization, double *simulation) const override;
+
+
+    virtual amici::AMICI_parameter_scaling getParameterScale(int optimizationParameterIndex) const override;
+
+    /**
+     * @brief Update fixed model parameters for the specified condition.
+     * @param conditionIdx
+     * @param model The Model instance to be updated
+     * @return Status, 0 on success, non-zero otherwise
+     */
+    virtual void updateFixedSimulationParameters(int conditionIdx,
+                                                amici::Model &model) const override;
+
+    virtual void updateSimulationParameters(int conditionIndex, const double *optimizationParams,
+        amici::Model &model) const override;
+
+    virtual std::unique_ptr<amici::ExpData> getExperimentalDataForCondition(int conditionIdx) const override;
+
+    virtual std::vector<std::vector<double> > getAllMeasurements() const override;
+
+    /**
+     * @brief Returns the number of optimization parameters of this problem
+     * @return Number of parameters
+     */
+    virtual int getNumOptimizationParameters() const override;
+
+
+    /**
+     * @brief Returns a pointer to the underlying AMICI model
+     * @return The model
+     */
+    virtual std::unique_ptr<amici::Model> getModel() const override;
+
+
+    virtual std::unique_ptr<amici::Solver> getSolver() const override;
+
+    // TODO private
+    std::vector<amici::ExpData> edata;
+    std::vector<std::vector<double>> p;
+    std::vector<std::vector<double>> k;
+
+private:
+    std::unique_ptr<amici::Model> model;
+
 };
 
 
@@ -222,14 +267,14 @@ class MultiConditionDataProviderHDF5 : public MultiConditionDataProvider {
      * @param dataPath (not yet used)
      * @param buffer allocated memory to write parameter bounds
      */
-    virtual void getOptimizationParametersLowerBounds(double *buffer) const override;
+    virtual void getOptimizationParametersLowerBounds(double *buffer) const;
 
     /**
      * @brief getOptimizationParametersUpperBounds Get upper parameter bounds
      * @param dataPath (not yet used)
      * @param buffer allocated memory to write parameter bounds
      */
-    virtual void getOptimizationParametersUpperBounds(double *buffer) const override;
+    virtual void getOptimizationParametersUpperBounds(double *buffer) const;
 
     /**
      * @brief Returns the number of optimization parameters of this problem
@@ -246,15 +291,6 @@ class MultiConditionDataProviderHDF5 : public MultiConditionDataProvider {
 
 
     virtual std::unique_ptr<amici::Solver> getSolver() const override;
-
-    /**
-     * @brief Returns a new Model instance with options read from the HDF5
-     * file.
-     * Fixed parameters are set for the specified condition (variable parameters
-     * are not).
-     * @return A new Model instance.
-     */
-    virtual std::unique_ptr<amici::Model> getModelForCondition(int conditionIdx) const override;
 
     /**
      * @brief Based on the array of optimization parameters, set the simulation

@@ -151,7 +151,7 @@ void StandaloneSimulator::messageHandler(std::vector<char> &buffer, int jobId)
 {
     // unpack
     JobIdentifier path;
-    auto model = dataProvider->getModelForCondition(0);
+    auto model = dataProvider->getModel();
     auto solver = dataProvider->getSolver();
     JobAmiciSimulation<JobIdentifier> sim(solver.get(), model.get(), &path);
     sim.deserialize(buffer.data(), buffer.size());

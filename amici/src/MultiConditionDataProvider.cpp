@@ -225,15 +225,6 @@ std::unique_ptr<amici::Solver> MultiConditionDataProviderHDF5::getSolver() const
 }
 
 
-std::unique_ptr<amici::Model> MultiConditionDataProviderHDF5::getModelForCondition(int conditionIdx) const {
-    // TODO: RENAME. obsolete?
-    auto newModel = getModel();
-
-    updateFixedSimulationParameters(conditionIdx, *newModel);
-
-    return newModel;
-}
-
 void MultiConditionDataProviderHDF5::updateSimulationParameters(int conditionIndex, const double *optimizationParams, amici::Model &model) const
 {
     auto p = model.getParameters();
@@ -309,6 +300,97 @@ void JobIdentifier::print() const {
 void JobIdentifier::sprint(char *buffer) const {
     sprintf(buffer, "%d.%d.%d.%d", idxMultiStart, idxLocalOptimization,
             idxLocalOptimizationIteration, idxConditions);
+}
+
+MultiConditionDataProviderDefault::MultiConditionDataProviderDefault(std::unique_ptr<amici::Model> model)
+    :model(std::move(model))
+{
+
+}
+
+int MultiConditionDataProviderDefault::getNumberOfConditions() const
+{
+    RELEASE_ASSERT(edata.size() == p.size() && p.size() == k.size(), "");
+    return p.size();
+}
+
+std::vector<int> MultiConditionDataProviderDefault::getSimulationToOptimizationParameterMapping(int conditionIdx) const
+{
+    std::vector<int> mapping(model->np());
+    std::iota(mapping.begin(), mapping.end(), 0);
+    return mapping;
+}
+
+void MultiConditionDataProviderDefault::mapSimulationToOptimizationVariablesAddMultiply(int conditionIdx, const double *simulation, double *optimization, double coefficient) const
+{
+    // TODO redundant
+    auto mapping = getSimulationToOptimizationParameterMapping(conditionIdx);
+
+    for(int i = 0; i < model->np(); ++i) {
+        optimization[mapping[i]] = coefficient * simulation[i];
+    }
+}
+
+void MultiConditionDataProviderDefault::mapAndSetOptimizationToSimulationVariables(int conditionIdx, const double *optimization, double *simulation) const
+{
+    // TODO redundant
+    auto mapping = getSimulationToOptimizationParameterMapping(conditionIdx);
+
+    for(int i = 0; i < model->np(); ++i) {
+        simulation[i] = optimization[mapping[i]];
+    }
+
+}
+
+amici::AMICI_parameter_scaling MultiConditionDataProviderDefault::getParameterScale(int optimizationParameterIndex) const
+{
+    // TODO assumes no extra optimization parameters
+    return model->getParameterScale()[optimizationParameterIndex];
+}
+
+void MultiConditionDataProviderDefault::updateFixedSimulationParameters(int conditionIdx, amici::Model &model) const
+{
+    model.setFixedParameters(k[conditionIdx]);
+}
+
+void MultiConditionDataProviderDefault::updateSimulationParameters(int conditionIndex, const double *optimizationParams, amici::Model &model) const
+{
+    model.setParameters(p[conditionIndex]);
+}
+
+std::unique_ptr<amici::ExpData> MultiConditionDataProviderDefault::getExperimentalDataForCondition(int conditionIdx) const
+{
+    auto &e = edata[conditionIdx];
+    // TODO: need copy constructor in amici
+    auto res = std::make_unique<amici::ExpData>(*model);
+    res->my = e.my;
+    res->sigmay = e.sigmay;
+    return res;
+}
+
+std::vector<std::vector<double> > MultiConditionDataProviderDefault::getAllMeasurements() const
+{
+    std::vector<std::vector<double> > measurements;
+    for(const auto& e: edata) {
+        measurements.push_back(e.my);
+    }
+    return measurements;
+}
+
+int MultiConditionDataProviderDefault::getNumOptimizationParameters() const
+{
+    // TODO
+    return model->np();
+}
+
+std::unique_ptr<amici::Model> MultiConditionDataProviderDefault::getModel() const
+{
+    return std::unique_ptr<amici::Model>(model->clone());
+}
+
+std::unique_ptr<amici::Solver> MultiConditionDataProviderDefault::getSolver() const
+{
+    return model->getSolver();
 }
 
 
