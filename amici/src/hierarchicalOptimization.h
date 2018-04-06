@@ -307,7 +307,7 @@ public:
     HierachicalOptimizationProblemWrapper() = default;
 
     HierachicalOptimizationProblemWrapper(std::unique_ptr<OptimizationProblem> problemToWrap,
-                                          MultiConditionDataProvider const* dataProvider);
+                                          const MultiConditionDataProviderHDF5 *dataProvider);
 
     HierachicalOptimizationProblemWrapper(std::unique_ptr<OptimizationProblem> problemToWrap,
                                           std::unique_ptr<HierachicalOptimizationWrapper> costFun);

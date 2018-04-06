@@ -32,11 +32,11 @@
 class SteadyStateMultiConditionProblem : public parpe::MultiConditionProblem {
   public:
     SteadyStateMultiConditionProblem(
-        SteadyStateMultiConditionDataProvider *dp, parpe::LoadBalancerMaster *loadBalancer)
+        SteadyStateMultiConditionDataProvider *dp, parpe::LoadBalancerMaster *loadBalancer, H5::H5File file)
         : MultiConditionProblem(dp, loadBalancer) {
 
-        std::unique_ptr<parpe::OptimizationOptions> options(parpe::OptimizationOptions::fromHDF5(
-                                                                 dataProvider->getHdf5FileId()));
+        std::unique_ptr<parpe::OptimizationOptions> options(
+                    parpe::OptimizationOptions::fromHDF5(file.getId()));
 
         setOptimizationOptions(*options.get());
     }
@@ -79,7 +79,7 @@ class SteadystateApplication : public parpe::OptimizationApplication {
         auto ms = new parpe::MultiConditionProblemMultiStartOptimizationProblem();
         ms->options = problem->getOptimizationOptions();
         ms->resultWriter = multiCondProb->resultWriter.get();
-        ms->dp = multiCondProb->getDataProvider();
+        ms->dp = dataProvider.get();
         multiStartOptimizationProblem.reset(ms);
     }
 

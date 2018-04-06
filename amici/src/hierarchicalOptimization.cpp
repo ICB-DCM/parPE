@@ -411,19 +411,21 @@ std::vector<int> AnalyticalParameterHdf5Reader::readRawMap(H5::DataSet& dataset,
 //
 HierachicalOptimizationProblemWrapper::HierachicalOptimizationProblemWrapper(
         std::unique_ptr<OptimizationProblem> problemToWrap,
-        const MultiConditionDataProvider *dataProvider)
+        const MultiConditionDataProviderHDF5 *dataProvider)
     : wrappedProblem(std::move(problemToWrap))
 {
     auto wrappedFun = dynamic_cast<SummedGradientFunctionGradientFunctionAdapter<int>*>(
                 wrappedProblem->costFun.get());
 
+    auto model = dataProvider->getModel();
+
     costFun.reset(new HierachicalOptimizationWrapper(
                       std::unique_ptr<AmiciSummedGradientFunction<int>>(
                           dynamic_cast<AmiciSummedGradientFunction<int>*>(wrappedFun->getWrappedFunction())),
-                      dataProvider->file, "/",
+                      dataProvider->getHdf5FileId(), "/",
                       dataProvider->getNumberOfConditions(),
-                      dataProvider->model->nytrue,
-                      dataProvider->model->nt(),
+                      model->nytrue,
+                      model->nt(),
                       ErrorModel::normal));
 }
 
@@ -681,7 +683,7 @@ double computeNegLogLikelihood(std::vector <std::vector<double>> const& measurem
 double computeNegLogLikelihood(std::vector<double> const& measurements,
                                std::vector<double> const& modelOutputsScaled) {
     double llh = 0.0;
-    constexpr double pi = atan(1)*4;
+    constexpr double pi = atan(1)*4.0;
 
     double sigmaSquared = 1.0; // NOTE: TODO: no user-JobResultAmiciSimulationprovided sigma supported at the moment
 

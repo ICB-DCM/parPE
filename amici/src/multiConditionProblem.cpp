@@ -23,8 +23,7 @@ namespace parpe {
 // skip objective function evaluation completely
 //#define NO_OBJ_FUN_EVAL
 
-MultiConditionProblem::MultiConditionProblem(
-        MultiConditionDataProvider *dataProvider)
+MultiConditionProblem::MultiConditionProblem(MultiConditionDataProvider *dataProvider)
     : MultiConditionProblem(dataProvider, nullptr) {}
 
 MultiConditionProblem::MultiConditionProblem(
@@ -263,12 +262,6 @@ amici::AMICI_parameter_scaling AmiciSummedGradientFunction<T>::getParameterScali
     return dataProvider->getParameterScale(parameterIndex);
 }
 
-double MultiConditionProblem::getTime() const {
-    std::time_t result = std::time(nullptr);
-    return result;
-
-    // return MPI_Wtime();
-}
 
 void MultiConditionProblem::setInitialParameters(std::vector<double> startingPoint)
 {
@@ -442,7 +435,7 @@ std::unique_ptr<OptimizationProblem> MultiConditionProblemMultiStartOptimization
         problem->path.idxLocalOptimization = multiStartIndex;
     }
 
-    problem->setInitialParameters(options.getStartingPoint(dp->fileId, multiStartIndex));
+    problem->setInitialParameters(options.getStartingPoint(dp->getHdf5FileId(), multiStartIndex));
 
     if(options.hierarchicalOptimization)
         return std::unique_ptr<OptimizationProblem>(

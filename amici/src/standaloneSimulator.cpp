@@ -18,8 +18,11 @@ StandaloneSimulator::StandaloneSimulator(MultiConditionDataProvider *dp)
 }
 
 
-int StandaloneSimulator::run(const std::string& resultFile, const std::string& resultPath,
-                             std::vector<double> const& optimizationParameters, LoadBalancerMaster *loadBalancer)
+int StandaloneSimulator::run(const std::string& resultFile,
+                             const std::string& resultPath,
+                             std::vector<double> const& optimizationParameters,
+                             LoadBalancerMaster *loadBalancer,
+                             H5::H5File file)
 {
     // std::cout<<"file: "<<resultFile<<" path: "<<resultPath<<" lbm:"<<loadBalancer<<std::endl;
     int errors = 0;
@@ -36,10 +39,10 @@ int StandaloneSimulator::run(const std::string& resultFile, const std::string& r
 
 
     std::vector<double> parameters;
-    auto hierarchicalScalingReader = new AnalyticalParameterHdf5Reader (H5::H5File(dataProvider->getHdf5FileId()),
+    auto hierarchicalScalingReader = new AnalyticalParameterHdf5Reader (file,
                                                                         "/inputData/scalingParameterIndices",
                                                                         "/inputData/scalingParametersMapToObservables");
-    auto hierarchicalOffsetReader = new AnalyticalParameterHdf5Reader (H5::H5File(dataProvider->getHdf5FileId()),
+    auto hierarchicalOffsetReader = new AnalyticalParameterHdf5Reader (file,
                                                                        "/inputData/offsetParameterIndices",
                                                                        "/inputData/offsetParametersMapToObservables");
     auto proportionalityFactorIndices = hierarchicalScalingReader->getOptimizationParameterIndices();
@@ -266,7 +269,7 @@ int runFinalParameters(StandaloneSimulator &sim, std::string inFileName, std::st
         try {
             auto parameters = parpe::getFinalParameters(std::to_string(i), file);
             std::string curResultPath = resultPath + "multistarts/" + std::to_string(i);
-            errors += sim.run(resultFileName, curResultPath, parameters, loadBalancer);
+            errors += sim.run(resultFileName, curResultPath, parameters, loadBalancer, file);
         } catch (H5::FileIException e) {
             std::cerr<<"Exception during start " << i << " "<<e.getDetailMsg()<<std::endl;
             std::cerr<<"... skipping"<<std::endl;
@@ -276,7 +279,11 @@ int runFinalParameters(StandaloneSimulator &sim, std::string inFileName, std::st
     return errors;
 }
 
-int runAlongTrajectory(StandaloneSimulator &sim, std::string inFileName, std::string resultFileName, std::string resultPath, LoadBalancerMaster *loadBalancer)
+int runAlongTrajectory(StandaloneSimulator &sim,
+                       std::string inFileName,
+                       std::string resultFileName,
+                       std::string resultPath,
+                       LoadBalancerMaster *loadBalancer)
 {
     H5::H5File file(inFileName, H5F_ACC_RDONLY);
     int errors = 0;
@@ -290,7 +297,7 @@ int runAlongTrajectory(StandaloneSimulator &sim, std::string inFileName, std::st
                 std::cout<<"Running for start "<<i<<" iter "<<iter<<std::endl;
                 std::string curResultPath = resultPath + "multistarts/" + std::to_string(i) + "/iter/" + std::to_string(iter);
 
-                errors += sim.run(resultFileName, curResultPath, parameters[iter], loadBalancer);
+                errors += sim.run(resultFileName, curResultPath, parameters[iter], loadBalancer, file);
             }
         } catch (std::exception e) {
             std::cerr<<e.what()<<std::endl;

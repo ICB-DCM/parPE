@@ -9,6 +9,7 @@
 /**
  * @brief Mock MultiConditionDataProvider
  */
+/*
 class MultiConditionDataProviderTest : public parpe::MultiConditionDataProvider {
   public:
     MultiConditionDataProviderTest() {
@@ -27,7 +28,7 @@ class MultiConditionDataProviderTest : public parpe::MultiConditionDataProvider 
 
     int numConditions = 1;
 };
-
+*/
 
 // clang-format off
 TEST_GROUP(multiConditionDataProvider){

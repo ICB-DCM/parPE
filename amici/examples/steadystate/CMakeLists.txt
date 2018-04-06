@@ -105,3 +105,26 @@ if(${BUILD_TESTS})
 #        )
 endif()
 # /example_steadystate_multi executable_simulator
+
+
+if(${BUILD_TESTS})
+    project(test_steadystate)
+
+    add_test (NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME} -c)
+
+    set(SRC_LIST_CPP
+        ../../tests/main.cpp
+        ../../../common/src/testingMisc.cpp
+        steadystateProblem.cpp
+        test_steadystate.cpp
+    )
+
+    add_executable(${PROJECT_NAME} ${SRC_LIST_CPP})
+
+    target_link_libraries(${PROJECT_NAME}
+        parpeamici
+        ${MODEL_LIBRARIES}
+        ${CPPUTEST_LIBRARY}
+        ${GCOV_LIBRARY}
+    )
+endif()

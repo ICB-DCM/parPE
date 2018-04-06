@@ -228,8 +228,6 @@ class MultiConditionProblem : public OptimizationProblem {
 
     JobIdentifier path;
 
-    virtual double getTime() const;
-
     std::unique_ptr<MultiConditionProblemResultWriter> resultWriter;
 
     void setInitialParameters(std::vector<double> startingPoint);
@@ -278,7 +276,7 @@ class MultiConditionProblemMultiStartOptimizationProblem
 
     std::unique_ptr<OptimizationProblem> getLocalProblem(int multiStartIndex) const override;
 
-    MultiConditionDataProvider *dp = nullptr;
+    MultiConditionDataProviderHDF5 *dp = nullptr;
     OptimizationOptions options;
     MultiConditionProblemResultWriter *resultWriter = nullptr;
     LoadBalancerMaster *loadBalancer = nullptr;
