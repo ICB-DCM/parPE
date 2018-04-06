@@ -360,12 +360,7 @@ void MultiConditionDataProviderDefault::updateSimulationParameters(int condition
 
 std::unique_ptr<amici::ExpData> MultiConditionDataProviderDefault::getExperimentalDataForCondition(int conditionIdx) const
 {
-    auto &e = edata[conditionIdx];
-    // TODO: need copy constructor in amici
-    auto res = std::make_unique<amici::ExpData>(*model);
-    res->my = e.my;
-    res->sigmay = e.sigmay;
-    return res;
+    return std::make_unique<amici::ExpData>(edata[conditionIdx]);
 }
 
 std::vector<std::vector<double> > MultiConditionDataProviderDefault::getAllMeasurements() const

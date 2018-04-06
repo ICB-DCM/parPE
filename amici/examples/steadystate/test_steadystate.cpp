@@ -53,14 +53,14 @@ TEST(steadystateProblemTests, testSteadystate) {
 
 TEST(steadystateProblemTests, testSteadystateMultiCond) {
     auto model = getModel();
+    auto modelNonOwning = model.get();
     model->setTimepoints(t);
 
     parpe::MultiConditionDataProviderDefault dp(std::move(model));
 
     dp.p.push_back(p);
     dp.k.push_back(k);
-    // need to like that until there is amici copy constructor
-    dp.edata = std::vector<amici::ExpData>(1);
+    dp.edata.push_back(amici::ExpData(*modelNonOwning));
     dp.edata[0].my = xSteadystateExp;
     dp.edata[0].sigmay.assign(dp.edata[0].my.size(), 1.0);
 
