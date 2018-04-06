@@ -6,7 +6,7 @@
 [subrepo]
 	remote = git@github.com:ICB-DCM/AMICI.git
 	branch = master
-	commit = fca5da754c7b6fa18dcd3b3b83660b3a39066d20
-	parent = 98180423be4e6422d613f9d60971c2ba0568a821
+	commit = 6e828d9c1807c97e9b99fe027e9e7714eb30fb86
+	parent = 6ce216d1dd65d61f5e624a2467ab54e7f1f05124
 	cmdver = 0.4.0
 	method = merge
