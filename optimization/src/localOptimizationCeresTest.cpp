@@ -4,6 +4,7 @@
 #include "quadraticTestProblem.h"
 #include "testingMisc.h"
 #include <cmath>
+#include <ceres/version.h>
 
 
 // clang-format off
@@ -49,8 +50,12 @@ TEST(localOptimizationCeres, testOptimization) {
     DOUBLES_EQUAL(42.0, optimalCost, 1e-6);
 }
 
-
+/* Different number of calls for older versions (will fail on shippable) */
+#if (CERES_VERSION_MAJOR < 1 || CERES_VERSION_MINOR < 13)
+IGNORE_TEST(localOptimizationCeres, testReporterCalled) {
+#else
 TEST(localOptimizationCeres, testReporterCalled) {
+#endif
     parpe::QuadraticTestProblem problem;
     auto o = problem.getOptimizationOptions();
     o.maxOptimizerIterations = 1;
