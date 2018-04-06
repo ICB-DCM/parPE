@@ -414,7 +414,8 @@ HierachicalOptimizationProblemWrapper::HierachicalOptimizationProblemWrapper(
         const MultiConditionDataProvider *dataProvider)
     : wrappedProblem(std::move(problemToWrap))
 {
-    auto wrappedFun = dynamic_cast<SummedGradientFunctionGradientFunctionAdapter<int>*>(wrappedProblem->costFun.get());
+    auto wrappedFun = dynamic_cast<SummedGradientFunctionGradientFunctionAdapter<int>*>(
+                wrappedProblem->costFun.get());
 
     costFun.reset(new HierachicalOptimizationWrapper(
                       std::unique_ptr<AmiciSummedGradientFunction<int>>(

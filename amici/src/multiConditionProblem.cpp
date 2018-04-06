@@ -444,12 +444,11 @@ std::unique_ptr<OptimizationProblem> MultiConditionProblemMultiStartOptimization
 
     problem->setInitialParameters(options.getStartingPoint(dp->fileId, multiStartIndex));
 
-
-    return std::unique_ptr<OptimizationProblem>(
-                new parpe::HierachicalOptimizationProblemWrapper(std::move(problem), dp));
-
-
-//    return std::move(problem);
+    if(options.hierarchicalOptimization)
+        return std::unique_ptr<OptimizationProblem>(
+                    new parpe::HierachicalOptimizationProblemWrapper(std::move(problem), dp));
+    else
+        return std::move(problem);
 }
 
 void printSimulationResult(const JobIdentifier &path, int jobId, amici::ReturnData const* rdata, double timeSeconds) {

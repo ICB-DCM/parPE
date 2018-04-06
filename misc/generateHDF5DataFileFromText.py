@@ -693,6 +693,7 @@ class HDF5DataGenerator:
         g = self.f.require_group('optimizationOptions')
         g.attrs['optimizer'] = 0 # IpOpt
         g.attrs['retryOptimization'] = 1
+        g.attrs['hierarchicalOptimization'] = 1
         g.attrs['numStarts'] = 1
 
         # set IpOpt options

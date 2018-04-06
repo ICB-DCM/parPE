@@ -58,6 +58,10 @@ class OptimizationOptions {
      * optimization */
     int retryOptimization = false;
 
+    /** use hierarchical optimization if respective configuration is available
+      * see hierarchicalOptimization.cpp */
+    int hierarchicalOptimization = true;
+
     int multistartsInParallel = true;
 
     std::string toString();
