@@ -192,7 +192,7 @@ std::vector<double> HierachicalOptimizationWrapper::computeAnalyticalOffsets(std
 
     for(int i = 0; i < numOffsetParameters; ++i) {
         parpe::computeAnalyticalOffsets(i,
-                                        fun->getParameterScaling(proportionalityFactorIndices[i]),
+                                        fun->getParameterScaling(offsetParameterIndices[i]),
                                         modelOutputsUnscaled, measurements,
                                         *offsetReader, numObservables, numTimepoints);
     }
