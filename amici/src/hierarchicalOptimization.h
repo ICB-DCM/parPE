@@ -234,6 +234,26 @@ public:
 
 };
 
+
+
+class AnalyticalParameterProviderDefault : public AnalyticalParameterProvider {
+public:
+    AnalyticalParameterProviderDefault() = default;
+
+    std::vector<int> getConditionsForParameter(int parameterIndex) const override;
+
+    std::vector<int> const& getObservablesForParameter(int parameterIndex, int conditionIdx) const override;
+
+    std::vector<int> getOptimizationParameterIndices() const override;
+
+    // TODO private
+    std::vector <std::vector<int>> conditionsForParameter;
+    std::vector <int> optimizationParameterIndices;
+    // x[scalingIdx][conditionIdx] -> std::vector of observableIndicies
+    std::vector<std::map<int, std::vector<int>>> mapping;
+};
+
+
 /**
  * @brief The AnalyticalParameterHdf5Reader class reads from an HDF5 file the dependencies of experimental conditions
  * and observables on parameters which are to be computed analytically.

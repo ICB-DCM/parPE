@@ -704,5 +704,17 @@ double computeNegLogLikelihood(std::vector<double> const& measurements,
     return llh;
 }
 
+std::vector<int> AnalyticalParameterProviderDefault::getConditionsForParameter(int parameterIndex) const {
+    return conditionsForParameter[parameterIndex];
+}
+
+const std::vector<int> &AnalyticalParameterProviderDefault::getObservablesForParameter(int parameterIndex, int conditionIdx) const {
+    return mapping[parameterIndex].at(conditionIdx);
+}
+
+std::vector<int> AnalyticalParameterProviderDefault::getOptimizationParameterIndices() const {
+    return optimizationParameterIndices;
+}
+
 
 } // namespace parpe
