@@ -103,7 +103,7 @@ class MultiConditionDataProvider {
 
 class MultiConditionDataProviderDefault : public MultiConditionDataProvider {
   public:
-    MultiConditionDataProviderDefault(std::unique_ptr<amici::Model> model);
+    MultiConditionDataProviderDefault(std::unique_ptr<amici::Model> model, std::unique_ptr<amici::Solver> solver);
 
     virtual ~MultiConditionDataProviderDefault() = default;
 
@@ -165,7 +165,7 @@ class MultiConditionDataProviderDefault : public MultiConditionDataProvider {
 
 private:
     std::unique_ptr<amici::Model> model;
-
+    std::unique_ptr<amici::Solver> solver;
 };
 
 

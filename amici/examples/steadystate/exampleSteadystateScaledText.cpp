@@ -3,6 +3,7 @@
 #include "CppUTestExt/MockSupport.h"
 #include <misc.h>
 #include <multiConditionProblem.h>
+#include <localOptimizationIpopt.h>
 #include <hierarchicalOptimization.h>
 
 #include "wrapfunctions.h"
@@ -79,7 +80,7 @@ TEST(steadystateProblemTests, testSteadystateMultiCond) {
     model->setInitialStates(x0);
     model->setParameters(p);
 
-    parpe::MultiConditionDataProviderDefault dp(std::move(model));
+    parpe::MultiConditionDataProviderDefault dp(std::move(model), modelNonOwning->getSolver());
 
     dp.k.push_back(k);
     dp.edata.push_back(amici::ExpData(*modelNonOwning));
@@ -107,7 +108,7 @@ TEST(steadystateProblemTests, testSteadystateHierarchical) {
     const std::vector<double> pReduced { 1.0, 0.5, 0.4, 2.0, 0.1, 1.0, 0.0 };
     auto yScaledExp = yExp;
     yScaledExp[scaledObservableIdx] *= scalingExp;
-    parpe::MultiConditionDataProviderDefault dp(std::move(model));
+    parpe::MultiConditionDataProviderDefault dp(std::move(model), modelNonOwning->getSolver());
     dp.k.push_back(k);
     // x0?
     dp.edata.push_back(amici::ExpData(*modelNonOwning));
@@ -140,4 +141,78 @@ TEST(steadystateProblemTests, testSteadystateHierarchical) {
     const std::vector<double> pFull { 1.0, 0.5, 0.4, 2.0, 0.1, 1.0, 2.0, 0.0 };
     hier.fun->evaluate(pFull.data(), {0}, cost, nullptr);
     DOUBLES_EQUAL(-parpe::getLogLikelihoodOffset(dp.edata[0].my.size()), cost, 1e-5);
+}
+
+
+
+TEST(steadystateProblemTests, testOptimizationHierarchical) {
+    // introduce scaling parameters
+    auto model = getModel();
+    //model->setFixedParameters(k);
+    model->setInitialStates(x0);
+    model->setParameters(p);
+    model->setTimepoints(t);
+    model->setParameterList({0, 1, 2, 3, 4, 5, 6, 7});
+    auto modelNonOwning = model.get();
+
+    auto solver = model->getSolver();
+    solver->setSensitivityMethod(amici::AMICI_SENSI_ASA);
+    solver->setMaxSteps(1e4);
+
+    const double scalingExp = 2.0; // scaling parameter
+    const std::vector<double> pReduced { 1.0, 0.5, 0.4, 2.0, 0.1, 1.0, 0.0 };
+    auto yScaledExp = yExp;
+    yScaledExp[scaledObservableIdx] *= scalingExp;
+    parpe::MultiConditionDataProviderDefault dp(std::move(model), std::move(solver));
+    dp.k.push_back(k);
+    // x0?
+    dp.edata.push_back(amici::ExpData(*modelNonOwning));
+    dp.edata[0].my = yScaledExp;
+    dp.edata[0].sigmay.assign(dp.edata[0].my.size(), 1.0);
+
+    //parpe::MultiConditionProblem problem(&dp);
+
+    auto scalings = std::make_unique<parpe::AnalyticalParameterProviderDefault>();
+    scalings->conditionsForParameter.push_back({0});
+    scalings->optimizationParameterIndices.push_back(scalingParameterIdx);
+    // x[scalingIdx][conditionIdx] -> std::vector of observableIndicies
+    scalings->mapping.resize(1);
+    scalings->mapping[0][0] = {scaledObservableIdx};
+
+    auto offsets = std::make_unique<parpe::AnalyticalParameterProviderDefault>();
+
+    auto gradFun = std::make_unique<parpe::AmiciSummedGradientFunction<int>>(&dp, nullptr);
+    auto hier = std::make_unique<parpe::HierachicalOptimizationWrapper>(std::move(gradFun),
+                                                                        std::move(scalings),
+                                                                        std::move(offsets),
+                                                                        dp.getNumberOfConditions(),
+                                                                        modelNonOwning->nytrue,
+                                                                        modelNonOwning->nt(),
+                                                                        parpe::ErrorModel::normal);
+    double cost;
+    hier->evaluate(pReduced.data(), cost, nullptr);
+    DOUBLES_EQUAL(-parpe::getLogLikelihoodOffset(dp.edata[0].my.size()), cost, 1e-5);
+
+    const std::vector<double> pFull { 1.0, 0.5, 0.4, 2.0, 0.1, 1.0, 2.0, 0.0 };
+    hier->fun->evaluate(pFull.data(), {0}, cost, nullptr);
+    DOUBLES_EQUAL(-parpe::getLogLikelihoodOffset(dp.edata[0].my.size()), cost, 1e-5);
+
+    parpe::OptimizationProblemImpl problem(std::move(hier));
+    //    std::vector<double> startingPoint = pReduced;
+    //    for(auto& pp : startingPoint)
+    //        pp += 1;
+    //    problem.setInitialParameters(startingPoint);
+    problem.setParametersMin({0, 0, 0, 0, 0, 0, 0});
+    problem.setParametersMax({2, 2, 2, 2, 2, 2, 2});
+
+    // TODO: need to switch on sensitivities
+    parpe::OptimizerIpOpt optimizer;
+    auto result = optimizer.optimize(&problem);
+    // check status, cost, parameter
+    //CHECK_EQUAL(1, std::get<0>(result));
+    DOUBLES_EQUAL(-parpe::getLogLikelihoodOffset(dp.edata[0].my.size()), std::get<1>(result), 1e-5);
+    //DOUBLES_EQUAL(-1.0, std::get<2>(result).at(0), 1e-8);
+    //std::cout<<std::get<2>(result);
+
+    // TODO: make identifiable
 }

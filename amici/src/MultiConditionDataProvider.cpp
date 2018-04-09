@@ -302,8 +302,8 @@ void JobIdentifier::sprint(char *buffer) const {
             idxLocalOptimizationIteration, idxConditions);
 }
 
-MultiConditionDataProviderDefault::MultiConditionDataProviderDefault(std::unique_ptr<amici::Model> model)
-    :model(std::move(model))
+MultiConditionDataProviderDefault::MultiConditionDataProviderDefault(std::unique_ptr<amici::Model> model, std::unique_ptr<amici::Solver> solver)
+    :model(std::move(model)), solver(std::move(solver))
 {
 
 }
@@ -385,7 +385,7 @@ std::unique_ptr<amici::Model> MultiConditionDataProviderDefault::getModel() cons
 
 std::unique_ptr<amici::Solver> MultiConditionDataProviderDefault::getSolver() const
 {
-    return model->getSolver();
+    return std::unique_ptr<amici::Solver>(solver->clone());
 }
 
 
