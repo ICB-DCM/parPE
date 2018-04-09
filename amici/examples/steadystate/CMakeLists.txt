@@ -5,6 +5,7 @@ include_directories(${MODEL_INCLUDE_DIRS})
 
 # AMICI-generated model files
 add_subdirectory(model)
+add_subdirectory(model_steadystate_scaled)
 
 # example_steadystate executable
 project(example_steadystate)
@@ -116,14 +117,15 @@ if(${BUILD_TESTS})
         ../../tests/main.cpp
         ../../../common/src/testingMisc.cpp
         steadystateProblem.cpp
-        test_steadystate.cpp
+        exampleSteadystateScaledText.cpp
     )
 
     add_executable(${PROJECT_NAME} ${SRC_LIST_CPP})
 
     target_link_libraries(${PROJECT_NAME}
         parpeamici
-        ${MODEL_LIBRARIES}
+        model_steadystate_scaled
+        #${MODEL_LIBRARIES}
         ${CPPUTEST_LIBRARY}
         ${GCOV_LIBRARY}
     )

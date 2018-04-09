@@ -161,7 +161,6 @@ class MultiConditionDataProviderDefault : public MultiConditionDataProvider {
 
     // TODO private
     std::vector<amici::ExpData> edata;
-    std::vector<std::vector<double>> p;
     std::vector<std::vector<double>> k;
 
 private:

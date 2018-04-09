@@ -310,8 +310,8 @@ MultiConditionDataProviderDefault::MultiConditionDataProviderDefault(std::unique
 
 int MultiConditionDataProviderDefault::getNumberOfConditions() const
 {
-    RELEASE_ASSERT(edata.size() == p.size() && p.size() == k.size(), "");
-    return p.size();
+    RELEASE_ASSERT(edata.size() == k.size(), "");
+    return edata.size();
 }
 
 std::vector<int> MultiConditionDataProviderDefault::getSimulationToOptimizationParameterMapping(int conditionIdx) const
@@ -355,7 +355,7 @@ void MultiConditionDataProviderDefault::updateFixedSimulationParameters(int cond
 
 void MultiConditionDataProviderDefault::updateSimulationParameters(int conditionIndex, const double *optimizationParams, amici::Model &model) const
 {
-    model.setParameters(p[conditionIndex]);
+    model.setParameters(std::vector<double>(optimizationParams, optimizationParams + getNumOptimizationParameters()));
 }
 
 std::unique_ptr<amici::ExpData> MultiConditionDataProviderDefault::getExperimentalDataForCondition(int conditionIdx) const
