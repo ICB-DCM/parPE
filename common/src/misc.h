@@ -103,6 +103,9 @@ int getMpiCommSize();
 int getMpiActive();
 bool launchedWithMpi();
 
+void initMpiIfNeeded(int *argc, char ***argv);
+void finalizeMpiIfNeeded();
+
 template <typename T_TEST, typename T_BOUNDS>
 bool withinBounds(long int n, T_TEST const *x, const T_BOUNDS *min, const T_BOUNDS *max ) {
     for(int i = 0; i < n; ++i)
