@@ -190,14 +190,17 @@ class HDF5DataGenerator:
         Get unique list of scaling parameters mentioned in measurement file
         with optimization parameter names, not as in sbml/amici model 
         """
-        scalingsUsed = set()
+        # NOTE: not using set() here which would scramble parameter order.
+        # This allows use to keep starting points from /randomStarts
+        # the same after regenerating the data file.  
+        scalingsUsed = []  
         for p in self.measurementDf.loc[:, 'scalingParameter']:
             if not isinstance(p, float):
                 # N/A will be float
                 # is single value or comma-separated list
                 for x in p.split(","):
-                    scalingsUsed.add(x)
-        scalingsUsed = list(scalingsUsed)
+                    scalingsUsed.append(x)
+        scalingsUsed = amiciHelper.unique(scalingsUsed)
         return scalingsUsed
 
 
@@ -217,11 +220,14 @@ class HDF5DataGenerator:
         For the given scaling parameter names from measurement file or optimization parameter names,
         get unique list of the parameter names as specified in the sbml/amici model.
         """
-        genericNames = set()
+        # NOTE: not using set() here which would scramble parameter order.
+        # This allows use to keep starting points from /randomStarts
+        # the same after regenerating the data file.  
+        genericNames = []
         for s in scalingsUsed:
             genericName = self.getGenericScalingParameterName(s)
-            genericNames.add(genericName)
-        return list(genericNames)
+            genericNames.append(genericName)
+        return amiciHelper.unique(genericNames)
     
     
     def appendScalingParameterNames(self, parameterNames):
