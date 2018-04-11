@@ -31,6 +31,8 @@ if(CMAKE_BUILD_TYPE MATCHES Release OR CMAKE_BUILD_TYPE MATCHES RelWithDebInfo)
 endif()
 
 include("getVersion")
+include("split_version")
+split_version(${PARPE_VERSION} libname major minor patch)
 
 # Build options
 set(BUILD_TESTS TRUE CACHE BOOL "Build tests? (requires cppUTest)")
@@ -180,6 +182,7 @@ add_subdirectory(amici)
 add_library(${PROJECT_NAME} "")
 target_link_libraries(${PROJECT_NAME} parpecommon parpeloadbalancer parpeoptimization parpeamici)
 
+
 # <Export cmake configuration>
 include(GenerateExportHeader)
 generate_export_header(parpe)
@@ -199,7 +202,16 @@ get_property(ParPEConfigIncludesLoadbalancer GLOBAL PROPERTY PARPELOADBALANCER_I
 get_property(ParPEConfigIncludesOptimization GLOBAL PROPERTY PARPEOPTIMIZATION_INCLUDE_DIRS)
 get_property(ParPEConfigIncludesAmici GLOBAL PROPERTY PARPEAMICI_INCLUDE_DIRS)
 
-configure_file(CMakeModules/ParPEConfig.cmake
+include(CMakePackageConfigHelpers)
+configure_package_config_file(CMakeModules/ParPEConfig.cmake.in ${CMAKE_CURRENT_BINARY_DIR}/ParPEConfig.cmake
+                              INSTALL_DESTINATION ${LIB_INSTALL_DIR}/cmake/)
+write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/ParPEConfigVersion.cmake
+                                 VERSION "${major}.${minor}.${patch}"
+                                 COMPATIBILITY ExactVersion )
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/ParPEConfig.cmake ${CMAKE_CURRENT_BINARY_DIR}/ParPEConfigVersion.cmake
+        DESTINATION ${LIB_INSTALL_DIR}/cmake/)
+
+configure_file(CMakeModules/ParPEConfig.cmake.in
     "${CMAKE_CURRENT_BINARY_DIR}/ParPEConfig.cmake"
     @ONLY
     )
@@ -207,9 +219,6 @@ configure_file(CMakeModules/ParPEConfig.cmake
 export(PACKAGE ParPE)
 # </Export cmake configuration>
 
-include("getVersion")
-include("split_version")
-split_version(${PARPE_VERSION} libname major minor patch)
 set (CPACK_PACKAGE_VERSION_MAJOR "${major}")
 set (CPACK_PACKAGE_VERSION_MINOR "${minor}")
 set (CPACK_PACKAGE_VERSION_PATCH "${patch}")
