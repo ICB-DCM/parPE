@@ -14,9 +14,8 @@ set(CMAKE_DEBUG_POSTFIX "-dbg")
 set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -Wall -Wno-unused-function -fopenmp -D_GNU_SOURCE") # -D_GNU_SOURCE for pthread recursive mutex issues
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wno-unused-function -fopenmp -D_GNU_SOURCE") # -D_GNU_SOURCE for pthread recursive mutex issues
-set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/CMakeModules)
 
-# build optimized
+# <build optimized>
 if(CMAKE_BUILD_TYPE MATCHES Release OR CMAKE_BUILD_TYPE MATCHES RelWithDebInfo)
     include(CheckCXXCompilerFlag)
     CHECK_CXX_COMPILER_FLAG(-xHOST COMPILER_SUPPORTS_XHOST)
@@ -29,12 +28,22 @@ if(CMAKE_BUILD_TYPE MATCHES Release OR CMAKE_BUILD_TYPE MATCHES RelWithDebInfo)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
     endif()
 endif()
+# </build optimized>
+
+# <versioning>
+# Version number from git
+add_custom_target(get_version ALL
+    COMMAND ${CMAKE_COMMAND} -DINFILE=${PROJECT_SOURCE_DIR}/common/src/parpeVersion.h.in
+    -DOUTFILE=${PROJECT_SOURCE_DIR}/common/src/parpeVersion.h
+    -P ${PROJECT_SOURCE_DIR}/CMakeModules/ConfigureVersion.cmake)
 
 include("getVersion")
 include("split_version")
 split_version(${PARPE_VERSION} libname major minor patch)
+# </versioning>
 
-# Build options
+
+# <Build options>
 set(BUILD_TESTS TRUE CACHE BOOL "Build tests? (requires cppUTest)")
 set(BUILD_EXAMPLES TRUE CACHE BOOL "Build examples?")
 set(BUILD_DOCS FALSE CACHE BOOL "Generate documentation?")
@@ -59,11 +68,11 @@ if(${USE_MPI})
     add_definitions(-DUSE_MPI)
     set(MPI_INCLUDE_DIR "/usr/lib/openmpi/include/" CACHE PATH "MPI include directory")
 endif(${USE_MPI})
+# </Build options>
 
 if(${ENABLE_DLIB})
     set(DLIB_DIR "${CMAKE_CURRENT_LIST_DIR}/ThirdParty/dlib-19.7" CACHE FILEPATH "DLIB base directory")
 endif(${ENABLE_DLIB})
-
 
 configure_file(${CMAKE_CURRENT_LIST_DIR}/common/src/parpeConfig.h.in ${CMAKE_CURRENT_LIST_DIR}/common/src/parpeConfig.h @ONLY)
 
@@ -71,12 +80,6 @@ configure_file(${CMAKE_CURRENT_LIST_DIR}/common/src/parpeConfig.h.in ${CMAKE_CUR
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
-
-# Version number from git
-add_custom_target(get_version ALL
-    COMMAND ${CMAKE_COMMAND} -DINFILE=${PROJECT_SOURCE_DIR}/common/src/parpeVersion.h.in
-    -DOUTFILE=${PROJECT_SOURCE_DIR}/common/src/parpeVersion.h
-    -P ${PROJECT_SOURCE_DIR}/CMakeModules/ConfigureVersion.cmake)
 
 # HDF5
 #set(HDF5_PREFER_PARALLEL TRUE)
@@ -104,6 +107,7 @@ if(${BUILD_TESTS})
     set(CPPUTEST_LIBRARY "${CPPUTEST_DIR}/lib/libCppUTest.a" "${CPPUTEST_DIR}/lib/libCppUTestExt.a")
     include_directories(${CPPUTEST_INCLUDE_DIR})
 
+    # <Coverage>
     # Create test coverage reports?
     set(GCOV_REPORT FALSE CACHE BOOL "Create GCOV report?")
     set(GCOVR_REPORT FALSE CACHE BOOL "Create GCOVR report?")
@@ -141,11 +145,11 @@ if(${BUILD_TESTS})
             message("Not creating coverage report, because compiler is not GCC but ${CMAKE_CXX_COMPILER_ID}.")
         endif()
     endif()
-
+    # </Coverage>
 endif(${BUILD_TESTS})
 
 
-# Documentation (doxygen)
+# <Documentation (doxygen)>
 if(BUILD_DOCS)
     find_package(Doxygen)
     if(NOT DOXYGEN_FOUND)
@@ -163,9 +167,11 @@ if(BUILD_DOCS)
         COMMENT "Generating API documentation with Doxygen"
         VERBATIM)
 endif()
+# </Documentation (doxygen)>
 
 include(CMakeModules/clang-tools.cmake)
 
+# calc lines of code
 add_custom_target(cloc
     COMMAND cloc misc amici common optimization loadbalancer --fullpath --not-match-d=amici/examples/steadystate/model/*
     WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
@@ -219,7 +225,9 @@ configure_file(CMakeModules/ParPEConfig.cmake.in
 export(PACKAGE ParPE)
 # </Export cmake configuration>
 
+# <Package configuration>
 set (CPACK_PACKAGE_VERSION_MAJOR "${major}")
 set (CPACK_PACKAGE_VERSION_MINOR "${minor}")
 set (CPACK_PACKAGE_VERSION_PATCH "${patch}")
 include (CPack)
+# </Package configuration>
