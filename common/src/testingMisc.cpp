@@ -91,4 +91,9 @@ std::string captureStreamToString(std::function<void()> f, std::FILE* captureStr
                      std::istreambuf_iterator<char>());
 }
 
+double getLogLikelihoodOffset(int n) {
+    const double pi = atan(1) * 4.0;
+    return - n * 0.5 * log(2.0 * pi);
+}
+
 } // namespace parpe

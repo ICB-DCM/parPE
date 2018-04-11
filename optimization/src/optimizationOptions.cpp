@@ -103,6 +103,11 @@ std::unique_ptr<OptimizationOptions> OptimizationOptions::fromHDF5(hid_t fileId,
                               &o->retryOptimization);
     }
 
+    if (hdf5AttributeExists(fileId, hdf5path, "hierarchicalOptimization")) {
+        H5LTget_attribute_int(fileId, hdf5path, "hierarchicalOptimization",
+                              &o->hierarchicalOptimization);
+    }
+
     if (hdf5AttributeExists(fileId, hdf5path, "multistartsInParallel")) {
         H5LTget_attribute_int(fileId, hdf5path, "multistartsInParallel",
                               &o->multistartsInParallel);

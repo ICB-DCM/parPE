@@ -6,7 +6,7 @@
 #include <optimizationOptions.h>
 #include <logging.h>
 #include <misc.h>
-#include <hierachicalOptimization.h>
+#include <hierarchicalOptimization.h>
 
 #include <amici/model.h>
 #include <amici/rdata.h>
@@ -23,8 +23,7 @@ namespace parpe {
 // skip objective function evaluation completely
 //#define NO_OBJ_FUN_EVAL
 
-MultiConditionProblem::MultiConditionProblem(
-        MultiConditionDataProvider *dataProvider)
+MultiConditionProblem::MultiConditionProblem(MultiConditionDataProvider *dataProvider)
     : MultiConditionProblem(dataProvider, nullptr) {}
 
 MultiConditionProblem::MultiConditionProblem(
@@ -39,16 +38,24 @@ MultiConditionProblem::MultiConditionProblem(
                                                                                              std::make_unique<AmiciSummedGradientFunction<int>>(dataProvider, loadBalancer),
                                                                                              dataIndices
                                                                                              );
+    if(auto hdp = dynamic_cast<MultiConditionDataProviderHDF5*>(dp)) {
+        parametersMin.resize(dp->getNumOptimizationParameters());
+        hdp->getOptimizationParametersLowerBounds(parametersMin.data());
+
+        parametersMax.resize(dp->getNumOptimizationParameters());
+        hdp->getOptimizationParametersUpperBounds(parametersMax.data());
+    }
+
 }
 
 void MultiConditionProblem::fillParametersMin(double *buffer) const
 {
-    dataProvider->getOptimizationParametersLowerBounds(buffer);
+    std::copy(parametersMin.begin(), parametersMin.end(), buffer);
 }
 
 void MultiConditionProblem::fillParametersMax(double *buffer) const
 {
-    dataProvider->getOptimizationParametersUpperBounds(buffer);
+    std::copy(parametersMax.begin(), parametersMax.end(), buffer);
 }
 
 void MultiConditionProblem::fillInitialParameters(double *buffer) const
@@ -256,16 +263,27 @@ void AmiciSummedGradientFunction<T>::messageHandler(std::vector<char> &buffer,
     buffer = amici::serializeToStdVec(results);
 }
 
-double MultiConditionProblem::getTime() const {
-    std::time_t result = std::time(nullptr);
-    return result;
-
-    // return MPI_Wtime();
+template<typename T>
+amici::AMICI_parameter_scaling AmiciSummedGradientFunction<T>::getParameterScaling(int parameterIndex) const
+{
+    // parameterIndex is optimization parameter index, not necessarily model parameter index!
+    return dataProvider->getParameterScale(parameterIndex);
 }
+
 
 void MultiConditionProblem::setInitialParameters(std::vector<double> startingPoint)
 {
     this->startingPoint = startingPoint;
+}
+
+void MultiConditionProblem::setParametersMin(std::vector<double> lowerBounds)
+{
+    parametersMin = lowerBounds;
+}
+
+void MultiConditionProblem::setParametersMax(std::vector<double> upperBounds)
+{
+    parametersMax = upperBounds;
 }
 
 std::unique_ptr<OptimizationReporter> MultiConditionProblem::getReporter() const
@@ -435,14 +453,13 @@ std::unique_ptr<OptimizationProblem> MultiConditionProblemMultiStartOptimization
         problem->path.idxLocalOptimization = multiStartIndex;
     }
 
-    problem->setInitialParameters(options.getStartingPoint(dp->fileId, multiStartIndex));
+    problem->setInitialParameters(options.getStartingPoint(dp->getHdf5FileId(), multiStartIndex));
 
-
-    return std::unique_ptr<OptimizationProblem>(
-                new parpe::HierachicalOptimizationProblemWrapper(std::move(problem), dp));
-
-
-//    return std::move(problem);
+    if(options.hierarchicalOptimization)
+        return std::unique_ptr<OptimizationProblem>(
+                    new parpe::HierachicalOptimizationProblemWrapper(std::move(problem), dp));
+    else
+        return std::move(problem);
 }
 
 void printSimulationResult(const JobIdentifier &path, int jobId, amici::ReturnData const* rdata, double timeSeconds) {
@@ -472,7 +489,7 @@ template <typename T>
 AmiciSummedGradientFunction<T>::AmiciSummedGradientFunction(MultiConditionDataProvider *dataProvider, LoadBalancerMaster *loadBalancer, MultiConditionProblemResultWriter *resultWriter)
     : dataProvider(dataProvider),
       loadBalancer(loadBalancer),
-      model(dataProvider->getModelForCondition(0)),
+      model(dataProvider->getModel()),
       solver(dataProvider->getSolver()),
       solverOriginal(solver->clone()),
       resultWriter(resultWriter)

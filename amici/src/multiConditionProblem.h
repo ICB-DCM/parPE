@@ -90,6 +90,8 @@ public:
      */
     virtual void messageHandler(std::vector<char> &buffer, int jobId) const;
 
+    virtual amici::AMICI_parameter_scaling getParameterScaling(int parameterIndex) const;
+
 protected:// for testing
     AmiciSummedGradientFunction() = default;
 
@@ -113,24 +115,22 @@ protected:// for testing
 
     /**
      * @brief Aggregates loglikelihood received from workers.
-     * @param data
-     * @param logLikelihood
-     * @param objectiveFunctionGradient
-     * @param dataIndices
-     * @param numDataIndices
-     * @return *Negative* log likelihood.
+     * @param data Simulation job result
+     * @param negLogLikelihood output argument to which *negative* log likelihood is added
+     * @param negLogLikelihoodGradient output argument to which *negative* log likelihood gradient is added
+     * @param simulationTimeInS unused
+     * @return
      */
 
-    int aggregateLikelihood(JobData &data, double &logLikelihood,
-                            double *objectiveFunctionGradient, double &simulationTimeInS) const;
+    int aggregateLikelihood(JobData &data, double &negLogLikelihood,
+                            double *negLogLikelihoodGradient, double &simulationTimeInS) const;
 
 
     /**
      * @brief Aggregates loglikelihood gradient received from workers.
      * @param conditionIdx
-     * @param simulationGradient
-     * @param objectiveFunctionGradient
-     * @param Gradient of the *negative* log likelihood.
+     * @param simulationGradient log-likelihood gradient from simulation
+     * @param objectiveFunctionGradient output to which *negative* log-likelihood gradient from simulation is added
      */
 
     void addSimulationGradientToObjectiveFunctionGradient(int conditionIdx, const double *simulationGradient,
@@ -211,11 +211,6 @@ class MultiConditionProblem : public OptimizationProblem {
 //                                      double masterTime,
 //                                      int exitStatus) override;
 
-
-    void fillParametersMin(double *buffer) const override;
-    void fillParametersMax(double *buffer) const override;
-    void fillInitialParameters(double *buffer) const override;
-
     /**
      * @brief earlyStopping
      * @return stop the optimization run
@@ -226,11 +221,15 @@ class MultiConditionProblem : public OptimizationProblem {
 
     JobIdentifier path;
 
-    virtual double getTime() const;
-
     std::unique_ptr<MultiConditionProblemResultWriter> resultWriter;
 
     void setInitialParameters(std::vector<double> startingPoint);
+    void setParametersMin(std::vector<double> lowerBounds);
+    void setParametersMax(std::vector<double> upperBounds);
+
+    void fillParametersMin(double *buffer) const override;
+    void fillParametersMax(double *buffer) const override;
+    void fillInitialParameters(double *buffer) const override;
 
     std::unique_ptr<OptimizationReporter> getReporter() const;
 
@@ -255,6 +254,8 @@ class MultiConditionProblem : public OptimizationProblem {
 
 private:
     std::vector<double> startingPoint;
+    std::vector<double> parametersMin;
+    std::vector<double> parametersMax;
 
 };
 
@@ -276,7 +277,7 @@ class MultiConditionProblemMultiStartOptimizationProblem
 
     std::unique_ptr<OptimizationProblem> getLocalProblem(int multiStartIndex) const override;
 
-    MultiConditionDataProvider *dp = nullptr;
+    MultiConditionDataProviderHDF5 *dp = nullptr;
     OptimizationOptions options;
     MultiConditionProblemResultWriter *resultWriter = nullptr;
     LoadBalancerMaster *loadBalancer = nullptr;

@@ -18,7 +18,7 @@
  * to a HDF5 data file. Some non-default paths within the hdf5 file are set here.
  */
 class SteadyStateMultiConditionDataProvider
-    : public parpe::MultiConditionDataProvider {
+    : public parpe::MultiConditionDataProviderHDF5 {
 
   public:
     SteadyStateMultiConditionDataProvider(std::unique_ptr<amici::Model> model,

@@ -1,17 +1,34 @@
 project(parpe)
 
-# Stick to version 2.8.12 for now to work on ICB servers
 cmake_minimum_required(VERSION 2.8.12)
 
 if(POLICY CMP0056) # for CMake 3.2 and above
     cmake_policy (SET CMP0056 OLD)
 endif()
+if(POLICY CMP0028)
+   cmake_policy (SET CMP0028 NEW)
+endif()
+
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/CMakeModules/)
 set(CMAKE_DEBUG_POSTFIX "-dbg")
 set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -Wall -Wno-unused-function -fopenmp -D_GNU_SOURCE") # -D_GNU_SOURCE for pthread recursive mutex issues
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wno-unused-function -fopenmp -D_GNU_SOURCE") # -D_GNU_SOURCE for pthread recursive mutex issues
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/CMakeModules)
+
+# build optimized
+if(CMAKE_BUILD_TYPE MATCHES Release OR CMAKE_BUILD_TYPE MATCHES RelWithDebInfo)
+    include(CheckCXXCompilerFlag)
+    CHECK_CXX_COMPILER_FLAG(-xHOST COMPILER_SUPPORTS_XHOST)
+    CHECK_CXX_COMPILER_FLAG(-march=native COMPILER_SUPPORTS_MARCHNATIVE)
+
+    if(COMPILER_SUPPORTS_XHOST)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -xHOST")
+    endif()
+    if(COMPILER_SUPPORTS_MARCHNATIVE)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
+    endif()
+endif()
 
 include("getVersion")
 
@@ -44,7 +61,6 @@ endif(${USE_MPI})
 if(${ENABLE_DLIB})
     set(DLIB_DIR "${CMAKE_CURRENT_LIST_DIR}/ThirdParty/dlib-19.7" CACHE FILEPATH "DLIB base directory")
 endif(${ENABLE_DLIB})
-
 
 
 configure_file(${CMAKE_CURRENT_LIST_DIR}/common/src/parpeConfig.h.in ${CMAKE_CURRENT_LIST_DIR}/common/src/parpeConfig.h @ONLY)
@@ -100,7 +116,7 @@ if(${BUILD_TESTS})
             APPEND_COVERAGE_COMPILER_FLAGS()
             setup_target_for_coverage(
                 NAME ${PROJECT_NAME}_coverage
-                EXECUTABLE ctest
+                EXECUTABLE ctest -R unittests
                 DEPENDENCIES ${COVERAGE_DEPENDENCIES})
         else()
             message("Not creating coverage report, because coamici/examples/steadystate/modelamici/examples/steadystate/modelmpiler is not GCC but ${CMAKE_CXX_COMPILER_ID}.")

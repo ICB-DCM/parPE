@@ -86,3 +86,37 @@ TEST(localOptimizationToms611, testOptimizationGetlocalOptimum) {
     DOUBLES_EQUAL(42.0, std::get<1>(result), 1e-12);
     DOUBLES_EQUAL(-1.0, std::get<2>(result).at(0), 1e-8); // TODO adapt to optimizer tolerances
 }
+
+
+TEST(localOptimizationToms611, testReporterCalled) {
+    const int allowedLineSearchSteps = 3; // only true when iteration limit == 1
+    parpe::QuadraticTestProblem problem;
+    auto o = problem.getOptimizationOptions();
+    o.maxOptimizerIterations = 1;
+    o.setOption("mxfcal", allowedLineSearchSteps + 1); // +1 for initial function evaluation
+    problem.setOptimizationOptions(o);
+
+    // iteration 0
+    mock().expectNCalls(2, "GradientFunction::numParameters");
+    mock().expectOneCall("OptimizationReporterTest::starting");
+    mock().expectNCalls(2, "OptimizationReporterTest::beforeCostFunctionCall");
+    // one should be enough:
+    mock().expectNCalls(1, "testObj");
+    mock().expectNCalls(1, "testObjGrad");
+    mock().expectNCalls(2, "OptimizationReporterTest::afterCostFunctionCall");
+    mock().expectOneCall("OptimizationReporterTest::iterationFinished");
+
+    // others
+    mock().expectNCalls(o.maxOptimizerIterations * allowedLineSearchSteps + 1, "OptimizationReporterTest::beforeCostFunctionCall");
+    mock().expectNCalls(o.maxOptimizerIterations * allowedLineSearchSteps, "testObj");
+    mock().expectNCalls(o.maxOptimizerIterations, "testObjGrad");
+    mock().expectNCalls(o.maxOptimizerIterations, "OptimizationReporterTest::iterationFinished");
+    mock().expectNCalls(o.maxOptimizerIterations * allowedLineSearchSteps + 1, "OptimizationReporterTest::afterCostFunctionCall");
+
+    mock().expectOneCall("OptimizationReporterTest::finished").ignoreOtherParameters();
+
+    parpe::OptimizerToms611TrustRegionSumsl optimizer;
+    optimizer.optimize(&problem);
+
+    // don't check results. could be anywhere, due to low iteration limit
+}

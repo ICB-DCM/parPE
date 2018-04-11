@@ -21,7 +21,11 @@ class StandaloneSimulator
 public:
     StandaloneSimulator(MultiConditionDataProvider *dp);
 
-    int run(const std::string &resultFile, const std::string &resultPath, std::vector<double> const& parameters, LoadBalancerMaster *loadBalancer);
+    int run(const std::string &resultFile,
+            const std::string &resultPath,
+            std::vector<double> const& parameters,
+            LoadBalancerMaster *loadBalancer,
+            H5::H5File file);
 
     void messageHandler(std::vector<char> &buffer, int jobId);
 

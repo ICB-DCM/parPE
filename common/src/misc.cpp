@@ -252,5 +252,18 @@ bool launchedWithMpi()
     return false;
 }
 
+void initMpiIfNeeded(int *argc, char ***argv)
+{
+    if(parpe::launchedWithMpi())
+        MPI_Init(argc, argv);
+}
+
+void finalizeMpiIfNeeded()
+{
+    if(parpe::launchedWithMpi())
+        MPI_Finalize();
+
+}
+
 
 } // namespace parpe

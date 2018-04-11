@@ -24,6 +24,9 @@ import re
 import os
 from termcolor import colored
 
+SCALING_LOG10 = 2
+SCALING_LIN = 0
+
 class HDF5DataGenerator:
     """    
     Generate HDF5 file with fixed parameters and measurements for an AMICI-imported SBML model
@@ -47,7 +50,8 @@ class HDF5DataGenerator:
         self.loadSBMLModel(fileNameSBML)
 
         # scriptDir = os.path.dirname(os.path.realpath(__file__))
-           
+        # hdf5 dataset compression
+        self.compression = "gzip"
                
 
     def parseMeasurementFile(self, filename):
@@ -170,7 +174,7 @@ class HDF5DataGenerator:
         parameterMap = self.f.require_dataset('/parameters/optimizationSimulationMapping', 
                                               shape=(numSimulationParameters, self.numConditions), 
                                               chunks=(numSimulationParameters, 1), 
-                                              dtype='<i4', fillvalue=np.nan)
+                                              dtype='<i4', fillvalue=np.nan, compression=self.compression)
         for i in range(self.numConditions):
             parameterMap[:, i] = np.arange(numSimulationParameters)
             scalings = self.measurementDf.loc[self.measurementDf['condition'] == self.conditions[i], 'scalingParameter']
@@ -186,14 +190,17 @@ class HDF5DataGenerator:
         Get unique list of scaling parameters mentioned in measurement file
         with optimization parameter names, not as in sbml/amici model 
         """
-        scalingsUsed = set()
+        # NOTE: not using set() here which would scramble parameter order.
+        # This allows use to keep starting points from /randomStarts
+        # the same after regenerating the data file.  
+        scalingsUsed = []  
         for p in self.measurementDf.loc[:, 'scalingParameter']:
             if not isinstance(p, float):
                 # N/A will be float
                 # is single value or comma-separated list
                 for x in p.split(","):
-                    scalingsUsed.add(x)
-        scalingsUsed = list(scalingsUsed)
+                    scalingsUsed.append(x)
+        scalingsUsed = amiciHelper.unique(scalingsUsed)
         return scalingsUsed
 
 
@@ -213,11 +220,14 @@ class HDF5DataGenerator:
         For the given scaling parameter names from measurement file or optimization parameter names,
         get unique list of the parameter names as specified in the sbml/amici model.
         """
-        genericNames = set()
+        # NOTE: not using set() here which would scramble parameter order.
+        # This allows use to keep starting points from /randomStarts
+        # the same after regenerating the data file.  
+        genericNames = []
         for s in scalingsUsed:
             genericName = self.getGenericScalingParameterName(s)
-            genericNames.add(genericName)
-        return list(genericNames)
+            genericNames.append(genericName)
+        return amiciHelper.unique(genericNames)
     
     
     def appendScalingParameterNames(self, parameterNames):
@@ -230,8 +240,9 @@ class HDF5DataGenerator:
         #print(scalingsUsed)
         for s in self.getGenericScalingParameterNames(scalingsUsed):
             #print(s)
-            parameterNames.remove(s)
-              
+            if s in parameterNames:
+                parameterNames.remove(s)
+            
         parameterNames += scalingsUsed
         return parameterNames
     
@@ -267,7 +278,7 @@ class HDF5DataGenerator:
         nk = len(fixedParameters)
         dset = self.f.create_dataset("/fixedParameters/k",
                                      (nk, self.numConditions),
-                                     dtype='f8', chunks=(nk, 1))
+                                     dtype='f8', chunks=(nk, 1), compression=self.compression)
 
         # set dimension scales 
         dset.dims.create_scale(self.f['/fixedParameters/parameterNames'], 'parameterNames')
@@ -366,11 +377,11 @@ class HDF5DataGenerator:
         dsetY = self.f.create_dataset("/measurements/y", 
                                       shape=(self.numConditions, self.ny, self.numTimepoints), 
                                       chunks=(1, self.ny, self.numTimepoints), 
-                                      fillvalue=np.nan, dtype='f8')
+                                      fillvalue=np.nan, dtype='f8', compression=self.compression)
         dsetSigmaY = self.f.create_dataset("/measurements/ysigma", 
                                            shape=(self.numConditions, self.ny, self.numTimepoints), 
                                            chunks=(1, self.ny, self.numTimepoints), 
-                                           fillvalue=1.0, dtype='f8')     
+                                           fillvalue=1.0, dtype='f8', compression=self.compression)     
         
         self.writeMeasurements(dsetY, dsetSigmaY)
         self.f.flush()
@@ -507,9 +518,8 @@ class HDF5DataGenerator:
         dset = self.f.require_dataset("/offsetParametersMapToObservables", 
                                       shape=(len(use), 3), 
                                       dtype='<i4')
-        dset.attrs['numOffsets'] = len(offsetsForHierarchicalIndices)
         dset[:] = use
-        
+                
     def ensureOffsetIsOffsetWithPositiveSign(self, scaling):
         """
         Current parPE implementation of hierarchical optimization assumes that offset parameters have positive sign.
@@ -575,10 +585,9 @@ class HDF5DataGenerator:
         dset = self.f.require_dataset("/scalingParametersMapToObservables", 
                                       shape=(len(use), 3), 
                                       dtype='<i4')
-        dset.attrs['numScalings'] = len(scalingsForHierarchicalIndices)
         dset[:] = use
-            
-                    
+        
+
     def ensureProportionalityFactorIsProportionalityFactor(self, scaling):
         """
         Ensure that this is a proportionality factor (a as in y = ax + b)
@@ -634,26 +643,51 @@ class HDF5DataGenerator:
         self.f.require_dataset('/amiciOptions/ts', shape=(len(self.timepoints),), dtype="f8", data=self.timepoints)
 
         # set pscale based on whether is scaling parameter (log10 for non-hierarchical, lin for hierarchical)
-        linParametersAmiciIndices = self.getAnalyticallyComputedParameterIndices()
+        linParametersAmiciIndices = self.getAnalyticallyComputedSimulationParameterIndices()
         self.f.require_dataset('/amiciOptions/pscale', shape=(np,), dtype="<i4", data=[2 * (ip not in linParametersAmiciIndices) for ip in range(np) ])
+        
+        # TODO: move out of here 
+        np = self.f['/parameters/parameterNames'].shape[0]
+        linParametersOptimizationIndices = self.getAnalyticallyComputedOptimizationParameterIndices()
+        self.f.require_dataset('/parameters/parameterScaling', shape=(np,), dtype="<i4", data=[2 * (ip not in linParametersOptimizationIndices) for ip in range(np) ])
         # TODO for above parameters, the bounds must be adapted for non-hierarchical optimization!
         #  or use different pscale then
         
-    def getAnalyticallyComputedParameterIndices(self):
-        indices = []
+    def getAnalyticallyComputedSimulationParameterIndices(self):
+        """
+        Get model parameter index (not optimization parameter index) of all analytically computed parameters
+        """
+        parameterNamesModel = []
         if '/offsetParameterIndices' in self.f:
-            offsetNames = self.f['/parameters/parameterNames'][self.f['/offsetParameterIndices']]
-            indices = set([self.getGenericScalingParameterName(o) for o in offsetNames])
+            parameterNamesOptimization = self.f['/parameters/parameterNames'][self.f['/offsetParameterIndices']]
+            parameterNamesModel.extend(set([self.getGenericScalingParameterName(o) for o in parameterNamesOptimization]))
             
         if '/scalingParameterIndices' in self.f:
-            offsetNames = self.f['/parameters/parameterNames'][self.f['/scalingParameterIndices']]
-            indices = set([self.getGenericScalingParameterName(o) for o in offsetNames])
+            parameterNamesOptimization = self.f['/parameters/parameterNames'][self.f['/scalingParameterIndices']]
+            parameterNamesModel.extend(set([self.getGenericScalingParameterName(o) for o in parameterNamesOptimization]))
 
         if '/sigmaParameterIndices' in self.f:
-            offsetNames = self.f['/parameters/parameterNames'][self.f['/sigmaParameterIndices']]
-            indices = set([self.getGenericScalingParameterName(o) for o in offsetNames])
+            parameterNamesOptimization = self.f['/parameters/parameterNames'][self.f['/sigmaParameterIndices']]
+            parameterNamesModel.extend(set([self.getGenericScalingParameterName(o) for o in parameterNamesOptimization]))
 
-        return [ self.f['/parameters/modelParameterNames'][:].tolist().index(p) for p in indices ]
+        return [ self.f['/parameters/modelParameterNames'][:].tolist().index(p) for p in set(parameterNamesModel) ]
+    
+    
+    def getAnalyticallyComputedOptimizationParameterIndices(self):
+        """
+        Get optimization parameter index of all analytically computed parameters
+        """
+        indices = []
+        if '/offsetParameterIndices' in self.f:
+            indices.extend(self.f['/offsetParameterIndices'])
+            
+        if '/scalingParameterIndices' in self.f:
+            indices.extend(self.f['/scalingParameterIndices'])
+
+        if '/sigmaParameterIndices' in self.f:
+            indices.extend(self.f['/sigmaParameterIndices'])
+
+        return list(set(indices))
         
 
     def writeOptimizationOptions(self):
@@ -665,6 +699,7 @@ class HDF5DataGenerator:
         g = self.f.require_group('optimizationOptions')
         g.attrs['optimizer'] = 0 # IpOpt
         g.attrs['retryOptimization'] = 1
+        g.attrs['hierarchicalOptimization'] = 1
         g.attrs['numStarts'] = 1
 
         # set IpOpt options
@@ -682,6 +717,10 @@ class HDF5DataGenerator:
         g = self.f.require_group('optimizationOptions/ceres')
         g.attrs['max_num_iterations'] = 100
         
+        # set toms611/SUMSL options
+        g = self.f.require_group('optimizationOptions/toms611')
+        g.attrs['mxfcal'] = 1e8
+    
         self.writeBounds()
         self.writeStartingPoints()
         

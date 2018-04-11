@@ -9,6 +9,13 @@
 
 namespace parpe {
 
+/**
+ * @brief likelihood offset for sigma = 1
+ * @param n
+ * @return
+ */
+double getLogLikelihoodOffset(int n);
+
 int randInt(int min, int max);
 
 bool withinTolerance(double expected, double actual, double atol, double rtol, int index);

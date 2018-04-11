@@ -45,7 +45,6 @@ class OptimizationOptions {
     int maxOptimizerIterations = 100;
 
     static std::unique_ptr<OptimizationOptions> fromHDF5(const char *fileName);
-
     static std::unique_ptr<OptimizationOptions> fromHDF5(hid_t fileId, std::string path = "/optimizationOptions");
 
     static std::vector<double> getStartingPoint(hid_t fileId, int index);
@@ -57,6 +56,10 @@ class OptimizationOptions {
     /** Retry optimization in case of infeasibility (only used for multi-start
      * optimization */
     int retryOptimization = false;
+
+    /** use hierarchical optimization if respective configuration is available
+      * see hierarchicalOptimization.cpp */
+    int hierarchicalOptimization = true;
 
     int multistartsInParallel = true;
 
