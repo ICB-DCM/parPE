@@ -115,24 +115,22 @@ protected:// for testing
 
     /**
      * @brief Aggregates loglikelihood received from workers.
-     * @param data
-     * @param logLikelihood
-     * @param objectiveFunctionGradient
-     * @param dataIndices
-     * @param numDataIndices
-     * @return *Negative* log likelihood.
+     * @param data Simulation job result
+     * @param negLogLikelihood output argument to which *negative* log likelihood is added
+     * @param negLogLikelihoodGradient output argument to which *negative* log likelihood gradient is added
+     * @param simulationTimeInS unused
+     * @return
      */
 
-    int aggregateLikelihood(JobData &data, double &logLikelihood,
-                            double *objectiveFunctionGradient, double &simulationTimeInS) const;
+    int aggregateLikelihood(JobData &data, double &negLogLikelihood,
+                            double *negLogLikelihoodGradient, double &simulationTimeInS) const;
 
 
     /**
      * @brief Aggregates loglikelihood gradient received from workers.
      * @param conditionIdx
-     * @param simulationGradient
-     * @param objectiveFunctionGradient
-     * @param Gradient of the *negative* log likelihood.
+     * @param simulationGradient log-likelihood gradient from simulation
+     * @param objectiveFunctionGradient output to which *negative* log-likelihood gradient from simulation is added
      */
 
     void addSimulationGradientToObjectiveFunctionGradient(int conditionIdx, const double *simulationGradient,

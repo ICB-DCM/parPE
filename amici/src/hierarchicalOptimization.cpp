@@ -247,7 +247,7 @@ FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluateWithOptimalPara
         // Scale model outputs
         applyOptimalScalings(scalings, modelOutputsUnscaled);
         applyOptimalOffsets(offsets, modelOutputsUnscaled);
-        // ... to compute likelihood
+        // ... to compute negative log-likelihood
         fval = computeNegLogLikelihood(measurements, modelOutputsUnscaled);
     }
 
@@ -671,18 +671,18 @@ double computeNegLogLikelihood(std::vector <std::vector<double>> const& measurem
                                const std::vector<std::vector<double> > &modelOutputsScaled) {
     RELEASE_ASSERT(measurements.size() == modelOutputsScaled.size(), "");
 
-    double llh = 0.0;
+    double nllh = 0.0;
 
     for (int conditionIdx = 0; (unsigned) conditionIdx < measurements.size(); ++conditionIdx) {
-        llh += computeNegLogLikelihood(measurements[conditionIdx], modelOutputsScaled[conditionIdx]);
+        nllh += computeNegLogLikelihood(measurements[conditionIdx], modelOutputsScaled[conditionIdx]);
     }
 
-    return llh;
+    return nllh;
 }
 
 double computeNegLogLikelihood(std::vector<double> const& measurements,
                                std::vector<double> const& modelOutputsScaled) {
-    double llh = 0.0;
+    double nllh = 0.0;
     constexpr double pi = atan(1)*4.0;
 
     double sigmaSquared = 1.0; // NOTE: TODO: no user-JobResultAmiciSimulationprovided sigma supported at the moment
@@ -696,12 +696,12 @@ double computeNegLogLikelihood(std::vector<double> const& measurements,
             assert(!std::isnan(sim));
             double diff = mes - sim;
             diff *= diff;
-            llh += log(2.0 * pi * sigmaSquared) + diff / sigmaSquared;
+            nllh += log(2.0 * pi * sigmaSquared) + diff / sigmaSquared;
         }
     }
 
-    llh /= 2.0;
-    return llh;
+    nllh /= 2.0;
+    return nllh;
 }
 
 std::vector<int> AnalyticalParameterProviderDefault::getConditionsForParameter(int parameterIndex) const {

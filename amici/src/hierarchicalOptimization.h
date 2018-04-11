@@ -196,7 +196,7 @@ private:
     /** Total number of timepoints used in `fun` */
     int numTimepoints;
 
-    /** Error model to use for computing analytical parameters and likelihood */
+    /** Error model to use for computing analytical parameters and negative log-likelihood */
     ErrorModel errorModel = ErrorModel::normal;
 };
 
@@ -415,7 +415,7 @@ std::vector<double> spliceParameters(const double * const reducedParameters, int
                                      const std::vector<double> &offsetParameters);
 
 /**
- * @brief Compute loglikelihood for normal distribution based on the model outputs and measurements for multiple conditions.
+ * @brief Compute negative log-likelihood for normal distribution based on the model outputs and measurements for multiple conditions.
  * @param modelOutputsScaled
  * @return
  */
@@ -423,7 +423,7 @@ double computeNegLogLikelihood(std::vector <std::vector<double>> const& measurem
                                std::vector <std::vector<double>> const& modelOutputsScaled);
 
 /**
- * @brief Compute loglikelihood for normal distribution based on the model outputs and measurements for a single condition.
+ * @brief Compute negative log-likelihood for normal distribution based on the model outputs and measurements for a single condition.
  * @param modelOutputsScaled
  * @return
  */
