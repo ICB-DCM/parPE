@@ -364,8 +364,8 @@ int AmiciSummedGradientFunction<T>::runSimulations(const double *optimizationVar
 }
 
 template <typename T>
-int AmiciSummedGradientFunction<T>::aggregateLikelihood(JobData &data, double &logLikelihood,
-                                                        double *objectiveFunctionGradient, double &simulationTimeInS) const {
+int AmiciSummedGradientFunction<T>::aggregateLikelihood(JobData &data, double &negLogLikelihood,
+                                                        double *negLogLikelihoodGradient, double &simulationTimeInS) const {
     int errors = 0;
 
 //    // deserialize
@@ -395,13 +395,13 @@ int AmiciSummedGradientFunction<T>::aggregateLikelihood(JobData &data, double &l
         errors += result.second.status;
 
         // sum up
-        logLikelihood -= result.second.llh;
+        negLogLikelihood -= result.second.llh;
 //        simulationTimeInS += result.simulationTimeInSec;
 
-        if (objectiveFunctionGradient)
+        if (negLogLikelihoodGradient)
             addSimulationGradientToObjectiveFunctionGradient(
                         result.first, result.second.gradient.data(),
-                        objectiveFunctionGradient);
+                        negLogLikelihoodGradient);
 
     }
     return errors;
