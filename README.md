@@ -6,7 +6,12 @@
 The *parPE* library provides functionality for solving large-scale parameter optimization
 problems requiring thousands of simulations per objective function evaluation on HPC systems.
 
-Currently, parPE provides interfaces to [IpOpt](http://www.coin-or.org/Ipopt/) and [Ceres](http://ceres-solver.org/) optimizers. parPE offers easy integration with
+Currently, parPE provides interfaces to the
+[IpOpt](http://www.coin-or.org/Ipopt/),
+[Ceres](http://ceres-solver.org/),
+[FFSQP](https://www.isr.umd.edu/news/news_story.php?id=4088) and
+[SUMSL (CALGO/TOMS 611)](http://www.netlib.org/toms/index.html)
+optimizers. parPE offers easy integration with
 [AMICI](https://github.com/ICB-DCM/AMICI)-generated ordinary differential equation (ODE) models.
 
 ## Features
@@ -14,7 +19,7 @@ Currently, parPE provides interfaces to [IpOpt](http://www.coin-or.org/Ipopt/) a
 parPE offers the following features:
 
 * MPI-based load-balancing of individual simulations
-* improved load balancing by intermingeling multiple optimization runs (multi-start local optimization)
+* improved load balancing by intermingling multiple optimization runs (multi-start local optimization)
 * simple integration with SBML models via AMICI
 * interfaces to Ipopt and Ceres optimizers
 * HDF5 I/O compatible with a wide variety of programming languages
@@ -24,14 +29,14 @@ parPE offers the following features:
 
 For full functionality, parPE requires the following libraries:
 
-* CMAKE
+* CMAKE (>=2.8)
 * MPI
 * PTHREADS
-* IPOPT (requires coinhsl)
-* CERES (requires Eigen)
+* IPOPT (>= 1.2.7) (requires coinhsl)
+* CERES (>=1.13) (requires Eigen)
 * HDF5 (>= 1.10)
 * BLAS (CBLAS / Intel MKL)
-* [AMICI](https://github.com/ICB-DCM/AMICI) (requires SuiteSparse, Sundials)
+* [AMICI](https://github.com/ICB-DCM/AMICI) (included in this repository) (uses SuiteSparse, Sundials)
 
 On Debian-based systems, dependencies can be installed via:
 ```
@@ -59,9 +64,7 @@ Other sample build scripts are provided as `/build*.sh`.
 
 ## Tested compilers
 
-* GCC 4.8.3
-* GCC 5.4.0
-* GCC 7 (IpOpt 1.2.9 requires libgfortran.so.4)
+* GCC 7.2.0 (IpOpt 1.2.9 requires libgfortran.so.4)
 * Intel 16.0.4
 
 
