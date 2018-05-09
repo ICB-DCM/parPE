@@ -174,17 +174,36 @@ class HDF5DataGenerator:
         parameterMap = self.f.require_dataset('/parameters/optimizationSimulationMapping', 
                                               shape=(numSimulationParameters, self.numConditions), 
                                               chunks=(numSimulationParameters, 1), 
-                                              dtype='<i4', fillvalue=np.nan, compression=self.compression)
+                                              dtype='<i4', fillvalue=0, compression=self.compression)
+        
         for i in range(self.numConditions):
-            parameterMap[:, i] = np.arange(numSimulationParameters)
-            scalings = self.measurementDf.loc[self.measurementDf['condition'] == self.conditions[i], 'scalingParameter']
-            for x in scalings:
-                #print(i, x)
-                idxSimulation = simulationParameterNames.index(self.getGenericScalingParameterName(x))
-                idxOptimization = optimizationParameterNames.index(x)
+            for idxSimulation in range(len(numSimulationParameters)):
+                try:
+                    # Find optimization parameter name matching current simulation parameter name
+                    idxOptimization = optimizationParameterNames.index(simulationParameterNames[i])
+                except ValueError:
+                    # must be a condition-specific parameter
+                    optimizationParameterName = self.getOptimizationParameterNameForConditionSpecificSimulationParameter(i, simulationParameterNames[i])
+                    try:
+                        # Find by condition-specific name
+                        idxOptimization = optimizationParameterNames.index(optimizationParameterName)
+                    except ValueError:
+                        # This condition does not use the respective scaling parameter so there is no corresponding optimization parameter
+                        # Cannot set to NaN in integer matrix. Will use 0. AMICI will not use this parameter anyways and its gradient will be 0.0 
+                        idxOptimization = 0
                 parameterMap[idxSimulation, i] = idxOptimization    
     
-    
+    def getOptimizationParameterNameForConditionSpecificSimulationParameter(self, conditionIdx, simulationParameterName):
+        scalingsForCurrentConditionByMeasurement = self.measurementDf.loc[self.measurementDf['condition'] == self.conditions[conditionIdx], 'scalingParameter']
+        for scalingsForCurrentMeasurement in scalingsForCurrentConditionByMeasurement:
+            if not isinstance(scalingsForCurrentMeasurement, float):
+                # N/A will be float
+                # is single value or comma-separated list
+                for scaling in scalingsForCurrentMeasurement.split(","):
+                    if self.getGenericScalingParameterName(scaling) == simulationParameterNames[conditionIdx]:
+                        return scaling
+        return None
+            
     def getUsedScalingParameters(self):
         """
         Get unique list of scaling parameters mentioned in measurement file
