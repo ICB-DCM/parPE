@@ -177,13 +177,13 @@ class HDF5DataGenerator:
                                               dtype='<i4', fillvalue=0, compression=self.compression)
         
         for i in range(self.numConditions):
-            for idxSimulation in range(len(numSimulationParameters)):
+            for idxSimulation in range(numSimulationParameters):
                 try:
                     # Find optimization parameter name matching current simulation parameter name
                     idxOptimization = optimizationParameterNames.index(simulationParameterNames[i])
                 except ValueError:
                     # must be a condition-specific parameter
-                    optimizationParameterName = self.getOptimizationParameterNameForConditionSpecificSimulationParameter(i, simulationParameterNames[i])
+                    optimizationParameterName = self.getOptimizationParameterNameForConditionSpecificSimulationParameter(i, simulationParameterNames[idxSimulation], simulationParameterNames)
                     try:
                         # Find by condition-specific name
                         idxOptimization = optimizationParameterNames.index(optimizationParameterName)
@@ -193,7 +193,7 @@ class HDF5DataGenerator:
                         idxOptimization = 0
                 parameterMap[idxSimulation, i] = idxOptimization    
     
-    def getOptimizationParameterNameForConditionSpecificSimulationParameter(self, conditionIdx, simulationParameterName):
+    def getOptimizationParameterNameForConditionSpecificSimulationParameter(self, conditionIdx, simulationParameterName, simulationParameterNames):
         scalingsForCurrentConditionByMeasurement = self.measurementDf.loc[self.measurementDf['condition'] == self.conditions[conditionIdx], 'scalingParameter']
         for scalingsForCurrentMeasurement in scalingsForCurrentConditionByMeasurement:
             if not isinstance(scalingsForCurrentMeasurement, float):
