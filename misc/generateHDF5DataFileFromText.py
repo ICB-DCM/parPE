@@ -180,7 +180,7 @@ class HDF5DataGenerator:
             for idxSimulation in range(numSimulationParameters):
                 try:
                     # Find optimization parameter name matching current simulation parameter name
-                    idxOptimization = optimizationParameterNames.index(simulationParameterNames[i])
+                    idxOptimization = optimizationParameterNames.index(simulationParameterNames[idxSimulation])
                 except ValueError:
                     # must be a condition-specific parameter
                     optimizationParameterName = self.getOptimizationParameterNameForConditionSpecificSimulationParameter(i, simulationParameterNames[idxSimulation], simulationParameterNames)
