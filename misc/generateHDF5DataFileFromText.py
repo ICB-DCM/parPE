@@ -171,11 +171,8 @@ class HDF5DataGenerator:
         Create dataset n_pararameters_simulation x n_conditions with indexes of respective parameters in pararameters_optimization
         """
         numSimulationParameters = len(simulationParameterNames)
-        parameterMap = self.f.require_dataset('/parameters/optimizationSimulationMapping', 
-                                              shape=(numSimulationParameters, self.numConditions), 
-                                              chunks=(numSimulationParameters, 1), 
-                                              dtype='<i4', fillvalue=0, compression=self.compression)
-        
+        # use in-memory matrix, don't write every entry to file directly (super slow)
+        parameterMap = np.zeros(shape=(numSimulationParameters, self.numConditions),)
         for conditionIdx in range(self.numConditions):
             for idxSimulation in range(numSimulationParameters):
                 try:
@@ -192,7 +189,12 @@ class HDF5DataGenerator:
                         # Cannot set to NaN in integer matrix. Will use 0. AMICI will not use this parameter anyways and its gradient will be 0.0 
                         idxOptimization = 0
                 parameterMap[idxSimulation, conditionIdx] = idxOptimization    
-    
+
+        self.f.require_dataset('/parameters/optimizationSimulationMapping', 
+                               shape=(numSimulationParameters, self.numConditions), 
+                               chunks=(numSimulationParameters, 1), 
+                               dtype='<i4', fillvalue=0, compression=self.compression, data=parameterMap)
+
     def getOptimizationParameterNameForConditionSpecificSimulationParameter(self, conditionIdx, simulationParameterName, simulationParameterNames):
         scalingsForCurrentConditionByMeasurement = self.measurementDf.loc[self.measurementDf['condition'] == self.conditions[conditionIdx], 'scalingParameter']
         for scalingsForCurrentMeasurement in scalingsForCurrentConditionByMeasurement:
