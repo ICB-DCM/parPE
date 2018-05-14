@@ -176,14 +176,14 @@ class HDF5DataGenerator:
                                               chunks=(numSimulationParameters, 1), 
                                               dtype='<i4', fillvalue=0, compression=self.compression)
         
-        for i in range(self.numConditions):
+        for conditionIdx in range(self.numConditions):
             for idxSimulation in range(numSimulationParameters):
                 try:
                     # Find optimization parameter name matching current simulation parameter name
                     idxOptimization = optimizationParameterNames.index(simulationParameterNames[idxSimulation])
                 except ValueError:
                     # must be a condition-specific parameter
-                    optimizationParameterName = self.getOptimizationParameterNameForConditionSpecificSimulationParameter(i, simulationParameterNames[idxSimulation], simulationParameterNames)
+                    optimizationParameterName = self.getOptimizationParameterNameForConditionSpecificSimulationParameter(conditionIdx, simulationParameterNames[idxSimulation], simulationParameterNames)
                     try:
                         # Find by condition-specific name
                         idxOptimization = optimizationParameterNames.index(optimizationParameterName)
@@ -191,7 +191,7 @@ class HDF5DataGenerator:
                         # This condition does not use the respective scaling parameter so there is no corresponding optimization parameter
                         # Cannot set to NaN in integer matrix. Will use 0. AMICI will not use this parameter anyways and its gradient will be 0.0 
                         idxOptimization = 0
-                parameterMap[idxSimulation, i] = idxOptimization    
+                parameterMap[idxSimulation, conditionIdx] = idxOptimization    
     
     def getOptimizationParameterNameForConditionSpecificSimulationParameter(self, conditionIdx, simulationParameterName, simulationParameterNames):
         scalingsForCurrentConditionByMeasurement = self.measurementDf.loc[self.measurementDf['condition'] == self.conditions[conditionIdx], 'scalingParameter']
@@ -200,7 +200,7 @@ class HDF5DataGenerator:
                 # N/A will be float
                 # is single value or comma-separated list
                 for scaling in scalingsForCurrentMeasurement.split(","):
-                    if self.getGenericScalingParameterName(scaling) == simulationParameterNames[conditionIdx]:
+                    if self.getGenericScalingParameterName(scaling) == simulationParameterName:
                         return scaling
         return None
             
