@@ -23,6 +23,8 @@ import sys
 import re
 import os
 from termcolor import colored
+import collections
+from pylint.checkers.variables import in_for_else_branch
 
 SCALING_LOG10 = 2
 SCALING_LIN = 0
@@ -64,6 +66,7 @@ class HDF5DataGenerator:
 
         print("Cost shape", self.measurementDf.shape)
 
+        # TODO: append conditionRef. prequilibration conditions might come without any datapoints and thus not show up in condition-column
         self.conditions = amiciHelper.unique(self.measurementDf.loc[:, 'condition'])
         self.numConditions = len(self.conditions)
 
@@ -146,7 +149,7 @@ class HDF5DataGenerator:
         
     def generateParameterList(self):
         """ 
-        write parameter names 
+        Optimization to simulation parameter mapping. Write parameter names. 
         """
         
         # simulation parameters from model
@@ -154,17 +157,83 @@ class HDF5DataGenerator:
         self.writeStringArray("/parameters/modelParameterNames", simulationParameterNames)
         print("Number of simulation parameters: %d" % len(simulationParameterNames))
         
+        # simulationParameterMap is OrderedDict with simulation parameter names as keys, and dicts with 
+        # condition names as key and condition-specific instances as values. 
+        # no instance name means name is equal to model parameter name  
+        self.simulationParameterMap = collections.OrderedDict()
+        for p in simulationParameterNames:
+            self.simulationParameterMap[p] = {}
+        
         # generate list of optimization parameters (>= simulation parameters because of condition-specific parameters)
-        optimizationParameterNames = self.appendScalingParameterNames(simulationParameterNames[:])
+        optimizationParameterNames = self.replaceScalingParameterNames(simulationParameterNames[:])
         print("Number of optimization parameters: %d" % len(optimizationParameterNames))
         self.writeStringArray("/parameters/parameterNames", optimizationParameterNames)
-
         assert(len(simulationParameterNames) <= len(optimizationParameterNames))
-        
-        self.generateSimulationToOptimizationParameterMapping(simulationParameterNames, optimizationParameterNames)
+        self.generateSimulationToOptimizationParameterMapping(simulationParameterNames, optimizationParameterNames)        
         
         self.f.flush()
     
+    
+    def replaceScalingParameterNames(self, parameterNames):
+        """
+        Remove the "generic" names of the scaling parameter in the model and replace with the instances for the respective experiments 
+        """
+        
+        conditionSpecificScalingsUsed = self.getUsedScalingParameters()
+        
+        #print(scalingsUsed)
+        for currentConditionSpecificName in conditionSpecificScalingsUsed:
+            currentGenericName = self.getGenericScalingParameterName(currentConditionSpecificName)
+            #print(currentGenericName)
+            if currentGenericName in parameterNames:
+                parameterNames.remove(currentGenericName)
+            
+        parameterNames += conditionSpecificScalingsUsed
+        return parameterNames
+
+    def getUsedScalingParameters(self):
+        """
+        Get unique list of scaling parameters mentioned in measurement file
+        with optimization parameter names (*not* as in sbml/amici model) 
+        """
+        
+        # List of condition-specifc parameter names
+        # NOTE: not using set() here which would scramble parameter order.
+        # This allows use to keep starting points from /randomStarts
+        # the same after regenerating the data file.
+        conditionSpecificScalingParameterNames = []
+        
+        # Track if there have been condition-spefic names provided for this parameters. They need to be always or never condition-specific. 
+        observableHasConditionSpecificParameters = {}
+        for index, row in self.measurementDf.iterrows():
+            conditionName = row['condition']
+            conditionSpecificNames = self.splitScalingParameterNames(row['scalingParameter'])
+            if len(conditionSpecificNames):
+                # ensure this observable has not been encountered or was marked as conditonSpecific before
+                if row['observable'] in observableHasConditionSpecificParameters and observableHasConditionSpecificParameters[row['observable']] == False:
+                    raise ValueError("%s had condition-specific parameters before, but none are given for %s" % (row['observable'], row))
+                else:
+                    observableHasConditionSpecificParameters[row['observable']] = True
+            else:
+                if row['observable'] in observableHasConditionSpecificParameters and observableHasConditionSpecificParameters[row['observable']] == True:
+                    raise ValueError("%s had no condition-specific parameters before, but has them in %s" % (row['observable'], row))
+                else:
+                    observableHasConditionSpecificParameters[row['observable']] = False
+                    
+            for currentConditionSpecificName in conditionSpecificNames:
+                conditionSpecificScalingParameterNames.append(currentConditionSpecificName)
+                currentGenericName = self.getGenericScalingParameterName(currentConditionSpecificName)
+                self.simulationParameterMap[currentGenericName][conditionName] = currentConditionSpecificName
+
+        conditionSpecificScalingParameterNames = amiciHelper.unique(conditionSpecificScalingParameterNames)
+        return conditionSpecificScalingParameterNames
+
+    def splitScalingParameterNames(self, names):
+        if not isinstance(names, float):
+            # N/A will be float
+            # is single value or comma-separated list
+            return names.split(",")
+        return []
     
     def generateSimulationToOptimizationParameterMapping(self, simulationParameterNames, optimizationParameterNames):
         """
@@ -173,22 +242,27 @@ class HDF5DataGenerator:
         numSimulationParameters = len(simulationParameterNames)
         # use in-memory matrix, don't write every entry to file directly (super slow)
         parameterMap = np.zeros(shape=(numSimulationParameters, self.numConditions),)
-        for conditionIdx in range(self.numConditions):
-            for idxSimulation in range(numSimulationParameters):
-                try:
-                    # Find optimization parameter name matching current simulation parameter name
-                    idxOptimization = optimizationParameterNames.index(simulationParameterNames[idxSimulation])
-                except ValueError:
-                    # must be a condition-specific parameter
-                    optimizationParameterName = self.getOptimizationParameterNameForConditionSpecificSimulationParameter(conditionIdx, simulationParameterNames[idxSimulation], simulationParameterNames)
-                    try:
-                        # Find by condition-specific name
-                        idxOptimization = optimizationParameterNames.index(optimizationParameterName)
-                    except ValueError:
+        
+        # create inverse mapping
+        optimizationParameterNameToIndex = { name: idx for idx, name in enumerate(optimizationParameterNames) }        
+        for idxSimulationParameter, simulationParameterName in enumerate(simulationParameterNames):
+            
+            if not len(self.simulationParameterMap[simulationParameterName]):
+                # not a condition-specific parameter, set same index for all conditions
+                parameterMap[idxSimulationParameter, :] = optimizationParameterNameToIndex[simulationParameterName]
+            else:
+                # condition-specific parameter
+                for conditionIdx, conditionName in enumerate(self.conditions):
+                    # this must be present if there is data for the observable using this parameter (checked above),
+                    # otherwise we can set any index, because amici will not use this parameter and set the gradient to 0.0. we will use 0 here.
+                    # TODO: handle better?
+                    if conditionName in self.simulationParameterMap[simulationParameterName]:
+                        conditionSpecificParameterName = self.simulationParameterMap[simulationParameterName][conditionName]
+                        parameterMap[idxSimulationParameter, conditionIdx] = optimizationParameterNameToIndex[conditionSpecificParameterName]
+                    else:
                         # This condition does not use the respective scaling parameter so there is no corresponding optimization parameter
                         # Cannot set to NaN in integer matrix. Will use 0. AMICI will not use this parameter anyways and its gradient will be 0.0 
-                        idxOptimization = 0
-                parameterMap[idxSimulation, conditionIdx] = idxOptimization    
+                        parameterMap[idxSimulationParameter, conditionIdx] = 0
 
         self.f.require_dataset('/parameters/optimizationSimulationMapping', 
                                shape=(numSimulationParameters, self.numConditions), 
@@ -206,23 +280,6 @@ class HDF5DataGenerator:
                         return scaling
         return None
             
-    def getUsedScalingParameters(self):
-        """
-        Get unique list of scaling parameters mentioned in measurement file
-        with optimization parameter names, not as in sbml/amici model 
-        """
-        # NOTE: not using set() here which would scramble parameter order.
-        # This allows use to keep starting points from /randomStarts
-        # the same after regenerating the data file.  
-        scalingsUsed = []  
-        for p in self.measurementDf.loc[:, 'scalingParameter']:
-            if not isinstance(p, float):
-                # N/A will be float
-                # is single value or comma-separated list
-                for x in p.split(","):
-                    scalingsUsed.append(x)
-        scalingsUsed = amiciHelper.unique(scalingsUsed)
-        return scalingsUsed
 
 
     def getGenericScalingParameterName(self, scaling):
@@ -235,6 +292,18 @@ class HDF5DataGenerator:
         
         return "_".join(scaling.split("_")[:-1])
             
+    def getGenericScalingParameterNameAndCondition(self, scaling):
+        """
+        For the given scaling parameter name from measurement file or optimization parameter names,
+        get the parameter name as specified in the sbml/amici model.
+        
+        (i.e. remove suffix from given scaling parameter)
+        """
+        
+        splitted = scaling.split("_")
+        genericName = "_".join(splitted[:-1])
+        suffix = splitted[-1]
+        return genericName, suffix
             
     def getGenericScalingParameterNames(self, scalingsUsed):
         """
@@ -249,23 +318,6 @@ class HDF5DataGenerator:
             genericName = self.getGenericScalingParameterName(s)
             genericNames.append(genericName)
         return amiciHelper.unique(genericNames)
-    
-    
-    def appendScalingParameterNames(self, parameterNames):
-        """
-        Remove the "generic" names of the scaling parameter in the model and replace with the instances for the respective experiments 
-        """
-        
-        scalingsUsed = self.getUsedScalingParameters()
-        
-        #print(scalingsUsed)
-        for s in self.getGenericScalingParameterNames(scalingsUsed):
-            #print(s)
-            if s in parameterNames:
-                parameterNames.remove(s)
-            
-        parameterNames += scalingsUsed
-        return parameterNames
     
     
     def generateFixedParameterMatrix(self):
