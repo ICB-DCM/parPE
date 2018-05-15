@@ -2,7 +2,7 @@
 """
 Generate HDF5 file for parPE with fixed parameters and measurements for an AMICI-imported SBML model based on tables with fixed parameters and training data
 
-2018 Daniel Weindl <daniel.weindl@helmholtz-muenchen.de>
+2018 Daniel Weindl <daniel.weindl@helmholtz-muenchen.de>, Leonard Schmiester <leonard.schmiester@helmholtz-muenchen.de>
 
 Usage: __file__ hdf5File sbmlModelFile symsModelFile cost_func exp_table
 
@@ -24,7 +24,6 @@ import re
 import os
 from termcolor import colored
 import collections
-from pylint.checkers.variables import in_for_else_branch
 
 SCALING_LOG10 = 2
 SCALING_LIN = 0
@@ -66,11 +65,16 @@ class HDF5DataGenerator:
 
         print("Cost shape", self.measurementDf.shape)
 
-        # TODO: append conditionRef. prequilibration conditions might come without any datapoints and thus not show up in condition-column
-        self.conditions = amiciHelper.unique(self.measurementDf.loc[:, 'condition'])
+        # Get list of used conditions
+        # Must also consider conditionRef values, since pre-equilibration conditions might come without any datapoints,
+        # and thus, not show up in condition-column
+        self.conditions = amiciHelper.unique(self.measurementDf.loc[:, 'condition'].append(self.measurementDf.loc[:, 'conditionRef']))
+        if np.nan in self.conditions:
+            self.conditions.remove(np.nan) # might have been introduced with empty conditionRef fields
         self.numConditions = len(self.conditions)
 
         # when using adjoint sensitivities, we cannot keep inf -> constider late timepoint as steady-state
+        print("Changing t = Inf to t = 1e8.")
         self.measurementDf.loc[self.measurementDf['time'] == np.inf, 'time'] = 1e8
         
         # list of timepoints
