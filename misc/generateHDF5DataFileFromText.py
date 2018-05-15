@@ -135,6 +135,8 @@ class HDF5DataGenerator:
         print("Generate parameter list...")
         self.generateParameterList()
 
+        self.generateReferenceMap()
+
         print("Generating fixed parameters matrix...")
         self.generateFixedParameterMatrix()
 
@@ -326,23 +328,24 @@ class HDF5DataGenerator:
     
     def generateFixedParameterMatrix(self):
         """
-        Write fixed parameters dataset
+        Write fixed parameters dataset. 
         """
-        self.generateReferenceMap()
         
         k = self.amiciSyms.readFixedParameterNames()
         self.nk = len(k)
         print("Number of fixed parameters: %d" % len(k))
 
-        dset = self.createFixedParameterDatasetAndWriteAttributes(k)
-
+        # Create in-memory table, write all at once for speed
+        fixedParameterMatrix = np.full(shape=(self.nk, self.numConditions), fill_value=np.nan)
         for i in range(len(k)):
-            self.handleFixedParameter(i, k[i], dset)
+            self.handleFixedParameter(i, k[i], fixedParameterMatrix)
+
+        dset = self.createFixedParameterDatasetAndWriteAttributes(k, fixedParameterMatrix)
         
         self.f.flush()
 
 
-    def createFixedParameterDatasetAndWriteAttributes(self, fixedParameters):
+    def createFixedParameterDatasetAndWriteAttributes(self, fixedParameters, data):
         """
         Create fixed parameters data set and annotations
         """
@@ -355,7 +358,7 @@ class HDF5DataGenerator:
         nk = len(fixedParameters)
         dset = self.f.create_dataset("/fixedParameters/k",
                                      (nk, self.numConditions),
-                                     dtype='f8', chunks=(nk, 1), compression=self.compression)
+                                     dtype='f8', chunks=(nk, 1), compression=self.compression, data=data)
 
         # set dimension scales 
         dset.dims.create_scale(self.f['/fixedParameters/parameterNames'], 'parameterNames')
