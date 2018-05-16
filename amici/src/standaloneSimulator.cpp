@@ -7,6 +7,8 @@
 #include <misc.h>
 #include <hierarchicalOptimization.h>
 
+#include <gsl/gsl-lite.hpp>
+
 #include <iostream>
 
 namespace parpe {
@@ -45,19 +47,26 @@ int StandaloneSimulator::run(const std::string& resultFile,
     auto hierarchicalOffsetReader = new AnalyticalParameterHdf5Reader (file,
                                                                        "/inputData/offsetParameterIndices",
                                                                        "/inputData/offsetParametersMapToObservables");
+    auto hierarchicalSigmaReader = new AnalyticalParameterHdf5Reader (file,
+                                                                       "/inputData/sigmaParameterIndices",
+                                                                       "/inputData/sigmaParametersMapToObservables");
     auto proportionalityFactorIndices = hierarchicalScalingReader->getOptimizationParameterIndices();
     auto offsetParameterIndices = hierarchicalOffsetReader->getOptimizationParameterIndices();
-    HierachicalOptimizationWrapper hierarchical(nullptr, std::unique_ptr<AnalyticalParameterHdf5Reader>(hierarchicalScalingReader),
+    auto sigmaParameterIndices = hierarchicalSigmaReader->getOptimizationParameterIndices();
+    HierachicalOptimizationWrapper hierarchical(nullptr,
+                                                std::unique_ptr<AnalyticalParameterHdf5Reader>(hierarchicalScalingReader),
                                                 std::unique_ptr<AnalyticalParameterHdf5Reader>(hierarchicalOffsetReader),
+                                                std::unique_ptr<AnalyticalParameterHdf5Reader>(hierarchicalSigmaReader),
                                                 dataProvider->getNumberOfConditions(), model->nytrue, model->nt(),
                                                 ErrorModel::normal);
     if(proportionalityFactorIndices.size() > 0) {
         // expand parameter vector
         auto scalingDummy = hierarchical.getDefaultScalingFactors();
         auto offsetDummy = hierarchical.getDefaultOffsetParameters();
-        parameters = spliceParameters(optimizationParameters.data(), optimizationParameters.size(),
-                                      proportionalityFactorIndices, offsetParameterIndices,
-                                      scalingDummy, offsetDummy);
+        auto sigmaDummy = hierarchical.getDefaultSigmaParameters();
+        parameters = spliceParameters(gsl::make_span(optimizationParameters.data(), optimizationParameters.size()),
+                                      proportionalityFactorIndices, offsetParameterIndices, sigmaParameterIndices,
+                                      scalingDummy, offsetDummy, sigmaDummy);
 
         // get outputs, scale
         // TODO need to pass aggreate function for writing
@@ -93,7 +102,8 @@ int StandaloneSimulator::run(const std::string& resultFile,
                     job->recvBuffer.data(), job->recvBuffer.size());
         job->recvBuffer = std::vector<char>(); // free buffer
 
-        auto edata = dataProvider->getExperimentalDataForCondition(dataIdx);
+        auto parameters = model->getParameters();
+        auto edata = dataProvider->getExperimentalDataForCondition(dataIdx, gsl::make_span(parameters.data(), parameters.size()));
 
         rw.saveSimulationResults(edata.get(), result.rdata.get(), dataIdx);
     },
@@ -123,11 +133,16 @@ int StandaloneSimulator::run(const std::string& resultFile,
         hierarchical.applyOptimalOffsets(offsets, modelOutputs);
         // TODO: what else needs to be scaled?
 
+        // TODO auto sigmas = hierarchical.computeAnalyticalOffsets(allMeasurements, modelOutputs);
+
         for(int dataIdx = 0; (unsigned) dataIdx < jobs.size(); ++dataIdx) {
             JobResultAmiciSimulation& result = jobResults[dataIdx];
             result.rdata->y = modelOutputs[dataIdx];
-            result.rdata->llh = -parpe::computeNegLogLikelihood(allMeasurements[dataIdx], modelOutputs[dataIdx]);
-            auto edata = dataProvider->getExperimentalDataForCondition(dataIdx);
+            std::vector<double> sigmas(allMeasurements[dataIdx].size(), NAN);
+            result.rdata->llh = -parpe::computeNegLogLikelihood(allMeasurements[dataIdx], modelOutputs[dataIdx], sigmas);
+
+            auto parameters = model->getParameters();
+            auto edata = dataProvider->getExperimentalDataForCondition(dataIdx, gsl::make_span(parameters.data(), parameters.size()));
             rw.saveSimulationResults(edata.get(), result.rdata.get(), dataIdx);
         }
         return 0;
@@ -190,7 +205,8 @@ JobResultAmiciSimulation StandaloneSimulator::runSimulation(JobIdentifier path, 
 {
     dataProvider->updateFixedSimulationParameters(path.idxConditions, model);
 
-    auto edata = dataProvider->getExperimentalDataForCondition(path.idxConditions);
+    auto parameters = model.getParameters();
+    auto edata = dataProvider->getExperimentalDataForCondition(path.idxConditions, gsl::make_span(parameters.data(), parameters.size()));
 
     auto rdata = amici::runAmiciSimulation(solver, edata.get(), model);
 

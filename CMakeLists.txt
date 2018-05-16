@@ -91,6 +91,7 @@ include_directories(
     common/src/
     ${HDF5_INCLUDE_DIRS}
     ${MPI_INCLUDE_DIR}
+    ThirdParty/gsl
     )
 
 

@@ -11,6 +11,7 @@
 #include <amici/model.h>
 #include <amici/rdata.h>
 #include <amici/serialization.h>
+#include <gsl/gsl-lite.hpp>
 
 #include <cassert>
 #include <cstring>
@@ -140,7 +141,8 @@ SimulationRunnerSimple::AmiciResultPackageSimple AmiciSummedGradientFunction<T>:
     // necessary here, this has been done by master)
     dataProvider->updateFixedSimulationParameters(path.idxConditions, model);
 
-    auto edata = dataProvider->getExperimentalDataForCondition(path.idxConditions);
+    auto parameters = model.getParameters();
+    auto edata = dataProvider->getExperimentalDataForCondition(path.idxConditions, gsl::make_span(parameters.data(), parameters.size()));
 
     std::unique_ptr<amici::ReturnData> rdata;
     try {
@@ -670,6 +672,11 @@ FunctionEvaluationStatus AmiciSummedGradientFunction<T>::getModelOutputs(const d
 template<typename T>
 std::vector<std::vector<double> > AmiciSummedGradientFunction<T>::getAllMeasurements() const {
     return dataProvider->getAllMeasurements();
+}
+
+template<typename T>
+std::vector<std::vector<double> > AmiciSummedGradientFunction<T>::getAllSigmas() const {
+    return dataProvider->getAllSigmas();
 }
 
 } // namespace parpe

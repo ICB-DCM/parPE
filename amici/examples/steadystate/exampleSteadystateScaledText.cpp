@@ -125,11 +125,13 @@ TEST(steadystateProblemTests, testSteadystateHierarchical) {
     scalings->mapping[0][0] = {scaledObservableIdx};
 
     auto offsets = std::make_unique<parpe::AnalyticalParameterProviderDefault>();
+    auto sigmas = std::make_unique<parpe::AnalyticalParameterProviderDefault>();
 
     auto gradFun = std::make_unique<parpe::AmiciSummedGradientFunction<int>>(&dp, nullptr);
     parpe::HierachicalOptimizationWrapper hier(std::move(gradFun),
                                                std::move(scalings),
                                                std::move(offsets),
+                                               std::move(sigmas),
                                                dp.getNumberOfConditions(),
                                                modelNonOwning->nytrue,
                                                modelNonOwning->nt(),
@@ -180,11 +182,13 @@ TEST(steadystateProblemTests, testOptimizationHierarchical) {
     scalings->mapping[0][0] = {scaledObservableIdx};
 
     auto offsets = std::make_unique<parpe::AnalyticalParameterProviderDefault>();
+    auto sigmas = std::make_unique<parpe::AnalyticalParameterProviderDefault>();
 
     auto gradFun = std::make_unique<parpe::AmiciSummedGradientFunction<int>>(&dp, nullptr);
     auto hier = std::make_unique<parpe::HierachicalOptimizationWrapper>(std::move(gradFun),
                                                                         std::move(scalings),
                                                                         std::move(offsets),
+                                                                        std::move(sigmas),
                                                                         dp.getNumberOfConditions(),
                                                                         modelNonOwning->nytrue,
                                                                         modelNonOwning->nt(),

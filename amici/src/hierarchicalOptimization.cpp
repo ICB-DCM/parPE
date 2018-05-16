@@ -11,8 +11,9 @@
 namespace parpe {
 
 
-HierachicalOptimizationWrapper::HierachicalOptimizationWrapper(std::unique_ptr<AmiciSummedGradientFunction<int> > fun,
-                                                               int numConditions, int numObservables, int numTimepoints)
+HierachicalOptimizationWrapper::HierachicalOptimizationWrapper(
+        std::unique_ptr<AmiciSummedGradientFunction<int> > fun,
+        int numConditions, int numObservables, int numTimepoints)
     : fun(std::move(fun)),
       numConditions(numConditions),
       numObservables(numObservables),
@@ -20,13 +21,15 @@ HierachicalOptimizationWrapper::HierachicalOptimizationWrapper(std::unique_ptr<A
 {
     scalingReader = std::make_unique<AnalyticalParameterHdf5Reader>();
     offsetReader = std::make_unique<AnalyticalParameterHdf5Reader>();
+    sigmaReader = std::make_unique<AnalyticalParameterHdf5Reader>();
     init();
 }
 
-HierachicalOptimizationWrapper::HierachicalOptimizationWrapper(std::unique_ptr<AmiciSummedGradientFunction<int> > fun,
-                                                               H5::H5File file, std::string hdf5RootPath,
-                                                               int numConditions, int numObservables, int numTimepoints,
-                                                               ErrorModel errorModel)
+HierachicalOptimizationWrapper::HierachicalOptimizationWrapper(
+        std::unique_ptr<AmiciSummedGradientFunction<int> > fun,
+        H5::H5File file, std::string hdf5RootPath,
+        int numConditions, int numObservables, int numTimepoints,
+        ErrorModel errorModel)
     : fun(std::move(fun)),
       numConditions(numConditions),
       numObservables(numObservables),
@@ -39,6 +42,9 @@ HierachicalOptimizationWrapper::HierachicalOptimizationWrapper(std::unique_ptr<A
     offsetReader = std::make_unique<AnalyticalParameterHdf5Reader>(file,
                                                                    hdf5RootPath + "/offsetParameterIndices",
                                                                    hdf5RootPath + "/offsetParametersMapToObservables");
+    sigmaReader = std::make_unique<AnalyticalParameterHdf5Reader>(file,
+                                                                  hdf5RootPath + "/sigmaParameterIndices",
+                                                                  hdf5RootPath + "/sigmaParametersMapToObservables");
 
     init();
 }
@@ -47,11 +53,13 @@ HierachicalOptimizationWrapper::HierachicalOptimizationWrapper(
         std::unique_ptr<AmiciSummedGradientFunction<int> > fun,
         std::unique_ptr<parpe::AnalyticalParameterProvider> scalingReader,
         std::unique_ptr<parpe::AnalyticalParameterProvider> offsetReader,
+        std::unique_ptr<parpe::AnalyticalParameterProvider> sigmaReader,
         int numConditions, int numObservables, int numTimepoints,
         ErrorModel errorModel)
     : fun(std::move(fun)),
       scalingReader(std::move(scalingReader)),
       offsetReader(std::move(offsetReader)),
+      sigmaReader(std::move(sigmaReader)),
       numConditions(numConditions),
       numObservables(numObservables),
       numTimepoints(numTimepoints),
@@ -75,12 +83,19 @@ void HierachicalOptimizationWrapper::init() {
     offsetParameterIndices = this->offsetReader->getOptimizationParameterIndices();
     RELEASE_ASSERT(std::is_sorted(this->offsetParameterIndices.begin(),
                                   this->offsetParameterIndices.end()), "");
+
+    sigmaParameterIndices = this->sigmaReader->getOptimizationParameterIndices();
+    RELEASE_ASSERT(std::is_sorted(this->sigmaParameterIndices.begin(),
+                                  this->sigmaParameterIndices.end()), "");
 }
 
 
-FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluate(const double * const parameters,
-                                                                  double &fval,
-                                                                  double *gradient) const {
+FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluate(
+        const double * const parameters,
+        double &fval,
+        double *gradient) const {
+    auto parametersSpan = gsl::make_span(parameters, parameters?numParameters():0);
+
     if(numScalingFactors() == 0 && numOffsetParameters() == 0) {
         // nothing to do, just pass through
 
@@ -92,7 +107,7 @@ FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluate(const double *
     }
 
     // evaluate with scaling parameters set to 1 and offsets to 0
-    auto modelOutput = getUnscaledModelOutputs(parameters);
+    auto modelOutput = getUnscaledModelOutputs(parametersSpan);
 
     auto measurements = fun->getAllMeasurements();
 
@@ -103,10 +118,17 @@ FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluate(const double *
     auto offsets = computeAnalyticalOffsets(measurements, modelOutput);
     // std::cout << "offsets:" << offsets;
 
+    // Scale model outputs
+    applyOptimalScalings(scalings, modelOutput);
+    applyOptimalOffsets(offsets, modelOutput);
+
+    // needs scaled outputs
+    auto sigmas = computeAnalyticalSigmas(measurements, modelOutput);
+
     // evaluate with analytical scaling parameters
-    auto status = evaluateWithOptimalParameters(parameters, scalings, offsets,
+    auto status = evaluateWithOptimalParameters(parametersSpan, scalings, offsets, sigmas,
                                                 measurements, modelOutput,
-                                                fval, gradient);
+                                                fval, gsl::make_span(gradient, gradient?numParameters():0));
 
     return status;
 }
@@ -135,15 +157,31 @@ std::vector<double> HierachicalOptimizationWrapper::getDefaultOffsetParameters()
     return result;
 }
 
-std::vector<std::vector<double> > HierachicalOptimizationWrapper::getUnscaledModelOutputs(const double * const reducedParameters) const {
+std::vector<double> HierachicalOptimizationWrapper::getDefaultSigmaParameters() const
+{
+    auto result = std::vector<double>(numSigmaParameters());
+
+    for(int i = 0; i < numSigmaParameters(); ++i) {
+        // default sigma is the same as default scaling
+        result[i] = getDefaultScalingFactor(
+                    fun->getParameterScaling(sigmaParameterIndices[i]));
+    }
+
+    return result;
+
+}
+
+std::vector<std::vector<double> > HierachicalOptimizationWrapper::getUnscaledModelOutputs(
+        const gsl::span<const double> reducedParameters) const {
     // run simulations, collect outputs
     auto scalingDummy = getDefaultScalingFactors();
     auto offsetDummy = getDefaultOffsetParameters();
+    auto sigmaDummy = getDefaultSigmaParameters();
 
     // splice hidden scaling parameter and external parameters
-    auto fullParameters = spliceParameters(reducedParameters, numParameters(),
-                                           proportionalityFactorIndices, offsetParameterIndices,
-                                           scalingDummy, offsetDummy);
+    auto fullParameters = spliceParameters(reducedParameters,
+                                           proportionalityFactorIndices, offsetParameterIndices, sigmaParameterIndices,
+                                           scalingDummy, offsetDummy, sigmaDummy);
 
     std::vector<std::vector<double> > modelOutput(numConditions);
     fun->getModelOutputs(fullParameters.data(), modelOutput);
@@ -185,7 +223,7 @@ void HierachicalOptimizationWrapper::applyOptimalScalings(std::vector<double> co
 
 std::vector<double> HierachicalOptimizationWrapper::computeAnalyticalOffsets(std::vector<std::vector<double>> const& measurements,
                                                                              std::vector<std::vector<double> > &modelOutputsUnscaled) const {
-    // NOTE: does not handle replicates, assumes normal distribution, does not compute sigmas
+    // NOTE: does not handle replicates, assumes normal distribution
 
     int numOffsetParameters = offsetParameterIndices.size();
     std::vector<double> offsetParameters(numOffsetParameters);
@@ -200,6 +238,24 @@ std::vector<double> HierachicalOptimizationWrapper::computeAnalyticalOffsets(std
     return offsetParameters;
 }
 
+std::vector<double> HierachicalOptimizationWrapper::computeAnalyticalSigmas(
+        const std::vector<std::vector<double> > &measurements,
+        std::vector<std::vector<double> > &modelOutputsScaled) const
+{
+    // NOTE: does not handle replicates, assumes normal distribution
+
+    int numSigmas = sigmaParameterIndices.size();
+    std::vector<double> sigmas(numSigmas);
+
+    for(int i = 0; i < numSigmas; ++i) {
+        parpe::computeAnalyticalOffsets(i,
+                                        fun->getParameterScaling(sigmaParameterIndices[i]),
+                                        modelOutputsScaled, measurements,
+                                        *sigmaReader, numObservables, numTimepoints);
+    }
+    return sigmas;
+}
+
 void HierachicalOptimizationWrapper::applyOptimalOffsets(std::vector<double> const& offsetParameters,
                                                          std::vector<std::vector<double> > &modelOutputs) const {
 
@@ -212,23 +268,45 @@ void HierachicalOptimizationWrapper::applyOptimalOffsets(std::vector<double> con
     }
 }
 
+std::vector<std::vector<double> > HierachicalOptimizationWrapper::expandSigmas(std::vector<double> sigmas) const
+{
+    // NOTE: assumes that all sigmas are computed analytically. any additional preset sigmas are ignored.
+
+    std::vector<std::vector<double> > expanded(numConditions, std::vector<double>(numObservables * numTimepoints, NAN));
+
+    for(int sigmaIdx = 0; (unsigned) sigmaIdx < sigmas.size(); ++sigmaIdx) {
+        auto dependentConditions = sigmaReader->getConditionsForParameter(sigmaIdx);
+        for (auto const conditionIdx: dependentConditions) {
+            auto dependentObservables = sigmaReader->getObservablesForParameter(sigmaIdx, conditionIdx);
+            for(auto const observableIdx: dependentObservables) {
+                RELEASE_ASSERT(observableIdx < numObservables, "");
+                for(int timeIdx = 0; timeIdx < numTimepoints; ++timeIdx) {
+                    // NOTE: this must be in sync with data ordering in AMICI (assumes row-major)
+                    expanded[conditionIdx][observableIdx + timeIdx * numObservables] = sigmas[sigmaIdx];
+                }
+            }
+        }
+    }
+    return expanded;
+}
+
 
 
 FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluateWithOptimalParameters(
-        // adapt to offsets
-        const double * const reducedParameters,
+        const gsl::span<const double> reducedParameters,
         const std::vector<double> &scalings,
         const std::vector<double> &offsets,
+        const std::vector<double> &sigmas,
         std::vector<std::vector<double>> const& measurements,
-        std::vector<std::vector<double> > &modelOutputsUnscaled,
-        double &fval, double *gradient) const {
+        std::vector<std::vector<double> > &modelOutputsScaled,
+        double &fval, const gsl::span<double> gradient) const {
 
-    if(gradient) {
+    if(gradient.data()) {
         // simulate with updated theta for sensitivities
         // splice parameter vector we get from optimizer with analytically computed parameters
-        auto fullParameters = spliceParameters(reducedParameters, numParameters(),
-                                               proportionalityFactorIndices, offsetParameterIndices,
-                                               scalings, offsets);
+        auto fullParameters = spliceParameters(reducedParameters,
+                                               proportionalityFactorIndices, offsetParameterIndices, sigmaParameterIndices,
+                                               scalings, offsets, sigmas);
 
         // simualte all datasets
         std::vector<int> dataIndices(numConditions);
@@ -242,13 +320,22 @@ FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluateWithOptimalPara
 
         // Filter gradient for those parameters expected by the optimizer
         auto analyticalParameterIndices = getAnalyticalParameterIndices();
-        fillFilteredParams(fullGradient, analyticalParameterIndices, gradient);
+        fillFilteredParams(fullGradient, analyticalParameterIndices, gradient.data());
     } else {
-        // Scale model outputs
-        applyOptimalScalings(scalings, modelOutputsUnscaled);
-        applyOptimalOffsets(offsets, modelOutputsUnscaled);
+
+        std::vector <std::vector<double>> fullSigmaMatrices;
+
+        if(sigmaParameterIndices.size()) {
+            // expand sigma vector:
+            fullSigmaMatrices = expandSigmas(sigmas);
+
+        } else {
+            // or if no sigmas were computed analytically, use table from file
+            fullSigmaMatrices = fun->getAllSigmas();
+        }
+
         // ... to compute negative log-likelihood
-        fval = computeNegLogLikelihood(measurements, modelOutputsUnscaled);
+        fval = computeNegLogLikelihood(measurements, modelOutputsScaled, fullSigmaMatrices);
     }
 
     return functionEvaluationSuccess;
@@ -284,10 +371,21 @@ int HierachicalOptimizationWrapper::numOffsetParameters() const {
     return offsetParameterIndices.size();
 }
 
+int HierachicalOptimizationWrapper::numSigmaParameters() const
+{
+    return sigmaParameterIndices.size();
+}
+
 const std::vector<int> &HierachicalOptimizationWrapper::getOffsetParameterIndices() const
 {
     return offsetParameterIndices;
 }
+
+const std::vector<int> &HierachicalOptimizationWrapper::getSigmaParameterIndices() const
+{
+    return sigmaParameterIndices;
+}
+
 
 std::vector<int> HierachicalOptimizationWrapper::getAnalyticalParameterIndices() const
 {
@@ -464,7 +562,8 @@ void HierachicalOptimizationProblemWrapper::fillParametersMin(double *buffer) co
     fillFilteredParams(full, buffer);
 }
 
-void HierachicalOptimizationProblemWrapper::fillFilteredParams(const std::vector<double> &fullParams, double *buffer) const
+void HierachicalOptimizationProblemWrapper::fillFilteredParams(const std::vector<double> &fullParams,
+                                                               double* buffer) const
 {
     auto hierarchical = dynamic_cast<HierachicalOptimizationWrapper *>(costFun.get());
     auto combinedIndices = hierarchical->getAnalyticalParameterIndices();
@@ -473,7 +572,7 @@ void HierachicalOptimizationProblemWrapper::fillFilteredParams(const std::vector
 
 void fillFilteredParams(std::vector<double> const& valuesToFilter,
                         std::vector<int> const& sortedIndicesToExclude,
-                        double *result)
+                        double* result)
 {
     // adapt to offsets
     unsigned int nextFilterIdx = 0;
@@ -583,6 +682,37 @@ double computeAnalyticalOffsets(int offsetIdx,
     return offsetParameter;
 }
 
+double computeAnalyticalSigmas(int sigmaIdx, amici::AMICI_parameter_scaling scale,
+                               const std::vector<std::vector<double> > &modelOutputsScaled,
+                               const std::vector<std::vector<double> > &measurements,
+                               AnalyticalParameterProvider &sigmaReader,
+                               int numObservables, int numTimepoints)
+{
+    auto dependentConditions = sigmaReader.getConditionsForParameter(sigmaIdx);
+
+    double enumerator = 0.0;
+    double denominator = 0.0;
+
+    for (auto const conditionIdx: dependentConditions) {
+        auto dependentObservables = sigmaReader.getObservablesForParameter(sigmaIdx, conditionIdx);
+        for(auto const observableIdx: dependentObservables) {
+            for(int timeIdx = 0; timeIdx < numTimepoints; ++timeIdx) {
+                double mes = measurements[conditionIdx][observableIdx + timeIdx * numObservables];
+                if(!std::isnan(mes)) {
+                    double scaledSim = modelOutputsScaled[conditionIdx][observableIdx + timeIdx * numObservables];
+                    assert(!std::isnan(scaledSim));
+                    enumerator += (mes - scaledSim) * (mes - scaledSim);
+                    denominator += 1.0;
+                }
+            }
+        }
+    }
+
+    double sigma = getScaledParameter(enumerator / denominator, scale);
+
+    return sigma;
+}
+
 
 void applyOptimalScaling(int scalingIdx, double scalingLin,
                          std::vector<std::vector<double> > &modelOutputs,
@@ -642,23 +772,29 @@ void applyOptimalOffset(int offsetIdx, double offsetLin,
 
 
 
-std::vector<double> spliceParameters(const double * const reducedParameters, int numReduced,
+std::vector<double> spliceParameters(const gsl::span<double const> reducedParameters,
                                      const std::vector<int> &proportionalityFactorIndices,
                                      const std::vector<int> &offsetParameterIndices,
+                                     const std::vector<int> &sigmaParameterIndices,
                                      const std::vector<double> &scalingFactors,
-                                     const std::vector<double> &offsetParameters) {
-    std::vector<double> fullParameters(numReduced + scalingFactors.size() + offsetParameters.size());
+                                     const std::vector<double> &offsetParameters,
+                                     const std::vector<double> &sigmaParameters) {
+
+    std::vector<double> fullParameters(reducedParameters.size() + scalingFactors.size() + offsetParameters.size() + sigmaParameters.size());
     int idxScaling = 0;
     int idxOffset = 0;
+    int idxSigma = 0;
     int idxRegular = 0;
 
     for(int i = 0; i < (signed) fullParameters.size(); ++i) {
         if((unsigned)idxScaling < proportionalityFactorIndices.size() && proportionalityFactorIndices[idxScaling] == i)
-            fullParameters[i] = scalingFactors[idxScaling++];
+            fullParameters[i] = scalingFactors.at(idxScaling++);
         else if((unsigned)idxOffset < offsetParameterIndices.size() && offsetParameterIndices[idxOffset] == i)
-            fullParameters[i] = offsetParameters[idxOffset++];
-        else if(idxRegular < numReduced)
-            fullParameters[i] = reducedParameters[idxRegular++];
+            fullParameters[i] = offsetParameters.at(idxOffset++);
+        else if((unsigned)idxSigma < sigmaParameterIndices.size() && sigmaParameterIndices[idxSigma] == i)
+            fullParameters[i] = sigmaParameters.at(idxSigma++);
+        else if((unsigned)idxRegular < reducedParameters.size())
+            fullParameters[i] = reducedParameters.at(idxRegular++);
         else
             throw std::exception();
     }
@@ -668,32 +804,34 @@ std::vector<double> spliceParameters(const double * const reducedParameters, int
 
 
 double computeNegLogLikelihood(std::vector <std::vector<double>> const& measurements,
-                               const std::vector<std::vector<double> > &modelOutputsScaled) {
+                               const std::vector<std::vector<double> > &modelOutputsScaled,
+                               std::vector <std::vector<double>> const& sigmas) {
     RELEASE_ASSERT(measurements.size() == modelOutputsScaled.size(), "");
 
     double nllh = 0.0;
 
     for (int conditionIdx = 0; (unsigned) conditionIdx < measurements.size(); ++conditionIdx) {
-        nllh += computeNegLogLikelihood(measurements[conditionIdx], modelOutputsScaled[conditionIdx]);
+        nllh += computeNegLogLikelihood(measurements[conditionIdx], modelOutputsScaled[conditionIdx], sigmas[conditionIdx]);
     }
 
     return nllh;
 }
 
 double computeNegLogLikelihood(std::vector<double> const& measurements,
-                               std::vector<double> const& modelOutputsScaled) {
+                               std::vector<double> const& modelOutputsScaled,
+                               std::vector<double> const& sigmas) {
     double nllh = 0.0;
     constexpr double pi = atan(1)*4.0;
 
-    double sigmaSquared = 1.0; // NOTE: TODO: no user-JobResultAmiciSimulationprovided sigma supported at the moment
-
-    // No need to pay respect to timepoints and observables, as long as the order is the same for both measurements and simulations
     RELEASE_ASSERT(measurements.size() == modelOutputsScaled.size(), "measurement/simulation output dimension mismatch");
+
     for(int i = 0; (unsigned) i < measurements.size(); ++i) {
         double mes = measurements[i];
         if(!std::isnan(mes)) {
             double sim = modelOutputsScaled[i];
-            assert(!std::isnan(sim));
+            double sigmaSquared = sigmas[i] * sigmas[i];
+            RELEASE_ASSERT(!std::isnan(sim), "");
+            RELEASE_ASSERT(!std::isnan(sigmaSquared), "");
             double diff = mes - sim;
             diff *= diff;
             nllh += log(2.0 * pi * sigmaSquared) + diff / sigmaSquared;
@@ -715,6 +853,7 @@ const std::vector<int> &AnalyticalParameterProviderDefault::getObservablesForPar
 std::vector<int> AnalyticalParameterProviderDefault::getOptimizationParameterIndices() const {
     return optimizationParameterIndices;
 }
+
 
 
 } // namespace parpe

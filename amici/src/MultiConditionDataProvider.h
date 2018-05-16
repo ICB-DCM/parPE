@@ -2,8 +2,10 @@
 #define MULTICONDITIONDATAPROVIDER_H
 
 #include <hdf5Misc.h>
+#include <optimizationOptions.h>
 
 #include <amici/amici.h>
+#include <gsl/gsl-lite.hpp>
 
 #include <memory>
 #include <string>
@@ -78,9 +80,10 @@ class MultiConditionDataProvider {
     virtual void updateSimulationParameters(int conditionIndex, const double *optimizationParams,
         amici::Model &model) const = 0;
 
-    virtual std::unique_ptr<amici::ExpData> getExperimentalDataForCondition(int conditionIdx) const = 0;
+    virtual std::unique_ptr<amici::ExpData> getExperimentalDataForCondition(int conditionIdx, const gsl::span<const double>) const = 0;
 
     virtual std::vector<std::vector<double> > getAllMeasurements() const = 0;
+    virtual std::vector<std::vector<double> > getAllSigmas() const = 0;
 
     /**
      * @brief Returns the number of optimization parameters of this problem
@@ -139,9 +142,10 @@ class MultiConditionDataProviderDefault : public MultiConditionDataProvider {
     virtual void updateSimulationParameters(int conditionIndex, const double *optimizationParams,
         amici::Model &model) const override;
 
-    virtual std::unique_ptr<amici::ExpData> getExperimentalDataForCondition(int conditionIdx) const override;
+    virtual std::unique_ptr<amici::ExpData> getExperimentalDataForCondition(int conditionIdx, const gsl::span<const double> parameters) const override;
 
     virtual std::vector<std::vector<double> > getAllMeasurements() const override;
+    virtual std::vector<std::vector<double> > getAllSigmas() const override;
 
     /**
      * @brief Returns the number of optimization parameters of this problem
@@ -255,9 +259,10 @@ class MultiConditionDataProviderHDF5 : public MultiConditionDataProvider {
     virtual void updateFixedSimulationParameters(int conditionIdx,
                                                 amici::Model &model) const override;
 
-    virtual std::unique_ptr<amici::ExpData> getExperimentalDataForCondition(int conditionIdx) const override;
+    virtual std::unique_ptr<amici::ExpData> getExperimentalDataForCondition(int conditionIdx, const gsl::span<const double>) const override;
 
     std::vector<std::vector<double> > getAllMeasurements() const override;
+    std::vector<std::vector<double> > getAllSigmas() const override;
 
     /**
      * @brief getOptimizationParametersLowerBounds Get lower parameter bounds
@@ -335,6 +340,7 @@ protected:
     H5::H5File file;
     hid_t fileId = 0;
 
+    std::unique_ptr<OptimizationOptions> optimizationOptions;
 };
 
 } // namespace parpe
