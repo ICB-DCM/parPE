@@ -203,13 +203,13 @@ class HDF5DataGenerator:
         with optimization parameter names (*not* as in sbml/amici model) 
         """
         
-        # List of condition-specifc parameter names
+        # List of condition-specific parameter names
         # NOTE: not using set() here which would scramble parameter order.
         # This allows use to keep starting points from /randomStarts
         # the same after regenerating the data file.
         conditionSpecificScalingParameterNames = []
         
-        # Track if there have been condition-spefic names provided for this parameters. They need to be always or never condition-specific. 
+        # Track if there have been condition-specific names provided for this parameters. They need to be always or never condition-specific. 
         observableHasConditionSpecificParameters = {}
         for index, row in self.measurementDf.iterrows():
             conditionName = row['condition']
@@ -672,7 +672,7 @@ class HDF5DataGenerator:
         """
         Ensure that this is a proportionality factor (a as in y = ax + b)
         
-        TODO sympy
+        TODO sympy: verify: obs / proportionality does not contain proportionality
         """
     
         formula = self.getFormulaForScalingParameter(scaling)
@@ -682,15 +682,33 @@ class HDF5DataGenerator:
     def handleSigmas(self):
         """
         Deal with sigma parameters
-        
-        TODO : not yet implemented
         """
         parameterNames = self.f['/parameters/parameterNames'][:].tolist()
         sigmasForHierarchical = [x for x in self.getUsedScalingParameters() if x.startswith("_sigma") ]
         
-        if len(sigmasForHierarchical):
-            print(colored("Sigmas currently not supported (%s)." % (sigmasForHierarchical), "yellow"))
+        sigmasForHierarchicalIndices = [ parameterNames.index(x) for x in sigmasForHierarchical ]
 
+        dset = self.f.require_dataset("/sigmaParameterIndices", 
+                                      shape=(len(sigmasForHierarchicalIndices),), 
+                                      dtype='<i4', 
+                                      data=sigmasForHierarchicalIndices)
+        print("Number of sigmas for hierarchical optimization: %d" % len(sigmasForHierarchicalIndices))
+       
+        # find usages for the selected parameters
+        use = []
+        for index, row in self.measurementDf.iterrows():
+            currentScalings = row['scalingParameter'].split(',')
+            for s in currentScalings:
+                #print(s, scalingsForHierarchical)
+                if s in scalingsForHierarchical:
+                    sigmaIdx = scalingsForHierarchical.index(s)
+                    conditionIdx = self.conditions.index(row['condition'])
+                    observableIdx = self.observables.index(row['observable'])
+                    use.append((sigmaIdx, conditionIdx, observableIdx))
+       
+        dset = self.f.require_dataset("/sigmaParametersMapToObservables", 
+                                      shape=(len(use), 3), 
+                                      dtype='<i4', data=use)
     
     def copyAmiciOptions(self):
         """
