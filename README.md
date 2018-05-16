@@ -33,7 +33,7 @@ For full functionality, parPE requires the following libraries:
 * MPI
 * PTHREADS
 * IPOPT (>= 1.2.7) (requires coinhsl)
-* CERES (>=1.13) (requires Eigen)
+* CERES (>=1.13) ([requires Eigen](http://ceres-solver.org/installation.html#dependencies))
 * HDF5 (>= 1.10)
 * BLAS (CBLAS / Intel MKL)
 * [AMICI](https://github.com/ICB-DCM/AMICI) (included in this repository) (uses SuiteSparse, Sundials)
