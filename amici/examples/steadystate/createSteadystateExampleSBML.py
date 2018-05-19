@@ -150,7 +150,9 @@ def create_model():
     p = create_parameter(model, 'observable_x2_offsetted', True, 1.0, '')
     rule = create_assigment_rule(model, 'observable_x2_offsetted', 'offset_x2 + x2')
     
-    # TODO: sigma
+    p = create_parameter(model, 'observable_x1withsigma_sigma', True, 1.0, '')
+    p = create_parameter(model, 'observable_x1withsigma', True, 1.0, '')
+    rule = create_assigment_rule(model, 'observable_x1withsigma', 'x1')
   
     return writeSBMLToString(document)
 

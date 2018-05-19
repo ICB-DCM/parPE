@@ -73,7 +73,7 @@ class HDF5DataGenerator:
             self.conditions.remove(np.nan) # might have been introduced with empty conditionRef fields
         self.numConditions = len(self.conditions)
 
-        # when using adjoint sensitivities, we cannot keep inf -> constider late timepoint as steady-state
+        # when using adjoint sensitivities, we cannot keep inf -> consider late timepoint as steady-state
         print("Changing t = Inf to t = 1e8.")
         self.measurementDf.loc[self.measurementDf['time'] == np.inf, 'time'] = 1e8
         
