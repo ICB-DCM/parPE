@@ -53,7 +53,9 @@ int StandaloneSimulator::run(const std::string& resultFile,
     auto proportionalityFactorIndices = hierarchicalScalingReader->getOptimizationParameterIndices();
     auto offsetParameterIndices = hierarchicalOffsetReader->getOptimizationParameterIndices();
     auto sigmaParameterIndices = hierarchicalSigmaReader->getOptimizationParameterIndices();
-    HierachicalOptimizationWrapper hierarchical(nullptr,
+    auto costFun = std::make_unique<AmiciSummedGradientFunction<int>>(dataProvider, loadBalancer);
+
+    HierachicalOptimizationWrapper hierarchical(std::move(costFun),
                                                 std::unique_ptr<AnalyticalParameterHdf5Reader>(hierarchicalScalingReader),
                                                 std::unique_ptr<AnalyticalParameterHdf5Reader>(hierarchicalOffsetReader),
                                                 std::unique_ptr<AnalyticalParameterHdf5Reader>(hierarchicalSigmaReader),
@@ -211,7 +213,7 @@ JobResultAmiciSimulation StandaloneSimulator::runSimulation(JobIdentifier path, 
     auto rdata = amici::runAmiciSimulation(solver, edata.get(), model);
 
     RELEASE_ASSERT(rdata != nullptr, "");
-    return JobResultAmiciSimulation(rdata->status, std::move(rdata), 0.0);
+    return JobResultAmiciSimulation(std::move(rdata), 0.0);
 }
 
 
