@@ -75,25 +75,18 @@ public:
         return 0;
 #endif
 
-        // update parameters that are identical for all simulations
-        updateUserDataCommon(parameters, gradient);
-
+        setSensitivityOptions(gradient);
         fval = 0;
-
         if (gradient)
             amici::zeros(gradient, numParameters());
 
-        int errors =
-                runSimulations(parameters, fval, gradient, datasets);
+        int errors = runSimulations(parameters, fval, gradient, datasets);
 
         if (errors) {
             fval = INFINITY;
         }
 
-
         return errors == 0 ? functionEvaluationSuccess : functionEvaluationFailure;
-
-
     }
 
     virtual int numParameters() const override
@@ -115,17 +108,14 @@ public:
 
         std::vector<int> dataIndices(dataProvider->getNumberOfConditions());
         std::iota(dataIndices.begin(), dataIndices.end(), 0);
-        updateUserDataCommon(parameters, nullptr);
+
         setSensitivityOptions(false);
-
         modelOutput.resize(dataIndices.size());
-
-
         auto parameterVector = std::vector<double>(parameters, parameters + numParameters());
         SimulationRunnerSimple simRunner(parameterVector,
                                          amici::AMICI_SENSI_ORDER_NONE,
                                          dataIndices,
-                                         [&](JobData *job, int dataIdx) {
+                                         [&](JobData *job, int dataIdx) { // jobFinished
             // deserialize
             auto results =
                     amici::deserializeFromChar<
@@ -137,7 +127,8 @@ public:
                 errors += result.second.status;
                 modelOutput[result.first] = result.second.modelOutput;
             }
-        }, nullptr);
+        },
+        nullptr /* aggregate */);
         /*
     SimulationRunner simRunner(
                 dataIndices.size(),
@@ -252,18 +243,6 @@ public:
 
 protected:// for testing
     AmiciSummedGradientFunction() = default;
-
-    void updateUserDataCommon(const double *simulationParameters,
-                              const double *objectiveFunctionGradient) const {
-        setSensitivityOptions(objectiveFunctionGradient);
-
-        // update common parameters in UserData, cell-line specific ones are updated
-        // later
-        auto p = model->getParameters();
-        std::copy(simulationParameters, simulationParameters + model->np(), p.data());
-        model->setParameters(p);
-    }
-
 
     /**
      * @brief Run AMICI simulations for conditions with the given indices
