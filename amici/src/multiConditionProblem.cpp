@@ -363,12 +363,4 @@ SimulationRunnerSimple::AmiciResultPackageSimple runAndLogSimulation(
     };
 }
 
-
-
-
-template<typename T>
-std::vector<std::vector<double> > AmiciSummedGradientFunction<T>::getAllSigmas() const {
-    return dataProvider->getAllSigmas();
-}
-
 } // namespace parpe
