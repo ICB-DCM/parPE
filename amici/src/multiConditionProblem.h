@@ -24,6 +24,11 @@ namespace parpe {
 class MultiConditionDataProvider;
 class MultiConditionProblemResultWriter;
 
+SimulationRunnerSimple::AmiciResultPackageSimple  runAndLogSimulation(
+        amici::Solver &solver, amici::Model &model, JobIdentifier path,
+        int jobId, MultiConditionDataProvider *dataProvider, MultiConditionProblemResultWriter *resultWriter,
+        bool logLineSearch);
+
 /**
  * @brief The AmiciSummedGradientFunction class represents a cost function based on simulations of an AMICI model for different datasets
  */
@@ -34,7 +39,15 @@ public:
 
     AmiciSummedGradientFunction(MultiConditionDataProvider *dataProvider,
                                 LoadBalancerMaster *loadBalancer,
-                                MultiConditionProblemResultWriter *resultWriter = nullptr);
+                                MultiConditionProblemResultWriter *resultWriter = nullptr)
+        : dataProvider(dataProvider),
+          loadBalancer(loadBalancer),
+          model(dataProvider->getModel()),
+          solver(dataProvider->getSolver()),
+          solverOriginal(solver->clone()),
+          resultWriter(resultWriter)
+    {
+    }
 
     virtual ~AmiciSummedGradientFunction() = default;
 
@@ -42,16 +55,51 @@ public:
             const double* const parameters,
             T dataset,
             double &fval,
-            double* gradient) const override;
+            double* gradient) const override
+    {
+        std::vector<T> datasets(1);
+        datasets.at(0) = dataset;
+        return evaluate(parameters, datasets, fval, gradient);
+    }
 
 
     virtual FunctionEvaluationStatus evaluate(
             const double* const parameters,
             std::vector<T> datasets,
             double &fval,
-            double* gradient) const override;
+            double* gradient) const override {
+#ifdef NO_OBJ_FUN_EVAL
+        if (objectiveFunctionGradient)
+            std::fill(objectiveFunctionGradient, objectiveFunctionGradient + numOptimizationParameters_, 0);
+        *objectiveFunctionValue = 1;
+        return 0;
+#endif
 
-    virtual int numParameters() const override;
+        // update parameters that are identical for all simulations
+        updateUserDataCommon(parameters, gradient);
+
+        fval = 0;
+
+        if (gradient)
+            amici::zeros(gradient, numParameters());
+
+        int errors =
+                runSimulations(parameters, fval, gradient, datasets);
+
+        if (errors) {
+            fval = INFINITY;
+        }
+
+
+        return errors == 0 ? functionEvaluationSuccess : functionEvaluationFailure;
+
+
+    }
+
+    virtual int numParameters() const override
+    {
+        return dataProvider->getNumOptimizationParameters();
+    }
 
     /**
      * @brief Run simulations (no gradient) with given parameters and collect model outputs
@@ -61,9 +109,79 @@ public:
      * @return Simulation status
      */
 
-    virtual FunctionEvaluationStatus getModelOutputs(const double * const parameters, std::vector<std::vector<double> > &modelOutput) const;
+    virtual FunctionEvaluationStatus getModelOutputs(const double * const parameters, std::vector<std::vector<double> > &modelOutput) const {
+        int errors = 0;
+        //    JobIdentifier path; // TODO = this->path;
 
-    virtual std::vector<std::vector<double>> getAllMeasurements() const;
+        std::vector<int> dataIndices(dataProvider->getNumberOfConditions());
+        std::iota(dataIndices.begin(), dataIndices.end(), 0);
+        updateUserDataCommon(parameters, nullptr);
+        setSensitivityOptions(false);
+
+        modelOutput.resize(dataIndices.size());
+
+
+        auto parameterVector = std::vector<double>(parameters, parameters + numParameters());
+        SimulationRunnerSimple simRunner(parameterVector,
+                                         amici::AMICI_SENSI_ORDER_NONE,
+                                         dataIndices,
+                                         [&](JobData *job, int dataIdx) {
+            // deserialize
+            auto results =
+                    amici::deserializeFromChar<
+                    std::map<int, SimulationRunnerSimple::AmiciResultPackageSimple> > (
+                        job->recvBuffer.data(), job->recvBuffer.size());
+            job->recvBuffer = std::vector<char>(); // free buffer
+
+            for (auto const& result : results) {
+                errors += result.second.status;
+                modelOutput[result.first] = result.second.modelOutput;
+            }
+        }, nullptr);
+        /*
+    SimulationRunner simRunner(
+                dataIndices.size(),
+                [&](int simulationIdx) {
+        // extract parameters for simulation of current condition, instead
+        // of sending whole  optimization parameter vector to worker
+        auto myModel = std::unique_ptr<amici::Model>(model->clone());
+        dataProvider->updateConditionSpecificSimulationParameters(
+                    dataIndices[simulationIdx], parameters, *myModel);
+        return std::pair<std::unique_ptr<amici::Model>,std::unique_ptr<amici::Solver>>(std::move(myModel), std::unique_ptr<amici::Solver>(solver->clone()));
+    },
+    [&](int simulationIdx) {
+        path.idxConditions = dataIndices[simulationIdx];
+        return path;
+    },
+    [&](JobData *job, int dataIdx) {
+        // deserialize
+        JobResultAmiciSimulation result =
+                amici::deserializeFromChar<JobResultAmiciSimulation>(
+                    job->recvBuffer.data(), job->recvBuffer.size());
+        job->recvBuffer = std::vector<char>(); // free buffer
+        errors += result.status;
+
+        modelOutput[dataIdx] = std::vector<double>(result.rdata->y, result.rdata->y
+                                                   + (result.rdata->nt * result.rdata->nytrue));
+
+    }, nullptr);*/
+
+
+        if (loadBalancer && loadBalancer->isRunning()) {
+            errors += simRunner.runDistributedMemory(loadBalancer, 8);
+        } else {
+            errors += simRunner.runSharedMemory(
+                        [&](std::vector<char> &buffer, int jobId) {
+                    messageHandler(buffer, jobId);
+        }, true);
+        }
+
+        return errors == 0 ? functionEvaluationSuccess : functionEvaluationFailure;
+    }
+
+    virtual std::vector<std::vector<double>> getAllMeasurements() const {
+        return dataProvider->getAllMeasurements();
+    }
 
     /**
      * @brief Is called by worker processes to run a simulation for the given
@@ -78,8 +196,13 @@ public:
      * @return
      */
     // TODO does not belong here
-    SimulationRunnerSimple::AmiciResultPackageSimple  runAndLogSimulation(amici::Solver &solver, amici::Model &model, JobIdentifier path,
-                                    int jobId) const;
+    SimulationRunnerSimple::AmiciResultPackageSimple  runAndLogSimulation(
+            amici::Solver &solver, amici::Model &model, JobIdentifier path,
+            int jobId) const
+    {
+        return parpe::runAndLogSimulation(solver, model, path, jobId, dataProvider, resultWriter, logLineSearch);
+
+    }
 
 
     /**
@@ -88,15 +211,58 @@ public:
      * @param msgSize In/out: size (bytes) of bufferobjFunVal
      * @param jobId: In: Identifier of the job (unique up to INT_MAX)
      */
-    virtual void messageHandler(std::vector<char> &buffer, int jobId) const;
+    virtual void messageHandler(std::vector<char> &buffer, int jobId) const {
+        // unpack
+        JobIdentifier path;
+        auto solver = dataProvider->getSolver();
+        auto model = dataProvider->getModel();
+        auto sim = amici::deserializeFromChar<
+                SimulationRunnerSimple::AmiciWorkPackageSimple>(buffer.data(), buffer.size());
 
-    virtual amici::AMICI_parameter_scaling getParameterScaling(int parameterIndex) const;
+#if QUEUE_WORKER_H_VERBOSE >= 2
+        int mpiRank;
+        MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
+        printf("[%d] Received work. ", mpiRank);
+        fflush(stdout);
+#endif
+
+        std::map<int, SimulationRunnerSimple::AmiciResultPackageSimple> results;
+        // do work
+        for(auto conditionIndex: sim.conditionIndices) {
+            solver->setSensitivityOrder(sim.sensitivityOrder);
+            path.idxConditions = conditionIndex;
+            dataProvider->updateSimulationParameters(conditionIndex, sim.optimizationParameters.data(), *model);
+            // TODO do parameter mapping
+            SimulationRunnerSimple::AmiciResultPackageSimple result = runAndLogSimulation(*solver, *model, path, jobId);
+            results[conditionIndex] = result;
+        }
+#if QUEUE_WORKER_H_VERBOSE >= 2
+        printf("[%d] Work done. ", mpiRank);
+        fflush(stdout);
+#endif
+
+        buffer = amici::serializeToStdVec(results);
+    }
+
+    virtual amici::AMICI_parameter_scaling getParameterScaling(int parameterIndex) const
+    {
+        // parameterIndex is optimization parameter index, not necessarily model parameter index!
+        return dataProvider->getParameterScale(parameterIndex);
+    }
 
 protected:// for testing
     AmiciSummedGradientFunction() = default;
 
     void updateUserDataCommon(const double *simulationParameters,
-                              const double *objectiveFunctionGradient) const;
+                              const double *objectiveFunctionGradient) const {
+        setSensitivityOptions(objectiveFunctionGradient);
+
+        // update common parameters in UserData, cell-line specific ones are updated
+        // later
+        auto p = model->getParameters();
+        std::copy(simulationParameters, simulationParameters + model->np(), p.data());
+        model->setParameters(p);
+    }
 
 
     /**
@@ -111,7 +277,56 @@ protected:// for testing
     virtual int runSimulations(const double *optimizationVariables,
                                double &logLikelihood,
                                double *objectiveFunctionGradient,
-                               std::vector<int> dataIndices) const;
+                               std::vector<int> dataIndices) const {
+
+        int errors = 0;
+        JobIdentifier path; // TODO = this->path;
+
+        //    SimulationRunner simRunner(
+        //                dataIndices.size(),
+        //                [&](int simulationIdx) {
+        //        // extract parameters for simulation of current condition, instead
+        //        // of sending whole  optimization parameter vector to worker
+        //        auto myModel = std::unique_ptr<amici::Model>(model->clone());
+        //        dataProvider->updateConditionSpecificSimulationParameters(
+        //                    dataIndices[simulationIdx], optimizationVariables, *myModel);
+        //        return std::pair<std::unique_ptr<amici::Model>,std::unique_ptr<amici::Solver>>(std::move(myModel), std::unique_ptr<amici::Solver>(solver->clone()));
+        //    },
+        //    [&](int simulationIdx) {
+        //        path.idxConditions = dataIndices[simulationIdx];
+        //        return path;
+        //    },
+        //    [&](JobData *job, int dataIdx) {
+        //        double simulationTimeSec = 0.0; // TODO not used
+        //        errors += aggregateLikelihood(*job,
+        //                                      logLikelihood,
+        //                                      objectiveFunctionGradient,
+        //                                      dataIndices[dataIdx], simulationTimeSec);
+        //    }, nullptr);
+
+        auto parameterVector = std::vector<double>(optimizationVariables, optimizationVariables + numParameters());
+        SimulationRunnerSimple simRunner(parameterVector,
+                                         objectiveFunctionGradient?amici::AMICI_SENSI_ORDER_FIRST:amici::AMICI_SENSI_ORDER_NONE,
+                                         dataIndices,
+                                         [&](JobData *job, int jobIdx) {
+            double simulationTimeSec = 0.0; // TODO not used
+            errors += aggregateLikelihood(*job,
+                                          logLikelihood,
+                                          objectiveFunctionGradient,
+                                          simulationTimeSec);
+        }, nullptr);
+        if (loadBalancer && loadBalancer->isRunning()) {
+            // TODO 8 per package; but check for lower number worker!!
+            errors += simRunner.runDistributedMemory(loadBalancer, objectiveFunctionGradient?1:8);
+        } else {
+            errors += simRunner.runSharedMemory(
+                        [&](std::vector<char> &buffer, int jobId) {
+                    messageHandler(buffer, jobId);
+        }, true);
+        }
+
+        return errors;
+    }
 
     /**
      * @brief Aggregates loglikelihood received from workers.
@@ -123,7 +338,47 @@ protected:// for testing
      */
 
     int aggregateLikelihood(JobData &data, double &negLogLikelihood,
-                            double *negLogLikelihoodGradient, double &simulationTimeInS) const;
+                            double *negLogLikelihoodGradient, double &simulationTimeInS) const {
+        int errors = 0;
+
+        //    // deserialize
+        //    JobResultAmiciSimulation result =
+        //            amici::deserializeFromChar<JobResultAmiciSimulation>(
+        //                data.recvBuffer.data(), data.recvBuffer.size());
+        //    data.recvBuffer = std::vector<char>(); // free buffer
+        //    errors += result.status;
+
+        //    // sum up
+        //    logLikelihood -= *result.rdata->llh;
+        //    simulationTimeInS += result.simulationTimeInSec;
+
+        //    if (objectiveFunctionGradient)
+        //        addSimulationGradientToObjectiveFunctionGradient(
+        //                    dataIdx, result.rdata->sllh, objectiveFunctionGradient,
+        //                    dataProvider->getNumCommonParameters());
+
+        // deserialize
+        auto results =
+                amici::deserializeFromChar<
+                std::map<int, SimulationRunnerSimple::AmiciResultPackageSimple> > (
+                    data.recvBuffer.data(), data.recvBuffer.size());
+        data.recvBuffer = std::vector<char>(); // free buffer
+
+        for (auto const& result : results) {
+            errors += result.second.status;
+
+            // sum up
+            negLogLikelihood -= result.second.llh;
+            //        simulationTimeInS += result.simulationTimeInSec;
+
+            if (negLogLikelihoodGradient)
+                addSimulationGradientToObjectiveFunctionGradient(
+                            result.first, result.second.gradient.data(),
+                            negLogLikelihoodGradient);
+
+        }
+        return errors;
+    }
 
 
     /**
@@ -134,14 +389,26 @@ protected:// for testing
      */
 
     void addSimulationGradientToObjectiveFunctionGradient(int conditionIdx, const double *simulationGradient,
-        double *objectiveFunctionGradient) const;
+                                                          double *objectiveFunctionGradient) const {
+        dataProvider->mapSimulationToOptimizationVariablesAddMultiply(
+                    conditionIdx, simulationGradient, objectiveFunctionGradient, -1.0);
+    }
 
     void queueSimulation(JobIdentifier path, JobData *d, int *jobDone,
                          pthread_cond_t *jobDoneChangedCondition,
                          pthread_mutex_t *jobDoneChangedMutex,
                          int lenSendBuffer);
 
-    void setSensitivityOptions(bool sensiRequired) const;
+    void setSensitivityOptions(bool sensiRequired) const {
+        // sensitivities requested?
+        if (sensiRequired) {
+            solver->setSensitivityOrder(solverOriginal->getSensitivityOrder());
+            solver->setSensitivityMethod(solverOriginal->getSensitivityMethod());
+        } else {
+            solver->setSensitivityOrder(amici::AMICI_SENSI_ORDER_NONE);
+            solver->setSensitivityMethod(amici::AMICI_SENSI_NONE);
+        }
+    }
 
 private:
     // TODO: make owning

@@ -22,7 +22,7 @@ TEST(simulationWorkerAmici, testSerializeResultPackageMessage) {
 //    amici::CVodeSolver s;
 //    amici::Model m(1, 2, 3, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, amici::AMICI_O2MODE_NONE);
 
-    parpe::JobResultAmiciSimulation results(1, std::make_unique<amici::ReturnData>(), 2.1);
+    parpe::JobResultAmiciSimulation results(std::make_unique<amici::ReturnData>(), 2.1);
 
     int msgSize = 0;
     auto buffer = std::unique_ptr<char[]>(

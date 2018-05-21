@@ -70,8 +70,11 @@ struct JobAmiciSimulation {
 class JobResultAmiciSimulation {
 public:
     JobResultAmiciSimulation() = default;
-    JobResultAmiciSimulation(int status, std::unique_ptr<amici::ReturnData> rdata, double simulationTimeInSec)
-        : status(status), rdata(std::move(rdata)), simulationTimeInSec(simulationTimeInSec) {}
+    JobResultAmiciSimulation(std::unique_ptr<amici::ReturnData> rdata, double simulationTimeInSec)
+        : rdata(std::move(rdata)), simulationTimeInSec(simulationTimeInSec) {
+        if(rdata)
+            status = rdata->status;
+    }
 
     ~JobResultAmiciSimulation() = default;
 

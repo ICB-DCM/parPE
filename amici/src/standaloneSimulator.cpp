@@ -198,7 +198,7 @@ JobResultAmiciSimulation StandaloneSimulator::runSimulation(JobIdentifier path, 
     auto rdata = amici::runAmiciSimulation(solver, edata.get(), model);
 
     RELEASE_ASSERT(rdata != nullptr, "");
-    return JobResultAmiciSimulation(rdata->status, std::move(rdata), 0.0);
+    return JobResultAmiciSimulation(std::move(rdata), 0.0);
 }
 
 
