@@ -1,15 +1,9 @@
+cmake_minimum_required(VERSION 3.0)
 project(parpe)
 
-cmake_minimum_required(VERSION 2.8.12)
-
-if(POLICY CMP0056) # for CMake 3.2 and above
-    cmake_policy (SET CMP0056 OLD)
-endif()
-if(POLICY CMP0028)
-   cmake_policy (SET CMP0028 NEW)
-endif()
-
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/CMakeModules/)
+
+# Ensure CMAKE_BUILD_TYPE is always set
 include(BuildType)
 
 set(CMAKE_DEBUG_POSTFIX "-dbg")
@@ -67,6 +61,7 @@ set(USE_MPI ON)
 if(${USE_MPI})
     find_package(MPI REQUIRED)
     add_definitions(-DUSE_MPI)
+    # TODO get from findpackage or compiler
     set(MPI_INCLUDE_DIR "/usr/lib/openmpi/include/" CACHE PATH "MPI include directory")
 endif(${USE_MPI})
 # </Build options>
@@ -75,6 +70,7 @@ if(${ENABLE_DLIB})
     set(DLIB_DIR "${CMAKE_CURRENT_LIST_DIR}/ThirdParty/dlib-19.7" CACHE FILEPATH "DLIB base directory")
 endif(${ENABLE_DLIB})
 
+# write config header
 configure_file(${CMAKE_CURRENT_LIST_DIR}/common/src/parpeConfig.h.in ${CMAKE_CURRENT_LIST_DIR}/common/src/parpeConfig.h @ONLY)
 
 # PThreads
@@ -86,13 +82,8 @@ find_package(Threads REQUIRED)
 #set(HDF5_PREFER_PARALLEL TRUE)
 find_package(HDF5 COMPONENTS CXX C HL REQUIRED)
 
-
-include_directories(
-    common/src/
-    ${HDF5_INCLUDE_DIRS}
-    ${MPI_INCLUDE_DIR}
-    )
-
+set(HDF5_LIBRARIES ${HDF5_HL_LIBRARIES} ${HDF5_C_LIBRARIES} ${HDF5_CXX_LIBRARIES})
+#set(GSL_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/ThirdParty/gsl)
 
 # Build tests?
 if(${BUILD_TESTS})
@@ -102,11 +93,8 @@ if(${BUILD_TESTS})
     set(TESTS_MPIEXEC_COMMAND mpiexec --allow-run-as-root -n 4 CACHE STRING "")
 
     # CppUTest
+    find_package(CppUTest REQUIRED)
     add_definitions(-DD_MemoryLeakWarningPlugin_h) # prevent undefined reference to operator new; new is redefined even when memoryleakdetector is disabled
-    set(CPPUTEST_DIR "${CMAKE_CURRENT_LIST_DIR}/deps/AMICI/ThirdParty/cpputest-master/build-noleakcheck/install/" CACHE PATH "cppUTest base directory")
-    set(CPPUTEST_INCLUDE_DIR "${CPPUTEST_DIR}/include")
-    set(CPPUTEST_LIBRARY "${CPPUTEST_DIR}/lib/libCppUTest.a" "${CPPUTEST_DIR}/lib/libCppUTestExt.a")
-    include_directories(${CPPUTEST_INCLUDE_DIR})
 
     # <Coverage>
     # Create test coverage reports?
@@ -170,7 +158,7 @@ if(BUILD_DOCS)
 endif()
 # </Documentation (doxygen)>
 
-include(CMakeModules/clang-tools.cmake)
+include(clang-tools)
 
 # calc lines of code
 add_custom_target(cloc
@@ -187,12 +175,10 @@ add_subdirectory(amici)
 
 # create single library
 add_library(${PROJECT_NAME} "")
-target_link_libraries(${PROJECT_NAME} parpecommon parpeloadbalancer parpeoptimization parpeamici)
+target_link_libraries(${PROJECT_NAME} PUBLIC parpecommon parpeloadbalancer parpeoptimization parpeamici)
 
 
 # <Export cmake configuration>
-include(GenerateExportHeader)
-generate_export_header(parpe)
 install(TARGETS ${PROJECT_NAME} EXPORT ParPETargets
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
@@ -203,11 +189,6 @@ export(EXPORT ParPETargets
     FILE "${CMAKE_CURRENT_BINARY_DIR}/ParPETargets.cmake"
     NAMESPACE Upstream::
     )
-get_property(ParPEConfigIncludes DIRECTORY PROPERTY INCLUDE_DIRECTORIES)
-get_property(ParPEConfigIncludesCommon GLOBAL PROPERTY PARPECOMMON_INCLUDE_DIRS)
-get_property(ParPEConfigIncludesLoadbalancer GLOBAL PROPERTY PARPELOADBALANCER_INCLUDE_DIRS)
-get_property(ParPEConfigIncludesOptimization GLOBAL PROPERTY PARPEOPTIMIZATION_INCLUDE_DIRS)
-get_property(ParPEConfigIncludesAmici GLOBAL PROPERTY PARPEAMICI_INCLUDE_DIRS)
 
 include(CMakePackageConfigHelpers)
 configure_package_config_file(CMakeModules/ParPEConfig.cmake.in ${CMAKE_CURRENT_BINARY_DIR}/ParPEConfig.cmake

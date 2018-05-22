@@ -1,18 +1,7 @@
-find_package(Amici HINTS ${CMAKE_CURRENT_LIST_DIR}/../deps/AMICI/build)
+find_package(Amici HINTS ${CMAKE_SOURCE_DIR}/deps/AMICI/build)
 
 set(Boost_USE_STATIC_LIBS TRUE)
 find_package(Boost COMPONENTS serialization REQUIRED)
-
-get_property(AmiciConfigIncludes TARGET Upstream::amici PROPERTY INCLUDE_DIRECTORIES)
-
-include_directories(
-    src
-    ../loadbalancer/src/
-    ../common/src
-    ../optimization/src
-    ${Boost_INCLUDE_DIR}
-    ${AmiciConfigIncludes}
-)
 
 add_subdirectory(src)
 

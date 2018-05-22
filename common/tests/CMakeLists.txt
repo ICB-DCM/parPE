@@ -2,8 +2,6 @@ project(unittests_common)
 
 add_test (NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME} -c)
 
-include_directories(${CPPUTEST_INCLUDE_DIR})
-
 set(SRC_LIST
     main.cpp
     commonTests.cpp
@@ -17,7 +15,7 @@ add_executable(${PROJECT_NAME} ${SRC_LIST})
 #    -include ${CMAKE_CURRENT_LIST_DIR}/../src/STLCompatibleMemoryLeakDetectorMacros.h)
 
 target_link_libraries(${PROJECT_NAME}
-    ${CPPUTEST_LIBRARY}
+    ${CppUTest_LIBRARIES}
     ${CMAKE_THREAD_LIBS_INIT}
     parpecommon
     ${GCOV_LIBRARY}

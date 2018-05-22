@@ -4,6 +4,11 @@
 #include "misc.h"
 #include "testingMisc.h"
 #include <amici/amici.h>
+
+// required to be defined by file included below
+#define NEW_OPTION_FILE "undefined"
+#define HDFFILE "undefined"
+#define HDFFILEWRITE "undefined"
 #include "../tests/cpputest/testfunctions.h" // for Modell_Test
 
 // clang-format off

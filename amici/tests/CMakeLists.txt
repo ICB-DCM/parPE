@@ -21,6 +21,6 @@ add_executable(${PROJECT_NAME} ${SRC_LIST_CPP})
 
 target_link_libraries(${PROJECT_NAME}
     parpeamici
-    ${CPPUTEST_LIBRARY}
+    ${CppUTest_LIBRARIES}
     ${GCOV_LIBRARY}
 )

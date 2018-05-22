@@ -9,6 +9,9 @@
 #include <amici/amici.h>
 #include <amici/solver_cvodes.h>
 
+#define NEW_OPTION_FILE "undefined"
+#define HDFFILE "undefined"
+#define HDFFILEWRITE "undefined"
 #include "../tests/cpputest/testfunctions.h" // for Modell_Test
 
 // clang-format off

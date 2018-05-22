@@ -1,7 +1,5 @@
 project(parpeoptimization)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wno-write-strings")
-
 set(SRC_LIST
     localOptimizationIpopt.cpp
     localOptimizationIpoptTNLP.cpp
@@ -15,18 +13,47 @@ set(SRC_LIST
 )
 
 if(${PARPE_ENABLE_DLIB})
-    set(SRC_LIST ${SRC_LIST} localOptimizationDlib.cpp)
+    list(APPEND SRC_LIST localOptimizationDlib.cpp)
 endif(${PARPE_ENABLE_DLIB})
 
 if(${PARPE_ENABLE_TOMS611})
-    set(SRC_LIST ${SRC_LIST} localOptimizationToms611.cpp)
+    list(APPEND SRC_LIST localOptimizationToms611.cpp)
 endif(${PARPE_ENABLE_TOMS611})
 
 if(${PARPE_ENABLE_FSQP})
-    set(SRC_LIST ${SRC_LIST} localOptimizationFsqp.cpp)
+    list(APPEND SRC_LIST localOptimizationFsqp.cpp)
 endif(${PARPE_ENABLE_FSQP})
 
 add_library(${PROJECT_NAME} ${SRC_LIST})
+
+target_include_directories(${PROJECT_NAME}
+    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
+    PUBLIC ${IPOPT_INCLUDE_DIRS}
+    PUBLIC ${CERES_INCLUDE_DIRS}
+    PUBLIC ${HDF5_INCLUDE_DIRS}
+)
+
+set(PARPE_CERES_MINIGLOG_REDIRECT FALSE CACHE BOOL "Custom treatment of Ceres output? Requires miniglog headers in ceres directory.")
+if(${PARPE_CERES_MINIGLOG_REDIRECT})
+    target_compile_definitions(${PROJECT_NAME} PUBLIC PARPE_CERES_MINIGLOG_REDIRECT)
+endif(${PARPE_CERES_MINIGLOG_REDIRECT})
+
+if(${PARPE_ENABLE_TOMS611})
+    add_subdirectory(${CMAKE_SOURCE_DIR}/ThirdParty/toms611 toms611)
+    target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/ThirdParty/toms611/)
+endif(${PARPE_ENABLE_TOMS611})
+
+if(${PARPE_ENABLE_DLIB})
+    find_package(dlib REQUIRED
+        HINTS "${CMAKE_SOURCE_DIR}/ThirdParty/dlib-19.7/build/install/lib/cmake/dlib/")
+    target_include_directories(${PROJECT_NAME} PUBLIC ${dlib_INCLUDE_DIRS})
+endif(${PARPE_ENABLE_DLIB})
+
+if(${PARPE_ENABLE_FSQP})
+    add_subdirectory(${CMAKE_SOURCE_DIR}/ThirdParty/ffsqp ffsqp)
+    target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/ThirdParty/ffsqp/)
+endif(${PARPE_ENABLE_FSQP})
+
 
 target_link_libraries(${PROJECT_NAME}
     parpecommon
@@ -48,8 +75,5 @@ endif(${PARPE_ENABLE_TOMS611})
 if(${PARPE_ENABLE_FSQP})
     target_link_libraries(${PROJECT_NAME} fsqp)
 endif(${PARPE_ENABLE_FSQP})
-
-get_target_property(PARPEOPTIMIZATION_INCLUDE_DIRS ${PROJECT_NAME} INCLUDE_DIRECTORIES)
-set_property(GLOBAL PROPERTY PARPEOPTIMIZATION_INCLUDE_DIRS "${PARPELOADBALANCER_INCLUDE_DIRS}")
 
 install(TARGETS ${PROJECT_NAME} EXPORT ParPETargets ARCHIVE DESTINATION lib)
