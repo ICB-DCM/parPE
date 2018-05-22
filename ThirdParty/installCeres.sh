@@ -21,9 +21,11 @@ cmake -DCMAKE_INSTALL_PREFIX=`pwd`/install \
       -DBUILD_SHARED_LIBS=OFF \
       -DBUILD_TESTING=OFF \
       -DBUILD_EXAMPLES=OFF \
+      -DLAPACK=OFF \
       -DGFLAGS=OFF \
       -DCXX11=ON \
       -DEIGEN_INCLUDE_DIR=`pwd`/../../eigen-eigen-67e894c6cd8f/ \
+      -DEIGEN_INCLUDE_DIR_HINTS=`pwd`/../../eigen-eigen-67e894c6cd8f/build/install/include \
       -DMINIGLOG=ON \
       ..
       
