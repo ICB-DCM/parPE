@@ -17,7 +17,7 @@ public:
 
     SimulationResultWriter() = default;
 
-    SimulationResultWriter(H5::H5File file, std::string rootPath);
+    SimulationResultWriter(const H5::H5File &file, std::string rootPath);
 
     SimulationResultWriter(std::string hdf5FileName, std::string rootPath);
 

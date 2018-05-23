@@ -22,7 +22,7 @@ int StandaloneSimulator::run(const std::string& resultFile,
                              const std::string& resultPath,
                              std::vector<double> const& optimizationParameters,
                              LoadBalancerMaster *loadBalancer,
-                             H5::H5File file)
+                             H5::H5File const& file)
 {
     // std::cout<<"file: "<<resultFile<<" path: "<<resultPath<<" lbm:"<<loadBalancer<<std::endl;
     int errors = 0;
@@ -211,7 +211,7 @@ JobResultAmiciSimulation StandaloneSimulator::runSimulation(JobIdentifier path, 
 
 
 
-std::vector<double> getFinalParameters(std::string startIndex, H5::H5File &file)
+std::vector<double> getFinalParameters(std::string startIndex, H5::H5File const& file)
 {
     auto lock = hdf5MutexGetLock();
 
@@ -236,7 +236,7 @@ std::vector<double> getFinalParameters(std::string startIndex, H5::H5File &file)
     return parameters;
 }
 
-std::vector<std::vector<double>> getParameterTrajectory(std::string startIndex, H5::H5File &file)
+std::vector<std::vector<double>> getParameterTrajectory(std::string startIndex, H5::H5File const& file)
 {
     auto lock = hdf5MutexGetLock();
 
@@ -264,14 +264,18 @@ std::vector<std::vector<double>> getParameterTrajectory(std::string startIndex, 
     return parameters;
 }
 
-int getNumStarts(H5::H5File file, std::string rootPath)  {
+int getNumStarts(H5::H5File const& file, std::string rootPath)  {
     auto o = parpe::OptimizationOptions::fromHDF5(file.getId(), rootPath + "/inputData/optimizationOptions");
     return o->numStarts;
 }
 
 int runFinalParameters(StandaloneSimulator &sim, std::string inFileName, std::string resultFileName, std::string resultPath, LoadBalancerMaster *loadBalancer) {
 
-    H5::H5File file(inFileName, H5F_ACC_RDONLY);
+    H5::H5File file;
+    {
+        auto lock = hdf5MutexGetLock();
+        file.openFile(inFileName, H5F_ACC_RDONLY);
+    }
     int errors = 0;
 
     int numStarts = getNumStarts(file);
@@ -296,7 +300,12 @@ int runAlongTrajectory(StandaloneSimulator &sim,
                        std::string resultPath,
                        LoadBalancerMaster *loadBalancer)
 {
-    H5::H5File file(inFileName, H5F_ACC_RDONLY);
+    H5::H5File file;
+    {
+        auto lock = hdf5MutexGetLock();
+        file.openFile(inFileName, H5F_ACC_RDONLY);
+    }
+
     int errors = 0;
 
     for(int i = 0; i < getNumStarts(file); ++i) {

@@ -57,7 +57,7 @@ public:
      * @param errorModel
      */
     HierachicalOptimizationWrapper(std::unique_ptr<AmiciSummedGradientFunction<int>> fun,
-                                   H5::H5File file, std::string hdf5RootPath,
+                                   const H5::H5File &file, std::string hdf5RootPath,
                                    int numConditions,
                                    int numObservables,
                                    int numTimepoints,
@@ -270,7 +270,7 @@ public:
      * of the analytically determined parameters within the overall optimization parameters
      * @param mapPath path of to the dataset with the parameter-oberservable-condition mapping
      */
-    AnalyticalParameterHdf5Reader(H5::H5File file,
+    AnalyticalParameterHdf5Reader(const H5::H5File &file,
                                   std::string analyticalParameterIndicesPath,
                                   std::string mapPath);
 

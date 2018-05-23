@@ -25,7 +25,7 @@ public:
             const std::string &resultPath,
             std::vector<double> const& parameters,
             LoadBalancerMaster *loadBalancer,
-            H5::H5File file);
+            const H5::H5File &file);
 
     void messageHandler(std::vector<char> &buffer, int jobId);
 
@@ -45,11 +45,11 @@ enum class SimulatorOpType {finalParameters};
  * @param file
  * @return The final parameter vector
  */
-std::vector<double> getFinalParameters(std::string startIndex, H5::H5File &file);
+std::vector<double> getFinalParameters(std::string startIndex, const H5::H5File &file);
 
-std::vector<std::vector<double>> getParameterTrajectory(std::string startIndex, H5::H5File &file);
+std::vector<std::vector<double>> getParameterTrajectory(std::string startIndex, H5::H5File const& file);
 
-int getNumStarts(H5::H5File file, std::string rootPath = "/");
+int getNumStarts(const H5::H5File &file, std::string rootPath = "/");
 
 int runFinalParameters(parpe::StandaloneSimulator &sim, std::string inFileName, std::string resultFileName, std::string resultPath,
         parpe::LoadBalancerMaster *loadBalancer);

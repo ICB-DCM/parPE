@@ -32,7 +32,7 @@
 class SteadyStateMultiConditionProblem : public parpe::MultiConditionProblem {
   public:
     SteadyStateMultiConditionProblem(
-        SteadyStateMultiConditionDataProvider *dp, parpe::LoadBalancerMaster *loadBalancer, H5::H5File file)
+        SteadyStateMultiConditionDataProvider *dp, parpe::LoadBalancerMaster *loadBalancer, H5::H5File const& file)
         : MultiConditionProblem(dp, loadBalancer) {
 
         std::unique_ptr<parpe::OptimizationOptions> options(

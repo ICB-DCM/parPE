@@ -301,7 +301,7 @@ class MultiConditionDataProviderHDF5 : public MultiConditionDataProvider {
     void updateSimulationParameters(int conditionIndex, const double *optimizationParams,
         amici::Model &model) const override;
 
-    void copyInputData(H5::H5File target);
+    void copyInputData(const H5::H5File &target);
 
     /**
      * @brief Get the identifier of the used HDF5 file. Does not reopen. Do not close file.

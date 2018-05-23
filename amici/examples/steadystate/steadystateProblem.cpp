@@ -7,10 +7,13 @@
 #include <iostream>
 #include <misc.h>
 #include <amici/hdf5.h>
+#include <hdf5Misc.h>
 
 ExampleSteadystateProblem::ExampleSteadystateProblem(const std::string &dataFileName)
-    : file(H5::H5File(dataFileName, H5F_ACC_RDONLY))
 {
+    auto lock = parpe::hdf5MutexGetLock();
+    file.openFile(dataFileName, H5F_ACC_RDONLY);
+
     auto optimizationOptions = getOptimizationOptions();
     optimizationOptions.optimizer = parpe::optimizerName::OPTIMIZER_IPOPT;
     optimizationOptions.printToStdout = true;

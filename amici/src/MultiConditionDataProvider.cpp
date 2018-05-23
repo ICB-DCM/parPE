@@ -232,7 +232,7 @@ void MultiConditionDataProviderHDF5::updateSimulationParameters(int conditionInd
     model.setParameters(p);
 }
 
-void MultiConditionDataProviderHDF5::copyInputData(H5::H5File target)
+void MultiConditionDataProviderHDF5::copyInputData(H5::H5File const& target)
 {
 
     H5Ocopy(fileId, "/", target.getId(), "/inputData", H5P_DEFAULT, H5P_DEFAULT);

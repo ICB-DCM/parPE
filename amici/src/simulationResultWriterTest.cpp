@@ -62,6 +62,7 @@ TEST(simulationResultWriter, testResultWriter) {
     rdata.y.resize(measurements.size());
     std::iota(rdata.y.begin(), rdata.y.end(), 10);
 
+
     auto file = rw.reopenFile();
 
     // write

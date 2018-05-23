@@ -104,10 +104,10 @@ int hdf5Read3DDoubleHyperslab(hid_t file_id, const char *path, hsize_t size0,
                               hsize_t size1, hsize_t size2, hsize_t offset0,
                               hsize_t offset1, hsize_t offset2, double *buffer);
 
-std::vector<int> hdf5Read1DIntegerHyperslab(H5::H5File file, std::string const& path,
+std::vector<int> hdf5Read1DIntegerHyperslab(const H5::H5File &file, std::string const& path,
                                             hsize_t count, hsize_t offset);
 
-std::vector<int> hdf5Read2DIntegerHyperslab(H5::H5File file, std::string const& path,
+std::vector<int> hdf5Read2DIntegerHyperslab(H5::H5File const& file, std::string const& path,
                                             hsize_t size0, hsize_t size1, hsize_t offset0, hsize_t offset1);
 
 void hdf5GetDatasetDimensions(hid_t file_id, const char *path, hsize_t nDims, int *d1 = nullptr,
