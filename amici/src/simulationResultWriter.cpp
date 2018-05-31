@@ -6,9 +6,11 @@
 
 namespace parpe {
 
-SimulationResultWriter::SimulationResultWriter(H5::H5File file, std::string rootPath)
-    :file(file)
+SimulationResultWriter::SimulationResultWriter(H5::H5File const& file, std::string rootPath)
+    : rootPath(rootPath)
 {
+    auto lock = hdf5MutexGetLock();
+    this->file = file;
     updatePaths();
 }
 
@@ -157,6 +159,7 @@ void SimulationResultWriter::saveSimulationResults(const amici::ExpData *edata, 
 
 H5::H5File SimulationResultWriter::reopenFile()
 {
+    auto lock = hdf5MutexGetLock();
     return H5::H5File(file.getId());
 }
 

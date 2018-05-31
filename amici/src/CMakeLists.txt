@@ -16,17 +16,18 @@ set(SRC_LIST
 
 add_library(${PROJECT_NAME} ${SRC_LIST})
 
-target_link_libraries(${PROJECT_NAME}
-    parpeoptimization
-    parpeloadbalancer
-    parpecommon
-    Upstream::amici
-    ${Boost_SERIALIZATION_LIBRARY_RELEASE}
-    ${CMAKE_THREAD_LIBS_INIT}
+target_include_directories(${PROJECT_NAME}
+    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
+    PUBLIC ${Boost_INCLUDE_DIR}
 )
 
-get_target_property(PARPEAMICI_INCLUDE_DIRS ${PROJECT_NAME} INCLUDE_DIRECTORIES)
-set_property(GLOBAL PROPERTY PARPEAMICI_INCLUDE_DIRS "${PARPEAMICI_INCLUDE_DIRS}")
+target_link_libraries(${PROJECT_NAME}
+    PUBLIC parpeoptimization
+    PUBLIC parpeloadbalancer
+    PUBLIC parpecommon
+    PUBLIC Upstream::amici
+    PUBLIC ${Boost_SERIALIZATION_LIBRARY_RELEASE}
+)
 
 install(TARGETS ${PROJECT_NAME} EXPORT ParPETargets
   LIBRARY DESTINATION lib

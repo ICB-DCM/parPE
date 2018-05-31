@@ -73,6 +73,7 @@ Optimizer *OptimizationOptions::createOptimizer() const {
 std::unique_ptr<OptimizationOptions> OptimizationOptions::fromHDF5(const char *fileName) {
     H5::H5File file;
     try {
+        auto lock = hdf5MutexGetLock();
         file = H5::H5File(fileName, H5F_ACC_RDONLY);
     } catch (...) {
         throw HDF5Exception(

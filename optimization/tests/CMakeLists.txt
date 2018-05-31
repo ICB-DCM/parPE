@@ -1,4 +1,6 @@
-# General unit tests
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+
+#General unit tests
 project(unittests_optimization)
 
 add_test (NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME} -c)
@@ -22,7 +24,7 @@ add_executable(${PROJECT_NAME} ${SRC_LIST_CPP})
 target_link_libraries(${PROJECT_NAME}
     parpeoptimization
     parpecommon
-    ${CPPUTEST_LIBRARY}
+    ${CppUTest_LIBRARIES}
     ${GCOV_LIBRARY}
 )
 
@@ -30,7 +32,9 @@ target_link_libraries(${PROJECT_NAME}
 # per-optimizer tests #
 #######################
 
+#######################
 # IPOPT
+#######################
 project(unittests_optimization_ipopt)
 add_executable(${PROJECT_NAME}
     main.cpp
@@ -40,12 +44,14 @@ add_executable(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME}
     parpeoptimization
     parpecommon
-    ${CPPUTEST_LIBRARY}
+    ${CppUTest_LIBRARIES}
     ${GCOV_LIBRARY}
 )
 add_test (NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME} -c)
 
+#######################
 # CERES
+#######################
 project(unittests_optimization_ceres)
 add_executable(${PROJECT_NAME}
     main.cpp
@@ -55,12 +61,14 @@ add_executable(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME}
     parpeoptimization
     parpecommon
-    ${CPPUTEST_LIBRARY}
+    ${CppUTest_LIBRARIES}
     ${GCOV_LIBRARY}
 )
 add_test (NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME} -c)
 
+#######################
 # TOMS611
+#######################
 if(${PARPE_ENABLE_TOMS611})
     project(unittests_optimization_toms611)
     add_executable(${PROJECT_NAME}
@@ -72,13 +80,15 @@ if(${PARPE_ENABLE_TOMS611})
         toms611
         parpeoptimization
         parpecommon
-        ${CPPUTEST_LIBRARY}
+        ${CppUTest_LIBRARIES}
         ${GCOV_LIBRARY}
     )
     add_test (NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME} -c)
 endif(${PARPE_ENABLE_TOMS611})
 
+#######################
 # FFSQP
+#######################
 if(${PARPE_ENABLE_FSQP})
     project(unittests_optimization_fsqp)
     add_executable(${PROJECT_NAME}
@@ -90,8 +100,10 @@ if(${PARPE_ENABLE_FSQP})
         fsqp
         parpeoptimization
         parpecommon
-        ${CPPUTEST_LIBRARY}
+        ${CppUTest_LIBRARIES}
         ${GCOV_LIBRARY}
     )
     add_test (NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME} -c)
 endif(${PARPE_ENABLE_FSQP})
+
+#######################

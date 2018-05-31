@@ -4,7 +4,7 @@
 #include "CppUTest/TestHarness.h"
 #include "CppUTestExt/MockSupport.h"
 #include <amici/model.h>
-#include "../tests/cpputest/testfunctions.h" // for Modell_Test
+// #include "../tests/cpputest/testfunctions.h" // for Modell_Test
 
 /**
  * @brief Mock MultiConditionDataProvider

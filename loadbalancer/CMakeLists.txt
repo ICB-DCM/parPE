@@ -1,5 +1,3 @@
-include_directories(src/)
-
 add_subdirectory(src/)
 
 if(${BUILD_TESTS})

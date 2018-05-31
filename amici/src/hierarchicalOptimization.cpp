@@ -27,7 +27,7 @@ HierachicalOptimizationWrapper::HierachicalOptimizationWrapper(
 
 HierachicalOptimizationWrapper::HierachicalOptimizationWrapper(
         std::unique_ptr<AmiciSummedGradientFunction<int> > fun,
-        H5::H5File file, std::string hdf5RootPath,
+        H5::H5File const& file, std::string hdf5RootPath,
         int numConditions, int numObservables, int numTimepoints,
         ErrorModel errorModel)
     : fun(std::move(fun)),
@@ -356,13 +356,14 @@ const std::vector<int> &HierachicalOptimizationWrapper::getProportionalityFactor
 }
 
 
-AnalyticalParameterHdf5Reader::AnalyticalParameterHdf5Reader(H5::H5File file,
+AnalyticalParameterHdf5Reader::AnalyticalParameterHdf5Reader(H5::H5File const& file,
                                                              std::string scalingParameterIndicesPath,
                                                              std::string mapPath)
-    :file(file),
-      mapPath(mapPath),
+    : mapPath(mapPath),
       analyticalParameterIndicesPath(scalingParameterIndicesPath)
 {
+    auto lock = hdf5MutexGetLock();
+    this->file = file; // copy while mutex is locked!
     readParameterConditionObservableMappingFromFile();
 }
 

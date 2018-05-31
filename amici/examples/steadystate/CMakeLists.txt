@@ -126,7 +126,7 @@ if(${BUILD_TESTS})
         parpeamici
         model_steadystate_scaled
         #${MODEL_LIBRARIES}
-        ${CPPUTEST_LIBRARY}
+        ${CppUTest_LIBRARIES}
         ${GCOV_LIBRARY}
     )
 endif()

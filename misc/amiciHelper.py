@@ -30,7 +30,7 @@ class AmiciSyms:
 
                 # remove "model.sym.k = [" and "]:\n"
                 l = l[15:-3]
-                return l.split(",")
+                return [s.strip() for s in l.split(",")]
 
     def readParameterNames(self):
         """
@@ -43,7 +43,7 @@ class AmiciSyms:
 
                 # remove "model.sym.p = [" and "]:\n"
                 l = l[15:-3]
-                return l.split(",")
+                return [s.strip() for s in l.split(",")]
 
 
         
