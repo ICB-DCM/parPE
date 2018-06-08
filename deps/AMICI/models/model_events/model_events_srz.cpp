@@ -4,6 +4,8 @@
 typedef amici::realtype realtype;
 #include <cmath> 
 
+using namespace amici;
+
 void srz_model_events(double *srz, const int ie, const realtype t, const realtype *x, const realtype *p, const realtype *k, const realtype *h, const realtype *sx, const int ip) {
 switch (ip) {
   case 0: {
@@ -23,6 +25,14 @@ switch (ip) {
         } break;
 
         case 3: {
+
+        } break;
+
+        case 4: {
+
+        } break;
+
+        case 5: {
 
         } break;
 
@@ -50,6 +60,14 @@ switch (ip) {
 
         } break;
 
+        case 4: {
+
+        } break;
+
+        case 5: {
+
+        } break;
+
     } 
 
   } break;
@@ -74,6 +92,14 @@ switch (ip) {
 
         } break;
 
+        case 4: {
+
+        } break;
+
+        case 5: {
+
+        } break;
+
     } 
 
   } break;
@@ -95,6 +121,14 @@ switch (ip) {
         } break;
 
         case 3: {
+
+        } break;
+
+        case 4: {
+
+        } break;
+
+        case 5: {
 
         } break;
 

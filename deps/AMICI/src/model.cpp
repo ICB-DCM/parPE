@@ -31,18 +31,16 @@ void Model::fsy(const int it, ReturnData *rdata) {
 
 /** Sensitivity of z at final timepoint (ignores sensitivity of timepoint),
  * total derivative
- * @param nroots event index
+ * @param nroots number of events for event index
+ * @param ie event index
  * @param rdata pointer to return data instance
  */
-void Model::fsz_tf(const int nroots, ReturnData *rdata) {
-    // Compute sz = dzdx * sz + dzdp
-
-    for (int ip = 0; ip < nplist(); ++ip) {
-        for (int iz = 0; iz < nz; ++iz)
-            // copy dydp to sy
-            rdata->sz.at((nroots*nplist()+ip)*nz + iz) =
-                    0.0;
-    }
+void Model::fsz_tf(const int *nroots, const int ie, ReturnData *rdata) {
+    
+    for (int iz = 0; iz < nz; ++iz)
+        if (z2event[iz] - 1 == ie)
+            for (int ip = 0; ip < nplist(); ++ip)
+                rdata->sz.at((nroots[ie]*nplist()+ip)*nz + iz) = 0.0;
 }
 
 /** Sensitivity of time-resolved measurement negative log-likelihood Jy, total
@@ -952,7 +950,6 @@ bool operator ==(const Model &a, const Model &b)
             && (a.x0data == b.x0data)
             && (a.sx0data == b.sx0data)
             && (a.ts == b.ts)
-            && (a.qpositivex == b.qpositivex)
             && (a.nmaxevent == b.nmaxevent)
             && (a.pscale == b.pscale)
             && (a.tstart == b.tstart);

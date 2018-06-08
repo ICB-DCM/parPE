@@ -4,13 +4,17 @@ function amiwrap( varargin )
     % Parameters:
     %  varargin:
     %  modelname: specifies the name of the model which will be later used for the naming of the simulation file @type string
-    %  symfun: specifies a function which executes model definition see @ref definition for details @type string.
+    %  symfun: specifies a function which executes model definition see @ref matlab_interface for details @type string.
     %  tdir: target directory where the simulation file should be placed @type string @default $AMICIDIR/models/modelname
     %  o2flag: boolean whether second order sensitivities should be enabled @type boolean @default false
     %
     % Return values:
     %  void
     
+    matVer = ver('MATLAB');
+    if(str2double(matVer.Version) >= 9.4)
+        error('MATLAB R2018a or higher is currently not supported (see https://github.com/ICB-DCM/AMICI/issues/307)')
+    end
     
     %% 
     % check for MSVS
