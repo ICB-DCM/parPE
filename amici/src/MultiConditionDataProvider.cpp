@@ -155,10 +155,10 @@ std::unique_ptr<amici::ExpData> MultiConditionDataProviderHDF5::getExperimentalD
     assert(edata && "Failed getting experimental data. Check data file.");
 
     hdf5Read3DDoubleHyperslab(fileId, hdf5MeasurementPath.c_str(),
-                              1, edata->nytrue, edata->nt,
+                              1, edata->nt, edata->nytrue,
                               conditionIdx, 0, 0, edata->my.data());
     hdf5Read3DDoubleHyperslab(fileId, hdf5MeasurementSigmaPath.c_str(),
-                              1, edata->nytrue, edata->nt,
+                              1, edata->nt, edata->nytrue,
                               conditionIdx, 0, 0, edata->sigmay.data());
 
     return edata;
@@ -169,7 +169,7 @@ std::vector<std::vector<double> > MultiConditionDataProviderHDF5::getAllMeasurem
     for(int conditionIdx = 0; (unsigned) conditionIdx < result.size(); ++conditionIdx) {
         result[conditionIdx].resize(model->nt() * model->nytrue);
         hdf5Read3DDoubleHyperslab(fileId, hdf5MeasurementPath.c_str(),
-                                  1, model->nytrue, model->nt(),
+                                  1, model->nt(), model->nytrue,
                                   conditionIdx, 0, 0, result[conditionIdx].data());
     }
     return result;

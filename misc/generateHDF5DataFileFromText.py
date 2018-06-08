@@ -28,6 +28,32 @@ import collections
 SCALING_LOG10 = 2
 SCALING_LIN = 0
 
+class AmiciPyModelParser:
+    def __init__(self, modelFolder):
+        self.modelDir = modelFolder
+    
+    @staticmethod
+    def parseHeader(filename):
+        symbols= []
+        with open(filename, 'r') as f:
+            for line in f:
+                splitted = line.split(' ')
+                if len(splitted) == 3:
+                    symbols.append(splitted[1])
+                else:
+                    print('Unexpected line format in %s: %s' %(filename, line))
+        return symbols
+    
+    def readParameterNames(self):
+        return self.parseHeader(os.path.join(self.modelDir, 'parameter.h'))
+    
+    def readFixedParameterNames(self):
+        return self.parseHeader(os.path.join(self.modelDir, 'fixed_parameter.h'))
+    
+    def readObservables(self):
+        return self.parseHeader(os.path.join(self.modelDir, 'observable.h'))
+      
+    
 class HDF5DataGenerator:
     """    
     Generate HDF5 file with fixed parameters and measurements for an AMICI-imported SBML model
@@ -36,13 +62,17 @@ class HDF5DataGenerator:
     def __init__(self, fileNameSBML, fileNameSyms, fileMeasurements, fileFixedParameters):
         """
         fileNameSBML: filename of model SBML file
-        fileNameSyms: filename of AMICI model syms file
+        fileNameSyms: filename of AMICI model syms file or the model folder of a python-amici generated model
         fileFixedParameters: filename with AMICI fixed parameter vectors for all conditions refered to in the measurement file 
         fileMeasurements: filename of measurement file (TODO: specify format)
         """
 
-        # AMICI model file interface
-        self.amiciSyms = amiciHelper.AmiciSyms(fileNameSyms)
+        # read symbols from compiled model to ensure correct ordering (might change during sbml import)
+        if fileNameSyms.endswith('.m'):
+            # AMICI model file interface
+            self.amiciSyms = amiciHelper.AmiciSyms(fileNameSyms)
+        else:
+            self.amiciSyms = AmiciPyModelParser(fileNameSyms)
 
         # load input data 
         self.parseMeasurementFile(fileMeasurements)
@@ -442,6 +472,8 @@ class HDF5DataGenerator:
         TODO: at the moment we cannot deal with replace measurements (same condition, same observable, same timepoint) since not supported by AMICI
         should alert user in case that happens, currently will be silently overwritten by the latter 
         dirty workaround: take mean of change time to t+eps  
+        
+        NOTE: data is expected to have numTimepoints as leading dimensions. parameter estimation might fail silently if not.
         """
 
         self.f.create_group("/measurements")
@@ -455,12 +487,12 @@ class HDF5DataGenerator:
         print("Number of observables: %d" % self.ny)
 
         dsetY = self.f.create_dataset("/measurements/y", 
-                                      shape=(self.numConditions, self.ny, self.numTimepoints), 
-                                      chunks=(1, self.ny, self.numTimepoints), 
+                                      shape=(self.numConditions, self.numTimepoints, self.ny), 
+                                      chunks=(1, self.numTimepoints, self.ny), 
                                       fillvalue=np.nan, dtype='f8', compression=self.compression)
         dsetSigmaY = self.f.create_dataset("/measurements/ysigma", 
-                                           shape=(self.numConditions, self.ny, self.numTimepoints), 
-                                           chunks=(1, self.ny, self.numTimepoints), 
+                                      shape=(self.numConditions, self.numTimepoints, self.ny), 
+                                           chunks=(1, self.numTimepoints, self.ny), 
                                            fillvalue=1.0, dtype='f8', compression=self.compression)     
         
         self.writeMeasurements(dsetY, dsetSigmaY)
@@ -489,7 +521,8 @@ class HDF5DataGenerator:
         for p in self.sbmlModel.getListOfParameters():
             p = p.getId()
             if p.startswith('observable_') and not p.endswith('_sigma'):
-                observableName = p[len('observable_'):]
+                #observableName = p[len('observable_'):]
+                observableName = p
                 observables.append(observableName)
         return observables
     
@@ -503,8 +536,8 @@ class HDF5DataGenerator:
             conditionIdx = self.conditions.index(row['condition'])
             observableIdx = self.observables.index(row['observable'])
             timeIdx = self.timepoints.index(row['time'])
-            dsetY     [conditionIdx, observableIdx, timeIdx] = float(row['measurement'])
-            dsetSigmaY[conditionIdx, observableIdx, timeIdx] = float(row['sigma'])
+            dsetY     [conditionIdx, timeIdx, observableIdx] = float(row['measurement'])
+            dsetSigmaY[conditionIdx, timeIdx, observableIdx] = float(row['sigma'])
 
     def checkObservablesSbmlMatchAmici(self, observables, y):
         """
@@ -549,11 +582,12 @@ class HDF5DataGenerator:
         
         map = {}
         for index, row in self.measurementDf.iterrows():
-            scaling = self.getGenericScalingParameterName(row['scalingParameter'])
-            if scaling.find(',') > -1:
+            scalings = self.splitScalingParameterNames(row['scalingParameter'])
+            if not len(scalings):
+                continue
+            if len(scalings) > 1:
                 print("Warning: multiple scaling parameters found for\n\t%s\n\twhich one to choose for hierarchical optimization? Assuming first" % row)
-                scaling = row['scalingParameter'].split(',')[0]
-            
+            #genericScaling = self.getGenericScalingParameterName(scalings[0])         
             if row['observable'] in map and map[row['observable']] != scaling:
                 print("Warning: multiple scaling parameters found for\n\t%s\n\twhich one to choose for hierarchical optimization? previously found %s" % (row, map[row['observable']]))
             
@@ -566,7 +600,9 @@ class HDF5DataGenerator:
         TODO : not yet implemented
         """
         
-        observablesBlacklist = set(self.f["/scalingParametersMapToObservables"][:, 2])
+        observablesBlacklist = set()
+        if '/scalingParametersMapToObservables' in self.f:
+            set(self.f["/scalingParametersMapToObservables"][:, 2])
                                       
         # TODO: ensure that this observable does not have a proportionality factor
         parameterNames = self.f['/parameters/parameterNames'][:].tolist()
@@ -586,7 +622,7 @@ class HDF5DataGenerator:
         # find usages for the selected parameters
         use = []
         for index, row in self.measurementDf.iterrows():
-            currentScalings = row['scalingParameter'].split(',')
+            currentScalings = self.splitScalingParameterNames(row['scalingParameter'])
             for s in currentScalings:
                 #print(s, offsetsForHierarchical)
                 if s in offsetsForHierarchical:
@@ -637,10 +673,12 @@ class HDF5DataGenerator:
         TODO: 
         how to let the user select which ones to add?
         """        
-
+       
         parameterNames = self.f['/parameters/parameterNames'][:].tolist()
 
         scalingsForHierarchical = [x for x in self.getUsedScalingParameters() if x.startswith("scaling_") ]
+        if not len(scalingsForHierarchical):
+            return
         scalingsForHierarchicalIndices = [ parameterNames.index(x) for x in scalingsForHierarchical ]
         [ self.ensureProportionalityFactorIsProportionalityFactor(x) for x in scalingsForHierarchical ]
 
@@ -653,7 +691,7 @@ class HDF5DataGenerator:
         # find usages for the selected parameters
         use = []
         for index, row in self.measurementDf.iterrows():
-            currentScalings = row['scalingParameter'].split(',')
+            currentScalings = self.splitScalingParameterNames(row['scalingParameter'])
             for s in currentScalings:
                 #print(s, scalingsForHierarchical)
                 if s in scalingsForHierarchical:
@@ -832,7 +870,7 @@ class HDF5DataGenerator:
 
 def main():  
     if len(sys.argv) < 6:
-        print("Usage: %s hdf5File sbmlModelFile symsModelFile cost_func exp_table" % __file__)
+        print("Usage: %s hdf5File sbmlModelFile symsModelFile/pyModelFolder cost_func exp_table" % __file__)
         sys.exit()
 
     (hdf5File, sbmlModelFile, symsModelFile, costFunctionFile, expTableFile) = sys.argv[1:6]
