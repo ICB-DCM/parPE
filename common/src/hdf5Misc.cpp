@@ -541,7 +541,9 @@ void hdf5GetDatasetDimensions(hid_t file_id, const char *path, hsize_t nDimsExpe
     std::lock_guard<mutexHdfType> lock(mutexHdf);
     H5_SAVE_ERROR_HANDLER;
 
-    auto dataspace = H5::H5File(file_id).openDataSet(path).getSpace();
+    auto file = H5::H5File(file_id);
+    auto dataset = file.openDataSet(path);
+    auto dataspace = dataset.getSpace();
 
     const int nDimsActual = dataspace.getSimpleExtentNdims();
     if(nDimsActual != (signed)nDimsExpected)
