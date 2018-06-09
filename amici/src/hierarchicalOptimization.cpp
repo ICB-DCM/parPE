@@ -87,6 +87,11 @@ void HierachicalOptimizationWrapper::init() {
     sigmaParameterIndices = this->sigmaReader->getOptimizationParameterIndices();
     RELEASE_ASSERT(std::is_sorted(this->sigmaParameterIndices.begin(),
                                   this->sigmaParameterIndices.end()), "");
+
+    std::cout<<"HierachicalOptimizationWrapper: "
+            <<proportionalityFactorIndices.size()<<" proportionality factors, "
+              <<offsetParameterIndices.size()<<" offset parameters, ";
+            <<sigmaParameterIndices.size()<<" sigmas\n";
 }
 
 

@@ -26,28 +26,6 @@
  */
 
 /**
- * @brief The SteadyStateMultiConditionProblem class subclasses parpe::MultiConditionProblem
- * to set some problem specific options like initial parameters
- */
-class SteadyStateMultiConditionProblem : public parpe::MultiConditionProblem {
-  public:
-    SteadyStateMultiConditionProblem(
-        SteadyStateMultiConditionDataProvider *dp, parpe::LoadBalancerMaster *loadBalancer, H5::H5File const& file)
-        : MultiConditionProblem(dp, loadBalancer) {
-
-        std::unique_ptr<parpe::OptimizationOptions> options(
-                    parpe::OptimizationOptions::fromHDF5(file.getId()));
-
-        setOptimizationOptions(*options.get());
-    }
-
-    void fillInitialParameters(double *buffer) const override {
-        std::fill(buffer, buffer + costFun->numParameters(), 0);
-    }
-
-};
-
-/**
  * @brief The SteadystateApplication class subclasses parpe::OptimizationApplication
  * which provides a frame for a standalone program to solve a multi-start local optimization
  * problem.
@@ -66,6 +44,10 @@ class SteadystateApplication : public parpe::OptimizationApplication {
 
         auto multiCondProb = new parpe::MultiConditionProblem(dataProvider.get(), &loadBalancer);
         problem.reset(multiCondProb);
+
+        std::unique_ptr<parpe::OptimizationOptions> options(
+                            parpe::OptimizationOptions::fromHDF5(dataProvider->getHdf5FileId()));
+        problem->setOptimizationOptions(*options.get());
 
         parpe::JobIdentifier id;
         resultWriter = std::make_unique<parpe::MultiConditionProblemResultWriter>(outFileArgument, true, id);

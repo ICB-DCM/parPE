@@ -1,10 +1,6 @@
-set(MODEL_LIBRARIES "model_steadystate")
-set(MODEL_INCLUDE_DIRS "model")
-
-include_directories(${MODEL_INCLUDE_DIRS})
+set(MODEL_LIBRARIES "model_steadystate_scaled")
 
 # AMICI-generated model files
-add_subdirectory(model)
 add_subdirectory(model_steadystate_scaled)
 
 # example_steadystate executable
@@ -73,10 +69,10 @@ install(TARGETS ${PROJECT_NAME} EXPORT ParPETargets
 
 if(${BUILD_TESTS})
     add_test (NAME ${PROJECT_NAME}
-        COMMAND ${TESTS_MPIEXEC_COMMAND} ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME} -o ${PROJECT_NAME}-testresults ${CMAKE_CURRENT_LIST_DIR}/data.h5
+        COMMAND ${TESTS_MPIEXEC_COMMAND} ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME} -o ${PROJECT_NAME}-testresults ${CMAKE_CURRENT_LIST_DIR}/example_data.h5
         )
     add_test (NAME ${PROJECT_NAME}_gradient_check
-        COMMAND ${TESTS_MPIEXEC_COMMAND} ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME} -t gradient_check -o ${PROJECT_NAME}-testresults ${CMAKE_CURRENT_LIST_DIR}/data.h5
+        COMMAND ${TESTS_MPIEXEC_COMMAND} ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME} -t gradient_check -o ${PROJECT_NAME}-testresults ${CMAKE_CURRENT_LIST_DIR}/example_data.h5
         )
 endif()
 # /example_steadystate_multi executable
@@ -117,7 +113,7 @@ if(${BUILD_TESTS})
         ../../tests/main.cpp
         ../../../common/src/testingMisc.cpp
         steadystateProblem.cpp
-        exampleSteadystateScaledText.cpp
+        exampleSteadystateScaledTest.cpp
     )
 
     add_executable(${PROJECT_NAME} ${SRC_LIST_CPP})

@@ -78,12 +78,15 @@ void ExampleSteadystateGradientFunction::readFixedParameters(int conditionIdx) c
 }
 
 void ExampleSteadystateGradientFunction::readMeasurement(int conditionIdx) const {
-    parpe::hdf5Read3DDoubleHyperslab(fileId, "/measurements/y", 1, model->ny,
-                              model->nt(), conditionIdx, 0, 0, edata->my.data());
+    parpe::hdf5Read3DDoubleHyperslab(fileId, "/measurements/y",
+                                     1, edata->nt, edata->nytrue,
+                                     conditionIdx, 0, 0,
+                                     edata->my.data());
 
-
-    parpe::hdf5Read3DDoubleHyperslab(fileId, "/measurements/ysigma", 1, edata->nytrue,
-                                     edata->nt, conditionIdx, 0, 0, edata->sigmay.data());
+    parpe::hdf5Read3DDoubleHyperslab(fileId, "/measurements/ysigma",
+                                     1, edata->nt, edata->nytrue,
+                                     conditionIdx, 0, 0,
+                                     edata->sigmay.data());
 }
 
 ExampleSteadystateGradientFunction::ExampleSteadystateGradientFunction(hid_t fileId)

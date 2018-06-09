@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <random>
 #include <csignal>
+#include <cstdlib>
 
 #include <amiciMisc.h>
 
@@ -33,6 +34,10 @@ void signalHandler(int sig) {
 }
 
 int OptimizationApplication::init(int argc, char **argv) {
+    // reduce verbosity
+    if(std::getenv("PARPE_NO_DEBUG"))
+        minimumLogLevel = LOGLVL_INFO;
+
     // install signal handler for backtrace on error
     sigaction(SIGSEGV, &act, &oldact);
     sigaction(SIGHUP, &act, nullptr);
@@ -193,7 +198,7 @@ int OptimizationApplication::runMaster() {
     switch (opType) {
     case OP_TYPE_GRADIENT_CHECK: {
         const int numParameterIndicesToCheck = 50;
-        const double epsilon = 1e-6;
+        const double epsilon = 1e-8;
         optimizationProblemGradientCheck(problem.get(),
                                          numParameterIndicesToCheck,
                                          epsilon);
@@ -232,7 +237,7 @@ int OptimizationApplication::runSingleMpiProcess() {
     switch (opType) {
     case OP_TYPE_GRADIENT_CHECK: {
         const int numParameterIndicesToCheck = 50;
-        const double epsilon = 1e-6;
+        const double epsilon = 1e-8;
         optimizationProblemGradientCheck(problem.get(),
                                          numParameterIndicesToCheck,
                                          epsilon);

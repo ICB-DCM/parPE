@@ -1,14 +1,17 @@
-
 #include "amici/symbolic_functions.h"
 #include "amici/defines.h" //realtype definition
-typedef amici::realtype realtype;
+using amici::realtype;
 #include <cmath> 
 
-void dydx_model_steadystate_scaled(double *dydx, const realtype t, const realtype *x, const realtype *p, const realtype *k, const realtype *h) {
-  dydx[0+0*5] = 1.0;
-  dydx[1+1*5] = 1.0;
-  dydx[2+2*5] = 1.0;
-  dydx[3+0*5] = p[6];
-  dydx[4+1*5] = 1.0;
-}
 
+#include "species.h"
+#include "parameter.h"
+#include "fixed_parameter.h"
+
+void dydx_model_steadystate_scaled(double *dydx, const realtype t, const realtype *x, const realtype *p, const realtype *k, const realtype *h){
+    dydx[0] = 1;
+    dydx[3] = scaling_x1;
+    dydx[6] = 1;
+    dydx[9] = 1;
+    dydx[12] = 1;
+}

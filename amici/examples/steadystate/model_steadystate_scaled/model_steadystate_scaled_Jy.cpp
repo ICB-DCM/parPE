@@ -1,26 +1,31 @@
-
 #include "amici/symbolic_functions.h"
 #include "amici/defines.h" //realtype definition
-typedef amici::realtype realtype;
+using amici::realtype;
 #include <cmath> 
 
-void Jy_model_steadystate_scaled(double *nllh, const int iy, const realtype *p, const realtype *k, const double *y, const double *sigmay, const double *my) {
-switch(iy){
-    case 0:
-  nllh[0] = amici::log((sigmay[0]*sigmay[0])*3.141592653589793*2.0)*5.0E-1+1.0/(sigmay[0]*sigmay[0])*pow(my[0]-y[0],2.0)*5.0E-1;
-    break;
-    case 1:
-  nllh[0] = amici::log((sigmay[1]*sigmay[1])*3.141592653589793*2.0)*5.0E-1+1.0/(sigmay[1]*sigmay[1])*pow(my[1]-y[1],2.0)*5.0E-1;
-    break;
-    case 2:
-  nllh[0] = amici::log((sigmay[2]*sigmay[2])*3.141592653589793*2.0)*5.0E-1+1.0/(sigmay[2]*sigmay[2])*pow(my[2]-y[2],2.0)*5.0E-1;
-    break;
-    case 3:
-  nllh[0] = amici::log((sigmay[3]*sigmay[3])*3.141592653589793*2.0)*5.0E-1+1.0/(sigmay[3]*sigmay[3])*pow(my[3]-y[3],2.0)*5.0E-1;
-    break;
-    case 4:
-  nllh[0] = amici::log((sigmay[4]*sigmay[4])*3.141592653589793*2.0)*5.0E-1+1.0/(sigmay[4]*sigmay[4])*pow(my[4]-y[4],2.0)*5.0E-1;
-    break;
-}
-}
 
+#include "parameter.h"
+#include "fixed_parameter.h"
+#include "observable.h"
+#include "my.h"
+#include "sigma_y.h"
+
+void Jy_model_steadystate_scaled(double *nllh, const int iy, const realtype *p, const realtype *k, const double *y, const double *sigmay, const double *my){
+    switch(iy) {
+        case 0:
+            nllh[0] = 0.5*pow(-mobservable_x1 + observable_x1, 2)/pow(sigmaobservable_x1, 2) + 0.5*log(2*M_PI*pow(sigmaobservable_x1, 2));
+            break;
+        case 1:
+            nllh[0] = 0.5*pow(-mobservable_x2 + observable_x2, 2)/pow(sigmaobservable_x2, 2) + 0.5*log(2*M_PI*pow(sigmaobservable_x2, 2));
+            break;
+        case 2:
+            nllh[0] = 0.5*pow(-mobservable_x3 + observable_x3, 2)/pow(sigmaobservable_x3, 2) + 0.5*log(2*M_PI*pow(sigmaobservable_x3, 2));
+            break;
+        case 3:
+            nllh[0] = 0.5*pow(-mobservable_x1_scaled + observable_x1_scaled, 2)/pow(sigmaobservable_x1_scaled, 2) + 0.5*log(2*M_PI*pow(sigmaobservable_x1_scaled, 2));
+            break;
+        case 4:
+            nllh[0] = 0.5*pow(-mobservable_x2_offsetted + observable_x2_offsetted, 2)/pow(sigmaobservable_x2_offsetted, 2) + 0.5*log(2*M_PI*pow(sigmaobservable_x2_offsetted, 2));
+            break;
+}
+}

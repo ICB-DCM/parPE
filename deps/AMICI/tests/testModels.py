@@ -62,18 +62,100 @@ class TestAmiciPregeneratedModel(unittest.TestCase):
                     else:
                         verifySimulationResults(rdata, expectedResults[subTest][case]['results'])
 
+                    if edata and self.solver.getSensitivityMethod() and self.solver.getSensitivityOrder():
+                        if not modelName.startswith('model_neuron'):
+                            checkGradient(self.model, self.solver, edata)
+                        
 
+def checkGradient(model, solver, edata):
+    """Finite differences check for likelihood gradient
+    
+    Arguments:
+        model:
+        solver:
+        edata:
+    """
+    from scipy.optimize import check_grad
 
-def verifySimulationResults(rdata,expectedResults,atol=1e-8,rtol=1e-4):
+    def func(x0, symbol='llh', x0full=None, plist=[], verbose=False):
+        """Function of which the gradient is to be checked"""
+        p = x0
+        if len(plist):
+            p = x0full[:]
+            p[plist] = x0
+        verbose and print('f: p=%s' % p)
+        
+        old_sensitivity_order = solver.getSensitivityOrder()
+        old_parameters = model.getParameters()
+        
+        solver.setSensitivityOrder(amici.AMICI_SENSI_ORDER_NONE)
+        model.setParameters(amici.DoubleVector(p))
+        rdata = amici.runAmiciSimulation(model, solver, edata)
+        
+        solver.setSensitivityOrder(old_sensitivity_order)
+        model.setParameters(old_parameters)
+        
+        res = np.sum(rdata[symbol])
+        return res
+    
+    def grad(x0, symbol='llh', x0full=None, plist=[], verbose=False):
+        """Gradient which is to be checked"""
+        old_parameters = model.getParameters()
+        old_plist = model.getParameterList()
+        
+        p = x0
+        if len(plist):
+            model.setParameterList(amici.IntVector(plist))
+            p = x0full[:]
+            p[plist] = x0
+        else:
+            model.requireSensitivitiesForAllParameters()
+        verbose and print('g: p=%s' % p)
+        
+        model.setParameters(amici.DoubleVector(p))
+        rdata = amici.runAmiciSimulation(model, solver, edata)
+        
+        model.setParameters(old_parameters)
+        model.setParameterList(old_plist)
+
+        res = rdata['s%s' % symbol]
+        if not isinstance(res, float):
+            if len(res.shape) == 3:
+                res = np.sum(res, axis=(0, 2))
+        return res
+    
+    p = np.array(model.getParameters())
+      
+    for ip in range(model.np()):
+        plist = [ip]
+        err_norm = check_grad(func, grad, p[plist], 'llh', p, [ip])
+        print('sllh: p[%d]: |error|_2: %f' % (ip, err_norm))
+    
+    '''
+    print()
+    for ip in range(model.np()):
+        plist = [ip]
+        err_norm = check_grad(func, grad, p[plist], 'y', p, [ip])
+        print('sy: p[%d]: |error|_2: %f' % (ip, err_norm))
+    
+    print()
+    for ip in range(model.np()):
+        plist = [ip]
+        err_norm = check_grad(func, grad, p[plist], 'x', p, [ip])
+        print('sx: p[%d]: |error|_2: %f' % (ip, err_norm))
+    
+    '''
+    
+def verifySimulationResults(rdata, expectedResults, atol=1e-8, rtol=1e-4):
     '''
     compares all fields of the simulation results in rdata against the expectedResults using the provided
     tolerances
     
-    Args:
-    rdata: simulation results as returned by amici.runAmiciSimulation
-    expectedResults: stored test results 
-    atol: absolute tolerance
-    rtol: relative tolerance
+    Arguments:
+        rdata: simulation results as returned by amici.runAmiciSimulation
+        expectedResults: stored test results 
+        atol: absolute tolerance
+        rtol: relative tolerance
     '''
 
     if expectedResults.attrs['status'][0] != 0:
@@ -98,12 +180,12 @@ def checkResults(rdata, field, expected, atol, rtol):
     '''
     checks whether rdata[field] agrees with expected according to provided tolerances
     
-    Args:
-    rdata: simulation results as returned by amici.runAmiciSimulation
-    field: name of the field to check
-    expected: expected test results 
-    atol: absolute tolerance
-    rtol: relative tolerance
+    Arguments:
+        rdata: simulation results as returned by amici.runAmiciSimulation
+        field: name of the field to check
+        expected: expected test results 
+        atol: absolute tolerance
+        rtol: relative tolerance
     '''
 
     result = rdata[field]
@@ -126,8 +208,7 @@ def checkResults(rdata, field, expected, atol, rtol):
         adev = adev[~np.isinf(expected)]
         rdev = rdev[~np.isinf(expected)]
 
-    if not np.all(np.logical_or(rdev <= rtol,adev <= atol)):
-        assert np.all(np.logical_or(rdev <= rtol,adev <= atol))
+    assert np.all(np.logical_or(rdev <= rtol, adev <= atol))
 
 
 

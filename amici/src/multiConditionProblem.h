@@ -78,7 +78,7 @@ public:
         setSensitivityOptions(gradient);
         fval = 0;
         if (gradient)
-            amici::zeros(gradient, numParameters());
+            std::fill(gradient, gradient + numParameters(), 0.0);
 
         int errors = runSimulations(parameters, fval, gradient, datasets);
 
@@ -259,7 +259,7 @@ protected:// for testing
      * @return Simulation status, != 0 indicates failure
      */
     virtual int runSimulations(const double *optimizationVariables,
-                               double &logLikelihood,
+                               double &nllh,
                                double *objectiveFunctionGradient,
                                std::vector<int> dataIndices) const {
 
@@ -295,7 +295,7 @@ protected:// for testing
                                          [&](JobData *job, int jobIdx) {
             double simulationTimeSec = 0.0; // TODO not used
             errors += aggregateLikelihood(*job,
-                                          logLikelihood,
+                                          nllh,
                                           objectiveFunctionGradient,
                                           simulationTimeSec);
         }, nullptr);

@@ -22,6 +22,9 @@ typedef enum loglevel_tag {
     LOGLVL_DEBUG
 } loglevel;
 
+// Minimum log level that will be printed
+extern loglevel minimumLogLevel;
+
 void logmessage(loglevel lvl, std::string const& msg);
 void logmessage(loglevel lvl, const char *format, ...);
 void logmessage(loglevel lvl, const char *format, va_list argptr);

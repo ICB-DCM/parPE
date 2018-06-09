@@ -12,6 +12,7 @@
 namespace parpe {
 
 const char *loglevelShortStr[] = {"", "CRI", "ERR", "WRN", "INF", "DBG"};
+loglevel minimumLogLevel = LOGLVL_DEBUG;
 
 void logmessage(loglevel lvl, const char *format, ...)
 {
@@ -85,6 +86,9 @@ void logmessage(loglevel lvl, const std::string &msg)
 
 void logmessage(loglevel lvl, const char *format, va_list argptr)
 {
+    if(minimumLogLevel < lvl)
+        return;
+
     int mpiInitialized = 0;
     MPI_Initialized(&mpiInitialized);
 

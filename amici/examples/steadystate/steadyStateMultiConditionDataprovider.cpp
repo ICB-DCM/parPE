@@ -24,17 +24,18 @@ std::unique_ptr<amici::Solver> SteadyStateMultiConditionDataProvider::getSolver(
 
 
 void SteadyStateMultiConditionDataProvider::setupModelAndSolver(amici::Model &model, amici::Solver &solver) const {
-    hsize_t m = 0, n = 0;
-    model.setTimepoints(amici::hdf5::getDoubleDataset2D(fileId, rootPath + "/parameters/t", m, n));
+    //hsize_t m = 0, n = 0;
+    //model.setTimepoints(amici::hdf5::getDoubleDataset2D(fileId, rootPath + "/parameters/t", m, n));
     // set model constants
     updateFixedSimulationParameters(0, model);
 
     // calculate sensitivities for all parameters
     model.requireSensitivitiesForAllParameters();
-    model.setParameterScale(amici::AMICI_SCALING_LOG10);
+    //model.setParameterScale(amici::AMICI_SCALING_LOG10);
 
     solver.setSensitivityOrder(amici::AMICI_SENSI_ORDER_FIRST);
-    solver.setSensitivityMethod(amici::AMICI_SENSI_FSA);
+    //solver.setSensitivityMethod(amici::AMICI_SENSI_FSA);
+    solver.setSensitivityMethod(amici::AMICI_SENSI_ASA);
     solver.setMaxSteps(1e4);
     solver.setNewtonMaxLinearSteps(100);
     solver.setNewtonMaxSteps(40);

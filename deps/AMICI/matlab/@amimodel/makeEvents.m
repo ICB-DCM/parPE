@@ -41,18 +41,16 @@ for ix = 1:nx
             idx_end = find(brl(idx_start(iocc):end)-brl(idx_start(iocc))==-1,1,'first');
             arg = tmp_str((idx_start(iocc)+1):(idx_start(iocc)+idx_end-2));
             triggers{end+1} = arg;
-            if(ismember(idx_start(iocc),strfind(tmp_str,'dirac') + 5))
-                triggers{end+1} = ['-(' arg ')']; % for dirac we need both +to- and -to+ transitions
-            end
+            triggers{end+1} = ['-(' arg ')']; % for dirac we need both +to- and -to+ transitions
         end
     end
 end
 
 % select the unique ones
-utriggers = unique(triggers);
+utriggers = unique(arrayfun(@char,betterSym(triggers),'UniformOutput',false));
 for itrigger = 1:length(utriggers)
     ievent = ievent + 1;
-    trigger{ievent} = sym(utriggers{itrigger});
+    trigger{ievent} = betterSym(utriggers{itrigger});
     bolus{ievent} = sym(zeros(nx,1));
     z{ievent} = sym.empty([0,0]);
 end
@@ -147,32 +145,24 @@ if(nevent>0)
                 % remove the heaviside function and replace by h
                 % variable which is updated upon event occurrence in the
                 % solver
-                symvariable = subs(symvariable,heaviside( trigger{ievent}),sym(['h_'        num2str(ievent-1)]));
-                symvariable = subs(symvariable,heaviside(-trigger{ievent}),sym(['(1-h_' num2str(ievent-1) ')']));
+                
+                % h variables only change for one sign change but heaviside
+                % needs updating for both, thus we should 
+                symvariable = subs(symvariable,heaviside( trigger{ievent}),betterSym(['h_' num2str(ievent-1)']));
+                symvariable = subs(symvariable,heaviside(-trigger{ievent}),betterSym(['(1-h_' num2str(ievent-1) ')']));
                 % set hflag
                 
                 % we can check whether dividing cfp(2) by
                 % trigger{ievent} reduced the length of the symbolic
                 % expression. If it does, this suggests that
                 % trigger{ievent} is a factor of cfp(2), which will be
-                % the case for min/max functions. in that case we do
-                % not need a hflag as there is no discontinuity in the
-                % right hand side. This is not a perfect fix, in the
-                % long run one should maybe go back to the old syntax for
-                % am_max and am_min?
-                try
-                    [cfp,tfp] = coeffs(symvariable,sym(['h_' num2str(ievent-1) ]));
-                    if(any(double(tfp==sym(['h_' num2str(ievent-1)]))))
-                        if(length(char(cfp(logical(tfp==sym(['h_' num2str(ievent-1)])))/trigger{ievent}))<length(char(cfp(logical(tfp==sym(['h_' num2str(ievent-1)]))))))
-                            hflags(ix,ievent) = 0;
-                        else
-                            hflags(ix,ievent) = 1;
-                        end
-                    else
-                        hflags(ix,ievent) = 0;
-                    end
-                catch
+                if(or(...
+                    ismember(sym(['h_' num2str(ievent-1)']),symvar(symvariable)),...
+                    ismember(sym(['h_' num2str(find(-trigger{ievent}==trigger)-1)']),symvar(symvariable))...
+                    ))
                     hflags(ix,ievent) = 1;
+                else
+                    hflags(ix,ievent) = 0;
                 end
             end
         end
@@ -203,7 +193,7 @@ if(nevent>0)
                 symchar = strrep(symchar,str_arg_h,['(1-h_' num2str(jevent-1) ')']);
                 % set hflag
             end
-            trigger{ievent} = sym(symchar);
+            trigger{ievent} = betterSym(symchar);
         end
     end
     
@@ -269,7 +259,7 @@ end
 if(~isfield(this.sym,'Jz'))
     this.sym.Jz = sym(zeros(length([this.event.z]),1));
     for iz = 1:length([this.event.z])
-        this.sym.Jz(iz) = sym(['0.5*log(2*pi*sigma_z_' num2str(iz-1) '^2) + 0.5*((z_' num2str(iz-1) '-mz_' num2str(iz-1) ')/sigma_z_' num2str(iz-1) ')^2']);
+        this.sym.Jz(iz) = betterSym(['0.5*log(2*pi*sigma_z_' num2str(iz-1) '^2) + 0.5*((z_' num2str(iz-1) '-mz_' num2str(iz-1) ')/sigma_z_' num2str(iz-1) ')^2']);
     end
 end
 

@@ -38,6 +38,17 @@ set(TEST_MODELS
     robertson
     )
 
+if(ENABLE_SWIG AND ENABLE_PYTHON)
+    find_package(PythonInterp 3.6)
+    if(PythonInterp_FOUND)
+        add_custom_target(python-tests
+            COMMAND ${PYTHON_EXECUTABLE} testModels.py
+            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/tests
+            DEPENDS
+            )
+    endif()
+endif()
+
 add_subdirectory(unittests)
 
 include(ExternalProject)
@@ -49,6 +60,7 @@ foreach(MODEL IN ITEMS ${TEST_MODELS})
         SOURCE_DIR        "${CMAKE_SOURCE_DIR}/models/model_${MODEL}/"
         INSTALL_COMMAND   ""
         TEST_COMMAND      ""
+        BUILD_ALWAYS      1
         DEPENDS amici
         )
     # Rebuild if amici files are updated
@@ -64,4 +76,8 @@ foreach(MODEL IN ITEMS ${TEST_MODELS})
         )
     # Build tests for this model
     add_subdirectory(${MODEL})
+    if(TARGET python-tests)
+        add_dependencies(python-tests external_model_${MODEL})
+    endif()
 endforeach()
+

@@ -113,21 +113,21 @@ def create_model():
     p3 = create_parameter(model, 'p3', True, 0.4, 'mole_per_second')
     p4 = create_parameter(model, 'p4', True, 2.0, 'per_second')
     p5 = create_parameter(model, 'p5', True, 0.1, 'per_second')
-    k4 = create_parameter(model, 'k4', True, 1.0, 'mole_per_second')
+    k0 = create_parameter(model, 'k0', True, 1.0, 'mole_per_second')
 
     
     create_reaction(model, 'r1', [(2, 'x1')], [(1, 'x2')], 'p1 * x1^2')
     create_reaction(model, 'r2', [(1, 'x1'), (1, 'x2')], [(1, 'x3')], 'p2 * x1 * x2')
     create_reaction(model, 'r3', [(1, 'x2')], [(2, 'x1')], 'p3 * x2')
     create_reaction(model, 'r4', [(1, 'x3')], [(1, 'x1'), (1, 'x2')], 'p4 * x3')
-    create_reaction(model, 'r5', [(1, 'x3')], [], 'k4 * x3')
+    create_reaction(model, 'r5', [(1, 'x3')], [], 'k0 * x3')
     create_reaction(model, 'r6', [], [(1, 'x1')], 'p5')
     
     #    S -2 -1  2  1  0 1  v1: p1 x1^2 
-    #       1 -1 -1  1  0 0  v2: p2 x1
-    #       0  1  0 -1 -1 0  v3: p3
+    #       1 -1 -1  1  0 0  v2: p2 x1 x2
+    #       0  1  0 -1 -1 0  v3: p3 x2
     #                        v4: p4 x3
-    #                        v5: k4 * x3
+    #                        v5: k0 x3
     #                        v6: p5
     # R1: 2X1         ->       X2
     # R2:  X1 + X2    ->           X3

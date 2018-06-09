@@ -107,12 +107,12 @@ void optimizationProblemGradientCheck(OptimizationProblem *problem,
             status[0] = '!';
 
 
-        printf("%d\t%s\tg: %f\tfd_f: %f\t(%f)\tfd_c: %f\t(%f)\tfd_b: %f\t(%f)",
+        printf("%5d%s g: %12.6g fd_f: %12.6g (Δ%12.6g) fd_c: %12.6g (Δ%12.6g) fd_b: %12.6g (Δ%12.6g)",
                curInd, status, curGrad,
                fd_f, curGrad - fd_f,
                fd_c, curGrad - fd_c,
                fd_b, curGrad - fd_b);
-        printf("\t\tfb: %f\tfc: %f\tff: %f\t\n", fb, fc, ff);
+        printf("fb: %12.6g fc: %12.6g ff: %12.6g\n", fb, fc, ff);
     }
 }
 
