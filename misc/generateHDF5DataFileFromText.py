@@ -587,35 +587,39 @@ class HDF5DataGenerator:
                 continue
             if len(scalings) > 1:
                 print("Warning: multiple scaling parameters found for\n\t%s\n\twhich one to choose for hierarchical optimization? Assuming first" % row)
-            #genericScaling = self.getGenericScalingParameterName(scalings[0])         
+                map[row['observable']] = scalings[0]
+                #genericScaling = self.getGenericScalingParameterName(scalings[0])         
             if row['observable'] in map and map[row['observable']] != scaling:
-                print("Warning: multiple scaling parameters found for\n\t%s\n\twhich one to choose for hierarchical optimization? previously found %s" % (row, map[row['observable']]))
+                raise RuntimeError("Warning: multiple scaling parameters found for\n\t%s\n\twhich one to choose for hierarchical optimization? previously found %s" % (row, map[row['observable']]))
             
-            map[row['observable']] = scaling
 
     
     def handleOffsetParameter(self):
         """
         Write list of offset parameters selected for hierarchical optimization
-        TODO : not yet implemented
         """
         
+        '''
+        # list of observables for which there are already analytically computed parameters
         observablesBlacklist = set()
         if '/scalingParametersMapToObservables' in self.f:
-            set(self.f["/scalingParametersMapToObservables"][:, 2])
+            observablesBlacklist = set(self.f["/scalingParametersMapToObservables"][:, 2])
                                       
-        # TODO: ensure that this observable does not have a proportionality factor
-        parameterNames = self.f['/parameters/parameterNames'][:].tolist()
-        offsetsForHierarchical = [x for x in self.getUsedScalingParameters() if x.startswith("offset_") and parameterNames.index(x) not in observablesBlacklist ]
+        # TODO ensure that this observable does not have a proportionality factor
+        #offsetsForHierarchical = [x for x in offsetsForHierarchical if x.startswith("offset_") and getObservableForScalingParameter not in observablesBlacklist ]
+        '''
+        offsetsForHierarchical = [x for x in self.getUsedScalingParameters() if x.startswith("offset_") ]
+        print(offsetsForHierarchical)
+        # don't create dataset if it would be empty
         if not len(offsetsForHierarchical):
             return
-
+        
+        # find indices for names
+        parameterNames = self.f['/parameters/parameterNames'][:].tolist()
         offsetsForHierarchicalIndices = [ parameterNames.index(x) for x in offsetsForHierarchical ]
+        
         [ self.ensureOffsetIsOffsetWithPositiveSign(x) for x in offsetsForHierarchical ]
         print("Number of offset parameters for hierarchical optimization: %d" % len(offsetsForHierarchicalIndices))
-        
-        if len(offsetsForHierarchicalIndices) == 0:
-            return
         
         dset = self.f.require_dataset("/offsetParameterIndices", 
                                       shape=(len(offsetsForHierarchicalIndices),), 
@@ -623,22 +627,32 @@ class HDF5DataGenerator:
                                       data=offsetsForHierarchicalIndices)
 
         # find usages for the selected parameters
-        use = []
-        for index, row in self.measurementDf.iterrows():
-            currentScalings = self.splitScalingParameterNames(row['scalingParameter'])
-            for s in currentScalings:
-                #print(s, offsetsForHierarchical)
-                if s in offsetsForHierarchical:
-                    scalingIdx = offsetsForHierarchical.index(s)
-                    conditionIdx = self.conditions.index(row['condition'])
-                    observableIdx = self.observables.index(row['observable'])
-                    use.append((scalingIdx, conditionIdx, observableIdx))
+        use = self.getAnalyticalParameterTable(offsetsForHierarchical)
        
         dset = self.f.require_dataset("/offsetParametersMapToObservables", 
                                       shape=(len(use), 3), 
                                       dtype='<i4')
         dset[:] = use
-                
+        
+    def getAnalyticalParameterTable(self, parametersForHierarchical):
+        """Generate (scalingIdx, conditionIdx, observableIdx) table for all scaling parameter occurrences"""
+        use = []
+        for index, row in self.measurementDf.iterrows():
+            currentScalings = self.splitScalingParameterNames(row['scalingParameter'])
+            for s in currentScalings:
+                #print(s, parametersForHierarchical)
+                if s in parametersForHierarchical:
+                    scalingIdx = parametersForHierarchical.index(s)
+                    conditionIdx = self.conditions.index(row['condition'])
+                    observableIdx = self.observables.index(row['observable'])
+                    tup = (scalingIdx, conditionIdx, observableIdx)
+                    # Don't add a new line for each timepoint
+                    # We don't allow separate parameters for individual time-points
+                    # (Can be implemented via different observables)
+                    if not tup in use:
+                        use.append(tup)
+        return use
+    
     def ensureOffsetIsOffsetWithPositiveSign(self, scaling):
         """
         Current parPE implementation of hierarchical optimization assumes that offset parameters have positive sign.
@@ -646,8 +660,8 @@ class HDF5DataGenerator:
         that it has positive sign
         
         TODO: sympy
+        TODO: formula not showing when using python-model self.y is wrong
         """
-        
         print(colored("Ensure that %s is selected correctly as offset for hierarchical optimization and has positive sign (%s)." 
                       % (scaling, self.getFormulaForScalingParameter(scaling)), "yellow"))
         
@@ -692,16 +706,7 @@ class HDF5DataGenerator:
         print("Number of proportionality factors for hierarchical optimization: %d" % len(scalingsForHierarchicalIndices))
        
         # find usages for the selected parameters
-        use = []
-        for index, row in self.measurementDf.iterrows():
-            currentScalings = self.splitScalingParameterNames(row['scalingParameter'])
-            for s in currentScalings:
-                #print(s, scalingsForHierarchical)
-                if s in scalingsForHierarchical:
-                    scalingIdx = scalingsForHierarchical.index(s)
-                    conditionIdx = self.conditions.index(row['condition'])
-                    observableIdx = self.observables.index(row['observable'])
-                    use.append((scalingIdx, conditionIdx, observableIdx))
+        use = self.getAnalyticalParameterTable(scalingsForHierarchical)
        
         dset = self.f.require_dataset("/scalingParametersMapToObservables", 
                                       shape=(len(use), 3), 
@@ -738,16 +743,7 @@ class HDF5DataGenerator:
         print("Number of sigmas for hierarchical optimization: %d" % len(sigmasForHierarchicalIndices))
        
         # find usages for the selected parameters
-        use = []
-        for index, row in self.measurementDf.iterrows():
-            currentScalings = self.splitScalingParameterNames(row['scalingParameter'])
-            for s in currentScalings:
-                #print(s, scalingsForHierarchical)
-                if s in scalingsForHierarchical:
-                    sigmaIdx = scalingsForHierarchical.index(s)
-                    conditionIdx = self.conditions.index(row['condition'])
-                    observableIdx = self.observables.index(row['observable'])
-                    use.append((sigmaIdx, conditionIdx, observableIdx))
+        use = self.getAnalyticalParameterTable(sigmasForHierarchicalIndices)
        
         dset = self.f.require_dataset("/sigmaParametersMapToObservables", 
                                       shape=(len(use), 3), 
