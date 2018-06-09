@@ -75,6 +75,9 @@ void HierachicalOptimizationWrapper::init() {
     offsetParameterIndices = this->offsetReader->getOptimizationParameterIndices();
     RELEASE_ASSERT(std::is_sorted(this->offsetParameterIndices.begin(),
                                   this->offsetParameterIndices.end()), "");
+
+    std::cout<<"HierachicalOptimizationWrapper: "<<proportionalityFactorIndices.size()<<" proportionality factors, "
+            <<offsetParameterIndices.size()<<" offset parameters\n";
 }
 
 
