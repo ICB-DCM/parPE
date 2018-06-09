@@ -777,23 +777,20 @@ class HDF5DataGenerator:
         g.attrs['rtol'] = 1e-8
         g.attrs['stldet'] = 1
 
-        np = self.f['/parameters/modelParameterNames'].shape[0]
+        numParameters = self.f['/parameters/modelParameterNames'].shape[0]
 
-        self.f.require_dataset('/amiciOptions/sens_ind', shape=(np,), dtype="<i4", data=range(np))
+        self.f.require_dataset('/amiciOptions/sens_ind', shape=(numParameters,), dtype="<i4", data=range(numParameters))
 
         self.f.require_dataset('/amiciOptions/ts', shape=(len(self.timepoints),), dtype="f8", data=self.timepoints)
 
-        # set pscale based on whether is scaling parameter (log10 for non-hierarchical, lin for hierarchical)
-        linParametersAmiciIndices = self.getAnalyticallyComputedSimulationParameterIndices()
-        self.f.require_dataset('/amiciOptions/pscale', shape=(np,), dtype="<i4", data=[2 * (ip not in linParametersAmiciIndices) for ip in range(np) ])
-        
-        # TODO: move out of here 
-        np = self.f['/parameters/parameterNames'].shape[0]
-        linParametersOptimizationIndices = self.getAnalyticallyComputedOptimizationParameterIndices()
-        self.f.require_dataset('/parameters/parameterScaling', shape=(np,), dtype="<i4", data=[2 * (ip not in linParametersOptimizationIndices) for ip in range(np) ])
-        # TODO for above parameters, the bounds must be adapted for non-hierarchical optimization!
-        #  or use different pscale then
-        
+        # set pscale based on whether is scaling parameter 
+        #(log10 for non-hierarchical, lin for hierarchical)
+        #linParametersAmiciIndices = self.getAnalyticallyComputedSimulationParameterIndices()
+        #self.f.require_dataset('/amiciOptions/pscale', 
+        #                       shape=(numParameters,), dtype="<i4", data=[2 * (ip not in linParametersAmiciIndices) for ip in range(numParameters) ])
+        self.f.require_dataset('/amiciOptions/pscale', 
+                               shape=(numParameters,), dtype="<i4", data=np.full(numParameters, 2.0))
+                
     def getAnalyticallyComputedSimulationParameterIndices(self):
         """
         Get model parameter index (not optimization parameter index) of all analytically computed parameters
@@ -869,6 +866,8 @@ class HDF5DataGenerator:
     def writeBounds(self):
         """
         Parameter bounds for optimizer
+        
+        TODO: Wider bounds for offsets and scalings?
         """
         numParams = self.f['/parameters/parameterNames'].shape[0]
         min = self.f.require_dataset('/parameters/lowerBound', [numParams], 'f8')

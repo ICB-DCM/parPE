@@ -52,7 +52,7 @@ MultiConditionDataProviderHDF5::MultiConditionDataProviderHDF5(std::unique_ptr<a
     hdf5ParameterPath = rootPath + "/parameters";
     hdf5ParameterMinPath = hdf5ParameterPath + "/lowerBound";
     hdf5ParameterMaxPath = hdf5ParameterPath + "/upperBound";
-    hdf5ParameterScalingPath = hdf5ParameterPath + "/parameterScaling";
+    hdf5ParameterScalingPath = hdf5AmiciOptionPath + "/pscale";
 
     amici::hdf5::readModelDataFromHDF5(fileId, *this->model, hdf5AmiciOptionPath.c_str());
 }
