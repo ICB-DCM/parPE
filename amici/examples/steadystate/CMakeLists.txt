@@ -1,10 +1,6 @@
-set(MODEL_LIBRARIES "model_steadystate")
-set(MODEL_INCLUDE_DIRS "model")
-
-include_directories(${MODEL_INCLUDE_DIRS})
+set(MODEL_LIBRARIES "model_steadystate_scaled")
 
 # AMICI-generated model files
-add_subdirectory(model)
 add_subdirectory(model_steadystate_scaled)
 
 # example_steadystate executable

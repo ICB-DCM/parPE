@@ -11,3 +11,6 @@ CMakeLists.txt.user
 .pydevproject
 .settings/
 __pycache__/
+*.pyc
+*.mexa64
+.ipynb_checkpoints/
