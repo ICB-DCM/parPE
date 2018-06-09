@@ -76,8 +76,7 @@ void optimizationProblemGradientCheck(OptimizationProblem *problem,
 
     std::vector<double> thetaTmp(theta);
 
-    printf("Index\tGradient\tfd_f\t\t(delta)\t\tfd_c\t\t(delta)\t\tfd_b\t\t("
-           "delta)\n");
+    // printf("Index\tGradient\tfd_f\t\t(delta)\t\tfd_c\t\t(delta)\t\tfd_b\t\t(delta)\n");
 
     for (int i = 0; i < numParameterIndices; ++i) {
         int curInd = parameterIndices[i];
@@ -98,21 +97,34 @@ void optimizationProblemGradientCheck(OptimizationProblem *problem,
         thetaTmp[curInd] = theta[curInd];
 
         double curGrad = gradient[curInd];
-        char status[] = " ";
-        if(!((fd_c >= fd_f && fd_c <= fd_b)
-             || (fd_c <= fd_f && fd_c >= fd_b)))
-            status[0] = '!';
-        if(!((curGrad >= fd_f && curGrad <= fd_b)
-             || (curGrad <= fd_f && curGrad >= fd_b)))
-            status[0] = '!';
 
+        // check
+        //        char status[] = " ";
+        //        if(!((fd_c >= fd_f && fd_c <= fd_b)
+        //             || (fd_c <= fd_f && fd_c >= fd_b)))
+        //            status[0] = '!';
+        //        if(!((curGrad >= fd_f && curGrad <= fd_b)
+        //             || (curGrad <= fd_f && curGrad >= fd_b)))
+        //            status[0] = '!';
 
-        printf("%5d%s g: %12.6g fd_f: %12.6g (Δ%12.6g) fd_c: %12.6g (Δ%12.6g) fd_b: %12.6g (Δ%12.6g)",
-               curInd, status, curGrad,
-               fd_f, curGrad - fd_f,
-               fd_c, curGrad - fd_c,
-               fd_b, curGrad - fd_b);
-        printf("fb: %12.6g fc: %12.6g ff: %12.6g\n", fb, fc, ff);
+        //        printf("%5d%s g: %12.6g fd_f: %12.6g (Δ%12.6g) fd_c: %12.6g (Δ%12.6g) fd_b: %12.6g (Δ%12.6g)",
+        //               curInd, status, curGrad,
+        //               fd_f, curGrad - fd_f,
+        //               fd_c, curGrad - fd_c,
+        //               fd_b, curGrad - fd_b);
+        //        printf("fb: %12.6g fc: %12.6g ff: %12.6g\n", fb, fc, ff);
+
+        double reg = 1e-5;
+        double regRelError = (curGrad - fd_c) / (fd_c + reg);
+        loglevel ll = LOGLVL_INFO;
+        if(fabs(regRelError) > reg)
+            ll = LOGLVL_WARNING;
+        if(fabs(regRelError) > 0.1)
+            ll = LOGLVL_ERROR;
+
+        logmessage(ll, "%5d g: %12.6g  fd_c: %12.6g  Δ/fd_c: %.6e",
+               curInd, curGrad, fd_c, regRelError);
+
     }
 }
 
