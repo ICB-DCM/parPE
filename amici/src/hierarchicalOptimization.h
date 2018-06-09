@@ -149,7 +149,7 @@ public:
      * @param sigmas
      * @return
      */
-    std::vector <std::vector<double>> expandSigmas(std::vector<double> sigmas) const;
+    void fillInAnalyticalSigmas(std::vector<std::vector<double> > &allSigmas, const std::vector<double> &analyticalSigmas) const;
 
     /**
      * @brief Evaluate `fun` using the computed optimal scaling and offset parameters.

@@ -264,7 +264,6 @@ std::vector<double> HierachicalOptimizationWrapper::computeAnalyticalSigmas(
 void HierachicalOptimizationWrapper::applyOptimalOffsets(std::vector<double> const& offsetParameters,
                                                          std::vector<std::vector<double> > &modelOutputs) const {
 
-    // TODO: do we need to distinguish here?
     for(int i = 0; (unsigned) i < offsetParameters.size(); ++i) {
         double offset = getUnscaledParameter(offsetParameters[i],
                                              fun->getParameterScaling(offsetParameterIndices[i]));
@@ -273,26 +272,30 @@ void HierachicalOptimizationWrapper::applyOptimalOffsets(std::vector<double> con
     }
 }
 
-std::vector<std::vector<double> > HierachicalOptimizationWrapper::expandSigmas(std::vector<double> sigmas) const
+void HierachicalOptimizationWrapper::fillInAnalyticalSigmas(
+        std::vector<std::vector<double> > &allSigmas,
+        std::vector<double> const& analyticalSigmas) const
 {
-    // NOTE: assumes that all sigmas are computed analytically. any additional preset sigmas are ignored.
+    for(int sigmaParameterIdx = 0; (unsigned) sigmaParameterIdx < analyticalSigmas.size(); ++sigmaParameterIdx) {
+        // sigma value will be used for likelihood computation and not passed to AMICI -> unscale
+        auto sigmaParameterValue = getUnscaledParameter(
+                    analyticalSigmas[sigmaParameterIdx],
+                    fun->getParameterScaling(sigmaParameterIndices[sigmaParameterIdx]));
 
-    std::vector<std::vector<double> > expanded(numConditions, std::vector<double>(numObservables * numTimepoints, NAN));
-
-    for(int sigmaIdx = 0; (unsigned) sigmaIdx < sigmas.size(); ++sigmaIdx) {
-        auto dependentConditions = sigmaReader->getConditionsForParameter(sigmaIdx);
+        auto dependentConditions = sigmaReader->getConditionsForParameter(sigmaParameterIdx);
         for (auto const conditionIdx: dependentConditions) {
-            auto dependentObservables = sigmaReader->getObservablesForParameter(sigmaIdx, conditionIdx);
+            auto dependentObservables = sigmaReader->getObservablesForParameter(sigmaParameterIdx, conditionIdx);
             for(auto const observableIdx: dependentObservables) {
                 RELEASE_ASSERT(observableIdx < numObservables, "");
                 for(int timeIdx = 0; timeIdx < numTimepoints; ++timeIdx) {
                     // NOTE: this must be in sync with data ordering in AMICI (assumes row-major)
-                    expanded[conditionIdx][observableIdx + timeIdx * numObservables] = sigmas[sigmaIdx];
+                    // if this sigma was to be estimated, data must be nan
+                    RELEASE_ASSERT(std::isnan(allSigmas[conditionIdx][observableIdx + timeIdx * numObservables]), "");
+                    allSigmas[conditionIdx][observableIdx + timeIdx * numObservables] = sigmaParameterValue;
                 }
             }
         }
     }
-    return expanded;
 }
 
 
@@ -313,7 +316,7 @@ FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluateWithOptimalPara
                                                proportionalityFactorIndices, offsetParameterIndices, sigmaParameterIndices,
                                                scalings, offsets, sigmas);
 
-        // simualte all datasets
+        // simulate all datasets
         std::vector<int> dataIndices(numConditions);
         std::iota(dataIndices.begin(), dataIndices.end(), 0);
 
@@ -328,15 +331,9 @@ FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluateWithOptimalPara
         fillFilteredParams(fullGradient, analyticalParameterIndices, gradient.data());
     } else {
 
-        std::vector <std::vector<double>> fullSigmaMatrices;
-
+        auto fullSigmaMatrices = fun->getAllSigmas();
         if(sigmaParameterIndices.size()) {
-            // expand sigma vector:
-            fullSigmaMatrices = expandSigmas(sigmas);
-
-        } else {
-            // or if no sigmas were computed analytically, use table from file
-            fullSigmaMatrices = fun->getAllSigmas();
+            fillInAnalyticalSigmas(fullSigmaMatrices, sigmas);
         }
 
         // ... to compute negative log-likelihood
