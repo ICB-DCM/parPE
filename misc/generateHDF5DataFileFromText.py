@@ -873,8 +873,8 @@ class HDF5DataGenerator:
         numParams = self.f['/parameters/parameterNames'].shape[0]
         min = self.f.require_dataset('/parameters/lowerBound', [numParams], 'f8')
         max = self.f.require_dataset('/parameters/upperBound', [numParams], 'f8')
-        min[:] = [-2] * numParams
-        max[:] = [2] * numParams
+        min[:] = [-5] * numParams
+        max[:] = [3] * numParams
 
 
     def writeStartingPoints(self):
