@@ -201,11 +201,15 @@ class HDF5DataGenerator:
             self.simulationParameterMap[p] = {}
         
         # generate list of optimization parameters (>= simulation parameters because of condition-specific parameters)
-        optimizationParameterNames = self.replaceScalingParameterNames(simulationParameterNames[:])
-        print("Number of optimization parameters: %d" % len(optimizationParameterNames))
-        self.writeStringArray("/parameters/parameterNames", optimizationParameterNames)
-        assert(len(simulationParameterNames) <= len(optimizationParameterNames))
-        self.generateSimulationToOptimizationParameterMapping(simulationParameterNames, optimizationParameterNames)        
+        self.optimizationParameterNames = self.replaceScalingParameterNames(simulationParameterNames[:])
+        # keep map for reverse lookup
+        self.optimizationParameterNamesToIndices = { name: idx for idx, name in enumerate(self.optimizationParameterNames) }
+        
+        print("Number of optimization parameters: %d" % len(self.optimizationParameterNames))
+        self.writeStringArray("/parameters/parameterNames", self.optimizationParameterNames)
+        assert(len(simulationParameterNames) <= len(self.optimizationParameterNames))
+        
+        self.generateSimulationToOptimizationParameterMapping(simulationParameterNames, self.optimizationParameterNames)        
         
         self.f.flush()
     
@@ -216,7 +220,6 @@ class HDF5DataGenerator:
         """
         
         conditionSpecificScalingsUsed = self.getUsedScalingParameters()
-        
         #print(scalingsUsed)
         for currentConditionSpecificName in conditionSpecificScalingsUsed:
             currentGenericName = self.getGenericScalingParameterName(currentConditionSpecificName)
@@ -493,7 +496,7 @@ class HDF5DataGenerator:
         dsetSigmaY = self.f.create_dataset("/measurements/ysigma", 
                                       shape=(self.numConditions, self.numTimepoints, self.ny), 
                                            chunks=(1, self.numTimepoints, self.ny), 
-                                           fillvalue=1.0, dtype='f8', compression=self.compression)     
+                                           fillvalue=np.nan, dtype='f8', compression=self.compression)     
         
         self.writeMeasurements(dsetY, dsetSigmaY)
         self.f.flush()
@@ -537,7 +540,13 @@ class HDF5DataGenerator:
             observableIdx = self.observables.index(row['observable'])
             timeIdx = self.timepoints.index(row['time'])
             dsetY     [conditionIdx, timeIdx, observableIdx] = float(row['measurement'])
-            dsetSigmaY[conditionIdx, timeIdx, observableIdx] = float(row['sigma'])
+            scalings = self.splitScalingParameterNames(row['scalingParameter'])
+            hasSigmaParameter = len([s for s in scalings if self.getGenericScalingParameterName(s).endswith('_sigma')])
+            sigma = float(row['sigma'])
+            if hasSigmaParameter and not np.isnan(sigma):
+                print(colored('Warning: Sigma parameter name and fixed sigma provided at the same time for "%s"' % (row), 'yellow'))                  
+                sigma = np.nan
+            dsetSigmaY[conditionIdx, timeIdx, observableIdx] = sigma 
 
     def checkObservablesSbmlMatchAmici(self, observables, y):
         """
@@ -609,14 +618,12 @@ class HDF5DataGenerator:
         #offsetsForHierarchical = [x for x in offsetsForHierarchical if x.startswith("offset_") and getObservableForScalingParameter not in observablesBlacklist ]
         '''
         offsetsForHierarchical = [x for x in self.getUsedScalingParameters() if x.startswith("offset_") ]
-        print(offsetsForHierarchical)
         # don't create dataset if it would be empty
         if not len(offsetsForHierarchical):
             return
         
         # find indices for names
-        parameterNames = self.f['/parameters/parameterNames'][:].tolist()
-        offsetsForHierarchicalIndices = [ parameterNames.index(x) for x in offsetsForHierarchical ]
+        offsetsForHierarchicalIndices = [ self.optimizationParameterNamesToIndices[x] for x in offsetsForHierarchical ]
         
         [ self.ensureOffsetIsOffsetWithPositiveSign(x) for x in offsetsForHierarchical ]
         print("Number of offset parameters for hierarchical optimization: %d" % len(offsetsForHierarchicalIndices))
@@ -651,6 +658,7 @@ class HDF5DataGenerator:
                     # (Can be implemented via different observables)
                     if not tup in use:
                         use.append(tup)
+        assert len(use)
         return use
     
     def ensureOffsetIsOffsetWithPositiveSign(self, scaling):
@@ -691,12 +699,10 @@ class HDF5DataGenerator:
         how to let the user select which ones to add?
         """        
        
-        parameterNames = self.f['/parameters/parameterNames'][:].tolist()
-
         scalingsForHierarchical = [x for x in self.getUsedScalingParameters() if x.startswith("scaling_") ]
         if not len(scalingsForHierarchical):
             return
-        scalingsForHierarchicalIndices = [ parameterNames.index(x) for x in scalingsForHierarchical ]
+        scalingsForHierarchicalIndices = [ self.optimizationParameterNamesToIndices[x] for x in scalingsForHierarchical ]
         [ self.ensureProportionalityFactorIsProportionalityFactor(x) for x in scalingsForHierarchical ]
 
         dset = self.f.require_dataset("/scalingParameterIndices", 
@@ -729,12 +735,11 @@ class HDF5DataGenerator:
         """
         Deal with sigma parameters
         """
-        parameterNames = self.f['/parameters/parameterNames'][:].tolist()
-        sigmasForHierarchical = [x for x in self.getUsedScalingParameters() if x.startswith("_sigma") ]
+        sigmasForHierarchical = [x for x in self.getUsedScalingParameters() if self.getGenericScalingParameterName(x).endswith("_sigma") ]
         if not len(sigmasForHierarchical):
             return
 
-        sigmasForHierarchicalIndices = [ parameterNames.index(x) for x in sigmasForHierarchical ]
+        sigmasForHierarchicalIndices = [ self.optimizationParameterNamesToIndices[x] for x in sigmasForHierarchical ]
 
         dset = self.f.require_dataset("/sigmaParameterIndices", 
                                       shape=(len(sigmasForHierarchicalIndices),), 
@@ -743,7 +748,7 @@ class HDF5DataGenerator:
         print("Number of sigmas for hierarchical optimization: %d" % len(sigmasForHierarchicalIndices))
        
         # find usages for the selected parameters
-        use = self.getAnalyticalParameterTable(sigmasForHierarchicalIndices)
+        use = self.getAnalyticalParameterTable(sigmasForHierarchical)
        
         dset = self.f.require_dataset("/sigmaParametersMapToObservables", 
                                       shape=(len(use), 3), 
