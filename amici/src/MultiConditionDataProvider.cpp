@@ -1,4 +1,5 @@
 #include "MultiConditionDataProvider.h"
+#include <hierarchicalOptimization.h>
 #include "logging.h"
 #include "misc.h"
 #include <parpeException.h>
@@ -110,9 +111,9 @@ void MultiConditionDataProviderHDF5::mapAndSetOptimizationToSimulationVariables(
 
 amici::AMICI_parameter_scaling MultiConditionDataProviderHDF5::getParameterScale(int optimizationParameterIndex) const
 {
-    return static_cast<amici::AMICI_parameter_scaling>(
-                hdf5Read1DIntegerHyperslab(
-                    file, hdf5ParameterScalingPath, 1, optimizationParameterIndex).at(0));
+    auto res = hdf5Read1DIntegerHyperslab(file, hdf5ParameterScalingPath,
+                                          1, optimizationParameterIndex).at(0);
+    return static_cast<amici::AMICI_parameter_scaling>(res);
 }
 
 /**
@@ -151,49 +152,15 @@ void MultiConditionDataProviderHDF5::updateFixedSimulationParameters(int conditi
 }
 
 std::unique_ptr<amici::ExpData> MultiConditionDataProviderHDF5::getExperimentalDataForCondition(
-        int conditionIdx, const gsl::span<const double>) const {
+        int conditionIdx) const {
     auto lock = hdf5MutexGetLock();
 
     auto edata = std::make_unique<amici::ExpData>(*model);
-    assert(edata && "Failed getting experimental data. Check data file.");
+    RELEASE_ASSERT(edata, "Failed getting experimental data. Check data file.");
 
-    // measurements
-    hdf5Read3DDoubleHyperslab(fileId, hdf5MeasurementPath.c_str(),
-                              1, edata->nt, edata->nytrue,
-                              conditionIdx, 0, 0, edata->my.data());
-
-    // sigmas
-    bool hasAnalyticalSigmas = false;
-    if(optimizationOptions->hierarchicalOptimization) {
-        // TODO: need to get rid of this hard-coded path
-        if(hdf5DatasetExists(fileId, "/sigmaParameterIndices")) {
-            int rows = 0;
-            hdf5GetDatasetDimensions(fileId, "/sigmaParameterIndices", 1, &rows);
-            if(rows)
-                hasAnalyticalSigmas = true;
-        }
-    }
-    if(optimizationOptions->hierarchicalOptimization && hasAnalyticalSigmas) {
-        // NOTE: If hierarchical optimization is enabled, we assume all sigmas are parameters,
-        // so we don't load them from file, but set them to NaN
-        edata->sigmay.assign(edata->sigmay.size(), NAN);
-
-    } else {
-        hdf5Read3DDoubleHyperslab(fileId, hdf5MeasurementSigmaPath.c_str(),
-                                  1, edata->nt, edata->nytrue,
-                                  conditionIdx, 0, 0, edata->sigmay.data());
-    }
-    //    /* if sigma is a parameter, hdf5MeasurementSigmaPath will be NaN.
-    //     * Replace those NaNs with the respective optimization parameters.
-    //     */
-    //    for (int it = 0; it < edata->nt; ++it) {
-    //        for (int iy = 0; iy < edata->nytrue; iy++) {
-    //            int idx = it * edata->nytrue + iy;
-    //            if (!std::isnan(edata->my[idx]) && std::isnan(edata->sigmay[idx])) {
-    //                // edata->sigmay[idx] = getParameter .. // TODO
-    //            }
-    //        }
-    //    }
+    edata->my = getMeasurementForConditionIndex(conditionIdx);
+    edata->sigmay = getSigmaForConditionIndex(conditionIdx);
+    // TODO: at some point we should include condition-parameters here too
 
     return edata;
 }
@@ -201,23 +168,40 @@ std::unique_ptr<amici::ExpData> MultiConditionDataProviderHDF5::getExperimentalD
 std::vector<std::vector<double> > MultiConditionDataProviderHDF5::getAllMeasurements() const {
     std::vector<std::vector<double>> result(getNumberOfConditions());
     for(int conditionIdx = 0; (unsigned) conditionIdx < result.size(); ++conditionIdx) {
-        result[conditionIdx].resize(model->nt() * model->nytrue);
-        hdf5Read3DDoubleHyperslab(fileId, hdf5MeasurementPath.c_str(),
-                                  1, model->nt(), model->nytrue,
-                                  conditionIdx, 0, 0, result[conditionIdx].data());
+        result[conditionIdx] = getMeasurementForConditionIndex(conditionIdx);
     }
     return result;
 }
 
 std::vector<std::vector<double> > MultiConditionDataProviderHDF5::getAllSigmas() const
 {
+    // TODO: how to deal with sigma parameters vs table
     std::vector<std::vector<double>> result(getNumberOfConditions());
     for(int conditionIdx = 0; (unsigned) conditionIdx < result.size(); ++conditionIdx) {
-        result[conditionIdx].resize(model->nt() * model->nytrue);
-        hdf5Read3DDoubleHyperslab(fileId, hdf5MeasurementSigmaPath.c_str(),
-                                  1, model->nytrue, model->nt(),
-                                  conditionIdx, 0, 0, result[conditionIdx].data());
+        result[conditionIdx]= getSigmaForConditionIndex(conditionIdx);
     }
+    return result;
+}
+
+std::vector<double> MultiConditionDataProviderHDF5::getSigmaForConditionIndex(int conditionIdx) const
+{
+    auto result = std::vector<double>(model->nt() * model->nytrue);
+
+    hdf5Read3DDoubleHyperslab(fileId, hdf5MeasurementSigmaPath.c_str(),
+                              1, model->nt(), model->nytrue,
+                              conditionIdx, 0, 0, result.data());
+
+    return result;
+}
+
+std::vector<double> MultiConditionDataProviderHDF5::getMeasurementForConditionIndex(int conditionIdx) const
+{
+    auto result = std::vector<double>(model->nt() * model->nytrue);
+
+    hdf5Read3DDoubleHyperslab(fileId, hdf5MeasurementPath.c_str(),
+                              1, model->nt(), model->nytrue,
+                              conditionIdx, 0, 0, result.data());
+
     return result;
 }
 
@@ -404,7 +388,7 @@ void MultiConditionDataProviderDefault::updateSimulationParameters(int condition
     model.setParameters(std::vector<double>(optimizationParams, optimizationParams + getNumOptimizationParameters()));
 }
 
-std::unique_ptr<amici::ExpData> MultiConditionDataProviderDefault::getExperimentalDataForCondition(int conditionIdx, const gsl::span<const double> parameters) const
+std::unique_ptr<amici::ExpData> MultiConditionDataProviderDefault::getExperimentalDataForCondition(int conditionIdx) const
 {
     return std::make_unique<amici::ExpData>(edata[conditionIdx]);
 }

@@ -330,9 +330,7 @@ SimulationRunnerSimple::AmiciResultPackageSimple runAndLogSimulation(
     // necessary here, this has been done by master)
     dataProvider->updateFixedSimulationParameters(path.idxConditions, model);
 
-    auto parameters = model.getParameters();
-    auto edata = dataProvider->getExperimentalDataForCondition(path.idxConditions, gsl::make_span(parameters.data(), parameters.size()));
-
+    auto edata = dataProvider->getExperimentalDataForCondition(path.idxConditions);
 
     std::unique_ptr<amici::ReturnData> rdata;
     try {

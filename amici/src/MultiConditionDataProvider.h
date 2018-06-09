@@ -80,7 +80,7 @@ class MultiConditionDataProvider {
     virtual void updateSimulationParameters(int conditionIndex, const double *optimizationParams,
         amici::Model &model) const = 0;
 
-    virtual std::unique_ptr<amici::ExpData> getExperimentalDataForCondition(int conditionIdx, const gsl::span<const double>) const = 0;
+    virtual std::unique_ptr<amici::ExpData> getExperimentalDataForCondition(int conditionIdx) const = 0;
 
     virtual std::vector<std::vector<double> > getAllMeasurements() const = 0;
     virtual std::vector<std::vector<double> > getAllSigmas() const = 0;
@@ -142,7 +142,7 @@ class MultiConditionDataProviderDefault : public MultiConditionDataProvider {
     virtual void updateSimulationParameters(int conditionIndex, const double *optimizationParams,
         amici::Model &model) const override;
 
-    virtual std::unique_ptr<amici::ExpData> getExperimentalDataForCondition(int conditionIdx, const gsl::span<const double> parameters) const override;
+    virtual std::unique_ptr<amici::ExpData> getExperimentalDataForCondition(int conditionIdx) const override;
 
     virtual std::vector<std::vector<double> > getAllMeasurements() const override;
     virtual std::vector<std::vector<double> > getAllSigmas() const override;
@@ -259,10 +259,13 @@ class MultiConditionDataProviderHDF5 : public MultiConditionDataProvider {
     virtual void updateFixedSimulationParameters(int conditionIdx,
                                                 amici::Model &model) const override;
 
-    virtual std::unique_ptr<amici::ExpData> getExperimentalDataForCondition(int conditionIdx, const gsl::span<const double>) const override;
+    virtual std::unique_ptr<amici::ExpData> getExperimentalDataForCondition(int conditionIdx) const override;
 
     std::vector<std::vector<double> > getAllMeasurements() const override;
     std::vector<std::vector<double> > getAllSigmas() const override;
+
+    std::vector<double> getSigmaForConditionIndex(int conditionIdx) const;
+    std::vector<double> getMeasurementForConditionIndex(int conditionIdx) const;
 
     /**
      * @brief getOptimizationParametersLowerBounds Get lower parameter bounds

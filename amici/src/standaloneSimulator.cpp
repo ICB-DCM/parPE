@@ -107,8 +107,7 @@ int StandaloneSimulator::run(const std::string& resultFile,
                     job->recvBuffer.data(), job->recvBuffer.size());
         job->recvBuffer = std::vector<char>(); // free buffer
 
-        auto parameters = model->getParameters();
-        auto edata = dataProvider->getExperimentalDataForCondition(dataIdx, gsl::make_span(parameters.data(), parameters.size()));
+        auto edata = dataProvider->getExperimentalDataForCondition(dataIdx);
 
         rw.saveSimulationResults(edata.get(), result.rdata.get(), dataIdx);
     },
@@ -149,8 +148,7 @@ int StandaloneSimulator::run(const std::string& resultFile,
             std::vector<double> sigmas(allMeasurements[dataIdx].size(), NAN);
             result.rdata->llh = -parpe::computeNegLogLikelihood(allMeasurements[dataIdx], modelOutputs[dataIdx], sigmas);
 
-            auto parameters = model->getParameters();
-            auto edata = dataProvider->getExperimentalDataForCondition(dataIdx, gsl::make_span(parameters.data(), parameters.size()));
+            auto edata = dataProvider->getExperimentalDataForCondition(dataIdx);
             rw.saveSimulationResults(edata.get(), result.rdata.get(), dataIdx);
         }
         return 0;
@@ -213,8 +211,7 @@ JobResultAmiciSimulation StandaloneSimulator::runSimulation(JobIdentifier path, 
 {
     dataProvider->updateFixedSimulationParameters(path.idxConditions, model);
 
-    auto parameters = model.getParameters();
-    auto edata = dataProvider->getExperimentalDataForCondition(path.idxConditions, gsl::make_span(parameters.data(), parameters.size()));
+    auto edata = dataProvider->getExperimentalDataForCondition(path.idxConditions);
 
     auto rdata = amici::runAmiciSimulation(solver, edata.get(), model);
 
