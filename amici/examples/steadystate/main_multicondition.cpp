@@ -42,12 +42,21 @@ class SteadystateApplication : public parpe::OptimizationApplication {
         dataProvider = std::make_unique<SteadyStateMultiConditionDataProvider>(
                     getModel(), inFileArgument);
 
-        auto multiCondProb = new parpe::MultiConditionProblem(dataProvider.get(), &loadBalancer);
-        problem.reset(multiCondProb);
+        // read options from file
+        auto optimizationOptions = parpe::OptimizationOptions::fromHDF5(dataProvider->getHdf5FileId());
 
-        std::unique_ptr<parpe::OptimizationOptions> options(
-                            parpe::OptimizationOptions::fromHDF5(dataProvider->getHdf5FileId()));
-        problem->setOptimizationOptions(*options.get());
+        auto multiCondProb = new parpe::MultiConditionProblem(dataProvider.get(), &loadBalancer);
+
+        // hierarchical optimization?
+        if(optimizationOptions->hierarchicalOptimization) {
+            problem.reset(new parpe::HierachicalOptimizationProblemWrapper(
+                              std::unique_ptr<parpe::MultiConditionProblem>(multiCondProb),
+                              dataProvider.get()));
+        } else {
+            problem.reset(multiCondProb);
+        }
+
+        problem->setOptimizationOptions(*optimizationOptions);
 
         parpe::JobIdentifier id;
         resultWriter = std::make_unique<parpe::MultiConditionProblemResultWriter>(outFileArgument, true, id);

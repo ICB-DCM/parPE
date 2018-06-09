@@ -115,7 +115,7 @@ int ExampleSteadystateGradientFunctionParallel::evaluateSerial(const double *par
 
     for (int i = 0; i < numConditions; ++i) {
         dataProvider->updateFixedSimulationParameters(i, *model);
-        auto edata = dataProvider->getExperimentalDataForCondition(i, gsl::make_span(parameters, numParameters()));
+        auto edata = dataProvider->getExperimentalDataForCondition(i);
 
         auto rdata = amici::runAmiciSimulation(*solver, edata.get(), *model);
         status += rdata->status;
@@ -145,8 +145,7 @@ void ExampleSteadystateGradientFunctionParallel::messageHandler(std::vector<char
 
     // read data for current conditions
     dataProvider->updateFixedSimulationParameters(conditionIdx, *model);
-    auto parameters = model->getParameters();
-    auto edata = dataProvider->getExperimentalDataForCondition(conditionIdx, gsl::make_span(parameters.data(), parameters.size()));
+    auto edata = dataProvider->getExperimentalDataForCondition(conditionIdx);
 
     if (needGradient) {
         solver->setSensitivityOrder(amici::AMICI_SENSI_ORDER_FIRST);
