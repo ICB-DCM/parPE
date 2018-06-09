@@ -133,7 +133,9 @@ class SbmlImporter:
                              ' const realtype *k, const realtype *h)'},
             'dydp': {
                 'signature': '(double *dydp, const realtype t, const realtype *x, const realtype *p,'
-                             ' const realtype *k, const realtype *h)'},
+                             ' const realtype *k, const realtype *h, const int ip)',
+                'sensitivity': True},
+
             'qBdot': {
                 'signature': '(realtype *qBdot, const int ip, const realtype t, const realtype *x, const realtype *p,'
                              ' const realtype *k, const realtype *h, const realtype *xB, const realtype *w,'
@@ -783,7 +785,7 @@ class SbmlImporter:
         self.functions['dydp']['sym'] = self.functions['y']['sym']\
                                                 .jacobian(self.symbols['parameter']['sym'])
         self.functions['dydx']['sym'] = self.functions['y']['sym']\
-                                                .jacobian(self.symbols['species']['sym'])
+                                                .jacobian(self.symbols['species']['sym']).transpose()
         
         self.functions['dwdp']['sym'] = self.fluxVector.jacobian(self.symbols['parameter']['sym'])
 
@@ -894,12 +896,10 @@ class SbmlImporter:
 
         """
 
-        # setup.py assumes it is run from within the model dir
+        # setup.py assumes it is run from within the model directory
         moduleDir = self.modelPath
-        oldCwd = os.getcwd()
-        os.chdir(moduleDir)
-        
-        script_args = []
+
+        script_args = [sys.executable, '%s%ssetup.py' % (moduleDir, os.sep)]
         
         if verbose:
             script_args.append('--verbose')
@@ -907,13 +907,22 @@ class SbmlImporter:
             script_args.append('--quiet')
         
         script_args.extend(['build_ext', '--build-lib=%s' % moduleDir])
-                       
-        from distutils.core import run_setup
-        run_setup('setup.py',
-                  script_args=script_args)
-        
-        os.chdir(oldCwd)
 
+        # distutils.core.run_setup looks nicer, but does not let us check the
+        # result easily
+        try:
+            result = subprocess.run(script_args,
+                                    cwd=moduleDir,
+                                    stdout=subprocess.PIPE,
+                                    stderr=subprocess.STDOUT,
+                                    check=True)
+        except subprocess.CalledProcessError as e:
+            print(e.output.decode('utf-8'))
+            raise
+                    
+        if verbose:
+            print(result.stdout.decode('utf-8'))
+        
     def writeIndexFiles(self,name):
         """Write index file for a symbolic array.
         
