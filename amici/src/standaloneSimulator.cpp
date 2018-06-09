@@ -79,7 +79,6 @@ int StandaloneSimulator::run(const std::string& resultFile,
     } else {
         // is already the correct length
         // parameters = optimizationParameters;
-        }
     }
 
     RELEASE_ASSERT(parameters.size() == (unsigned)dataProvider->getNumOptimizationParameters(), "Size of supplied parameter vector does not match model dimensions.");

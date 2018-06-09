@@ -90,8 +90,8 @@ void HierachicalOptimizationWrapper::init() {
 
     std::cout<<"HierachicalOptimizationWrapper: "
             <<proportionalityFactorIndices.size()<<" proportionality factors, "
-              <<offsetParameterIndices.size()<<" offset parameters, ";
-            <<sigmaParameterIndices.size()<<" sigmas\n";
+           <<offsetParameterIndices.size()<<" offset parameters, "
+          <<sigmaParameterIndices.size()<<" sigmas\n";
 }
 
 

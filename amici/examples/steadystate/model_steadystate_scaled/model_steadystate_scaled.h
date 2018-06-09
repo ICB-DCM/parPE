@@ -51,8 +51,8 @@ public:
         : amici::Model_ODE(
               3, // nx
               3, // nxtrue
-              5, // ny
-              5, // nytrue
+              6, // ny
+              6, // nytrue
               0, // nz
               0, // nztrue
               0, // nevent
@@ -64,7 +64,7 @@ public:
               3, // ubw
               3, // lbw
               amici::AMICI_O2MODE_NONE, // o2mode
-              std::vector<realtype>{1.0, 0.5, 0.4, 2.0, 0.1, 1.0, 1.0}, // dynamic parameters
+              std::vector<realtype>{1.0, 0.5, 0.4, 2.0, 0.1, 1.0, 1.0, 1.0}, // dynamic parameters
               std::vector<realtype>{1.0}, // fixedParameters
               std::vector<int>{}, // plist
               std::vector<realtype>(3,0.0), // idlist

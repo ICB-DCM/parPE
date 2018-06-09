@@ -3,3 +3,4 @@
 #define observable_x3 y[2]
 #define observable_x1_scaled y[3]
 #define observable_x2_offsetted y[4]
+#define observable_x1withsigma y[5]

@@ -32,5 +32,7 @@ void qBdot_model_steadystate_scaled(realtype *qBdot, const int ip, const realtyp
             break;
         case 6:
             break;
+        case 7:
+            break;
 }
 }

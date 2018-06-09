@@ -27,5 +27,8 @@ void dJydsigma_model_steadystate_scaled(double *dJydsigma, const int iy, const r
         case 4:
             dJydsigma[4] = -1.0*pow(-mobservable_x2_offsetted + observable_x2_offsetted, 2)/pow(sigmaobservable_x2_offsetted, 3) + 1.0*pow(sigmaobservable_x2_offsetted, -1);
             break;
+        case 5:
+            dJydsigma[5] = -1.0*pow(-mobservable_x1withsigma + observable_x1withsigma, 2)/pow(sigmaobservable_x1withsigma, 3) + 1.0*pow(sigmaobservable_x1withsigma, -1);
+            break;
 }
 }

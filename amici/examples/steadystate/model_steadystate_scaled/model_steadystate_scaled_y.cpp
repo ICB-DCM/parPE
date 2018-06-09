@@ -14,4 +14,5 @@ void y_model_steadystate_scaled(double *y, const realtype t, const realtype *x, 
     y[2] = x3;
     y[3] = x1*scaling_x1;
     y[4] = offset_x2 + x2;
+    y[5] = x1;
 }

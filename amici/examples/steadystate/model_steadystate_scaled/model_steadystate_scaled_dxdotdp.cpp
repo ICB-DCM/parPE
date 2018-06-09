@@ -37,5 +37,7 @@ void dxdotdp_model_steadystate_scaled(realtype *dxdotdp, const realtype t, const
             break;
         case 6:
             break;
+        case 7:
+            break;
 }
 }

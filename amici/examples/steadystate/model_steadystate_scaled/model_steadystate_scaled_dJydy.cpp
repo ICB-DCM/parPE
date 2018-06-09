@@ -27,5 +27,8 @@ void dJydy_model_steadystate_scaled(double *dJydy, const int iy, const realtype 
         case 4:
             dJydy[4] = 1.0*(-mobservable_x2_offsetted + observable_x2_offsetted)/pow(sigmaobservable_x2_offsetted, 2);
             break;
+        case 5:
+            dJydy[5] = 1.0*(-mobservable_x1withsigma + observable_x1withsigma)/pow(sigmaobservable_x1withsigma, 2);
+            break;
 }
 }

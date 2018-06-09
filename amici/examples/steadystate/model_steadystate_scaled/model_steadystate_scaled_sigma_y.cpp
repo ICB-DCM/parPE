@@ -13,4 +13,5 @@ void sigma_y_model_steadystate_scaled(double *sigmay, const realtype t, const re
     sigmay[2] = 1;
     sigmay[3] = 1;
     sigmay[4] = 1;
+    sigmay[5] = observable_x1withsigma_sigma;
 }

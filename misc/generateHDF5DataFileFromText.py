@@ -607,6 +607,9 @@ class HDF5DataGenerator:
         # TODO: ensure that this observable does not have a proportionality factor
         parameterNames = self.f['/parameters/parameterNames'][:].tolist()
         offsetsForHierarchical = [x for x in self.getUsedScalingParameters() if x.startswith("offset_") and parameterNames.index(x) not in observablesBlacklist ]
+        if not len(offsetsForHierarchical):
+            return
+
         offsetsForHierarchicalIndices = [ parameterNames.index(x) for x in offsetsForHierarchical ]
         [ self.ensureOffsetIsOffsetWithPositiveSign(x) for x in offsetsForHierarchical ]
         print("Number of offset parameters for hierarchical optimization: %d" % len(offsetsForHierarchicalIndices))
@@ -723,7 +726,9 @@ class HDF5DataGenerator:
         """
         parameterNames = self.f['/parameters/parameterNames'][:].tolist()
         sigmasForHierarchical = [x for x in self.getUsedScalingParameters() if x.startswith("_sigma") ]
-        
+        if not len(sigmasForHierarchical):
+            return
+
         sigmasForHierarchicalIndices = [ parameterNames.index(x) for x in sigmasForHierarchical ]
 
         dset = self.f.require_dataset("/sigmaParameterIndices", 
@@ -735,7 +740,7 @@ class HDF5DataGenerator:
         # find usages for the selected parameters
         use = []
         for index, row in self.measurementDf.iterrows():
-            currentScalings = row['scalingParameter'].split(',')
+            currentScalings = self.splitScalingParameterNames(row['scalingParameter'])
             for s in currentScalings:
                 #print(s, scalingsForHierarchical)
                 if s in scalingsForHierarchical:

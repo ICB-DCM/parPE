@@ -26,5 +26,7 @@ void dydp_model_steadystate_scaled(double *dydp, const realtype t, const realtyp
         case 6:
             dydp[4] = 1;
             break;
+        case 7:
+            break;
 }
 }
