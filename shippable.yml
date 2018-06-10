@@ -22,7 +22,7 @@ build:
 
 	# build parpe
         - cd $PARPE_BASE && ./buildShippable.sh
-        
+
 	# run tests
 	- cd $PARPE_BASE/build && CTEST_OUTPUT_ON_FAILURE=1 make test
 	# valgrind
