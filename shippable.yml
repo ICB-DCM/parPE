@@ -4,7 +4,7 @@ compiler: gcc
 
 build:
     ci:
-	# install external deps
+        # install external deps
         - lsb_release -a
         - sudo apt-get update
         # libceres-dev is too old and missing some options
@@ -20,13 +20,13 @@ build:
         # Download AMICI from github - cd $PARPE_BASE/ThirdParty && ./installAMICI.sh
         #- cd $PARPE_BASE/ThirdParty && ./installCeres.sh
 
-	# build parpe
+        # build parpe
         - cd $PARPE_BASE && ./buildShippable.sh
 
-	# run tests
-	- cd $PARPE_BASE/build && CTEST_OUTPUT_ON_FAILURE=1 make test
-	# valgrind
+        # run tests
+        - cd $PARPE_BASE/build && CTEST_OUTPUT_ON_FAILURE=1 make test
+        # valgrind
         - CTEST_OUTPUT_ON_FAILURE=1 make ExperimentalMemCheck; cat Testing/Temporary/MemoryChecker.*.log
-	# coverage report
+        # coverage report
         - cd $PARPE_BASE/build && make parpe_coverage_cobertura
         - mkdir -p $PARPE_BASE/shippable/codecoverage && cp $PARPE_BASE/build/parpe_coverage_cobertura.xml $PARPE_BASE/shippable/codecoverage
