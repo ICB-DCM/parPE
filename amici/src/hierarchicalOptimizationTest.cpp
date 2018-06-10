@@ -178,14 +178,14 @@ TEST(hierarchicalOptimization, hierarchicalOptimization) {
                                             fun->numConditions, fun->numObservables, fun->numTimepoints,
                                             parpe::ErrorModel::normal);
 
-    CHECK_TRUE(hierarchicalOptimizationWrapper.numScalingFactors() == 2);
+    CHECK_TRUE(hierarchicalOptimizationWrapper.numProportionalityFactors() == 2);
 
     std::vector<double> reducedParameters {3.0, 2.0};
     std::vector<double> fullParameters {3.0, 2.0, 1.5, 1.3}; // last 2 are scalings
     // scalings set to log10(1)
     std::vector<double> onesFullParameters {0.0, 0.0, 3.0, 2.0}; // last 2 are scalings
 
-    std::vector<double> scalingDummy(hierarchicalOptimizationWrapper.numScalingFactors(), 0.0);
+    std::vector<double> scalingDummy(hierarchicalOptimizationWrapper.numProportionalityFactors(), 0.0);
     std::vector<double> offsetDummy(hierarchicalOptimizationWrapper.numOffsetParameters(), 0.0);
     std::vector<double> sigmaDummy(hierarchicalOptimizationWrapper.numSigmaParameters(), 0.0);
     CHECK_TRUE(onesFullParameters == parpe::spliceParameters(gsl::make_span(reducedParameters.data(), reducedParameters.size()),

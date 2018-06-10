@@ -178,7 +178,7 @@ public:
      */
     virtual int numParameters() const override;
 
-    int numScalingFactors() const;
+    int numProportionalityFactors() const;
 
     std::vector<int> const& getProportionalityFactorIndices() const;
 

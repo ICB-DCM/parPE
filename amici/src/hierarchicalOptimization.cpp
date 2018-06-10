@@ -88,10 +88,12 @@ void HierachicalOptimizationWrapper::init() {
     RELEASE_ASSERT(std::is_sorted(this->sigmaParameterIndices.begin(),
                                   this->sigmaParameterIndices.end()), "");
 
-    std::cout<<"HierachicalOptimizationWrapper: "
-            <<proportionalityFactorIndices.size()<<" proportionality factors, "
-           <<offsetParameterIndices.size()<<" offset parameters, "
-          <<sigmaParameterIndices.size()<<" sigmas\n";
+    std::cout<<"HierachicalOptimizationWrapper parameters: "
+            <<numParameters()<<" total, "
+           <<fun->numParameters()<< " numerical, "
+          <<proportionalityFactorIndices.size()<<" proportionality, "
+         <<offsetParameterIndices.size()<<" offset, "
+        <<sigmaParameterIndices.size()<<" sigma\n";
 }
 
 
@@ -101,7 +103,7 @@ FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluate(
         double *gradient) const {
     auto parametersSpan = gsl::make_span(parameters, parameters?numParameters():0);
 
-    if(numScalingFactors() == 0 && numOffsetParameters() == 0) {
+    if(numProportionalityFactors() == 0 && numOffsetParameters() == 0) {
         // nothing to do, just pass through
 
         // evaluate for all conditions
@@ -140,9 +142,9 @@ FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluate(
 
 std::vector<double> HierachicalOptimizationWrapper::getDefaultScalingFactors() const
 {
-    auto result = std::vector<double>(numScalingFactors());
+    auto result = std::vector<double>(numProportionalityFactors());
 
-    for(int i = 0; i < numScalingFactors(); ++i) {
+    for(int i = 0; i < numProportionalityFactors(); ++i) {
         result[i] = getDefaultScalingFactor(
                     fun->getParameterScaling(proportionalityFactorIndices[i]));
     }
@@ -253,10 +255,11 @@ std::vector<double> HierachicalOptimizationWrapper::computeAnalyticalSigmas(
     std::vector<double> sigmas(numSigmas);
 
     for(int i = 0; i < numSigmas; ++i) {
-        parpe::computeAnalyticalOffsets(i,
-                                        fun->getParameterScaling(sigmaParameterIndices[i]),
-                                        modelOutputsScaled, measurements,
-                                        *sigmaReader, numObservables, numTimepoints);
+        parpe::computeAnalyticalSigmas(
+                    i,
+                    fun->getParameterScaling(sigmaParameterIndices[i]),
+                    modelOutputsScaled, measurements,
+                    *sigmaReader, numObservables, numTimepoints);
     }
     return sigmas;
 }
@@ -345,10 +348,10 @@ FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluateWithOptimalPara
 
 
 int HierachicalOptimizationWrapper::numParameters() const {
-    return fun->numParameters() - numScalingFactors() - numOffsetParameters();
+    return fun->numParameters() - numProportionalityFactors() - numOffsetParameters() - numSigmaParameters();
 }
 
-int HierachicalOptimizationWrapper::numScalingFactors() const {
+int HierachicalOptimizationWrapper::numProportionalityFactors() const {
     return proportionalityFactorIndices.size();
 }
 
@@ -394,6 +397,7 @@ std::vector<int> HierachicalOptimizationWrapper::getAnalyticalParameterIndices()
 {
     auto combinedIndices = proportionalityFactorIndices;
     combinedIndices.insert(combinedIndices.end(), offsetParameterIndices.begin(), offsetParameterIndices.end());
+    combinedIndices.insert(combinedIndices.end(), sigmaParameterIndices.begin(), sigmaParameterIndices.end());
     std::sort(combinedIndices.begin(), combinedIndices.end());
 
     return combinedIndices;
