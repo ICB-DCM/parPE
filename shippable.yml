@@ -8,7 +8,7 @@ build:
         - sudo apt-get update
         # libceres-dev is too old and missing some options
         - sudo apt-get install gfortran libmpich-dev libatlas-base-dev libceres-dev libboost-all-dev
-            libhdf5-dev cmake libceres-dev coinor-libipopt-dev libcpputest-dev gcovr valgrind swig3.0
+            libhdf5-dev cmake libceres-dev coinor-libipopt-dev libcpputest-dev gcovr valgrind swig3.0 python-3.6
         - export PARPE_BASE=`pwd`
         # workaround for https://bugs.launchpad.net/ubuntu/+source/ceres-solver/+bug/1595692 :
         - wget -O /usr/include/ceres/internal/config.h "https://raw.githubusercontent.com/ceres-solver/ceres-solver/master/config/ceres/internal/config.h"
