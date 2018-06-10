@@ -233,6 +233,8 @@ TEST(hierarchicalOptimization, testNoAnalyticalParameters) {
     auto offsetProvider = std::make_unique<AnalyticalParameterProviderMock>();
     auto sigmaProvider = std::make_unique<AnalyticalParameterProviderMock>();
 
+    mock().expectNCalls(2, "AmiciSummedGradientFunctionMock::numParameters");
+
     // for offsets and proportionality factors and sigmas
     mock().expectNCalls(3, "AnalyticalParameterProviderMock::getOptimizationParameterIndices");
 
@@ -484,7 +486,7 @@ TEST(hierarchicalOptimization, testWrappedFunIsCalledWithGradient) {
     scalingProvider->mapping[0][0] = {0};
     scalingProvider->optimizationParameterIndices.push_back(0);
 
-
+    mock().expectNCalls(2, "AmiciSummedGradientFunctionMock::numParameters");
     // for offsets and proportionality factors and sigmas
     mock().expectNCalls(3, "AnalyticalParameterProviderMock::getOptimizationParameterIndices");
 
