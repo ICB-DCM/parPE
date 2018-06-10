@@ -8,10 +8,10 @@ using amici::realtype;
 #include "fixed_parameter.h"
 
 void sigma_y_model_steadystate_scaled(double *sigmay, const realtype t, const realtype *p, const realtype *k){
-    sigmay[0] = 1;
-    sigmay[1] = 1;
-    sigmay[2] = 1;
-    sigmay[3] = 1;
-    sigmay[4] = 1;
+    sigmay[0] = 1.0;
+    sigmay[1] = 1.0;
+    sigmay[2] = 1.0;
+    sigmay[3] = 1.0;
+    sigmay[4] = 1.0;
     sigmay[5] = observable_x1withsigma_sigma;
 }
