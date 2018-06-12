@@ -3,6 +3,10 @@ language: c
 compiler: gcc
 
 build:
+    pre_ci_boot:
+        image_name: ubuntu
+        image_tag: artful
+        pull: true
     ci:
         # install external deps
         - lsb_release -a
