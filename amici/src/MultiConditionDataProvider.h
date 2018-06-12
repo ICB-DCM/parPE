@@ -221,6 +221,8 @@ class MultiConditionDataProviderHDF5 : public MultiConditionDataProvider {
 
     virtual ~MultiConditionDataProviderHDF5() = default;
 
+    void openHdf5File(std::string hdf5Filename);
+
     /**
      * @brief Provides the number of conditions for which data is available and
      * simulations need to be run.
@@ -336,6 +338,7 @@ protected:
     std::string hdf5ParameterMinPath;
     std::string hdf5ParameterMaxPath;
     std::string hdf5ParameterScalingPath;
+    std::string hdf5SimulationToOptimizationParameterMappingPath;
 
     /**
      * @brief HDF5 file handles for C++ and C API

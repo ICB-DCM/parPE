@@ -32,6 +32,22 @@ MultiConditionDataProviderHDF5::MultiConditionDataProviderHDF5(std::unique_ptr<a
 
     auto lock = hdf5MutexGetLock();
 
+    openHdf5File(hdf5Filename);
+
+    hdf5MeasurementPath = rootPath + "/measurements/y";
+    hdf5MeasurementSigmaPath = rootPath + "/measurements/ysigma";
+    hdf5ConditionPath = rootPath + "/fixedParameters/k";
+    hdf5AmiciOptionPath = rootPath + "/amiciOptions";
+    hdf5ParameterPath = rootPath + "/parameters";
+    hdf5ParameterMinPath = hdf5ParameterPath + "/lowerBound";
+    hdf5ParameterMaxPath = hdf5ParameterPath + "/upperBound";
+    hdf5ParameterScalingPath = hdf5AmiciOptionPath + "/pscale";
+    hdf5SimulationToOptimizationParameterMappingPath = rootPath + "/parameters/optimizationSimulationMapping";
+    amici::hdf5::readModelDataFromHDF5(fileId, *this->model, hdf5AmiciOptionPath.c_str());
+}
+
+void MultiConditionDataProviderHDF5::openHdf5File(std::string hdf5Filename)
+{
     H5_SAVE_ERROR_HANDLER;
     try {
         file = H5::H5File(hdf5Filename.c_str(), H5F_ACC_RDONLY);
@@ -45,17 +61,6 @@ MultiConditionDataProviderHDF5::MultiConditionDataProviderHDF5(std::unique_ptr<a
         throw(HDF5Exception());
     }
     H5_RESTORE_ERROR_HANDLER;
-
-    hdf5MeasurementPath = rootPath + "/measurements/y";
-    hdf5MeasurementSigmaPath = rootPath + "/measurements/ysigma";
-    hdf5ConditionPath = rootPath + "/fixedParameters/k";
-    hdf5AmiciOptionPath = rootPath + "/amiciOptions";
-    hdf5ParameterPath = rootPath + "/parameters";
-    hdf5ParameterMinPath = hdf5ParameterPath + "/lowerBound";
-    hdf5ParameterMaxPath = hdf5ParameterPath + "/upperBound";
-    hdf5ParameterScalingPath = hdf5AmiciOptionPath + "/pscale";
-
-    amici::hdf5::readModelDataFromHDF5(fileId, *this->model, hdf5AmiciOptionPath.c_str());
 }
 
 /**
@@ -65,7 +70,7 @@ MultiConditionDataProviderHDF5::MultiConditionDataProviderHDF5(std::unique_ptr<a
  * @return
  */
 int MultiConditionDataProviderHDF5::getNumberOfConditions() const {
-    // TODO: add additional layer for selecten of condition indices (for testing
+    // TODO: add additional layer for selection of condition indices (for testing
     // and later for minibatch)
     // -> won't need different file for testing/validation splits
     // TODO: cache
@@ -81,7 +86,7 @@ int MultiConditionDataProviderHDF5::getNumberOfConditions() const {
 
 
 std::vector<int> MultiConditionDataProviderHDF5::getSimulationToOptimizationParameterMapping(int conditionIdx) const  {
-    std::string path = rootPath + "/parameters/optimizationSimulationMapping";
+    std::string path = hdf5SimulationToOptimizationParameterMappingPath;
     if(hdf5DatasetExists(fileId, path.c_str())) {
         return hdf5Read2DIntegerHyperslab(file, path, model->np(), 1, 0, conditionIdx);
     } else {
@@ -243,7 +248,9 @@ int MultiConditionDataProviderHDF5::getNumOptimizationParameters() const {
 }
 
 
-std::unique_ptr<amici::Model> MultiConditionDataProviderHDF5::getModel() const { return std::unique_ptr<amici::Model>(model->clone()); }
+std::unique_ptr<amici::Model> MultiConditionDataProviderHDF5::getModel() const {
+    return std::unique_ptr<amici::Model>(model->clone());
+}
 
 std::unique_ptr<amici::Solver> MultiConditionDataProviderHDF5::getSolver() const
 {
