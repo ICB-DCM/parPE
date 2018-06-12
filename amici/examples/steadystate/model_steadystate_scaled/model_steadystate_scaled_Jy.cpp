@@ -27,5 +27,8 @@ void Jy_model_steadystate_scaled(double *nllh, const int iy, const realtype *p, 
         case 4:
             nllh[0] = 0.5*pow(-mobservable_x2_offsetted + observable_x2_offsetted, 2)/pow(sigmaobservable_x2_offsetted, 2) + 0.5*log(2*M_PI*pow(sigmaobservable_x2_offsetted, 2));
             break;
+        case 5:
+            nllh[0] = 0.5*pow(-mobservable_x1withsigma + observable_x1withsigma, 2)/pow(sigmaobservable_x1withsigma, 2) + 0.5*log(2*M_PI*pow(sigmaobservable_x1withsigma, 2));
+            break;
 }
 }

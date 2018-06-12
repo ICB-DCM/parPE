@@ -7,6 +7,8 @@
 #include <misc.h>
 #include <hierarchicalOptimization.h>
 
+#include <gsl/gsl-lite.hpp>
+
 #include <iostream>
 
 namespace parpe {
@@ -38,7 +40,6 @@ int StandaloneSimulator::run(const std::string& resultFile,
     solver->setSensitivityOrder(amici::AMICI_SENSI_ORDER_NONE);
 
     std::vector<double> parameters = optimizationParameters;
-
     HierachicalOptimizationWrapper hierarchical(nullptr, 0, 0, 0);
 
     auto options = OptimizationOptions::fromHDF5(file.getId(), "/inputData/optimizationOptions");
@@ -50,29 +51,34 @@ int StandaloneSimulator::run(const std::string& resultFile,
         auto hierarchicalOffsetReader = new AnalyticalParameterHdf5Reader (file,
                                                                            "/inputData/offsetParameterIndices",
                                                                            "/inputData/offsetParametersMapToObservables");
+        auto hierarchicalSigmaReader = new AnalyticalParameterHdf5Reader (file,
+                                                                           "/inputData/sigmaParameterIndices",
+                                                                           "/inputData/sigmaParametersMapToObservables");
         auto proportionalityFactorIndices = hierarchicalScalingReader->getOptimizationParameterIndices();
         auto offsetParameterIndices = hierarchicalOffsetReader->getOptimizationParameterIndices();
+        auto sigmaParameterIndices = hierarchicalSigmaReader->getOptimizationParameterIndices();
         auto wrappedFun = std::make_unique<AmiciSummedGradientFunction<int>>(dataProvider, loadBalancer);
 
         hierarchical = HierachicalOptimizationWrapper(std::move(wrappedFun),
-                                                    std::unique_ptr<AnalyticalParameterHdf5Reader>(hierarchicalScalingReader),
-                                                    std::unique_ptr<AnalyticalParameterHdf5Reader>(hierarchicalOffsetReader),
-                                                    dataProvider->getNumberOfConditions(), model->nytrue, model->nt(),
-                                                    ErrorModel::normal);
-        if(proportionalityFactorIndices.size() > 0) {
-            // expand parameter vector
-            auto scalingDummy = hierarchical.getDefaultScalingFactors();
-            auto offsetDummy = hierarchical.getDefaultOffsetParameters();
-            parameters = spliceParameters(optimizationParameters.data(), optimizationParameters.size(),
-                                          proportionalityFactorIndices, offsetParameterIndices,
-                                          scalingDummy, offsetDummy);
+                                                std::unique_ptr<AnalyticalParameterHdf5Reader>(hierarchicalScalingReader),
+                                                std::unique_ptr<AnalyticalParameterHdf5Reader>(hierarchicalOffsetReader),
+                                                std::unique_ptr<AnalyticalParameterHdf5Reader>(hierarchicalSigmaReader),
+                                                dataProvider->getNumberOfConditions(), model->nytrue, model->nt(),
+                                                ErrorModel::normal);
+    
+        // expand parameter vector
+        auto scalingDummy = hierarchical.getDefaultScalingFactors();
+        auto offsetDummy = hierarchical.getDefaultOffsetParameters();
+        auto sigmaDummy = hierarchical.getDefaultSigmaParameters();
+        parameters = spliceParameters(gsl::make_span(optimizationParameters.data(), optimizationParameters.size()),
+                                      proportionalityFactorIndices, offsetParameterIndices, sigmaParameterIndices,
+                                      scalingDummy, offsetDummy, sigmaDummy);
 
-            // get outputs, scale
-            // TODO need to pass aggreate function for writing
-        } else {
-            // is already the correct length
-            //parameters = optimizationParameters;
-        }
+        // get outputs, scale
+        // TODO need to pass aggreate function for writing
+    } else {
+        // is already the correct length
+        // parameters = optimizationParameters;
     }
 
     RELEASE_ASSERT(parameters.size() == (unsigned)dataProvider->getNumOptimizationParameters(), "Size of supplied parameter vector does not match model dimensions.");
@@ -134,10 +140,14 @@ int StandaloneSimulator::run(const std::string& resultFile,
             // TODO: what else needs to be scaled?
         }
 
+        // TODO auto sigmas = hierarchical.computeAnalyticalOffsets(allMeasurements, modelOutputs);
+
         for(int dataIdx = 0; (unsigned) dataIdx < jobs.size(); ++dataIdx) {
             JobResultAmiciSimulation& result = jobResults[dataIdx];
             result.rdata->y = modelOutputs[dataIdx];
-            result.rdata->llh = -parpe::computeNegLogLikelihood(allMeasurements[dataIdx], modelOutputs[dataIdx]);
+            std::vector<double> sigmas(allMeasurements[dataIdx].size(), NAN);
+            result.rdata->llh = -parpe::computeNegLogLikelihood(allMeasurements[dataIdx], modelOutputs[dataIdx], sigmas);
+
             auto edata = dataProvider->getExperimentalDataForCondition(dataIdx);
             rw.saveSimulationResults(edata.get(), result.rdata.get(), dataIdx);
         }

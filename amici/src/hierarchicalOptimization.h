@@ -6,6 +6,8 @@
 #include <misc.h>
 #include <parpeException.h>
 
+#include <gsl/gsl-lite.hpp>
+
 #include <memory>
 #include <cmath>
 #include <numeric>
@@ -76,6 +78,7 @@ public:
     HierachicalOptimizationWrapper(std::unique_ptr<AmiciSummedGradientFunction<int>> fun,
                                    std::unique_ptr<AnalyticalParameterProvider> scalingReader,
                                    std::unique_ptr<AnalyticalParameterProvider> offsetReader,
+                                   std::unique_ptr<AnalyticalParameterProvider> sigmaReader,
                                    int numConditions,
                                    int numObservables,
                                    int numTimepoints,
@@ -105,12 +108,14 @@ public:
      */
     std::vector<double> getDefaultOffsetParameters() const;
 
+    std::vector<double> getDefaultSigmaParameters() const;
+
     /**
      * @brief Run simulations with scaling parameters set to 1.0 and collect model outputs
      * @param reducedParameters parameter vector for `fun` without scaling parameters
      * @return Vector of double vectors containing AMICI ReturnData::y (nt x ny, column-major)
      */
-    std::vector <std::vector<double>> getUnscaledModelOutputs(double const * const reducedParameters) const;
+    std::vector <std::vector<double>> getUnscaledModelOutputs(const gsl::span<double const> reducedParameters) const;
 
 
     /**
@@ -133,10 +138,18 @@ public:
     std::vector<double> computeAnalyticalOffsets(const std::vector<std::vector<double> > &measurements,
                                                  std::vector <std::vector<double>>& modelOutputsUnscaled) const;
 
+    std::vector<double> computeAnalyticalSigmas(const std::vector<std::vector<double> > &measurements,
+                                                 std::vector <std::vector<double>>& modelOutputsScaled) const;
+
     void applyOptimalOffsets(std::vector<double> const& proportionalityFactors,
                              std::vector<std::vector<double> > &modelOutputs) const;
 
-
+    /**
+     * @brief Create vector with sigma matrix for each condition and timepoints from the given analytically computed sigmas
+     * @param sigmas
+     * @return
+     */
+    void fillInAnalyticalSigmas(std::vector<std::vector<double> > &allSigmas, const std::vector<double> &analyticalSigmas) const;
 
     /**
      * @brief Evaluate `fun` using the computed optimal scaling and offset parameters.
@@ -150,13 +163,14 @@ public:
      */
 
     virtual FunctionEvaluationStatus evaluateWithOptimalParameters(
-            const double * const reducedParameters,
+            const gsl::span<double const> reducedParameters,
             const std::vector<double> &scalings,
             const std::vector<double> &offsets,
+            const std::vector<double> &sigmas,
             const std::vector<std::vector<double> > &measurements,
-            std::vector<std::vector<double> > &modelOutputsUnscaled,
+            std::vector<std::vector<double> > &modelOutputsScaled,
             double &fval,
-            double *gradient) const;
+            const gsl::span<double> gradient) const;
 
     /**
      * @brief Get number of parameters the function expects
@@ -164,13 +178,17 @@ public:
      */
     virtual int numParameters() const override;
 
-    int numScalingFactors() const;
+    int numProportionalityFactors() const;
 
     std::vector<int> const& getProportionalityFactorIndices() const;
 
     int numOffsetParameters() const;
 
+    int numSigmaParameters() const;
+
     std::vector<int> const& getOffsetParameterIndices() const;
+
+    std::vector<int> const& getSigmaParameterIndices() const;
 
     std::vector<int> getAnalyticalParameterIndices() const;
 
@@ -183,11 +201,13 @@ private:
     std::unique_ptr<AnalyticalParameterProvider> scalingReader;
     /** Reads offset parameter information from HDF5 file */
     std::unique_ptr<AnalyticalParameterProvider> offsetReader;
+    std::unique_ptr<AnalyticalParameterProvider> sigmaReader;
 
     /** Sorted list of the indices of the scaling parameters
       * (sorting makes it easier to splice scaling and remaining parameters in getFullParameters) */
     std::vector<int> proportionalityFactorIndices;
     std::vector<int> offsetParameterIndices;
+    std::vector<int> sigmaParameterIndices;
 
     /** Total number of conditions used in `fun` */
     int numConditions;
@@ -359,7 +379,9 @@ private:
  * @param sortedIndicesToExclude Blacklist of indices
  * @param result Buffer to write the filtered list to. Must be at least of length valuesToFilter.size()-sortedIndicesToExclude.size().
  */
-void fillFilteredParams(std::vector<double> const& valuesToFilter, const std::vector<int> &sortedIndicesToExclude, double *result);
+void fillFilteredParams(std::vector<double> const& valuesToFilter,
+                        const std::vector<int> &sortedIndicesToExclude,
+                        double *result);
 
 double getDefaultScalingFactor(amici::AMICI_parameter_scaling scaling);
 
@@ -388,6 +410,13 @@ double computeAnalyticalOffsets(int offsetIdx,
                                 AnalyticalParameterProvider& offsetReader,
                                 int numObservables, int numTimepoints);
 
+double computeAnalyticalSigmas(int sigmaIdx,
+                               amici::AMICI_parameter_scaling scale,
+                               const std::vector<std::vector<double> > &modelOutputsScaled,
+                               const std::vector<std::vector<double> > &measurements,
+                               AnalyticalParameterProvider& sigmaReader,
+                               int numObservables, int numTimepoints);
+
 void applyOptimalScaling(int scalingIdx, double scalingLin,
                          std::vector<std::vector<double> > &modelOutputs,
                          AnalyticalParameterProvider& scalingReader,
@@ -408,11 +437,13 @@ void applyOptimalOffset(int offsetIdx, double offsetLin,
  * @param scalingFactors
  * @return Full parameter vector for `fun`
  */
-std::vector<double> spliceParameters(const double * const reducedParameters, int numReduced,
+std::vector<double> spliceParameters(const gsl::span<const double> reducedParameters,
                                      const std::vector<int> &proportionalityFactorIndices,
                                      const std::vector<int> &offsetParameterIndices,
+                                     const std::vector<int> &sigmaParameterIndices,
                                      const std::vector<double> &scalingFactors,
-                                     const std::vector<double> &offsetParameters);
+                                     const std::vector<double> &offsetParameters,
+                                     const std::vector<double> &sigmaParameters);
 
 /**
  * @brief Compute negative log-likelihood for normal distribution based on the model outputs and measurements for multiple conditions.
@@ -420,7 +451,8 @@ std::vector<double> spliceParameters(const double * const reducedParameters, int
  * @return
  */
 double computeNegLogLikelihood(std::vector <std::vector<double>> const& measurements,
-                               std::vector <std::vector<double>> const& modelOutputsScaled);
+                               std::vector <std::vector<double>> const& modelOutputsScaled,
+                               const std::vector<std::vector<double> > &sigmas);
 
 /**
  * @brief Compute negative log-likelihood for normal distribution based on the model outputs and measurements for a single condition.
@@ -428,7 +460,8 @@ double computeNegLogLikelihood(std::vector <std::vector<double>> const& measurem
  * @return
  */
 double computeNegLogLikelihood(std::vector<double> const& measurements,
-                               std::vector<double> const& modelOutputsScaled);
+                               std::vector<double> const& modelOutputsScaled,
+                               const std::vector<double> &sigmas);
 
 } //namespace parpe
 

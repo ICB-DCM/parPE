@@ -30,6 +30,7 @@ extern void dwdx_model_steadystate_scaled(realtype *dwdx, const realtype t, cons
 extern void dxdotdp_model_steadystate_scaled(realtype *dxdotdp, const realtype t, const realtype *x, const realtype *p, const realtype *k, const realtype *h, const int ip, const realtype *w, const realtype *dwdp);
 extern void dydx_model_steadystate_scaled(double *dydx, const realtype t, const realtype *x, const realtype *p, const realtype *k, const realtype *h);
 extern void dydp_model_steadystate_scaled(double *dydp, const realtype t, const realtype *x, const realtype *p, const realtype *k, const realtype *h, const int ip);
+extern void dsigmaydp_model_steadystate_scaled(double *dsigmaydp, const realtype t, const realtype *p, const realtype *k, const int ip);
 extern void qBdot_model_steadystate_scaled(realtype *qBdot, const int ip, const realtype t, const realtype *x, const realtype *p, const realtype *k, const realtype *h, const realtype *xB, const realtype *w, const realtype *dwdp);
 extern void sigma_y_model_steadystate_scaled(double *sigmay, const realtype t, const realtype *p, const realtype *k);
 extern void sxdot_model_steadystate_scaled(realtype *sxdot, const realtype t, const realtype *x, const realtype *p, const realtype *k, const realtype *h, const int ip, const realtype *sx, const realtype *w, const realtype *dwdx, const realtype *J, const realtype *dxdotdp);
@@ -51,8 +52,8 @@ public:
         : amici::Model_ODE(
               3, // nx
               3, // nxtrue
-              5, // ny
-              5, // nytrue
+              6, // ny
+              6, // nytrue
               0, // nz
               0, // nztrue
               0, // nevent
@@ -64,7 +65,7 @@ public:
               3, // ubw
               3, // lbw
               amici::AMICI_O2MODE_NONE, // o2mode
-              std::vector<realtype>{1.0, 0.5, 0.4, 2.0, 0.1, 1.0, 1.0}, // dynamic parameters
+              std::vector<realtype>{1.0, 0.5, 0.4, 2.0, 0.1, 1.0, 1.0, 1.0}, // dynamic parameters
               std::vector<realtype>{1.0}, // fixedParameters
               std::vector<int>{}, // plist
               std::vector<realtype>(3,0.0), // idlist
@@ -388,6 +389,8 @@ public:
      * @param ip sensitivity index
      **/
     virtual void fdsigma_ydp(double *dsigmaydp, const realtype t, const realtype *p, const realtype *k, const int ip) override {
+        dsigmaydp_model_steadystate_scaled(dsigmaydp, t, p, k, ip);
+
     }
 
     /** model specific implementation of fsigmaz

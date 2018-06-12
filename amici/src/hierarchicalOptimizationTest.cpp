@@ -91,6 +91,7 @@ public:
     }
 
     std::vector<std::vector<double>> getAllMeasurements() const override { return measurements; }
+    std::vector<std::vector<double>> getAllSigmas() const override { return sigmas; }
 
     parpe::FunctionEvaluationStatus evaluate(
             const double* const parameters,
@@ -145,6 +146,14 @@ public:
                                                        2.0, NAN, 1.0},
                                                       {1.0, 1.0, 1.0,
                                                        NAN, 1.0, 1.0},};
+    std::vector<std::vector<double>> sigmas =  {{NAN, 1.0, 1.0,
+                                                       1.0, 1.0, 1.0},
+                                                      {1.0, 1.0, 1.0,
+                                                       1.0, 1.0, NAN},
+                                                      {1.0, 1.0, 1.0,
+                                                       1.0, NAN, 1.0},
+                                                      {1.0, 1.0, 1.0,
+                                                       NAN, 1.0, 1.0},};
     mutable std::vector<double> lastParameters;
 };
 
@@ -161,25 +170,30 @@ TEST(hierarchicalOptimization, hierarchicalOptimization) {
     auto offsetReaderUnique = std::make_unique<parpe::AnalyticalParameterHdf5Reader>(H5::H5File(TESTFILE, H5F_ACC_RDONLY),
                                                                                      "/offsetParameterIndices",
                                                                                      "/offsetParametersMapToObservables");
-    parpe::HierachicalOptimizationWrapper w(std::move(funUnqiue), std::move(scalingReaderUnique), std::move(offsetReaderUnique),
+    auto sigmaReaderUnique = std::make_unique<parpe::AnalyticalParameterHdf5Reader>(H5::H5File(TESTFILE, H5F_ACC_RDONLY),
+                                                                                     "/sigmaParameterIndices",
+                                                                                     "/sigmaParametersMapToObservables");
+    parpe::HierachicalOptimizationWrapper hierarchicalOptimizationWrapper(std::move(funUnqiue),
+                                            std::move(scalingReaderUnique), std::move(offsetReaderUnique), std::move(sigmaReaderUnique),
                                             fun->numConditions, fun->numObservables, fun->numTimepoints,
                                             parpe::ErrorModel::normal);
 
-    CHECK_TRUE(w.numScalingFactors() == 2);
+    CHECK_TRUE(hierarchicalOptimizationWrapper.numProportionalityFactors() == 2);
 
     std::vector<double> reducedParameters {3.0, 2.0};
     std::vector<double> fullParameters {3.0, 2.0, 1.5, 1.3}; // last 2 are scalings
     // scalings set to log10(1)
     std::vector<double> onesFullParameters {0.0, 0.0, 3.0, 2.0}; // last 2 are scalings
 
-    std::vector<double> scalingDummy(w.numScalingFactors(), 0.0);
-    std::vector<double> offsetDummy(w.numOffsetParameters(),0.0);
-    CHECK_TRUE(onesFullParameters == parpe::spliceParameters(reducedParameters.data(), reducedParameters.size(),
-                                                             w.getProportionalityFactorIndices(), w.getOffsetParameterIndices(),
-                                                             scalingDummy, offsetDummy));
+    std::vector<double> scalingDummy(hierarchicalOptimizationWrapper.numProportionalityFactors(), 0.0);
+    std::vector<double> offsetDummy(hierarchicalOptimizationWrapper.numOffsetParameters(), 0.0);
+    std::vector<double> sigmaDummy(hierarchicalOptimizationWrapper.numSigmaParameters(), 0.0);
+    CHECK_TRUE(onesFullParameters == parpe::spliceParameters(gsl::make_span(reducedParameters.data(), reducedParameters.size()),
+                                                             hierarchicalOptimizationWrapper.getProportionalityFactorIndices(), hierarchicalOptimizationWrapper.getOffsetParameterIndices(), hierarchicalOptimizationWrapper.getSigmaParameterIndices(),
+                                                             scalingDummy, offsetDummy, sigmaDummy));
 
     // Ensure it is called with proper parameter vector:
-    auto outputs = w.getUnscaledModelOutputs(fullParameters.data());
+    auto outputs = hierarchicalOptimizationWrapper.getUnscaledModelOutputs(gsl::make_span(fullParameters.data(), fullParameters.size()));
     CHECK_TRUE(onesFullParameters == fun->lastParameters);
 
     auto s = parpe::computeAnalyticalScalings(0, amici::AMICI_SCALING_LOG10,
@@ -195,7 +209,8 @@ TEST(hierarchicalOptimization, hierarchicalOptimization) {
     CHECK_TRUE(outputs[2][3] == fun->measurements[2][3]);
 
     // likelihood without offset must be 0 after scaling and if all other measurements/observables agree
-    auto llh = parpe::computeNegLogLikelihood(fun->measurements, outputs);
+    std::vector<std::vector<double>> sigmas(outputs.size(), std::vector<double>(outputs[0].size(), 1.0));
+    auto llh = parpe::computeNegLogLikelihood(fun->measurements, outputs, sigmas);
     double pi = atan(1)*4;
     double llhOffset = 0.5 * log(2 * pi) * 20;
     DOUBLES_EQUAL(llh - llhOffset, 0, 1e-10);
@@ -204,7 +219,7 @@ TEST(hierarchicalOptimization, hierarchicalOptimization) {
     //    w.evaluate();
     //    w.evaluateWithScalings();
 
-    CHECK_EQUAL(2, w.numParameters());
+    CHECK_EQUAL(2, hierarchicalOptimizationWrapper.numParameters());
 }
 
 TEST(hierarchicalOptimization, testNoAnalyticalParameters) {
@@ -216,11 +231,15 @@ TEST(hierarchicalOptimization, testNoAnalyticalParameters) {
 
     auto scalingProvider = std::make_unique<AnalyticalParameterProviderMock>();
     auto offsetProvider = std::make_unique<AnalyticalParameterProviderMock>();
+    auto sigmaProvider = std::make_unique<AnalyticalParameterProviderMock>();
 
-    // for offsets and proportionality factors
-    mock().expectNCalls(2, "AnalyticalParameterProviderMock::getOptimizationParameterIndices");
+    mock().expectNCalls(2, "AmiciSummedGradientFunctionMock::numParameters");
 
-    parpe::HierachicalOptimizationWrapper w(std::move(fun), std::move(scalingProvider), std::move(offsetProvider),
+    // for offsets and proportionality factors and sigmas
+    mock().expectNCalls(3, "AnalyticalParameterProviderMock::getOptimizationParameterIndices");
+
+    parpe::HierachicalOptimizationWrapper w(std::move(fun),
+                                            std::move(scalingProvider), std::move(offsetProvider), std::move(sigmaProvider),
                                             fun2->numConditions, fun2->numObservables, fun2->numTimepoints,
                                             parpe::ErrorModel::normal);
 
@@ -405,12 +424,15 @@ TEST(hierarchicalOptimization, spliceParameters) {
     const std::vector<int> proportionalityFactorIndices {2, 3, 7};
     const std::vector<double> scalings {2.0, 3.0, 7.0};
 
-    const std::vector<int> offsetParameterIndices {0, 4, 6};
-    const std::vector<double> offsets {0.0, 4.0, 6.0};
+    const std::vector<int> offsetParameterIndices {0, 4};
+    const std::vector<double> offsets {0.0, 4.0};
 
-    auto fullParametersAct = parpe::spliceParameters(reducedParameters.data(), reducedParameters.size(),
-                                                     proportionalityFactorIndices, offsetParameterIndices,
-                                                     scalings, offsets);
+    const std::vector<int> sigmaParameterIndices {6};
+    const std::vector<double> sigmas {6.0};
+
+    auto fullParametersAct = parpe::spliceParameters(gsl::make_span(reducedParameters.data(), reducedParameters.size()),
+                                                     proportionalityFactorIndices, offsetParameterIndices, sigmaParameterIndices,
+                                                     scalings, offsets, sigmas);
 
     CHECK_TRUE(fullParametersExp == fullParametersAct);
 }
@@ -426,9 +448,12 @@ TEST(hierarchicalOptimization, spliceParametersNothingToDo) {
     const std::vector<int> offsetParameterIndices;
     const std::vector<double> offsets;
 
-    auto fullParametersAct = parpe::spliceParameters(reducedParameters.data(), reducedParameters.size(),
-                                                     proportionalityFactorIndices, offsetParameterIndices,
-                                                     scalings, offsets);
+    const std::vector<int> sigmaParameterIndices;
+    const std::vector<double> sigmas;
+
+    auto fullParametersAct = parpe::spliceParameters(gsl::make_span(reducedParameters.data(), reducedParameters.size()),
+                                                     proportionalityFactorIndices, offsetParameterIndices, sigmaParameterIndices,
+                                                     scalings, offsets, sigmas);
 
     CHECK_TRUE(fullParametersExp == fullParametersAct);
 }
@@ -453,6 +478,7 @@ TEST(hierarchicalOptimization, testWrappedFunIsCalledWithGradient) {
 
     auto scalingProvider = std::make_unique<AnalyticalParameterProviderMock>();
     auto offsetProvider = std::make_unique<AnalyticalParameterProviderMock>();
+    auto sigmaProvider = std::make_unique<AnalyticalParameterProviderMock>();
 
     scalingProvider->conditionsForParameter.push_back({0});
     scalingProvider->mapping.resize(1);
@@ -460,11 +486,11 @@ TEST(hierarchicalOptimization, testWrappedFunIsCalledWithGradient) {
     scalingProvider->mapping[0][0] = {0};
     scalingProvider->optimizationParameterIndices.push_back(0);
 
+    mock().expectNCalls(2, "AmiciSummedGradientFunctionMock::numParameters");
+    // for offsets and proportionality factors and sigmas
+    mock().expectNCalls(3, "AnalyticalParameterProviderMock::getOptimizationParameterIndices");
 
-    // for offsets and proportionality factors
-    mock().expectNCalls(2, "AnalyticalParameterProviderMock::getOptimizationParameterIndices");
-
-    parpe::HierachicalOptimizationWrapper w(std::move(fun), std::move(scalingProvider), std::move(offsetProvider),
+    parpe::HierachicalOptimizationWrapper w(std::move(fun), std::move(scalingProvider), std::move(offsetProvider), std::move(sigmaProvider),
                                             fun2->numConditions, fun2->numObservables, fun2->numTimepoints,
                                             parpe::ErrorModel::normal);
 
@@ -477,9 +503,9 @@ TEST(hierarchicalOptimization, testWrappedFunIsCalledWithGradient) {
 
     mock().expectNCalls(1, "AmiciSummedGradientFunctionMock::numParameters");
     mock().expectNCalls(1, "AmiciSummedGradientFunctionMock::getModelOutputs");
-    mock().expectNCalls(1, "AnalyticalParameterProviderMock::getConditionsForParameter")
+    mock().expectNCalls(2, "AnalyticalParameterProviderMock::getConditionsForParameter")
             .withIntParameter("parameterIndex", 0);
-    mock().expectNCalls(1, "AnalyticalParameterProviderMock::getObservablesForParameter")
+    mock().expectNCalls(2, "AnalyticalParameterProviderMock::getObservablesForParameter")
             .withIntParameter("parameterIndex", 0)
             .withIntParameter("conditionIdx", 0);
     mock().expectNCalls(1, "AmiciSummedGradientFunctionMock::evaluate").withBoolParameter("gradient", true);
@@ -510,12 +536,13 @@ TEST(hierarchicalOptimization, testWrappedFunIsCalledWithGradient) {
 
 TEST(hierarchicalOptimization, likelihoodOfMatchingData) {
     const std::vector<double> data {1.0, 2.0, 3.0};
+    const std::vector<double> sigmas {1.0, 1.0, 1.0};
 
     const double pi = atan(1)*4;
     const double llhOffset = 0.5 * log(2 * pi);
     const double expected = llhOffset * data.size();
 
-    auto actual = parpe::computeNegLogLikelihood(data, data);
+    auto actual = parpe::computeNegLogLikelihood(data, data, sigmas);
     CHECK_EQUAL(expected, actual);
 }
 

@@ -3,21 +3,36 @@ language: c
 compiler: gcc
 
 build:
+#    pre_ci_boot:
+#        image_name: ubuntu
+#        image_tag: artful
+#        #pull: true
+	
     ci:
+        # install external deps
         - lsb_release -a
+        - sudo add-apt-repository ppa:deadsnakes/ppa # for python 3.6
         - sudo apt-get update
         # libceres-dev is too old and missing some options
         - sudo apt-get install gfortran libmpich-dev libatlas-base-dev libceres-dev libboost-all-dev
-            libhdf5-dev cmake libceres-dev coinor-libipopt-dev libcpputest-dev gcovr valgrind swig3.0
+            libhdf5-dev cmake libceres-dev coinor-libipopt-dev libcpputest-dev gcovr valgrind swig3.0 python3.6 
         - export PARPE_BASE=`pwd`
         # workaround for https://bugs.launchpad.net/ubuntu/+source/ceres-solver/+bug/1595692 :
         - wget -O /usr/include/ceres/internal/config.h "https://raw.githubusercontent.com/ceres-solver/ceres-solver/master/config/ceres/internal/config.h"
+
+        # install internal deps
         - cd $PARPE_BASE/deps/AMICI/ && scripts/buildSuiteSparse.sh && scripts/buildSundials.sh && scripts/buildCpputest.sh && scripts/buildAmici.sh
         - cd $PARPE_BASE/ThirdParty && ./downloadPackages.sh
         # Download AMICI from github - cd $PARPE_BASE/ThirdParty && ./installAMICI.sh
         #- cd $PARPE_BASE/ThirdParty && ./installCeres.sh
+
+        # build parpe
         - cd $PARPE_BASE && ./buildShippable.sh
+
+        # run tests
         - cd $PARPE_BASE/build && CTEST_OUTPUT_ON_FAILURE=1 make test
+        # valgrind
         - CTEST_OUTPUT_ON_FAILURE=1 make ExperimentalMemCheck; cat Testing/Temporary/MemoryChecker.*.log
+        # coverage report
         - cd $PARPE_BASE/build && make parpe_coverage_cobertura
         - mkdir -p $PARPE_BASE/shippable/codecoverage && cp $PARPE_BASE/build/parpe_coverage_cobertura.xml $PARPE_BASE/shippable/codecoverage

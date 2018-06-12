@@ -36,6 +36,7 @@ model_steadystate_scaled_dwdx.cpp
 model_steadystate_scaled_dxdotdp.cpp 
 model_steadystate_scaled_dydx.cpp 
 model_steadystate_scaled_dydp.cpp 
+model_steadystate_scaled_dsigmaydp.cpp 
 model_steadystate_scaled_qBdot.cpp 
 model_steadystate_scaled_sigma_y.cpp 
 model_steadystate_scaled_sxdot.cpp 

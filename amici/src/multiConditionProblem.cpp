@@ -6,6 +6,8 @@
 #include <misc.h>
 #include <hierarchicalOptimization.h>
 
+#include <gsl/gsl-lite.hpp>
+
 #include <cassert>
 #include <cstring>
 #include <ctime>
@@ -121,9 +123,6 @@ int MultiConditionProblem::earlyStopping() {
 //    int status = (int)*rdata->status;
 //    return JobResultAmiciSimulation(status, std::move(rdata), timeSeconds);
 //}
-
-
-
 
 
 //template <typename T>
@@ -361,8 +360,5 @@ SimulationRunnerSimple::AmiciResultPackageSimple runAndLogSimulation(
                 rdata->status
     };
 }
-
-
-
 
 } // namespace parpe

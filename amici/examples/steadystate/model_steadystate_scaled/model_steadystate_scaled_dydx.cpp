@@ -11,7 +11,8 @@ using amici::realtype;
 void dydx_model_steadystate_scaled(double *dydx, const realtype t, const realtype *x, const realtype *p, const realtype *k, const realtype *h){
     dydx[0] = 1;
     dydx[3] = scaling_x1;
-    dydx[6] = 1;
-    dydx[9] = 1;
-    dydx[12] = 1;
+    dydx[5] = 1;
+    dydx[7] = 1;
+    dydx[10] = 1;
+    dydx[14] = 1;
 }

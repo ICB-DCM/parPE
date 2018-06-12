@@ -4,11 +4,10 @@ using amici::realtype;
 #include <cmath> 
 
 
-#include "species.h"
 #include "parameter.h"
 #include "fixed_parameter.h"
 
-void dydp_model_steadystate_scaled(double *dydp, const realtype t, const realtype *x, const realtype *p, const realtype *k, const realtype *h, const int ip){
+void dsigmaydp_model_steadystate_scaled(double *dsigmaydp, const realtype t, const realtype *p, const realtype *k, const int ip){
     switch(ip) {
         case 0:
             break;
@@ -21,12 +20,11 @@ void dydp_model_steadystate_scaled(double *dydp, const realtype t, const realtyp
         case 4:
             break;
         case 5:
-            dydp[3] = x1;
             break;
         case 6:
-            dydp[4] = 1;
             break;
         case 7:
+            dsigmaydp[5] = 1;
             break;
 }
 }

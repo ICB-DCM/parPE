@@ -102,6 +102,11 @@ public:
      * @return Simulation status
      */
 
+
+    virtual std::vector<std::vector<double>> getAllSigmas() const {
+        return dataProvider->getAllSigmas();
+    }
+
     virtual FunctionEvaluationStatus getModelOutputs(const double * const parameters, std::vector<std::vector<double> > &modelOutput) const {
         int errors = 0;
         //    JobIdentifier path; // TODO = this->path;

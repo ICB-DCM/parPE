@@ -36,7 +36,8 @@ TEST_GROUP(steadystateProblemTests){
                                     0.437977375496898,
                                     0.033333333333333,
                                     0.456644592142075,
-                                    1.437977375496898};
+                                    1.437977375496898,
+                                    0.456644592142075};
     void setup(){
 
     }
@@ -102,7 +103,8 @@ TEST(steadystateProblemTests, testSteadystateHierarchical) {
     auto modelNonOwning = model.get();
 
     const double scalingExp = 2.0; // scaling parameter
-    const std::vector<double> pReduced { 1.0, 0.5, 0.4, 2.0, 0.1, 1.0, 0.0 };
+    const std::vector<double> pReduced { 1.0, 0.5, 0.4, 2.0,
+                                         0.1, 1.0, 1.0 };
     auto yScaledExp = yExp;
     yScaledExp[scaledObservableIdx] *= scalingExp;
     parpe::MultiConditionDataProviderDefault dp(std::move(model), modelNonOwning->getSolver());
@@ -122,11 +124,13 @@ TEST(steadystateProblemTests, testSteadystateHierarchical) {
     scalings->mapping[0][0] = {scaledObservableIdx};
 
     auto offsets = std::make_unique<parpe::AnalyticalParameterProviderDefault>();
+    auto sigmas = std::make_unique<parpe::AnalyticalParameterProviderDefault>();
 
     auto gradFun = std::make_unique<parpe::AmiciSummedGradientFunction<int>>(&dp, nullptr);
     parpe::HierachicalOptimizationWrapper hier(std::move(gradFun),
                                                std::move(scalings),
                                                std::move(offsets),
+                                               std::move(sigmas),
                                                dp.getNumberOfConditions(),
                                                modelNonOwning->nytrue,
                                                modelNonOwning->nt(),
@@ -135,7 +139,8 @@ TEST(steadystateProblemTests, testSteadystateHierarchical) {
     hier.evaluate(pReduced.data(), cost, nullptr);
     DOUBLES_EQUAL(-parpe::getLogLikelihoodOffset(dp.edata[0].my.size()), cost, 1e-5);
 
-    const std::vector<double> pFull { 1.0, 0.5, 0.4, 2.0, 0.1, 1.0, 2.0, 0.0 };
+    const std::vector<double> pFull { 1.0, 0.5, 0.4, 2.0,
+                                      0.1, 2.0, 1.0, 1.0 };
     hier.fun->evaluate(pFull.data(), {0}, cost, nullptr);
     DOUBLES_EQUAL(-parpe::getLogLikelihoodOffset(dp.edata[0].my.size()), cost, 1e-5);
 }
@@ -147,10 +152,10 @@ TEST(steadystateProblemTests, testOptimizationHierarchical) {
     // introduce scaling parameters
     auto model = getModel();
     //model->setFixedParameters(k);
-    model->setInitialStates(x0);
+    //model->setInitialStates(x0);
     //model->setParameters(p);
     model->setTimepoints(t);
-    model->setParameterList({0, 1, 2, 3, 4, 5, 6});
+    model->setParameterList({0, 1, 2, 3, 4, 5, 6, 7});
     auto modelNonOwning = model.get();
 
     auto solver = model->getSolver();
@@ -159,7 +164,8 @@ TEST(steadystateProblemTests, testOptimizationHierarchical) {
 
     /* generate scaled data */
     const double scalingExp = 2.0; // scaling parameter
-    const std::vector<double> pReduced { 1.0, 0.5, 0.4, 2.0, 0.1, /*1.0,*/ 1.0 };
+    const std::vector<double> pReduced { 1.0, 0.5, 0.4, 2.0,
+                                         0.1, /*1.0,*/ 1.0, 1.0 };
     auto yScaledExp = yExp;
     yScaledExp[scaledObservableIdx] *= scalingExp;
     parpe::MultiConditionDataProviderDefault dp(std::move(model), std::move(solver));
@@ -180,11 +186,14 @@ TEST(steadystateProblemTests, testOptimizationHierarchical) {
     scalings->mapping[0][0] = {scaledObservableIdx};
     // no analytical offset parameter
     auto offsets = std::make_unique<parpe::AnalyticalParameterProviderDefault>();
+    auto sigmas = std::make_unique<parpe::AnalyticalParameterProviderDefault>();
+
     // create wrapper
     auto gradFun = std::make_unique<parpe::AmiciSummedGradientFunction<int>>(&dp, nullptr);
     auto hier = std::make_unique<parpe::HierachicalOptimizationWrapper>(std::move(gradFun),
                                                                         std::move(scalings),
                                                                         std::move(offsets),
+                                                                        std::move(sigmas),
                                                                         dp.getNumberOfConditions(),
                                                                         modelNonOwning->nytrue,
                                                                         modelNonOwning->nt(),
@@ -194,7 +203,8 @@ TEST(steadystateProblemTests, testOptimizationHierarchical) {
     hier->evaluate(pReduced.data(), cost, nullptr);
     DOUBLES_EQUAL(-parpe::getLogLikelihoodOffset(dp.edata[0].my.size()), cost, 1e-5);
 
-    const std::vector<double> pFull { 1.0, 0.5, 0.4, 2.0, 0.1, 2.0, 1.0 };
+    const std::vector<double> pFull { 1.0, 0.5, 0.4, 2.0,
+                                      0.1, 2.0, 1.0, 1.0 };
     hier->fun->evaluate(pFull.data(), {0}, cost, nullptr);
     DOUBLES_EQUAL(-parpe::getLogLikelihoodOffset(dp.edata[0].my.size()), cost, 1e-5);
 
@@ -203,8 +213,10 @@ TEST(steadystateProblemTests, testOptimizationHierarchical) {
     //    for(auto& pp : startingPoint)
     //        pp += 1;
     //    problem.setInitialParameters(startingPoint);
-    problem.setParametersMin({0, 0, 0, 0, 0, 0});
-    problem.setParametersMax({2, 2, 2, 2, 2, 2});
+    problem.setParametersMin({0, 0, 0, 0,
+                              0, 0, 0});
+    problem.setParametersMax({2, 2, 2, 2,
+                              2, 2, 2});
 
     // TODO: need to switch on sensitivities
     parpe::OptimizerIpOpt optimizer;

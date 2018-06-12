@@ -1,4 +1,5 @@
 #include "MultiConditionDataProvider.h"
+#include <hierarchicalOptimization.h>
 #include "logging.h"
 #include "misc.h"
 #include <parpeException.h>
@@ -8,6 +9,7 @@
 
 #include <cassert>
 #include <cstring>
+#include <cmath>
 
 
 namespace parpe {
@@ -18,16 +20,34 @@ namespace parpe {
  */
 
 MultiConditionDataProviderHDF5::MultiConditionDataProviderHDF5(std::unique_ptr<amici::Model> model,
-                                                       std::string hdf5Filename)
+                                                               std::string hdf5Filename)
     : MultiConditionDataProviderHDF5(std::move(model), hdf5Filename, "") {}
 
 MultiConditionDataProviderHDF5::MultiConditionDataProviderHDF5(std::unique_ptr<amici::Model> model,
-                                                       std::string hdf5Filename,
-                                                       std::string rootPath)
+                                                               std::string hdf5Filename,
+                                                               std::string rootPath)
     : model(std::move(model)), rootPath(rootPath) {
+
+    optimizationOptions = parpe::OptimizationOptions::fromHDF5(getHdf5FileId());
 
     auto lock = hdf5MutexGetLock();
 
+    openHdf5File(hdf5Filename);
+
+    hdf5MeasurementPath = rootPath + "/measurements/y";
+    hdf5MeasurementSigmaPath = rootPath + "/measurements/ysigma";
+    hdf5ConditionPath = rootPath + "/fixedParameters/k";
+    hdf5AmiciOptionPath = rootPath + "/amiciOptions";
+    hdf5ParameterPath = rootPath + "/parameters";
+    hdf5ParameterMinPath = hdf5ParameterPath + "/lowerBound";
+    hdf5ParameterMaxPath = hdf5ParameterPath + "/upperBound";
+    hdf5ParameterScalingPath = hdf5AmiciOptionPath + "/pscale";
+    hdf5SimulationToOptimizationParameterMappingPath = rootPath + "/parameters/optimizationSimulationMapping";
+    amici::hdf5::readModelDataFromHDF5(fileId, *this->model, hdf5AmiciOptionPath.c_str());
+}
+
+void MultiConditionDataProviderHDF5::openHdf5File(std::string hdf5Filename)
+{
     H5_SAVE_ERROR_HANDLER;
     try {
         file = H5::H5File(hdf5Filename.c_str(), H5F_ACC_RDONLY);
@@ -41,17 +61,6 @@ MultiConditionDataProviderHDF5::MultiConditionDataProviderHDF5(std::unique_ptr<a
         throw(HDF5Exception());
     }
     H5_RESTORE_ERROR_HANDLER;
-
-    hdf5MeasurementPath = rootPath + "/measurements/y";
-    hdf5MeasurementSigmaPath = rootPath + "/measurements/ysigma";
-    hdf5ConditionPath = rootPath + "/fixedParameters/k";
-    hdf5AmiciOptionPath = rootPath + "/amiciOptions";
-    hdf5ParameterPath = rootPath + "/parameters";
-    hdf5ParameterMinPath = hdf5ParameterPath + "/lowerBound";
-    hdf5ParameterMaxPath = hdf5ParameterPath + "/upperBound";
-    hdf5ParameterScalingPath = hdf5ParameterPath + "/parameterScaling";
-
-    amici::hdf5::readModelDataFromHDF5(fileId, *this->model, hdf5AmiciOptionPath.c_str());
 }
 
 /**
@@ -61,7 +70,7 @@ MultiConditionDataProviderHDF5::MultiConditionDataProviderHDF5(std::unique_ptr<a
  * @return
  */
 int MultiConditionDataProviderHDF5::getNumberOfConditions() const {
-    // TODO: add additional layer for selecten of condition indices (for testing
+    // TODO: add additional layer for selection of condition indices (for testing
     // and later for minibatch)
     // -> won't need different file for testing/validation splits
     // TODO: cache
@@ -77,7 +86,7 @@ int MultiConditionDataProviderHDF5::getNumberOfConditions() const {
 
 
 std::vector<int> MultiConditionDataProviderHDF5::getSimulationToOptimizationParameterMapping(int conditionIdx) const  {
-    std::string path = rootPath + "/parameters/optimizationSimulationMapping";
+    std::string path = hdf5SimulationToOptimizationParameterMappingPath;
     if(hdf5DatasetExists(fileId, path.c_str())) {
         return hdf5Read2DIntegerHyperslab(file, path, model->np(), 1, 0, conditionIdx);
     } else {
@@ -107,9 +116,9 @@ void MultiConditionDataProviderHDF5::mapAndSetOptimizationToSimulationVariables(
 
 amici::AMICI_parameter_scaling MultiConditionDataProviderHDF5::getParameterScale(int optimizationParameterIndex) const
 {
-    return static_cast<amici::AMICI_parameter_scaling>(
-                hdf5Read1DIntegerHyperslab(
-                    file, hdf5ParameterScalingPath, 1, optimizationParameterIndex).at(0));
+    auto res = hdf5Read1DIntegerHyperslab(file, hdf5ParameterScalingPath,
+                                          1, optimizationParameterIndex).at(0);
+    return static_cast<amici::AMICI_parameter_scaling>(res);
 }
 
 /**
@@ -148,18 +157,15 @@ void MultiConditionDataProviderHDF5::updateFixedSimulationParameters(int conditi
 }
 
 std::unique_ptr<amici::ExpData> MultiConditionDataProviderHDF5::getExperimentalDataForCondition(
-    int conditionIdx) const {
+        int conditionIdx) const {
     auto lock = hdf5MutexGetLock();
 
     auto edata = std::make_unique<amici::ExpData>(*model);
-    assert(edata && "Failed getting experimental data. Check data file.");
+    RELEASE_ASSERT(edata, "Failed getting experimental data. Check data file.");
 
-    hdf5Read3DDoubleHyperslab(fileId, hdf5MeasurementPath.c_str(),
-                              1, edata->nt, edata->nytrue,
-                              conditionIdx, 0, 0, edata->my.data());
-    hdf5Read3DDoubleHyperslab(fileId, hdf5MeasurementSigmaPath.c_str(),
-                              1, edata->nt, edata->nytrue,
-                              conditionIdx, 0, 0, edata->sigmay.data());
+    edata->my = getMeasurementForConditionIndex(conditionIdx);
+    edata->sigmay = getSigmaForConditionIndex(conditionIdx);
+    // TODO: at some point we should include condition-parameters here too
 
     return edata;
 }
@@ -167,11 +173,40 @@ std::unique_ptr<amici::ExpData> MultiConditionDataProviderHDF5::getExperimentalD
 std::vector<std::vector<double> > MultiConditionDataProviderHDF5::getAllMeasurements() const {
     std::vector<std::vector<double>> result(getNumberOfConditions());
     for(int conditionIdx = 0; (unsigned) conditionIdx < result.size(); ++conditionIdx) {
-        result[conditionIdx].resize(model->nt() * model->nytrue);
-        hdf5Read3DDoubleHyperslab(fileId, hdf5MeasurementPath.c_str(),
-                                  1, model->nt(), model->nytrue,
-                                  conditionIdx, 0, 0, result[conditionIdx].data());
+        result[conditionIdx] = getMeasurementForConditionIndex(conditionIdx);
     }
+    return result;
+}
+
+std::vector<std::vector<double> > MultiConditionDataProviderHDF5::getAllSigmas() const
+{
+    // TODO: how to deal with sigma parameters vs table
+    std::vector<std::vector<double>> result(getNumberOfConditions());
+    for(int conditionIdx = 0; (unsigned) conditionIdx < result.size(); ++conditionIdx) {
+        result[conditionIdx]= getSigmaForConditionIndex(conditionIdx);
+    }
+    return result;
+}
+
+std::vector<double> MultiConditionDataProviderHDF5::getSigmaForConditionIndex(int conditionIdx) const
+{
+    auto result = std::vector<double>(model->nt() * model->nytrue);
+
+    hdf5Read3DDoubleHyperslab(fileId, hdf5MeasurementSigmaPath.c_str(),
+                              1, model->nt(), model->nytrue,
+                              conditionIdx, 0, 0, result.data());
+
+    return result;
+}
+
+std::vector<double> MultiConditionDataProviderHDF5::getMeasurementForConditionIndex(int conditionIdx) const
+{
+    auto result = std::vector<double>(model->nt() * model->nytrue);
+
+    hdf5Read3DDoubleHyperslab(fileId, hdf5MeasurementPath.c_str(),
+                              1, model->nt(), model->nytrue,
+                              conditionIdx, 0, 0, result.data());
+
     return result;
 }
 
@@ -191,7 +226,7 @@ void MultiConditionDataProviderHDF5::getOptimizationParametersLowerBounds(
 }
 
 void MultiConditionDataProviderHDF5::getOptimizationParametersUpperBounds(
-    double *buffer) const {
+        double *buffer) const {
     auto lock = hdf5MutexGetLock();
 
     auto dataset = file.openDataSet(hdf5ParameterMaxPath);
@@ -213,7 +248,9 @@ int MultiConditionDataProviderHDF5::getNumOptimizationParameters() const {
 }
 
 
-std::unique_ptr<amici::Model> MultiConditionDataProviderHDF5::getModel() const { return std::unique_ptr<amici::Model>(model->clone()); }
+std::unique_ptr<amici::Model> MultiConditionDataProviderHDF5::getModel() const {
+    return std::unique_ptr<amici::Model>(model->clone());
+}
 
 std::unique_ptr<amici::Solver> MultiConditionDataProviderHDF5::getSolver() const
 {
@@ -243,21 +280,21 @@ hid_t MultiConditionDataProviderHDF5::getHdf5FileId() const { return fileId; }
 
 
 //void MultiConditionDataProvider::printInfo() const {
-    //    int maxwidth = 25;
-    //    int numMultiStartRuns = getNumMultiStartRuns();
-    //    logmessage(LOGLVL_INFO, "%*s: %d", maxwidth, "Num multistart optims",
-    //    numMultiStartRuns);
+//    int maxwidth = 25;
+//    int numMultiStartRuns = getNumMultiStartRuns();
+//    logmessage(LOGLVL_INFO, "%*s: %d", maxwidth, "Num multistart optims",
+//    numMultiStartRuns);
 
-    //    for(int i = 0; i < numMultiStartRuns; ++i) {
-    //        int numStarts = getNumLocalOptimizationsForMultiStartRun(i);
-    //        logmessage(LOGLVL_INFO, "%*s: %d", maxwidth, "Num starts",
-    //        numStarts);
-    //        logmessage(LOGLVL_INFO, "%*s: %d", maxwidth, "Genotypes",
-    //        getNumGenotypes());
-    //    }
+//    for(int i = 0; i < numMultiStartRuns; ++i) {
+//        int numStarts = getNumLocalOptimizationsForMultiStartRun(i);
+//        logmessage(LOGLVL_INFO, "%*s: %d", maxwidth, "Num starts",
+//        numStarts);
+//        logmessage(LOGLVL_INFO, "%*s: %d", maxwidth, "Genotypes",
+//        getNumGenotypes());
+//    }
 
-    //    logmessage(LOGLVL_INFO, "%*s: %d", maxwidth, "Max iterations",
-    //    getMaxIter());
+//    logmessage(LOGLVL_INFO, "%*s: %d", maxwidth, "Max iterations",
+//    getMaxIter());
 //}
 
 
@@ -371,6 +408,16 @@ std::vector<std::vector<double> > MultiConditionDataProviderDefault::getAllMeasu
     }
     return measurements;
 }
+
+std::vector<std::vector<double> > MultiConditionDataProviderDefault::getAllSigmas() const
+{
+    std::vector<std::vector<double> > sigmas;
+    for(const auto& e: edata) {
+        sigmas.push_back(e.sigmay);
+    }
+    return sigmas;
+}
+
 
 int MultiConditionDataProviderDefault::getNumOptimizationParameters() const
 {

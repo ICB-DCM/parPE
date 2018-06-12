@@ -5,3 +5,4 @@
 #define p5 p[4]
 #define scaling_x1 p[5]
 #define offset_x2 p[6]
+#define observable_x1withsigma_sigma p[7]

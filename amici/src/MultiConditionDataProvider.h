@@ -2,8 +2,10 @@
 #define MULTICONDITIONDATAPROVIDER_H
 
 #include <hdf5Misc.h>
+#include <optimizationOptions.h>
 
 #include <amici/amici.h>
+#include <gsl/gsl-lite.hpp>
 
 #include <memory>
 #include <string>
@@ -81,6 +83,7 @@ class MultiConditionDataProvider {
     virtual std::unique_ptr<amici::ExpData> getExperimentalDataForCondition(int conditionIdx) const = 0;
 
     virtual std::vector<std::vector<double> > getAllMeasurements() const = 0;
+    virtual std::vector<std::vector<double> > getAllSigmas() const = 0;
 
     /**
      * @brief Returns the number of optimization parameters of this problem
@@ -142,6 +145,7 @@ class MultiConditionDataProviderDefault : public MultiConditionDataProvider {
     virtual std::unique_ptr<amici::ExpData> getExperimentalDataForCondition(int conditionIdx) const override;
 
     virtual std::vector<std::vector<double> > getAllMeasurements() const override;
+    virtual std::vector<std::vector<double> > getAllSigmas() const override;
 
     /**
      * @brief Returns the number of optimization parameters of this problem
@@ -185,12 +189,6 @@ private:
  * NOTE: The following dimensions are determined by the used AMICI model:
  * * numObservables := Model::ny
  * * numFixedParameters := Model::nk
- *
- * The vector of optimization variables is assumed to be [x_0, ...,
- * x_(numCommonParameter-1), conditionSpecificParameters].
- * conditionSpecificParameters := [cond0par0, cond0par1, ...,
- * cond0_par_(numConditionSpecificParametersPerSimulation-1),
- * cond_(numConditions-1)_(numConditionSpecificParametersPerSimulation-1) ]
  */
 
 // TODO split; separate optimization from simulation
@@ -201,7 +199,6 @@ class MultiConditionDataProviderHDF5 : public MultiConditionDataProvider {
     /**
      * @brief MultiConditionDataProvider
      * @param model A valid pointer to the amici::Model for which the data is to be provided.
-     * The user is responsible for deleting the Model.
      * @param hdf5Filename Path to the HDF5 file from which the data is to be read
      */
     MultiConditionDataProviderHDF5(std::unique_ptr<amici::Model> model, std::string hdf5Filename);
@@ -216,6 +213,8 @@ class MultiConditionDataProviderHDF5 : public MultiConditionDataProvider {
                                std::string rootPath);
 
     virtual ~MultiConditionDataProviderHDF5() = default;
+
+    void openHdf5File(std::string hdf5Filename);
 
     /**
      * @brief Provides the number of conditions for which data is available and
@@ -258,6 +257,10 @@ class MultiConditionDataProviderHDF5 : public MultiConditionDataProvider {
     virtual std::unique_ptr<amici::ExpData> getExperimentalDataForCondition(int conditionIdx) const override;
 
     std::vector<std::vector<double> > getAllMeasurements() const override;
+    std::vector<std::vector<double> > getAllSigmas() const override;
+
+    std::vector<double> getSigmaForConditionIndex(int conditionIdx) const;
+    std::vector<double> getMeasurementForConditionIndex(int conditionIdx) const;
 
     /**
      * @brief getOptimizationParametersLowerBounds Get lower parameter bounds
@@ -283,7 +286,8 @@ class MultiConditionDataProviderHDF5 : public MultiConditionDataProvider {
 
 
     /**
-     * @brief Returns a pointer to the underlying AMICI model
+     * @brief Returns a pointer to a copy of the underlying AMICI model
+     * as provided to the constructor
      * @return The model
      */
     virtual std::unique_ptr<amici::Model> getModel() const override;
@@ -293,7 +297,7 @@ class MultiConditionDataProviderHDF5 : public MultiConditionDataProvider {
 
     /**
      * @brief Based on the array of optimization parameters, set the simulation
-     * parameters in the given UserData object to the ones for condition index.
+     * parameters in the given Model object to the ones for condition index.
      * @param conditionIndex
      * @param optimizationParams
      * @param udata
@@ -328,6 +332,7 @@ protected:
     std::string hdf5ParameterMinPath;
     std::string hdf5ParameterMaxPath;
     std::string hdf5ParameterScalingPath;
+    std::string hdf5SimulationToOptimizationParameterMappingPath;
 
     /**
      * @brief HDF5 file handles for C++ and C API
@@ -335,6 +340,7 @@ protected:
     H5::H5File file;
     hid_t fileId = 0;
 
+    std::unique_ptr<OptimizationOptions> optimizationOptions;
 };
 
 } // namespace parpe
