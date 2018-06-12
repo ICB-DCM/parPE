@@ -326,9 +326,9 @@ SimulationRunnerSimple::AmiciResultPackageSimple runAndLogSimulation(
 
     // run simulation
 
-    // update UserData::k for condition-specific variables (no parameter mapping
-    // necessary here, this has been done by master)
-    dataProvider->updateFixedSimulationParameters(path.idxConditions, model);
+    // get ExpData with measurement and fixed parameters
+    // (other model parameter have been set already, parameter mapping
+    // has been done by master)
 
     auto edata = dataProvider->getExperimentalDataForCondition(path.idxConditions);
 

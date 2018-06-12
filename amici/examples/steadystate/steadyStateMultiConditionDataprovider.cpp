@@ -27,7 +27,6 @@ void SteadyStateMultiConditionDataProvider::setupModelAndSolver(amici::Model &mo
     //hsize_t m = 0, n = 0;
     //model.setTimepoints(amici::hdf5::getDoubleDataset2D(fileId, rootPath + "/parameters/t", m, n));
     // set model constants
-    updateFixedSimulationParameters(0, model);
 
     // calculate sensitivities for all parameters
     model.requireSensitivitiesForAllParameters();

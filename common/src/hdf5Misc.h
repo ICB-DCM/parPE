@@ -51,6 +51,8 @@ herr_t
 hdf5ErrorStackWalker_cb(unsigned int n, const H5E_error_t *err_desc,
                         void *client_data); // TODO: also use for resultwriter
 
+bool hdf5DatasetExists(hid_t file_id, std::string const& datasetName);
+
 bool hdf5DatasetExists(hid_t file_id, const char *datasetName);
 
 bool hdf5GroupExists(hid_t file_id, const char *groupName);

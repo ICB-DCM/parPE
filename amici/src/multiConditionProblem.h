@@ -182,9 +182,8 @@ public:
     /**
      * @brief Is called by worker processes to run a simulation for the given
      * condition
-     * @param udata UserData for simulation. Model dimensions, sensitivity
-     * options and UserData::p is set, others are not.
-     * E.g. UserData::k has to be update if applicable.
+     * @param model Model for simulation. Sensitivity
+     * options and parameters are set.
      * @param dataProvider
      * @param path
      * @param jobId

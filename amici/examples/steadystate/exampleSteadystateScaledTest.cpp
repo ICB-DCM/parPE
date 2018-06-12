@@ -80,8 +80,8 @@ TEST(steadystateProblemTests, testSteadystateMultiCond) {
 
     parpe::MultiConditionDataProviderDefault dp(std::move(model), modelNonOwning->getSolver());
 
-    dp.k.push_back(modelNonOwning->getFixedParameters());
     dp.edata.push_back(amici::ExpData(*modelNonOwning));
+    dp.edata[0].fixedParameters = modelNonOwning->getFixedParameters();
     dp.edata[0].my = yExp;
     dp.edata[0].sigmay.assign(dp.edata[0].my.size(), 1.0);
 
@@ -108,9 +108,9 @@ TEST(steadystateProblemTests, testSteadystateHierarchical) {
     auto yScaledExp = yExp;
     yScaledExp[scaledObservableIdx] *= scalingExp;
     parpe::MultiConditionDataProviderDefault dp(std::move(model), modelNonOwning->getSolver());
-    dp.k.push_back(modelNonOwning->getFixedParameters());
     // x0?
     dp.edata.push_back(amici::ExpData(*modelNonOwning));
+    dp.edata[0].fixedParameters = modelNonOwning->getFixedParameters();
     dp.edata[0].my = yScaledExp;
     dp.edata[0].sigmay.assign(dp.edata[0].my.size(), 1.0);
 
@@ -169,9 +169,9 @@ TEST(steadystateProblemTests, testOptimizationHierarchical) {
     auto yScaledExp = yExp;
     yScaledExp[scaledObservableIdx] *= scalingExp;
     parpe::MultiConditionDataProviderDefault dp(std::move(model), std::move(solver));
-    dp.k.push_back(modelNonOwning->getFixedParameters());
     // x0?
     dp.edata.push_back(amici::ExpData(*modelNonOwning));
+    dp.edata[0].fixedParameters = modelNonOwning->getFixedParameters();
     dp.edata[0].my = yScaledExp;
     dp.edata[0].sigmay.assign(dp.edata[0].my.size(), 1.0);
     //parpe::MultiConditionProblem problem(&dp);

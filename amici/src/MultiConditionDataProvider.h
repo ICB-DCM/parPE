@@ -68,14 +68,6 @@ class MultiConditionDataProvider {
 
     virtual amici::AMICI_parameter_scaling getParameterScale(int optimizationParameterIndex) const = 0;
 
-    /**
-     * @brief Update fixed model parameters for the specified condition.
-     * @param conditionIdx
-     * @param model The Model instance to be updated
-     * @return Status, 0 on success, non-zero otherwise
-     */
-    virtual void updateFixedSimulationParameters(int conditionIdx,
-                                                amici::Model &model) const = 0;
 
     virtual void updateSimulationParameters(int conditionIndex, const double *optimizationParams,
         amici::Model &model) const = 0;
@@ -130,14 +122,6 @@ class MultiConditionDataProviderDefault : public MultiConditionDataProvider {
 
     virtual amici::AMICI_parameter_scaling getParameterScale(int optimizationParameterIndex) const override;
 
-    /**
-     * @brief Update fixed model parameters for the specified condition.
-     * @param conditionIdx
-     * @param model The Model instance to be updated
-     * @return Status, 0 on success, non-zero otherwise
-     */
-    virtual void updateFixedSimulationParameters(int conditionIdx,
-                                                amici::Model &model) const override;
 
     virtual void updateSimulationParameters(int conditionIndex, const double *optimizationParams,
         amici::Model &model) const override;
@@ -165,7 +149,6 @@ class MultiConditionDataProviderDefault : public MultiConditionDataProvider {
 
     // TODO private
     std::vector<amici::ExpData> edata;
-    std::vector<std::vector<double>> k;
 
 private:
     std::unique_ptr<amici::Model> model;
@@ -244,15 +227,8 @@ class MultiConditionDataProviderHDF5 : public MultiConditionDataProvider {
 
     // void printInfo() const;
 
-
-    /**
-     * @brief Update fixed model parameters in of the passed UserData object for
-     * the specified condition.
-     * @param conditionIdx
-     * @param udata The UserData instance to be updated
-     */
-    virtual void updateFixedSimulationParameters(int conditionIdx,
-                                                amici::Model &model) const override;
+    virtual void readFixedSimulationParameters(int conditionIdx,
+                                               double *buffer) const;
 
     virtual std::unique_ptr<amici::ExpData> getExperimentalDataForCondition(int conditionIdx) const override;
 
@@ -314,6 +290,8 @@ class MultiConditionDataProviderHDF5 : public MultiConditionDataProvider {
     hid_t getHdf5FileId() const;
 
 protected:
+    void updateFixedSimulationParameters(int conditionIdx, amici::ExpData &edata) const;
+
     /**
      * @brief The model for which the data is to be read
      */
@@ -327,6 +305,7 @@ protected:
     std::string hdf5MeasurementPath;
     std::string hdf5MeasurementSigmaPath;
     std::string hdf5ConditionPath;
+    std::string hdf5ReferenceConditionPath;
     std::string hdf5AmiciOptionPath;
     std::string hdf5ParameterPath;
     std::string hdf5ParameterMinPath;
