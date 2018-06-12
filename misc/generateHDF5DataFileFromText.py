@@ -24,9 +24,12 @@ import re
 import os
 from termcolor import colored
 import collections
+import math
 
 SCALING_LOG10 = 2
 SCALING_LIN = 0
+# index for no reference/preequilibration condition
+NO_PREEQ_CONDITION_IDX = -1
 
 class AmiciPyModelParser:
     def __init__(self, modelFolder):
@@ -99,8 +102,8 @@ class HDF5DataGenerator:
         # Must also consider conditionRef values, since pre-equilibration conditions might come without any datapoints,
         # and thus, not show up in condition-column
         self.conditions = amiciHelper.unique(self.measurementDf.loc[:, 'condition'].append(self.measurementDf.loc[:, 'conditionRef']))
-        if np.nan in self.conditions:
-            self.conditions.remove(np.nan) # might have been introduced with empty conditionRef fields
+        # might have been introduced through empty conditionRef fields
+        self.conditions = [c for c in self.conditions if not (isinstance(c, float) and math.isnan(c))]
         self.numConditions = len(self.conditions)
 
         # when using adjoint sensitivities, we cannot keep inf -> consider late timepoint as steady-state
@@ -405,22 +408,27 @@ class HDF5DataGenerator:
         """
         Write index map reference conditions to be used for pre-equilibration
         
-        TODO self.measurementDf.conditionRef: this should go to exp table to avoid potential redundancy/ambiguity in measurement file
+        Parse conditionRef column, and write to hdf5 dataset. If conditionRef is empty, set to -1, otherwise to condition index
+        
+        TODO: self.measurementDf.conditionRef: this should go to exp table to avoid potential redundancy/ambiguity in measurement file
+        TODO: we might want to separate reference (control, ...) condition from preequilibration condition 
         """
         
-        referenceMap = list(range(len(self.conditions))) # default: no other reference conditions
+        referenceMap = [NO_PREEQ_CONDITION_IDX] * len(self.conditions)
+        
         for index, row in self.measurementDf.iterrows():
             conditionIdx = self.conditions.index(row['condition'])
-            if isinstance(row['conditionRef'], float) and  np.isnan(row['conditionRef']):
-                conditionIdxRef = conditionIdx 
+            if isinstance(row['conditionRef'], float) and np.isnan(row['conditionRef']):
+                conditionIdxRef = NO_PREEQ_CONDITION_IDX 
             else:
                 conditionIdxRef = self.conditions.index(row['conditionRef'])
             
-            if referenceMap[conditionIdx] != conditionIdxRef and referenceMap[conditionIdx] != conditionIdx:
+            if referenceMap[conditionIdx] != conditionIdxRef and referenceMap[conditionIdx] != NO_PREEQ_CONDITION_IDX:
                 printf("Error: Ambiguous assignment of reference conditions for %s: %s vs. %s" 
                        % (self.conditions[conditionIdx], self.conditions[referenceMap[conditionIdx]], self.conditions[conditionIdxRef])) 
             
             referenceMap[conditionIdx] = conditionIdxRef
+            
         dset = self.f.create_dataset("/fixedParameters/referenceConditions", shape=(self.numConditions,), dtype="<i4", data=referenceMap)
 
     def writeStringArray(self, path, strings):
