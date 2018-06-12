@@ -189,12 +189,6 @@ private:
  * NOTE: The following dimensions are determined by the used AMICI model:
  * * numObservables := Model::ny
  * * numFixedParameters := Model::nk
- *
- * The vector of optimization variables is assumed to be [x_0, ...,
- * x_(numCommonParameter-1), conditionSpecificParameters].
- * conditionSpecificParameters := [cond0par0, cond0par1, ...,
- * cond0_par_(numConditionSpecificParametersPerSimulation-1),
- * cond_(numConditions-1)_(numConditionSpecificParametersPerSimulation-1) ]
  */
 
 // TODO split; separate optimization from simulation
@@ -205,7 +199,6 @@ class MultiConditionDataProviderHDF5 : public MultiConditionDataProvider {
     /**
      * @brief MultiConditionDataProvider
      * @param model A valid pointer to the amici::Model for which the data is to be provided.
-     * The user is responsible for deleting the Model.
      * @param hdf5Filename Path to the HDF5 file from which the data is to be read
      */
     MultiConditionDataProviderHDF5(std::unique_ptr<amici::Model> model, std::string hdf5Filename);
@@ -293,7 +286,8 @@ class MultiConditionDataProviderHDF5 : public MultiConditionDataProvider {
 
 
     /**
-     * @brief Returns a pointer to the underlying AMICI model
+     * @brief Returns a pointer to a copy of the underlying AMICI model
+     * as provided to the constructor
      * @return The model
      */
     virtual std::unique_ptr<amici::Model> getModel() const override;
@@ -303,7 +297,7 @@ class MultiConditionDataProviderHDF5 : public MultiConditionDataProvider {
 
     /**
      * @brief Based on the array of optimization parameters, set the simulation
-     * parameters in the given UserData object to the ones for condition index.
+     * parameters in the given Model object to the ones for condition index.
      * @param conditionIndex
      * @param optimizationParams
      * @param udata
