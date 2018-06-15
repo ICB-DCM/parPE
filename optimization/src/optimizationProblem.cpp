@@ -186,7 +186,7 @@ FunctionEvaluationStatus OptimizationReporter::evaluate(
 
     if(gradient.data()) {
         if (!haveCachedGradient || !std::equal(parameters.begin(), parameters.end(),
-                                               finalParameters.begin())) {
+                                               cachedParameters.begin())) {
             // Have to compute anew
             cachedStatus = gradFun->evaluate(parameters, cachedCost, cachedGradient);
             haveCachedCost = true;
@@ -197,7 +197,7 @@ FunctionEvaluationStatus OptimizationReporter::evaluate(
         fval = cachedCost;
     } else {
         if (!haveCachedCost || !std::equal(parameters.begin(), parameters.end(),
-                                           finalParameters.begin())) {
+                                           cachedParameters.begin())) {
             // Have to compute anew
             cachedStatus = gradFun->evaluate(parameters, cachedCost, gsl::span<double>());
             haveCachedCost = true;
@@ -207,10 +207,10 @@ FunctionEvaluationStatus OptimizationReporter::evaluate(
     }
 
     // update cached parameters
-    finalParameters.resize(numParameters_);
-    std::copy(parameters.begin(), parameters.end(), finalParameters.begin());
+    cachedParameters.resize(numParameters_);
+    std::copy(parameters.begin(), parameters.end(), cachedParameters.begin());
 
-    if(afterCostFunctionCall(parameters, cachedCost, gradient.data()?cachedGradient:gsl::span<double>()) != 0)
+    if(afterCostFunctionCall(parameters, cachedCost, gradient.data() ? cachedGradient : gsl::span<double>()) != 0)
         return functionEvaluationFailure;
 
     return cachedStatus;
@@ -286,9 +286,15 @@ void OptimizationReporter::finished(double optimalCost, gsl::span<const double> 
 {
     double timeElapsed = wallTimer.getTotal();
 
+    if(cachedCost != optimalCost && parameters.size() == 0) {
+        // the optimal value is not from the cached parameters and we did not get
+        // the optimal parameters from the optimizer. since we don't know them, rather set to nan
+        cachedParameters.assign(cachedParameters.size(), NAN);
+    } else if(parameters.data()) {
+        std::copy(parameters.begin(), parameters.end(), cachedParameters.data());
+    }
+
     cachedCost = optimalCost;
-    if(parameters.data())
-        std::copy(parameters.begin(), parameters.end(), finalParameters.data());
 
     if(resultWriter)
         resultWriter->saveLocalOptimizerResults(optimalCost, parameters, timeElapsed, exitStatus);
@@ -301,7 +307,7 @@ double OptimizationReporter::getFinalCost() const
 
 std::vector<double> OptimizationReporter::getFinalParameters() const
 {
-    return finalParameters;
+    return cachedParameters;
 }
 
 void OptimizationReporter::setGradientFunction(GradientFunction *gradFun) const

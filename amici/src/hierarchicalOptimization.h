@@ -376,6 +376,40 @@ private:
 
 
 /**
+ * @brief The HierarchicalOptimizationReporter class saves optimization parameters
+ * of the inner optimization problem on each function evaluation which would be
+ * hidden from the (outer) optimizer otherwise.
+ */
+class HierarchicalOptimizationReporter : public OptimizationReporter {
+public:
+    HierarchicalOptimizationReporter(HierachicalOptimizationWrapper *gradFun,
+                         std::unique_ptr<OptimizationResultWriter> rw);
+
+
+    FunctionEvaluationStatus evaluate(
+            gsl::span<const double> parameters, double &fval,
+            gsl::span<double> gradient) const override;
+
+    void finished(double optimalCost, gsl::span<const double> parameters, int exitStatus) const;
+
+    virtual bool iterationFinished(gsl::span<const double> parameters,
+                                   double objectiveFunctionValue,
+                                   gsl::span<const double> objectiveFunctionGradient) const;
+
+    HierachicalOptimizationWrapper *hierarchicalWrapper = nullptr;
+
+    /* In addition to the vectors for the outer optimization problem,
+     * we also keep the complete ones.
+     */
+    mutable std::vector<double> cachedFullParameters;
+    mutable std::vector<double> cachedFullGradient;
+    // TODO should override other functions as well
+    // TODO: in all functions, we need to check of the provided parameters or functio nvalues match
+    // To cached ones, if we want to provide all together to downstreams
+
+};
+
+/**
  * @brief Filter a vector using a list of exclude-indices. Write filter list to buffer.
  * @param valuesToFilter Original list
  * @param sortedIndicesToExclude Blacklist of indices

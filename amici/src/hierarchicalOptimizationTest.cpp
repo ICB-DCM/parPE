@@ -193,7 +193,7 @@ TEST(hierarchicalOptimization, hierarchicalOptimization) {
                                                              scalingDummy, offsetDummy, sigmaDummy));
 
     // Ensure it is called with proper parameter vector:
-    auto outputs = hierarchicalOptimizationWrapper.getUnscaledModelOutputs(gsl::make_span(fullParameters.data(), fullParameters.size()));
+    auto outputs = hierarchicalOptimizationWrapper.getUnscaledModelOutputs(gsl::make_span(reducedParameters.data(), reducedParameters.size()));
     CHECK_TRUE(onesFullParameters == fun->lastParameters);
 
     auto s = parpe::computeAnalyticalScalings(0, amici::AMICI_SCALING_LOG10,
@@ -233,7 +233,7 @@ TEST(hierarchicalOptimization, testNoAnalyticalParameters) {
     auto offsetProvider = std::make_unique<AnalyticalParameterProviderMock>();
     auto sigmaProvider = std::make_unique<AnalyticalParameterProviderMock>();
 
-    mock().expectNCalls(2, "AmiciSummedGradientFunctionMock::numParameters");
+    mock().expectNCalls(3, "AmiciSummedGradientFunctionMock::numParameters");
 
     // for offsets and proportionality factors and sigmas
     mock().expectNCalls(3, "AnalyticalParameterProviderMock::getOptimizationParameterIndices");
@@ -246,7 +246,7 @@ TEST(hierarchicalOptimization, testNoAnalyticalParameters) {
 
     mock().expectNCalls(1, "AmiciSummedGradientFunctionMock::evaluate").withBoolParameter("gradient", false);
 
-    std::vector<double> parameters;
+    std::vector<double> parameters{3.0, 2.0, 1.5, 1.3};
     double fval;
     w.evaluate(parameters, fval, gsl::span<double>());
 }
@@ -474,7 +474,7 @@ TEST(hierarchicalOptimization, fillFilteredParams) {
 TEST(hierarchicalOptimization, testWrappedFunIsCalledWithGradient) {
     // setup
     auto fun = std::make_unique<AmiciSummedGradientFunctionMock>();
-    auto fun2 = fun.get();
+    auto funNonOwning = fun.get();
 
     auto scalingProvider = std::make_unique<AnalyticalParameterProviderMock>();
     auto offsetProvider = std::make_unique<AnalyticalParameterProviderMock>();
@@ -486,20 +486,22 @@ TEST(hierarchicalOptimization, testWrappedFunIsCalledWithGradient) {
     scalingProvider->mapping[0][0] = {0};
     scalingProvider->optimizationParameterIndices.push_back(0);
 
-    mock().expectNCalls(2, "AmiciSummedGradientFunctionMock::numParameters");
+    mock().expectNCalls(3, "AmiciSummedGradientFunctionMock::numParameters");
     // for offsets and proportionality factors and sigmas
     mock().expectNCalls(3, "AnalyticalParameterProviderMock::getOptimizationParameterIndices");
 
-    parpe::HierachicalOptimizationWrapper w(std::move(fun), std::move(scalingProvider), std::move(offsetProvider), std::move(sigmaProvider),
-                                            fun2->numConditions, fun2->numObservables, fun2->numTimepoints,
+    parpe::HierachicalOptimizationWrapper hierarchicalWrapper(std::move(fun), std::move(scalingProvider), std::move(offsetProvider), std::move(sigmaProvider),
+                                            funNonOwning->numConditions, funNonOwning->numObservables, funNonOwning->numTimepoints,
                                             parpe::ErrorModel::normal);
 
-    const std::vector<double> parameters { 1.0, 2.0, 3.0, 4.0 };
-    CHECK_EQUAL((unsigned) fun2->numParameters_, parameters.size());
+    const std::vector<double> parameters { 1.0, 2.0, 3.0, /*4.0*/ };
+    CHECK_EQUAL((unsigned) hierarchicalWrapper.numParameters(), parameters.size());
     double fval;
+
     std::vector<double> gradient(parameters.size());
 
     // ensure fun::evaluate is called with gradient
+    mock().expectNCalls(1, "AmiciSummedGradientFunctionMock::numParameters");
 
     mock().expectNCalls(1, "AmiciSummedGradientFunctionMock::getModelOutputs");
     mock().expectNCalls(2, "AnalyticalParameterProviderMock::getConditionsForParameter")
@@ -509,13 +511,13 @@ TEST(hierarchicalOptimization, testWrappedFunIsCalledWithGradient) {
             .withIntParameter("conditionIdx", 0);
     mock().expectNCalls(1, "AmiciSummedGradientFunctionMock::evaluate").withBoolParameter("gradient", true);
 
-    w.evaluate(parameters, fval, gradient);
+    hierarchicalWrapper.evaluate(parameters, fval, gradient);
 
     mock().checkExpectations();
     mock().clear();
 
     // test fun::evaluate is not called if no gradient (only get outputs)
-
+    mock().expectNCalls(1, "AmiciSummedGradientFunctionMock::numParameters");
     mock().expectNCalls(1, "AmiciSummedGradientFunctionMock::getModelOutputs");
     mock().expectNCalls(1, "AnalyticalParameterProviderMock::getConditionsForParameter")
             .withIntParameter("parameterIndex", 0);
@@ -528,7 +530,7 @@ TEST(hierarchicalOptimization, testWrappedFunIsCalledWithGradient) {
             .withIntParameter("parameterIndex", 0)
             .withIntParameter("conditionIdx", 0);
 
-    w.evaluate(parameters, fval, gsl::span<double>());
+    hierarchicalWrapper.evaluate(parameters, fval, gsl::span<double>());
 }
 
 TEST(hierarchicalOptimization, likelihoodOfMatchingData) {

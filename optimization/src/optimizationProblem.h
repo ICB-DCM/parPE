@@ -125,7 +125,9 @@ public:
 
     void setGradientFunction(GradientFunction *gradFun) const;
 
-private:
+    mutable std::unique_ptr<OptimizationResultWriter> resultWriter;
+
+protected:
     // data members are mutable, because we inherit from GradientFunction,
     // and evaluate() is const there. This could probably be solved better....
 
@@ -134,7 +136,6 @@ private:
 //    clock_t timeIterationBegin;
 //    clock_t timeCostEvaluationBegin;
 
-    mutable std::unique_ptr<OptimizationResultWriter> resultWriter;
     mutable int numFunctionCalls = 0;
     mutable int numIterations = 0;
     mutable int numParameters_ = 0;
@@ -154,7 +155,7 @@ private:
     mutable double finalCost;
 
     // keeps the most recent parameters, assuming they are the final ones
-    mutable std::vector<double> finalParameters;
+    mutable std::vector<double> cachedParameters;
 };
 
 
