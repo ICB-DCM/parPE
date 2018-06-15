@@ -27,7 +27,6 @@ MultiConditionProblemResultWriter::MultiConditionProblemResultWriter(
     : OptimizationResultWriter(filename, overwrite)
 {
     auto lock = hdf5MutexGetLock();
-    this->file_id = H5Freopen(file_id);
     setJobId(id);
 }
 
