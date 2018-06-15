@@ -1,4 +1,5 @@
 #!/bin/bash
+# Build script for CI on shippable.com
 
 mkdir build
 cd build
