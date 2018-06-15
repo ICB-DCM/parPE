@@ -37,6 +37,7 @@ MultiConditionDataProviderHDF5::MultiConditionDataProviderHDF5(std::unique_ptr<a
     hdf5MeasurementPath = rootPath + "/measurements/y";
     hdf5MeasurementSigmaPath = rootPath + "/measurements/ysigma";
     hdf5ConditionPath = rootPath + "/fixedParameters/k";
+    hdf5ReferenceConditionPath = "/fixedParameters/referenceConditions";
     hdf5AmiciOptionPath = rootPath + "/amiciOptions";
     hdf5ParameterPath = rootPath + "/parameters";
     hdf5ParameterMinPath = hdf5ParameterPath + "/lowerBound";
@@ -127,23 +128,38 @@ amici::AMICI_parameter_scaling MultiConditionDataProviderHDF5::getParameterScale
  * from fixed parameters matrix.
  * @param conditionIdx Index of the experimental condition for which the
  * parameters should be taken.
- * @param udata The object to be updated.
- * @return On success zero, non-zero on failure
+ * @param edata The object to be updated.
  */
-void MultiConditionDataProviderHDF5::updateFixedSimulationParameters(int conditionIdx, amici::Model &model) const {
+void MultiConditionDataProviderHDF5::updateFixedSimulationParameters(int conditionIdx, amici::ExpData &edata) const {
+    edata.fixedParameters.resize(model->nk());
+    readFixedSimulationParameters(conditionIdx, edata.fixedParameters.data());
+
+    if(hdf5DatasetExists(fileId, hdf5ReferenceConditionPath)) {
+        // TODO cache
+        auto tmp = hdf5Read1DIntegerHyperslab(fileId, hdf5ReferenceConditionPath, 1, conditionIdx);
+        int conditionIdxPreeq = tmp[0];
+        if(conditionIdxPreeq >= 0) {
+            // -1 means no preequilibration
+            edata.fixedParametersPreequilibration.resize(model->nk());
+            readFixedSimulationParameters(conditionIdxPreeq,
+                                          edata.fixedParametersPreequilibration.data());
+        }
+    }
+}
+
+void MultiConditionDataProviderHDF5::readFixedSimulationParameters(int conditionIdx, double *buffer) const
+{
     auto lock = hdf5MutexGetLock();
 
     H5_SAVE_ERROR_HANDLER;
 
-    std::vector<double> buf(model.nk());
-    hdf5Read2DDoubleHyperslab(fileId, hdf5ConditionPath.c_str(), model.nk(), 1,
-                              0, conditionIdx, buf.data());
-    model.setFixedParameters(buf);
+    hdf5Read2DDoubleHyperslab(fileId, hdf5ConditionPath.c_str(), model->nk(), 1,
+                              0, conditionIdx, buffer);
 
     if (H5Eget_num(H5E_DEFAULT)) {
         logmessage(LOGLVL_CRITICAL,
                    "Problem in readFixedParameters (row %d, nk %d)\n",
-                   conditionIdx, model.nk());
+                   conditionIdx, model->nk());
         printBacktrace(20);
         H5Ewalk2(H5E_DEFAULT, H5E_WALK_DOWNWARD, hdf5ErrorStackWalker_cb, NULL);
         abort();
@@ -153,7 +169,6 @@ void MultiConditionDataProviderHDF5::updateFixedSimulationParameters(int conditi
 
     if(H5Eget_num(H5E_DEFAULT))
         throw ParPEException("MultiConditionDataProviderHDF5::updateFixedSimulationParameters unable to read data");
-
 }
 
 std::unique_ptr<amici::ExpData> MultiConditionDataProviderHDF5::getExperimentalDataForCondition(
@@ -165,7 +180,7 @@ std::unique_ptr<amici::ExpData> MultiConditionDataProviderHDF5::getExperimentalD
 
     edata->my = getMeasurementForConditionIndex(conditionIdx);
     edata->sigmay = getSigmaForConditionIndex(conditionIdx);
-    // TODO: at some point we should include condition-parameters here too
+    updateFixedSimulationParameters(conditionIdx, *edata);
 
     return edata;
 }
@@ -347,7 +362,6 @@ MultiConditionDataProviderDefault::MultiConditionDataProviderDefault(std::unique
 
 int MultiConditionDataProviderDefault::getNumberOfConditions() const
 {
-    RELEASE_ASSERT(edata.size() == k.size(), "");
     return edata.size();
 }
 
@@ -385,10 +399,6 @@ amici::AMICI_parameter_scaling MultiConditionDataProviderDefault::getParameterSc
     return model->getParameterScale()[optimizationParameterIndex];
 }
 
-void MultiConditionDataProviderDefault::updateFixedSimulationParameters(int conditionIdx, amici::Model &model) const
-{
-    model.setFixedParameters(k[conditionIdx]);
-}
 
 void MultiConditionDataProviderDefault::updateSimulationParameters(int conditionIndex, const double *optimizationParams, amici::Model &model) const
 {

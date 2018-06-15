@@ -54,7 +54,6 @@ int ExampleSteadystateGradientFunctionParallel::evaluateParallel(const double *p
         job->jobDoneChangedMutex = &simulationsMutex;
         job->sendBuffer.resize(sizeof(double) * model->np() + 2 * sizeof(int));
 
-        dataProvider->updateFixedSimulationParameters(i, *model);
         int needGradient = objFunGrad ? 1 : 0;
 
         memcpy(job->sendBuffer.data(), &i, sizeof(int));
@@ -114,7 +113,6 @@ int ExampleSteadystateGradientFunctionParallel::evaluateSerial(const double *par
     }
 
     for (int i = 0; i < numConditions; ++i) {
-        dataProvider->updateFixedSimulationParameters(i, *model);
         auto edata = dataProvider->getExperimentalDataForCondition(i);
 
         auto rdata = amici::runAmiciSimulation(*solver, edata.get(), *model);
@@ -144,7 +142,6 @@ void ExampleSteadystateGradientFunctionParallel::messageHandler(std::vector<char
     model->setParameters(std::vector<double>(pstart, pstart + model->np()));
 
     // read data for current conditions
-    dataProvider->updateFixedSimulationParameters(conditionIdx, *model);
     auto edata = dataProvider->getExperimentalDataForCondition(conditionIdx);
 
     if (needGradient) {

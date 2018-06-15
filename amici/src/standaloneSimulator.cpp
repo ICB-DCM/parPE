@@ -209,8 +209,7 @@ void StandaloneSimulator::messageHandler(std::vector<char> &buffer, int jobId)
 JobResultAmiciSimulation StandaloneSimulator::runSimulation(JobIdentifier path, int jobId,
                                                             amici::Solver& solver, amici::Model& model)
 {
-    dataProvider->updateFixedSimulationParameters(path.idxConditions, model);
-
+    // currently requires edata, since all condition specific parameters are set via edata
     auto edata = dataProvider->getExperimentalDataForCondition(path.idxConditions);
 
     auto rdata = amici::runAmiciSimulation(solver, edata.get(), model);
