@@ -98,9 +98,9 @@ void ForwardProblem::workForwardProblem() {
 
     /* if preequilibration is necessary, start Newton solver */
     std::vector<realtype> originalFixedParameters; // to restore after pre-equilibration
-    if (solver->getNewtonPreequilibration()) {
+    if (solver->getNewtonPreequilibration() || (edata && edata->fixedParametersPreequilibration.size())) {
         if(edata && edata->fixedParametersPreequilibration.size()) {
-            // Are there dedicated preequilibration parameters provided?
+            // Are there dedicated condition preequilibration parameters provided?
             if(edata->fixedParametersPreequilibration.size() != (unsigned) model->nk())
                 throw AmiException("Number of fixed parameters (%d) in model does not match preequilibration parameters in ExpData (%zd).",
                                    model->nk(), edata->fixedParametersPreequilibration.size());
@@ -376,7 +376,7 @@ void ForwardProblem::getEventOutput() {
             model->fz(nroots.at(ie), ie, t, &x, rdata);
 
             if (edata) {
-                model->fsigma_z(t, ie, nroots.data(), edata, rdata);
+                model->fsigmaz(t, ie, nroots.data(), edata, rdata);
 
                 model->fJz(nroots.at(ie), rdata, edata);
 
@@ -447,7 +447,7 @@ void ForwardProblem::prepEventSensis(int ie) {
            value is NaN, use the parameter value. Store this value in the return
            struct */
         if (isNaN(edata->sigmaz[nroots.at(ie) * rdata->nztrue + iz])) {
-            model->fdsigma_zdp(t);
+            model->fdsigmazdp(t);
         } else {
             for (int ip = 0; ip < model->nplist(); ip++) {
                 model->dsigmazdp[iz + model->nz * ip] = 0;
@@ -534,7 +534,7 @@ void ForwardProblem::getDataOutput(int it) {
      */
 
     model->fy(it, rdata);
-    model->fsigma_y(it, edata, rdata);
+    model->fsigmay(it, edata, rdata);
     model->fJy(it, rdata, edata);
     
     if (rdata->sensi >= AMICI_SENSI_ORDER_FIRST && model->nplist() > 0) {
@@ -559,7 +559,7 @@ void ForwardProblem::prepDataSensis(int it) {
     if (!edata)
         return;
 
-    model->fdsigma_ydp(it, rdata, edata);
+    model->fdsigmaydp(it, rdata, edata);
     model->fdJydy(it, rdata, edata);
     model->fdJydsigma(it, rdata, edata);
     model->fdJydx(&dJydx, it, edata, rdata);
@@ -590,8 +590,8 @@ void ForwardProblem::getDataSensisFSA(int it) {
             if (isNaN(edata->sigmay[it * rdata->nytrue + iy])) {
                 // TODO: it seems redundant to call this for every iy,
                 // should be only called once per it. Check with redundancy
-                // in prepDataSensis and Model::fdsigma_ydp
-                model->fdsigma_ydp(it, rdata, edata);
+                // in prepDataSensis and Model::fdsigmaydp
+                model->fdsigmaydp(it, rdata, edata);
             } else {
                 for (int ip = 0; ip < model->nplist(); ip++) {
                     model->dsigmaydp[ip * model->ny + iy] = 0;
