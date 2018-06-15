@@ -13,9 +13,9 @@ class ExampleSteadystateGradientFunction : public parpe::GradientFunction {
 public:
     ExampleSteadystateGradientFunction(hid_t fileId);
     parpe::FunctionEvaluationStatus evaluate(
-            const double* const parameters,
+            gsl::span<double const> parameters,
             double &fval,
-            double* gradient) const override;
+            gsl::span<double> gradient) const override;
 
     int numParameters() const override;
     void setupUserData(int conditionIdx);
@@ -42,9 +42,9 @@ class ExampleSteadystateProblem : public parpe::OptimizationProblem {
   public:
     ExampleSteadystateProblem(std::string const& dataFileName);
 
-    void fillInitialParameters(double *buffer) const override;
-    void fillParametersMin(double *buffer) const override;
-    void fillParametersMax(double *buffer) const override;
+    void fillInitialParameters(gsl::span<double> buffer) const override;
+    void fillParametersMin(gsl::span<double> buffer) const override;
+    void fillParametersMax(gsl::span<double> buffer) const override;
 
 private:
     H5::H5File file;

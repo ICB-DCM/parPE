@@ -89,8 +89,8 @@ void HierachicalOptimizationWrapper::init() {
                                   this->sigmaParameterIndices.end()), "");
 
     std::cout<<"HierachicalOptimizationWrapper parameters: "
-            <<numParameters()<<" total, "
-           <<fun->numParameters()<< " numerical, "
+            <<fun->numParameters()<<" total, "
+           <<numParameters()<< " numerical, "
           <<proportionalityFactorIndices.size()<<" proportionality, "
          <<offsetParameterIndices.size()<<" offset, "
         <<sigmaParameterIndices.size()<<" sigma\n";
@@ -98,9 +98,9 @@ void HierachicalOptimizationWrapper::init() {
 
 
 FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluate(
-        const double * const parameters,
+        gsl::span<const double> parameters,
         double &fval,
-        double *gradient) const {
+        gsl::span<double> gradient) const {
 
     std::vector<double> fullParameters;
     std::vector<double> fullGradient;
@@ -108,11 +108,13 @@ FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluate(
 }
 
 FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluate(
-        const double * const parameters, double &fval, double *gradient,
+        gsl::span<const double> reducedParameters,
+        double &fval,
+        gsl::span<double> gradient,
         std::vector<double> &fullParameters, std::vector<double> &fullGradient) const
 {
-    auto reducedParameters = gsl::make_span(parameters, parameters?numParameters():0);
-
+    RELEASE_ASSERT(reducedParameters.size() == (unsigned)numParameters(), "");
+    RELEASE_ASSERT(gradient.size() == 0 || gradient.size() == reducedParameters.size(), "");
     if(numProportionalityFactors() == 0 && numOffsetParameters() == 0) {
         // nothing to do, just pass through
 
@@ -120,7 +122,7 @@ FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluate(
         std::vector<int> dataIndices(numConditions);
         std::iota(dataIndices.begin(), dataIndices.end(), 0);
 
-        return fun->evaluate(parameters, dataIndices, fval, gradient);
+        return fun->evaluate(reducedParameters, dataIndices, fval, gradient);
     }
 
     // evaluate with scaling parameters set to 1 and offsets to 0
@@ -143,7 +145,7 @@ FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluate(
     auto sigmas = computeAnalyticalSigmas(measurements, modelOutput);
 
     // splice parameter vector we get from optimizer with analytically computed parameters
-    fullParameters = spliceParameters(gsl::make_span<const double>(reducedParameters.data(), reducedParameters.size()),
+    fullParameters = spliceParameters(reducedParameters,
                                       proportionalityFactorIndices, offsetParameterIndices, sigmaParameterIndices,
                                       scalings, offsets, sigmas);
 
@@ -151,7 +153,7 @@ FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluate(
     // evaluate with analytical scaling parameters
     auto status = evaluateWithOptimalParameters(fullParameters, sigmas,
                                                 measurements, modelOutput,
-                                                fval, gsl::make_span(gradient, gradient?numParameters():0),
+                                                fval, gradient,
                                                 fullGradient);
 
     return status;
@@ -208,7 +210,7 @@ std::vector<std::vector<double> > HierachicalOptimizationWrapper::getUnscaledMod
                                            scalingDummy, offsetDummy, sigmaDummy);
 
     std::vector<std::vector<double> > modelOutput(numConditions);
-    fun->getModelOutputs(fullParameters.data(), modelOutput);
+    fun->getModelOutputs(fullParameters, modelOutput);
 
     return modelOutput;
 }
@@ -328,7 +330,7 @@ FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluateWithOptimalPara
         double &fval, const gsl::span<double> gradient,
         std::vector<double>& fullGradient) const {
 
-    if(gradient.data()) {
+    if(gradient.size()) {
         // simulate with updated theta for sensitivities
         // simulate all datasets
         std::vector<int> dataIndices(numConditions);
@@ -336,13 +338,13 @@ FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluateWithOptimalPara
 
         // Need intermediary buffer because optimizer expects fewer parameters than `fun` delivers
         fullGradient.resize(fullParameters.size());
-        auto status = fun->evaluate(fullParameters.data(), dataIndices, fval, fullGradient.data());
+        auto status = fun->evaluate(fullParameters, dataIndices, fval, fullGradient);
         if(status != functionEvaluationSuccess)
             return status;
 
         // Filter gradient for those parameters expected by the optimizer
         auto analyticalParameterIndices = getAnalyticalParameterIndices();
-        fillFilteredParams(fullGradient, analyticalParameterIndices, gradient.data());
+        fillFilteredParams(fullGradient, analyticalParameterIndices, gradient);
     } else {
         auto fullSigmaMatrices = fun->getAllSigmas();
         if(sigmaParameterIndices.size()) {
@@ -558,38 +560,44 @@ HierachicalOptimizationProblemWrapper::~HierachicalOptimizationProblemWrapper()
     dynamic_cast<HierachicalOptimizationWrapper *>(costFun.get())->fun.release();
 }
 
-void HierachicalOptimizationProblemWrapper::fillInitialParameters(double *buffer) const
+void HierachicalOptimizationProblemWrapper::fillInitialParameters(gsl::span<double> buffer) const
 {
     std::vector<double> full(wrappedProblem->costFun->numParameters());
-    wrappedProblem->fillInitialParameters(full.data());
+    wrappedProblem->fillInitialParameters(full);
     fillFilteredParams(full, buffer);
 }
 
-void HierachicalOptimizationProblemWrapper::fillParametersMax(double *buffer) const
+void HierachicalOptimizationProblemWrapper::fillParametersMax(gsl::span<double> buffer) const
 {
     std::vector<double> full(wrappedProblem->costFun->numParameters());
-    wrappedProblem->fillParametersMax(full.data());
+    wrappedProblem->fillParametersMax(full);
     fillFilteredParams(full, buffer);
 }
 
-void HierachicalOptimizationProblemWrapper::fillParametersMin(double *buffer) const
+void HierachicalOptimizationProblemWrapper::fillParametersMin(gsl::span<double> buffer) const
 {
     std::vector<double> full(wrappedProblem->costFun->numParameters());
-    wrappedProblem->fillParametersMin(full.data());
+    wrappedProblem->fillParametersMin(full);
     fillFilteredParams(full, buffer);
 }
 
 void HierachicalOptimizationProblemWrapper::fillFilteredParams(const std::vector<double> &fullParams,
-                                                               double* buffer) const
+                                                               gsl::span<double> buffer) const
 {
     auto hierarchical = dynamic_cast<HierachicalOptimizationWrapper *>(costFun.get());
     auto combinedIndices = hierarchical->getAnalyticalParameterIndices();
     parpe::fillFilteredParams(fullParams, combinedIndices, buffer);
 }
 
+std::unique_ptr<OptimizationReporter> HierachicalOptimizationProblemWrapper::getReporter() const {
+    auto reporter = wrappedProblem->getReporter();
+    reporter->setGradientFunction(costFun.get());
+    return reporter;
+}
+
 void fillFilteredParams(std::vector<double> const& valuesToFilter,
                         std::vector<int> const& sortedIndicesToExclude,
-                        double* result)
+                        gsl::span<double> result)
 {
     // adapt to offsets
     unsigned int nextFilterIdx = 0;

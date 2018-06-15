@@ -76,9 +76,9 @@ class MyCeresFirstOrderFunction : public ceres::FirstOrderFunction {
 
         // bounds are not natively supported by CERES; a naive check is currently implemented which fails function evaluation if parameters are out of bounds
         parametersMin.resize(numParameters);
-        problem->fillParametersMin(parametersMin.data());
+        problem->fillParametersMin(parametersMin);
         parametersMax.resize(numParameters);
-        problem->fillParametersMax(parametersMax.data());
+        problem->fillParametersMax(parametersMax);
     }
 
     /**
@@ -96,7 +96,9 @@ class MyCeresFirstOrderFunction : public ceres::FirstOrderFunction {
                          parametersMin.data(), parametersMax.data()))
             return false;
 
-        auto result = reporter->evaluate(parameters, *cost, gradient);
+        auto result = reporter->evaluate(gsl::make_span<double const>(parameters, numParameters),
+                                         *cost,
+                                         gsl::make_span<double>(gradient, gradient?numParameters:0));
 
         return result == functionEvaluationSuccess;
     }
@@ -130,7 +132,7 @@ class MyIterationCallback : public ceres::IterationCallback {
 
         // TODO: print here
 
-        int status = reporter->iterationFinished(nullptr, summary.cost, nullptr);
+        int status = reporter->iterationFinished(gsl::span<double const>(), summary.cost, gsl::span<double const>());
         switch (status) {
         case 0:
             return ceres::SOLVER_CONTINUE;
@@ -168,7 +170,7 @@ std::tuple<int, double, std::vector<double> > OptimizerCeres::optimize(Optimizat
 #endif
 
     std::vector<double> parameters(problem->costFun->numParameters());
-    problem->fillInitialParameters(parameters.data());
+    problem->fillInitialParameters(parameters);
 
     auto reporter = problem->getReporter();
     // GradientProblem takes ownership of
@@ -181,11 +183,11 @@ std::tuple<int, double, std::vector<double> > OptimizerCeres::optimize(Optimizat
 
     ceres::GradientProblemSolver::Summary summary;
 
-    reporter->starting(parameters.size(), parameters.data());
+    reporter->starting(gsl::span<double>(parameters));
 
     ceres::Solve(options, ceresProblem, parameters.data(), &summary);
     reporter->finished(summary.final_cost,
-                       parameters.data(),
+                       gsl::span<double>(parameters),
                        summary.termination_type);
 
     //    std::cout<<summary.FullReport();

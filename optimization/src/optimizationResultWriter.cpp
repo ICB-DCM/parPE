@@ -55,6 +55,8 @@ void OptimizationResultWriter::logParPEVersion() const {
 
 
 void OptimizationResultWriter::closeResultHDFFile() {
+    auto lock = hdf5MutexGetLock();
+
     H5_SAVE_ERROR_HANDLER;
     herr_t status = H5Fclose(file_id);
 
@@ -66,9 +68,8 @@ void OptimizationResultWriter::closeResultHDFFile() {
 }
 
 
-void OptimizationResultWriter::logLocalOptimizerObjectiveFunctionEvaluation(
-        const double *parameters, int numParameters, double objectiveFunctionValue,
-        const double *objectiveFunctionGradient, int numIterations, int numFunctionCalls,
+void OptimizationResultWriter::logLocalOptimizerObjectiveFunctionEvaluation(gsl::span<const double> parameters, double objectiveFunctionValue,
+        gsl::span<const double> objectiveFunctionGradient, int numIterations, int numFunctionCalls,
         double timeElapsedInSeconds) {
 
     std::string pathStr = getIterationPath(numIterations);
@@ -77,22 +78,22 @@ void OptimizationResultWriter::logLocalOptimizerObjectiveFunctionEvaluation(
     hdf5CreateOrExtendAndWriteToDouble2DArray(
                 file_id, fullGroupPath, "costFunCost", &objectiveFunctionValue, 1);
 
-    if (objectiveFunctionGradient && numParameters) {
+    if (objectiveFunctionGradient.size()) {
         hdf5CreateOrExtendAndWriteToDouble2DArray(
                     file_id, fullGroupPath, "costFunGradient",
-                    objectiveFunctionGradient, numParameters);
-    } else if (numParameters) {
-        double dummyGradient[numParameters];
-        std::fill_n(dummyGradient, numParameters, NAN);
+                    objectiveFunctionGradient.data(), objectiveFunctionGradient.size());
+    } else if (parameters.size()) {
+        double dummyGradient[parameters.size()];
+        std::fill_n(dummyGradient, parameters.size(), NAN);
         hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath,
                                                   "costFunGradient",
-                                                  dummyGradient, numParameters);
+                                                  dummyGradient, parameters.size());
     }
 
-    if (parameters && numParameters)
+    if (parameters.size())
         hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath,
                                                   "costFunParameters",
-                                                  parameters, numParameters);
+                                                  parameters.data(), parameters.size());
 
     hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath,
                                               "costFunWallTimeInSec",
@@ -105,23 +106,23 @@ void OptimizationResultWriter::logLocalOptimizerObjectiveFunctionEvaluation(
 }
 
 
-void OptimizationResultWriter::logLocalOptimizerIteration(
-        int numIterations, const double * const theta, int numParameters,
-        double objectiveFunctionValue, const double * const gradient,
-        double timeElapsedInSeconds) {
+void OptimizationResultWriter::logLocalOptimizerIteration(int numIterations, gsl::span<const double> parameters,
+                                                          double objectiveFunctionValue, gsl::span<const double> gradient,
+                                                          double timeElapsedInSeconds)
+{
     std::string pathStr = getOptimizationPath();
     const char *fullGroupPath = pathStr.c_str();
 
     hdf5CreateOrExtendAndWriteToDouble2DArray(
                 file_id, fullGroupPath, "iterCostFunCost", &objectiveFunctionValue, 1);
-    if (gradient)
+    if (gradient.size())
         hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath,
                                                   "iterCostFunGradient",
-                                                  gradient, numParameters);
-    if (theta)
+                                                  gradient.data(), gradient.size());
+    if (parameters.size())
         hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath,
                                                   "iterCostFunParameters",
-                                                  theta, numParameters);
+                                                  parameters.data(), parameters.size());
     hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath,
                                               "iterCostFunWallTimeInSec",
                                               &timeElapsedInSeconds, 1);
@@ -153,15 +154,15 @@ void OptimizationResultWriter::logLocalOptimizerIteration(
 }
 
 
-void OptimizationResultWriter::starting(int numParameters, const double * const initialParameters)
+void OptimizationResultWriter::starting(gsl::span<double const> initialParameters)
 {
-    if (initialParameters) {
+    if (initialParameters.size()) {
         std::string pathStr = getOptimizationPath();
         const char *fullGroupPath = pathStr.c_str();
 
         hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath,
                                                   "initialParameters",
-                                                  initialParameters, numParameters);
+                                                  initialParameters.data(), initialParameters.size());
         flushResultWriter();
     }
 }
@@ -173,9 +174,8 @@ void OptimizationResultWriter::flushResultWriter() const {
     H5Fflush(file_id, H5F_SCOPE_LOCAL);
 }
 
-void OptimizationResultWriter::saveLocalOptimizerResults(
-        double finalNegLogLikelihood, const double *optimalParameters,
-        int numParameters, double masterTime, int exitStatus) const {
+void OptimizationResultWriter::saveLocalOptimizerResults(double finalNegLogLikelihood, gsl::span<const double> optimalParameters,
+                                                         double masterTime, int exitStatus) const {
 
     std::string optimPath = getOptimizationPath();
     hdf5EnsureGroupExists(file_id, optimPath.c_str());
@@ -197,11 +197,11 @@ void OptimizationResultWriter::saveLocalOptimizerResults(
     H5LTmake_dataset(file_id, fullGroupPath.c_str(), 1, dimensions,
                      H5T_NATIVE_INT, &exitStatus);
 
-    if (optimalParameters) {
+    if (optimalParameters.size()) {
         fullGroupPath = (optimPath + "/finalParameters");
-        dimensions[0] = numParameters;
+        dimensions[0] = optimalParameters.size();
         H5LTmake_dataset(file_id, fullGroupPath.c_str(), 1, dimensions,
-                         H5T_NATIVE_DOUBLE, optimalParameters);
+                         H5T_NATIVE_DOUBLE, optimalParameters.data());
     }
 
     flushResultWriter();

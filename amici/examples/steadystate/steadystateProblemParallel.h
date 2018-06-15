@@ -6,6 +6,8 @@
 #include <LoadBalancerWorker.h>
 #include <memory>
 
+#include <gsl/gsl-lite.hpp>
+
 /**
  * @brief The ExampleSteadystateGradientFunctionParallel class evaluates an ODE-constrained objective function in paralell.
  */
@@ -15,9 +17,9 @@ public:
     ExampleSteadystateGradientFunctionParallel(parpe::LoadBalancerMaster *loadBalancer, const std::string &dataFileName);
 
     parpe::FunctionEvaluationStatus evaluate(
-            const double* const parameters,
+            gsl::span<double const> parameters,
             double &fval,
-            double* gradient) const override;
+            gsl::span<double> gradient) const override;
 
     int numParameters() const override;
     void setupUserData(int conditionIdx);
@@ -28,11 +30,11 @@ public:
 
 private:
 
-    int evaluateParallel(const double *parameters, double &objFunVal,
-                         double *objFunGrad) const;
+    int evaluateParallel(gsl::span<const double> parameters, double &objFunVal,
+                         gsl::span<double> objFunGrad) const;
 
-    int evaluateSerial(const double *parameters, double &objFunVal,
-                       double *objFunGrad) const;
+    int evaluateSerial(gsl::span<double const> parameters, double &objFunVal,
+                       gsl::span<double> objFunGrad) const;
 
 
     void requireSensitivities(bool sensitivitiesRequired) const;

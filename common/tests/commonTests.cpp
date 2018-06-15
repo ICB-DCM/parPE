@@ -312,7 +312,7 @@ TEST(costFunction, linearModel) {
     std::vector<double> outputsAct(features.size(), NAN);
 
     LinearModel lm;
-    lm.evaluate(parameters.data(), features, outputsAct);
+    lm.evaluate(parameters, features, outputsAct);
 
     CHECK_TRUE(outputsExp == outputsAct);
 
@@ -320,7 +320,7 @@ TEST(costFunction, linearModel) {
 
     auto gradAct = std::vector<std::vector<double>>(features.size(), std::vector<double>(parameters.size(), NAN));
 
-    lm.evaluate(parameters.data(), features, outputsAct, gradAct);
+    lm.evaluate(parameters, features, outputsAct, gradAct);
     CHECK_TRUE(gradExp == gradAct);
 }
 
@@ -332,7 +332,7 @@ TEST(costFunction, linearModel2) {
     std::vector<double> outputsAct(features.size(), NAN);
 
     LinearModel lm;
-    lm.evaluate(parameters.data(), features, outputsAct);
+    lm.evaluate(parameters, features, outputsAct);
 
     CHECK_TRUE(outputsExp == outputsAct);
 
@@ -340,7 +340,7 @@ TEST(costFunction, linearModel2) {
 
     auto gradAct = std::vector<std::vector<double>>(features.size(), std::vector<double>(parameters.size(), NAN));
 
-    lm.evaluate(parameters.data(), features, outputsAct, gradAct);
+    lm.evaluate(parameters, features, outputsAct, gradAct);
     CHECK_TRUE(gradExp == gradAct);
 }
 
@@ -353,7 +353,7 @@ TEST(costFunction, linearModel3) {
     std::vector<double> outputsAct(features.size(), NAN);
 
     parpe::LinearModel lm;
-    lm.evaluate(parameters.data(), features, outputsAct);
+    lm.evaluate(parameters, features, outputsAct);
 
     CHECK_TRUE(outputsExp == outputsAct);
 
@@ -361,7 +361,7 @@ TEST(costFunction, linearModel3) {
 
     auto gradAct = std::vector<std::vector<double>>(features.size(), std::vector<double>(parameters.size(), NAN));
 
-    lm.evaluate(parameters.data(), features, outputsAct, gradAct);
+    lm.evaluate(parameters, features, outputsAct, gradAct);
     CHECK_TRUE(gradExp == gradAct);
 
 }

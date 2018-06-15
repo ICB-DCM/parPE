@@ -100,7 +100,7 @@ void calcf(integer const &n, doublereal const *x, integer &nf, doublereal &f,
     }
 
 
-    auto result = userData->reporter->evaluate(x, f, nullptr);
+    auto result = userData->reporter->evaluate(gsl::span<double const>(x, n), f, gsl::span<double>());
     *urparm = f;
 
     if(std::isnan(f) || result != functionEvaluationSuccess) {
@@ -117,9 +117,9 @@ void calcg(integer const &n, doublereal const *x, integer &nf, doublereal *g,
         return;
     }
 
-    userData->reporter->evaluate(x, *urparm, g);
+    userData->reporter->evaluate(gsl::span<double const>(x, n), *urparm, gsl::span<double>(g, n));
 
-    auto result = userData->reporter->iterationFinished(x, *urparm, g);
+    auto result = userData->reporter->iterationFinished(gsl::span<double const>(x, n), *urparm, gsl::span<double>(g, n));
 
     if(std::isnan(*urparm) || result != functionEvaluationSuccess) {
         nf = 0; // tells optimizer to choose a shorter step
@@ -159,7 +159,7 @@ std::tuple<int, double, std::vector<double> > OptimizerToms611TrustRegionSumsl::
 
 
     doublereal parameters[numOptimizationVariables];
-    problem->fillInitialParameters(parameters);
+    problem->fillInitialParameters(gsl::span<double>(parameters, numOptimizationVariables));
 
     double fval = NAN; // the last computed cost function value; is this necessarily the one for the final parameters?
 
@@ -168,10 +168,10 @@ std::tuple<int, double, std::vector<double> > OptimizerToms611TrustRegionSumsl::
     userData.reporter = problem->getReporter();
     userData.parametersMin.resize(numOptimizationVariables);
     userData.parametersMax.resize(numOptimizationVariables);
-    problem->fillParametersMin(userData.parametersMin.data());
-    problem->fillParametersMax(userData.parametersMax.data());
+    problem->fillParametersMin(userData.parametersMin);
+    problem->fillParametersMax(userData.parametersMax);
 
-    userData.reporter->starting(numOptimizationVariables, parameters);
+    userData.reporter->starting(gsl::span<double const>(parameters, numOptimizationVariables));
 
     sumsl_(numOptimizationVariables,
            scaling,
@@ -182,7 +182,7 @@ std::tuple<int, double, std::vector<double> > OptimizerToms611TrustRegionSumsl::
            reinterpret_cast<integer *>(&userData), // sumsl_ only lets us pass integer, real or function...
            &fval, nullptr);
 
-    userData.reporter->finished(numOptimizationVariables, parameters, iv[0]);
+    userData.reporter->finished(fval, gsl::span<double const>(parameters, numOptimizationVariables), iv[0]);
 
     return std::tuple<int, double, std::vector<double> >(iv[0] >= first_error_code, fval, std::vector<double>(parameters, parameters + numOptimizationVariables));
 }

@@ -80,12 +80,12 @@ public:
 
 class AmiciSummedGradientFunctionMock : public parpe::AmiciSummedGradientFunction<int> {
 public:
-    parpe::FunctionEvaluationStatus getModelOutputs(const double * const parameters,
+    parpe::FunctionEvaluationStatus getModelOutputs(gsl::span<double const> parameters,
                                                     std::vector<std::vector<double> > &modelOutput) const override {
         mock().actualCall("AmiciSummedGradientFunctionMock::getModelOutputs");
 
         modelOutput = this->modelOutput;
-        lastParameters.assign(parameters, parameters + numParameters_);
+        lastParameters.assign(parameters.begin(), parameters.end());
 
         return parpe::functionEvaluationSuccess;
     }
@@ -94,12 +94,12 @@ public:
     std::vector<std::vector<double>> getAllSigmas() const override { return sigmas; }
 
     parpe::FunctionEvaluationStatus evaluate(
-            const double* const parameters,
+            gsl::span<double const> parameters,
             std::vector<int> datasets,
             double &fval,
-            double* gradient) const override {
+            gsl::span<double> gradient) const override {
 
-        mock().actualCall("AmiciSummedGradientFunctionMock::evaluate").withBoolParameter("gradient", gradient != nullptr);
+        mock().actualCall("AmiciSummedGradientFunctionMock::evaluate").withBoolParameter("gradient", gradient.size());
 
         return parpe::functionEvaluationSuccess;
     }
@@ -109,12 +109,12 @@ public:
     }
 
     parpe::FunctionEvaluationStatus evaluate(
-            const double* const parameters,
+            gsl::span<double const> parameters,
             int dataset,
             double &fval,
-            double* gradient) const override {
+            gsl::span<double> gradient) const override {
 
-        mock().actualCall("AmiciSummedGradientFunctionMock::evaluate").withBoolParameter("gradient", gradient != nullptr);
+        mock().actualCall("AmiciSummedGradientFunctionMock::evaluate").withBoolParameter("gradient", gradient.size());
 
         return parpe::functionEvaluationSuccess;
     }
@@ -248,7 +248,7 @@ TEST(hierarchicalOptimization, testNoAnalyticalParameters) {
 
     std::vector<double> parameters;
     double fval;
-    w.evaluate(parameters.data(), fval, nullptr);
+    w.evaluate(parameters, fval, gsl::span<double>());
 }
 
 
@@ -465,7 +465,7 @@ TEST(hierarchicalOptimization, fillFilteredParams) {
     const std::vector<int> sortedIndicesToExclude {0, 3, 4, 8};
 
     auto resultAct = std::vector<double>(valuesToFilter.size() - sortedIndicesToExclude.size());
-    parpe::fillFilteredParams(valuesToFilter, sortedIndicesToExclude, resultAct.data());
+    parpe::fillFilteredParams(valuesToFilter, sortedIndicesToExclude, resultAct);
 
     CHECK_TRUE(resultExp == resultAct);
 }
@@ -501,7 +501,6 @@ TEST(hierarchicalOptimization, testWrappedFunIsCalledWithGradient) {
 
     // ensure fun::evaluate is called with gradient
 
-    mock().expectNCalls(1, "AmiciSummedGradientFunctionMock::numParameters");
     mock().expectNCalls(1, "AmiciSummedGradientFunctionMock::getModelOutputs");
     mock().expectNCalls(2, "AnalyticalParameterProviderMock::getConditionsForParameter")
             .withIntParameter("parameterIndex", 0);
@@ -509,16 +508,14 @@ TEST(hierarchicalOptimization, testWrappedFunIsCalledWithGradient) {
             .withIntParameter("parameterIndex", 0)
             .withIntParameter("conditionIdx", 0);
     mock().expectNCalls(1, "AmiciSummedGradientFunctionMock::evaluate").withBoolParameter("gradient", true);
-    mock().expectNCalls(1, "AmiciSummedGradientFunctionMock::numParameters");
 
-    w.evaluate(parameters.data(), fval, gradient.data());
+    w.evaluate(parameters, fval, gradient);
 
     mock().checkExpectations();
     mock().clear();
 
     // test fun::evaluate is not called if no gradient (only get outputs)
 
-    mock().expectNCalls(1, "AmiciSummedGradientFunctionMock::numParameters");
     mock().expectNCalls(1, "AmiciSummedGradientFunctionMock::getModelOutputs");
     mock().expectNCalls(1, "AnalyticalParameterProviderMock::getConditionsForParameter")
             .withIntParameter("parameterIndex", 0);
@@ -531,7 +528,7 @@ TEST(hierarchicalOptimization, testWrappedFunIsCalledWithGradient) {
             .withIntParameter("parameterIndex", 0)
             .withIntParameter("conditionIdx", 0);
 
-    w.evaluate(parameters.data(), fval, nullptr);
+    w.evaluate(parameters, fval, gsl::span<double>());
 }
 
 TEST(hierarchicalOptimization, likelihoodOfMatchingData) {

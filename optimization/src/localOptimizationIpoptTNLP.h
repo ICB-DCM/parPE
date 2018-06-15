@@ -83,9 +83,6 @@ private:
     OptimizationProblem &problem;
     OptimizationReporter &reporter;
 
-    // to restrict access to IpOpt routines
-    mutexIpOptType *mutexIpOpt = nullptr;
-
     // need to store initial parameters, because IpOpt asks twice
     std::vector<double> initialParameters;
 

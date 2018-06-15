@@ -46,7 +46,7 @@ TEST(localOptimizationCeres, testOptimization) {
     // Needed to run on shippable.com
     auto params = std::get<2>(result);
     double optimalCost = NAN;
-    problem.costFun->evaluate(params.data(), optimalCost, nullptr);
+    problem.costFun->evaluate(params, optimalCost, gsl::span<double>());
     DOUBLES_EQUAL(42.0, optimalCost, 1e-6);
 }
 

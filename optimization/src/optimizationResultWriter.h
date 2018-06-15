@@ -5,6 +5,7 @@
 
 #include <hdf5.h>
 #include <hdf5_hl.h>
+#include <gsl/gsl-lite.hpp>
 
 #include "optimizationProblem.h"
 
@@ -41,6 +42,8 @@ public:
      */
     OptimizationResultWriter(const std::string &filename, bool overwrite);
 
+    virtual ~OptimizationResultWriter();
+
     /**
      * @brief Function to be called after each objective function f(x) or
      * gradient f'(x) evaluation
@@ -52,8 +55,8 @@ public:
      * @param timeElapsedInSeconds CPU time for the last objective function
      * evaluation (wall time)
      */
-    virtual void logLocalOptimizerObjectiveFunctionEvaluation(const double *parameters, int numParameters,
-            double objectiveFunctionValue, const double *objectiveFunctionGradient, int numIterations,
+    virtual void logLocalOptimizerObjectiveFunctionEvaluation(gsl::span<const double> parameters,
+            double objectiveFunctionValue, gsl::span<const double> objectiveFunctionGradient, int numIterations,
             int numFunctionCalls, double timeElapsedInSeconds);
 
     /**
@@ -74,14 +77,14 @@ public:
      * @param alpha_pr
      * @param ls_trials
      */
-    virtual void logLocalOptimizerIteration(int numIterations, const double * const theta, int numParameters,
-                                            double objectiveFunctionValue, const double * const gradient,
+    virtual void logLocalOptimizerIteration(int numIterations, gsl::span<const double> parameters,
+                                            double objectiveFunctionValue, gsl::span<const double> gradient,
                                             double timeElapsedInSeconds);
     /*, int alg_mod, double inf_pr, double inf_du,
     double mu, double d_norm, double regularization_size, double alpha_du,
     double alpha_pr, int ls_trials*/
 
-    virtual void starting(int numParameters, double const *const initialParameters);
+    virtual void starting(gsl::span<const double> initialParameters);
 
 
     /**
@@ -92,13 +95,10 @@ public:
      * @param exitStatus Exit status (cause of optimizer termination)
      */
     virtual void saveLocalOptimizerResults(double finalNegLogLikelihood,
-                                           const double *optimalParameters,
-                                           int numParameters, double masterTime,
+                                           gsl::span<const double> optimalParameters, double masterTime,
                                            int exitStatus) const;
 
     void setRootPath(std::string const& path);
-
-    virtual ~OptimizationResultWriter();
 
     hid_t getFileId() const;
 

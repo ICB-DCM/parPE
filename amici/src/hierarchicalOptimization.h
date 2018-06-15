@@ -92,13 +92,13 @@ public:
      * @return
      */
     FunctionEvaluationStatus evaluate(
-            const double* const parameters,
+            gsl::span<double const> parameters,
             double &fval,
-            double* gradient) const override;
+            gsl::span<double> gradient) const override;
 
-    FunctionEvaluationStatus evaluate(
-            const double* const parameters,
-            double &fval, double* gradient,
+    FunctionEvaluationStatus evaluate(gsl::span<double const> reducedParameters,
+            double &fval,
+            gsl::span<double> gradient,
             std::vector<double> &fullParameters, std::vector<double> &fullGradient) const;
 
     /**
@@ -356,19 +356,19 @@ public:
 
     virtual ~HierachicalOptimizationProblemWrapper();
 
-    virtual void fillInitialParameters(double *buffer) const override;
+    virtual void fillInitialParameters(gsl::span<double> buffer) const override;
 
-    virtual void fillParametersMin(double *buffer) const override;
+    virtual void fillParametersMin(gsl::span<double> buffer) const override;
 
-    virtual void fillParametersMax(double *buffer) const override;
+    virtual void fillParametersMax(gsl::span<double> buffer) const override;
 
-    void fillFilteredParams(std::vector<double> const& fullParams, double *buffer) const;
+    void fillFilteredParams(std::vector<double> const& fullParams, gsl::span<double> buffer) const;
 
     OptimizationOptions const& getOptimizationOptions() const override { return wrappedProblem->getOptimizationOptions(); }
     void setOptimizationOptions(OptimizationOptions const& options) override { wrappedProblem->setOptimizationOptions(options); }
 
     // TODO: need to ensure that this will work with the reduced number of parameters
-    virtual std::unique_ptr<OptimizationReporter> getReporter() const override { return wrappedProblem->getReporter(); }
+    virtual std::unique_ptr<OptimizationReporter> getReporter() const override;
 
 private:
     std::unique_ptr<OptimizationProblem> wrappedProblem;
@@ -383,7 +383,7 @@ private:
  */
 void fillFilteredParams(std::vector<double> const& valuesToFilter,
                         const std::vector<int> &sortedIndicesToExclude,
-                        double *result);
+                        gsl::span<double> result);
 
 double getDefaultScalingFactor(amici::AMICI_parameter_scaling scaling);
 

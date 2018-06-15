@@ -31,14 +31,14 @@ TEST_GROUP(optimizationProblem){
 class SummedGradientFunctionLinearModelTest : public parpe::SummedGradientFunction<double> {
 public:
     virtual parpe::FunctionEvaluationStatus evaluate(
-            const double* const parameters,
+            gsl::span<double const> parameters,
             double dataset,
             double &fval,
-            double* gradient) const override
+            gsl::span<double> gradient) const override
     {
         fval = parameters[0] * dataset + parameters[1];
 
-        if(gradient) {
+        if(gradient.size()) {
             gradient[0] = dataset;
             gradient[1] = 0;
         }
@@ -56,25 +56,25 @@ public:
      * @return
      */
     virtual parpe::FunctionEvaluationStatus evaluate(
-            const double* const parameters,
+            gsl::span<double const> parameters,
             std::vector<double> datasets,
             double &fval,
-            double* gradient) const override
+            gsl::span<double> gradient) const override
     {
         fval = 0;
-        if(gradient)
-            std::fill(gradient, gradient + numParameters(), 0);
+        if(gradient.size())
+            std::fill(gradient.begin(), gradient.end(), 0);
 
         double tmpFVal = 0;
-        std::vector<double> tmpGradient(numParameters());
+        std::vector<double> tmpGradient(parameters.size());
 
         for(auto& d : datasets) {
-            auto status = evaluate(parameters, d, tmpFVal, tmpGradient.data());
+            auto status = evaluate(parameters, d, tmpFVal, tmpGradient);
             if(status != parpe::functionEvaluationSuccess)
                 return status;
 
             fval += tmpFVal;
-            if(gradient) {
+            if(gradient.size()) {
                 for(int i = 0; i < numParameters(); ++i)
                     gradient[i] += tmpGradient[i];
             }
@@ -101,7 +101,7 @@ TEST(optimizationProblem, quadraticTestFunction) {
 
     double fValAct = NAN;
     double gradientAct = NAN;
-    f.evaluate(&parameter, fValAct, &gradientAct);
+    f.evaluate(gsl::span<double const>(&parameter, 1), fValAct, gsl::span<double>(&gradientAct, 1));
 
     CHECK_EQUAL(fValExp, fValAct);
     CHECK_EQUAL(gradientExp, gradientAct);
@@ -126,13 +126,13 @@ TEST(optimizationProblem, linearModel) {
     double fval = NAN;
     std::vector<double> gradient(model.numParameters(), NAN);
 
-    model.evaluate(parameters.data(), 1.0, fval, gradient.data());
+    model.evaluate(parameters, 1.0, fval, gradient);
     CHECK_EQUAL(3.0, fval);
     CHECK_EQUAL(1.0, gradient[0]);
     CHECK_EQUAL(0.0, gradient[1]);
 
     std::vector<double> dataset {2.0, 3.0};
-    model.evaluate(parameters.data(), dataset, fval, gradient.data());
+    model.evaluate(parameters, dataset, fval, gradient);
     CHECK_EQUAL(9.0, fval);
     CHECK_EQUAL(5.0, gradient[0]);
     CHECK_EQUAL(0.0, gradient[1]);
@@ -149,7 +149,7 @@ TEST(optimizationProblem, linearModelToGradientFun) {
     double fval = NAN;
     std::vector<double> gradient(gradFun.numParameters(), NAN);
 
-    gradFun.evaluate(parameters.data(), fval, gradient.data());
+    gradFun.evaluate(parameters, fval, gradient);
     CHECK_EQUAL(9.0, fval);
     CHECK_EQUAL(5.0, gradient[0]);
     CHECK_EQUAL(0.0, gradient[1]);

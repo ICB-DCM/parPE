@@ -98,7 +98,7 @@ std::vector<int> MultiConditionDataProviderHDF5::getSimulationToOptimizationPara
 }
 
 void MultiConditionDataProviderHDF5::mapSimulationToOptimizationVariablesAddMultiply(
-        int conditionIdx, const double *simulation, double *optimization, double coefficient) const {
+        int conditionIdx, gsl::span<double const> simulation, gsl::span<double> optimization, double coefficient) const {
     auto mapping = getSimulationToOptimizationParameterMapping(conditionIdx);
 
     for(int i = 0; i < model->np(); ++i) {
@@ -106,7 +106,7 @@ void MultiConditionDataProviderHDF5::mapSimulationToOptimizationVariablesAddMult
     }
 }
 
-void MultiConditionDataProviderHDF5::mapAndSetOptimizationToSimulationVariables(int conditionIdx, const double *optimization, double *simulation) const
+void MultiConditionDataProviderHDF5::mapAndSetOptimizationToSimulationVariables(int conditionIdx, gsl::span<const double> optimization, gsl::span<double> simulation) const
 {
     auto mapping = getSimulationToOptimizationParameterMapping(conditionIdx);
 
@@ -277,10 +277,10 @@ std::unique_ptr<amici::Solver> MultiConditionDataProviderHDF5::getSolver() const
 }
 
 
-void MultiConditionDataProviderHDF5::updateSimulationParameters(int conditionIndex, const double *optimizationParams, amici::Model &model) const
+void MultiConditionDataProviderHDF5::updateSimulationParameters(int conditionIndex, gsl::span<const double> optimizationParams, amici::Model &model) const
 {
     auto p = model.getParameters();
-    mapAndSetOptimizationToSimulationVariables(conditionIndex, optimizationParams, p.data());
+    mapAndSetOptimizationToSimulationVariables(conditionIndex, optimizationParams, p);
     model.setParameters(p);
 }
 
@@ -372,7 +372,7 @@ std::vector<int> MultiConditionDataProviderDefault::getSimulationToOptimizationP
     return mapping;
 }
 
-void MultiConditionDataProviderDefault::mapSimulationToOptimizationVariablesAddMultiply(int conditionIdx, const double *simulation, double *optimization, double coefficient) const
+void MultiConditionDataProviderDefault::mapSimulationToOptimizationVariablesAddMultiply(int conditionIdx, gsl::span<double const> simulation, gsl::span<double> optimization, double coefficient) const
 {
     // TODO redundant
     auto mapping = getSimulationToOptimizationParameterMapping(conditionIdx);
@@ -382,7 +382,7 @@ void MultiConditionDataProviderDefault::mapSimulationToOptimizationVariablesAddM
     }
 }
 
-void MultiConditionDataProviderDefault::mapAndSetOptimizationToSimulationVariables(int conditionIdx, const double *optimization, double *simulation) const
+void MultiConditionDataProviderDefault::mapAndSetOptimizationToSimulationVariables(int conditionIdx, gsl::span<const double> optimization, gsl::span<double> simulation) const
 {
     // TODO redundant
     auto mapping = getSimulationToOptimizationParameterMapping(conditionIdx);
@@ -400,9 +400,9 @@ amici::AMICI_parameter_scaling MultiConditionDataProviderDefault::getParameterSc
 }
 
 
-void MultiConditionDataProviderDefault::updateSimulationParameters(int conditionIndex, const double *optimizationParams, amici::Model &model) const
+void MultiConditionDataProviderDefault::updateSimulationParameters(int conditionIndex, gsl::span<const double> optimizationParams, amici::Model &model) const
 {
-    model.setParameters(std::vector<double>(optimizationParams, optimizationParams + getNumOptimizationParameters()));
+    model.setParameters(std::vector<double>(optimizationParams.begin(), optimizationParams.end()));
 }
 
 std::unique_ptr<amici::ExpData> MultiConditionDataProviderDefault::getExperimentalDataForCondition(int conditionIdx) const

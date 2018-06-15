@@ -28,13 +28,13 @@ TEST(optimizationResultWriter, testResultWriter) {
 
     CHECK_TRUE(parpe::hdf5GroupExists(file.getId(), "/bla"));
 
-    w.logLocalOptimizerIteration(1, nullptr, 0, 0, nullptr, 1);
+    w.logLocalOptimizerIteration(1, gsl::span<double>(), 0.0, gsl::span<double>(), 1.0);
     // should it be possible to have the same iteration twice?
-    w.logLocalOptimizerIteration(1, nullptr, 0, 0, nullptr, 1);
+    w.logLocalOptimizerIteration(1, gsl::span<double>(), 0.0, gsl::span<double>(), 1.0);
 
-    w.logLocalOptimizerObjectiveFunctionEvaluation(NULL, 0, 1, NULL, 1, 2, 3);
+    w.logLocalOptimizerObjectiveFunctionEvaluation(gsl::span<double>(), 1.0, gsl::span<double>(), 1, 2, 3.0);
 
-    w.saveLocalOptimizerResults(1, NULL, 0, 12, 0);
+    w.saveLocalOptimizerResults(1.0, gsl::span<double>(), 12, 0);
 
     // TODO: check output
 
