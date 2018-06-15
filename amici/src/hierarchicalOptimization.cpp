@@ -101,7 +101,17 @@ FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluate(
         const double * const parameters,
         double &fval,
         double *gradient) const {
-    auto parametersSpan = gsl::make_span(parameters, parameters?numParameters():0);
+
+    std::vector<double> fullParameters;
+    std::vector<double> fullGradient;
+    return evaluate(parameters, fval, gradient, fullParameters, fullGradient);
+}
+
+FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluate(
+        const double * const parameters, double &fval, double *gradient,
+        std::vector<double> &fullParameters, std::vector<double> &fullGradient) const
+{
+    auto reducedParameters = gsl::make_span(parameters, parameters?numParameters():0);
 
     if(numProportionalityFactors() == 0 && numOffsetParameters() == 0) {
         // nothing to do, just pass through
@@ -114,7 +124,7 @@ FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluate(
     }
 
     // evaluate with scaling parameters set to 1 and offsets to 0
-    auto modelOutput = getUnscaledModelOutputs(parametersSpan);
+    auto modelOutput = getUnscaledModelOutputs(reducedParameters);
 
     auto measurements = fun->getAllMeasurements();
 
@@ -132,10 +142,17 @@ FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluate(
     // needs scaled outputs
     auto sigmas = computeAnalyticalSigmas(measurements, modelOutput);
 
+    // splice parameter vector we get from optimizer with analytically computed parameters
+    fullParameters = spliceParameters(gsl::make_span<const double>(reducedParameters.data(), reducedParameters.size()),
+                                      proportionalityFactorIndices, offsetParameterIndices, sigmaParameterIndices,
+                                      scalings, offsets, sigmas);
+
+
     // evaluate with analytical scaling parameters
-    auto status = evaluateWithOptimalParameters(parametersSpan, scalings, offsets, sigmas,
+    auto status = evaluateWithOptimalParameters(fullParameters, sigmas,
                                                 measurements, modelOutput,
-                                                fval, gsl::make_span(gradient, gradient?numParameters():0));
+                                                fval, gsl::make_span(gradient, gradient?numParameters():0),
+                                                fullGradient);
 
     return status;
 }
@@ -304,27 +321,21 @@ void HierachicalOptimizationWrapper::fillInAnalyticalSigmas(
 
 
 FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluateWithOptimalParameters(
-        const gsl::span<const double> reducedParameters,
-        const std::vector<double> &scalings,
-        const std::vector<double> &offsets,
+        std::vector<double> const& fullParameters,
         const std::vector<double> &sigmas,
         std::vector<std::vector<double>> const& measurements,
         std::vector<std::vector<double> > &modelOutputsScaled,
-        double &fval, const gsl::span<double> gradient) const {
+        double &fval, const gsl::span<double> gradient,
+        std::vector<double>& fullGradient) const {
 
     if(gradient.data()) {
         // simulate with updated theta for sensitivities
-        // splice parameter vector we get from optimizer with analytically computed parameters
-        auto fullParameters = spliceParameters(reducedParameters,
-                                               proportionalityFactorIndices, offsetParameterIndices, sigmaParameterIndices,
-                                               scalings, offsets, sigmas);
-
         // simulate all datasets
         std::vector<int> dataIndices(numConditions);
         std::iota(dataIndices.begin(), dataIndices.end(), 0);
 
         // Need intermediary buffer because optimizer expects fewer parameters than `fun` delivers
-        std::vector<double> fullGradient(fullParameters.size());
+        fullGradient.resize(fullParameters.size());
         auto status = fun->evaluate(fullParameters.data(), dataIndices, fval, fullGradient.data());
         if(status != functionEvaluationSuccess)
             return status;
@@ -333,7 +344,6 @@ FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluateWithOptimalPara
         auto analyticalParameterIndices = getAnalyticalParameterIndices();
         fillFilteredParams(fullGradient, analyticalParameterIndices, gradient.data());
     } else {
-
         auto fullSigmaMatrices = fun->getAllSigmas();
         if(sigmaParameterIndices.size()) {
             fillInAnalyticalSigmas(fullSigmaMatrices, sigmas);

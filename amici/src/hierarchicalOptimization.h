@@ -91,10 +91,15 @@ public:
      * @param gradient
      * @return
      */
-    virtual FunctionEvaluationStatus evaluate(
+    FunctionEvaluationStatus evaluate(
             const double* const parameters,
             double &fval,
             double* gradient) const override;
+
+    FunctionEvaluationStatus evaluate(
+            const double* const parameters,
+            double &fval, double* gradient,
+            std::vector<double> &fullParameters, std::vector<double> &fullGradient) const;
 
     /**
      * @brief Get parameters for initial function evaluation
@@ -162,15 +167,12 @@ public:
      * @return
      */
 
-    virtual FunctionEvaluationStatus evaluateWithOptimalParameters(
-            const gsl::span<double const> reducedParameters,
-            const std::vector<double> &scalings,
-            const std::vector<double> &offsets,
+    virtual FunctionEvaluationStatus evaluateWithOptimalParameters(std::vector<double> const& fullParameters,
             const std::vector<double> &sigmas,
             const std::vector<std::vector<double> > &measurements,
             std::vector<std::vector<double> > &modelOutputsScaled,
             double &fval,
-            const gsl::span<double> gradient) const;
+            const gsl::span<double> gradient, std::vector<double> &fullGradient) const;
 
     /**
      * @brief Get number of parameters the function expects
@@ -437,7 +439,7 @@ void applyOptimalOffset(int offsetIdx, double offsetLin,
  * @param scalingFactors
  * @return Full parameter vector for `fun`
  */
-std::vector<double> spliceParameters(const gsl::span<const double> reducedParameters,
+std::vector<double> spliceParameters(const gsl::span<double const> reducedParameters,
                                      const std::vector<int> &proportionalityFactorIndices,
                                      const std::vector<int> &offsetParameterIndices,
                                      const std::vector<int> &sigmaParameterIndices,
