@@ -15,7 +15,10 @@ namespace parpe {
 OptimizationResultWriter::OptimizationResultWriter() {}
 
 OptimizationResultWriter::OptimizationResultWriter(hid_t file_id)
-    : file_id(H5Freopen(file_id)) {
+{
+    auto lock = hdf5MutexGetLock();
+    this->file_id = H5Freopen(file_id);
+
     logParPEVersion();
 }
 

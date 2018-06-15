@@ -9,18 +9,25 @@ MultiConditionProblemResultWriter::MultiConditionProblemResultWriter()
 
 MultiConditionProblemResultWriter::MultiConditionProblemResultWriter(
     hid_t file_id)
-    : OptimizationResultWriter(file_id), file_id(H5Freopen(file_id)) {
+    : OptimizationResultWriter(file_id)
+{
+    auto lock = hdf5MutexGetLock();
+    this->file_id = H5Freopen(file_id);
 }
 
 MultiConditionProblemResultWriter::MultiConditionProblemResultWriter(
     hid_t file_id, JobIdentifier id)
-    : OptimizationResultWriter(file_id), file_id(H5Freopen(file_id)) {
+    : MultiConditionProblemResultWriter(file_id)
+{
     setJobId(id);
 }
 
 MultiConditionProblemResultWriter::MultiConditionProblemResultWriter(
     std::string filename, bool overwrite, JobIdentifier id)
-    : OptimizationResultWriter(filename, overwrite), file_id(H5Freopen(getFileId())) {
+    : OptimizationResultWriter(filename, overwrite)
+{
+    auto lock = hdf5MutexGetLock();
+    this->file_id = H5Freopen(file_id);
     setJobId(id);
 }
 
