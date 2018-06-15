@@ -8,7 +8,7 @@ using amici::realtype;
 #include "fixed_parameter.h"
 #include "observable.h"
 #include "my.h"
-#include "sigma_y.h"
+#include "sigmay.h"
 
 void dJydsigma_model_steadystate_scaled(double *dJydsigma, const int iy, const realtype *p, const realtype *k, const double *y, const double *sigmay, const double *my){
     switch(iy) {
