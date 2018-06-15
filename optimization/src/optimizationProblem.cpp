@@ -187,20 +187,18 @@ FunctionEvaluationStatus OptimizationReporter::evaluate(const double * const par
         if (!haveCachedGradient || !std::equal(parameters, parameters + numParameters_,
                                                finalParameters.begin())) {
             // Have to compute anew
-            cachedErrors = gradFun->evaluate(parameters, cachedCost, cachedGradient.data());
-            std::copy(cachedGradient.begin(), cachedGradient.end(), gradient);
+            cachedStatus = gradFun->evaluate(parameters, cachedCost, cachedGradient.data());
             haveCachedCost = true;
             haveCachedGradient = true;
-        } else {
-            // recycle old result
-            std::copy(cachedGradient.begin(), cachedGradient.end(), gradient);
-            fval = cachedCost;
         }
+        // recycle old result
+        std::copy(cachedGradient.begin(), cachedGradient.end(), gradient);
+        fval = cachedCost;
     } else {
         if (!haveCachedCost || !std::equal(parameters, parameters + numParameters_,
                                            finalParameters.begin())) {
             // Have to compute anew
-            cachedErrors = gradFun->evaluate(parameters, cachedCost, nullptr);
+            cachedStatus = gradFun->evaluate(parameters, cachedCost, nullptr);
             haveCachedCost = true;
             haveCachedGradient = false;
         }
@@ -209,12 +207,12 @@ FunctionEvaluationStatus OptimizationReporter::evaluate(const double * const par
 
     // update cached parameters
     finalParameters.resize(numParameters_);
-    std::copy(parameters, parameters + numParameters_, finalParameters.begin());
+    std::copy_n(parameters, numParameters_, finalParameters.begin());
 
     if(afterCostFunctionCall(numParameters_, parameters, cachedCost, gradient?cachedGradient.data():nullptr) != 0)
         return functionEvaluationFailure;
 
-    return cachedErrors == 0 ? functionEvaluationSuccess : functionEvaluationFailure;
+    return cachedStatus;
 }
 
 int OptimizationReporter::numParameters() const {
@@ -282,6 +280,10 @@ bool OptimizationReporter::afterCostFunctionCall(int numParameters, const double
 void OptimizationReporter::finished(double optimalCost, const double *optimalParameters, int exitStatus) const
 {
     double timeElapsed = wallTimer.getTotal();
+
+    cachedCost = optimalCost;
+    if(optimalParameters)
+        std::copy_n(optimalParameters, numParameters_, finalParameters.data());
 
     if(resultWriter)
         resultWriter->saveLocalOptimizerResults(optimalCost, optimalParameters, numParameters_, timeElapsed, exitStatus);

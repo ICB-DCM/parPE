@@ -144,7 +144,7 @@ private:
     mutable bool haveCachedGradient = false;
     mutable std::vector<double> cachedGradient;
     mutable double cachedCost = INFINITY;
-    mutable int cachedErrors = 0;
+    mutable FunctionEvaluationStatus cachedStatus = functionEvaluationSuccess;
 
     mutable double finalCost;
 

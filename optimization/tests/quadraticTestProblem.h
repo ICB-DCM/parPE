@@ -13,19 +13,19 @@ namespace parpe {
 class OptimizationReporterTest : public OptimizationReporter {
     using OptimizationReporter::OptimizationReporter;
 
-    virtual bool starting(int numParameters, double const *const initialParameters);
+    virtual bool starting(int numParameters, double const *const initialParameters) const override;
 
-    virtual bool iterationFinished(int numParameters, double const *const parameters, double objectiveFunctionValue,
-                                   double const *const objectiveFunctionGradient);
+    virtual bool iterationFinished(double const *const parameters, double objectiveFunctionValue,
+                                   double const *const objectiveFunctionGradient) const override;
 
-    virtual bool beforeCostFunctionCall(int numParameters, double const *const parameters);
+    virtual bool beforeCostFunctionCall(int numParameters, double const *const parameters) const override;
 
     virtual bool afterCostFunctionCall(int numParameters, double const *const parameters,
                                        double objectiveFunctionValue,
-                                       double const *const objectiveFunctionGradient);
+                                       double const *const objectiveFunctionGradient) const override;
 
     virtual void finished(double optimalCost,
-                          const double *optimalParameters, int exitStatus);
+                          const double *optimalParameters, int exitStatus) const override;
 
     bool printDebug = false;
 };

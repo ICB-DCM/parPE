@@ -61,28 +61,28 @@ int QuadraticGradientFunction::numParameters() const
     return 1;
 }
 
-bool OptimizationReporterTest::starting(int numParameters, const double * const initialParameters)
+bool OptimizationReporterTest::starting(int numParameters, const double * const initialParameters) const
 {
     mock().actualCall("OptimizationReporterTest::starting");
 
     return false;
 }
 
-bool OptimizationReporterTest::iterationFinished(int numParameters, const double * const parameters, double objectiveFunctionValue, const double * const objectiveFunctionGradient)
+bool OptimizationReporterTest::iterationFinished(const double * const parameters, double objectiveFunctionValue, const double * const objectiveFunctionGradient) const
 {
     mock().actualCall("OptimizationReporterTest::iterationFinished");
 
     return false;
 }
 
-bool OptimizationReporterTest::beforeCostFunctionCall(int numParameters, const double * const parameters)
+bool OptimizationReporterTest::beforeCostFunctionCall(int numParameters, const double * const parameters) const
 {
     mock().actualCall("OptimizationReporterTest::beforeCostFunctionCall");
 
     return false;
 }
 
-bool OptimizationReporterTest::afterCostFunctionCall(int numParameters, const double * const parameters, double objectiveFunctionValue, const double * const objectiveFunctionGradient)
+bool OptimizationReporterTest::afterCostFunctionCall(int numParameters, const double * const parameters, double objectiveFunctionValue, const double * const objectiveFunctionGradient) const
 {
     mock().actualCall("OptimizationReporterTest::afterCostFunctionCall");
 
@@ -98,7 +98,7 @@ bool OptimizationReporterTest::afterCostFunctionCall(int numParameters, const do
     return false;
 }
 
-void OptimizationReporterTest::finished(double optimalCost, const double *optimalParameters, int exitStatus)
+void OptimizationReporterTest::finished(double optimalCost, const double *optimalParameters, int exitStatus) const
 {
     mock().actualCall("OptimizationReporterTest::finished").withIntParameter("exitStatus", exitStatus);
 }
