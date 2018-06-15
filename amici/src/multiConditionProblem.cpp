@@ -200,7 +200,7 @@ void MultiConditionProblem::setParametersMax(std::vector<double> upperBounds)
 std::unique_ptr<OptimizationReporter> MultiConditionProblem::getReporter() const
 {
 
-    return std::make_unique<OptimizationReporter>(
+    return std::make_unique<OptimizationReporter>(costFun.get(),
                 std::make_unique<MultiConditionProblemResultWriter>(*resultWriter));
 }
 

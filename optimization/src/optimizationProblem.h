@@ -9,6 +9,7 @@
 #include <cstdlib>
 #include <vector>
 #include <ctime>
+#include <cmath>
 
 #include <hdf5.h>
 
@@ -53,19 +54,27 @@ private:
 };
 
 
-
-
-
 /**
  * @brief The OptimizationReporter class is called from the optimizer and takes care of
- * things like of logging intermediate results, timing and can tell the optimizer to exit
+ * calling the objective function and things like of keeping track of iterations, logging intermediate results, timing
+ * and can tell the optimizer to exit.
+ *
+ * This extra level of abstraction is added to avoid reimplementing timing, and other things for
+ * each supported optimizer.
  */
 
-class OptimizationReporter {
+class OptimizationReporter : public GradientFunction {
 public:
-    OptimizationReporter();
+    OptimizationReporter(GradientFunction *gradFun);
 
-    OptimizationReporter(std::unique_ptr<OptimizationResultWriter> rw);
+    OptimizationReporter(GradientFunction *gradFun, std::unique_ptr<OptimizationResultWriter> rw);
+
+    FunctionEvaluationStatus evaluate(
+            const double* const parameters,
+            double &fval,
+            double* gradient) const override;
+
+    int numParameters() const override;
 
     /**
      * @brief Is called just before the optimizer starts. Must be called before other functions.
@@ -73,7 +82,7 @@ public:
      * @param initialParameters
      * @return Quit optimization?
      */
-    virtual bool starting(int numParameters, double const *const initialParameters);
+    virtual bool starting(int numParameters, double const *const initialParameters) const;
 
 
     /**
@@ -83,20 +92,19 @@ public:
      * @param currentIter
      * @return Quit optimization?
      */
-    virtual bool iterationFinished(int numParameters, double const *const parameters, double objectiveFunctionValue,
-                                   double const *const objectiveFunctionGradient);
+    virtual bool iterationFinished(const double * const parameters, double objectiveFunctionValue, const double * const objectiveFunctionGradient) const;
 
-    virtual bool beforeCostFunctionCall(int numParameters, double const *const parameters);
+    virtual bool beforeCostFunctionCall(int numParameters, double const *const parameters) const;
 
     virtual bool afterCostFunctionCall(int numParameters, double const *const parameters,
                                        double objectiveFunctionValue,
-                                       double const *const objectiveFunctionGradient);
+                                       double const *const objectiveFunctionGradient) const;
 
     /**
      * @brief Is called after optimization finished
      */
     virtual void finished(double optimalCost,
-                          const double *optimalParameters, int exitStatus);
+                          const double *optimalParameters, int exitStatus) const;
 
 
     // TODO how to pass optimizer-specific info? pass OptimizerStatus class ?
@@ -108,19 +116,40 @@ public:
     //                                     double alpha_du, double alpha_pr,
     //                                     int ls_trials);
 
+    double getFinalCost() const;
+
+    std::vector<double> getFinalParameters() const;
+
 private:
-    WallTimer wallTimer;
+    // data members are mutable, because we inherit from GradientFunction,
+    // and evaluate() is const there. This could probably be solved better....
+
+    mutable WallTimer wallTimer;
 //    clock_t timeOptimizationBegin;
 //    clock_t timeIterationBegin;
 //    clock_t timeCostEvaluationBegin;
 
-    std::unique_ptr<OptimizationResultWriter> resultWriter;
-    int numFunctionCalls = 0;
-    int numIterations = 0;
-    int numParameters = 0;
+    mutable std::unique_ptr<OptimizationResultWriter> resultWriter;
+    mutable int numFunctionCalls = 0;
+    mutable int numIterations = 0;
+    mutable int numParameters_ = 0;
 
-    bool started = false;
+    mutable bool started = false;
 
+    // non-owning
+    mutable GradientFunction *gradFun = nullptr;
+
+    // for caching
+    mutable bool haveCachedCost = false;
+    mutable bool haveCachedGradient = false;
+    mutable std::vector<double> cachedGradient;
+    mutable double cachedCost = INFINITY;
+    mutable int cachedErrors = 0;
+
+    mutable double finalCost;
+
+    // keeps the most recent parameters, assuming they are the final ones
+    mutable std::vector<double> finalParameters;
 };
 
 

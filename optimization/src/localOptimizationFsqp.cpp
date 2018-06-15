@@ -200,21 +200,8 @@ public:
     }
 
     void obj(integer &nparam, integer &j, doublereal *x, doublereal &fj) {
-        if(reporter && reporter->beforeCostFunctionCall(nparam, x) != 0)
-            return;
-
-        if(cachedParameters.size() && arrayEqual(x, cachedParameters.data(), cachedParameters.size())) {
-            fj = cachedCost;
-        } else {
-            //problem->costFun->evaluate(x, fj, nullptr);
-            cachedParameters.assign(x, x + nparam);
-            cachedGradient.resize(nparam, NAN);
-            problem->costFun->evaluate(x, cachedCost, cachedGradient.data());
-            fj = cachedCost;
-        }
-
-        if(reporter && reporter->afterCostFunctionCall(nparam, x, fj, nullptr))
-            return;
+        gradientDummy.resize(nparam);
+        problem->costFun->evaluate(x, fj, gradientDummy.data());
 
         std::cout<<"np:"<<nparam<<" j:"<<j<<" x:"<<x[0]<<" fj:"<<fj<<std::endl;
     }
@@ -222,24 +209,10 @@ public:
     // Once we want contraints: void constr (integer &nparam, integer &j, doublereal *x, doublereal &gj) {    }
 
     void gradob (integer &nparam, integer &j, doublereal *x, doublereal *gradfj, doublereal *dummy) {
-        if(reporter && reporter->beforeCostFunctionCall(nparam, x) != 0)
-            return;
-
         static_assert(sizeof(double) == sizeof(doublereal), "");
 
-        if(cachedParameters.size() && arrayEqual(x, cachedParameters.data(), cachedParameters.size())) {
-            std::copy(cachedGradient.begin(), cachedGradient.end(), gradfj);
-        } else {
-            cachedParameters.assign(x, x + nparam);
-            cachedGradient.resize(nparam, NAN);
-            problem->costFun->evaluate(x, cachedCost, cachedGradient.data());
-        }
-
-        if(reporter && reporter->afterCostFunctionCall(nparam, x, cachedCost, gradfj))
-            return;
-
-        if(reporter && reporter->iterationFinished(nparam, x, cachedCost, gradfj))
-            return;
+        double fvalDummy = NAN;
+        reporter->evaluate(x, fvalDummy, gradfj);
 
         std::cout<<"np:"<<nparam<<" j:"<<j<<" x:"<<x[0]<<" gradfj:"<<gradfj[0]<<std::endl;
     }
@@ -249,10 +222,13 @@ public:
     OptimizationProblem *problem = nullptr;
     std::unique_ptr<OptimizationReporter> reporter;
 
-    // Do gradient evaluation always during `obj` and save results, so that we can fail in obj if current parameters are infeasible. Otherwise ffsqp will terminate "successfully".
-    doublereal cachedCost = NAN;
-    std::vector<doublereal> cachedGradient;
-    std::vector<doublereal> cachedParameters;
+    /* Do gradient evaluation always during `obj` and save results,
+     * so that we can fail in obj if current parameters are infeasible.
+     * Otherwise ffsqp will terminate "successfully".
+     * Actual caching is done in OptimizationReporter, but need to pass an array
+     * so that the gradient is evaluated.
+     */
+    std::vector<doublereal> gradientDummy;
 
     // Number of optimization variables
     integer nparam = 0;

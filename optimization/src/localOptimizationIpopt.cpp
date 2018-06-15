@@ -397,9 +397,11 @@ std::tuple<int, double, std::vector<double> > OptimizerIpOpt::optimize(Optimizat
         // lock because we pass control to IpOpt
         auto lock = ipOptGetLock();
 
+        auto optimizationController = problem->getReporter();
+
         try {
             SmartPtr<TNLP> mynlp =
-                    new LocalOptimizationIpoptTNLP(problem, finalCost, finalParameters);
+                    new LocalOptimizationIpoptTNLP(*problem, *optimizationController);
             SmartPtr<IpoptApplication> app = IpoptApplicationFactory();
             app->RethrowNonIpoptException(true);
 
@@ -422,6 +424,9 @@ std::tuple<int, double, std::vector<double> > OptimizerIpOpt::optimize(Optimizat
         } catch (...) {
             logmessage(LOGLVL_ERROR, "Unknown exception occured during optimization");
         }
+        finalCost = optimizationController->getFinalCost();
+        finalParameters = optimizationController->getFinalParameters();
+
     }
 
     // TODO: need smarter way to decide if should retry or not

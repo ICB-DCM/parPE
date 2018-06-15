@@ -94,20 +94,16 @@ void setToms611Option(const std::pair<const std::string, const std::string> &pai
 void calcf(integer const &n, doublereal const *x, integer &nf, doublereal &f,
            sumslUserData *userData, doublereal *urparm, void *ufparm) {
 
-    // TODO check return code
-    userData->reporter->beforeCostFunctionCall(n, x);
-
     if(!withinBounds(n, x, userData->parametersMin.data(), userData->parametersMax.data())) {
         nf = 0; // tells optimizer to choose a shorter step
         return;
     }
 
-    userData->problem->costFun->evaluate(x, f, nullptr);
+
+    auto result = userData->reporter->evaluate(x, f, nullptr);
     *urparm = f;
 
-    userData->reporter->afterCostFunctionCall(n, x, f, nullptr);
-
-    if(std::isnan(f)) {
+    if(std::isnan(f) || result != functionEvaluationSuccess) {
         nf = 0; // tells optimizer to choose a shorter step
         return;
     }
@@ -116,20 +112,16 @@ void calcf(integer const &n, doublereal const *x, integer &nf, doublereal &f,
 void calcg(integer const &n, doublereal const *x, integer &nf, doublereal *g,
            sumslUserData *userData, doublereal *urparm, void *ufparm) {
 
-    userData->reporter->beforeCostFunctionCall(n, x);
-
     if(!withinBounds(n, x, userData->parametersMin.data(), userData->parametersMax.data())) {
         nf = 0; // tells optimizer to choose a shorter step
         return;
     }
 
-    userData->problem->costFun->evaluate(x, *urparm, g);
+    userData->reporter->evaluate(x, *urparm, g);
 
-    userData->reporter->afterCostFunctionCall(n, x, *urparm, g);
+    auto result = userData->reporter->iterationFinished(x, *urparm, g);
 
-    userData->reporter->iterationFinished(n, x, *urparm, g);
-
-    if(std::isnan(*urparm)) {
+    if(std::isnan(*urparm) || result != functionEvaluationSuccess) {
         nf = 0; // tells optimizer to choose a shorter step
         return;
     }

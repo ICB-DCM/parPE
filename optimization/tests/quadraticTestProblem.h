@@ -11,6 +11,8 @@ namespace parpe {
  */
 
 class OptimizationReporterTest : public OptimizationReporter {
+    using OptimizationReporter::OptimizationReporter;
+
     virtual bool starting(int numParameters, double const *const initialParameters);
 
     virtual bool iterationFinished(int numParameters, double const *const parameters, double objectiveFunctionValue,

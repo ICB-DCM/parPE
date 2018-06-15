@@ -28,7 +28,7 @@ void QuadraticTestProblem::fillParametersMax(double *buffer) const
 
 std::unique_ptr<OptimizationReporter> QuadraticTestProblem::getReporter() const
 {
-    return std::unique_ptr<OptimizationReporter>(new OptimizationReporterTest());
+    return std::unique_ptr<OptimizationReporter>(new OptimizationReporterTest(costFun.get()));
 }
 
 std::unique_ptr<OptimizationProblem> QuadraticOptimizationMultiStartProblem::getLocalProblem(

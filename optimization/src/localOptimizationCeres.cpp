@@ -96,16 +96,9 @@ class MyCeresFirstOrderFunction : public ceres::FirstOrderFunction {
                          parametersMin.data(), parametersMax.data()))
             return false;
 
-        if(reporter && reporter->beforeCostFunctionCall(numParameters, parameters) != 0)
-            return true;
+        auto result = reporter->evaluate(parameters, *cost, gradient);
 
-        bool errors =
-                problem->costFun->evaluate(parameters, *cost, gradient);
-
-        if(reporter && reporter->afterCostFunctionCall(numParameters, parameters, *cost, gradient))
-            return false;
-
-        return errors == 0;
+        return result == functionEvaluationSuccess;
     }
 
     virtual int NumParameters() const override {
@@ -137,7 +130,7 @@ class MyIterationCallback : public ceres::IterationCallback {
 
         // TODO: print here
 
-        int status = reporter->iterationFinished(0, nullptr, summary.cost, nullptr);
+        int status = reporter->iterationFinished(nullptr, summary.cost, nullptr);
         switch (status) {
         case 0:
             return ceres::SOLVER_CONTINUE;
