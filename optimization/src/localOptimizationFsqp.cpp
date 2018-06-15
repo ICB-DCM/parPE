@@ -201,7 +201,7 @@ public:
 
     void obj(integer &nparam, integer &j, doublereal *x, doublereal &fj) {
         gradientDummy.resize(nparam);
-        problem->costFun->evaluate(x, fj, gradientDummy.data());
+        reporter->evaluate(x, fj, gradientDummy.data());
 
         std::cout<<"np:"<<nparam<<" j:"<<j<<" x:"<<x[0]<<" fj:"<<fj<<std::endl;
     }
@@ -213,7 +213,7 @@ public:
 
         double fvalDummy = NAN;
         reporter->evaluate(x, fvalDummy, gradfj);
-
+        reporter->iterationFinished(x, fvalDummy, gradfj);
         std::cout<<"np:"<<nparam<<" j:"<<j<<" x:"<<x[0]<<" gradfj:"<<gradfj[0]<<std::endl;
     }
 

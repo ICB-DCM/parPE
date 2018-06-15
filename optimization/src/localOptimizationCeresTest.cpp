@@ -64,7 +64,7 @@ TEST(localOptimizationCeres, testReporterCalled) {
     problem.setOptimizationOptions(o);
 
     // setup
-    mock().expectNCalls(3, "GradientFunction::numParameters");
+    mock().expectNCalls(4, "GradientFunction::numParameters");
     mock().expectOneCall("OptimizationReporterTest::starting");
 
     // starting point / iteration 0
