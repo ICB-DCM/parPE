@@ -9,18 +9,24 @@ MultiConditionProblemResultWriter::MultiConditionProblemResultWriter()
 
 MultiConditionProblemResultWriter::MultiConditionProblemResultWriter(
     hid_t file_id)
-    : OptimizationResultWriter(file_id), file_id(H5Freopen(file_id)) {
+    : OptimizationResultWriter(file_id)
+{
+    auto lock = hdf5MutexGetLock();
+    this->file_id = H5Freopen(file_id);
 }
 
 MultiConditionProblemResultWriter::MultiConditionProblemResultWriter(
     hid_t file_id, JobIdentifier id)
-    : OptimizationResultWriter(file_id), file_id(H5Freopen(file_id)) {
+    : MultiConditionProblemResultWriter(file_id)
+{
     setJobId(id);
 }
 
 MultiConditionProblemResultWriter::MultiConditionProblemResultWriter(
     std::string filename, bool overwrite, JobIdentifier id)
-    : OptimizationResultWriter(filename, overwrite), file_id(H5Freopen(getFileId())) {
+    : OptimizationResultWriter(filename, overwrite)
+{
+    auto lock = hdf5MutexGetLock();
     setJobId(id);
 }
 
@@ -30,10 +36,14 @@ MultiConditionProblemResultWriter::MultiConditionProblemResultWriter(const Multi
 
 }
 
-void MultiConditionProblemResultWriter::logLocalOptimizerObjectiveFunctionEvaluation(const double *parameters, int numParameters, double objectiveFunctionValue, const double *objectiveFunctionGradient, int numIterations, int numFunctionCalls, double timeElapsedInSeconds)
+void MultiConditionProblemResultWriter::logLocalOptimizerObjectiveFunctionEvaluation(
+        gsl::span<const double> parameters, double objectiveFunctionValue,
+        gsl::span<const double>objectiveFunctionGradient,
+        int numIterations, int numFunctionCalls, double timeElapsedInSeconds)
 {
     OptimizationResultWriter::logLocalOptimizerObjectiveFunctionEvaluation(
-                parameters, numParameters, objectiveFunctionValue, objectiveFunctionGradient, numIterations, numFunctionCalls, timeElapsedInSeconds);
+                parameters, objectiveFunctionValue,
+                objectiveFunctionGradient, numIterations, numFunctionCalls, timeElapsedInSeconds);
 
     if(std::isinf(objectiveFunctionValue) || std::isnan(objectiveFunctionValue))
         printObjectiveFunctionFailureMessage();
@@ -56,7 +66,9 @@ void MultiConditionProblemResultWriter::printObjectiveFunctionFailureMessage() c
                strBuf);
 }
 
-void MultiConditionProblemResultWriter::saveLocalOptimizerResults(double finalNegLogLikelihood, const double *optimalParameters, int numParameters, double masterTime, int exitStatus) const
+void MultiConditionProblemResultWriter::saveLocalOptimizerResults(double finalNegLogLikelihood,
+                                                   gsl::span<const double> optimalParameters, double masterTime,
+                                                   int exitStatus) const
 {
     char strBuf[100];
     id.sprint(strBuf);
@@ -64,7 +76,6 @@ void MultiConditionProblemResultWriter::saveLocalOptimizerResults(double finalNe
                strBuf, exitStatus, finalNegLogLikelihood, masterTime);
 
     OptimizationResultWriter::saveLocalOptimizerResults(finalNegLogLikelihood, optimalParameters,
-                              numParameters,
                               masterTime, exitStatus);
 }
 

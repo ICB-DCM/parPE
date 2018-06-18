@@ -47,11 +47,11 @@ TEST(localOptimizationIpopt, testReporterCalled) {
     problem.setOptimizationOptions(o);
 
     // iteration 0
-    mock().expectNCalls(4, "GradientFunction::numParameters");
+    mock().expectNCalls(3, "GradientFunction::numParameters");
     mock().expectOneCall("OptimizationReporterTest::starting");
     mock().expectNCalls(3, "OptimizationReporterTest::beforeCostFunctionCall");
     // one should be enough:
-    mock().expectNCalls(2, "testObjGrad");
+    mock().expectNCalls(1, "testObjGrad");
     mock().expectNCalls(3, "OptimizationReporterTest::afterCostFunctionCall");
     mock().expectOneCall("OptimizationReporterTest::iterationFinished");
 
@@ -59,7 +59,7 @@ TEST(localOptimizationIpopt, testReporterCalled) {
     mock().expectNCalls(o.maxOptimizerIterations * 2, "OptimizationReporterTest::beforeCostFunctionCall");
     mock().expectNCalls(o.maxOptimizerIterations, "testObj");
     mock().expectNCalls(o.maxOptimizerIterations, "testObjGrad");
-    mock().expectNCalls(o.maxOptimizerIterations, "GradientFunction::numParameters");
+    mock().expectNCalls(0*o.maxOptimizerIterations, "GradientFunction::numParameters");
     mock().expectNCalls(o.maxOptimizerIterations, "OptimizationReporterTest::iterationFinished");
     mock().expectNCalls(o.maxOptimizerIterations * 2, "OptimizationReporterTest::afterCostFunctionCall");
 

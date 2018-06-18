@@ -92,7 +92,7 @@ int StandaloneSimulator::run(const std::string& resultFile,
         // extract parameters for simulation of current condition, instead
         // of sending whole  optimization parameter vector to worker
         dataProvider->updateSimulationParameters(
-                    simulationIdx, parameters.data(), *myModel);
+                    simulationIdx, parameters, *myModel);
         return std::pair<std::unique_ptr<amici::Model>,std::unique_ptr<amici::Solver>>(std::move(myModel), std::unique_ptr<amici::Solver>(solver->clone()));
     },
     [&](int simulationIdx) { /* condition id */

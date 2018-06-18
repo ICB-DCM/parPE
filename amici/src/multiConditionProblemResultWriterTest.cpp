@@ -26,13 +26,15 @@ TEST(multiConditionProblemResultWriter, testResultWriter) {
 
     w.setRootPath("/bla/");
 
-    w.logLocalOptimizerIteration(1, NULL, 0, 2, NULL, 1);
+    w.logLocalOptimizerIteration(1, gsl::span<double const>(), 0.0, gsl::span<double const>(), 1.0);
 
-    w.logLocalOptimizerObjectiveFunctionEvaluation(NULL, 0, 1, NULL, 1, 2, 3);
+    w.logLocalOptimizerObjectiveFunctionEvaluation(gsl::span<double const>(), 1.0, gsl::span<double const>(), 1, 2, 3.0);
 
-    parpe::logSimulation(w.getFileId(), "/test", std::vector<double>(), 1, NULL, 1, 1, 2, NULL, NULL, 0, NULL, 1, 2, 0);
+    parpe::logSimulation(w.getFileId(), "/test", std::vector<double>(),
+                         1.0, gsl::span<double const>(), 1.0, gsl::span<double const>(),
+                         gsl::span<double const>(), gsl::span<double const>(), 1, 2, 0);
 
-    w.saveLocalOptimizerResults(1, NULL, 0, 12, 0);
+    w.saveLocalOptimizerResults(1.0, gsl::span<double const>(), 0.12, 0);
 }
 
 // IGNORE_TEST(multiConditionProblemResultWriter, testResultWriter) {

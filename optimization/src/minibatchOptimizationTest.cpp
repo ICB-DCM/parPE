@@ -90,7 +90,7 @@ TEST_GROUP(minibatchOptimizationLinearModel){
 
         // make predictions
         labels.resize(numDatasets);
-        lm.evaluate(trueParameters.data(), data, labels);
+        lm.evaluate(trueParameters, data, labels);
     }
 
     void generateRandomFeatures() {
@@ -158,7 +158,7 @@ TEST(minibatchOptimizationLinearModel, testCostWithTrueParametersIsZeroIndivdual
     double mse = NAN;
     std::vector<double> gradient(trueParameters.size());
     for(int i = 0; i < numDatasets; ++i) {
-        lm2->evaluate(trueParameters.data(), i, mse, gradient.data());
+        lm2->evaluate(trueParameters, i, mse, gradient);
         CHECK_EQUAL(0.0, mse);
         CHECK_TRUE(std::vector<double>(trueParameters.size(), 0.0) == gradient);
     }
@@ -169,7 +169,7 @@ TEST(minibatchOptimizationLinearModel, testCostWithTrueParametersIsZeroFull) {
     auto lm2 = getLinearModelMSE();
     double mse = NAN;
     std::vector<double> gradient(trueParameters.size());
-    lm2->evaluate(trueParameters.data(), dataIndices, mse, gradient.data());
+    lm2->evaluate(trueParameters, dataIndices, mse, gradient);
     CHECK_EQUAL(0.0, mse);
     CHECK_TRUE(std::vector<double>(trueParameters.size(), 0.0) == gradient);
 }

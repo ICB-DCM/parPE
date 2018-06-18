@@ -9,8 +9,10 @@
 #include <cstdlib>
 #include <vector>
 #include <ctime>
+#include <cmath>
 
 #include <hdf5.h>
+#include <gsl/gsl-lite.hpp>
 
 namespace parpe {
 
@@ -53,19 +55,27 @@ private:
 };
 
 
-
-
-
 /**
  * @brief The OptimizationReporter class is called from the optimizer and takes care of
- * things like of logging intermediate results, timing and can tell the optimizer to exit
+ * calling the objective function and things like of keeping track of iterations, logging intermediate results, timing
+ * and can tell the optimizer to exit.
+ *
+ * This extra level of abstraction is added to avoid reimplementing timing, and other things for
+ * each supported optimizer.
  */
 
-class OptimizationReporter {
+class OptimizationReporter : public GradientFunction {
 public:
-    OptimizationReporter();
+    OptimizationReporter(GradientFunction *gradFun);
 
-    OptimizationReporter(std::unique_ptr<OptimizationResultWriter> rw);
+    OptimizationReporter(GradientFunction *gradFun, std::unique_ptr<OptimizationResultWriter> rw);
+
+    FunctionEvaluationStatus evaluate(
+            gsl::span<double const> parameters,
+            double &fval,
+            gsl::span<double> gradient) const override;
+
+    int numParameters() const override;
 
     /**
      * @brief Is called just before the optimizer starts. Must be called before other functions.
@@ -73,7 +83,7 @@ public:
      * @param initialParameters
      * @return Quit optimization?
      */
-    virtual bool starting(int numParameters, double const *const initialParameters);
+    virtual bool starting(gsl::span<const double> parameters) const;
 
 
     /**
@@ -83,20 +93,21 @@ public:
      * @param currentIter
      * @return Quit optimization?
      */
-    virtual bool iterationFinished(int numParameters, double const *const parameters, double objectiveFunctionValue,
-                                   double const *const objectiveFunctionGradient);
+    virtual bool iterationFinished(gsl::span<const double> parameters,
+                                   double objectiveFunctionValue,
+                                   gsl::span<const double> objectiveFunctionGradient) const;
 
-    virtual bool beforeCostFunctionCall(int numParameters, double const *const parameters);
+    virtual bool beforeCostFunctionCall(gsl::span<const double> parameters) const;
 
-    virtual bool afterCostFunctionCall(int numParameters, double const *const parameters,
+    virtual bool afterCostFunctionCall(gsl::span<const double> parameters,
                                        double objectiveFunctionValue,
-                                       double const *const objectiveFunctionGradient);
+                                       gsl::span<double const> objectiveFunctionGradient) const;
 
     /**
      * @brief Is called after optimization finished
      */
     virtual void finished(double optimalCost,
-                          const double *optimalParameters, int exitStatus);
+                          gsl::span<const double> parameters, int exitStatus) const;
 
 
     // TODO how to pass optimizer-specific info? pass OptimizerStatus class ?
@@ -108,19 +119,43 @@ public:
     //                                     double alpha_du, double alpha_pr,
     //                                     int ls_trials);
 
-private:
-    WallTimer wallTimer;
+    double getFinalCost() const;
+
+    std::vector<double> getFinalParameters() const;
+
+    void setGradientFunction(GradientFunction *gradFun) const;
+
+    mutable std::unique_ptr<OptimizationResultWriter> resultWriter;
+
+protected:
+    // data members are mutable, because we inherit from GradientFunction,
+    // and evaluate() is const there. This could probably be solved better....
+
+    mutable WallTimer wallTimer;
 //    clock_t timeOptimizationBegin;
 //    clock_t timeIterationBegin;
 //    clock_t timeCostEvaluationBegin;
 
-    std::unique_ptr<OptimizationResultWriter> resultWriter;
-    int numFunctionCalls = 0;
-    int numIterations = 0;
-    int numParameters = 0;
+    mutable int numFunctionCalls = 0;
+    mutable int numIterations = 0;
+    mutable int numParameters_ = 0;
 
-    bool started = false;
+    mutable bool started = false;
 
+    // non-owning
+    mutable GradientFunction *gradFun = nullptr;
+
+    // for caching
+    mutable bool haveCachedCost = false;
+    mutable bool haveCachedGradient = false;
+    mutable std::vector<double> cachedGradient;
+    mutable double cachedCost = INFINITY;
+    mutable FunctionEvaluationStatus cachedStatus = functionEvaluationSuccess;
+
+    mutable double finalCost;
+
+    // keeps the most recent parameters, assuming they are the final ones
+    mutable std::vector<double> cachedParameters;
 };
 
 
@@ -146,14 +181,14 @@ public:
     virtual ~OptimizationProblem() = default;
 
     /** Default implementation: random starting points are drawn from [parametersMin, parametersMax] */
-    virtual void fillInitialParameters(double *buffer) const;
+    virtual void fillInitialParameters(gsl::span<double> buffer) const;
 
     /** lower bound of parameter values */
-    virtual void fillParametersMin(double *buffer) const = 0;
+    virtual void fillParametersMin(gsl::span<double> buffer) const = 0;
 
     /** upper bound of parameter values */
     // TODO:     template <class RandomAccessIterator>
-    virtual void fillParametersMax(double *buffer) const = 0;
+    virtual void fillParametersMax(gsl::span<double> buffer) const = 0;
 
     virtual OptimizationOptions const& getOptimizationOptions() const;
 
@@ -178,13 +213,13 @@ public:
     using OptimizationProblem::OptimizationProblem;
 
     /** lower bound of parameter values */
-    void fillParametersMin(double *buffer) const {
-        std::copy(parametersMin.begin(), parametersMin.end(), buffer);
+    void fillParametersMin(gsl::span<double> buffer) const {
+        std::copy(parametersMin.begin(), parametersMin.end(), buffer.begin());
     }
 
     /** upper bound of parameter values */
-    void fillParametersMax(double *buffer) const {
-        std::copy(parametersMax.begin(), parametersMax.end(), buffer);
+    void fillParametersMax(gsl::span<double> buffer) const {
+        std::copy(parametersMax.begin(), parametersMax.end(), buffer.begin());
     }
 
     void setParametersMin(std::vector<double> parametersMin) {
@@ -199,9 +234,9 @@ public:
         parametersStart = initial;
     }
 
-    void fillInitialParameters(double *buffer) const override {
+    void fillInitialParameters(gsl::span<double> buffer) const override {
         if(parametersStart.size()) {
-            std::copy(parametersStart.begin(), parametersStart.end(), buffer);
+            std::copy(parametersStart.begin(), parametersStart.end(), buffer.begin());
         } else {
             OptimizationProblem::fillInitialParameters(buffer);
         }

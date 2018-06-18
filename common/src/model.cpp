@@ -6,13 +6,13 @@ namespace parpe {
 
 
 template<typename X>
-void Model<X>::evaluate(const double *parameters, const std::vector<X> &features, std::vector<double> &outputs) const {
+void Model<X>::evaluate(gsl::span<const double> parameters, const std::vector<X> &features, std::vector<double> &outputs) const {
     auto unusedGrad = std::vector<std::vector<double>>();
     evaluate(parameters, features, outputs, unusedGrad);
 
 }
 
-void LinearModel::evaluate(const double *parameters, const std::vector<std::vector<double> > &features, std::vector<double> &outputs, std::vector<std::vector<double> > &outputGradients) const {
+void LinearModel::evaluate(gsl::span<const double> parameters, const std::vector<std::vector<double> > &features, std::vector<double> &outputs, std::vector<std::vector<double> > &outputGradients) const {
 
     const int numObservations = features.size();
     const int numFeatures = features[0].size();
@@ -42,9 +42,13 @@ void LinearModel::evaluate(const double *parameters, const std::vector<std::vect
     }
 }
 
-FunctionEvaluationStatus LinearModelMSE::evaluate(const double * const parameters,
-                                                std::vector<int> dataIndices, double &fval, double *gradient) const  {
-
+FunctionEvaluationStatus LinearModelMSE::evaluate(
+        gsl::span<const double> parameters,
+        std::vector<int> dataIndices,
+        double &fval,
+        gsl::span<double> gradient
+        ) const
+{
     int numDatasets = dataIndices.size();
 
     // get data for indices
@@ -67,7 +71,7 @@ FunctionEvaluationStatus LinearModelMSE::evaluate(const double * const parameter
     fval /= numDatasets;
 
     // and MSE gradient
-    if(gradient) {
+    if(gradient.size()) {
         for(int p = 0; p < numParameters(); ++p) {
             gradient[p] = 0.0;
             for(int i = 0; i < numDatasets; ++i) {

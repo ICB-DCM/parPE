@@ -4,6 +4,8 @@
 #include <vector>
 #include <memory>
 
+#include <gsl/gsl-lite.hpp>
+
 namespace parpe {
 
 
@@ -30,9 +32,9 @@ public:
      * @return functionEvaluationSuccess on success, functionEvaluationFailure otherwise
      */
     virtual FunctionEvaluationStatus evaluate(
-            const double* const parameters,
+            gsl::span<double const> parameters,
             double &fval,
-            double* gradient) const = 0;
+            gsl::span<double>) const = 0;
 
     virtual int numParameters() const = 0;
 
@@ -58,10 +60,10 @@ public:
      * @return
      */
     virtual FunctionEvaluationStatus evaluate(
-            const double* const parameters,
+            gsl::span<const double> parameters,
             T dataset,
             double &fval,
-            double* gradient) const = 0;
+            gsl::span<double> gradient) const = 0;
 
     /**
      * @brief Evaluate on vector of data points
@@ -72,10 +74,11 @@ public:
      * @return
      */
     virtual FunctionEvaluationStatus evaluate(
-            const double* const parameters,
+            gsl::span<const double> parameters,
             std::vector<T> datasets,
             double &fval,
-            double* gradient) const = 0;
+            gsl::span<double> gradient
+            ) const = 0;
 
     virtual int numParameters() const = 0;
 
@@ -106,9 +109,9 @@ public:
     }
 
     FunctionEvaluationStatus evaluate(
-            const double* const parameters,
+            gsl::span<const double> parameters,
             double &fval,
-            double* gradient) const override {
+            gsl::span<double> gradient) const override {
         return gradFun->evaluate(parameters, datasets, fval, gradient);
 
     }

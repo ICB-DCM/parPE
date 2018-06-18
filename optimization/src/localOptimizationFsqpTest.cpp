@@ -67,12 +67,12 @@ TEST(localOptimizationFsqp, testReporterCalled) {
     problem.setOptimizationOptions(o);
 
     // setup
-    mock().expectNCalls(2, "GradientFunction::numParameters");
+    mock().expectNCalls(3, "GradientFunction::numParameters");
     mock().expectOneCall("OptimizationReporterTest::starting");
 
     // starting point / iteration 0
     mock().expectNCalls(2, "OptimizationReporterTest::beforeCostFunctionCall");
-    mock().expectOneCall("testObjGrad");
+    mock().expectNCalls(1, "testObjGrad");
     mock().expectOneCall("OptimizationReporterTest::iterationFinished");
     mock().expectNCalls(2, "OptimizationReporterTest::afterCostFunctionCall");
 

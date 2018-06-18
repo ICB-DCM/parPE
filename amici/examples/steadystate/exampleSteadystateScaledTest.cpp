@@ -88,7 +88,7 @@ TEST(steadystateProblemTests, testSteadystateMultiCond) {
     //parpe::AmiciSummedGradientFunction<int>(&dp, nullptr);
     parpe::MultiConditionProblem problem(&dp);
     double cost;
-    problem.costFun->evaluate(p.data(), cost, nullptr);
+    problem.costFun->evaluate(p, cost, gsl::span<double>());
     DOUBLES_EQUAL(-parpe::getLogLikelihoodOffset(dp.edata[0].my.size()), cost, 1e-5);
 }
 
@@ -136,12 +136,12 @@ TEST(steadystateProblemTests, testSteadystateHierarchical) {
                                                modelNonOwning->nt(),
                                                parpe::ErrorModel::normal);
     double cost;
-    hier.evaluate(pReduced.data(), cost, nullptr);
+    hier.evaluate(pReduced, cost, gsl::span<double>());
     DOUBLES_EQUAL(-parpe::getLogLikelihoodOffset(dp.edata[0].my.size()), cost, 1e-5);
 
     const std::vector<double> pFull { 1.0, 0.5, 0.4, 2.0,
                                       0.1, 2.0, 1.0, 1.0 };
-    hier.fun->evaluate(pFull.data(), {0}, cost, nullptr);
+    hier.fun->evaluate(pFull, {0}, cost, gsl::span<double>());
     DOUBLES_EQUAL(-parpe::getLogLikelihoodOffset(dp.edata[0].my.size()), cost, 1e-5);
 }
 
@@ -200,12 +200,12 @@ TEST(steadystateProblemTests, testOptimizationHierarchical) {
                                                                         parpe::ErrorModel::normal);
     // evaluate and ensure scaling factor is computed so that y_mes = y_sim
     double cost;
-    hier->evaluate(pReduced.data(), cost, nullptr);
+    hier->evaluate(pReduced, cost, gsl::span<double>());
     DOUBLES_EQUAL(-parpe::getLogLikelihoodOffset(dp.edata[0].my.size()), cost, 1e-5);
 
     const std::vector<double> pFull { 1.0, 0.5, 0.4, 2.0,
                                       0.1, 2.0, 1.0, 1.0 };
-    hier->fun->evaluate(pFull.data(), {0}, cost, nullptr);
+    hier->fun->evaluate(pFull, {0}, cost, gsl::span<double>());
     DOUBLES_EQUAL(-parpe::getLogLikelihoodOffset(dp.edata[0].my.size()), cost, 1e-5);
 
     parpe::OptimizationProblemImpl problem(std::move(hier));

@@ -18,7 +18,7 @@ ExampleSteadystateGradientFunctionParallel::ExampleSteadystateGradientFunctionPa
     numConditions = dataProvider->getNumberOfConditions();
 }
 
-parpe::FunctionEvaluationStatus ExampleSteadystateGradientFunctionParallel::evaluate(const double * const parameters, double &fval, double *gradient) const
+parpe::FunctionEvaluationStatus ExampleSteadystateGradientFunctionParallel::evaluate(gsl::span<const double> parameters, double &fval, gsl::span<double> gradient) const
 
 {
     if (parpe::getMpiCommSize() > 1) {
@@ -33,9 +33,9 @@ int ExampleSteadystateGradientFunctionParallel::numParameters() const
     return model->np();
 }
 
-int ExampleSteadystateGradientFunctionParallel::evaluateParallel(const double *parameters,
+int ExampleSteadystateGradientFunctionParallel::evaluateParallel(gsl::span<double const> parameters,
                                                                  double &objFunVal,
-                                                                 double *objFunGrad) const {
+                                                                 gsl::span<double> objFunGrad) const {
     // TODO: always computes gradient; ignores simulation status
 
     // create load balancer job for each simulation
@@ -54,11 +54,11 @@ int ExampleSteadystateGradientFunctionParallel::evaluateParallel(const double *p
         job->jobDoneChangedMutex = &simulationsMutex;
         job->sendBuffer.resize(sizeof(double) * model->np() + 2 * sizeof(int));
 
-        int needGradient = objFunGrad ? 1 : 0;
+        int needGradient = objFunGrad.size() ? 1 : 0;
 
         memcpy(job->sendBuffer.data(), &i, sizeof(int));
         memcpy(job->sendBuffer.data() + sizeof(int), &needGradient, sizeof(int));
-        memcpy(job->sendBuffer.data() + 2 * sizeof(int), parameters,
+        memcpy(job->sendBuffer.data() + 2 * sizeof(int), parameters.data(),
                model->np() * sizeof(double));
 
         loadBalancer->queueJob(job);
@@ -77,14 +77,14 @@ int ExampleSteadystateGradientFunctionParallel::evaluateParallel(const double *p
 
     // aggregate likelihood
     objFunVal = 0;
-    if (objFunGrad)
-        std::fill(objFunGrad, objFunGrad + dataProvider->getNumOptimizationParameters(), 0.0);
+    if (objFunGrad.size())
+        std::fill(objFunGrad.begin(), objFunGrad.end(), 0.0);
 
     for (int i = 0; i < numConditions; ++i) {
         double *buffer = (double *)(jobdata[i].recvBuffer.data());
         objFunVal -= buffer[0];
 
-        if (objFunGrad)
+        if (objFunGrad.size())
             for (int ip = 0; ip < model->np(); ++ip)
                 objFunGrad[ip] -= buffer[1 + ip];
     }
@@ -94,19 +94,19 @@ int ExampleSteadystateGradientFunctionParallel::evaluateParallel(const double *p
     return 0;
 }
 
-int ExampleSteadystateGradientFunctionParallel::evaluateSerial(const double *parameters,
+int ExampleSteadystateGradientFunctionParallel::evaluateSerial(gsl::span<const double> parameters,
                                                                double &objFunVal,
-                                                               double *objFunGrad) const {
+                                                               gsl::span<double> objFunGrad) const {
     int status = 0;
-    model->setParameters(std::vector<double>(parameters, parameters + numParameters()));
+    model->setParameters(std::vector<double>(parameters.begin(), parameters.end()));
     //    printArray(parameters, udata->np);printf("\n");
 
     objFunVal = 0;
 
-    if (objFunGrad) {
+    if (objFunGrad.size()) {
         solver->setSensitivityOrder(amici::AMICI_SENSI_ORDER_FIRST);
         solver->setSensitivityMethod(amici::AMICI_SENSI_FSA);
-        std::fill_n(objFunGrad, dataProvider->getNumOptimizationParameters(), 0.0);
+        std::fill_n(objFunGrad.begin(), objFunGrad.end(), 0.0);
     } else {
         solver->setSensitivityOrder(amici::AMICI_SENSI_ORDER_NONE);
         solver->setSensitivityMethod(amici::AMICI_SENSI_NONE);
@@ -120,7 +120,7 @@ int ExampleSteadystateGradientFunctionParallel::evaluateSerial(const double *par
 
         objFunVal -= rdata->llh;
 
-        if (objFunGrad)
+        if (objFunGrad.size())
             for (int ip = 0; ip < model->np(); ++ip)
                 objFunGrad[ip] -= rdata->sllh[ip];
     }

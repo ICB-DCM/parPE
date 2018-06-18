@@ -123,7 +123,7 @@ public:
             auto batches = getBatches(data, batchSize);
 
             for(int batchIdx = 0; (unsigned) batchIdx < batches.size(); ++batchIdx) {
-                f.evaluate(parameters.data(), batches[batchIdx], cost, gradient.data());
+                f.evaluate(parameters, batches[batchIdx], cost, gradient);
                 std::cout<<"\tBatch "<<batchIdx<<": p: "<<parameters
                         <<" Cost: "<<cost<<" Gradient:"<<gradient
                        << " |g|2: "<<getVectorNorm(gradient)

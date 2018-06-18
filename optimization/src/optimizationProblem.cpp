@@ -69,10 +69,10 @@ void optimizationProblemGradientCheck(OptimizationProblem *problem,
                                       int numParameterIndices, double epsilon) {
     double fc = 0; // f(theta)
     std::vector<double> theta(problem->costFun->numParameters());
-    problem->fillInitialParameters(theta.data());
+    problem->fillInitialParameters(theta);
 
     std::vector<double> gradient(theta.size());
-    problem->costFun->evaluate(theta.data(), fc, gradient.data());
+    problem->costFun->evaluate(theta, fc, gradient);
 
     std::vector<double> thetaTmp(theta);
 
@@ -83,10 +83,10 @@ void optimizationProblemGradientCheck(OptimizationProblem *problem,
         double fb = 0, ff = 0; // f(theta + eps) , f(theta - eps)
 
         thetaTmp[curInd] = theta[curInd] + epsilon;
-        problem->costFun->evaluate(thetaTmp.data(), ff, nullptr);
+        problem->costFun->evaluate(gsl::span<double>(thetaTmp), ff, gsl::span<double>());
 
         thetaTmp[curInd] = theta[curInd] - epsilon;
-        problem->costFun->evaluate(thetaTmp.data(), fb, nullptr);
+        problem->costFun->evaluate(gsl::span<double>(thetaTmp), fb, gsl::span<double>());
 
         double fd_f = (ff - fc) / epsilon;
 
@@ -147,53 +147,101 @@ void OptimizationProblem::setOptimizationOptions(const OptimizationOptions &opti
 
 std::unique_ptr<OptimizationReporter> OptimizationProblem::getReporter() const
 {
-    return std::unique_ptr<OptimizationReporter>(new OptimizationReporter());
+    return std::unique_ptr<OptimizationReporter>(new OptimizationReporter(costFun.get()));
 }
 
 
-void OptimizationProblem::fillInitialParameters(double *buffer) const {
+void OptimizationProblem::fillInitialParameters(gsl::span<double> buffer) const {
     int numParameters = costFun->numParameters();
     std::vector<double> parametersMin(numParameters);
     std::vector<double> parametersMax(numParameters);
-    fillParametersMin(parametersMin.data());
-    fillParametersMax(parametersMax.data());
+    fillParametersMin(parametersMin);
+    fillParametersMax(parametersMax);
 
     fillArrayRandomDoubleIndividualInterval(parametersMin.data(), parametersMax.data(),
-                                            numParameters, buffer);
+                                            numParameters, buffer.data());
 }
 
 
-OptimizationReporter::OptimizationReporter()
+OptimizationReporter::OptimizationReporter(GradientFunction *gradFun)
+    : OptimizationReporter(gradFun, nullptr)
 {
 
 }
 
-OptimizationReporter::OptimizationReporter(std::unique_ptr<OptimizationResultWriter> rw) : resultWriter(std::move(rw))
+OptimizationReporter::OptimizationReporter(
+        GradientFunction *gradFun,
+        std::unique_ptr<OptimizationResultWriter> rw)
+    : resultWriter(std::move(rw))
 {
-
+    setGradientFunction(gradFun);
 }
 
-bool OptimizationReporter::starting(int numParameters, const double * const initialParameters)
+FunctionEvaluationStatus OptimizationReporter::evaluate(
+        gsl::span<const double> parameters, double &fval,
+        gsl::span<double> gradient) const
+{
+    if(beforeCostFunctionCall(parameters) != 0)
+        return functionEvaluationFailure;
+
+    if(gradient.data()) {
+        if (!haveCachedGradient || !std::equal(parameters.begin(), parameters.end(),
+                                               cachedParameters.begin())) {
+            // Have to compute anew
+            cachedStatus = gradFun->evaluate(parameters, cachedCost, cachedGradient);
+            haveCachedCost = true;
+            haveCachedGradient = true;
+        }
+        // recycle old result
+        std::copy(cachedGradient.begin(), cachedGradient.end(), gradient.begin());
+        fval = cachedCost;
+    } else {
+        if (!haveCachedCost || !std::equal(parameters.begin(), parameters.end(),
+                                           cachedParameters.begin())) {
+            // Have to compute anew
+            cachedStatus = gradFun->evaluate(parameters, cachedCost, gsl::span<double>());
+            haveCachedCost = true;
+            haveCachedGradient = false;
+        }
+        fval = cachedCost;
+    }
+
+    // update cached parameters
+    cachedParameters.resize(numParameters_);
+    std::copy(parameters.begin(), parameters.end(), cachedParameters.begin());
+
+    if(afterCostFunctionCall(parameters, cachedCost, gradient.data() ? cachedGradient : gsl::span<double>()) != 0)
+        return functionEvaluationFailure;
+
+    return cachedStatus;
+}
+
+int OptimizationReporter::numParameters() const {
+    return gradFun->numParameters();
+}
+
+bool OptimizationReporter::starting(gsl::span<const double> initialParameters) const
 {
     // If this is called multiple times (happens via IpOpt), don't do anything
     if(started)
         return false;
 
-    this->numParameters = numParameters;
     wallTimer.reset();
 //    timeOptimizationBegin = clock();
 //    timeIterationBegin = timeOptimizationBegin;
 //    timeCostEvaluationBegin = timeOptimizationBegin;
 
     if(resultWriter)
-        resultWriter->starting(numParameters, initialParameters);
+        resultWriter->starting(initialParameters);
 
     started = true;
 
     return false;
 }
 
-bool OptimizationReporter::iterationFinished(int numParameters, const double * const parameters, double objectiveFunctionValue, const double * const objectiveFunctionGradient)
+bool OptimizationReporter::iterationFinished(gsl::span<const double> finalParameters,
+                                             double objectiveFunctionValue,
+                                             gsl::span<double const> objectiveFunctionGradient) const
 {
     double wallTimeIter = wallTimer.getRound(); //(double)(clock() - timeIterationBegin) / CLOCKS_PER_SEC;
     double wallTimeOptim = wallTimer.getTotal(); //double)(clock() - timeOptimizationBegin) / CLOCKS_PER_SEC;
@@ -201,14 +249,16 @@ bool OptimizationReporter::iterationFinished(int numParameters, const double * c
     logmessage(LOGLVL_INFO, "iter: %d cost: %g time_iter: %gs time_optim: %gs", numIterations, objectiveFunctionValue, wallTimeIter, wallTimeOptim);
 
     if(resultWriter)
-        resultWriter->logLocalOptimizerIteration(numIterations, parameters, numParameters, objectiveFunctionValue, objectiveFunctionGradient,
+        resultWriter->logLocalOptimizerIteration(numIterations, finalParameters,
+                                                 objectiveFunctionValue,
+                                                 cachedGradient, // This might be misleading, the gradient could evaluated at other parameters if there was a line search inbetween
                                                  wallTimeIter);
     ++numIterations;
 
     return false;
 }
 
-bool OptimizationReporter::beforeCostFunctionCall(int numParameters, const double * const parameters)
+bool OptimizationReporter::beforeCostFunctionCall(gsl::span<const double> parameters) const
 {
     ++numFunctionCalls;
     //timeCostEvaluationBegin = clock();
@@ -216,24 +266,55 @@ bool OptimizationReporter::beforeCostFunctionCall(int numParameters, const doubl
     return false;
 }
 
-bool OptimizationReporter::afterCostFunctionCall(int numParameters, const double * const parameters, double objectiveFunctionValue, const double * const objectiveFunctionGradient)
+bool OptimizationReporter::afterCostFunctionCall(gsl::span<const double> parameters,
+                                                 double objectiveFunctionValue,
+                                                 gsl::span<const double> objectiveFunctionGradient) const
 {
     //clock_t timeCostEvaluationEnd = clock();
 
     double wallTime = wallTimer.getTotal();//(double)(timeCostEvaluationEnd - timeCostEvaluationBegin) / CLOCKS_PER_SEC;
 
-    if(resultWriter)
-        resultWriter->logLocalOptimizerObjectiveFunctionEvaluation(parameters, numParameters, objectiveFunctionValue,
+    if(resultWriter) {
+        // TODO: problem.costfuj.getLastHiearchicalParameers lastFullParameterVector?
+        resultWriter->logLocalOptimizerObjectiveFunctionEvaluation(parameters, objectiveFunctionValue,
                                                                    objectiveFunctionGradient, numIterations, numFunctionCalls, wallTime);
+    }
     return false;
 }
 
-void OptimizationReporter::finished(double optimalCost, const double *optimalParameters, int exitStatus)
+void OptimizationReporter::finished(double optimalCost, gsl::span<const double> parameters, int exitStatus) const
 {
     double timeElapsed = wallTimer.getTotal();
 
+    if(cachedCost != optimalCost && parameters.size() == 0) {
+        // the optimal value is not from the cached parameters and we did not get
+        // the optimal parameters from the optimizer. since we don't know them, rather set to nan
+        cachedParameters.assign(cachedParameters.size(), NAN);
+    } else if(parameters.data()) {
+        std::copy(parameters.begin(), parameters.end(), cachedParameters.data());
+    }
+
+    cachedCost = optimalCost;
+
     if(resultWriter)
-        resultWriter->saveLocalOptimizerResults(optimalCost, optimalParameters,  numParameters, timeElapsed, exitStatus);
+        resultWriter->saveLocalOptimizerResults(optimalCost, parameters, timeElapsed, exitStatus);
+}
+
+double OptimizationReporter::getFinalCost() const
+{
+    return cachedCost;
+}
+
+std::vector<double> OptimizationReporter::getFinalParameters() const
+{
+    return cachedParameters;
+}
+
+void OptimizationReporter::setGradientFunction(GradientFunction *gradFun) const
+{
+    this->gradFun = gradFun;
+    numParameters_ = gradFun->numParameters();
+    cachedGradient.resize(numParameters_);
 }
 
 } // namespace parpe

@@ -18,11 +18,11 @@ class Model {
 public:
     virtual ~Model() = default;
 
-    virtual void evaluate(double const* parameters,
+    virtual void evaluate(gsl::span<const double> parameters,
                           std::vector<X> const& features,
                           std::vector<double>& outputs) const;
 
-    virtual void evaluate(double const* parameters,
+    virtual void evaluate(gsl::span<const double> parameters,
                           std::vector<X> const& features,
                           std::vector<double>& outputs, // here only one output per model!
                           std::vector<std::vector<double>>& outputGradients) const = 0;
@@ -49,7 +49,7 @@ public:
      * @param outputs
      * @param outputGradients
      */
-    void evaluate(double const* parameters,
+    void evaluate(gsl::span<const double> parameters,
                   std::vector<std::vector<double>> const& features,
                   std::vector<double>& outputs, // here only one output per model!
                   std::vector<std::vector<double>>& outputGradients) const override;
@@ -68,19 +68,19 @@ public:
 
     // SummedGradientFunction
     FunctionEvaluationStatus evaluate(
-            const double* const parameters,
+            gsl::span<const double> parameters,
             int dataset,
             double &fval,
-            double* gradient) const override {
+            gsl::span<double> gradient) const override {
         std::vector<int> dsets {dataset};
         return evaluate(parameters, dsets , fval, gradient);
     }
 
     FunctionEvaluationStatus evaluate(
-            const double* const parameters,
+            gsl::span<const double> parameters,
             std::vector<int> datasets,
             double &fval,
-            double* gradient) const override;
+            gsl::span<double> gradient) const override;
 
     int numParameters() const {return numParameters_;}
 

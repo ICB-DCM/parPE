@@ -11,19 +11,22 @@ namespace parpe {
  */
 
 class OptimizationReporterTest : public OptimizationReporter {
-    virtual bool starting(int numParameters, double const *const initialParameters);
+    using OptimizationReporter::OptimizationReporter;
 
-    virtual bool iterationFinished(int numParameters, double const *const parameters, double objectiveFunctionValue,
-                                   double const *const objectiveFunctionGradient);
+    virtual bool starting(gsl::span<const double> parameters) const override;
 
-    virtual bool beforeCostFunctionCall(int numParameters, double const *const parameters);
+    virtual bool iterationFinished(gsl::span<const double> parameters,
+                                   double objectiveFunctionValue,
+                                   gsl::span<const double> objectiveFunctionGradient) const override;
 
-    virtual bool afterCostFunctionCall(int numParameters, double const *const parameters,
+    virtual bool beforeCostFunctionCall(gsl::span<const double> parameters) const override;
+
+    virtual bool afterCostFunctionCall(gsl::span<const double> parameters,
                                        double objectiveFunctionValue,
-                                       double const *const objectiveFunctionGradient);
+                                       gsl::span<const double> objectiveFunctionGradient) const override;
 
     virtual void finished(double optimalCost,
-                          const double *optimalParameters, int exitStatus);
+                          gsl::span<const double> parameters, int exitStatus) const override;
 
     bool printDebug = false;
 };
@@ -49,9 +52,9 @@ class OptimizationReporterTest : public OptimizationReporter {
 class QuadraticGradientFunction : public GradientFunction {
 public:
     FunctionEvaluationStatus evaluate(
-            const double* const parameters,
+            gsl::span<const double> parameters,
             double &fval,
-            double* gradient) const override;
+            gsl::span<double> gradient) const override;
 
     int numParameters() const override;
 };
@@ -65,8 +68,8 @@ public:
 class QuadraticTestProblem : public OptimizationProblem {
 public:
     QuadraticTestProblem();
-    void fillParametersMin(double *buffer) const override;
-    void fillParametersMax(double *buffer) const override;
+    void fillParametersMin(gsl::span<double> buffer) const override;
+    void fillParametersMax(gsl::span<double> buffer) const override;
 
     std::unique_ptr<OptimizationReporter> getReporter() const override;
 };

@@ -91,10 +91,15 @@ public:
      * @param gradient
      * @return
      */
-    virtual FunctionEvaluationStatus evaluate(
-            const double* const parameters,
+    FunctionEvaluationStatus evaluate(
+            gsl::span<double const> parameters,
             double &fval,
-            double* gradient) const override;
+            gsl::span<double> gradient) const override;
+
+    FunctionEvaluationStatus evaluate(gsl::span<double const> reducedParameters,
+            double &fval,
+            gsl::span<double> gradient,
+            std::vector<double> &fullParameters, std::vector<double> &fullGradient) const;
 
     /**
      * @brief Get parameters for initial function evaluation
@@ -162,15 +167,12 @@ public:
      * @return
      */
 
-    virtual FunctionEvaluationStatus evaluateWithOptimalParameters(
-            const gsl::span<double const> reducedParameters,
-            const std::vector<double> &scalings,
-            const std::vector<double> &offsets,
+    virtual FunctionEvaluationStatus evaluateWithOptimalParameters(std::vector<double> const& fullParameters,
             const std::vector<double> &sigmas,
             const std::vector<std::vector<double> > &measurements,
             std::vector<std::vector<double> > &modelOutputsScaled,
             double &fval,
-            const gsl::span<double> gradient) const;
+            const gsl::span<double> gradient, std::vector<double> &fullGradient) const;
 
     /**
      * @brief Get number of parameters the function expects
@@ -354,24 +356,58 @@ public:
 
     virtual ~HierachicalOptimizationProblemWrapper();
 
-    virtual void fillInitialParameters(double *buffer) const override;
+    virtual void fillInitialParameters(gsl::span<double> buffer) const override;
 
-    virtual void fillParametersMin(double *buffer) const override;
+    virtual void fillParametersMin(gsl::span<double> buffer) const override;
 
-    virtual void fillParametersMax(double *buffer) const override;
+    virtual void fillParametersMax(gsl::span<double> buffer) const override;
 
-    void fillFilteredParams(std::vector<double> const& fullParams, double *buffer) const;
+    void fillFilteredParams(std::vector<double> const& fullParams, gsl::span<double> buffer) const;
 
     OptimizationOptions const& getOptimizationOptions() const override { return wrappedProblem->getOptimizationOptions(); }
     void setOptimizationOptions(OptimizationOptions const& options) override { wrappedProblem->setOptimizationOptions(options); }
 
     // TODO: need to ensure that this will work with the reduced number of parameters
-    virtual std::unique_ptr<OptimizationReporter> getReporter() const override { return wrappedProblem->getReporter(); }
+    virtual std::unique_ptr<OptimizationReporter> getReporter() const override;
 
 private:
     std::unique_ptr<OptimizationProblem> wrappedProblem;
 };
 
+
+/**
+ * @brief The HierarchicalOptimizationReporter class saves optimization parameters
+ * of the inner optimization problem on each function evaluation which would be
+ * hidden from the (outer) optimizer otherwise.
+ */
+class HierarchicalOptimizationReporter : public OptimizationReporter {
+public:
+    HierarchicalOptimizationReporter(HierachicalOptimizationWrapper *gradFun,
+                         std::unique_ptr<OptimizationResultWriter> rw);
+
+
+    FunctionEvaluationStatus evaluate(
+            gsl::span<const double> parameters, double &fval,
+            gsl::span<double> gradient) const override;
+
+    void finished(double optimalCost, gsl::span<const double> parameters, int exitStatus) const;
+
+    virtual bool iterationFinished(gsl::span<const double> parameters,
+                                   double objectiveFunctionValue,
+                                   gsl::span<const double> objectiveFunctionGradient) const;
+
+    HierachicalOptimizationWrapper *hierarchicalWrapper = nullptr;
+
+    /* In addition to the vectors for the outer optimization problem,
+     * we also keep the complete ones.
+     */
+    mutable std::vector<double> cachedFullParameters;
+    mutable std::vector<double> cachedFullGradient;
+    // TODO should override other functions as well
+    // TODO: in all functions, we need to check of the provided parameters or functio nvalues match
+    // To cached ones, if we want to provide all together to downstreams
+
+};
 
 /**
  * @brief Filter a vector using a list of exclude-indices. Write filter list to buffer.
@@ -381,7 +417,7 @@ private:
  */
 void fillFilteredParams(std::vector<double> const& valuesToFilter,
                         const std::vector<int> &sortedIndicesToExclude,
-                        double *result);
+                        gsl::span<double> result);
 
 double getDefaultScalingFactor(amici::AMICI_parameter_scaling scaling);
 
@@ -437,7 +473,7 @@ void applyOptimalOffset(int offsetIdx, double offsetLin,
  * @param scalingFactors
  * @return Full parameter vector for `fun`
  */
-std::vector<double> spliceParameters(const gsl::span<const double> reducedParameters,
+std::vector<double> spliceParameters(const gsl::span<double const> reducedParameters,
                                      const std::vector<int> &proportionalityFactorIndices,
                                      const std::vector<int> &offsetParameterIndices,
                                      const std::vector<int> &sigmaParameterIndices,

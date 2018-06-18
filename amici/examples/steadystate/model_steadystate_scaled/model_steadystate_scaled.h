@@ -32,7 +32,7 @@ extern void dydx_model_steadystate_scaled(double *dydx, const realtype t, const 
 extern void dydp_model_steadystate_scaled(double *dydp, const realtype t, const realtype *x, const realtype *p, const realtype *k, const realtype *h, const int ip);
 extern void dsigmaydp_model_steadystate_scaled(double *dsigmaydp, const realtype t, const realtype *p, const realtype *k, const int ip);
 extern void qBdot_model_steadystate_scaled(realtype *qBdot, const int ip, const realtype t, const realtype *x, const realtype *p, const realtype *k, const realtype *h, const realtype *xB, const realtype *w, const realtype *dwdp);
-extern void sigma_y_model_steadystate_scaled(double *sigmay, const realtype t, const realtype *p, const realtype *k);
+extern void sigmay_model_steadystate_scaled(double *sigmay, const realtype t, const realtype *p, const realtype *k);
 extern void sxdot_model_steadystate_scaled(realtype *sxdot, const realtype t, const realtype *x, const realtype *p, const realtype *k, const realtype *h, const int ip, const realtype *sx, const realtype *w, const realtype *dwdx, const realtype *J, const realtype *dxdotdp);
 extern void w_model_steadystate_scaled(realtype *w, const realtype t, const realtype *x, const realtype *p, const realtype *k, const realtype *h);
 extern void x0_model_steadystate_scaled(realtype *x0, const realtype t, const realtype *p, const realtype *k);
@@ -388,7 +388,7 @@ public:
      * @param k constant vector
      * @param ip sensitivity index
      **/
-    virtual void fdsigma_ydp(double *dsigmaydp, const realtype t, const realtype *p, const realtype *k, const int ip) override {
+    virtual void fdsigmaydp(double *dsigmaydp, const realtype t, const realtype *p, const realtype *k, const int ip) override {
         dsigmaydp_model_steadystate_scaled(dsigmaydp, t, p, k, ip);
 
     }
@@ -400,7 +400,7 @@ public:
      * @param k constant vector
      * @param ip sensitivity index
      **/
-    virtual void fdsigma_zdp(double *dsigmazdp, const realtype t, const realtype *p, const realtype *k, const int ip) override {
+    virtual void fdsigmazdp(double *dsigmazdp, const realtype t, const realtype *p, const realtype *k, const int ip) override {
     }
 
     /** model specific implementation of dwdp
@@ -539,8 +539,8 @@ public:
      * @param p parameter vector
      * @param k constant vector
      **/
-    virtual void fsigma_y(double *sigmay, const realtype t, const realtype *p, const realtype *k) override {
-        sigma_y_model_steadystate_scaled(sigmay, t, p, k);
+    virtual void fsigmay(double *sigmay, const realtype t, const realtype *p, const realtype *k) override {
+        sigmay_model_steadystate_scaled(sigmay, t, p, k);
     }
 
     /** model specific implementation of fsigmaz
@@ -549,7 +549,7 @@ public:
      * @param p parameter vector
      * @param k constant vector
      **/
-    virtual void fsigma_z(double *sigmaz, const realtype t, const realtype *p, const realtype *k) override {
+    virtual void fsigmaz(double *sigmaz, const realtype t, const realtype *p, const realtype *k) override {
     }
 
     /** model specific implementation of fsrz

@@ -38,7 +38,7 @@ class OptimizationReporter;
 class LocalOptimizationIpoptTNLP : public Ipopt::TNLP {
   public:
 
-    LocalOptimizationIpoptTNLP(OptimizationProblem *problem, double& finalCost, std::vector<double>& finalParameters);
+    LocalOptimizationIpoptTNLP(OptimizationProblem &problem, OptimizationReporter &reporter);
 
     virtual ~LocalOptimizationIpoptTNLP() = default;
 
@@ -80,26 +80,12 @@ class LocalOptimizationIpoptTNLP : public Ipopt::TNLP {
                                    const IpoptData *ip_data,
                                    IpoptCalculatedQuantities *ip_cq) override;
 private:
-    OptimizationProblem *problem = nullptr;
-
-    // for caching
-    bool haveCachedCost = false;
-    bool haveCachedGradient = false;
-    std::vector<Number> cachedGradient;
-    Number cachedCost = INFINITY;
-    int cachedErrors = 0;
-
-    // to restrict access to IpOpt routines
-    mutexIpOptType *mutexIpOpt = nullptr;
-
-    std::unique_ptr<OptimizationReporter> reporter;
-
-    double& finalCost;
-    // keeps the most recent parameters
-    std::vector<double>& finalParameters;
+    OptimizationProblem &problem;
+    OptimizationReporter &reporter;
 
     // need to store initial parameters, because IpOpt asks twice
     std::vector<double> initialParameters;
+
 };
 
 void setIpOptOption(const std::pair<const std::string, const std::string> &pair, SmartPtr<OptionsList>* o);

@@ -24,9 +24,15 @@ public:
 
     MultiConditionProblemResultWriter(MultiConditionProblemResultWriter const& other);
 
-    void logLocalOptimizerObjectiveFunctionEvaluation(
-            const double *parameters, int numParameters, double objectiveFunctionValue,
-            const double *objectiveFunctionGradient, int numIterations, int numFunctionCalls,
+    ~MultiConditionProblemResultWriter(){
+        if(file_id > 0) {
+            auto lock = hdf5MutexGetLock();
+            H5Fclose(file_id);
+        }
+    }
+
+    void logLocalOptimizerObjectiveFunctionEvaluation(gsl::span<const double> parameters, double objectiveFunctionValue,
+            gsl::span<const double> objectiveFunctionGradient, int numIterations, int numFunctionCalls,
             double timeElapsedInSeconds);
 
     std::string getIterationPath(int iterationIdx) const override;
@@ -40,9 +46,9 @@ public:
     void printObjectiveFunctionFailureMessage() const;
 
     void saveLocalOptimizerResults(double finalNegLogLikelihood,
-                                           const double *optimalParameters,
-                                           int numParameters, double masterTime,
-                                           int exitStatus) const override;
+                                   gsl::span<const double> optimalParameters,
+                                   double masterTime,
+                                   int exitStatus) const override;
 
 
 private:

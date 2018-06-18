@@ -23,21 +23,21 @@ ExampleSteadystateProblem::ExampleSteadystateProblem(const std::string &dataFile
     costFun = std::make_unique<ExampleSteadystateGradientFunction>(file.getId());
 }
 
-void ExampleSteadystateProblem::fillInitialParameters(double *buffer) const
+void ExampleSteadystateProblem::fillInitialParameters(gsl::span<double> buffer) const
 {
-    std::fill(buffer, buffer + costFun->numParameters(), 0.0);
+    std::fill(buffer.begin(), buffer.end(), 0.0);
 
 }
 
-void ExampleSteadystateProblem::fillParametersMin(double *buffer) const
+void ExampleSteadystateProblem::fillParametersMin(gsl::span<double> buffer) const
 {
-    std::fill(buffer, buffer + costFun->numParameters(), -5.0);
+    std::fill(buffer.begin(), buffer.end(), -5.0);
 
 }
 
-void ExampleSteadystateProblem::fillParametersMax(double *buffer) const
+void ExampleSteadystateProblem::fillParametersMax(gsl::span<double> buffer) const
 {
-    std::fill(buffer, buffer + costFun->numParameters(), 5.0);
+    std::fill(buffer.begin(), buffer.end(), 5.0);
 
 }
 
@@ -96,20 +96,20 @@ ExampleSteadystateGradientFunction::ExampleSteadystateGradientFunction(hid_t fil
     setupExpData(0);
 }
 
-parpe::FunctionEvaluationStatus ExampleSteadystateGradientFunction::evaluate(const double * const parameters, double &fval, double *gradient) const
+parpe::FunctionEvaluationStatus ExampleSteadystateGradientFunction::evaluate(gsl::span<const double> parameters, double &fval, gsl::span<double> gradient) const
 {
 
-    model->setParameters(std::vector<double>(parameters, parameters + numParameters()));
+    model->setParameters(std::vector<double>(parameters.begin(), parameters.end()));
 
     //    printArray(parameters, udata->np);printf("\n");
 
-    requireSensitivities(gradient);
+    requireSensitivities(gradient.size());
 
     auto rdata = amici::runAmiciSimulation(*solver, edata.get(), *model);
 
     fval = -rdata->llh;
 
-    if (gradient)
+    if (gradient.size())
         for (int i = 0; i < model->np(); ++i)
             gradient[i] = -rdata->sllh[i];
 

@@ -97,7 +97,7 @@ TEST(localOptimizationToms611, testReporterCalled) {
     problem.setOptimizationOptions(o);
 
     // iteration 0
-    mock().expectNCalls(2, "GradientFunction::numParameters");
+    mock().expectNCalls(3, "GradientFunction::numParameters");
     mock().expectOneCall("OptimizationReporterTest::starting");
     mock().expectNCalls(2, "OptimizationReporterTest::beforeCostFunctionCall");
     // one should be enough:

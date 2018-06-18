@@ -45,22 +45,26 @@ MultiConditionProblem::MultiConditionProblem(
 
 }
 
-void MultiConditionProblem::fillParametersMin(double *buffer) const
+void MultiConditionProblem::fillParametersMin(gsl::span<double> buffer) const
 {
-    std::copy(parametersMin.begin(), parametersMin.end(), buffer);
+    RELEASE_ASSERT(buffer.size() == parametersMin.size(), "");
+    std::copy(parametersMin.begin(), parametersMin.end(), buffer.begin());
 }
 
-void MultiConditionProblem::fillParametersMax(double *buffer) const
+void MultiConditionProblem::fillParametersMax(gsl::span<double> buffer) const
 {
-    std::copy(parametersMax.begin(), parametersMax.end(), buffer);
+    RELEASE_ASSERT(buffer.size() == parametersMax.size(), "");
+    std::copy(parametersMax.begin(), parametersMax.end(), buffer.begin());
 }
 
-void MultiConditionProblem::fillInitialParameters(double *buffer) const
+void MultiConditionProblem::fillInitialParameters(gsl::span<double> buffer) const
 {
-    if(startingPoint.size())
-        std::copy(startingPoint.begin(), startingPoint.end(), buffer);
-    else
+    if(startingPoint.size()) {
+        RELEASE_ASSERT(buffer.size() == startingPoint.size(), "");
+        std::copy(startingPoint.begin(), startingPoint.end(), buffer.begin());
+    } else {
         OptimizationProblem::fillInitialParameters(buffer);
+    }
 }
 
 
@@ -200,7 +204,7 @@ void MultiConditionProblem::setParametersMax(std::vector<double> upperBounds)
 std::unique_ptr<OptimizationReporter> MultiConditionProblem::getReporter() const
 {
 
-    return std::make_unique<OptimizationReporter>(
+    return std::make_unique<OptimizationReporter>(costFun.get(),
                 std::make_unique<MultiConditionProblemResultWriter>(*resultWriter));
 }
 
@@ -262,7 +266,10 @@ void printSimulationResult(const JobIdentifier &path, int jobId, amici::ReturnDa
 }
 
 
-void logSimulation(hid_t file_id, std::string pathStr, std::vector<double> const& theta, double llh, const double *gradient, double timeElapsedInSeconds, int nTheta, int numStates, double *states, double *stateSensi, int numY, double *y, int jobId, int iterationsUntilSteadystate, int status)
+void logSimulation(hid_t file_id, std::string pathStr, std::vector<double> const& parameters,
+                   double llh, gsl::span<double const> gradient, double timeElapsedInSeconds,
+                   gsl::span<double const> states, gsl::span<double const> stateSensi,
+                   gsl::span<double const> outputs, int jobId, int iterationsUntilSteadystate, int status)
 {
     // TODO replace by SimulationResultWriter
     const char *fullGroupPath = pathStr.c_str();
@@ -273,42 +280,42 @@ void logSimulation(hid_t file_id, std::string pathStr, std::vector<double> const
     hdf5CreateOrExtendAndWriteToInt2DArray(file_id, fullGroupPath, "jobId",
                                            &jobId, 1);
 
-    if (gradient) {
+    if (gradient.size()) {
         hdf5CreateOrExtendAndWriteToDouble2DArray(
-            file_id, fullGroupPath, "simulationLogLikelihoodGradient", gradient,
-            nTheta);
-    } else {
-        double dummyGradient[nTheta];
-        std::fill_n(dummyGradient, nTheta, NAN);
+            file_id, fullGroupPath, "simulationLogLikelihoodGradient", gradient.data(),
+            parameters.size());
+    } else if(parameters.size()) {
+        double dummyGradient[parameters.size()];
+        std::fill_n(dummyGradient, parameters.size(), NAN);
         hdf5CreateOrExtendAndWriteToDouble2DArray(
             file_id, fullGroupPath, "simulationLogLikelihoodGradient",
-            dummyGradient, nTheta);
+            dummyGradient, parameters.size());
     }
 
-    if (theta.size())
+    if (parameters.size())
         hdf5CreateOrExtendAndWriteToDouble2DArray(
-            file_id, fullGroupPath, "simulationParameters", theta.data(), theta.size());
+            file_id, fullGroupPath, "simulationParameters", parameters.data(), parameters.size());
 
     hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath,
                                               "simulationWallTimeInSec",
                                               &timeElapsedInSeconds, 1);
 
-    if (states)
+    if (states.size())
         hdf5CreateOrExtendAndWriteToDouble2DArray(
-            file_id, fullGroupPath, "simulationStates", states, numStates);
+            file_id, fullGroupPath, "simulationStates", states.data(), states.size());
 
-    if (y)
+    if (outputs.size())
         hdf5CreateOrExtendAndWriteToDouble2DArray(
-            file_id, fullGroupPath, "simulationObservables", y, numY);
+            file_id, fullGroupPath, "simulationObservables", outputs.data(), outputs.size());
 
     hdf5CreateOrExtendAndWriteToInt2DArray(file_id, fullGroupPath,
                                            "iterationsUntilSteadystate",
                                            &iterationsUntilSteadystate, 1);
 
-    if (stateSensi)
+    if (stateSensi.size())
         hdf5CreateOrExtendAndWriteToDouble3DArray(
-            file_id, fullGroupPath, "simulationStateSensitivities", stateSensi,
-            numStates, nTheta);
+            file_id, fullGroupPath, "simulationStateSensitivities", stateSensi.data(),
+            stateSensi.size() / parameters.size(), parameters.size());
 
     hdf5CreateOrExtendAndWriteToInt2DArray(file_id, fullGroupPath,
                                            "simulationStatus", &status, 1);
@@ -322,6 +329,7 @@ SimulationRunnerSimple::AmiciResultPackageSimple runAndLogSimulation(
         MultiConditionDataProvider *dataProvider, MultiConditionProblemResultWriter *resultWriter,
         bool logLineSearch)
 {
+    /* wall time  on worker for current simulation */
     double startTime = MPI_Wtime();
 
     // run simulation
@@ -348,13 +356,14 @@ SimulationRunnerSimple::AmiciResultPackageSimple runAndLogSimulation(
     if (resultWriter && (solver.getSensitivityOrder() > amici::AMICI_SENSI_ORDER_NONE || logLineSearch)) {
         int iterationsUntilSteadystate = -1;
         logSimulation(resultWriter->getFileId(), resultWriter->getOptimizationPath(),
-                      model.getParameters(), rdata->llh, rdata->sllh.data(),
-                      timeSeconds, model.np(), model.nx, rdata->x.data(),
-                      rdata->sx.data(), model.ny, rdata->y.data(), jobId,
-                      iterationsUntilSteadystate, rdata->status);
+                      model.getParameters(), rdata->llh, rdata->sllh,
+                      timeSeconds, rdata->x, rdata->sx, rdata->y,
+                      jobId, iterationsUntilSteadystate, rdata->status);
     }
+
     return SimulationRunnerSimple::AmiciResultPackageSimple {
         rdata->llh,
+                timeSeconds,
                 (solver.getSensitivityOrder() > amici::AMICI_SENSI_ORDER_NONE) ? rdata->sllh : std::vector<double>(),
                 rdata->y,
                 rdata->status

@@ -8,10 +8,10 @@
 namespace parpe {
 
 
-LocalOptimizationIpoptTNLP::LocalOptimizationIpoptTNLP(
-    OptimizationProblem *problem, double& finalCost, std::vector<double>& finalParameters)
-    : problem(problem), reporter(problem->getReporter()), finalCost(finalCost), finalParameters(finalParameters) {
-    cachedGradient.resize(problem->costFun->numParameters());
+LocalOptimizationIpoptTNLP::LocalOptimizationIpoptTNLP(OptimizationProblem &problem, OptimizationReporter &reporter)
+    : problem(problem), reporter(reporter)
+{
+
 }
 
 
@@ -20,7 +20,7 @@ bool LocalOptimizationIpoptTNLP::get_nlp_info(Index &n, Index &m,
                                               Index &nnz_h_lag,
                                               IndexStyleEnum &index_style) {
 
-    n = problem->costFun->numParameters();
+    n = reporter.numParameters();
     m = 0;                       // number of constrants
     nnz_jac_g = 0;               // numNonZeroElementsConstraintJacobian
     nnz_h_lag = 0;               // numNonZeroElementsLagrangianHessian
@@ -33,8 +33,8 @@ bool LocalOptimizationIpoptTNLP::get_bounds_info(Index n, Number *x_l,
                                                  Number *x_u, Index m,
                                                  Number *g_l, Number *g_u) {
     // parameter bounds
-    problem->fillParametersMin(x_l);
-    problem->fillParametersMax(x_u);
+    problem.fillParametersMin(gsl::make_span<double>(x_l, n));
+    problem.fillParametersMax(gsl::make_span<double>(x_u, n));
 
     // no constraints supported for now -> no constraint bounds
 
@@ -51,8 +51,8 @@ bool LocalOptimizationIpoptTNLP::get_starting_point(Index n, bool init_x,
     if (init_x) {
         if(initialParameters.size() == 0) {
             initialParameters.resize(n);
-            problem->fillInitialParameters(initialParameters.data());
-            if(reporter && reporter->starting(n, initialParameters.data()))
+            problem.fillInitialParameters(initialParameters);
+            if(reporter.starting(initialParameters))
                 return false;
         }
         std::copy(initialParameters.begin(), initialParameters.end(), x);
@@ -68,63 +68,13 @@ bool LocalOptimizationIpoptTNLP::eval_f(Index n, const Number *x, bool new_x,
                                         Number &obj_value) {
     auto unlockIpOpt = ipOptReleaseLock();
 
-    // update cached parameters
-    finalParameters.resize(n);
-    std::copy(x, x + n, finalParameters.begin());
-
-    int errors = 0;
-    if(reporter && reporter->beforeCostFunctionCall(n, x) != 0)
-        return true;
-
-    if (new_x || !haveCachedCost) {
-        // Have to compute anew
-        errors = problem->costFun->evaluate(x, obj_value, nullptr);
-        cachedErrors = errors;
-        cachedCost = obj_value;
-        haveCachedCost = true;
-        haveCachedGradient = false;
-    } else {
-        // recycle old result
-        errors = cachedErrors;
-        obj_value = cachedCost;
-    }
-
-    if(reporter && reporter->afterCostFunctionCall(n, x, cachedCost, nullptr))
-        return true;
-
-    return errors == 0;
+    return reporter.evaluate(gsl::make_span<double const>(x, n), obj_value, gsl::span<double>()) == functionEvaluationSuccess;
 }
 
 bool LocalOptimizationIpoptTNLP::eval_grad_f(Index n, const Number *x,
                                              bool new_x, Number *grad_f) {
-    auto unlockIpOpt = ipOptReleaseLock();
-
-    // update cached parameters
-    finalParameters.resize(n);
-    std::copy(x, x + n, finalParameters.begin());
-
-    if(reporter && reporter->beforeCostFunctionCall(n, x) != 0)
-        return true;
-
-    int errors = 0;
-
-    if (new_x || !haveCachedGradient) {
-        // Have to compute anew
-        errors = problem->costFun->evaluate(x, cachedCost, grad_f);
-        std::copy(grad_f, grad_f + n, cachedGradient.begin());
-        cachedErrors = errors;
-        haveCachedCost = true;
-        haveCachedGradient = true;
-    } else {
-        // recycle old result
-        std::copy(cachedGradient.begin(), cachedGradient.end(), grad_f);
-        errors = cachedErrors;
-    }
-
-    if(reporter)
-        return (errors == 0) && !reporter->afterCostFunctionCall(n, x, cachedCost, cachedGradient.data());
-
-    return errors == 0;
+    double obj_value;
+    return reporter.evaluate(gsl::make_span<double const>(x, n), obj_value, gsl::make_span<double>(grad_f, n)) == functionEvaluationSuccess;
 }
 
 bool LocalOptimizationIpoptTNLP::eval_g(Index n, const Number *x, bool new_x,
@@ -140,13 +90,6 @@ bool LocalOptimizationIpoptTNLP::eval_jac_g(Index n, const Number *x,
                                             Index *iRow, Index *jCol,
                                             Number *values) {
     // no constraints, nothing to do here, but will be called once
-
-    if (new_x) {
-        // because next function will be called with
-        // new_x==false, but we didn't prepare anything
-        haveCachedCost = false;
-        haveCachedGradient = false;
-    }
     return true;
 }
 
@@ -159,10 +102,8 @@ bool LocalOptimizationIpoptTNLP::intermediate_callback(
     auto unlockIpOpt = ipOptReleaseLock();
 
     // better: find x in ip_data->curr()->x();
-    int status = reporter->iterationFinished(problem->costFun->numParameters(),
-                                             finalParameters.data(),
-                                             obj_value,
-                                             haveCachedGradient?cachedGradient.data():nullptr);
+    // is always the last step accepted?
+    int status = reporter.iterationFinished(gsl::span<double const>(), obj_value, gsl::span<double>());
 
 #ifdef INSTALL_SIGNAL_HANDLER
     if (caughtTerminationSignal) {
@@ -182,11 +123,7 @@ void LocalOptimizationIpoptTNLP::finalize_solution(
 
     auto unlockIpOpt = ipOptReleaseLock();
 
-    finalCost = obj_value;
-    finalParameters.resize(n);
-    std::copy(x, x + n, finalParameters.begin());
-
-    reporter->finished(obj_value, x, status);
+    reporter.finished(obj_value, gsl::span<double const>(x,n), status);
 }
 
 
