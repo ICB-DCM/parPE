@@ -209,13 +209,12 @@ public:
 
 
     /**
-     * @brief Callback function for loadbalancer
+     * @brief Callback function for LoadBalancer
      * @param buffer In/out: message buffer
-     * @param msgSize In/out: size (bytes) of bufferobjFunVal
      * @param jobId: In: Identifier of the job (unique up to INT_MAX)
      */
     virtual void messageHandler(std::vector<char> &buffer, int jobId) const {
-        // unpack
+        // unpack simulation job data
         JobIdentifier path;
         auto solver = dataProvider->getSolver();
         auto model = dataProvider->getModel();
@@ -230,20 +229,20 @@ public:
 #endif
 
         std::map<int, SimulationRunnerSimple::AmiciResultPackageSimple> results;
-        // do work
+        // run simulations for all condition indices
         for(auto conditionIndex: sim.conditionIndices) {
             solver->setSensitivityOrder(sim.sensitivityOrder);
             path.idxConditions = conditionIndex;
             dataProvider->updateSimulationParameters(conditionIndex, sim.optimizationParameters, *model);
-            // TODO do parameter mapping
-            SimulationRunnerSimple::AmiciResultPackageSimple result = runAndLogSimulation(*solver, *model, path, jobId);
+            auto result = runAndLogSimulation(*solver, *model, path, jobId);
             results[conditionIndex] = result;
         }
+
 #if QUEUE_WORKER_H_VERBOSE >= 2
         printf("[%d] Work done. ", mpiRank);
         fflush(stdout);
 #endif
-
+        // serialize to output buffer
         buffer = amici::serializeToStdVec(results);
     }
 
