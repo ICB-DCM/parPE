@@ -122,8 +122,8 @@ void optimizationProblemGradientCheck(OptimizationProblem *problem,
         if(fabs(regRelError) > 0.1)
             ll = LOGLVL_ERROR;
 
-        logmessage(ll, "%5d g: %12.6g  fd_c: %12.6g  Δ/fd_c: %.6e",
-               curInd, curGrad, fd_c, regRelError);
+        logmessage(ll, "%5d g: %12.6g  fd_c: %12.6g  Δ/fd_c: %.6e  f: %12.6g",
+               curInd, curGrad, fd_c, regRelError, fc);
 
     }
 }
