@@ -1,5 +1,5 @@
-#ifndef PROBLEM_H
-#define PROBLEM_H
+#ifndef PARPE_AMICI_MULTI_CONDITION_PROBLEM_H
+#define PARPE_AMICI_MULTI_CONDITION_PROBLEM_H
 
 #include "MultiConditionDataProvider.h"
 #include <simulationWorkerAmici.h>
@@ -27,18 +27,24 @@ class MultiConditionDataProvider;
 class MultiConditionProblemResultWriter;
 
 SimulationRunnerSimple::AmiciResultPackageSimple  runAndLogSimulation(
-        amici::Solver &solver, amici::Model &model, JobIdentifier path,
-        int jobId, MultiConditionDataProvider *dataProvider, MultiConditionProblemResultWriter *resultWriter,
+        amici::Solver &solver,
+        amici::Model &model,
+        JobIdentifier path,
+        int jobId,
+        MultiConditionDataProvider *dataProvider,
+        MultiConditionProblemResultWriter *resultWriter,
         bool logLineSearch);
 
+
 /**
- * @brief The AmiciSummedGradientFunction class represents a cost function based on simulations of an AMICI model for different datasets
+ * @brief The AmiciSummedGradientFunction class represents a cost function
+ * based on simulations of an AMICI model for different datasets
  */
 
 template <typename T>
 class AmiciSummedGradientFunction : public SummedGradientFunction<T> {
-public:
 
+public:
     AmiciSummedGradientFunction(MultiConditionDataProvider *dataProvider,
                                 LoadBalancerMaster *loadBalancer,
                                 MultiConditionProblemResultWriter *resultWriter = nullptr)
@@ -199,7 +205,6 @@ public:
             int jobId) const
     {
         return parpe::runAndLogSimulation(solver, model, path, jobId, dataProvider, resultWriter, logLineSearch);
-
     }
 
 
@@ -428,50 +433,15 @@ class MultiConditionProblem : public OptimizationProblem {
 
     ~MultiConditionProblem() = default;
 
-
-    /**
-     * @brief This function is called after each iteration.
-     * @return status code, non-zero to abort optimization
-     */
-//    virtual int intermediateFunction(int alg_mod, int iter_count,
-//                                     double obj_value, double inf_pr,
-//                                     double inf_du, double mu, double d_norm,
-//                                     double regularization_size,
-//                                     double alpha_du, double alpha_pr,
-//                                     int ls_trials) override;
-
-    /**
-     * @brief Called after each cost function evaluation for logging results.
-     * @param parameters
-     * @param objectiveFunctionValue
-     * @param objectiveFunctionGradient
-     * @param numFunctionCalls
-     * @param timeElapsed
-     */
-//    virtual void logObjectiveFunctionEvaluation(
-//        const double *parameters, double objectiveFunctionValue,
-//        const double *objectiveFunctionGradient, int numFunctionCalls,
-//        double timeElapsed) override;
-
-    /**
-     * @brief Called at the end of an optimization for logging results
-     * @param optimalCost
-     * @param optimalParameters
-     * @param masterTime
-     * @param exitStatus
-     */
-//    virtual void logOptimizerFinished(double optimalCost,
-//                                      const double *optimalParameters,
-//                                      double masterTime,
-//                                      int exitStatus) override;
-
     /**
      * @brief earlyStopping
      * @return stop the optimization run
      */
     virtual int earlyStopping();
+
     MultiConditionDataProvider *getDataProvider();
-//    virtual std::unique_ptr<double[]> getInitialParameters(int multiStartIndex) const override;
+
+    //    virtual std::unique_ptr<double[]> getInitialParameters(int multiStartIndex) const override;
 
     JobIdentifier path;
 
@@ -488,21 +458,7 @@ class MultiConditionProblem : public OptimizationProblem {
     std::unique_ptr<OptimizationReporter> getReporter() const;
 
   protected:
-
-
-    /**
-     * @brief Keep information from last evaluation to avoid recomputation for
-     * same parameters
-     * @param optimizationParameters
-     * @param objectiveFunctionValue
-     * @param objectiveFunctionGradient
-     */
-    void
-    storeCurrentFunctionEvaluation(const double *optimizationParameters,
-                                   double objectiveFunctionValue,
-                                   const double *objectiveFunctionGradient);
-    //TODO
-    std::unique_ptr<OptimizationProblem> validationProblem;
+    //TODO std::unique_ptr<OptimizationProblem> validationProblem;
 
     MultiConditionDataProvider *dataProvider = nullptr;
 
@@ -510,7 +466,6 @@ private:
     std::vector<double> startingPoint;
     std::vector<double> parametersMin;
     std::vector<double> parametersMax;
-
 };
 
 

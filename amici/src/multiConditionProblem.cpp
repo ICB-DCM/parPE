@@ -329,6 +329,7 @@ SimulationRunnerSimple::AmiciResultPackageSimple runAndLogSimulation(
         MultiConditionDataProvider *dataProvider, MultiConditionProblemResultWriter *resultWriter,
         bool logLineSearch)
 {
+    /* wall time  on worker for current simulation */
     double startTime = MPI_Wtime();
 
     // run simulation
@@ -359,8 +360,10 @@ SimulationRunnerSimple::AmiciResultPackageSimple runAndLogSimulation(
                       timeSeconds, rdata->x, rdata->sx, rdata->y,
                       jobId, iterationsUntilSteadystate, rdata->status);
     }
+
     return SimulationRunnerSimple::AmiciResultPackageSimple {
         rdata->llh,
+                timeSeconds,
                 (solver.getSensitivityOrder() > amici::AMICI_SENSI_ORDER_NONE) ? rdata->sllh : std::vector<double>(),
                 rdata->y,
                 rdata->status

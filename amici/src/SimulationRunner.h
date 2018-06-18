@@ -88,6 +88,7 @@ class SimulationRunnerSimple {
     struct AmiciResultPackageSimple {
         AmiciResultPackageSimple() = default;
         double llh;
+        double simulationTimeSeconds;
         std::vector<double> gradient;
         std::vector<double> modelOutput;
         int status;
