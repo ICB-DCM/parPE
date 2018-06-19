@@ -27,7 +27,7 @@ TEST_GROUP(testingMisc){
 // clang-format on
 
 TEST(testingMisc, testTenToMinusInf) {
-    CHECK_EQUAL(0.0, pow10(-INFINITY));
+    CHECK_EQUAL(0.0, pow(10, -INFINITY));
 }
 
 
