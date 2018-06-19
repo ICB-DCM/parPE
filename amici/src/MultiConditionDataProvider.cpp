@@ -42,7 +42,7 @@ MultiConditionDataProviderHDF5::MultiConditionDataProviderHDF5(std::unique_ptr<a
     hdf5ParameterPath = rootPath + "/parameters";
     hdf5ParameterMinPath = hdf5ParameterPath + "/lowerBound";
     hdf5ParameterMaxPath = hdf5ParameterPath + "/upperBound";
-    hdf5ParameterScalingPath = hdf5AmiciOptionPath + "/pscale";
+    hdf5ParameterScalingPath = hdf5ParameterPath + "/pscale";
     hdf5SimulationToOptimizationParameterMappingPath = rootPath + "/parameters/optimizationSimulationMapping";
     amici::hdf5::readModelDataFromHDF5(fileId, *this->model, hdf5AmiciOptionPath.c_str());
 }
@@ -102,7 +102,7 @@ void MultiConditionDataProviderHDF5::mapSimulationToOptimizationVariablesAddMult
     auto mapping = getSimulationToOptimizationParameterMapping(conditionIdx);
 
     for(int i = 0; i < model->np(); ++i) {
-        optimization[mapping[i]] = coefficient * simulation[i];
+        optimization[mapping[i]] += coefficient * simulation[i];
     }
 }
 

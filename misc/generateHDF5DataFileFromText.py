@@ -794,11 +794,15 @@ class HDF5DataGenerator:
 
         # set pscale based on whether is scaling parameter 
         #(log10 for non-hierarchical, lin for hierarchical)
-        #linParametersAmiciIndices = self.getAnalyticallyComputedSimulationParameterIndices()
-        #self.f.require_dataset('/amiciOptions/pscale', 
-        #                       shape=(numParameters,), dtype="<i4", data=[2 * (ip not in linParametersAmiciIndices) for ip in range(numParameters) ])
+        # for AMICI model parameters
         self.f.require_dataset('/amiciOptions/pscale', 
                                shape=(numParameters,), dtype="<i4", data=np.full(numParameters, 2.0))
+        # for all parameters for hierarchical optimization
+        linParametersAmiciIndices = [] #self.getAnalyticallyComputedSimulationParameterIndices()
+        numOptimizationParameters = self.f['/parameters/parameterNames'].shape[0]
+        self.f.require_dataset('/parameters/pscale', 
+                               shape=(numOptimizationParameters,), dtype="<i4", data=[2 * (ip not in linParametersAmiciIndices) for ip in range(numOptimizationParameters) ])
+
                 
     def getAnalyticallyComputedSimulationParameterIndices(self):
         """
