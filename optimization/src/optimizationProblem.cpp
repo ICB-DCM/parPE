@@ -249,10 +249,12 @@ bool OptimizationReporter::iterationFinished(gsl::span<const double> finalParame
     logmessage(LOGLVL_INFO, "iter: %d cost: %g time_iter: %gs time_optim: %gs", numIterations, objectiveFunctionValue, wallTimeIter, wallTimeOptim);
 
     if(resultWriter)
-        resultWriter->logLocalOptimizerIteration(numIterations, finalParameters,
-                                                 objectiveFunctionValue,
-                                                 cachedGradient, // This might be misleading, the gradient could evaluated at other parameters if there was a line search inbetween
-                                                 wallTimeIter);
+        resultWriter->logLocalOptimizerIteration(
+                    numIterations,
+                    finalParameters.size() ? finalParameters : cachedParameters,
+                    objectiveFunctionValue,
+                    objectiveFunctionGradient.size() ? objectiveFunctionGradient : cachedGradient, // This might be misleading, the gradient could evaluated at other parameters if there was a line search inbetween
+                    wallTimeIter);
     ++numIterations;
 
     return false;
