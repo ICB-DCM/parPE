@@ -6,11 +6,11 @@ set -e
 
 # Build amici
 AMICI_DIR=$PARPE_ROOT/deps/AMICI/
-#cd $AMICI_DIR
-#scripts/buildAll.sh
+cd $AMICI_DIR
+scripts/buildAll.sh
 
 # build cpputest without memory leak detector
-#$PARPE_ROOT/ThirdParty/installCpputest.sh
+$PARPE_ROOT/ThirdParty/installCpputest.sh
 
 # build parpe
 mkdir -p $PARPE_ROOT/build
