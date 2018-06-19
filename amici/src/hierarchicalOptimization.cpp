@@ -89,12 +89,14 @@ void HierachicalOptimizationWrapper::init() {
     RELEASE_ASSERT(std::is_sorted(this->sigmaParameterIndices.begin(),
                                   this->sigmaParameterIndices.end()), "");
 
-    std::cout<<"HierachicalOptimizationWrapper parameters: "
-            <<fun->numParameters()<<" total, "
-           <<numParameters()<< " numerical, "
-          <<proportionalityFactorIndices.size()<<" proportionality, "
-         <<offsetParameterIndices.size()<<" offset, "
-        <<sigmaParameterIndices.size()<<" sigma\n";
+    if(fun) {
+        std::cout<<"HierachicalOptimizationWrapper parameters: "
+                <<fun->numParameters()<<" total, "
+               <<numParameters()<< " numerical, "
+              <<proportionalityFactorIndices.size()<<" proportionality, "
+             <<offsetParameterIndices.size()<<" offset, "
+            <<sigmaParameterIndices.size()<<" sigma\n";
+    }
 }
 
 
