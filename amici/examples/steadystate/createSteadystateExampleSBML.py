@@ -142,15 +142,15 @@ def create_model():
         p = create_parameter(model, observable, True, 1.0, '')
         rule = create_assigment_rule(model, observable, 'x%d' % i)
     
-    p = create_parameter(model, 'scaling_x1', True, 1.0, '')
+    p = create_parameter(model, 'scaling_x1', True, 2.0, '')
     p = create_parameter(model, 'observable_x1_scaled', True, 1.0, '')
     rule = create_assigment_rule(model, 'observable_x1_scaled', 'scaling_x1 * x1')
         
-    p = create_parameter(model, 'offset_x2', True, 1.0, '')
+    p = create_parameter(model, 'offset_x2', True, 3.0, '')
     p = create_parameter(model, 'observable_x2_offsetted', True, 1.0, '')
     rule = create_assigment_rule(model, 'observable_x2_offsetted', 'offset_x2 + x2')
     
-    p = create_parameter(model, 'observable_x1withsigma_sigma', True, 1.0, '')
+    p = create_parameter(model, 'observable_x1withsigma_sigma', True, 0.2, '')
     p = create_parameter(model, 'observable_x1withsigma', True, 1.0, '')
     rule = create_assigment_rule(model, 'observable_x1withsigma', 'x1')
   

@@ -65,7 +65,7 @@ public:
               3, // ubw
               3, // lbw
               amici::AMICI_O2MODE_NONE, // o2mode
-              std::vector<realtype>{1.0, 0.5, 0.4, 2.0, 0.1, 1.0, 1.0, 1.0}, // dynamic parameters
+              std::vector<realtype>{1.0, 0.5, 0.4, 2.0, 0.1, 2.0, 3.0, 0.2}, // dynamic parameters
               std::vector<realtype>{1.0}, // fixedParameters
               std::vector<int>{}, // plist
               std::vector<realtype>(3,0.0), // idlist

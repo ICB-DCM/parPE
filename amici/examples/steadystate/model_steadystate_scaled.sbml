@@ -38,11 +38,11 @@
       <parameter id="observable_x1" value="1" constant="true"/>
       <parameter id="observable_x2" value="1" constant="true"/>
       <parameter id="observable_x3" value="1" constant="true"/>
-      <parameter id="scaling_x1" value="1" constant="true"/>
+      <parameter id="scaling_x1" value="2" constant="true"/>
       <parameter id="observable_x1_scaled" value="1" constant="true"/>
-      <parameter id="offset_x2" value="1" constant="true"/>
+      <parameter id="offset_x2" value="3" constant="true"/>
       <parameter id="observable_x2_offsetted" value="1" constant="true"/>
-      <parameter id="observable_x1withsigma_sigma" value="1" constant="true"/>
+      <parameter id="observable_x1withsigma_sigma" value="0.2" constant="true"/>
       <parameter id="observable_x1withsigma" value="1" constant="true"/>
     </listOfParameters>
     <listOfRules>
