@@ -167,7 +167,7 @@ int StandaloneSimulator::run(const std::string& resultFile,
         errors += simRunner.runSharedMemory(
                     [&](std::vector<char> &buffer, int jobId) {
                 messageHandler(buffer, jobId);
-    }, true);
+    });
     }
 
     return errors;
