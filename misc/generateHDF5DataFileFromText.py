@@ -859,6 +859,18 @@ class HDF5DataGenerator:
         g.attrs["acceptable_tol"] = 1e20 # set ridiculously high, so only the acceptable_* options below matter
         g.attrs["acceptable_obj_change_tol"] = 1e-18
         g.attrs["watchdog_shortened_iter_trigger"] = 0;
+
+
+        # set fmincon options
+        g = self.f.require_group('optimizationOptions/fmincon')
+        g.attrs['MaxIter'] = 100
+        g.attrs["TolX"] = 1e-8
+        g.attrs["TolFun"] = 0
+        g.attrs["MaxFunEvals"] = 1e7
+        g.attrs["algorithm"] = np.string_("interior-point")
+        g.attrs["GradObj"] = np.string_("on")
+        g.attrs["display"] = np.string_("iter")
+
                 
         # set CERES options
         g = self.f.require_group('optimizationOptions/ceres')
