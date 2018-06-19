@@ -37,14 +37,14 @@ MultiConditionDataProviderHDF5::MultiConditionDataProviderHDF5(std::unique_ptr<a
     hdf5MeasurementPath = rootPath + "/measurements/y";
     hdf5MeasurementSigmaPath = rootPath + "/measurements/ysigma";
     hdf5ConditionPath = rootPath + "/fixedParameters/k";
-    hdf5ReferenceConditionPath = "/fixedParameters/referenceConditions";
+    hdf5ReferenceConditionPath = rootPath + "/fixedParameters/referenceConditions";
     hdf5AmiciOptionPath = rootPath + "/amiciOptions";
     hdf5ParameterPath = rootPath + "/parameters";
     hdf5ParameterMinPath = hdf5ParameterPath + "/lowerBound";
     hdf5ParameterMaxPath = hdf5ParameterPath + "/upperBound";
     hdf5ParameterScalingPath = hdf5ParameterPath + "/pscale";
     hdf5SimulationToOptimizationParameterMappingPath = rootPath + "/parameters/optimizationSimulationMapping";
-    amici::hdf5::readModelDataFromHDF5(fileId, *this->model, hdf5AmiciOptionPath.c_str());
+    amici::hdf5::readModelDataFromHDF5(fileId, *this->model, hdf5AmiciOptionPath);
 }
 
 void MultiConditionDataProviderHDF5::openHdf5File(std::string hdf5Filename)
@@ -88,7 +88,7 @@ int MultiConditionDataProviderHDF5::getNumberOfConditions() const {
 
 std::vector<int> MultiConditionDataProviderHDF5::getSimulationToOptimizationParameterMapping(int conditionIdx) const  {
     std::string path = hdf5SimulationToOptimizationParameterMappingPath;
-    if(hdf5DatasetExists(fileId, path.c_str())) {
+    if(hdf5DatasetExists(fileId, path)) {
         return hdf5Read2DIntegerHyperslab(file, path, model->np(), 1, 0, conditionIdx);
     } else {
         std::vector<int> defaultMap(model->np());
