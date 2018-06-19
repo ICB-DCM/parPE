@@ -43,6 +43,12 @@ int StandaloneSimulator::run(const std::string& resultFile,
     HierachicalOptimizationWrapper hierarchical(nullptr, 0, 0, 0);
 
     auto options = OptimizationOptions::fromHDF5(file.getId(), "/inputData/optimizationOptions");
+    /* if hierarchical optimization is selected and the analytical parameters have not been saved,
+     * we need to recompute them. otherwise we don't need to distinguish
+     */
+    if(parameters.size() == (unsigned)dataProvider->getNumOptimizationParameters())
+        options->hierarchicalOptimization  = false;
+
     if(options->hierarchicalOptimization) {
         // TODO: get rid of that. we want fun.evaluate(), independently of hierarchical or not
         auto hierarchicalScalingReader = new AnalyticalParameterHdf5Reader (file,
@@ -161,7 +167,7 @@ int StandaloneSimulator::run(const std::string& resultFile,
         errors += simRunner.runSharedMemory(
                     [&](std::vector<char> &buffer, int jobId) {
                 messageHandler(buffer, jobId);
-    });
+    }, true);
     }
 
     return errors;
