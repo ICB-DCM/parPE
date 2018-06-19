@@ -579,7 +579,7 @@ HDF5Exception::HDF5Exception(const char *format, ...) {
 
 bool hdf5DatasetExists(hid_t file_id, const std::string &datasetName)
 {
-    hdf5DatasetExists(file_id, datasetName.c_str());
+    return hdf5DatasetExists(file_id, datasetName.c_str());
 }
 
 } // namespace parpe
