@@ -61,8 +61,6 @@ set(USE_MPI ON)
 if(${USE_MPI})
     find_package(MPI REQUIRED)
     add_definitions(-DUSE_MPI)
-    # TODO get from findpackage or compiler
-    set(MPI_INCLUDE_DIR "/usr/lib/openmpi/include/" CACHE PATH "MPI include directory")
 endif(${USE_MPI})
 # </Build options>
 
