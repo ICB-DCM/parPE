@@ -21,7 +21,7 @@ CC=mpicc CXX=mpiCC cmake \
       -DCERES_INCLUDE_DIRS="${PARPE_ROOT}/ThirdParty/ceres-solver-1.13.0/build/install/include/;${PARPE_ROOT}/ThirdParty/ceres-solver-1.13.0/build/install/include/ceres/internal/miniglog/;${PARPE_ROOT}/ThirdParty/eigen-eigen-67e894c6cd8f/build/install/include/eigen3/" \
       -DMPI_INCLUDE_DIR=/usr/include/openmpi-x86_64/ \
       -DMPI_LIBRARY=/usr/lib64/openmpi/lib/libmpi_cxx.so \
-      -DCppUTest_DIR=${PARPE_ROOT}/deps/AMICI/ThirdParty/cpputest-master/build-noleakcheck/install/ \
+      -DCppUTest_DIR=${PARPE_ROOT}/deps/AMICI/ThirdParty/cpputest-master/build-noleakcheck/ \
       -DENABLE_SWIG=FALSE \
       $PARPE_ROOT
 make -j12
