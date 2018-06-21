@@ -592,23 +592,36 @@ class HDF5DataGenerator:
 
     def ensureNonOverlappingParameterForHierarchicalOptimization(self):
         """
-        Current parPE implementation of hierarchical optimization assumes that only one single parameter 
-        (sigma, offset or proportionality) is to be calculated per observable. Will fail silently if there are more, 
-        thus we need to check here.
+        Current parPE implementation of hierarchical optimization assumes that only one single  
+        offset or proportionality parameter is to be calculated per condition x observable. 
+        Will fail silently if there are more, thus we need to check here.
+        Also check that there is at most one sigma per condition x observable
         """
         
-        map = {}
+        map = {} # observable => condition => parameter-for-hierarchical 
         for index, row in self.measurementDf.iterrows():
             scalings = self.splitScalingParameterNames(row['scalingParameter'])
             if not len(scalings):
                 continue
-            if len(scalings) > 1:
-                print("Warning: multiple scaling parameters found for\n\t%s\n\twhich one to choose for hierarchical optimization? Assuming first" % row)
-                map[row['observable']] = scalings[0]
-                #genericScaling = self.getGenericScalingParameterName(scalings[0])         
-            if row['observable'] in map and map[row['observable']] != scaling:
-                raise RuntimeError("Warning: multiple scaling parameters found for\n\t%s\n\twhich one to choose for hierarchical optimization? previously found %s" % (row, map[row['observable']]))
             
+            nonSigmas = [x for x in scalings if not self.getGenericScalingParameterName(x).endswith("_sigma")]
+            sigmas = [x for x in scalings if self.getGenericScalingParameterName(x).endswith("_sigma")]
+            
+            if len(sigmas) > 1:
+                raise RuntimeError('ERROR: Multiple sigma parameters provided for\n%s\n' % row)
+                
+            if len(nonSigmas) > 1:
+                print("Warning: multiple scaling parameters found for\n\t%s\n\twhich one to choose for hierarchical optimization? Assuming first" % row)
+            
+            if not len(nonSigmas):
+                continue
+            
+            if row['observable'] in map:
+                if row['condition'] in row['observable'] and map[row['observable']][row['condition']] != nonSigmas[0]:
+                    raise RuntimeError("ERROR: multiple scaling parameters found for\n\t%s\n\twhich one to choose for hierarchical optimization? previously found %s" % (row, map[row['observable']]))
+            else:
+                map[row['observable']] = {}
+            map[row['observable']][row['condition']] = nonSigmas[0]
 
     
     def handleOffsetParameter(self):
