@@ -952,13 +952,19 @@ bool HierarchicalOptimizationReporter::iterationFinished(gsl::span<const double>
     logmessage(LOGLVL_INFO, "iter: %d cost: %g time_iter: %gs time_optim: %gs", numIterations, objectiveFunctionValue, wallTimeIter, wallTimeOptim);
 
     if(resultWriter) {
+        /* check if the optimizer-reported cost matches the last function evaluation.
+         * if so, we can log our cached parameter and gradient, otherwise we need to rely on what
+         * the optimizer provided us. if no parameters are provided, we will still save the cached
+         * one, even if the cost does not match, since this is the best parameter guess we have.
+         */
         if(objectiveFunctionValue == cachedCost
-                && (parameters.size() == 0 || std::equal(parameters.begin(), parameters.end(), cachedParameters.begin()))) {
+                && (parameters.size() == 0
+                    || std::equal(parameters.begin(), parameters.end(), cachedParameters.begin()))) {
             resultWriter->logLocalOptimizerIteration(numIterations, cachedFullParameters,
                                                      objectiveFunctionValue,
                                                      cachedFullGradient, // This might be misleading, the gradient could evaluated at other parameters if there was a line search inbetween
                                                      wallTimeIter);
-        } else if (parameters.size()) {
+        } else {
             resultWriter->logLocalOptimizerIteration(numIterations, parameters,
                                                      objectiveFunctionValue,
                                                      objectiveFunctionGradient, // This might be misleading, the gradient could evaluated at other parameters if there was a line search inbetween
