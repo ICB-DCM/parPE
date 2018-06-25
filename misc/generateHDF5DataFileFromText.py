@@ -429,7 +429,7 @@ class HDF5DataGenerator:
             
             referenceMap[conditionIdx] = conditionIdxRef
             
-        dset = self.f.create_dataset("/fixedParameters/referenceConditions", shape=(self.numConditions,), dtype="<i4", data=referenceMap)
+        dset = self.f.create_dataset("/fixedParameters/referenceConditionsX", shape=(self.numConditions,), dtype="<i4", data=referenceMap)
 
     def writeStringArray(self, path, strings):
         """
@@ -805,17 +805,20 @@ class HDF5DataGenerator:
 
         self.f.require_dataset('/amiciOptions/ts', shape=(len(self.timepoints),), dtype="f8", data=self.timepoints)
 
-        # set pscale based on whether is scaling parameter 
-        #(log10 for non-hierarchical, lin for hierarchical)
-        # for AMICI model parameters
+        # set parameter scaling: all log10, except for offsets which can be negative
+        # ... for AMICI model parameters:
+        offsetIndices = [i for i, p in enumerate(self.f['/parameters/modelParameterNames']) if p.startswith('offset_')]
+        pscale = np.full(numParameters, 2)
+        pscale[offsetIndices] = 0
         self.f.require_dataset('/amiciOptions/pscale', 
-                               shape=(numParameters,), dtype="<i4", data=np.full(numParameters, 2.0))
-        # for all parameters for hierarchical optimization
-        linParametersAmiciIndices = [] #self.getAnalyticallyComputedSimulationParameterIndices()
+                               shape=(numParameters,), dtype="<i4", data=pscale)
+        
+        # ... for all parameters for hierarchical optimization
+        offsetIndices = [i for i, p in enumerate(self.f['/parameters/parameterNames']) if p.startswith('offset_')]
+        linParametersAmiciIndices = offsetIndices #self.getAnalyticallyComputedSimulationParameterIndices()
         numOptimizationParameters = self.f['/parameters/parameterNames'].shape[0]
         self.f.require_dataset('/parameters/pscale', 
-                               shape=(numOptimizationParameters,), dtype="<i4", data=[2 * (ip not in linParametersAmiciIndices) for ip in range(numOptimizationParameters) ])
-
+                               shape=(numOptimizationParameters,), dtype="<i4", data=[2 * (ip not in linParametersAmiciIndices) for ip in range(numOptimizationParameters) ])      
                 
     def getAnalyticallyComputedSimulationParameterIndices(self):
         """
@@ -874,7 +877,7 @@ class HDF5DataGenerator:
         g.attrs["tol"] = 1e-9
         g.attrs["acceptable_iter"] = 1
         g.attrs["acceptable_tol"] = 1e20 # set ridiculously high, so only the acceptable_* options below matter
-        g.attrs["acceptable_obj_change_tol"] = 1e-18
+        g.attrs["acceptable_obj_change_tol"] = 1e-12
         g.attrs["watchdog_shortened_iter_trigger"] = 0;
 
 
@@ -905,14 +908,18 @@ class HDF5DataGenerator:
         """
         Parameter bounds for optimizer
         
-        TODO: Wider bounds for offsets and scalings?
+        Offset parameters are allowed to be negative 
         """
         numParams = self.f['/parameters/parameterNames'].shape[0]
         min = self.f.require_dataset('/parameters/lowerBound', [numParams], 'f8')
         max = self.f.require_dataset('/parameters/upperBound', [numParams], 'f8')
         min[:] = [-5] * numParams
         max[:] = [3] * numParams
-
+        
+        # offset parameters are optimized in linear space 
+        offsetIndices = [i for i, p in enumerate(self.f['/parameters/parameterNames']) if p.startswith('offset_')]
+        min[offsetIndices] = -1e10
+        max[offsetIndices] = +1e10
 
     def writeStartingPoints(self):
         """
