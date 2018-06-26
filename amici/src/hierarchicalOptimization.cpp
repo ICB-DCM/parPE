@@ -977,6 +977,17 @@ bool HierarchicalOptimizationReporter::iterationFinished(gsl::span<const double>
 
 }
 
+bool HierarchicalOptimizationReporter::afterCostFunctionCall(gsl::span<const double> parameters, double objectiveFunctionValue, gsl::span<const double> objectiveFunctionGradient) const
+{
+    double wallTime = wallTimer.getTotal();//(double)(timeCostEvaluationEnd - timeCostEvaluationBegin) / CLOCKS_PER_SEC;
+
+    if(resultWriter) {
+        resultWriter->logLocalOptimizerObjectiveFunctionEvaluation(cachedParameters, cachedCost,
+                                                                   cachedFullGradient, numIterations, numFunctionCalls, wallTime);
+    }
+    return false;
+}
+
 
 
 } // namespace parpe

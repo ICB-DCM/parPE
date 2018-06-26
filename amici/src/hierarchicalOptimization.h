@@ -396,6 +396,10 @@ public:
                                    double objectiveFunctionValue,
                                    gsl::span<const double> objectiveFunctionGradient) const;
 
+    virtual bool afterCostFunctionCall(gsl::span<const double> parameters,
+                                       double objectiveFunctionValue,
+                                       gsl::span<double const> objectiveFunctionGradient) const;
+
     HierachicalOptimizationWrapper *hierarchicalWrapper = nullptr;
 
     /* In addition to the vectors for the outer optimization problem,

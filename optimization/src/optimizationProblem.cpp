@@ -277,7 +277,6 @@ bool OptimizationReporter::afterCostFunctionCall(gsl::span<const double> paramet
     double wallTime = wallTimer.getTotal();//(double)(timeCostEvaluationEnd - timeCostEvaluationBegin) / CLOCKS_PER_SEC;
 
     if(resultWriter) {
-        // TODO: problem.costfuj.getLastHiearchicalParameers lastFullParameterVector?
         resultWriter->logLocalOptimizerObjectiveFunctionEvaluation(parameters, objectiveFunctionValue,
                                                                    objectiveFunctionGradient, numIterations, numFunctionCalls, wallTime);
     }
