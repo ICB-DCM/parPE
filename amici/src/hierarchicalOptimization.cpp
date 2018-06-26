@@ -1,7 +1,7 @@
 #include "hierarchicalOptimization.h"
 #include <logging.h>
 
-#include <assert.h>
+#include <cassert>
 #include <exception>
 
 #ifdef __INTEL_COMPILER
@@ -28,7 +28,8 @@ HierachicalOptimizationWrapper::HierachicalOptimizationWrapper(
 
 HierachicalOptimizationWrapper::HierachicalOptimizationWrapper(
         std::unique_ptr<AmiciSummedGradientFunction<int> > fun,
-        H5::H5File const& file, std::string hdf5RootPath,
+        H5::H5File const& file,
+        std::string const& hdf5RootPath,
         int numConditions, int numObservables, int numTimepoints,
         ErrorModel errorModel)
     : fun(std::move(fun)),
@@ -114,7 +115,8 @@ FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluate(
         gsl::span<const double> reducedParameters,
         double &fval,
         gsl::span<double> gradient,
-        std::vector<double> &fullParameters, std::vector<double> &fullGradient) const
+        std::vector<double> &fullParameters,
+        std::vector<double> &fullGradient) const
 {
     RELEASE_ASSERT(reducedParameters.size() == (unsigned)numParameters(), "");
     RELEASE_ASSERT(gradient.size() == 0 || gradient.size() == reducedParameters.size(), "");
@@ -378,8 +380,8 @@ const std::vector<int> &HierachicalOptimizationWrapper::getProportionalityFactor
 
 
 AnalyticalParameterHdf5Reader::AnalyticalParameterHdf5Reader(H5::H5File const& file,
-                                                             std::string scalingParameterIndicesPath,
-                                                             std::string mapPath)
+                                                             std::string const& scalingParameterIndicesPath,
+                                                             std::string const& mapPath)
     : mapPath(mapPath),
       analyticalParameterIndicesPath(scalingParameterIndicesPath)
 {
@@ -449,7 +451,7 @@ std::vector<int> AnalyticalParameterHdf5Reader::getOptimizationParameterIndices(
 
         analyticalParameterIndices.resize(numScalings);
         dataset.read(analyticalParameterIndices.data(), H5::PredType::NATIVE_INT);
-    } catch (H5::FileIException e) {
+    } catch (H5::FileIException &e) {
         // we just return an empty list
     }
     H5_RESTORE_ERROR_HANDLER;
@@ -653,7 +655,7 @@ double getDefaultOffsetParameter(amici::AMICI_parameter_scaling scaling)
 double computeAnalyticalScalings(int scalingIdx, amici::AMICI_parameter_scaling scale,
                                  const std::vector<std::vector<double> > &modelOutputsUnscaled,
                                  const std::vector<std::vector<double> > &measurements,
-                                 AnalyticalParameterProvider& scalingReader,
+                                 AnalyticalParameterProvider const& scalingReader,
                                  int numObservables, int numTimepoints) {
 
     auto dependentConditions = scalingReader.getConditionsForParameter(scalingIdx);
@@ -719,7 +721,7 @@ double computeAnalyticalOffsets(int offsetIdx,
 double computeAnalyticalSigmas(int sigmaIdx, amici::AMICI_parameter_scaling scale,
                                const std::vector<std::vector<double> > &modelOutputsScaled,
                                const std::vector<std::vector<double> > &measurements,
-                               AnalyticalParameterProvider &sigmaReader,
+                               AnalyticalParameterProvider const& sigmaReader,
                                int numObservables, int numTimepoints)
 {
     auto dependentConditions = sigmaReader.getConditionsForParameter(sigmaIdx);
@@ -750,7 +752,7 @@ double computeAnalyticalSigmas(int sigmaIdx, amici::AMICI_parameter_scaling scal
 
 void applyOptimalScaling(int scalingIdx, double scalingLin,
                          std::vector<std::vector<double> > &modelOutputs,
-                         AnalyticalParameterProvider& scalingReader,
+                         AnalyticalParameterProvider const& scalingReader,
                          int numObservables, int numTimepoints) {
     auto dependentConditions = scalingReader.getConditionsForParameter(scalingIdx);
     for (auto const conditionIdx: dependentConditions) {
@@ -790,7 +792,7 @@ double getUnscaledParameter(double parameter, amici::AMICI_parameter_scaling sca
 
 void applyOptimalOffset(int offsetIdx, double offsetLin,
                         std::vector<std::vector<double> > &modelOutputs,
-                        AnalyticalParameterProvider& offsetReader,
+                        const AnalyticalParameterProvider &offsetReader,
                         int numObservables, int numTimepoints) {
     auto dependentConditions = offsetReader.getConditionsForParameter(offsetIdx);
     for (auto const conditionIdx: dependentConditions) {

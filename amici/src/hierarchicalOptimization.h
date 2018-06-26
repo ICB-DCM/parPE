@@ -59,7 +59,8 @@ public:
      * @param errorModel
      */
     HierachicalOptimizationWrapper(std::unique_ptr<AmiciSummedGradientFunction<int>> fun,
-                                   const H5::H5File &file, std::string hdf5RootPath,
+                                   const H5::H5File &file,
+                                   const std::string &hdf5RootPath,
                                    int numConditions,
                                    int numObservables,
                                    int numTimepoints,
@@ -172,8 +173,8 @@ public:
     virtual FunctionEvaluationStatus evaluateWithOptimalParameters(
             std::vector<double> const& fullParameters,
             std::vector<double> const& sigmas,
-            std::vector<std::vector<double>> const&measurements,
-            std::vector<std::vector<double>> &modelOutputsScaled,
+            std::vector<std::vector<double>> const& measurements,
+            std::vector<std::vector<double>> const& modelOutputsScaled,
             double &fval,
             const gsl::span<double> gradient, std::vector<double> &fullGradient) const;
 
@@ -296,8 +297,8 @@ public:
      * @param mapPath path of to the dataset with the parameter-oberservable-condition mapping
      */
     AnalyticalParameterHdf5Reader(const H5::H5File &file,
-                                  std::string analyticalParameterIndicesPath,
-                                  std::string mapPath);
+                                  const std::string &analyticalParameterIndicesPath,
+                                  const std::string &mapPath);
 
     /**
      * @brief Get vector of condition indices for which the parameter with the given index is used.
@@ -443,7 +444,7 @@ double getDefaultOffsetParameter(amici::AMICI_parameter_scaling scaling);
 double computeAnalyticalScalings(int scalingIdx, amici::AMICI_parameter_scaling scale,
                                  const std::vector<std::vector<double> > &modelOutputsUnscaled,
                                  const std::vector<std::vector<double> > &measurements,
-                                 AnalyticalParameterProvider& scalingReader,
+                                 const AnalyticalParameterProvider &scalingReader,
                                  int numObservables, int numTimepoints);
 
 double computeAnalyticalOffsets(int offsetIdx,
@@ -457,12 +458,12 @@ double computeAnalyticalSigmas(int sigmaIdx,
                                amici::AMICI_parameter_scaling scale,
                                const std::vector<std::vector<double> > &modelOutputsScaled,
                                const std::vector<std::vector<double> > &measurements,
-                               AnalyticalParameterProvider& sigmaReader,
+                               const AnalyticalParameterProvider &sigmaReader,
                                int numObservables, int numTimepoints);
 
 void applyOptimalScaling(int scalingIdx, double scalingLin,
                          std::vector<std::vector<double> > &modelOutputs,
-                         AnalyticalParameterProvider& scalingReader,
+                         AnalyticalParameterProvider const& scalingReader,
                          int numObservables, int numTimepoints);
 
 double getScaledParameter(double parameter, amici::AMICI_parameter_scaling scale);
@@ -471,7 +472,7 @@ double getUnscaledParameter(double parameter, amici::AMICI_parameter_scaling sca
 
 void applyOptimalOffset(int offsetIdx, double offsetLin,
                         std::vector<std::vector<double> > &modelOutputs,
-                        AnalyticalParameterProvider& offsetReader,
+                        AnalyticalParameterProvider const& offsetReader,
                         int numObservables, int numTimepoints);
 
 /**
