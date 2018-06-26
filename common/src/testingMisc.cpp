@@ -1,14 +1,16 @@
 #include "testingMisc.h"
-#include <stdlib.h>
+
+#include <cstdlib>
 #include <cstdio>
 #include <cmath>
-#include "CppUTest/TestHarness.h"
 #include <iostream>
 #include <sstream>
 #include <fstream>
 #include <streambuf>
 #include <fcntl.h> // O_WRONLY
 #include <cassert>
+
+#include "CppUTest/TestHarness.h"
 
 namespace parpe {
 

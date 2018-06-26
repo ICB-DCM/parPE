@@ -1,13 +1,14 @@
 #include "misc.h"
 #include "logging.h"
+
 #include <alloca.h>
-#include <assert.h>
-#include <errno.h>
+#include <cassert>
+#include <cerrno>
 #include <execinfo.h>
-#include <math.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include <string.h>
+#include <cmath>
+#include <cstdarg>
+#include <cstdio>
+#include <cstring>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <ctime>
@@ -15,8 +16,9 @@
 #include <dlfcn.h> // dladdr
 #include <cxxabi.h> // __cxa_demangle
 #include <sstream>
-#include <mpi.h>
 #include <cstdlib> // getenv
+
+#include <mpi.h>
 
 // void printMatlabArray(const double *buffer, int len)
 //{
@@ -91,7 +93,7 @@ void runInParallelAndWaitForFinish(void *(*function)(void *), void **args,
     pthread_attr_init(&threadAttr);
     pthread_attr_setdetachstate(&threadAttr, PTHREAD_CREATE_JOINABLE);
 
-    pthread_t *threads = (pthread_t *) alloca(numArgs * sizeof(pthread_t));
+    auto threads = static_cast<pthread_t *>(alloca(numArgs * sizeof(pthread_t)));
 
     for (int i = 0; i < numArgs; ++i) {
         pthread_create(&threads[i], &threadAttr, function, args[i]);
@@ -100,16 +102,16 @@ void runInParallelAndWaitForFinish(void *(*function)(void *), void **args,
 
     // wait for finish
     for (int i = 0; i < numArgs; ++i) {
-        pthread_join(threads[i], NULL);
+        pthread_join(threads[i], nullptr);
         logmessage(LOGLVL_DEBUG, "Thread i %d finished", i);
     }
     logmessage(LOGLVL_DEBUG, "All k threads finished.");
 }
 
-void printBacktrace(int depth) {
-    void *array[depth];
+void printBacktrace(int nMaxFrames) {
+    void *array[nMaxFrames];
     size_t size;
-    size = backtrace(array, depth);
+    size = backtrace(array, nMaxFrames);
     backtrace_symbols_fd(array, size, STDERR_FILENO);
 }
 
@@ -125,14 +127,14 @@ std::string getBacktrace(int nMaxFrames)
     for (int i = 0; i < nFrames; i++) {
         Dl_info info;
         if (dladdr(callstack[i], &info) && info.dli_sname) {
-            char *demangled = NULL;
+            char *demangled = nullptr;
             int status = -1;
             if (info.dli_sname[0] == '_')
-                demangled = abi::__cxa_demangle(info.dli_sname, NULL, 0, &status);
+                demangled = abi::__cxa_demangle(info.dli_sname, nullptr, nullptr, &status);
             snprintf(buf, sizeof(buf), "%-3d %*p %s + %zd\n",
                      i, int(2 + sizeof(void*) * 2), callstack[i],
                      status == 0 ? demangled :
-                     info.dli_sname == 0 ? symbols[i] : info.dli_sname,
+                     info.dli_sname == nullptr ? symbols[i] : info.dli_sname,
                      (char *)callstack[i] - (char *)info.dli_saddr);
             free(demangled);
         } else {
@@ -150,7 +152,7 @@ std::string getBacktrace(int nMaxFrames)
 }
 
 double randDouble(double min, double max) {
-    return min + rand() / (double)RAND_MAX * (max - min);
+    return min + rand() / static_cast<double>(RAND_MAX) * (max - min);
 }
 
 void fillArrayRandomDoubleIndividualInterval(const double *min,
@@ -207,7 +209,7 @@ void CpuTimer::reset()
 double CpuTimer::getRound()
 {
     auto now = clock();
-    auto timeRound = (double)(now - roundStart) / CLOCKS_PER_SEC;
+    auto timeRound = static_cast<double>(now - roundStart) / CLOCKS_PER_SEC;
     roundStart = now;
 
     return timeRound;

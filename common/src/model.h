@@ -78,7 +78,7 @@ public:
 
     FunctionEvaluationStatus evaluate(
             gsl::span<const double> parameters,
-            std::vector<int> datasets,
+            std::vector<int> dataIndices,
             double &fval,
             gsl::span<double> gradient) const override;
 

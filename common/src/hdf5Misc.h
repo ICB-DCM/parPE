@@ -48,8 +48,7 @@ std::unique_lock<mutexHdfType> hdf5MutexGetLock();
 #define H5_RESTORE_ERROR_HANDLER H5Eset_auto1(old_func, old_client_data)
 
 herr_t
-hdf5ErrorStackWalker_cb(unsigned int n, const H5E_error_t *err_desc,
-                        void *client_data); // TODO: also use for resultwriter
+hdf5ErrorStackWalker_cb(unsigned int n, const H5E_error_t *err_desc, void *); // TODO: also use for resultwriter
 
 bool hdf5DatasetExists(hid_t file_id, std::string const& datasetName);
 
@@ -57,7 +56,7 @@ bool hdf5DatasetExists(hid_t file_id, const char *datasetName);
 
 bool hdf5GroupExists(hid_t file_id, const char *groupName);
 
-bool hdf5EnsureGroupExists(hid_t file_id, const char *groupName);
+void hdf5EnsureGroupExists(hid_t file_id, const char *groupName);
 
 void hdf5CreateGroup(hid_t file_id, const char *groupPath, bool recursively = false);
 
@@ -112,10 +111,11 @@ std::vector<int> hdf5Read1DIntegerHyperslab(const H5::H5File &file, std::string 
 std::vector<int> hdf5Read2DIntegerHyperslab(H5::H5File const& file, std::string const& path,
                                             hsize_t size0, hsize_t size1, hsize_t offset0, hsize_t offset1);
 
-void hdf5GetDatasetDimensions(hid_t file_id, const char *path, hsize_t nDims, int *d1 = nullptr,
-                                int *d2 = nullptr, int *d3 = nullptr, int *d4 = nullptr);
+void hdf5GetDatasetDimensions(hid_t file_id, const char *path, hsize_t nDimsExpected,
+                              int *d1 = nullptr, int *d2 = nullptr,
+                              int *d3 = nullptr, int *d4 = nullptr);
 
-int hdf5AttributeExists(hid_t fileId, const char *datasetPath,
+bool hdf5AttributeExists(hid_t fileId, const char *datasetPath,
                         const char *attributeName);
 
 void hdf5WriteStringAttribute(hid_t fileId, const char *datasetPath,

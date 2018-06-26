@@ -2,4 +2,4 @@
 
 namespace parpe {
 
-}
+} // namespace parpe

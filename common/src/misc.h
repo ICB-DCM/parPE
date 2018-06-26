@@ -76,9 +76,9 @@ void strFormatCurrentLocaltime(char *buffer, size_t bufferSize,
 void runInParallelAndWaitForFinish(void *(*function)(void *),
                                            void **args, int numArgs);
 
-void printBacktrace(int depth = 20);
+void printBacktrace(int nMaxFrames = 20);
 
-std::string getBacktrace(int depth = 20);
+std::string getBacktrace(int nMaxFrames = 20);
 
 double randDouble(double min, double max);
 

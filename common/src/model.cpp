@@ -27,7 +27,7 @@ void LinearModel::evaluate(gsl::span<const double> parameters, const std::vector
         outputs[i] += parameters[idxOffset];
     }
 
-    if(outputGradients.size()) {
+    if(!outputGradients.empty()) {
         // Simplify: [A, 1.0]
         // for each observation
         for(int i = 0; i < numObservations; ++i) {
@@ -71,7 +71,7 @@ FunctionEvaluationStatus LinearModelMSE::evaluate(
     fval /= numDatasets;
 
     // and MSE gradient
-    if(gradient.size()) {
+    if(!gradient.empty()) {
         for(int p = 0; p < numParameters(); ++p) {
             gradient[p] = 0.0;
             for(int i = 0; i < numDatasets; ++i) {
@@ -84,4 +84,4 @@ FunctionEvaluationStatus LinearModelMSE::evaluate(
     return functionEvaluationSuccess;
 }
 
-}
+} // namespace parpe

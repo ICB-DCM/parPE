@@ -10,7 +10,7 @@ class ParPEException : public std::exception {
   public:
     ParPEException(const char *message);
 
-    ParPEException(const std::string &message);
+    ParPEException(std::string message);
 
     virtual ~ParPEException() throw() {}
 

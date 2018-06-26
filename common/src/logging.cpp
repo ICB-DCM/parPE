@@ -1,13 +1,14 @@
 #include "logging.h"
 
-#include <time.h>
-#include <mpi.h>
-#include <stdio.h>
-#include <math.h>
-#include <stdlib.h>
-#include <string.h>
+#include <ctime>
+#include <cstdio>
+#include <cmath>
+#include <cstdlib>
+#include <cstring>
 #include <unistd.h>
 #include <sstream>
+
+#include <mpi.h>
 
 namespace parpe {
 
@@ -136,7 +137,7 @@ void logmessage(loglevel lvl, const char *format, va_list argptr)
         int procNameLen;
         MPI_Get_processor_name(procName, &procNameLen);
     }
-    printf("[%*d/%s] ", 1 + (int)log10(mpiCommSize), mpiRank, procName);
+    printf("[%*d/%s] ", 1 + static_cast<int>(log10(mpiCommSize)), mpiRank, procName);
 
     // Message
     vprintf(format, argptr);
