@@ -28,7 +28,7 @@ void LoadBalancerMaster::run() {
 
     // Create semaphore to limit queue length
     // and avoid huge memory allocation for all send and receive buffers
-    unsigned int queueMaxLength = mpiCommSize;
+    unsigned int queueMaxLength = 4 * mpiCommSize;
 #ifdef SEM_VALUE_MAX
     if(SEM_VALUE_MAX < queueMaxLength)
         throw ParPEException("SEM_VALUE_MAX too small to work with the given MPI_Comm_size.");
