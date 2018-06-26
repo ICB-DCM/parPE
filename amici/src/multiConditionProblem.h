@@ -173,7 +173,7 @@ public:
 
 
         if (loadBalancer && loadBalancer->isRunning()) {
-            errors += simRunner.runDistributedMemory(loadBalancer, 8);
+            errors += simRunner.runDistributedMemory(loadBalancer, maxSimulationsPerPackage);
         } else {
             errors += simRunner.runSharedMemory(
                         [&](std::vector<char> &buffer, int jobId) {
@@ -306,8 +306,10 @@ protected:// for testing
                                           simulationTimeSec);
         }, nullptr);
         if (loadBalancer && loadBalancer->isRunning()) {
-            // TODO 8 per package; but check for lower number worker!!
-            errors += simRunner.runDistributedMemory(loadBalancer, objectiveFunctionGradient.size()?1:8);
+            // When running simulations (without gradient), send more simulations to each worker
+            // to reduce communication overhead
+            errors += simRunner.runDistributedMemory(loadBalancer,
+                                                     objectiveFunctionGradient.size() ? 1 : maxSimulationsPerPackage);
         } else {
             errors += simRunner.runSharedMemory(
                         [&](std::vector<char> &buffer, int jobId) {
@@ -411,6 +413,7 @@ private:
     std::unique_ptr<amici::Solver> solverOriginal; // for saving sensitivity options which are changed depending on whether gradient is needed
     MultiConditionProblemResultWriter *resultWriter = nullptr; // TODO: owning?
     bool logLineSearch = false;
+    const int maxSimulationsPerPackage = 8;
 };
 
 
