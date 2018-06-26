@@ -30,7 +30,7 @@ template <typename T> std::string to_string(const T &n) {
     stm << n;
     return stm.str();
 }
-}
+} // namespace patch
 
 
 herr_t optimizationOptionsFromAttribute(hid_t location_id/*in*/,
@@ -84,15 +84,16 @@ std::unique_ptr<OptimizationOptions> OptimizationOptions::fromHDF5(const char *f
     return fromHDF5(file.getId());
 }
 
-std::unique_ptr<OptimizationOptions> OptimizationOptions::fromHDF5(hid_t fileId, std::string path) {
+std::unique_ptr<OptimizationOptions> OptimizationOptions::fromHDF5(hid_t fileId, std::string const& path) {
     auto o = std::make_unique<OptimizationOptions>();
 
     const char *hdf5path = path.c_str();
 
 
     if (hdf5AttributeExists(fileId, hdf5path, "optimizer")) {
-        H5LTget_attribute_int(fileId, hdf5path, "optimizer",
-                              (int *)&o->optimizer);
+        int buffer;
+        H5LTget_attribute_int(fileId, hdf5path, "optimizer", &buffer);
+        o->optimizer = static_cast<parpe::optimizerName>(buffer);
     }
 
     if (hdf5AttributeExists(fileId, hdf5path, "numStarts")) {
@@ -138,7 +139,7 @@ std::unique_ptr<OptimizationOptions> OptimizationOptions::fromHDF5(hid_t fileId,
         if(attributeGroup < 0)
             return o;
 
-        H5Aiterate2(attributeGroup, H5_INDEX_NAME, H5_ITER_NATIVE, 0,
+        H5Aiterate2(attributeGroup, H5_INDEX_NAME, H5_ITER_NATIVE, nullptr,
                     optimizationOptionsFromAttribute, o.get());
 
         H5Gclose(attributeGroup);
@@ -179,8 +180,8 @@ std::vector<double> OptimizationOptions::getStartingPoint(hid_t fileId, int inde
         const int ndims = H5Sget_simple_extent_ndims(dataspace);
         assert(ndims == 2);
         hsize_t dims[ndims];
-        H5Sget_simple_extent_dims(dataspace, dims, NULL);
-        if (dims[1] < (unsigned)index)
+        H5Sget_simple_extent_dims(dataspace, dims, nullptr);
+        if (dims[1] < static_cast<hsize_t>(index))
             goto freturn;
 
         logmessage(LOGLVL_INFO, "Reading random initial theta %d from %s",
@@ -193,7 +194,7 @@ std::vector<double> OptimizationOptions::getStartingPoint(hid_t fileId, int inde
 freturn:
     if (H5Eget_num(H5E_DEFAULT)) {
         error("Problem in OptimizationOptions::getStartingPoint\n");
-        H5Ewalk2(H5E_DEFAULT, H5E_WALK_DOWNWARD, hdf5ErrorStackWalker_cb, NULL);
+        H5Ewalk2(H5E_DEFAULT, H5E_WALK_DOWNWARD, hdf5ErrorStackWalker_cb, nullptr);
     }
 
     H5_RESTORE_ERROR_HANDLER;
@@ -217,12 +218,12 @@ std::string OptimizationOptions::toString() {
     return s;
 }
 
-int OptimizationOptions::getIntOption(std::string key)
+int OptimizationOptions::getIntOption(std::string const& key)
 {
     return std::stoi(options[key]);
 }
 
-double OptimizationOptions::getDoubleOption(std::string key)
+double OptimizationOptions::getDoubleOption(std::string const& key)
 {
     return std::stod(options[key]);
 }
@@ -232,12 +233,12 @@ std::string OptimizationOptions::getStringOption(std::string key)
     return options[key];
 }
 
-void OptimizationOptions::setOption(std::string key, int value)
+void OptimizationOptions::setOption(std::string const& key, int value)
 {
     options[key] = std::to_string(value);
 }
 
-void OptimizationOptions::setOption(std::string key, double value)
+void OptimizationOptions::setOption(std::string const& key, double value)
 {
     std::ostringstream out;
     out << std::setprecision(std::numeric_limits<double>::max_digits10) << value;

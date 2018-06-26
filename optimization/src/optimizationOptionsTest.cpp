@@ -1,18 +1,21 @@
 #include "CppUTest/TestHarness.h"
 #include "CppUTestExt/MockSupport.h"
+
 #include <iostream>
+
 #include "optimizationOptions.h"
 #include "testingMisc.h"
 #include <hdf5Misc.h>
 #include "localOptimizationIpopt.h"
 #include "localOptimizationIpoptTNLP.h"
-#include <ceres/gradient_problem_solver.h>
 #include "localOptimizationCeres.h"
+
+#include <ceres/gradient_problem_solver.h>
 
 // need prototype here, otherwise mess with headers (including ceres.h causes some errors with EIGEN)
 namespace parpe {
 void setCeresOption(const std::pair<const std::string, const std::string> &pair, ceres::GradientProblemSolver::Options* options);
-}
+} // namespace parpe
 
 
 // clang-format off

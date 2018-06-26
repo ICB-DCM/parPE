@@ -2,9 +2,10 @@
 
 #include <cmath>
 #include <iostream>
-#include <assert.h>
+#include <cassert>
 #include <cstring>
 #include <stdexcept>
+
 #include <optimizationResultWriter.h>
 #include <misc.h>
 #include <logging.h>
@@ -114,7 +115,7 @@ enum class informExitStatus {
 static_assert(sizeof(double) == sizeof(doublereal), "");
 
 /** Mutex for managing access to FFSQP routines which are not thread-safe */
-typedef std::recursive_mutex mutexFsqpType;
+using mutexFsqpType = std::recursive_mutex;
 static mutexFsqpType mutexFsqp {};
 
 std::unique_lock<mutexFsqpType> fsqpGetLock()
@@ -139,7 +140,7 @@ InverseUniqueLock<mutexFsqpType> fsqpReleaseLock()
  */
 class FsqpProblem {
 public:
-    FsqpProblem(OptimizationProblem *problem)
+    explicit FsqpProblem(OptimizationProblem *problem)
         : problem(problem),
           reporter(problem->getReporter()),
           nparam(problem->costFun->numParameters()),
@@ -164,7 +165,7 @@ public:
         w.resize(nwsize + 1);
         // make sure it fits
         auto thisthis = this;
-        assert(sizeof(doublereal) >= sizeof(&thisthis));
+        static_assert(sizeof(doublereal) >= sizeof(&thisthis), "");
         memcpy(w.data(), &thisthis, 1 * sizeof(&thisthis));
 
         logmessage(LOGLVL_DEBUG, "w0 %p", &w.data()[0]);
@@ -208,7 +209,7 @@ public:
 
     // Once we want contraints: void constr (integer &nparam, integer &j, doublereal *x, doublereal &gj) {    }
 
-    void gradob (integer &nparam, integer &j, doublereal *x, doublereal *gradfj, doublereal *dummy) {
+    void gradob (integer &nparam, integer &j, doublereal *x, doublereal *gradfj, doublereal* /*dummy*/) {
         static_assert(sizeof(double) == sizeof(doublereal), "");
 
         double fvalDummy = NAN;
@@ -408,7 +409,7 @@ void gradob (integer &nparam, integer &j, doublereal *x, doublereal *gradfj, dou
  * @param gradgj (out) Gradient value for constraint j at x
  * @param dummy Passed to gradob for forward difference calculation
  */
-void gradcn (integer &nparam, integer &j, doublereal *x, doublereal *gradgj, doublereal *dummy) {
+void gradcn (integer &nparam, integer &j, doublereal *x, doublereal *gradgj, doublereal* /*dummy*/) {
     //auto unlockFsqp = fsqpReleaseLock();
 
     // no constraints currently supported

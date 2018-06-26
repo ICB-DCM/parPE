@@ -114,7 +114,7 @@ TEST(optimizationProblem, gradientChecker) {
     constexpr int numParameterIndices {1};
     int parameterIndices[numParameterIndices] {0};
 
-    parpe::optimizationProblemGradientCheck(&problem, parameterIndices, numParameterIndices, 1e-6);
+    parpe::optimizationProblemGradientCheck(&problem, parameterIndices, 1e-6);
 }
 
 

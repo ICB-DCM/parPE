@@ -88,7 +88,7 @@ class MyCeresFirstOrderFunction : public ceres::FirstOrderFunction {
      * @param gradient If not NULL, evaluate gradient
      * @return true on success, false otherwise
      */
-    virtual bool Evaluate(const double *parameters, double *cost,
+    bool Evaluate(const double *parameters, double *cost,
                           double *gradient) const override {
 
         // Naive bounds check: report failure if not within
@@ -103,7 +103,7 @@ class MyCeresFirstOrderFunction : public ceres::FirstOrderFunction {
         return result == functionEvaluationSuccess;
     }
 
-    virtual int NumParameters() const override {
+    int NumParameters() const override {
         return numParameters;
     }
 
@@ -125,7 +125,7 @@ class MyCeresFirstOrderFunction : public ceres::FirstOrderFunction {
 class MyIterationCallback : public ceres::IterationCallback {
   public:
     // Non-owning
-    MyIterationCallback(OptimizationReporter *reporter) : reporter(reporter) {}
+    explicit MyIterationCallback(OptimizationReporter *reporter) : reporter(reporter) {}
 
     virtual ceres::CallbackReturnType
     operator()(const ceres::IterationSummary &summary) override {
@@ -207,7 +207,8 @@ std::tuple<int, double, std::vector<double> > OptimizerCeres::optimize(Optimizat
  * @param pair key => value pair
  * @param options
  */
-void setCeresOption(const std::pair<const std::string, const std::string> &pair, ceres::GradientProblemSolver::Options* options) {
+void setCeresOption(const std::pair<const std::string, const std::string> &pair,
+                    ceres::GradientProblemSolver::Options* options) {
     const std::string &key = pair.first;
     const std::string &val = pair.second;
 

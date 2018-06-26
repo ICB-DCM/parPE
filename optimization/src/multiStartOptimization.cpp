@@ -49,7 +49,7 @@ int MultiStartOptimization::runMultiThreaded()
                    lastStartIdx, ms);
 
         pthread_create(&localOptimizationThreads.at(ms), &threadAttr,
-                       getLocalOptimumThreadWrapper, (void *)localProblems[ms]);
+                       getLocalOptimumThreadWrapper, static_cast<void *>(localProblems[ms]));
     }
 
     int numCompleted = 0;
@@ -60,23 +60,24 @@ int MultiStartOptimization::runMultiThreaded()
             if (!localProblems[ms])
                 continue;
 
-            int *threadStatus = 0;
+            int *threadStatus = nullptr;
             int joinStatus = pthread_tryjoin_np(localOptimizationThreads[ms],
-                                                (void **)&threadStatus);
+                                                reinterpret_cast<void **>(&threadStatus));
 
             if (joinStatus == 0) { // joined successful
                 delete localProblems[ms];
-                localProblems[ms] = NULL;
+                localProblems[ms] = nullptr;
 
                 if (*threadStatus == 0 || !restartOnFailure) {
-                    if (*threadStatus == 0)
+                    if (*threadStatus == 0) {
                         logmessage(LOGLVL_DEBUG,
                                    "Thread ms #%d finished successfully", ms);
-                    else
+                    } else {
                         logmessage(LOGLVL_DEBUG, "Thread ms #%d finished "
                                                  "unsuccessfully. Not trying "
                                                  "new starting point.",
                                    ms);
+                    }
                     ++numCompleted;
                 } else {
                     logmessage(LOGLVL_WARNING, "Thread ms #%d finished "
@@ -92,13 +93,13 @@ int MultiStartOptimization::runMultiThreaded()
                                 lastStartIdx, ms);
                     pthread_create(&localOptimizationThreads[ms], &threadAttr,
                                    getLocalOptimumThreadWrapper,
-                                   (void *)localProblems[ms]);
+                                   static_cast<void *>(localProblems[ms]));
                 }
                 delete threadStatus;
             }
         }
 
-        sleep(0.1); // TODO: replace by condition via ThreadWrapper
+        sleep(1); // TODO: replace by condition via ThreadWrapper
     }
 
     logmessage(LOGLVL_DEBUG, "runParallelMultiStartOptimization finished");
@@ -120,7 +121,8 @@ int MultiStartOptimization::runSingleThreaded()
     while(true) {
         if(restartOnFailure && numSucceeded == numberOfStarts)
             break;
-        else if(ms == numberOfStarts)
+
+        if(ms == numberOfStarts)
             break;
 
         auto problem = msProblem.getLocalProblem(ms);

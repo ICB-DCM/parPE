@@ -4,14 +4,16 @@
 #include "logging.h"
 #include "misc.h"
 #include "optimizationOptions.h"
+#include <optimizer.h>
+
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <optimizer.h>
 #include <iostream>
 #include <cassert>
 #include <numeric>
 #include <random>
+#include <memory>
 
 namespace parpe {
 
@@ -23,9 +25,8 @@ namespace parpe {
  */
 
 int getLocalOptimum(OptimizationProblem *problem) {
-    Optimizer *optimizer = problem->getOptimizationOptions().createOptimizer();
+    auto optimizer = std::unique_ptr<Optimizer>(problem->getOptimizationOptions().createOptimizer());
     auto status = optimizer->optimize(problem);
-    delete optimizer;
     return std::get<0>(status);
 }
 
@@ -37,16 +38,16 @@ int getLocalOptimum(OptimizationProblem *problem) {
  */
 
 void *getLocalOptimumThreadWrapper(void *optimizationProblemVp) {
-    OptimizationProblem *problem = (OptimizationProblem *)optimizationProblemVp;
+    auto problem = static_cast<OptimizationProblem *>(optimizationProblemVp);
     int *result = new int;
     *result = getLocalOptimum(problem);
     return result;
 }
 
-void runOptimizationsParallel(const OptimizationProblem **problems,
+void runOptimizationsParallel(OptimizationProblem **problems,
                               int numProblems) {
     runInParallelAndWaitForFinish(getLocalOptimumThreadWrapper,
-                                  (void **)problems, numProblems);
+                                  reinterpret_cast<void **>(problems), numProblems);
 }
 
 void optimizationProblemGradientCheck(OptimizationProblem *problem,
@@ -60,13 +61,11 @@ void optimizationProblemGradientCheck(OptimizationProblem *problem,
     std::mt19937 g(rd());
     //std::shuffle(parameterIndices.begin(), parameterIndices.end(), g);
 
-    optimizationProblemGradientCheck(problem, parameterIndices.data(),
-                                     numParameterIndicesToCheck, epsilon);
+    optimizationProblemGradientCheck(problem, parameterIndices, epsilon);
 }
 
 void optimizationProblemGradientCheck(OptimizationProblem *problem,
-                                      const int parameterIndices[],
-                                      int numParameterIndices, double epsilon) {
+                                      gsl::span<const int> parameterIndices, double epsilon) {
     double fc = 0; // f(theta)
     std::vector<double> theta(problem->costFun->numParameters());
     problem->fillInitialParameters(theta);
@@ -78,7 +77,7 @@ void optimizationProblemGradientCheck(OptimizationProblem *problem,
 
     // printf("Index\tGradient\tfd_f\t\t(delta)\t\tfd_c\t\t(delta)\t\tfd_b\t\t(delta)\n");
 
-    for (int i = 0; i < numParameterIndices; ++i) {
+    for (int i = 0; i < parameterIndices.size(); ++i) {
         int curInd = parameterIndices[i];
         double fb = 0, ff = 0; // f(theta + eps) , f(theta - eps)
 
@@ -147,7 +146,7 @@ void OptimizationProblem::setOptimizationOptions(const OptimizationOptions &opti
 
 std::unique_ptr<OptimizationReporter> OptimizationProblem::getReporter() const
 {
-    return std::unique_ptr<OptimizationReporter>(new OptimizationReporter(costFun.get()));
+    return std::make_unique<OptimizationReporter>(costFun.get());
 }
 
 
@@ -239,7 +238,7 @@ bool OptimizationReporter::starting(gsl::span<const double> initialParameters) c
     return false;
 }
 
-bool OptimizationReporter::iterationFinished(gsl::span<const double> finalParameters,
+bool OptimizationReporter::iterationFinished(gsl::span<const double> parameters,
                                              double objectiveFunctionValue,
                                              gsl::span<double const> objectiveFunctionGradient) const
 {
@@ -251,9 +250,9 @@ bool OptimizationReporter::iterationFinished(gsl::span<const double> finalParame
     if(resultWriter)
         resultWriter->logLocalOptimizerIteration(
                     numIterations,
-                    finalParameters.size() ? finalParameters : cachedParameters,
+                    parameters.empty() ? cachedParameters : parameters,
                     objectiveFunctionValue,
-                    objectiveFunctionGradient.size() ? objectiveFunctionGradient : cachedGradient, // This might be misleading, the gradient could evaluated at other parameters if there was a line search inbetween
+                    objectiveFunctionGradient.empty() ? cachedGradient : objectiveFunctionGradient, // This might be misleading, the gradient could evaluated at other parameters if there was a line search inbetween
                     wallTimeIter);
     ++numIterations;
 
@@ -287,7 +286,7 @@ void OptimizationReporter::finished(double optimalCost, gsl::span<const double> 
 {
     double timeElapsed = wallTimer.getTotal();
 
-    if(cachedCost != optimalCost && parameters.size() == 0) {
+    if(cachedCost != optimalCost && parameters.empty()) {
         // the optimal value is not from the cached parameters and we did not get
         // the optimal parameters from the optimizer. since we don't know them, rather set to nan
         cachedParameters.assign(cachedParameters.size(), NAN);

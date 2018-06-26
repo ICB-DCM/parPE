@@ -45,7 +45,7 @@ class OptimizationOptions {
     int maxOptimizerIterations = 100;
 
     static std::unique_ptr<OptimizationOptions> fromHDF5(const char *fileName);
-    static std::unique_ptr<OptimizationOptions> fromHDF5(hid_t fileId, std::string path = "/optimizationOptions");
+    static std::unique_ptr<OptimizationOptions> fromHDF5(hid_t fileId, const std::string &path = "/optimizationOptions");
 
     static std::vector<double> getStartingPoint(hid_t fileId, int index);
 
@@ -65,12 +65,12 @@ class OptimizationOptions {
 
     std::string toString();
 
-    int getIntOption(std::string key);
-    double getDoubleOption(std::string key);
+    int getIntOption(const std::string &key);
+    double getDoubleOption(const std::string &key);
     std::string getStringOption(std::string key);
 
-    void setOption(std::string key, int value);
-    void setOption(std::string key, double value);
+    void setOption(const std::string &key, int value);
+    void setOption(const std::string &key, double value);
     void setOption(std::string key, std::string value);
 
     template <typename T>

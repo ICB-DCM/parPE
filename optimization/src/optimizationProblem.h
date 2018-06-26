@@ -83,7 +83,7 @@ public:
      * @param initialParameters
      * @return Quit optimization?
      */
-    virtual bool starting(gsl::span<const double> parameters) const;
+    virtual bool starting(gsl::span<const double> initialParameters) const;
 
 
     /**
@@ -255,15 +255,15 @@ int getLocalOptimum(OptimizationProblem *problem);
 
 void *getLocalOptimumThreadWrapper(void *optimizationProblemVp);
 
-void runOptimizationsParallel(const OptimizationProblem **problems,
+void runOptimizationsParallel(OptimizationProblem **problems,
                               int numProblems);
 
 void optimizationProblemGradientCheck(OptimizationProblem *problem,
                                       int numParameterIndicesToCheck, double epsilon);
 
 void optimizationProblemGradientCheck(OptimizationProblem *problem,
-                                      const int parameterIndices[],
-                                      int numParameterIndices, double epsilon);
+                                      gsl::span<const int> parameterIndices,
+                                      double epsilon);
 
 } // namespace parpe
 
