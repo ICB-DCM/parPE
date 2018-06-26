@@ -611,14 +611,14 @@ class HDF5DataGenerator:
                 raise RuntimeError('ERROR: Multiple sigma parameters provided for\n%s\n' % row)
                 
             if len(nonSigmas) > 1:
-                print("Warning: multiple scaling parameters found for\n\t%s\n\twhich one to choose for hierarchical optimization? Assuming first" % row)
+                print("Warning: multiple scaling and/or offset parameters found for\n\t%s\n\twhich one to choose for hierarchical optimization? Assuming first" % row)
             
             if not len(nonSigmas):
                 continue
             
             if row['observable'] in map:
                 if row['condition'] in row['observable'] and map[row['observable']][row['condition']] != nonSigmas[0]:
-                    raise RuntimeError("ERROR: multiple scaling parameters found for\n\t%s\n\twhich one to choose for hierarchical optimization? previously found %s" % (row, map[row['observable']]))
+                    raise RuntimeError("ERROR: multiple scaling and/or offset parameters found for\n\t%s\n\twhich one to choose for hierarchical optimization? previously found %s" % (row, map[row['observable']]))
             else:
                 map[row['observable']] = {}
             map[row['observable']][row['condition']] = nonSigmas[0]
