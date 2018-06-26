@@ -594,9 +594,11 @@ void HierachicalOptimizationProblemWrapper::fillFilteredParams(const std::vector
 
 std::unique_ptr<OptimizationReporter> HierachicalOptimizationProblemWrapper::getReporter() const {
     auto innerReporter = wrappedProblem->getReporter();
-    auto outerReporter = std::make_unique<HierarchicalOptimizationReporter>(
-                dynamic_cast<HierachicalOptimizationWrapper*>(costFun.get()),
-                std::move(innerReporter->resultWriter));
+    auto outerReporter = std::unique_ptr<OptimizationReporter>(
+                new HierarchicalOptimizationReporter(
+                    dynamic_cast<HierachicalOptimizationWrapper*>(costFun.get()),
+                        std::move(innerReporter->resultWriter)
+                    ));
     return outerReporter;
 }
 
