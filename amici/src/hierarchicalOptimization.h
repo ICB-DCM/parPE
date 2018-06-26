@@ -96,10 +96,12 @@ public:
             double &fval,
             gsl::span<double> gradient) const override;
 
-    FunctionEvaluationStatus evaluate(gsl::span<double const> reducedParameters,
+    FunctionEvaluationStatus evaluate(
+            gsl::span<double const> reducedParameters,
             double &fval,
             gsl::span<double> gradient,
-            std::vector<double> &fullParameters, std::vector<double> &fullGradient) const;
+            std::vector<double> &fullParameters,
+            std::vector<double> &fullGradient) const;
 
     /**
      * @brief Get parameters for initial function evaluation
@@ -128,8 +130,8 @@ public:
      * @param modelOutputs Model outputs as provided by getModelOutputs
      * @return the computed scaling factors
      */
-    std::vector<double> computeAnalyticalScalings(const std::vector<std::vector<double> > &measurements,
-                                                  std::vector <std::vector<double>>& modelOutputsUnscaled) const;
+    std::vector<double> computeAnalyticalScalings(std::vector<std::vector<double>> const& measurements,
+                                                  std::vector<std::vector<double>> const& modelOutputsUnscaled) const;
 
     void applyOptimalScalings(std::vector<double> const& proportionalityFactors,
                               std::vector<std::vector<double> > &modelOutputs) const;
@@ -143,7 +145,7 @@ public:
     std::vector<double> computeAnalyticalOffsets(const std::vector<std::vector<double> > &measurements,
                                                  std::vector <std::vector<double>>& modelOutputsUnscaled) const;
 
-    std::vector<double> computeAnalyticalSigmas(const std::vector<std::vector<double> > &measurements,
+    std::vector<double> computeAnalyticalSigmas( std::vector<std::vector<double> > const& measurements,
                                                  std::vector <std::vector<double>>& modelOutputsScaled) const;
 
     void applyOptimalOffsets(std::vector<double> const& proportionalityFactors,
@@ -167,10 +169,11 @@ public:
      * @return
      */
 
-    virtual FunctionEvaluationStatus evaluateWithOptimalParameters(std::vector<double> const& fullParameters,
-            const std::vector<double> &sigmas,
-            const std::vector<std::vector<double> > &measurements,
-            std::vector<std::vector<double> > &modelOutputsScaled,
+    virtual FunctionEvaluationStatus evaluateWithOptimalParameters(
+            std::vector<double> const& fullParameters,
+            std::vector<double> const& sigmas,
+            std::vector<std::vector<double>> const&measurements,
+            std::vector<std::vector<double>> &modelOutputsScaled,
             double &fval,
             const gsl::span<double> gradient, std::vector<double> &fullGradient) const;
 

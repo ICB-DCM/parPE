@@ -21,8 +21,8 @@ HierachicalOptimizationWrapper::HierachicalOptimizationWrapper(
       numTimepoints(numTimepoints)
 {
     scalingReader = std::make_unique<AnalyticalParameterHdf5Reader>();
-    offsetReader = std::make_unique<AnalyticalParameterHdf5Reader>();
-    sigmaReader = std::make_unique<AnalyticalParameterHdf5Reader>();
+    offsetReader  = std::make_unique<AnalyticalParameterHdf5Reader>();
+    sigmaReader   = std::make_unique<AnalyticalParameterHdf5Reader>();
     init();
 }
 
@@ -220,7 +220,7 @@ std::vector<std::vector<double> > HierachicalOptimizationWrapper::getUnscaledMod
 
 std::vector<double> HierachicalOptimizationWrapper::computeAnalyticalScalings(
         std::vector<std::vector<double>> const& measurements,
-        std::vector<std::vector<double>> &modelOutputsUnscaled) const
+        std::vector<std::vector<double>> const& modelOutputsUnscaled) const
 {
     // NOTE: does not handle replicates, assumes normal distribution, does not compute sigmas
 
@@ -327,10 +327,11 @@ void HierachicalOptimizationWrapper::fillInAnalyticalSigmas(
 
 FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluateWithOptimalParameters(
         std::vector<double> const& fullParameters,
-        const std::vector<double> &sigmas,
+        std::vector<double> const& sigmas,
         std::vector<std::vector<double>> const& measurements,
-        std::vector<std::vector<double> > &modelOutputsScaled,
-        double &fval, const gsl::span<double> gradient,
+        std::vector<std::vector<double>> const& modelOutputsScaled,
+        double &fval,
+        const gsl::span<double> gradient,
         std::vector<double>& fullGradient) const {
 
     if(gradient.size()) {
@@ -684,10 +685,11 @@ double computeAnalyticalScalings(int scalingIdx, amici::AMICI_parameter_scaling 
 
 double computeAnalyticalOffsets(int offsetIdx,
                                 amici::AMICI_parameter_scaling scale,
-                                const std::vector<std::vector<double> > &modelOutputsUnscaled,
-                                const std::vector<std::vector<double> > &measurements,
+                                std::vector<std::vector<double>> const& modelOutputsUnscaled,
+                                std::vector<std::vector<double>> const& measurements,
                                 AnalyticalParameterProvider& offsetReader,
-                                int numObservables, int numTimepoints) {
+                                int numObservables, int numTimepoints)
+{
     auto dependentConditions = offsetReader.getConditionsForParameter(offsetIdx);
 
     double enumerator = 0.0;
@@ -835,9 +837,9 @@ std::vector<double> spliceParameters(const gsl::span<double const> reducedParame
 }
 
 
-double computeNegLogLikelihood(std::vector <std::vector<double>> const& measurements,
-                               const std::vector<std::vector<double> > &modelOutputsScaled,
-                               std::vector <std::vector<double>> const& sigmas) {
+double computeNegLogLikelihood(std::vector<std::vector<double>> const& measurements,
+                               std::vector<std::vector<double>> const& modelOutputsScaled,
+                               std::vector<std::vector<double>> const& sigmas) {
     RELEASE_ASSERT(measurements.size() == modelOutputsScaled.size(), "");
 
     double nllh = 0.0;
