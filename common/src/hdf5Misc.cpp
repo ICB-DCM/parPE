@@ -128,8 +128,8 @@ void hdf5Extend2ndDimensionAndWriteToDouble2DArray(hid_t file_id,
     // check rank
     hid_t filespace = H5Dget_space(dataset);
     int rank = H5Sget_simple_extent_ndims(filespace);
-    H5Sclose(filespace);
     if (rank != 2) {
+        H5Sclose(filespace);
         H5Dclose(dataset);
         throw HDF5Exception("Failed to write data in hdf5Extend2ndDimensionAndWriteToDouble2DArray: not of rank 2 (%d) when writing %s",
                    rank, datasetPath);
@@ -138,6 +138,7 @@ void hdf5Extend2ndDimensionAndWriteToDouble2DArray(hid_t file_id,
     // extend
     hsize_t currentDimensions[2];
     H5Sget_simple_extent_dims(filespace, currentDimensions, nullptr);
+    H5Sclose(filespace);
 
     hsize_t newDimensions[2] = {currentDimensions[0], currentDimensions[1] + 1};
     herr_t status = H5Dset_extent(dataset, newDimensions);
