@@ -230,6 +230,34 @@ std::vector<double> getFinalParameters(std::string startIndex, H5::H5File const&
 {
     auto lock = hdf5MutexGetLock();
 
+    // find last iteration /multistarts/$/iteration/$/costFunParameters
+    std::string iterationPath = std::string("/multistarts/") + startIndex + "/iteration/";
+    int iteration = 0;
+    while(hdf5DatasetExists(file.getId(), iterationPath + std::to_string(iteration) + "/costFunParameters")) {
+        ++iteration;
+    }
+    --iteration; // last one did not exist
+
+    // get last column
+    std::string parameterPath = iterationPath + std::to_string(iteration) + "/costFunParameters";
+    H5::DataSet dataset = file.openDataSet(parameterPath);
+
+    H5::DataSpace filespace = dataset.getSpace();
+    int rank = filespace.getSimpleExtentNdims();
+    RELEASE_ASSERT(rank == 2, "Rank mismatch");
+
+    hsize_t dims[2];
+    filespace.getSimpleExtentDims(dims, NULL);
+    int numParam = dims[0];
+    int numFunctionEvalations = dims[1];
+
+    std::vector<double> parameters(numParam);
+
+    parpe::hdf5Read2DDoubleHyperslab(file.getId(), parameterPath.c_str(),
+                                     numParam, 1, 0, numFunctionEvalations - 1,
+                                     parameters.data());
+
+    /*
     // read from last iteration (last column in /multistarts/$/iterCostFunParameters)
     std::string parameterPath = std::string("/multistarts/") + startIndex + "/iterCostFunParameters";
     H5::DataSet dataset = file.openDataSet(parameterPath);
@@ -248,6 +276,7 @@ std::vector<double> getFinalParameters(std::string startIndex, H5::H5File const&
     parpe::hdf5Read2DDoubleHyperslab(file.getId(), parameterPath.c_str(),
                                      numParam, 1, 0, numIter - 1,
                                      parameters.data());
+*/
     return parameters;
 }
 
