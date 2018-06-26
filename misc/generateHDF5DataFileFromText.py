@@ -32,6 +32,7 @@ SCALING_LIN = 0
 NO_PREEQ_CONDITION_IDX = -1
 
 class AmiciPyModelParser:
+    """Parser for AMICI-generated header files"""
     def __init__(self, modelFolder):
         self.modelDir = modelFolder
     
@@ -48,33 +49,38 @@ class AmiciPyModelParser:
         return symbols
     
     def readParameterNames(self):
+        """Read list of parameter names"""
         return self.parseHeader(os.path.join(self.modelDir, 'parameter.h'))
     
     def readFixedParameterNames(self):
+        """Read list of fixed parameter names"""
         return self.parseHeader(os.path.join(self.modelDir, 'fixed_parameter.h'))
     
     def readObservables(self):
+        """Read list of observable names"""
         return self.parseHeader(os.path.join(self.modelDir, 'observable.h'))
       
     
 class HDF5DataGenerator:
     """    
-    Generate HDF5 file with fixed parameters and measurements for an AMICI-imported SBML model
+    Generate HDF5 file with fixed parameters and measurements for an AMICI-imported SBML model 
+    based on SBML model, AMICI syms file or model folder, measurement file and fixed parameter file.
     """
 
     def __init__(self, fileNameSBML, fileNameSyms, fileMeasurements, fileFixedParameters):
         """
         fileNameSBML: filename of model SBML file
         fileNameSyms: filename of AMICI model syms file or the model folder of a python-amici generated model
-        fileFixedParameters: filename with AMICI fixed parameter vectors for all conditions refered to in the measurement file 
         fileMeasurements: filename of measurement file (TODO: specify format)
+        fileFixedParameters: filename with AMICI fixed parameter vectors for all conditions refered to in the measurement file 
         """
 
         # read symbols from compiled model to ensure correct ordering (might change during sbml import)
         if fileNameSyms.endswith('.m'):
-            # AMICI model file interface
+            # Matlab syms file, use AMICI model file interface for parsing
             self.amiciSyms = amiciHelper.AmiciSyms(fileNameSyms)
         else:
+            # Python AMICI generated model folder
             self.amiciSyms = AmiciPyModelParser(fileNameSyms)
 
         # load input data 
@@ -84,6 +90,7 @@ class HDF5DataGenerator:
         self.loadSBMLModel(fileNameSBML)
 
         # scriptDir = os.path.dirname(os.path.realpath(__file__))
+        
         # hdf5 dataset compression
         self.compression = "gzip"
                
@@ -96,7 +103,7 @@ class HDF5DataGenerator:
                                   delimiter="\t", 
                                   index_col=False)
 
-        print("Cost shape", self.measurementDf.shape)
+        print("Measurements shape", self.measurementDf.shape)
 
         # Get list of used conditions
         # Must also consider conditionRef values, since pre-equilibration conditions might come without any datapoints,
@@ -168,7 +175,7 @@ class HDF5DataGenerator:
         print("Generate parameter list...")
         self.generateParameterList()
 
-        self.generateReferenceMap()
+        self.generateReferenceConditionMap()
 
         print("Generating fixed parameters matrix...")
         self.generateFixedParameterMatrix()
@@ -177,7 +184,7 @@ class HDF5DataGenerator:
         self.generateMeasurementMatrix()
 
         print("Handling scaling parameters...")
-        self.generateScalingParameterData()
+        self.generateHierarchicalOptimizationData()
 
         print("Copying default AMICI options...")
         self.copyAmiciOptions()
@@ -225,7 +232,7 @@ class HDF5DataGenerator:
         conditionSpecificScalingsUsed = self.getUsedScalingParameters()
         #print(scalingsUsed)
         for currentConditionSpecificName in conditionSpecificScalingsUsed:
-            currentGenericName = self.getGenericScalingParameterName(currentConditionSpecificName)
+            currentGenericName = self.getGenericParameterName(currentConditionSpecificName)
             #print(currentGenericName)
             if currentGenericName in parameterNames:
                 parameterNames.remove(currentGenericName)
@@ -264,11 +271,12 @@ class HDF5DataGenerator:
                     
             for currentConditionSpecificName in conditionSpecificNames:
                 conditionSpecificScalingParameterNames.append(currentConditionSpecificName)
-                currentGenericName = self.getGenericScalingParameterName(currentConditionSpecificName)
+                currentGenericName = self.getGenericParameterName(currentConditionSpecificName)
                 self.simulationParameterMap[currentGenericName][conditionName] = currentConditionSpecificName
 
         conditionSpecificScalingParameterNames = amiciHelper.unique(conditionSpecificScalingParameterNames)
         return conditionSpecificScalingParameterNames
+
 
     def splitScalingParameterNames(self, names):
         if not isinstance(names, float):
@@ -277,16 +285,20 @@ class HDF5DataGenerator:
             return names.split(",")
         return []
     
+
     def generateSimulationToOptimizationParameterMapping(self, simulationParameterNames, optimizationParameterNames):
         """
-        Create dataset n_pararameters_simulation x n_conditions with indexes of respective parameters in pararameters_optimization
+        Create dataset n_pararameters_simulation x n_conditions with indices of respective parameters in pararameters_optimization
         """
+        
         numSimulationParameters = len(simulationParameterNames)
+        
         # use in-memory matrix, don't write every entry to file directly (super slow)
         parameterMap = np.zeros(shape=(numSimulationParameters, self.numConditions),)
         
         # create inverse mapping
         optimizationParameterNameToIndex = { name: idx for idx, name in enumerate(optimizationParameterNames) }        
+        
         for idxSimulationParameter, simulationParameterName in enumerate(simulationParameterNames):
             
             if not len(self.simulationParameterMap[simulationParameterName]):
@@ -306,40 +318,45 @@ class HDF5DataGenerator:
                         # Cannot set to NaN in integer matrix. Will use 0. AMICI will not use this parameter anyways and its gradient will be 0.0 
                         parameterMap[idxSimulationParameter, conditionIdx] = 0
 
+        # write to file
         self.f.require_dataset('/parameters/optimizationSimulationMapping', 
                                shape=(numSimulationParameters, self.numConditions), 
                                chunks=(numSimulationParameters, 1), 
-                               dtype='<i4', fillvalue=0, compression=self.compression, data=parameterMap)
+                               dtype='<i4', 
+                               fillvalue=0, 
+                               compression=self.compression, 
+                               data=parameterMap)
 
-    def getOptimizationParameterNameForConditionSpecificSimulationParameter(self, conditionIdx, simulationParameterName, simulationParameterNames):
+    def getOptimizationParameterNameForConditionSpecificSimulationParameter(self, conditionIdx, simulationParameterName):
+        """"For the given model parameter name and condition index, find the condition-specific optimization parameter"""
+        # Measurements for given condition index
         scalingsForCurrentConditionByMeasurement = self.measurementDf.loc[self.measurementDf['condition'] == self.conditions[conditionIdx], 'scalingParameter']
         for scalingsForCurrentMeasurement in scalingsForCurrentConditionByMeasurement:
-            if not isinstance(scalingsForCurrentMeasurement, float):
-                # N/A will be float
-                # is single value or comma-separated list
-                for scaling in scalingsForCurrentMeasurement.split(","):
-                    if self.getGenericScalingParameterName(scaling) == simulationParameterName:
-                        return scaling
+            for scaling in self.splitScalingParameterNames(scalingsForCurrentMeasurement):
+                if self.getGenericParameterName(scaling) == simulationParameterName:
+                    return scaling
         return None
-            
 
 
-    def getGenericScalingParameterName(self, scaling):
+    def getGenericParameterName(self, modelParameterName):
         """
-        For the given scaling parameter name from measurement file or optimization parameter names,
+        For the given condition-specific parameter name from measurement file or optimization parameter names,
         get the parameter name as specified in the sbml/amici model.
         
-        (i.e. remove suffix from given scaling parameter)
+        Condition-specific parameter names are assumed to be named ${modelParameterName}_${suffixWithoutUnderscore},
+        thus, remove suffix from given condition-specific parameter name.
         """
         
-        return "_".join(scaling.split("_")[:-1])
+        return "_".join(modelParameterName.split("_")[:-1])
             
-    def getGenericScalingParameterNameAndCondition(self, scaling):
+            
+    def getGenericParameterNameAndCondition(self, scaling):
         """
-        For the given scaling parameter name from measurement file or optimization parameter names,
+        For the given condition-specific parameter name from measurement file or optimization parameter names,
         get the parameter name as specified in the sbml/amici model.
         
-        (i.e. remove suffix from given scaling parameter)
+        Condition-specific parameter names are assumed to be named ${modelParameterName}_${suffixWithoutUnderscore},
+        thus, split and return these two parts.
         """
         
         splitted = scaling.split("_")
@@ -347,24 +364,25 @@ class HDF5DataGenerator:
         suffix = splitted[-1]
         return genericName, suffix
             
-    def getGenericScalingParameterNames(self, scalingsUsed):
+            
+    def getGenericParameterNames(self, conditionSpecificParameterNames):
         """
-        For the given scaling parameter names from measurement file or optimization parameter names,
-        get unique list of the parameter names as specified in the sbml/amici model.
+        For the given condition-specific parameter names from measurement file or optimization parameter names,
+        return unique list of the parameter names as specified in the sbml/amici model.
         """
         # NOTE: not using set() here which would scramble parameter order.
         # This allows use to keep starting points from /randomStarts
         # the same after regenerating the data file.  
         genericNames = []
-        for s in scalingsUsed:
-            genericName = self.getGenericScalingParameterName(s)
+        for s in conditionSpecificParameterNames:
+            genericName = self.getGenericParameterName(s)
             genericNames.append(genericName)
         return amiciHelper.unique(genericNames)
     
     
     def generateFixedParameterMatrix(self):
         """
-        Write fixed parameters dataset. 
+        Write fixed parameters dataset (nFixedParameters x nConditions). 
         """
         
         k = self.amiciSyms.readFixedParameterNames()
@@ -376,7 +394,7 @@ class HDF5DataGenerator:
         for i in range(len(k)):
             self.handleFixedParameter(i, k[i], fixedParameterMatrix)
 
-        dset = self.createFixedParameterDatasetAndWriteAttributes(k, fixedParameterMatrix)
+        self.createFixedParameterDatasetAndWriteAttributes(k, fixedParameterMatrix)
         
         self.f.flush()
 
@@ -385,7 +403,7 @@ class HDF5DataGenerator:
         """
         Create fixed parameters data set and annotations
         """
-        g = self.f.require_group("/fixedParameters")
+        self.f.require_group("/fixedParameters")
 
         self.writeStringArray("/fixedParameters/parameterNames", fixedParameters)
         self.writeStringArray("/fixedParameters/conditionNames", self.conditions)      
@@ -404,15 +422,16 @@ class HDF5DataGenerator:
         
         return dset
 
-    def generateReferenceMap(self):
+    def generateReferenceConditionMap(self):
         """
-        Write index map reference conditions to be used for pre-equilibration
+        Write index map for reference conditions to be used for pre-equilibration
         
-        Parse conditionRef column, and write to hdf5 dataset. If conditionRef is empty, set to -1, otherwise to condition index
-        
-        TODO: self.measurementDf.conditionRef: this should go to exp table to avoid potential redundancy/ambiguity in measurement file
-        TODO: we might want to separate reference (control, ...) condition from preequilibration condition 
+        Parse conditionRef column, and write to hdf5 dataset. If conditionRef is empty, set to -1, otherwise to condition index       
         """
+        
+        # TODO: self.measurementDf.conditionRef: this should go to exp table to avoid potential redundancy/ambiguity in measurement file
+        # -> really? could we want different preequilibration for a given condition?
+        # TODO: we might want to separate reference (control, ...) condition from preequilibration condition 
         
         referenceMap = [NO_PREEQ_CONDITION_IDX] * len(self.conditions)
         
@@ -424,12 +443,13 @@ class HDF5DataGenerator:
                 conditionIdxRef = self.conditions.index(row['conditionRef'])
             
             if referenceMap[conditionIdx] != conditionIdxRef and referenceMap[conditionIdx] != NO_PREEQ_CONDITION_IDX:
-                printf("Error: Ambiguous assignment of reference conditions for %s: %s vs. %s" 
+                print("Error: Ambiguous assignment of reference conditions for %s: %s vs. %s" 
                        % (self.conditions[conditionIdx], self.conditions[referenceMap[conditionIdx]], self.conditions[conditionIdxRef])) 
             
             referenceMap[conditionIdx] = conditionIdxRef
             
-        dset = self.f.create_dataset("/fixedParameters/referenceConditionsX", shape=(self.numConditions,), dtype="<i4", data=referenceMap)
+        self.f.create_dataset("/fixedParameters/referenceConditionsX", shape=(self.numConditions,), dtype="<i4", data=referenceMap)
+
 
     def writeStringArray(self, path, strings):
         """
@@ -441,28 +461,34 @@ class HDF5DataGenerator:
         self.f.flush()
 
 
-    def writeFloatArray(self, path, values):
+    def writeFloatArray(self, path, values, dtype='f8'):
         """
         Write float array to hdf5
         """
-        dset = self.f.create_dataset(path, (len(values),), dtype='f8')
+        dset = self.f.create_dataset(path, (len(values),), dtype=dtype)
         dset[:] = values
         self.f.flush()
 
-    def writeIntArray(self, path, values):
+
+    def writeIntArray(self, path, values, dtype='<i4'):
         """
         Write integer array to hdf5
         """
-        dset = self.f.create_dataset(path, (len(values),), dtype='<i4')
+        dset = self.f.create_dataset(path, (len(values),), dtype=dtype)
         dset[:] = values
         self.f.flush()
 
 
     def handleFixedParameter(self, parameterIndex, parameterName, dset):
         """
-        Extract parameter values from data table and write to HDF5 dataset.
+        Extract parameter values from data table and set to dset
 
         NOTE: parameters which are not provided in fixedParametersDf are set to 0.0
+        
+        Arguments:
+        parameterIndex: Index of the current fixed parameter
+        parameterName: Name of the current parameter 
+        dset: 2D array-like (nFixedParameters x nConditions) where the parameter value is to be set
         """
         
         if parameterName in self.fixedParametersDf.index:
@@ -472,20 +498,21 @@ class HDF5DataGenerator:
         else:
             # initial states
             #         s = self.sbmlModel.getSpecies(parameterName)
-            print("Fixed parameter not found in ExpTable, setting to 0.0: ", parameterName)
+            print("Warning: Fixed parameter not found in ExpTable, setting to 0.0: ", parameterName)
             dset[parameterIndex, :] = 0.0
 
 
     def generateMeasurementMatrix(self):
         """
         Generate matrix with training data for all observables defined in the _syms file.
-        
-        TODO: at the moment we cannot deal with replace measurements (same condition, same observable, same timepoint) since not supported by AMICI
-        should alert user in case that happens, currently will be silently overwritten by the latter 
-        dirty workaround: take mean of change time to t+eps  
-        
+
         NOTE: data is expected to have numTimepoints as leading dimensions. parameter estimation might fail silently if not.
         """
+        
+        # TODO: at the moment we cannot deal with replace measurements (same condition, same observable, same timepoint) since not supported by AMICI
+        # should alert user in case that happens, currently will be silently overwritten by the latter 
+        # dirty workaround: take mean of change time to t+eps  
+        
 
         self.f.create_group("/measurements")
         
@@ -501,6 +528,7 @@ class HDF5DataGenerator:
                                       shape=(self.numConditions, self.numTimepoints, self.ny), 
                                       chunks=(1, self.numTimepoints, self.ny), 
                                       fillvalue=np.nan, dtype='f8', compression=self.compression)
+        
         dsetSigmaY = self.f.create_dataset("/measurements/ysigma", 
                                       shape=(self.numConditions, self.numTimepoints, self.ny), 
                                            chunks=(1, self.numTimepoints, self.ny), 
@@ -509,7 +537,8 @@ class HDF5DataGenerator:
         self.writeMeasurements(dsetY, dsetSigmaY)
         self.f.flush()
         
-        #TODO one is measurement reference -> need for generating simulation data
+        # TODO: this will be addressed when enabling preequilibration, for now there is the referenceConditionMap
+        # TODO one is measurement reference -> need for generating simulation data
         #dset = self.f.create_dataset("/fixedParameters/reference",
         #                             (nk, self.numConditions),
         #                             dtype='f8', chunks=(nk, 1))
@@ -521,12 +550,14 @@ class HDF5DataGenerator:
 
     def getObservableNamesFromSbml(self):
         """
-        Get array with names of observables from SBML models.
+        Get array with names of observables from SBML model.
         
-        (Observables are not accounted for in the SBML standard. 
-        We implement them as parameters and assigment rules.
+        NOTE: Observables are not accounted for in the SBML standard. 
+        We implement them as parameters and assignment rules.
         The respective parameters start with "observable_",
-         but do not end in "_sigma", which is reserved for encoding the error model)  
+        but do not end in "_sigma", which is reserved for encoding the error model.
+        
+        NOTE: observable names in the model are expected to match the ones in the data table
         """
         observables = []
         for p in self.sbmlModel.getListOfParameters():
@@ -547,14 +578,16 @@ class HDF5DataGenerator:
             conditionIdx = self.conditions.index(row['condition'])
             observableIdx = self.observables.index(row['observable'])
             timeIdx = self.timepoints.index(row['time'])
-            dsetY     [conditionIdx, timeIdx, observableIdx] = float(row['measurement'])
+            dsetY[conditionIdx, timeIdx, observableIdx] = float(row['measurement'])
+            
             scalings = self.splitScalingParameterNames(row['scalingParameter'])
-            hasSigmaParameter = len([s for s in scalings if self.getGenericScalingParameterName(s).endswith('_sigma')])
+            hasSigmaParameter = len([s for s in scalings if self.getGenericParameterName(s).endswith('_sigma')])
             sigma = float(row['sigma'])
             if hasSigmaParameter and not np.isnan(sigma):
-                print(colored('Warning: Sigma parameter name and fixed sigma provided at the same time for "%s"' % (row), 'yellow'))                  
+                print(colored('Warning: Sigma parameter name and fixed sigma provided at the same time for "%s". Setting to NaN so that sigma parameter is used' % (row), 'yellow'))                  
                 sigma = np.nan
             dsetSigmaY[conditionIdx, timeIdx, observableIdx] = sigma 
+
 
     def checkObservablesSbmlMatchAmici(self, observables, y):
         """
@@ -564,25 +597,28 @@ class HDF5DataGenerator:
         Problem: formula matching is not straightforward, since they might have changed due to symbolic processing  
         """
         
+        # The least we can do is compare the number of observables
         assert(len(y) == len(observables))
 
         for i in range(len(observables)):
             observableName = observables[i]
             amiciObsFormula = y[i]
+            
             # rough check if the sbml and model observable match
+            # this check expected observables to be names observable_$observedSpecies
             obsSpecies = observableName[(observableName.rfind('_') + 1):]
             if amiciObsFormula.find(obsSpecies) < 0:
                 print(colored('Warning: Not sure if SBML observable "%s" matches AMICI formula "%s"' % (obsSpecies, amiciObsFormula), 'yellow'))                  
 
 
-    def generateScalingParameterData(self):
+    def generateHierarchicalOptimizationData(self):
         """
-        Deal with offsets, proportionality factor and sigmas for hierarchical optimization
+        Deal with offsets, proportionality factors and sigmas for hierarchical optimization
         
-        Generate the respective mappings
+        Generate the respective index lists and mappings
         """
         
-        # TODO should check at the end of the function if scalingIndices lists are non-overlapping 
+        # TODO: should check at the end of the function if scalingIndices lists are non-overlapping 
         self.ensureNonOverlappingParameterForHierarchicalOptimization()
         
         self.handleProportionalityFactors() 
@@ -594,34 +630,33 @@ class HDF5DataGenerator:
         """
         Current parPE implementation of hierarchical optimization assumes that only one single  
         offset or proportionality parameter is to be calculated per condition x observable. 
-        Will fail silently if there are more, thus we need to check here.
+        Will fail silently if there are more. Thus we need to check here.
         Also check that there is at most one sigma per condition x observable
         """
         
-        map = {} # observable => condition => parameter-for-hierarchical 
+        parameterMap = {} # observable => condition => parameter-for-hierarchical 
         for index, row in self.measurementDf.iterrows():
             scalings = self.splitScalingParameterNames(row['scalingParameter'])
             if not len(scalings):
                 continue
             
-            nonSigmas = [x for x in scalings if not self.getGenericScalingParameterName(x).endswith("_sigma")]
-            sigmas = [x for x in scalings if self.getGenericScalingParameterName(x).endswith("_sigma")]
+            nonSigmas = [x for x in scalings if not self.getGenericParameterName(x).endswith("_sigma")]
+            sigmas =    [x for x in scalings if self.getGenericParameterName(x).endswith("_sigma")]
             
             if len(sigmas) > 1:
                 raise RuntimeError('ERROR: Multiple sigma parameters provided for\n%s\n' % row)
                 
             if len(nonSigmas) > 1:
                 print("Warning: multiple scaling and/or offset parameters found for\n\t%s\n\twhich one to choose for hierarchical optimization? Assuming first" % row)
-            
-            if not len(nonSigmas):
+            elif not len(nonSigmas):
                 continue
             
-            if row['observable'] in map:
-                if row['condition'] in row['observable'] and map[row['observable']][row['condition']] != nonSigmas[0]:
-                    raise RuntimeError("ERROR: multiple scaling and/or offset parameters found for\n\t%s\n\twhich one to choose for hierarchical optimization? previously found %s" % (row, map[row['observable']]))
+            if row['observable'] in parameterMap:
+                if row['condition'] in row['observable'] and parameterMap[row['observable']][row['condition']] != nonSigmas[0]:
+                    raise RuntimeError("ERROR: multiple scaling and/or offset parameters found for\n\t%s\n\twhich one to choose for hierarchical optimization? previously found %s" % (row, parameterMap[row['observable']]))
             else:
-                map[row['observable']] = {}
-            map[row['observable']][row['condition']] = nonSigmas[0]
+                parameterMap[row['observable']] = {}
+            parameterMap[row['observable']][row['condition']] = nonSigmas[0]
 
     
     def handleOffsetParameter(self):
@@ -649,7 +684,7 @@ class HDF5DataGenerator:
         [ self.ensureOffsetIsOffsetWithPositiveSign(x) for x in offsetsForHierarchical ]
         print("Number of offset parameters for hierarchical optimization: %d" % len(offsetsForHierarchicalIndices))
         
-        dset = self.f.require_dataset("/offsetParameterIndices", 
+        self.f.require_dataset("/offsetParameterIndices", 
                                       shape=(len(offsetsForHierarchicalIndices),), 
                                       dtype='<i4', 
                                       data=offsetsForHierarchicalIndices)
@@ -657,19 +692,23 @@ class HDF5DataGenerator:
         # find usages for the selected parameters
         use = self.getAnalyticalParameterTable(offsetsForHierarchical)
        
-        dset = self.f.require_dataset("/offsetParametersMapToObservables", 
+        self.f.require_dataset("/offsetParametersMapToObservables", 
                                       shape=(len(use), 3), 
-                                      dtype='<i4')
-        dset[:] = use
+                                      dtype='<i4', data=use)
+        
         
     def getAnalyticalParameterTable(self, parametersForHierarchical):
-        """Generate (scalingIdx, conditionIdx, observableIdx) table for all scaling parameter occurrences"""
+        """Generate (scalingIdx, conditionIdx, observableIdx) table for all occurrences of the given parameter names
+        
+        Returns:
+        list of (scalingIdx, conditionIdx, observableIdx) tuples
+        """
         use = []
         for index, row in self.measurementDf.iterrows():
             currentScalings = self.splitScalingParameterNames(row['scalingParameter'])
             for s in currentScalings:
                 #print(s, parametersForHierarchical)
-                if s in parametersForHierarchical:
+                try:
                     scalingIdx = parametersForHierarchical.index(s)
                     conditionIdx = self.conditions.index(row['condition'])
                     observableIdx = self.observables.index(row['observable'])
@@ -679,6 +718,8 @@ class HDF5DataGenerator:
                     # (Can be implemented via different observables)
                     if not tup in use:
                         use.append(tup)
+                except ValueError:
+                    pass # current parameter not in list
         assert len(use)
         return use
     
@@ -686,21 +727,22 @@ class HDF5DataGenerator:
         """
         Current parPE implementation of hierarchical optimization assumes that offset parameters have positive sign.
         Will fail silently if this is not true, therefore check here that it is in indeed an offset parameter and 
-        that it has positive sign
-        
-        TODO: sympy
-        TODO: formula not showing when using python-model self.y is wrong
+        that it has positive sign.
         """
+        #TODO: sympy
+        #TODO: formula not showing when using python-model self.y is wrong
+
         print(colored("Ensure that %s is selected correctly as offset for hierarchical optimization and has positive sign (%s)." 
-                      % (scaling, self.getFormulaForScalingParameter(scaling)), "yellow"))
+                      % (scaling, self.getFormulaForConditionSpecificParameter(scaling)), "yellow"))
         
         
-    def getFormulaForScalingParameter(self, scaling):
+    def getFormulaForConditionSpecificParameter(self, parameterName):
         """
-        Get formula for the (first) observable associated with the provided scaling factor 
+        Get formula for the (first) observable associated with the provided condition-specific parameter 
         (name provided as in measurement list, not as in model) 
         """
-        name = self.getGenericScalingParameterName(scaling)
+        # get model parameter name
+        name = self.getGenericParameterName(parameterName)
         formula = ''
         for i in range(len(self.y)):
             if self.y[i].find(name) > -1:
@@ -711,22 +753,20 @@ class HDF5DataGenerator:
 
     def handleProportionalityFactors(self):
         """
-        Write datasets specifying which parameters to consider for hierarchical optimization
-        
-        TODO: 
-        Figure out how to deal with observables with multiple scaling parameters; which one is preferred? proportionality over offset?
-        
-        TODO: 
-        how to let the user select which ones to add?
+        Write datasets specifying which proportionality factors to consider for hierarchical optimization
         """        
        
+        # TODO: Figure out how to deal with observables with multiple scaling parameters; which one is preferred? proportionality over offset?
+        
+        # TODO: how to let the user select which ones to add?
+
         scalingsForHierarchical = [x for x in self.getUsedScalingParameters() if x.startswith("scaling_") ]
         if not len(scalingsForHierarchical):
             return
         scalingsForHierarchicalIndices = [ self.optimizationParameterNamesToIndices[x] for x in scalingsForHierarchical ]
         [ self.ensureProportionalityFactorIsProportionalityFactor(x) for x in scalingsForHierarchical ]
 
-        dset = self.f.require_dataset("/scalingParameterIndices", 
+        self.f.require_dataset("/scalingParameterIndices", 
                                       shape=(len(scalingsForHierarchicalIndices),), 
                                       dtype='<i4', 
                                       data=scalingsForHierarchicalIndices)
@@ -735,34 +775,33 @@ class HDF5DataGenerator:
         # find usages for the selected parameters
         use = self.getAnalyticalParameterTable(scalingsForHierarchical)
        
-        dset = self.f.require_dataset("/scalingParametersMapToObservables", 
+        self.f.require_dataset("/scalingParametersMapToObservables", 
                                       shape=(len(use), 3), 
-                                      dtype='<i4')
-        dset[:] = use
+                                      dtype='<i4', data=use)
         
 
     def ensureProportionalityFactorIsProportionalityFactor(self, scaling):
         """
         Ensure that this is a proportionality factor (a as in y = ax + b)
-        
-        TODO sympy: verify: obs / proportionality does not contain proportionality
         """
     
-        formula = self.getFormulaForScalingParameter(scaling)
+        # TODO: sympy: verify: obs / proportionality does not contain proportionality
+
+        formula = self.getFormulaForConditionSpecificParameter(scaling)
         print(colored("Ensure that %s is selected correctly as proportionality factor for hierarchical optimization (%s)." % (scaling, formula), "yellow"))
     
     
     def handleSigmas(self):
         """
-        Deal with sigma parameters
+        Write data for dealing with sigma parameters in hierarchical optimization
         """
-        sigmasForHierarchical = [x for x in self.getUsedScalingParameters() if self.getGenericScalingParameterName(x).endswith("_sigma") ]
+        sigmasForHierarchical = [x for x in self.getUsedScalingParameters() if self.getGenericParameterName(x).endswith("_sigma") ]
         if not len(sigmasForHierarchical):
             return
 
         sigmasForHierarchicalIndices = [ self.optimizationParameterNamesToIndices[x] for x in sigmasForHierarchical ]
 
-        dset = self.f.require_dataset("/sigmaParameterIndices", 
+        self.f.require_dataset("/sigmaParameterIndices", 
                                       shape=(len(sigmasForHierarchicalIndices),), 
                                       dtype='<i4', 
                                       data=sigmasForHierarchicalIndices)
@@ -771,7 +810,7 @@ class HDF5DataGenerator:
         # find usages for the selected parameters
         use = self.getAnalyticalParameterTable(sigmasForHierarchical)
        
-        dset = self.f.require_dataset("/sigmaParametersMapToObservables", 
+        self.f.require_dataset("/sigmaParametersMapToObservables", 
                                       shape=(len(use), 3), 
                                       dtype='<i4', data=use)
     
@@ -780,9 +819,6 @@ class HDF5DataGenerator:
         Write simulation options
         """
         g = self.f.require_group("/amiciOptions")
-        #g.attrs['qpositivex'] = [0.0] * len(self.amiciSyms.readStateNames())
-        #g.attrs['kappa'] = [np.nan] * len(self.amiciSyms.readParameterNames())
-        #g.attrs['theta'] = [np.nan] * self.nk
         g.attrs['sensi'] = 1
         g.attrs['sensi_meth'] = 2
         g.attrs['tstart'] = 0.0
@@ -801,6 +837,7 @@ class HDF5DataGenerator:
 
         numParameters = self.f['/parameters/modelParameterNames'].shape[0]
 
+        # parameter indices w.r.t. which to compute sensitivities
         self.f.require_dataset('/amiciOptions/sens_ind', shape=(numParameters,), dtype="<i4", data=range(numParameters))
 
         self.f.require_dataset('/amiciOptions/ts', shape=(len(self.timepoints),), dtype="f8", data=self.timepoints)
@@ -827,15 +864,15 @@ class HDF5DataGenerator:
         parameterNamesModel = []
         if '/offsetParameterIndices' in self.f:
             parameterNamesOptimization = self.f['/parameters/parameterNames'][self.f['/offsetParameterIndices']]
-            parameterNamesModel.extend(set([self.getGenericScalingParameterName(o) for o in parameterNamesOptimization]))
+            parameterNamesModel.extend(set([self.getGenericParameterName(o) for o in parameterNamesOptimization]))
             
         if '/scalingParameterIndices' in self.f:
             parameterNamesOptimization = self.f['/parameters/parameterNames'][self.f['/scalingParameterIndices']]
-            parameterNamesModel.extend(set([self.getGenericScalingParameterName(o) for o in parameterNamesOptimization]))
+            parameterNamesModel.extend(set([self.getGenericParameterName(o) for o in parameterNamesOptimization]))
 
         if '/sigmaParameterIndices' in self.f:
             parameterNamesOptimization = self.f['/parameters/parameterNames'][self.f['/sigmaParameterIndices']]
-            parameterNamesModel.extend(set([self.getGenericScalingParameterName(o) for o in parameterNamesOptimization]))
+            parameterNamesModel.extend(set([self.getGenericParameterName(o) for o in parameterNamesOptimization]))
 
         return [ self.f['/parameters/modelParameterNames'][:].tolist().index(p) for p in set(parameterNamesModel) ]
     
