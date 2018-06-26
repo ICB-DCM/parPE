@@ -19,7 +19,7 @@ public:
 
     MultiConditionProblemResultWriter(hid_t file_id, JobIdentifier id);
 
-    MultiConditionProblemResultWriter(std::string filename, bool overwrite,
+    MultiConditionProblemResultWriter(const std::string &filename, bool overwrite,
                                       JobIdentifier id);
 
     MultiConditionProblemResultWriter(MultiConditionProblemResultWriter const& other);

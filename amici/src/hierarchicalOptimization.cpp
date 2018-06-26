@@ -119,7 +119,7 @@ FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluate(
         std::vector<double> &fullGradient) const
 {
     RELEASE_ASSERT(reducedParameters.size() == (unsigned)numParameters(), "");
-    RELEASE_ASSERT(gradient.size() == 0 || gradient.size() == reducedParameters.size(), "");
+    RELEASE_ASSERT(gradient.empty() || gradient.size() == reducedParameters.size(), "");
     if(numProportionalityFactors() == 0 && numOffsetParameters() == 0) {
         // nothing to do, just pass through
 
@@ -336,7 +336,7 @@ FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluateWithOptimalPara
         const gsl::span<double> gradient,
         std::vector<double>& fullGradient) const {
 
-    if(gradient.size()) {
+    if(!gradient.empty()) {
         // simulate with updated theta for sensitivities
         // simulate all datasets
         std::vector<int> dataIndices(numConditions);
@@ -353,7 +353,7 @@ FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluateWithOptimalPara
         fillFilteredParams(fullGradient, analyticalParameterIndices, gradient);
     } else {
         auto fullSigmaMatrices = fun->getAllSigmas();
-        if(sigmaParameterIndices.size()) {
+        if(!sigmaParameterIndices.empty()) {
             fillInAnalyticalSigmas(fullSigmaMatrices, sigmas);
         }
 
@@ -380,10 +380,10 @@ const std::vector<int> &HierachicalOptimizationWrapper::getProportionalityFactor
 
 
 AnalyticalParameterHdf5Reader::AnalyticalParameterHdf5Reader(H5::H5File const& file,
-                                                             std::string const& scalingParameterIndicesPath,
+                                                             std::string const& analyticalParameterIndicesPath,
                                                              std::string const& mapPath)
     : mapPath(mapPath),
-      analyticalParameterIndicesPath(scalingParameterIndicesPath)
+      analyticalParameterIndicesPath(analyticalParameterIndicesPath)
 {
     auto lock = hdf5MutexGetLock();
     this->file = file; // copy while mutex is locked!
@@ -459,7 +459,7 @@ std::vector<int> AnalyticalParameterHdf5Reader::getOptimizationParameterIndices(
     return analyticalParameterIndices;
 }
 
-int AnalyticalParameterHdf5Reader::getNumAnalyticalParameters(H5::DataSet& dataset) const
+int AnalyticalParameterHdf5Reader::getNumAnalyticalParameters() const
 {
     hsize_t numAnalyticalParameters = 0;
     auto lock = hdf5MutexGetLock();
@@ -472,7 +472,7 @@ int AnalyticalParameterHdf5Reader::getNumAnalyticalParameters(H5::DataSet& datas
         if(ndims != 1)
             throw ParPEException("Invalid dimension in getOptimizationParameterIndices.");
         dataspace.getSimpleExtentDims(&numAnalyticalParameters);
-    } catch (H5::FileIException e) {
+    } catch (H5::FileIException &e) {
         // 0
     }
     H5_RESTORE_ERROR_HANDLER;
@@ -484,8 +484,8 @@ void AnalyticalParameterHdf5Reader::readParameterConditionObservableMappingFromF
     auto lock = hdf5MutexGetLock();
     H5_SAVE_ERROR_HANDLER;
     try {
+        int numScalings = getNumAnalyticalParameters();
         auto dataset = file.openDataSet(mapPath);
-        int numScalings = getNumAnalyticalParameters(dataset);
         if(numScalings == 0)
             return;
 
@@ -964,7 +964,7 @@ bool HierarchicalOptimizationReporter::iterationFinished(gsl::span<const double>
          * one, even if the cost does not match, since this is the best parameter guess we have.
          */
         if(objectiveFunctionValue == cachedCost
-                && (parameters.size() == 0
+                && (parameters.empty()
                     || std::equal(parameters.begin(), parameters.end(), cachedParameters.begin()))) {
             resultWriter->logLocalOptimizerIteration(numIterations, cachedFullParameters,
                                                      objectiveFunctionValue,
@@ -983,7 +983,10 @@ bool HierarchicalOptimizationReporter::iterationFinished(gsl::span<const double>
 
 }
 
-bool HierarchicalOptimizationReporter::afterCostFunctionCall(gsl::span<const double> parameters, double objectiveFunctionValue, gsl::span<const double> objectiveFunctionGradient) const
+bool HierarchicalOptimizationReporter::afterCostFunctionCall(
+        gsl::span<const double> parameters,
+        double objectiveFunctionValue,
+        gsl::span<const double> objectiveFunctionGradient) const
 {
     double wallTime = wallTimer.getTotal();//(double)(timeCostEvaluationEnd - timeCostEvaluationBegin) / CLOCKS_PER_SEC;
 

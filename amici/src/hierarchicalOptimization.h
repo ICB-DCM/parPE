@@ -2,7 +2,7 @@
 #define HIERACHICALOPTIMIZATION_H
 
 #include <optimizationProblem.h>
-#include <multiConditionProblem.h>
+#include "multiConditionProblem.h"
 #include <misc.h>
 #include <parpeException.h>
 
@@ -149,7 +149,7 @@ public:
     std::vector<double> computeAnalyticalSigmas( std::vector<std::vector<double> > const& measurements,
                                                  std::vector <std::vector<double>>& modelOutputsScaled) const;
 
-    void applyOptimalOffsets(std::vector<double> const& proportionalityFactors,
+    void applyOptimalOffsets(std::vector<double> const& offsetParameters,
                              std::vector<std::vector<double> > &modelOutputs) const;
 
     /**
@@ -157,7 +157,8 @@ public:
      * @param sigmas
      * @return
      */
-    void fillInAnalyticalSigmas(std::vector<std::vector<double> > &allSigmas, const std::vector<double> &analyticalSigmas) const;
+    void fillInAnalyticalSigmas(std::vector<std::vector<double> > &allSigmas,
+                                const std::vector<double> &analyticalSigmas) const;
 
     /**
      * @brief Evaluate `fun` using the computed optimal scaling and offset parameters.
@@ -328,7 +329,7 @@ private:
      * @param dataset Read information from this dataset.
      * @return
      */
-    int getNumAnalyticalParameters(H5::DataSet &dataset) const;
+    int getNumAnalyticalParameters() const;
 
     void readParameterConditionObservableMappingFromFile();
     std::vector<int> readRawMap(H5::DataSet& dataset, hsize_t &nRows, hsize_t &nCols);

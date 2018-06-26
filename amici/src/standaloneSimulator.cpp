@@ -1,11 +1,11 @@
 #include "standaloneSimulator.h"
-#include <SimulationRunner.h>
-#include <simulationResultWriter.h>
+#include "SimulationRunner.h"
+#include "simulationResultWriter.h"
 #include <LoadBalancerMaster.h>
 #include <LoadBalancerWorker.h>
 #include <optimizationOptions.h>
 #include <misc.h>
-#include <hierarchicalOptimization.h>
+#include "hierarchicalOptimization.h"
 
 #include <gsl/gsl-lite.hpp>
 
@@ -192,7 +192,7 @@ void StandaloneSimulator::messageHandler(std::vector<char> &buffer, int jobId)
 #endif
 
     // do work
-    JobResultAmiciSimulation result = runSimulation(path, jobId, *solver, *model);
+    JobResultAmiciSimulation result = runSimulation(path, *solver, *model);
 
 #if QUEUE_WORKER_H_VERBOSE >= 2
     printf("[%d] Work done. ", mpiRank);
@@ -212,7 +212,7 @@ void StandaloneSimulator::messageHandler(std::vector<char> &buffer, int jobId)
 }
 
 
-JobResultAmiciSimulation StandaloneSimulator::runSimulation(JobIdentifier path, int jobId,
+JobResultAmiciSimulation StandaloneSimulator::runSimulation(JobIdentifier path,
                                                             amici::Solver& solver, amici::Model& model)
 {
     // currently requires edata, since all condition specific parameters are set via edata
@@ -226,7 +226,7 @@ JobResultAmiciSimulation StandaloneSimulator::runSimulation(JobIdentifier path, 
 
 
 
-std::vector<double> getFinalParameters(std::string startIndex, H5::H5File const& file)
+std::vector<double> getFinalParameters(std::string const& startIndex, H5::H5File const& file)
 {
     auto lock = hdf5MutexGetLock();
 
@@ -247,7 +247,7 @@ std::vector<double> getFinalParameters(std::string startIndex, H5::H5File const&
     RELEASE_ASSERT(rank == 2, "Rank mismatch");
 
     hsize_t dims[2];
-    filespace.getSimpleExtentDims(dims, NULL);
+    filespace.getSimpleExtentDims(dims, nullptr);
     int numParam = dims[0];
     int numFunctionEvalations = dims[1];
 
@@ -280,7 +280,7 @@ std::vector<double> getFinalParameters(std::string startIndex, H5::H5File const&
     return parameters;
 }
 
-std::vector<std::vector<double>> getParameterTrajectory(std::string startIndex, H5::H5File const& file)
+std::vector<std::vector<double>> getParameterTrajectory(std::string const& startIndex, H5::H5File const& file)
 {
     auto lock = hdf5MutexGetLock();
 
@@ -292,7 +292,7 @@ std::vector<std::vector<double>> getParameterTrajectory(std::string startIndex, 
     RELEASE_ASSERT(rank == 2, "Rank mismatch");
 
     hsize_t dims[2];
-    filespace.getSimpleExtentDims(dims, NULL);
+    filespace.getSimpleExtentDims(dims, nullptr);
     int numIter = dims[1];
     int numParam = dims[0];
 
@@ -308,12 +308,16 @@ std::vector<std::vector<double>> getParameterTrajectory(std::string startIndex, 
     return parameters;
 }
 
-int getNumStarts(H5::H5File const& file, std::string rootPath)  {
+int getNumStarts(H5::H5File const& file, std::string const& rootPath)  {
     auto o = parpe::OptimizationOptions::fromHDF5(file.getId(), rootPath + "/inputData/optimizationOptions");
     return o->numStarts;
 }
 
-int runFinalParameters(StandaloneSimulator &sim, std::string inFileName, std::string resultFileName, std::string resultPath, LoadBalancerMaster *loadBalancer) {
+int runFinalParameters(StandaloneSimulator &sim,
+                       std::string const& inFileName,
+                       std::string const& resultFileName,
+                       std::string const& resultPath,
+                       LoadBalancerMaster *loadBalancer) {
 
     H5::H5File file;
     {
@@ -339,9 +343,9 @@ int runFinalParameters(StandaloneSimulator &sim, std::string inFileName, std::st
 }
 
 int runAlongTrajectory(StandaloneSimulator &sim,
-                       std::string inFileName,
-                       std::string resultFileName,
-                       std::string resultPath,
+                       const std::string &inFileName,
+                       const std::string &resultFileName,
+                       const std::string &resultPath,
                        LoadBalancerMaster *loadBalancer)
 {
     H5::H5File file;
@@ -363,7 +367,7 @@ int runAlongTrajectory(StandaloneSimulator &sim,
 
                 errors += sim.run(resultFileName, curResultPath, parameters[iter], loadBalancer, file);
             }
-        } catch (std::exception e) {
+        } catch (std::exception const& e) {
             std::cerr<<e.what()<<std::endl;
         }
 
@@ -372,21 +376,31 @@ int runAlongTrajectory(StandaloneSimulator &sim,
     return errors;
 }
 
-int runSimulationTasks(StandaloneSimulator &sim, std::string simulationMode,
-                       std::string inFileName, std::string dataFilePath,
-                       std::string resultFileName, std::string resultPath,
+int runSimulationTasks(StandaloneSimulator &sim,
+                       std::string const& simulationMode,
+                       std::string const& inFileName,
+                       std::string const& dataFilePath,
+                       std::string const& resultFileName,
+                       std::string const& resultPath,
                        LoadBalancerMaster *loadBalancer) {
 
     if(simulationMode == "--at-optimum") {
         return parpe::runFinalParameters(sim, inFileName, resultFileName, resultPath, loadBalancer);
-    } else if (simulationMode == "--along-trajectory") {
+    }
+
+    if (simulationMode == "--along-trajectory") {
         return parpe::runAlongTrajectory(sim, inFileName, resultFileName, resultPath, loadBalancer);
     }
 
     return -1;
 }
 
-int runSimulator(MultiConditionDataProvider &dp, std::string simulationMode, std::string dataFileName, std::string dataFilePath, std::string resultFileName, std::string resultPath)
+int runSimulator(MultiConditionDataProvider &dp,
+                 const std::string &simulationMode,
+                 const std::string &inFileName,
+                 const std::string &dataFilePath,
+                 const std::string &resultFileName,
+                 const std::string &resultPath)
 {
     parpe::StandaloneSimulator sim(&dp);
     int status = 0;
@@ -396,7 +410,9 @@ int runSimulator(MultiConditionDataProvider &dp, std::string simulationMode, std
         if (parpe::getMpiRank() == 0) {
             parpe::LoadBalancerMaster loadBalancer;
             loadBalancer.run();
-            status = runSimulationTasks(sim, simulationMode, dataFileName, dataFilePath, resultFileName, resultPath, &loadBalancer);
+            status = runSimulationTasks(sim, simulationMode,
+                                        inFileName, dataFilePath,
+                                        resultFileName, resultPath, &loadBalancer);
             loadBalancer.terminate();
             loadBalancer.sendTerminationSignalToAllWorkers();
         } else {
@@ -406,7 +422,9 @@ int runSimulator(MultiConditionDataProvider &dp, std::string simulationMode, std
             });
         }
     } else {
-        status = runSimulationTasks(sim, simulationMode, dataFileName, dataFilePath, resultFileName, resultPath, nullptr);
+        status = runSimulationTasks(sim, simulationMode,
+                                    inFileName, dataFilePath,
+                                    resultFileName, resultPath, nullptr);
     }
 
     return status;

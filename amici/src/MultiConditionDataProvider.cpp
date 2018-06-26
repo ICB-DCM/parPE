@@ -1,5 +1,5 @@
 #include "MultiConditionDataProvider.h"
-#include <hierarchicalOptimization.h>
+#include "hierarchicalOptimization.h"
 #include "logging.h"
 #include "misc.h"
 #include <parpeException.h>
@@ -20,12 +20,12 @@ namespace parpe {
  */
 
 MultiConditionDataProviderHDF5::MultiConditionDataProviderHDF5(std::unique_ptr<amici::Model> model,
-                                                               std::string hdf5Filename)
+                                                               std::string const& hdf5Filename)
     : MultiConditionDataProviderHDF5(std::move(model), hdf5Filename, "") {}
 
 MultiConditionDataProviderHDF5::MultiConditionDataProviderHDF5(std::unique_ptr<amici::Model> model,
-                                                               std::string hdf5Filename,
-                                                               std::string rootPath)
+                                                               std::string const& hdf5Filename,
+                                                               std::string const& rootPath)
     : model(std::move(model)), rootPath(rootPath) {
 
     optimizationOptions = parpe::OptimizationOptions::fromHDF5(getHdf5FileId());
@@ -47,7 +47,7 @@ MultiConditionDataProviderHDF5::MultiConditionDataProviderHDF5(std::unique_ptr<a
     amici::hdf5::readModelDataFromHDF5(fileId, *this->model, hdf5AmiciOptionPath);
 }
 
-void MultiConditionDataProviderHDF5::openHdf5File(std::string hdf5Filename)
+void MultiConditionDataProviderHDF5::openHdf5File(std::string const& hdf5Filename)
 {
     H5_SAVE_ERROR_HANDLER;
     try {
@@ -58,7 +58,7 @@ void MultiConditionDataProviderHDF5::openHdf5File(std::string hdf5Filename)
                    "initDataProvider failed to open HDF5 file '%s'.",
                    hdf5Filename.c_str());
         printBacktrace(20);
-        H5Ewalk2(H5E_DEFAULT, H5E_WALK_DOWNWARD, hdf5ErrorStackWalker_cb, NULL);
+        H5Ewalk2(H5E_DEFAULT, H5E_WALK_DOWNWARD, hdf5ErrorStackWalker_cb, nullptr);
         throw(HDF5Exception());
     }
     H5_RESTORE_ERROR_HANDLER;
@@ -88,13 +88,16 @@ int MultiConditionDataProviderHDF5::getNumberOfConditions() const {
 
 std::vector<int> MultiConditionDataProviderHDF5::getSimulationToOptimizationParameterMapping(int conditionIdx) const  {
     std::string path = hdf5SimulationToOptimizationParameterMappingPath;
+
     if(hdf5DatasetExists(fileId, path)) {
         return hdf5Read2DIntegerHyperslab(file, path, model->np(), 1, 0, conditionIdx);
-    } else {
-        std::vector<int> defaultMap(model->np());
-        std::iota(defaultMap.begin(), defaultMap.end(), 0);
-        return defaultMap;
     }
+
+    // return trivial default mapping
+    std::vector<int> defaultMap(model->np());
+    std::iota(defaultMap.begin(), defaultMap.end(), 0);
+
+    return defaultMap;
 }
 
 void MultiConditionDataProviderHDF5::mapSimulationToOptimizationVariablesAddMultiply(
@@ -161,7 +164,7 @@ void MultiConditionDataProviderHDF5::readFixedSimulationParameters(int condition
                    "Problem in readFixedParameters (row %d, nk %d)\n",
                    conditionIdx, model->nk());
         printBacktrace(20);
-        H5Ewalk2(H5E_DEFAULT, H5E_WALK_DOWNWARD, hdf5ErrorStackWalker_cb, NULL);
+        H5Ewalk2(H5E_DEFAULT, H5E_WALK_DOWNWARD, hdf5ErrorStackWalker_cb, nullptr);
         abort();
     }
 
@@ -272,7 +275,7 @@ std::unique_ptr<amici::Solver> MultiConditionDataProviderHDF5::getSolver() const
     auto solver = model->getSolver();
     auto lock = hdf5MutexGetLock();
 
-    amici::hdf5::readSolverSettingsFromHDF5(fileId, *solver, hdf5AmiciOptionPath.c_str());
+    amici::hdf5::readSolverSettingsFromHDF5(fileId, *solver, hdf5AmiciOptionPath);
     return solver;
 }
 

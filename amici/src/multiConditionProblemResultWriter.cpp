@@ -4,8 +4,7 @@
 
 namespace parpe {
 
-MultiConditionProblemResultWriter::MultiConditionProblemResultWriter()
-    : OptimizationResultWriter() {}
+MultiConditionProblemResultWriter::MultiConditionProblemResultWriter() {}
 
 MultiConditionProblemResultWriter::MultiConditionProblemResultWriter(
     hid_t file_id)
@@ -23,7 +22,7 @@ MultiConditionProblemResultWriter::MultiConditionProblemResultWriter(
 }
 
 MultiConditionProblemResultWriter::MultiConditionProblemResultWriter(
-    std::string filename, bool overwrite, JobIdentifier id)
+    std::string const& filename, bool overwrite, JobIdentifier id)
     : OptimizationResultWriter(filename, overwrite)
 {
     auto lock = hdf5MutexGetLock();

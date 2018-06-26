@@ -17,9 +17,9 @@ public:
 
     SimulationResultWriter() = default;
 
-    SimulationResultWriter(const H5::H5File &file, std::string rootPath);
+    SimulationResultWriter(const H5::H5File &file, const std::string &rootPath);
 
-    SimulationResultWriter(std::string hdf5FileName, std::string rootPath);
+    SimulationResultWriter(std::string const& hdf5FileName, std::string const& rootPath);
 
     /**
      * @brief Create results datasets. Condition index is first dimension.

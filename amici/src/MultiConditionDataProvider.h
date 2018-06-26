@@ -184,7 +184,7 @@ class MultiConditionDataProviderHDF5 : public MultiConditionDataProvider {
      * @param model A valid pointer to the amici::Model for which the data is to be provided.
      * @param hdf5Filename Path to the HDF5 file from which the data is to be read
      */
-    MultiConditionDataProviderHDF5(std::unique_ptr<amici::Model> model, std::string hdf5Filename);
+    MultiConditionDataProviderHDF5(std::unique_ptr<amici::Model> model, const std::string &hdf5Filename);
 
     /**
      * @brief See above.
@@ -192,12 +192,13 @@ class MultiConditionDataProviderHDF5 : public MultiConditionDataProvider {
      * @param hdf5Filename
      * @param rootPath The name of the HDF5 group under which the data is stored.
      */
-    MultiConditionDataProviderHDF5(std::unique_ptr<amici::Model> model, std::string hdf5Filename,
-                               std::string rootPath);
+    MultiConditionDataProviderHDF5(std::unique_ptr<amici::Model> model,
+                                   std::string const& hdf5Filename,
+                                   std::string const& rootPath);
 
     virtual ~MultiConditionDataProviderHDF5() = default;
 
-    void openHdf5File(std::string hdf5Filename);
+    void openHdf5File(const std::string &hdf5Filename);
 
     /**
      * @brief Provides the number of conditions for which data is available and

@@ -1,12 +1,12 @@
-#include <simulationResultWriter.h>
+#include "simulationResultWriter.h"
 #include <hdf5Misc.h>
 
 #include <cstdio>
-#include <math.h> // NAN
+#include <cmath> // NAN
 
 namespace parpe {
 
-SimulationResultWriter::SimulationResultWriter(H5::H5File const& file, std::string rootPath)
+SimulationResultWriter::SimulationResultWriter(H5::H5File const& file, std::string const& rootPath)
     : rootPath(rootPath)
 {
     auto lock = hdf5MutexGetLock();
@@ -14,7 +14,7 @@ SimulationResultWriter::SimulationResultWriter(H5::H5File const& file, std::stri
     updatePaths();
 }
 
-SimulationResultWriter::SimulationResultWriter(std::string hdf5FileName, std::string rootPath)
+SimulationResultWriter::SimulationResultWriter(const std::string &hdf5FileName, std::string const& rootPath)
     : rootPath(rootPath)
 {
     auto lock = hdf5MutexGetLock();
@@ -23,7 +23,7 @@ SimulationResultWriter::SimulationResultWriter(std::string hdf5FileName, std::st
 
     try {
         file = H5::H5File(hdf5FileName, H5F_ACC_RDWR);
-    } catch (H5::FileIException e) {
+    } catch (H5::FileIException const& e) {
         // create if doesn't exist
         file = H5::H5File(hdf5FileName, H5F_ACC_EXCL);
     }
@@ -36,10 +36,10 @@ SimulationResultWriter::SimulationResultWriter(std::string hdf5FileName, std::st
 void SimulationResultWriter::createDatasets(const amici::Model &model,
                                             int numberOfSimulations)
 {
-    hsize_t numSimulations = static_cast<hsize_t>(numberOfSimulations);
-    hsize_t ny = static_cast<hsize_t>(model.nytrue);
-    hsize_t nx = static_cast<hsize_t>(model.nxtrue);
-    hsize_t nt = static_cast<hsize_t>(model.nt());
+    auto numSimulations = static_cast<hsize_t>(numberOfSimulations);
+    auto ny = static_cast<hsize_t>(model.nytrue);
+    auto nx = static_cast<hsize_t>(model.nxtrue);
+    auto nt = static_cast<hsize_t>(model.nt());
 
     auto lock = parpe::hdf5MutexGetLock();
 
@@ -85,12 +85,15 @@ void SimulationResultWriter::createDatasets(const amici::Model &model,
 }
 
 
-void SimulationResultWriter::saveSimulationResults(const amici::ExpData *edata, const amici::ReturnData *rdata, int simulationIndex)
+void SimulationResultWriter::saveSimulationResults(
+        const amici::ExpData *edata,
+        const amici::ReturnData *rdata,
+        int simulationIdx)
 {
-    hsize_t simulationIdx = static_cast<hsize_t>(simulationIndex);
-    hsize_t ny = static_cast<hsize_t>(rdata->ny);
-    hsize_t nx = static_cast<hsize_t>(rdata->nx);
-    hsize_t nt = static_cast<hsize_t>(rdata->nt);
+    auto simulationIdxH = static_cast<hsize_t>(simulationIdx);
+    auto ny = static_cast<hsize_t>(rdata->ny);
+    auto nx = static_cast<hsize_t>(rdata->nx);
+    auto nt = static_cast<hsize_t>(rdata->nt);
 
     auto lock = parpe::hdf5MutexGetLock();
 
@@ -99,7 +102,7 @@ void SimulationResultWriter::saveSimulationResults(const amici::ExpData *edata, 
 
         auto filespace = dataset.getSpace();
         hsize_t count[] = {1, nt, ny};
-        hsize_t start[] = {simulationIdx, 0, 0};
+        hsize_t start[] = {simulationIdxH, 0, 0};
         filespace.selectHyperslab(H5S_SELECT_SET, count, start);
 
         auto memspace = dataset.getSpace();
@@ -114,7 +117,7 @@ void SimulationResultWriter::saveSimulationResults(const amici::ExpData *edata, 
 
         auto filespace = dataset.getSpace();
         hsize_t count[] = {1, nt, ny};
-        hsize_t start[] = {simulationIdx, 0, 0};
+        hsize_t start[] = {simulationIdxH, 0, 0};
         filespace.selectHyperslab(H5S_SELECT_SET, count, start);
 
         auto memspace = dataset.getSpace();
@@ -129,7 +132,7 @@ void SimulationResultWriter::saveSimulationResults(const amici::ExpData *edata, 
 
         auto filespace = dataset.getSpace();
         hsize_t count[] = {1, nt, nx};
-        hsize_t start[] = {simulationIdx, 0, 0};
+        hsize_t start[] = {simulationIdxH, 0, 0};
         filespace.selectHyperslab(H5S_SELECT_SET, count, start);
 
         auto memspace = dataset.getSpace();
@@ -144,7 +147,7 @@ void SimulationResultWriter::saveSimulationResults(const amici::ExpData *edata, 
 
         auto filespace = dataset.getSpace();
         hsize_t count[] = {1};
-        hsize_t start[] = {simulationIdx};
+        hsize_t start[] = {simulationIdxH};
         filespace.selectHyperslab(H5S_SELECT_SET, count, start);
 
         auto memspace = dataset.getSpace();

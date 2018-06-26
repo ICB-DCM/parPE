@@ -2,13 +2,13 @@
 #define PARPE_AMICI_MULTI_CONDITION_PROBLEM_H
 
 #include "MultiConditionDataProvider.h"
-#include <simulationWorkerAmici.h>
-#include <multiConditionProblemResultWriter.h>
+#include "simulationWorkerAmici.h"
+#include "multiConditionProblemResultWriter.h"
 #include <multiStartOptimization.h>
 #include <optimizationProblem.h>
 #include <LoadBalancerMaster.h>
 #include <LoadBalancerWorker.h>
-#include <SimulationRunner.h>
+#include "SimulationRunner.h"
 
 #include <amici/amici.h>
 #include <amici/serialization.h>
@@ -428,9 +428,9 @@ class MultiConditionProblem : public OptimizationProblem {
   public:
     MultiConditionProblem() = default;
 
-    MultiConditionProblem(MultiConditionDataProvider *dataProvider);
+    MultiConditionProblem(MultiConditionDataProvider *dp);
 
-    MultiConditionProblem(MultiConditionDataProvider *dataProvider,
+    MultiConditionProblem(MultiConditionDataProvider *dp,
                           LoadBalancerMaster *loadBalancer);
 
     ~MultiConditionProblem() = default;
@@ -449,9 +449,9 @@ class MultiConditionProblem : public OptimizationProblem {
 
     std::unique_ptr<MultiConditionProblemResultWriter> resultWriter;
 
-    void setInitialParameters(std::vector<double> startingPoint);
-    void setParametersMin(std::vector<double> lowerBounds);
-    void setParametersMax(std::vector<double> upperBounds);
+    void setInitialParameters(const std::vector<double> &startingPoint);
+    void setParametersMin(const std::vector<double> &lowerBounds);
+    void setParametersMax(std::vector<double> const& upperBounds);
 
     void fillParametersMin(gsl::span<double> buffer) const override;
     void fillParametersMax(gsl::span<double> buffer) const override;
@@ -498,7 +498,7 @@ class MultiConditionProblemMultiStartOptimizationProblem
 
 void printSimulationResult(JobIdentifier const& path, int jobId, const amici::ReturnData *rdata, double timeSeconds);
 
-void logSimulation(hid_t file_id, std::string path, const std::vector<double> &parameters, double llh,
+void logSimulation(hid_t file_id, const std::string &pathStr, const std::vector<double> &parameters, double llh,
                    gsl::span<const double> gradient, double timeElapsedInSeconds, gsl::span<const double> states,
                    gsl::span<const double> stateSensi, gsl::span<const double> outputs, int jobId,
                    int iterationsUntilSteadystate, int status);

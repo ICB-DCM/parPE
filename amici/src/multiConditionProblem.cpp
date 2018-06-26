@@ -4,7 +4,7 @@
 #include <optimizationOptions.h>
 #include <logging.h>
 #include <misc.h>
-#include <hierarchicalOptimization.h>
+#include "hierarchicalOptimization.h"
 
 #include <gsl/gsl-lite.hpp>
 
@@ -20,8 +20,8 @@ namespace parpe {
 // skip objective function evaluation completely
 //#define NO_OBJ_FUN_EVAL
 
-MultiConditionProblem::MultiConditionProblem(MultiConditionDataProvider *dataProvider)
-    : MultiConditionProblem(dataProvider, nullptr) {}
+MultiConditionProblem::MultiConditionProblem(MultiConditionDataProvider *dp)
+    : MultiConditionProblem(dp, nullptr) {}
 
 MultiConditionProblem::MultiConditionProblem(
         MultiConditionDataProvider *dp, LoadBalancerMaster *loadBalancer)
@@ -59,7 +59,7 @@ void MultiConditionProblem::fillParametersMax(gsl::span<double> buffer) const
 
 void MultiConditionProblem::fillInitialParameters(gsl::span<double> buffer) const
 {
-    if(startingPoint.size()) {
+    if(!startingPoint.empty()) {
         RELEASE_ASSERT(buffer.size() == startingPoint.size(), "");
         std::copy(startingPoint.begin(), startingPoint.end(), buffer.begin());
     } else {
@@ -83,7 +83,7 @@ int MultiConditionProblem::earlyStopping() {
 
     // validationProblem->evaluateObjectiveFunction()
 
-    return stop;
+    return static_cast<int>(stop);
 }
 
 //template <typename T>
@@ -186,17 +186,17 @@ int MultiConditionProblem::earlyStopping() {
 
 
 
-void MultiConditionProblem::setInitialParameters(std::vector<double> startingPoint)
+void MultiConditionProblem::setInitialParameters(std::vector<double> const& startingPoint)
 {
     this->startingPoint = startingPoint;
 }
 
-void MultiConditionProblem::setParametersMin(std::vector<double> lowerBounds)
+void MultiConditionProblem::setParametersMin(std::vector<double> const& lowerBounds)
 {
     parametersMin = lowerBounds;
 }
 
-void MultiConditionProblem::setParametersMax(std::vector<double> upperBounds)
+void MultiConditionProblem::setParametersMax(std::vector<double> const& upperBounds)
 {
     parametersMax = upperBounds;
 }
@@ -233,13 +233,13 @@ std::unique_ptr<OptimizationProblem> MultiConditionProblemMultiStartOptimization
         problem->path.idxLocalOptimization = multiStartIndex;
     }
 
-    problem->setInitialParameters(options.getStartingPoint(dp->getHdf5FileId(), multiStartIndex));
+    problem->setInitialParameters(parpe::OptimizationOptions::getStartingPoint(dp->getHdf5FileId(), multiStartIndex));
 
     if(options.hierarchicalOptimization)
         return std::unique_ptr<OptimizationProblem>(
                     new parpe::HierachicalOptimizationProblemWrapper(std::move(problem), dp));
-    else
-        return std::move(problem);
+
+    return std::move(problem);
 }
 
 void printSimulationResult(const JobIdentifier &path, int jobId, amici::ReturnData const* rdata, double timeSeconds) {
@@ -256,7 +256,9 @@ void printSimulationResult(const JobIdentifier &path, int jobId, amici::ReturnDa
                 logmessage(LOGLVL_DEBUG, "Result for %s: contains NaN at %d",
                            pathStrBuf, i);
                 break;
-            } else if (std::isinf(rdata->sllh[i])) {
+            }
+
+            if (std::isinf(rdata->sllh[i])) {
                 logmessage(LOGLVL_DEBUG, "Result for %s: contains Inf at %d",
                            pathStrBuf, i);
                 break;
@@ -266,7 +268,7 @@ void printSimulationResult(const JobIdentifier &path, int jobId, amici::ReturnDa
 }
 
 
-void logSimulation(hid_t file_id, std::string pathStr, std::vector<double> const& parameters,
+void logSimulation(hid_t file_id, std::string const& pathStr, std::vector<double> const& parameters,
                    double llh, gsl::span<double const> gradient, double timeElapsedInSeconds,
                    gsl::span<double const> states, gsl::span<double const> stateSensi,
                    gsl::span<double const> outputs, int jobId, int iterationsUntilSteadystate, int status)
@@ -280,11 +282,11 @@ void logSimulation(hid_t file_id, std::string pathStr, std::vector<double> const
     hdf5CreateOrExtendAndWriteToInt2DArray(file_id, fullGroupPath, "jobId",
                                            &jobId, 1);
 
-    if (gradient.size()) {
+    if (!gradient.empty()) {
         hdf5CreateOrExtendAndWriteToDouble2DArray(
             file_id, fullGroupPath, "simulationLogLikelihoodGradient", gradient.data(),
             parameters.size());
-    } else if(parameters.size()) {
+    } else if(!parameters.empty()) {
         double dummyGradient[parameters.size()];
         std::fill_n(dummyGradient, parameters.size(), NAN);
         hdf5CreateOrExtendAndWriteToDouble2DArray(
@@ -292,7 +294,7 @@ void logSimulation(hid_t file_id, std::string pathStr, std::vector<double> const
             dummyGradient, parameters.size());
     }
 
-    if (parameters.size())
+    if (!parameters.empty())
         hdf5CreateOrExtendAndWriteToDouble2DArray(
             file_id, fullGroupPath, "simulationParameters", parameters.data(), parameters.size());
 
@@ -300,11 +302,11 @@ void logSimulation(hid_t file_id, std::string pathStr, std::vector<double> const
                                               "simulationWallTimeInSec",
                                               &timeElapsedInSeconds, 1);
 
-    if (states.size())
+    if (!states.empty())
         hdf5CreateOrExtendAndWriteToDouble2DArray(
             file_id, fullGroupPath, "simulationStates", states.data(), states.size());
 
-    if (outputs.size())
+    if (!outputs.empty())
         hdf5CreateOrExtendAndWriteToDouble2DArray(
             file_id, fullGroupPath, "simulationObservables", outputs.data(), outputs.size());
 
@@ -312,7 +314,7 @@ void logSimulation(hid_t file_id, std::string pathStr, std::vector<double> const
                                            "iterationsUntilSteadystate",
                                            &iterationsUntilSteadystate, 1);
 
-    if (stateSensi.size())
+    if (!stateSensi.empty())
         hdf5CreateOrExtendAndWriteToDouble3DArray(
             file_id, fullGroupPath, "simulationStateSensitivities", stateSensi.data(),
             stateSensi.size() / parameters.size(), parameters.size());

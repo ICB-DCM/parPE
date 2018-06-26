@@ -54,7 +54,7 @@ int OptimizationApplication::init(int argc, char **argv) {
 
     // Seed random number generator
     //    srand(1337);
-    unsigned int seed = time(NULL);
+    unsigned int seed = time(nullptr);
     logmessage(LOGLVL_DEBUG, "Seeding RNG with %u", seed);
     srand(seed); // TODO to CLI
 
@@ -159,7 +159,7 @@ int OptimizationApplication::run(int argc, char **argv) {
     if(status)
         return status;
 
-    if (!dataFileName.size()) {
+    if (dataFileName.empty()) {
         logmessage(LOGLVL_CRITICAL,
                    "No input file provided. Must provide input file as first "
                    "and only argument or set "

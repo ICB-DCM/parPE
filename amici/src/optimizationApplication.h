@@ -5,7 +5,7 @@
 #include "multiConditionProblemResultWriter.h"
 #include <LoadBalancerMaster.h>
 #include <LoadBalancerWorker.h>
-#include <hierarchicalOptimization.h>
+#include "hierarchicalOptimization.h"
 
 #include <getopt.h>
 #include <string>
@@ -62,7 +62,7 @@ class OptimizationApplication {
      * @brief Writes the total programm runtime
      * @param begin
      */
-    virtual void finalizeTiming(double walltimeInSec, double cpuTimeSeconds);
+    virtual void finalizeTiming(double wallTimeSeconds, double cpuTimeSeconds);
 
     std::string
     processResultFilenameCommandLineArgument(const char *commandLineArg);

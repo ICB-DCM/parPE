@@ -1,7 +1,7 @@
 #ifndef SIMULATIONRUNNER_H
 #define SIMULATIONRUNNER_H
 
-#include <MultiConditionDataProvider.h> // JobIdentifier
+#include "MultiConditionDataProvider.h" // JobIdentifier
 #include <LoadBalancerWorker.h>
 
 #include <amici/amici.h>

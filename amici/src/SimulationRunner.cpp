@@ -134,7 +134,7 @@ int SimulationRunnerSimple::runDistributedMemory(LoadBalancerMaster *loadBalance
     pthread_cond_t simulationsCond = PTHREAD_COND_INITIALIZER;
     pthread_mutex_t simulationsMutex = PTHREAD_MUTEX_INITIALIZER;
 
-    int numJobsTotal = std::ceil((double) conditionIndices.size() / maxSimulationsPerPackage);
+    int numJobsTotal = std::ceil(static_cast<double>(conditionIndices.size()) / maxSimulationsPerPackage);
     std::vector<JobData> jobs {static_cast<unsigned int>(numJobsTotal)};
 
     int numConditionsSent = 0;
@@ -143,7 +143,7 @@ int SimulationRunnerSimple::runDistributedMemory(LoadBalancerMaster *loadBalance
         int simulationsLeft = conditionIndices.size() - numConditionsSent;
         int simulationsCurrentPackage = std::min(simulationsLeft, maxSimulationsPerPackage);
         auto currentConditions = std::vector<int>(&conditionIndices[numConditionsSent],
-                         &conditionIndices[numConditionsSent] + simulationsCurrentPackage);
+                         &conditionIndices[numConditionsSent + simulationsCurrentPackage]);
 
         queueSimulation(loadBalancer, &jobs[jobIdx],
                         &numJobsFinished, &simulationsCond, &simulationsMutex,
