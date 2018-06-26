@@ -233,7 +233,7 @@ std::vector<double> getFinalParameters(std::string startIndex, H5::H5File const&
     // find last iteration /multistarts/$/iteration/$/costFunParameters
     std::string iterationPath = std::string("/multistarts/") + startIndex + "/iteration/";
     int iteration = 0;
-    while(hdf5DatasetExists(file.getId(), iterationPath + std::to_string(iteration) + "/costFunParameters")) {
+    while(hdf5GroupExists(file.getId(), (iterationPath + std::to_string(iteration)).c_str()) && hdf5DatasetExists(file.getId(), iterationPath + std::to_string(iteration) + "/costFunParameters")) {
         ++iteration;
     }
     --iteration; // last one did not exist
