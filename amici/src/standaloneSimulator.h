@@ -47,6 +47,7 @@ private:
     const int maxSimulationsPerPackage = 8;
 };
 
+
 // enum class SimulatorOpType {finalParameters};
 
 std::pair<int, double> getFunctionEvaluationWithMinimalCost(std::string const& datasetPath, H5::H5File const& file);

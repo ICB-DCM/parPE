@@ -2,13 +2,12 @@
 #define PARPE_AMICI_MULTI_CONDITION_PROBLEM_H
 
 #include "MultiConditionDataProvider.h"
-#include "simulationWorkerAmici.h"
 #include "multiConditionProblemResultWriter.h"
 #include <multiStartOptimization.h>
 #include <optimizationProblem.h>
 #include <LoadBalancerMaster.h>
 #include <LoadBalancerWorker.h>
-#include "SimulationRunner.h"
+#include "simulationRunner.h"
 
 #include <amici/amici.h>
 #include <amici/serialization.h>

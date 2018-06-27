@@ -1,5 +1,5 @@
 #include "standaloneSimulator.h"
-#include "SimulationRunner.h"
+#include "simulationRunner.h"
 #include "simulationResultWriter.h"
 #include <LoadBalancerMaster.h>
 #include <LoadBalancerWorker.h>
@@ -191,7 +191,7 @@ void StandaloneSimulator::messageHandler(std::vector<char> &buffer, int jobId)
     auto model = dataProvider->getModel();
     auto solver = dataProvider->getSolver();
     JobAmiciSimulation<JobIdentifier> sim(solver.get(), model.get(), &path);
-    sim.deserialize(buffer.data(), buffer.size());
+    sim.deserialize(buffer);
     solver->setSensitivityOrder(amici::AMICI_SENSI_ORDER_NONE);
 
 #if QUEUE_WORKER_H_VERBOSE >= 2

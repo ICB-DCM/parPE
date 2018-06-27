@@ -4,10 +4,9 @@ set(SRC_LIST
     MultiConditionDataProvider.cpp
     multiConditionProblem.cpp
     multiConditionProblemResultWriter.cpp
-    simulationWorkerAmici.cpp
     steadystateSimulator.cpp
     optimizationApplication.cpp
-    SimulationRunner.cpp
+    simulationRunner.cpp
     simulationResultWriter.cpp
     standaloneSimulator.cpp
     amiciMisc.cpp

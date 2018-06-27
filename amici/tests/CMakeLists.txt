@@ -4,7 +4,7 @@ add_test (NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME} -c)
 
 set(SRC_LIST_CPP
     main.cpp
-    ../src/simulationWorkerAmiciTest.cpp
+    ../src/simulationRunnerTest.cpp
     ../src/multiConditionProblemResultWriterTest.cpp
     ../src/multiConditionDataProviderTest.cpp
     ../src/multiConditionProblemTest.cpp
