@@ -6,7 +6,7 @@ execute_process(COMMAND sh -c "git ls-tree -r HEAD --name-only | grep -E '(\\.cp
     OUTPUT_VARIABLE ALL_CXX_SOURCE_FILES
     )
 
-############ clang-tidy ############
+############ clang-format ############
 
 # Try to find clang-format and add target if successful
 find_program(CLANG_FORMAT "clang-format")
@@ -26,7 +26,7 @@ find_program(CLANG_TIDY "clang-tidy")
 if(CLANG_TIDY)
     add_custom_target(
         clang-tidy
-        COMMAND sh -c "/usr/bin/clang-tidy ${ALL_CXX_SOURCE_FILES} -- -std=c++11 ${CMAKE_INCLUDE_PATH}"
+        COMMAND sh -c "/usr/bin/clang-tidy amici/src/*.cpp -- -std=c++11 ${CMAKE_INCLUDE_PATH}"
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
         )
 else()

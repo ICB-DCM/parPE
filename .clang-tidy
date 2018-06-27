@@ -1,5 +1,5 @@
 ---
-Checks:          '*,-*readability-*,-cppcoreguidelines-pro-bounds-pointer-arithmetic'
+Checks:          '*,-cppcoreguidelines-pro-type-vararg,-google-readability-braces-around-statements,-google-readability-todo,-llvm-include-order,-fuchsia-default-arguments,-hicpp-vararg,-google-default-arguments'
 WarningsAsErrors: ''
 HeaderFilterRegex: ''
 AnalyzeTemporaryDtors: false
