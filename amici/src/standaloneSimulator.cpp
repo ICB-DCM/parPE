@@ -88,6 +88,7 @@ int StandaloneSimulator::run(const std::string& resultFile,
     }
 
     auto resultFileH5 = rw.reopenFile();
+    hdf5EnsureGroupExists(resultFileH5.getId(), resultPath.c_str());
     amici::hdf5::createAndWriteDouble1DDataset(resultFileH5, resultPath + "/parameters", parameters.data(), parameters.size());
 
     RELEASE_ASSERT(parameters.size() == (unsigned)dataProvider->getNumOptimizationParameters(), "Size of supplied parameter vector does not match model dimensions.");
