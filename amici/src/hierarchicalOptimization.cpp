@@ -867,8 +867,7 @@ double computeNegLogLikelihood(std::vector<double> const& measurements,
             double sim = modelOutputsScaled[i];
             double sigmaSquared = sigmas[i] * sigmas[i];
             RELEASE_ASSERT(!std::isnan(sim), "");
-            logmessage(LOGLVL_CRITICAL, "Sigma nan: %d, %f", i, sigmas[i]);
-            //RELEASE_ASSERT(!std::isnan(sigmaSquared), "");
+            RELEASE_ASSERT(!std::isnan(sigmaSquared), "");
             double diff = mes - sim;
             diff *= diff;
             nllh += log(2.0 * pi * sigmaSquared) + diff / sigmaSquared;

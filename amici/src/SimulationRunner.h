@@ -44,7 +44,7 @@ class SimulationRunner {
      * @param loadBalancer
      * @return
      */
-    int runDistributedMemory(LoadBalancerMaster *loadBalancer);
+    int runDistributedMemory(LoadBalancerMaster *loadBalancer, const int /* TODO maxSimulationsPerPackage = 1*/);
 
     /**
      * @brief Runs simulations within the same thread. Mostly intended for

@@ -149,13 +149,19 @@ int StandaloneSimulator::run(const std::string& resultFile,
             // TODO: what else needs to be scaled?
         }
 
-        // TODO auto sigmas = hierarchical.computeAnalyticalOffsets(allMeasurements, modelOutputs);
+        auto sigmas = hierarchical.computeAnalyticalSigmas(allMeasurements, modelOutputs);
+        auto fullSigmaMatrices = hierarchical.fun->getAllSigmas();
+        if(!hierarchical.getSigmaParameterIndices().empty()) {
+            hierarchical.fillInAnalyticalSigmas(fullSigmaMatrices, sigmas);
+        }
 
         for(int dataIdx = 0; (unsigned) dataIdx < jobs.size(); ++dataIdx) {
             JobResultAmiciSimulation& result = jobResults[dataIdx];
             result.rdata->y = modelOutputs[dataIdx];
-            std::vector<double> sigmas(allMeasurements[dataIdx].size(), NAN);
-            result.rdata->llh = -parpe::computeNegLogLikelihood(allMeasurements[dataIdx], modelOutputs[dataIdx], sigmas);
+            result.rdata->llh = -parpe::computeNegLogLikelihood(
+                        allMeasurements[dataIdx],
+                        modelOutputs[dataIdx],
+                        fullSigmaMatrices[dataIdx]);
 
             auto edata = dataProvider->getExperimentalDataForCondition(dataIdx);
             rw.saveSimulationResults(edata.get(), result.rdata.get(), dataIdx);
@@ -165,7 +171,7 @@ int StandaloneSimulator::run(const std::string& resultFile,
 
 
     if (loadBalancer && loadBalancer->isRunning()) {
-        errors += simRunner.runDistributedMemory(loadBalancer);
+        errors += simRunner.runDistributedMemory(loadBalancer, maxSimulationsPerPackage);
     } else {
         errors += simRunner.runSharedMemory(
                     [&](std::vector<char> &buffer, int jobId) {

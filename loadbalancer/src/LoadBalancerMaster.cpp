@@ -28,8 +28,9 @@ void LoadBalancerMaster::run() {
     // have to initialize before can wait!
     sendRequests.resize(numWorkers, MPI_REQUEST_NULL);
 
-    // Create semaphore to limit queue length
-    // and avoid huge memory allocation for all send and receive buffers
+    /* Create semaphore to limit queue length
+     * and avoid huge memory allocation for all send and receive buffers.
+     */
     unsigned int queueMaxLength = 4 * mpiCommSize;
 #ifdef SEM_VALUE_MAX
     if(SEM_VALUE_MAX < queueMaxLength)
