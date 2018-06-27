@@ -24,7 +24,7 @@ int StandaloneSimulator::run(const std::string& resultFile,
                              const std::string& resultPath,
                              std::vector<double> const& optimizationParameters,
                              LoadBalancerMaster *loadBalancer,
-                             H5::H5File const& file)
+                             H5::H5File const& inputFile)
 {
     // std::cout<<"file: "<<resultFile<<" path: "<<resultPath<<" lbm:"<<loadBalancer<<std::endl;
     int errors = 0;
@@ -42,7 +42,7 @@ int StandaloneSimulator::run(const std::string& resultFile,
     std::vector<double> parameters = optimizationParameters;
     HierachicalOptimizationWrapper hierarchical(nullptr, 0, 0, 0);
 
-    auto options = OptimizationOptions::fromHDF5(file.getId(), "/inputData/optimizationOptions");
+    auto options = OptimizationOptions::fromHDF5(inputFile.getId(), "/inputData/optimizationOptions");
     /* if hierarchical optimization is selected and the analytical parameters have not been saved,
      * we need to recompute them. otherwise we don't need to distinguish
      */
@@ -51,13 +51,13 @@ int StandaloneSimulator::run(const std::string& resultFile,
 
     if(options->hierarchicalOptimization) {
         // TODO: get rid of that. we want fun.evaluate(), independently of hierarchical or not
-        auto hierarchicalScalingReader = new AnalyticalParameterHdf5Reader (file,
+        auto hierarchicalScalingReader = new AnalyticalParameterHdf5Reader (inputFile,
                                                                             "/inputData/scalingParameterIndices",
                                                                             "/inputData/scalingParametersMapToObservables");
-        auto hierarchicalOffsetReader = new AnalyticalParameterHdf5Reader (file,
+        auto hierarchicalOffsetReader = new AnalyticalParameterHdf5Reader (inputFile,
                                                                            "/inputData/offsetParameterIndices",
                                                                            "/inputData/offsetParametersMapToObservables");
-        auto hierarchicalSigmaReader = new AnalyticalParameterHdf5Reader (file,
+        auto hierarchicalSigmaReader = new AnalyticalParameterHdf5Reader (inputFile,
                                                                            "/inputData/sigmaParameterIndices",
                                                                            "/inputData/sigmaParametersMapToObservables");
         auto proportionalityFactorIndices = hierarchicalScalingReader->getOptimizationParameterIndices();
@@ -238,7 +238,24 @@ std::vector<double> getFinalParameters(std::string const& startIndex, H5::H5File
     }
     --iteration; // last one did not exist
 
-    // get last column
+    auto bestPairLast = getFunctionEvaluationWithMinimalCost(
+                iterationPath + std::to_string(iteration) + "/costFunCost",
+                file);
+    int costFunEvaluationIndex = bestPairLast.first;
+
+    if(iteration > 0) {
+        // If job got killed during line search, the final point of the previous iteration
+        // might be better than any line search steps of the current iteration
+        auto bestPairSecondLast = getFunctionEvaluationWithMinimalCost(
+                    iterationPath + std::to_string(iteration - 1) + "/costFunCost",
+                    file);
+        if(bestPairSecondLast.second < bestPairLast.second) {
+            --iteration;
+            costFunEvaluationIndex = bestPairSecondLast.first;
+        }
+    }
+
+    // get parameters of the selected function evaluation
     std::string parameterPath = iterationPath + std::to_string(iteration) + "/costFunParameters";
     H5::DataSet dataset = file.openDataSet(parameterPath);
 
@@ -249,12 +266,11 @@ std::vector<double> getFinalParameters(std::string const& startIndex, H5::H5File
     hsize_t dims[2];
     filespace.getSimpleExtentDims(dims, nullptr);
     int numParam = dims[0];
-    int numFunctionEvalations = dims[1];
 
     std::vector<double> parameters(numParam);
 
     parpe::hdf5Read2DDoubleHyperslab(file.getId(), parameterPath.c_str(),
-                                     numParam, 1, 0, numFunctionEvalations - 1,
+                                     numParam, 1, 0, costFunEvaluationIndex,
                                      parameters.data());
 
     /*
@@ -278,6 +294,27 @@ std::vector<double> getFinalParameters(std::string const& startIndex, H5::H5File
                                      parameters.data());
 */
     return parameters;
+}
+
+std::pair<int, double> getFunctionEvaluationWithMinimalCost(std::string const& datasetPath, H5::H5File const& file) {
+    H5::DataSet dataset = file.openDataSet(datasetPath);
+
+    H5::DataSpace filespace = dataset.getSpace();
+    int rank = filespace.getSimpleExtentNdims();
+    RELEASE_ASSERT(rank == 2, "Rank mismatch");
+
+    hsize_t dims[2];
+    filespace.getSimpleExtentDims(dims, nullptr);
+    RELEASE_ASSERT(dims[0] == 1, "Dim1 should be 1");
+    int numFunctionEvalations = dims[1];
+
+    std::vector<double> cost(numFunctionEvalations, INFINITY);
+
+    parpe::hdf5Read2DDoubleHyperslab(file.getId(), datasetPath.c_str(),
+                                     1, numFunctionEvalations, 0, 0,
+                                     cost.data());
+    int minIndex = std::min_element(cost.begin(), cost.end()) - cost.begin();
+    return std::pair<int, double>(minIndex, cost[minIndex]);
 }
 
 std::vector<std::vector<double>> getParameterTrajectory(std::string const& startIndex, H5::H5File const& file)
