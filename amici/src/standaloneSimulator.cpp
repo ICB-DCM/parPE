@@ -7,6 +7,7 @@
 #include <misc.h>
 #include "hierarchicalOptimization.h"
 
+#include <amici/hdf5.h>
 #include <gsl/gsl-lite.hpp>
 
 #include <iostream>
@@ -79,13 +80,15 @@ int StandaloneSimulator::run(const std::string& resultFile,
         parameters = spliceParameters(gsl::make_span(optimizationParameters.data(), optimizationParameters.size()),
                                       proportionalityFactorIndices, offsetParameterIndices, sigmaParameterIndices,
                                       scalingDummy, offsetDummy, sigmaDummy);
-
         // get outputs, scale
         // TODO need to pass aggreate function for writing
     } else {
         // is already the correct length
         // parameters = optimizationParameters;
     }
+
+    auto resultFileH5 = rw.reopenFile();
+    amici::hdf5::createAndWriteDouble1DDataset(resultFileH5, resultPath + "/parameters", parameters.data(), parameters.size());
 
     RELEASE_ASSERT(parameters.size() == (unsigned)dataProvider->getNumOptimizationParameters(), "Size of supplied parameter vector does not match model dimensions.");
 
