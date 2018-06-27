@@ -697,6 +697,46 @@ public:
     virtual void fz(double *z, const int ie, const realtype t, const realtype *x, const realtype *p, const realtype *k, const realtype *h) override {
     }
 
+
+
+    /**
+     * @brief Get names of the model parameters
+     * @return the names
+     */
+    virtual std::vector<std::string> getParameterNames() const { return std::vector<std::string> {"p1",
+"p2",
+"p3",
+"p4",
+"p5",
+"scaling_x1",
+"offset_x2",
+"observable_x1withsigma_sigma",}; }
+
+    /**
+     * @brief Get names of the model states
+     * @return the names
+     */
+    virtual std::vector<std::string> getStateNames() const { return std::vector<std::string> {"x1",
+"x2",
+"x3",}; }
+
+    /**
+     * @brief Get names of the fixed model parameters
+     * @return the names
+     */
+    virtual std::vector<std::string> getFixedParameterNames() const { return std::vector<std::string> {"k0",}; }
+
+    /**
+     * @brief Get names of the observables
+     * @return the names
+     */
+    virtual std::vector<std::string> getObservableNames() const { return std::vector<std::string> {"observable_x1",
+"observable_x2",
+"observable_x3",
+"observable_x1_scaled",
+"observable_x2_offsetted",
+"observable_x1withsigma",}; }
+
 };
 
 #endif /* _amici_TPL_MODELNAME_h */
