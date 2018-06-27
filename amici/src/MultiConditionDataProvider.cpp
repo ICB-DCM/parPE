@@ -405,7 +405,7 @@ amici::AMICI_parameter_scaling MultiConditionDataProviderDefault::getParameterSc
 
 void MultiConditionDataProviderDefault::updateSimulationParameters(int conditionIndex, gsl::span<const double> optimizationParams, amici::Model &model) const
 {
-    RELEASE_ASSERT(1==2, "Not implemented.");
+    logmessage(LOGLVL_WARNING, "MultiConditionDataProviderDefault::updateSimulationParameters: No proper mapping implemented. Ensure this is correct.");
     model.setParameters(std::vector<double>(optimizationParams.begin(), optimizationParams.end()));
 }
 

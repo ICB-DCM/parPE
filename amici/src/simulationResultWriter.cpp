@@ -90,74 +90,108 @@ void SimulationResultWriter::saveSimulationResults(
         const amici::ReturnData *rdata,
         int simulationIdx)
 {
-    auto simulationIdxH = static_cast<hsize_t>(simulationIdx);
-    auto ny = static_cast<hsize_t>(rdata->ny);
-    auto nx = static_cast<hsize_t>(rdata->nx);
-    auto nt = static_cast<hsize_t>(rdata->nt);
+    saveMeasurements(edata->my, edata->nt, edata->nytrue, simulationIdx);
+    saveModelOutputs(rdata->y,  edata->nt, edata->nytrue, simulationIdx);
+    saveStates(rdata->x, rdata->nt, rdata->nx, simulationIdx);
+    saveLikelihood(rdata->llh, simulationIdx);
 
     auto lock = parpe::hdf5MutexGetLock();
 
-    if(saveYMes && edata->nt > 0 && edata->nytrue > 0) {
-        auto dataset = file.openDataSet(yMesPath);
-
-        auto filespace = dataset.getSpace();
-        hsize_t count[] = {1, nt, ny};
-        hsize_t start[] = {simulationIdxH, 0, 0};
-        filespace.selectHyperslab(H5S_SELECT_SET, count, start);
-
-        auto memspace = dataset.getSpace();
-        hsize_t start2[] = {0, 0, 0};
-        memspace.selectHyperslab(H5S_SELECT_SET, count, start2);
-
-        dataset.write(edata->my.data(), H5::PredType::NATIVE_DOUBLE, memspace, filespace);
-    }
-
-    if(saveYSim && edata->nt > 0 && edata->nytrue > 0) {
-        auto dataset = file.openDataSet(ySimPath);
-
-        auto filespace = dataset.getSpace();
-        hsize_t count[] = {1, nt, ny};
-        hsize_t start[] = {simulationIdxH, 0, 0};
-        filespace.selectHyperslab(H5S_SELECT_SET, count, start);
-
-        auto memspace = dataset.getSpace();
-        hsize_t start2[] = {0, 0, 0};
-        memspace.selectHyperslab(H5S_SELECT_SET, count, start2);
-
-        dataset.write(rdata->y.data(), H5::PredType::NATIVE_DOUBLE, memspace, filespace);
-    }
-
-    if(saveX) {
-        auto dataset = file.openDataSet(xPath);
-
-        auto filespace = dataset.getSpace();
-        hsize_t count[] = {1, nt, nx};
-        hsize_t start[] = {simulationIdxH, 0, 0};
-        filespace.selectHyperslab(H5S_SELECT_SET, count, start);
-
-        auto memspace = dataset.getSpace();
-        hsize_t start2[] = {0, 0, 0};
-        memspace.selectHyperslab(H5S_SELECT_SET, count, start2);
-
-        dataset.write(rdata->x.data(), H5::PredType::NATIVE_DOUBLE, memspace, filespace);
-    }
-
-    if(saveLlh) {
-        auto dataset = file.openDataSet(llhPath);
-
-        auto filespace = dataset.getSpace();
-        hsize_t count[] = {1};
-        hsize_t start[] = {simulationIdxH};
-        filespace.selectHyperslab(H5S_SELECT_SET, count, start);
-
-        auto memspace = dataset.getSpace();
-        hsize_t start2[] = {0};
-        memspace.selectHyperslab(H5S_SELECT_SET, count, start2);
-
-        dataset.write(&rdata->llh, H5::PredType::NATIVE_DOUBLE, memspace, filespace);
-    }
-
     file.flush(H5F_SCOPE_LOCAL);
+}
+
+void SimulationResultWriter::saveMeasurements(gsl::span<const double> measurements, int nt, int nytrue, int simulationIdx) const
+{
+    if(!saveYMes || nt < 1 || nytrue < 1 || measurements.empty()) {
+        return;
+    }
+
+    RELEASE_ASSERT(measurements.size() == static_cast<decltype(measurements)::index_type>(nt * nytrue), "");
+
+    auto lock = parpe::hdf5MutexGetLock();
+
+    auto dataset = file.openDataSet(yMesPath);
+
+    auto filespace = dataset.getSpace();
+    hsize_t count[] = {1, static_cast<hsize_t>(nt), static_cast<hsize_t>(nytrue)};
+    hsize_t start[] = {static_cast<hsize_t>(simulationIdx), 0, 0};
+    filespace.selectHyperslab(H5S_SELECT_SET, count, start);
+
+    auto memspace = dataset.getSpace();
+    hsize_t start2[] = {0, 0, 0};
+    memspace.selectHyperslab(H5S_SELECT_SET, count, start2);
+
+    dataset.write(measurements.data(), H5::PredType::NATIVE_DOUBLE, memspace, filespace);
+}
+
+void SimulationResultWriter::saveModelOutputs(gsl::span<const double> outputs, int nt, int nytrue, int simulationIdx) const
+{
+    if(!saveYSim || nt < 1 || nytrue < 1 || outputs.empty()) {
+        return;
+    }
+
+    RELEASE_ASSERT(outputs.size() == static_cast<decltype(outputs)::index_type>(nt * nytrue), "");
+
+    auto lock = parpe::hdf5MutexGetLock();
+
+    auto dataset = file.openDataSet(ySimPath);
+
+    auto filespace = dataset.getSpace();
+    hsize_t count[] = {1, static_cast<hsize_t>(nt), static_cast<hsize_t>(nytrue)};
+    hsize_t start[] = {static_cast<hsize_t>(simulationIdx), 0, 0};
+    filespace.selectHyperslab(H5S_SELECT_SET, count, start);
+
+    auto memspace = dataset.getSpace();
+    hsize_t start2[] = {0, 0, 0};
+    memspace.selectHyperslab(H5S_SELECT_SET, count, start2);
+
+    dataset.write(outputs.data(), H5::PredType::NATIVE_DOUBLE, memspace, filespace);
+}
+
+void SimulationResultWriter::saveStates(gsl::span<const double> states, int nt, int nx, int simulationIdx) const
+{
+    if(!saveX || states.empty() || nx < 1 || nt < 1) {
+        return;
+    }
+
+    RELEASE_ASSERT(states.size() == static_cast<decltype(states)::index_type>(nt * nx), "");
+
+    auto lock = parpe::hdf5MutexGetLock();
+
+    auto dataset = file.openDataSet(xPath);
+
+    auto filespace = dataset.getSpace();
+    hsize_t count[] = {1, static_cast<hsize_t>(nt), static_cast<hsize_t>(nx)};
+    hsize_t start[] = {static_cast<hsize_t>(simulationIdx), 0, 0};
+    filespace.selectHyperslab(H5S_SELECT_SET, count, start);
+
+    auto memspace = dataset.getSpace();
+    hsize_t start2[] = {0, 0, 0};
+    memspace.selectHyperslab(H5S_SELECT_SET, count, start2);
+
+    dataset.write(states.data(), H5::PredType::NATIVE_DOUBLE, memspace, filespace);
+}
+
+void SimulationResultWriter::saveLikelihood(double llh, int simulationIdx) const
+{
+    if(!saveLlh) {
+        return;
+    }
+
+    auto lock = parpe::hdf5MutexGetLock();
+
+    auto dataset = file.openDataSet(llhPath);
+
+    auto filespace = dataset.getSpace();
+    hsize_t count[] = {1};
+    hsize_t start[] = {static_cast<hsize_t>(simulationIdx)};
+    filespace.selectHyperslab(H5S_SELECT_SET, count, start);
+
+    auto memspace = dataset.getSpace();
+    hsize_t start2[] = {0};
+    memspace.selectHyperslab(H5S_SELECT_SET, count, start2);
+
+    dataset.write(&llh, H5::PredType::NATIVE_DOUBLE, memspace, filespace);
 }
 
 H5::H5File SimulationResultWriter::reopenFile()

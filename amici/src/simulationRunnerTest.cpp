@@ -1,9 +1,11 @@
 #include "simulationRunner.h"
-#include "CppUTest/TestHarness.h"
-#include "CppUTestExt/MockSupport.h"
 #include "misc.h"
 #include "testingMisc.h"
+
 #include <amici/amici.h>
+
+#include "CppUTest/TestHarness.h"
+#include "CppUTestExt/MockSupport.h"
 
 // required to be defined by file included below
 #define NEW_OPTION_FILE "undefined"
@@ -22,11 +24,8 @@ TEST_GROUP(simulationWorkerAmici){
 };
 // clang-format on
 
-
+/*
 TEST(simulationWorkerAmici, testSerializeResultPackageMessage) {
-//    amici::CVodeSolver s;
-//    amici::Model m(1, 2, 3, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, amici::AMICI_O2MODE_NONE);
-
     parpe::JobResultAmiciSimulation results(std::make_unique<amici::ReturnData>(), 2.1);
 
     int msgSize = 0;
@@ -81,3 +80,5 @@ TEST(simulationWorkerAmici, testSerializeWorkPackageMessage) {
         DOUBLES_EQUAL(actData[i], expData[i], 0);
     }
 }
+
+*/
