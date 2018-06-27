@@ -43,6 +43,8 @@ private:
     JobResultAmiciSimulation runSimulation(JobIdentifier path, amici::Solver &solver, amici::Model &model);
 
     MultiConditionDataProvider *dataProvider = nullptr;
+
+    const int maxSimulationsPerPackage = 8;
 };
 
 // enum class SimulatorOpType {finalParameters};

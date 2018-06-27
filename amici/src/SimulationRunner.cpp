@@ -20,7 +20,7 @@ SimulationRunner::SimulationRunner(int numJobsTotal,
       callbackJobFinished(callbackJobFinished),
       aggregate(aggregate) {}
 
-int SimulationRunner::runDistributedMemory(LoadBalancerMaster *loadBalancer) {
+int SimulationRunner::runDistributedMemory(LoadBalancerMaster *loadBalancer, const int /* TODO maxSimulationsPerPackage = 1*/) {
     int numJobsFinished = 0;
 
     std::vector<JobData> jobs {static_cast<unsigned int>(numJobsTotal)};
