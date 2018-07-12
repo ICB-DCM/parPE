@@ -196,9 +196,10 @@ TEST(hierarchicalOptimization, hierarchicalOptimization) {
     auto outputs = hierarchicalOptimizationWrapper.getUnscaledModelOutputs(gsl::make_span(reducedParameters.data(), reducedParameters.size()));
     CHECK_TRUE(onesFullParameters == fun->lastParameters);
 
-    auto s = parpe::computeAnalyticalScalings(0, amici::AMICI_SCALING_LOG10,
-                                              outputs, fun->measurements,
-                                              *scalingReader, fun->numObservables, fun->numTimepoints);
+    auto s = parpe::getScaledParameter(parpe::computeAnalyticalScalings(0,
+                                                                        outputs, fun->measurements,
+                                                                        *scalingReader, fun->numObservables, fun->numTimepoints),
+                                       amici::AMICI_SCALING_LOG10);
     CHECK_EQUAL(log10(2.0), s);
 
     applyOptimalScaling(0, 2.0, outputs, *scalingReader, fun->numObservables, fun->numTimepoints);
@@ -276,9 +277,10 @@ TEST(hierarchicalOptimization, testComputeAnalyticalScalings) {
     mock().expectNCalls(1, "AnalyticalParameterProviderMock::getObservablesForParameter")
             .withIntParameter("parameterIndex", 0).withIntParameter("conditionIdx", 0);
 
-    auto scaling = parpe::computeAnalyticalScalings(scalingIdx, amici::AMICI_SCALING_NONE,
+    auto scaling = parpe::getScaledParameter(parpe::computeAnalyticalScalings(scalingIdx,
                                                     modelOutputsUnscaled, measurements,
-                                                    scalingProvider, numObservables, numTimepoints);
+                                                    scalingProvider, numObservables, numTimepoints),
+                                             amici::AMICI_SCALING_NONE);
     CHECK_EQUAL(10.0, scaling);
 
     // TEST LOG10
@@ -287,9 +289,10 @@ TEST(hierarchicalOptimization, testComputeAnalyticalScalings) {
     mock().expectNCalls(1, "AnalyticalParameterProviderMock::getObservablesForParameter")
             .withIntParameter("parameterIndex", 0).withIntParameter("conditionIdx", 0);
 
-    scaling = parpe::computeAnalyticalScalings(scalingIdx, amici::AMICI_SCALING_LOG10,
+    scaling = parpe::getScaledParameter(parpe::computeAnalyticalScalings(scalingIdx,
                                                modelOutputsUnscaled, measurements,
-                                               scalingProvider, numObservables, numTimepoints);
+                                               scalingProvider, numObservables, numTimepoints),
+                                        amici::AMICI_SCALING_LOG10);
     CHECK_EQUAL(1.0, scaling);
 
     // TEST LOG10 NAN
@@ -300,9 +303,10 @@ TEST(hierarchicalOptimization, testComputeAnalyticalScalings) {
     mock().expectNCalls(1, "AnalyticalParameterProviderMock::getObservablesForParameter")
             .withIntParameter("parameterIndex", 0).withIntParameter("conditionIdx", 0);
 
-    scaling = parpe::computeAnalyticalScalings(scalingIdx, amici::AMICI_SCALING_LOG10,
+    scaling = parpe::getScaledParameter(parpe::computeAnalyticalScalings(scalingIdx,
                                                modelOutputsUnscaled, measurements,
-                                               scalingProvider, numObservables, numTimepoints);
+                                               scalingProvider, numObservables, numTimepoints),
+                                        amici::AMICI_SCALING_LOG10);
     CHECK_EQUAL(1.0, scaling);
 
 }
@@ -332,9 +336,10 @@ TEST(hierarchicalOptimization, testComputeAnalyticalOffsets) {
     mock().expectNCalls(1, "AnalyticalParameterProviderMock::getObservablesForParameter")
             .withIntParameter("parameterIndex", 0).withIntParameter("conditionIdx", 0);
 
-    auto offset = parpe::computeAnalyticalOffsets(scalingIdx, amici::AMICI_SCALING_NONE,
+    auto offset = parpe::getScaledParameter(parpe::computeAnalyticalOffsets(scalingIdx,
                                                   modelOutputsUnscaled, measurements,
-                                                  scalingProvider, numObservables, numTimepoints);
+                                                  scalingProvider, numObservables, numTimepoints),
+                                            amici::AMICI_SCALING_NONE);
     CHECK_EQUAL(10.0, offset);
 
     // TEST LOG10
@@ -343,9 +348,10 @@ TEST(hierarchicalOptimization, testComputeAnalyticalOffsets) {
     mock().expectNCalls(1, "AnalyticalParameterProviderMock::getObservablesForParameter")
             .withIntParameter("parameterIndex", 0).withIntParameter("conditionIdx", 0);
 
-    offset = parpe::computeAnalyticalOffsets(scalingIdx, amici::AMICI_SCALING_LOG10,
+    offset = parpe::getScaledParameter(parpe::computeAnalyticalOffsets(scalingIdx,
                                              modelOutputsUnscaled, measurements,
-                                             scalingProvider, numObservables, numTimepoints);
+                                             scalingProvider, numObservables, numTimepoints),
+                                       amici::AMICI_SCALING_LOG10);
     CHECK_EQUAL(1.0, offset);
 }
 

@@ -230,10 +230,11 @@ std::vector<double> HierachicalOptimizationWrapper::computeAnalyticalScalings(
     std::vector<double> proportionalityFactors(numProportionalityFactors);
 
     for(int scalingIdx = 0; scalingIdx < numProportionalityFactors; ++scalingIdx) {
-        proportionalityFactors[scalingIdx] = parpe::computeAnalyticalScalings(scalingIdx,
-                                                                              fun->getParameterScaling(proportionalityFactorIndices[scalingIdx]),
-                                                                              modelOutputsUnscaled, measurements,
-                                                                              *scalingReader, numObservables, numTimepoints);
+        auto proportionalityFactor = parpe::computeAnalyticalScalings(scalingIdx,
+                                                                      modelOutputsUnscaled, measurements,
+                                                                      *scalingReader, numObservables, numTimepoints);
+        auto scale = fun->getParameterScaling(proportionalityFactorIndices[scalingIdx]);
+        proportionalityFactors[scalingIdx] = getScaledParameter(proportionalityFactor, scale);
     }
 
     return proportionalityFactors;
@@ -260,10 +261,11 @@ std::vector<double> HierachicalOptimizationWrapper::computeAnalyticalOffsets(std
     std::vector<double> offsetParameters(numOffsetParameters);
 
     for(int i = 0; i < numOffsetParameters; ++i) {
-        offsetParameters[i] = parpe::computeAnalyticalOffsets(i,
-                                        fun->getParameterScaling(offsetParameterIndices[i]),
-                                        modelOutputsUnscaled, measurements,
-                                        *offsetReader, numObservables, numTimepoints);
+        auto offsetParameter = parpe::computeAnalyticalOffsets(i,
+                                                               modelOutputsUnscaled, measurements,
+                                                               *offsetReader, numObservables, numTimepoints);
+        auto scale = fun->getParameterScaling(offsetParameterIndices[i]);
+        offsetParameters[i] = getScaledParameter(offsetParameter, scale);
     }
 
     return offsetParameters;
@@ -279,11 +281,12 @@ std::vector<double> HierachicalOptimizationWrapper::computeAnalyticalSigmas(
     std::vector<double> sigmas(numSigmas);
 
     for(int i = 0; i < numSigmas; ++i) {
-        sigmas[i] = parpe::computeAnalyticalSigmas(
+        auto sigma = parpe::computeAnalyticalSigmas(
                     i,
-                    fun->getParameterScaling(sigmaParameterIndices[i]),
                     modelOutputsScaled, measurements,
                     *sigmaReader, numObservables, numTimepoints);
+        auto scale = fun->getParameterScaling(sigmaParameterIndices[i]);
+        sigmas[i] = getScaledParameter(sigma, scale);
     }
     return sigmas;
 }
@@ -656,7 +659,7 @@ double getDefaultOffsetParameter(amici::AMICI_parameter_scaling scaling)
 }
 
 
-double computeAnalyticalScalings(int scalingIdx, amici::AMICI_parameter_scaling scale,
+double computeAnalyticalScalings(int scalingIdx,
                                  const std::vector<std::vector<double> > &modelOutputsUnscaled,
                                  const std::vector<std::vector<double> > &measurements,
                                  AnalyticalParameterProvider const& scalingReader,
@@ -683,14 +686,11 @@ double computeAnalyticalScalings(int scalingIdx, amici::AMICI_parameter_scaling 
         }
     }
 
-    double proportionalityFactor = getScaledParameter(enumerator / denominator, scale);
-
-    return proportionalityFactor;
+    return enumerator / denominator;
 }
 
 
 double computeAnalyticalOffsets(int offsetIdx,
-                                amici::AMICI_parameter_scaling scale,
                                 std::vector<std::vector<double>> const& modelOutputsUnscaled,
                                 std::vector<std::vector<double>> const& measurements,
                                 AnalyticalParameterProvider& offsetReader,
@@ -716,13 +716,10 @@ double computeAnalyticalOffsets(int offsetIdx,
         }
     }
 
-    double offsetParameter = getScaledParameter(enumerator / denominator, scale);
-
-    // TODO ensure positivity!
-    return offsetParameter;
+    return enumerator / denominator;
 }
 
-double computeAnalyticalSigmas(int sigmaIdx, amici::AMICI_parameter_scaling scale,
+double computeAnalyticalSigmas(int sigmaIdx,
                                const std::vector<std::vector<double> > &modelOutputsScaled,
                                const std::vector<std::vector<double> > &measurements,
                                AnalyticalParameterProvider const& sigmaReader,
@@ -751,8 +748,7 @@ double computeAnalyticalSigmas(int sigmaIdx, amici::AMICI_parameter_scaling scal
     }
 
     double sigmaSquared = enumerator / denominator;
-    double sigma = std::sqrt(sigmaSquared);
-    return getScaledParameter(sigma, scale);
+    return std::sqrt(sigmaSquared);
 }
 
 

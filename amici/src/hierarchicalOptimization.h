@@ -442,21 +442,19 @@ double getDefaultOffsetParameter(amici::AMICI_parameter_scaling scaling);
  * @return
  */
 
-double computeAnalyticalScalings(int scalingIdx, amici::AMICI_parameter_scaling scale,
+double computeAnalyticalScalings(int scalingIdx,
                                  const std::vector<std::vector<double> > &modelOutputsUnscaled,
                                  const std::vector<std::vector<double> > &measurements,
                                  const AnalyticalParameterProvider &scalingReader,
                                  int numObservables, int numTimepoints);
 
 double computeAnalyticalOffsets(int offsetIdx,
-                                amici::AMICI_parameter_scaling scale,
                                 const std::vector<std::vector<double> > &modelOutputsUnscaled,
                                 const std::vector<std::vector<double> > &measurements,
                                 AnalyticalParameterProvider& offsetReader,
                                 int numObservables, int numTimepoints);
 
 double computeAnalyticalSigmas(int sigmaIdx,
-                               amici::AMICI_parameter_scaling scale,
                                const std::vector<std::vector<double> > &modelOutputsScaled,
                                const std::vector<std::vector<double> > &measurements,
                                const AnalyticalParameterProvider &sigmaReader,
