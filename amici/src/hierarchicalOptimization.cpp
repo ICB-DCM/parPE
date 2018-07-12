@@ -120,7 +120,7 @@ FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluate(
 {
     RELEASE_ASSERT(reducedParameters.size() == (unsigned)numParameters(), "");
     RELEASE_ASSERT(gradient.empty() || gradient.size() == reducedParameters.size(), "");
-    if(numProportionalityFactors() == 0 && numOffsetParameters() == 0) {
+    if(numProportionalityFactors() == 0 && numOffsetParameters() == 0 && numSigmaParameters() == 0) {
         // nothing to do, just pass through
 
         // evaluate for all conditions
@@ -316,8 +316,8 @@ void HierachicalOptimizationWrapper::fillInAnalyticalSigmas(
                 RELEASE_ASSERT(observableIdx < numObservables, "");
                 for(int timeIdx = 0; timeIdx < numTimepoints; ++timeIdx) {
                     // NOTE: this must be in sync with data ordering in AMICI (assumes row-major)
-                    // if this sigma was to be estimated, data must be nan
-                    RELEASE_ASSERT(std::isnan(allSigmas[conditionIdx][observableIdx + timeIdx * numObservables]), "");
+                    RELEASE_ASSERT(std::isnan(allSigmas[conditionIdx][observableIdx + timeIdx * numObservables]),
+                            "Expected NaN value for sigma parameters being estimated, but got non-NAN.");
                     allSigmas[conditionIdx][observableIdx + timeIdx * numObservables] = sigmaParameterValue;
                 }
             }
@@ -361,7 +361,7 @@ FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluateWithOptimalPara
         fval = computeNegLogLikelihood(measurements, modelOutputsScaled, fullSigmaMatrices);
     }
 
-    return functionEvaluationSuccess;
+    return !std::isnan(fval) ? functionEvaluationSuccess : functionEvaluationFailure;
 }
 
 
@@ -848,6 +848,8 @@ double computeNegLogLikelihood(std::vector<std::vector<double>> const& measureme
 
     for (int conditionIdx = 0; (unsigned) conditionIdx < measurements.size(); ++conditionIdx) {
         nllh += computeNegLogLikelihood(measurements[conditionIdx], modelOutputsScaled[conditionIdx], sigmas[conditionIdx]);
+        if(std::isnan(nllh))
+            return nllh;
     }
 
     return nllh;
@@ -866,8 +868,14 @@ double computeNegLogLikelihood(std::vector<double> const& measurements,
         if(!std::isnan(mes)) {
             double sim = modelOutputsScaled[i];
             double sigmaSquared = sigmas[i] * sigmas[i];
-            RELEASE_ASSERT(!std::isnan(sim), "");
-            RELEASE_ASSERT(!std::isnan(sigmaSquared), "");
+            if(std::isnan(sim)) {
+                logmessage(LOGLVL_DEBUG, "Simulation is NaN for data point %d", i);
+                return NAN;
+            }
+            if(std::isnan(sim)) {
+                logmessage(LOGLVL_DEBUG, "Sigma is NaN for data point %d", i);
+                return NAN;
+            }
             double diff = mes - sim;
             diff *= diff;
             nllh += log(2.0 * pi * sigmaSquared) + diff / sigmaSquared;
