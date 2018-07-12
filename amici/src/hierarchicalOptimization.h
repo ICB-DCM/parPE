@@ -508,6 +508,9 @@ double computeNegLogLikelihood(std::vector<double> const& measurements,
                                std::vector<double> const& modelOutputsScaled,
                                const std::vector<double> &sigmas);
 
+void checkGradientForAnalyticalParameters(std::vector<double> const& gradient,
+                                          std::vector<int> const& analyticalIndices, double threshold);
+
 } //namespace parpe
 
 #endif // HIERACHICALOPTIMIZATION_H

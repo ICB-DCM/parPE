@@ -351,6 +351,10 @@ FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluateWithOptimalPara
         // Filter gradient for those parameters expected by the optimizer
         auto analyticalParameterIndices = getAnalyticalParameterIndices();
         fillFilteredParams(fullGradient, analyticalParameterIndices, gradient);
+
+        // Check if gradient w.r.t. analytical parameters is 0
+        checkGradientForAnalyticalParameters(fullGradient, analyticalParameterIndices, 1e-8);
+
     } else {
         auto fullSigmaMatrices = fun->getAllSigmas();
         if(!sigmaParameterIndices.empty()) {
@@ -736,7 +740,9 @@ double computeAnalyticalSigmas(int sigmaIdx, amici::AMICI_parameter_scaling scal
                 double mes = measurements[conditionIdx][observableIdx + timeIdx * numObservables];
                 if(!std::isnan(mes)) {
                     double scaledSim = modelOutputsScaled[conditionIdx][observableIdx + timeIdx * numObservables];
-                    assert(!std::isnan(scaledSim));
+                    if(std::isnan(scaledSim)) {
+                        logmessage(LOGLVL_DEBUG, "Simulation is NaN for condition %d observable %d timepoint %d", conditionIdx, observableIdx, timeIdx);
+                    }
                     enumerator += (mes - scaledSim) * (mes - scaledSim);
                     denominator += 1.0;
                 }
@@ -744,9 +750,9 @@ double computeAnalyticalSigmas(int sigmaIdx, amici::AMICI_parameter_scaling scal
         }
     }
 
-    double sigma = getScaledParameter(enumerator / denominator, scale);
-
-    return sigma;
+    double sigmaSquared = enumerator / denominator;
+    double sigma = std::sqrt(sigmaSquared);
+    return getScaledParameter(sigma, scale);
 }
 
 
@@ -1003,6 +1009,15 @@ bool HierarchicalOptimizationReporter::afterCostFunctionCall(
                                                                    cachedFullGradient, numIterations, numFunctionCalls, wallTime);
     }
     return false;
+}
+
+void checkGradientForAnalyticalParameters(const std::vector<double> &gradient, const std::vector<int> &analyticalIndices, double threshold)
+{
+    for(auto const idx: analyticalIndices) {
+        auto curGradient = gradient[idx];
+        if(std::fabs(curGradient) > threshold)
+            logmessage(LOGLVL_WARNING, "Gradient w.r.t. analytically computed parameter %d is %f, exceeding threshold %g", idx, curGradient, threshold);
+    }
 }
 
 
