@@ -24,7 +24,9 @@ TEST_GROUP(steadystateProblemTests){
                                             0.033333333333333};
     */
     const int scalingParameterIdx = 5;
+    const int offsetParameterIdx = 6;
     const int scaledObservableIdx = 3;
+    const int offsettedObservableIdx = 4;
     const std::vector<double> t { 1.0e8 };
     // const std::vector<double> k { };
     //const std::vector<double> p { 1.0, 0.5, 0.4, 2.0, 0.1, 1.0, 1.0, 0.0 };
@@ -35,8 +37,8 @@ TEST_GROUP(steadystateProblemTests){
     const std::vector<double> yExp {0.456644592142075,
                                     0.437977375496898,
                                     0.033333333333333,
-                                    0.456644592142075,
-                                    1.437977375496898,
+                                    2.0 * 0.456644592142075,
+                                    3.0 + 0.437977375496898,
                                     0.456644592142075};
     void setup(){
 
@@ -49,6 +51,8 @@ TEST_GROUP(steadystateProblemTests){
 
 
 TEST(steadystateProblemTests, testSteadystate) {
+    /* Verify steadystate matches saved results and loglikelihood is correct */
+
     // verify steadystate
     auto model = getModel();
     model->setTimepoints(t);
@@ -60,7 +64,7 @@ TEST(steadystateProblemTests, testSteadystate) {
     parpe::checkEqualArray(xSteadystateExp.data(),
                            rdata->x.data(),
                            xSteadystateExp.size(), 1e-5, 1e-5);
-    //std::cout<<rdata->y;
+
     // verify likelihood for matching measurement / simulation
     amici::ExpData edata {*model};
     edata.my = yExp;
@@ -103,10 +107,12 @@ TEST(steadystateProblemTests, testSteadystateHierarchical) {
     auto modelNonOwning = model.get();
 
     const double scalingExp = 2.0; // scaling parameter
+    const double offsetExp = 2.0; // offset parameter
     const std::vector<double> pReduced { 1.0, 0.5, 0.4, 2.0,
-                                         0.1, 1.0, 1.0 };
+                                         0.1, 1.0 };
     auto yScaledExp = yExp;
-    yScaledExp[scaledObservableIdx] *= scalingExp;
+    yScaledExp[scaledObservableIdx] = scalingExp * yExp[0];
+    yScaledExp[offsettedObservableIdx] = offsetExp + yExp[1];
     parpe::MultiConditionDataProviderDefault dp(std::move(model), modelNonOwning->getSolver());
     // x0?
     dp.edata.push_back(amici::ExpData(*modelNonOwning));
@@ -124,6 +130,12 @@ TEST(steadystateProblemTests, testSteadystateHierarchical) {
     scalings->mapping[0][0] = {scaledObservableIdx};
 
     auto offsets = std::make_unique<parpe::AnalyticalParameterProviderDefault>();
+    offsets->conditionsForParameter.push_back({0});
+    offsets->optimizationParameterIndices.push_back(offsetParameterIdx);
+    // x[scalingIdx][conditionIdx] -> std::vector of observableIndicies
+    offsets->mapping.resize(1);
+    offsets->mapping[0][0] = {offsettedObservableIdx};
+
     auto sigmas = std::make_unique<parpe::AnalyticalParameterProviderDefault>();
 
     auto gradFun = std::make_unique<parpe::AmiciSummedGradientFunction<int>>(&dp, nullptr);
@@ -140,7 +152,7 @@ TEST(steadystateProblemTests, testSteadystateHierarchical) {
     DOUBLES_EQUAL(-parpe::getLogLikelihoodOffset(dp.edata[0].my.size()), cost, 1e-5);
 
     const std::vector<double> pFull { 1.0, 0.5, 0.4, 2.0,
-                                      0.1, 2.0, 1.0, 1.0 };
+                                      0.1, scalingExp, offsetExp, 1.0 };
     hier.fun->evaluate(pFull, {0}, cost, gsl::span<double>());
     DOUBLES_EQUAL(-parpe::getLogLikelihoodOffset(dp.edata[0].my.size()), cost, 1e-5);
 }
@@ -160,14 +172,15 @@ TEST(steadystateProblemTests, testOptimizationHierarchical) {
 
     auto solver = model->getSolver();
     solver->setSensitivityMethod(amici::AMICI_SENSI_ASA);
-    solver->setMaxSteps(1e4);
 
     /* generate scaled data */
     const double scalingExp = 2.0; // scaling parameter
+    const double offsetExp = 2.0; // offset parameter
     const std::vector<double> pReduced { 1.0, 0.5, 0.4, 2.0,
-                                         0.1, /*1.0,*/ 1.0, 1.0 };
+                                         0.1, /*1.0,*/ /*1.0,*/ 1.0 };
     auto yScaledExp = yExp;
-    yScaledExp[scaledObservableIdx] *= scalingExp;
+    yScaledExp[scaledObservableIdx] = scalingExp * yExp[0];
+    yScaledExp[offsettedObservableIdx] = offsetExp + yExp[1];
     parpe::MultiConditionDataProviderDefault dp(std::move(model), std::move(solver));
     // x0?
     dp.edata.push_back(amici::ExpData(*modelNonOwning));
@@ -184,8 +197,15 @@ TEST(steadystateProblemTests, testOptimizationHierarchical) {
     // x[scalingIdx][conditionIdx] -> std::vector of observableIndicies
     scalings->mapping.resize(1);
     scalings->mapping[0][0] = {scaledObservableIdx};
-    // no analytical offset parameter
+
+    // analytical offset parameter
     auto offsets = std::make_unique<parpe::AnalyticalParameterProviderDefault>();
+    offsets->conditionsForParameter.push_back({0});
+    offsets->optimizationParameterIndices.push_back(offsetParameterIdx);
+    // x[scalingIdx][conditionIdx] -> std::vector of observableIndicies
+    offsets->mapping.resize(1);
+    offsets->mapping[0][0] = {offsettedObservableIdx};
+
     auto sigmas = std::make_unique<parpe::AnalyticalParameterProviderDefault>();
 
     // create wrapper
@@ -204,7 +224,7 @@ TEST(steadystateProblemTests, testOptimizationHierarchical) {
     DOUBLES_EQUAL(-parpe::getLogLikelihoodOffset(dp.edata[0].my.size()), cost, 1e-5);
 
     const std::vector<double> pFull { 1.0, 0.5, 0.4, 2.0,
-                                      0.1, 2.0, 1.0, 1.0 };
+                                      0.1, scalingExp, offsetExp, 1.0 };
     hier->fun->evaluate(pFull, {0}, cost, gsl::span<double>());
     DOUBLES_EQUAL(-parpe::getLogLikelihoodOffset(dp.edata[0].my.size()), cost, 1e-5);
 
