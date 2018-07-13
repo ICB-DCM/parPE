@@ -1,12 +1,5 @@
 %module amici
 
-
-%begin %{
-/* Include cmath before python headers to prevent "error: '::hypot'
- * has not been declared" error with mingw. */
-#include<cmath>
-%}
-
 typedef double realtype;
 
 %include <stl.i>
@@ -48,3 +41,4 @@ using namespace amici;
 %template(DoubleVector) std::vector<realtype>;
 %template(IntVector) std::vector<int>;
 %template(ParameterScalingVector) std::vector<amici::AMICI_parameter_scaling>;
+%template(StringVector) std::vector<std::string>;

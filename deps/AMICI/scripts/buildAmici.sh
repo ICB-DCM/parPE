@@ -17,7 +17,9 @@ make
 #make python-wheel
 #pip3 install --user --prefix= `ls -t ${AMICI_PATH}/build/python/amici-*.whl | head -1`
 
-cd ${AMICI_PATH}/python/sdist
-python3 setup.py sdist --dist-dir=${AMICI_PATH}/build/python/
-pip3 install  ${AMICI_PATH}/build/python/amici-*.tar.gz 
-
+make python-sdist
+set -x
+python3 -m venv ${AMICI_PATH}/build/venv --clear
+source ${AMICI_PATH}/build/venv/bin/activate
+pip3 install --upgrade pip setuptools pkgconfig wheel
+pip3 install --verbose `ls -t ${AMICI_PATH}/build/python/amici-*.tar.gz | head -1`
