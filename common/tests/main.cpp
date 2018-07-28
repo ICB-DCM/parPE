@@ -1,10 +1,10 @@
 #include "CppUTest/CommandLineTestRunner.h"
 #include "CppUTest/TestHarness.h"
 
-#include <stdlib.h>
-#include <time.h>
+#include <cstdlib>
+#include <ctime>
 
 int main(int argc, char **argv) {
-    srand(time(NULL));
+    srand(time(nullptr));
     return CommandLineTestRunner::RunAllTests(argc, argv);
 }

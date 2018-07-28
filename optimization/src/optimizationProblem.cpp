@@ -39,7 +39,7 @@ int getLocalOptimum(OptimizationProblem *problem) {
 
 void *getLocalOptimumThreadWrapper(void *optimizationProblemVp) {
     auto problem = static_cast<OptimizationProblem *>(optimizationProblemVp);
-    int *result = new int;
+    auto *result = new int;
     *result = getLocalOptimum(problem);
     return result;
 }
@@ -259,7 +259,7 @@ bool OptimizationReporter::iterationFinished(gsl::span<const double> parameters,
     return false;
 }
 
-bool OptimizationReporter::beforeCostFunctionCall(gsl::span<const double> parameters) const
+bool OptimizationReporter::beforeCostFunctionCall(gsl::span<const double>  /*parameters*/) const
 {
     ++numFunctionCalls;
     //timeCostEvaluationBegin = clock();

@@ -121,7 +121,7 @@ TEST_GROUP(minibatchOptimizationLinearModel){
                 parpe::SummedGradientFunctionGradientFunctionAdapter<int>
                 >(std::move(lm2), dataIndices);
         auto p = std::make_unique<parpe::OptimizationProblemImpl>();
-        p->costFun.reset(sgf.release());
+        p->costFun = std::move(sgf);
         p->setParametersMin(std::vector<double>(trueParameters.size(), 0.0));
         p->setParametersMax(std::vector<double>(trueParameters.size(), 5.0));
 

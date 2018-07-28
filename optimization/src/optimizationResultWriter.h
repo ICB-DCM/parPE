@@ -25,7 +25,7 @@ public:
     /**
      * @brief Default constructor, for testing only
      */
-    OptimizationResultWriter();
+    OptimizationResultWriter() = default;
 
     /**
      * @brief Write to pre-opened HDF5 file (will be re-opened)

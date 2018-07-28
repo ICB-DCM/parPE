@@ -50,7 +50,7 @@ int randInt(int min, int max) {
     return min + rand() / (double) RAND_MAX * (max - min);
 }
 
-std::string captureStreamToString(std::function<void()> f, std::ostream &os) {
+std::string captureStreamToString(const std::function<void()>& f, std::ostream &os) {
     std::streambuf* oldOStreamBuf = os.rdbuf();
     os.flush();
 
@@ -65,7 +65,7 @@ std::string captureStreamToString(std::function<void()> f, std::ostream &os) {
     return strOs.str();
 }
 
-std::string captureStreamToString(std::function<void()> f, std::FILE* captureStream, int captureStreamFd) {
+std::string captureStreamToString(const std::function<void()>& f, std::FILE* captureStream, int captureStreamFd) {
     // use fmemopen instead of file?
 
     char tempFileName[TMP_MAX];

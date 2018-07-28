@@ -4,8 +4,6 @@
 
 namespace parpe {
 
-MultiConditionProblemResultWriter::MultiConditionProblemResultWriter() {}
-
 MultiConditionProblemResultWriter::MultiConditionProblemResultWriter(
     hid_t file_id)
     : OptimizationResultWriter(file_id)

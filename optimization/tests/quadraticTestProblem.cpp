@@ -32,7 +32,7 @@ std::unique_ptr<OptimizationReporter> QuadraticTestProblem::getReporter() const
 }
 
 std::unique_ptr<OptimizationProblem> QuadraticOptimizationMultiStartProblem::getLocalProblem(
-        int multiStartIndex) const {
+        int  /*multiStartIndex*/) const {
     auto p = std::unique_ptr<OptimizationProblem>(new QuadraticTestProblem());
     p->setOptimizationOptions(options);
     return p;
@@ -44,7 +44,7 @@ FunctionEvaluationStatus QuadraticGradientFunction::evaluate(
 {
     fval = pow(parameters[0] + 1.0, 2) + 42.0;
 
-    if (gradient.size()) {
+    if (!gradient.empty()) {
         mock().actualCall("testObjGrad");
         gradient[0] = 2.0 * parameters[0] + 2.0;
     } else {
@@ -61,23 +61,23 @@ int QuadraticGradientFunction::numParameters() const
     return 1;
 }
 
-bool OptimizationReporterTest::starting(gsl::span<const double> parameters) const
+bool OptimizationReporterTest::starting(gsl::span<const double>  /*parameters*/) const
 {
     mock().actualCall("OptimizationReporterTest::starting");
 
     return false;
 }
 
-bool OptimizationReporterTest::iterationFinished(gsl::span<const double> parameters,
-                                                 double objectiveFunctionValue,
-                                                 gsl::span<const double> objectiveFunctionGradient) const
+bool OptimizationReporterTest::iterationFinished(gsl::span<const double>  /*parameters*/,
+                                                 double  /*objectiveFunctionValue*/,
+                                                 gsl::span<const double>  /*objectiveFunctionGradient*/) const
 {
     mock().actualCall("OptimizationReporterTest::iterationFinished");
 
     return false;
 }
 
-bool OptimizationReporterTest::beforeCostFunctionCall(gsl::span<const double> parameters) const
+bool OptimizationReporterTest::beforeCostFunctionCall(gsl::span<const double>  /*parameters*/) const
 {
     mock().actualCall("OptimizationReporterTest::beforeCostFunctionCall");
 
@@ -91,7 +91,7 @@ bool OptimizationReporterTest::afterCostFunctionCall(gsl::span<const double> par
     mock().actualCall("OptimizationReporterTest::afterCostFunctionCall");
 
     if(printDebug) {
-        if (objectiveFunctionGradient.size()) {
+        if (!objectiveFunctionGradient.empty()) {
             printf("g: x: %f f(x): %f f'(x): %f\n", parameters[0], objectiveFunctionValue, objectiveFunctionGradient[0]);
         } else {
             printf("f: x: %f f(x): %f\n", parameters[0], objectiveFunctionValue);
@@ -102,8 +102,8 @@ bool OptimizationReporterTest::afterCostFunctionCall(gsl::span<const double> par
     return false;
 }
 
-void OptimizationReporterTest::finished(double optimalCost,
-                                        gsl::span<const double> parameters, int exitStatus) const
+void OptimizationReporterTest::finished(double  /*optimalCost*/,
+                                        gsl::span<const double>  /*parameters*/, int exitStatus) const
 {
     mock().actualCall("OptimizationReporterTest::finished").withIntParameter("exitStatus", exitStatus);
 }

@@ -8,7 +8,7 @@ namespace parpe {
 
 class OptimizerIpOpt : public Optimizer {
   public:
-    OptimizerIpOpt();
+    OptimizerIpOpt() = default;
 
     /**
      * @brief getLocalOptimum Get local optimum using Ipopt Optimizer

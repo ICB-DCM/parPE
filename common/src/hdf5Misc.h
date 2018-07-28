@@ -43,7 +43,7 @@ std::unique_lock<mutexHdfType> hdf5MutexGetLock();
     herr_t (*old_func)(void *);                                                \
     void *old_client_data;                                                     \
     H5Eget_auto1(&old_func, &old_client_data);                                 \
-    H5Eset_auto1(NULL, NULL)
+    H5Eset_auto1(nullptr, nullptr)
 
 #define H5_RESTORE_ERROR_HANDLER H5Eset_auto1(old_func, old_client_data)
 

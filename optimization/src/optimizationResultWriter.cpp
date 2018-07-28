@@ -12,8 +12,6 @@
 
 namespace parpe {
 
-OptimizationResultWriter::OptimizationResultWriter() {}
-
 OptimizationResultWriter::OptimizationResultWriter(hid_t file_id)
 {
     auto lock = hdf5MutexGetLock();

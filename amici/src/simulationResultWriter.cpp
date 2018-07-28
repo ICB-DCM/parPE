@@ -3,19 +3,20 @@
 
 #include <cstdio>
 #include <cmath> // NAN
+#include <utility>
 
 namespace parpe {
 
-SimulationResultWriter::SimulationResultWriter(H5::H5File const& file, std::string const& rootPath)
-    : rootPath(rootPath)
+SimulationResultWriter::SimulationResultWriter(H5::H5File const& file, std::string rootPath)
+    : rootPath(std::move(rootPath))
 {
     auto lock = hdf5MutexGetLock();
     this->file = file;
     updatePaths();
 }
 
-SimulationResultWriter::SimulationResultWriter(const std::string &hdf5FileName, std::string const& rootPath)
-    : rootPath(rootPath)
+SimulationResultWriter::SimulationResultWriter(const std::string &hdf5FileName, std::string rootPath)
+    : rootPath(std::move(rootPath))
 {
     auto lock = hdf5MutexGetLock();
 

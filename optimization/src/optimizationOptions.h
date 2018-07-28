@@ -67,11 +67,11 @@ class OptimizationOptions {
 
     int getIntOption(const std::string &key);
     double getDoubleOption(const std::string &key);
-    std::string getStringOption(std::string key);
+    std::string getStringOption(const std::string& key);
 
     void setOption(const std::string &key, int value);
     void setOption(const std::string &key, double value);
-    void setOption(std::string key, std::string value);
+    void setOption(const std::string& key, std::string value);
 
     template <typename T>
     void for_each(std::function< void (const std::pair<const std::string, const std::string>, T)> f, T arg) const

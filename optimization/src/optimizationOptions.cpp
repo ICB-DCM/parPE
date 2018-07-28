@@ -18,6 +18,7 @@
 #include <iomanip>
 #include <sstream>
 #include <limits>
+#include <utility>
 #include <hdf5.h>
 #include <H5Cpp.h>
 
@@ -228,7 +229,7 @@ double OptimizationOptions::getDoubleOption(std::string const& key)
     return std::stod(options[key]);
 }
 
-std::string OptimizationOptions::getStringOption(std::string key)
+std::string OptimizationOptions::getStringOption(const std::string& key)
 {
     return options[key];
 }
@@ -245,9 +246,9 @@ void OptimizationOptions::setOption(std::string const& key, double value)
     options[key] = out.str();
 }
 
-void OptimizationOptions::setOption(std::string key, std::string value)
+void OptimizationOptions::setOption(const std::string& key, std::string value)
 {
-    options[key] = value;
+    options[key] = std::move(value);
 }
 
 Optimizer* optimizerFactory(optimizerName optimizer)

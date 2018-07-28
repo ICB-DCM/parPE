@@ -383,8 +383,6 @@ void setIpOptOptions(SmartPtr<OptionsList> optionsIpOpt,
     problem->getOptimizationOptions().for_each<SmartPtr<OptionsList> *>(setIpOptOption, &optionsIpOpt);
 }
 
-OptimizerIpOpt::OptimizerIpOpt() {}
-
 std::tuple<int, double, std::vector<double> > OptimizerIpOpt::optimize(OptimizationProblem *problem) {
 
     ApplicationReturnStatus status = Unrecoverable_Exception;

@@ -30,7 +30,7 @@ TEST_GROUP(optimizationProblem){
  */
 class SummedGradientFunctionLinearModelTest : public parpe::SummedGradientFunction<double> {
 public:
-    virtual parpe::FunctionEvaluationStatus evaluate(
+    parpe::FunctionEvaluationStatus evaluate(
             gsl::span<double const> parameters,
             double dataset,
             double &fval,
@@ -38,7 +38,7 @@ public:
     {
         fval = parameters[0] * dataset + parameters[1];
 
-        if(gradient.size()) {
+        if(!gradient.empty()) {
             gradient[0] = dataset;
             gradient[1] = 0;
         }
@@ -55,14 +55,14 @@ public:
      * @param gradient
      * @return
      */
-    virtual parpe::FunctionEvaluationStatus evaluate(
+    parpe::FunctionEvaluationStatus evaluate(
             gsl::span<double const> parameters,
             std::vector<double> datasets,
             double &fval,
             gsl::span<double> gradient) const override
     {
         fval = 0;
-        if(gradient.size())
+        if(!gradient.empty())
             std::fill(gradient.begin(), gradient.end(), 0);
 
         double tmpFVal = 0;
@@ -74,7 +74,7 @@ public:
                 return status;
 
             fval += tmpFVal;
-            if(gradient.size()) {
+            if(!gradient.empty()) {
                 for(int i = 0; i < numParameters(); ++i)
                     gradient[i] += tmpGradient[i];
             }
@@ -82,7 +82,7 @@ public:
         return parpe::functionEvaluationSuccess;
     }
 
-    virtual int numParameters() const override
+    int numParameters() const override
     {
         return numParameters_;
     }

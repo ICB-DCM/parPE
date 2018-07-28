@@ -152,7 +152,7 @@ protected:
     mutable double cachedCost = INFINITY;
     mutable FunctionEvaluationStatus cachedStatus = functionEvaluationSuccess;
 
-    mutable double finalCost;
+    mutable double finalCost = NAN;
 
     // keeps the most recent parameters, assuming they are the final ones
     mutable std::vector<double> cachedParameters;

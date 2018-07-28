@@ -13,7 +13,7 @@ namespace parpe {
 class MultiConditionProblemResultWriter : public OptimizationResultWriter {
 
 public:
-    MultiConditionProblemResultWriter();
+    MultiConditionProblemResultWriter() = default;
 
     MultiConditionProblemResultWriter(hid_t file_id);
 

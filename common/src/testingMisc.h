@@ -22,9 +22,9 @@ bool withinTolerance(double expected, double actual, double atol, double rtol, i
 
 void checkEqualArray(const double *expected, const double *actual, int length, double atol, double rtol);
 
-std::string captureStreamToString(std::function<void()> f, std::ostream &os = std::cout);
+std::string captureStreamToString(const std::function<void()>& f, std::ostream &os = std::cout);
 
-std::string captureStreamToString(std::function<void()> f, std::FILE* captureStream = stdout, int captureStreamFd = STDOUT_FILENO);
+std::string captureStreamToString(const std::function<void()>& f, std::FILE* captureStream = stdout, int captureStreamFd = STDOUT_FILENO);
 
 } // namespace parpe
 
