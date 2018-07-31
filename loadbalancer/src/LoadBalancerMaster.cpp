@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <climits>
+#include <sched.h>
 
 #include <misc.h>
 
@@ -100,7 +101,7 @@ void *LoadBalancerMaster::loadBalancerThreadRun() {
             sentJobsData[freeWorkerIndex] = currentQueueElement;
         }
 
-        pthread_yield();
+        sched_yield();
     };
 
     return nullptr;
