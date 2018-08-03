@@ -115,6 +115,14 @@ MultiConditionDataProvider *MultiConditionProblem::getDataProvider() {
     return dataProvider;
 }
 
+MultiConditionProblemMultiStartOptimizationProblem::MultiConditionProblemMultiStartOptimizationProblem(
+        MultiConditionDataProviderHDF5 *dp,
+        OptimizationOptions options,
+        MultiConditionProblemResultWriter *resultWriter,
+        LoadBalancerMaster *loadBalancer)
+    : dp(dp), options(options), resultWriter(resultWriter), loadBalancer(loadBalancer)
+{}
+
 std::unique_ptr<OptimizationProblem> MultiConditionProblemMultiStartOptimizationProblem::getLocalProblem(
         int multiStartIndex) const {
     // generate new OptimizationProblem with data from dp

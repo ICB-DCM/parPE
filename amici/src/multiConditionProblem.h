@@ -419,12 +419,19 @@ private:
 class MultiConditionProblemMultiStartOptimizationProblem
     : public MultiStartOptimizationProblem {
   public:
+    MultiConditionProblemMultiStartOptimizationProblem(MultiConditionDataProviderHDF5 *dp,
+                                                       OptimizationOptions options,
+                                                       MultiConditionProblemResultWriter *resultWriter,
+                                                       LoadBalancerMaster *loadBalancer);
+
+
     int getNumberOfStarts() const { return options.numStarts; }
 
     bool restartOnFailure() const { return options.retryOptimization; }
 
     std::unique_ptr<OptimizationProblem> getLocalProblem(int multiStartIndex) const override;
 
+private:
     MultiConditionDataProviderHDF5 *dp = nullptr;
     OptimizationOptions options;
     MultiConditionProblemResultWriter *resultWriter = nullptr;

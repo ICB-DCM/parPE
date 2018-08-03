@@ -67,10 +67,12 @@ class SteadystateApplication : public parpe::OptimizationApplication {
         if(parpe::getMpiRank() < 1)
             dataProvider->copyInputData(resultWriter->getFileId());
 
-        auto ms = new parpe::MultiConditionProblemMultiStartOptimizationProblem();
-        ms->options = problem->getOptimizationOptions();
-        ms->resultWriter = multiCondProb->resultWriter.get();
-        ms->dp = dataProvider.get();
+        auto ms = new parpe::MultiConditionProblemMultiStartOptimizationProblem(
+                    dataProvider.get(),
+                    problem->getOptimizationOptions(),
+                    multiCondProb->resultWriter.get(),
+                    &loadBalancer
+                    );
         multiStartOptimizationProblem.reset(ms);
     }
 
