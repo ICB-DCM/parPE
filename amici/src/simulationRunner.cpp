@@ -3,6 +3,10 @@
 
 #include <omp.h>
 
+#include <utility>
+
+#include <utility>
+
 // #define PARPE_SIMULATION_RUNNER_DEBUG
 
 namespace parpe {
@@ -16,8 +20,8 @@ SimulationRunnerSimple::SimulationRunnerSimple(
     : optimizationParameters(optimizationParameters),
     sensitivityOrder(sensitivityOrder),
     conditionIndices(conditionIndices),
-    callbackJobFinished(callbackJobFinished),
-    aggregate(aggregate)
+    callbackJobFinished(std::move(std::move(callbackJobFinished))),
+    aggregate(std::move(std::move(aggregate)))
 {
 
 }
@@ -34,7 +38,7 @@ int SimulationRunnerSimple::runDistributedMemory(LoadBalancerMaster *loadBalance
     pthread_mutex_t simulationsMutex = PTHREAD_MUTEX_INITIALIZER;
 
     // multiple simulations may be grouped into one work package
-    int numJobsTotal = static_cast<int>(
+    auto numJobsTotal = static_cast<int>(
                 std::ceil(
                     static_cast<double>(conditionIndices.size())
                     / maxSimulationsPerPackage));
@@ -50,7 +54,6 @@ int SimulationRunnerSimple::runDistributedMemory(LoadBalancerMaster *loadBalance
         auto currentConditions = std::vector<int>(
                     &conditionIndices[static_cast<std::vector<int>::size_type>(numConditionsSent)],
                          &conditionIndices[static_cast<std::vector<int>::size_type>(numConditionsSent + simulationsCurrentPackage)]);
-        std::cout<<this<<std::endl;
         queueSimulation(loadBalancer, &jobs[jobIdx],
                         &numJobsFinished, &simulationsCond, &simulationsMutex,
                         jobIdx, optimizationParameters, sensitivityOrder, currentConditions);
@@ -76,7 +79,7 @@ int SimulationRunnerSimple::runDistributedMemory(LoadBalancerMaster *loadBalance
     return errors;
 }
 
-int SimulationRunnerSimple::runSharedMemory(LoadBalancerWorker::messageHandlerFunc messageHandler, bool sequential)
+int SimulationRunnerSimple::runSharedMemory(const LoadBalancerWorker::messageHandlerFunc& messageHandler, bool sequential)
 {
 #ifdef PARPE_SIMULATION_RUNNER_DEBUG
     printf("runSharedMemory\n");

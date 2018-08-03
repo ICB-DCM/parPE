@@ -99,7 +99,7 @@ public:
             double &fval,
             gsl::span<double> gradient) const override {
 
-        mock().actualCall("AmiciSummedGradientFunctionMock::evaluate").withBoolParameter("gradient", gradient.size());
+        mock().actualCall("AmiciSummedGradientFunctionMock::evaluate").withBoolParameter("gradient", !gradient.empty());
 
         return parpe::functionEvaluationSuccess;
     }
@@ -114,7 +114,7 @@ public:
             double &fval,
             gsl::span<double> gradient) const override {
 
-        mock().actualCall("AmiciSummedGradientFunctionMock::evaluate").withBoolParameter("gradient", gradient.size());
+        mock().actualCall("AmiciSummedGradientFunctionMock::evaluate").withBoolParameter("gradient", !gradient.empty());
 
         return parpe::functionEvaluationSuccess;
     }

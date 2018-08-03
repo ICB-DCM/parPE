@@ -12,6 +12,7 @@
 #include <cstring>
 #include <ctime>
 #include <numeric>
+#include <utility>
 
 
 namespace parpe {
@@ -120,7 +121,7 @@ MultiConditionProblemMultiStartOptimizationProblem::MultiConditionProblemMultiSt
         OptimizationOptions options,
         MultiConditionProblemResultWriter *resultWriter,
         LoadBalancerMaster *loadBalancer)
-    : dp(dp), options(options), resultWriter(resultWriter), loadBalancer(loadBalancer)
+    : dp(dp), options(std::move(options)), resultWriter(resultWriter), loadBalancer(loadBalancer)
 {}
 
 std::unique_ptr<OptimizationProblem> MultiConditionProblemMultiStartOptimizationProblem::getLocalProblem(

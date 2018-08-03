@@ -15,7 +15,7 @@ void runAmiciSimulation(Solver &solver, const ExpData *edata,
  */
 class AmiciSummedGradientFunctionTest : public parpe::AmiciSummedGradientFunction<int> {
   public:
-    AmiciSummedGradientFunctionTest() {}
+    AmiciSummedGradientFunctionTest() = default;
 //    void addSimulationGradientToObjectiveFunctionGradient(
 //        const double *simulationGradient, double *objectiveFunctionGradient,
 //        int numCommon, int numConditionSpecificParams,

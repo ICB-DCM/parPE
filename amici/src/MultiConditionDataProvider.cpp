@@ -368,7 +368,7 @@ int MultiConditionDataProviderDefault::getNumberOfConditions() const
     return edata.size();
 }
 
-std::vector<int> MultiConditionDataProviderDefault::getSimulationToOptimizationParameterMapping(int conditionIdx) const
+std::vector<int> MultiConditionDataProviderDefault::getSimulationToOptimizationParameterMapping(int  /*conditionIdx*/) const
 {
     std::vector<int> mapping(model->np());
     std::iota(mapping.begin(), mapping.end(), 0);
@@ -403,7 +403,7 @@ amici::AMICI_parameter_scaling MultiConditionDataProviderDefault::getParameterSc
 }
 
 
-void MultiConditionDataProviderDefault::updateSimulationParameters(int conditionIndex, gsl::span<const double> optimizationParams, amici::Model &model) const
+void MultiConditionDataProviderDefault::updateSimulationParameters(int  /*conditionIndex*/, gsl::span<const double> optimizationParams, amici::Model &model) const
 {
     logmessage(LOGLVL_WARNING, "MultiConditionDataProviderDefault::updateSimulationParameters: No proper mapping implemented. Ensure this is correct.");
     model.setParameters(std::vector<double>(optimizationParams.begin(), optimizationParams.end()));

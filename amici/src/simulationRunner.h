@@ -81,7 +81,7 @@ class SimulationRunnerSimple {
      * @param messageHandler
      * @return
      */
-    int runSharedMemory(LoadBalancerWorker::messageHandlerFunc messageHandler, bool sequential = false);
+    int runSharedMemory(const LoadBalancerWorker::messageHandlerFunc& messageHandler, bool sequential = false);
 
 
 private:

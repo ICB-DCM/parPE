@@ -388,7 +388,7 @@ std::tuple<int, double, std::vector<double> > OptimizerIpOpt::optimize(Optimizat
     ApplicationReturnStatus status = Unrecoverable_Exception;
 
     std::vector<double> finalParameters;
-    double finalCost = NAN;
+    double finalCost = std::numeric_limits<double>::quiet_NaN();
 
     { // ensure all IpOpt objects are destroyed before mutex is unlocked
 

@@ -335,7 +335,7 @@ std::pair<int, double> getFunctionEvaluationWithMinimalCost(std::string const& d
                                      1, numFunctionEvalations, 0, 0,
                                      cost.data());
     int minIndex = std::min_element(cost.begin(), cost.end()) - cost.begin();
-    return std::pair<int, double>(minIndex, cost[minIndex]);
+    return { minIndex, cost[minIndex] };
 }
 
 std::vector<std::vector<double>> getParameterTrajectory(std::string const& startIndex, H5::H5File const& file)
@@ -391,7 +391,7 @@ int runFinalParameters(StandaloneSimulator &sim,
             auto parameters = parpe::getFinalParameters(std::to_string(i), file);
             std::string curResultPath = resultPath + "multistarts/" + std::to_string(i);
             errors += sim.run(resultFileName, curResultPath, parameters, loadBalancer, file);
-        } catch (H5::FileIException e) {
+        } catch (H5::FileIException const& e) {
             std::cerr<<"Exception during start " << i << " "<<e.getDetailMsg()<<std::endl;
             std::cerr<<"... skipping"<<std::endl;
         }
