@@ -188,7 +188,7 @@ void LoadBalancerMaster::sendToWorker(int workerIdx, JobData *data) {
     int workerRank = workerIdx + 1;
 
 #ifdef MASTER_QUEUE_H_SHOW_COMMUNICATION
-    printf("\x1b[36mSending job #%d to rank %d (%luB).\x1b[0m\n", tag, workerRank, data->sendBuffer.size());
+    printf("\x1b[31mSending job #%d to rank %d (%luB).\x1b[0m\n", tag, workerRank, data->sendBuffer.size());
 #endif
 
     MPI_Isend(data->sendBuffer.data(), data->sendBuffer.size(), MPI_BYTE, workerRank, tag,
@@ -213,7 +213,7 @@ void LoadBalancerMaster::queueJob(JobData *data) {
 
 #ifdef MASTER_QUEUE_H_SHOW_COMMUNICATION
     int size = sizeof(*data) + data->sendBuffer.size() + data->recvBuffer.size();
-    printf("\x1b[36mQueued job with size %dB).\x1b[0m\n", size);
+    printf("\x1b[33mQueued job with size %dB. New queue length is %d.\x1b[0m\n", size, queue.size());
 #endif
 
     pthread_mutex_unlock(&mutexQueue);

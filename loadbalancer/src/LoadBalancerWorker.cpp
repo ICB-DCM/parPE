@@ -6,7 +6,7 @@
 #include <cstring>
 #include <mpi.h>
 
-//#define QUEUE_WORKER_H_VERBOSE 5
+#define QUEUE_WORKER_H_VERBOSE 0
 #define LOADBALANCERWORKER_REPORT_WAITING_TIME 1
 
 #include <logging.h>
@@ -23,7 +23,6 @@ void LoadBalancerWorker::run(messageHandlerFunc messageHandler) {
 bool LoadBalancerWorker::waitForAndHandleJobs(messageHandlerFunc messageHandler) {
     int rank, err;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-
 #ifdef LOADBALANCERWORKER_REPORT_WAITING_TIME
     double startTime = MPI_Wtime();
 #endif
