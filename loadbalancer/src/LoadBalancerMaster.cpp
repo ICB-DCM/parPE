@@ -8,6 +8,8 @@
 
 #include <parpeException.h>
 
+//#define MASTER_QUEUE_H_SHOW_COMMUNICATION 1
+
 namespace parpe {
 
 void LoadBalancerMaster::run() {
@@ -293,6 +295,9 @@ void LoadBalancerMaster::sendTerminationSignalToAllWorkers() {
 
 bool LoadBalancerMaster::isRunning() const
 {
+#ifdef MASTER_QUEUE_H_SHOW_COMMUNICATION
+    printf("LoadBalancerMaster::isRunning -> %d\n", isRunning_);
+#endif
     return isRunning_;
 }
 

@@ -2,8 +2,6 @@
 #define LOADBALANCERWORKER_H
 
 #define MPI_TAG_EXIT_SIGNAL 0
-#define QUEUE_WORKER_H_VERBOSE 0
-#define LOADBALANCERWORKER_REPORT_WAITING_TIME 1
 
 #include <vector>
 #include <functional>

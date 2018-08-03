@@ -8,8 +8,6 @@
 #include <semaphore.h>
 #include <functional>
 
-//#define MASTER_QUEUE_H_SHOW_COMMUNICATION
-
 namespace parpe {
 
 /** data to be sent to workers */

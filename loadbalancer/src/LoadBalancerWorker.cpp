@@ -6,6 +6,9 @@
 #include <cstring>
 #include <mpi.h>
 
+//#define QUEUE_WORKER_H_VERBOSE 5
+#define LOADBALANCERWORKER_REPORT_WAITING_TIME 1
+
 #include <logging.h>
 namespace parpe {
 
