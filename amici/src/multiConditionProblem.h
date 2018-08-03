@@ -262,7 +262,7 @@ protected:// for testing
             // When running simulations (without gradient), send more simulations to each worker
             // to reduce communication overhead
             errors += simRunner.runDistributedMemory(loadBalancer,
-                                                     objectiveFunctionGradient.size() ? 1 : maxSimulationsPerPackage);
+                                                     objectiveFunctionGradient.size() ? maxGradientSimulationsPerPackage : maxSimulationsPerPackage);
         } else {
             errors += simRunner.runSharedMemory(
                         [&](std::vector<char> &buffer, int jobId) {
@@ -351,6 +351,7 @@ private:
     MultiConditionProblemResultWriter *resultWriter = nullptr; // TODO: owning?
     bool logLineSearch = false;
     const int maxSimulationsPerPackage = 8;
+    const int maxGradientSimulationsPerPackage = 1;
 };
 
 
