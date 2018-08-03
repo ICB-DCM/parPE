@@ -3,6 +3,7 @@
 
 #include <omp.h>
 
+// #define PARPE_SIMULATION_RUNNER_DEBUG
 
 namespace parpe {
 
@@ -24,23 +25,32 @@ SimulationRunnerSimple::SimulationRunnerSimple(
 
 int SimulationRunnerSimple::runDistributedMemory(LoadBalancerMaster *loadBalancer, const int maxSimulationsPerPackage)
 {
-    int numJobsFinished = 0;
+#ifdef PARPE_SIMULATION_RUNNER_DEBUG
+    printf("runDistributedMemory\n");
+#endif
 
-    // mutex to wait for simulations to finish
+    // mutex and condition to wait for simulations to finish
     pthread_cond_t simulationsCond = PTHREAD_COND_INITIALIZER;
     pthread_mutex_t simulationsMutex = PTHREAD_MUTEX_INITIALIZER;
 
-    int numJobsTotal = std::ceil(static_cast<double>(conditionIndices.size()) / maxSimulationsPerPackage);
-    std::vector<JobData> jobs {static_cast<unsigned int>(numJobsTotal)};
-
+    // multiple simulations may be grouped into one work package
+    int numJobsTotal = static_cast<int>(
+                std::ceil(
+                    static_cast<double>(conditionIndices.size())
+                    / maxSimulationsPerPackage));
+    std::vector<JobData> jobs {static_cast<decltype (jobs)::size_type>(numJobsTotal)};
+    int numJobsFinished = 0;
     int numConditionsSent = 0;
+
+    // prepare and queue work package
     for (int jobIdx = 0; jobIdx < numJobsTotal; ++jobIdx) {
-
-        int simulationsLeft = conditionIndices.size() - numConditionsSent;
+        int simulationsLeft = static_cast<int>(conditionIndices.size()) - numConditionsSent;
         int simulationsCurrentPackage = std::min(simulationsLeft, maxSimulationsPerPackage);
-        auto currentConditions = std::vector<int>(&conditionIndices[numConditionsSent],
-                         &conditionIndices[numConditionsSent + simulationsCurrentPackage]);
 
+        auto currentConditions = std::vector<int>(
+                    &conditionIndices[static_cast<std::vector<int>::size_type>(numConditionsSent)],
+                         &conditionIndices[static_cast<std::vector<int>::size_type>(numConditionsSent + simulationsCurrentPackage)]);
+        std::cout<<this<<std::endl;
         queueSimulation(loadBalancer, &jobs[jobIdx],
                         &numJobsFinished, &simulationsCond, &simulationsMutex,
                         jobIdx, optimizationParameters, sensitivityOrder, currentConditions);
@@ -68,6 +78,10 @@ int SimulationRunnerSimple::runDistributedMemory(LoadBalancerMaster *loadBalance
 
 int SimulationRunnerSimple::runSharedMemory(LoadBalancerWorker::messageHandlerFunc messageHandler, bool sequential)
 {
+#ifdef PARPE_SIMULATION_RUNNER_DEBUG
+    printf("runSharedMemory\n");
+#endif
+
     std::vector<JobData> jobs {static_cast<unsigned int>(conditionIndices.size())};
 
     if(sequential)
