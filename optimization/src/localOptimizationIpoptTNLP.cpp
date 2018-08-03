@@ -73,6 +73,8 @@ bool LocalOptimizationIpoptTNLP::eval_f(Index n, const Number *x, bool  /*new_x*
 
 bool LocalOptimizationIpoptTNLP::eval_grad_f(Index n, const Number *x,
                                              bool  /*new_x*/, Number *grad_f) {
+    auto unlockIpOpt = ipOptReleaseLock();
+
     double obj_value;
     return reporter.evaluate(gsl::make_span<double const>(x, n), obj_value, gsl::make_span<double>(grad_f, n)) == functionEvaluationSuccess;
 }
