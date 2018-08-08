@@ -1,8 +1,15 @@
 #!/bin/bash
 # build Ipopt
 set -e
+SCRIPT_DIR="`dirname \"$0\"`"
+SCRIPT_DIR="`( cd \"$SCRIPT_DIR\" && pwd )`"
 
-tar -xzf Ipopt-3.12.9.tgz
+cd $SCRIPT_DIR
+
+if [ ! -d Ipopt-3.12.9 ]; then
+	tar -xzf Ipopt-3.12.9.tgz
+fi
+
 cd Ipopt-3.12.9/
 
 # fetch dependencies
