@@ -61,9 +61,14 @@ int MultiStartOptimization::runMultiThreaded()
                 continue;
 
             int *threadStatus = nullptr;
+#ifndef __APPLE__
+            // TODO(#84) pthread_tryjoin_np is not available on macOS. can replace easily by pthread_join, but this would only allow restarting failed threads rather late, so we disable the retry option for now.
             int joinStatus = pthread_tryjoin_np(localOptimizationThreads[ms],
                                                 reinterpret_cast<void **>(&threadStatus));
-
+#else
+            int joinStatus = pthread_join(localOptimizationThreads[ms],
+                                                reinterpret_cast<void **>(&threadStatus));
+#endif
             if (joinStatus == 0) { // joined successful
                 delete localProblems[ms];
                 localProblems[ms] = nullptr;
@@ -79,7 +84,9 @@ int MultiStartOptimization::runMultiThreaded()
                                    ms);
                     }
                     ++numCompleted;
-                } else {
+                }
+#ifndef __APPLE__
+                else {
                     logmessage(LOGLVL_WARNING, "Thread ms #%d finished "
                                                "unsuccessfully... trying new "
                                                "starting point",
@@ -95,6 +102,7 @@ int MultiStartOptimization::runMultiThreaded()
                                    getLocalOptimumThreadWrapper,
                                    static_cast<void *>(localProblems[ms]));
                 }
+#endif
                 delete threadStatus;
             }
         }
