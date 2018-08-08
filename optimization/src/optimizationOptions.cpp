@@ -259,7 +259,11 @@ Optimizer* optimizerFactory(optimizerName optimizer)
     case optimizerName::OPTIMIZER_IPOPT:
         return new OptimizerIpOpt();
     case optimizerName::OPTIMIZER_CERES:
+#ifdef PARPE_ENABLE_CERES
         return new OptimizerCeres();
+#else
+        return nullptr;
+#endif
     case optimizerName::OPTIMIZER_DLIB:
 #ifdef PARPE_ENABLE_DLIB
         return new OptimizerDlibLineSearch();
