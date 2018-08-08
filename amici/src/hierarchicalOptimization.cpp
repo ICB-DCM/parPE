@@ -1,7 +1,6 @@
 #include "hierarchicalOptimization.h"
 #include <logging.h>
 
-#include <cassert>
 #include <exception>
 
 #ifdef __INTEL_COMPILER
@@ -458,7 +457,7 @@ std::vector<int> AnalyticalParameterHdf5Reader::getOptimizationParameterIndices(
 
         analyticalParameterIndices.resize(numScalings);
         dataset.read(analyticalParameterIndices.data(), H5::PredType::NATIVE_INT);
-    } catch (H5::FileIException &e) {
+    } catch (H5::FileIException) {
         // we just return an empty list
     }
     H5_RESTORE_ERROR_HANDLER;
@@ -479,7 +478,7 @@ int AnalyticalParameterHdf5Reader::getNumAnalyticalParameters() const
         if(ndims != 1)
             throw ParPEException("Invalid dimension in getOptimizationParameterIndices.");
         dataspace.getSimpleExtentDims(&numAnalyticalParameters);
-    } catch (H5::FileIException &e) {
+    } catch (H5::FileIException) {
         // 0
     }
     H5_RESTORE_ERROR_HANDLER;
@@ -652,7 +651,7 @@ double getDefaultOffsetParameter(amici::AMICI_parameter_scaling scaling)
     case amici::AMICI_SCALING_NONE:
         return 0.0;
     case amici::AMICI_SCALING_LOG10:
-        return -INFINITY;
+        return -std::numeric_limits<double>::infinity();;
     default:
         throw ParPEException("Parameter scaling must be AMICI_SCALING_LOG10 or AMICI_SCALING_NONE.");
     }
@@ -678,12 +677,18 @@ double computeAnalyticalScalings(int scalingIdx,
                 if(!std::isnan(mes)) {
                     // NOTE: this must be in sync with data ordering in AMICI (assumes row-major)
                     double sim = modelOutputsUnscaled[conditionIdx][observableIdx + timeIdx * numObservables];
-                    assert(!std::isnan(sim));
+                    if(std::isnan(sim)) {
+                        logmessage(LOGLVL_WARNING, "In computeAnalyticalScalings: Simulation is NaN for condition %d observable %d timepoint %d", conditionIdx, observableIdx, timeIdx);
+                    }
                     enumerator += sim * mes;
                     denominator += sim * sim;
                 }
             }
         }
+    }
+
+    if(denominator == 0.0) {
+        throw ParPEException("In computeAnalyticalScalings: denominator is 0.");
     }
 
     return enumerator / denominator;
@@ -708,13 +713,18 @@ double computeAnalyticalOffsets(int offsetIdx,
                 double mes = measurements[conditionIdx][observableIdx + timeIdx * numObservables];
                 if(!std::isnan(mes)) {
                     double sim = modelOutputsUnscaled[conditionIdx][observableIdx + timeIdx * numObservables];
-// TODO replace assert by exec
-                    assert(!std::isnan(sim));
+                    if(std::isnan(sim)) {
+                        logmessage(LOGLVL_WARNING, "In computeAnalyticalOffsets: Simulation is NaN for condition %d observable %d timepoint %d", conditionIdx, observableIdx, timeIdx);
+                    }
                     enumerator += mes - sim;
                     denominator += 1.0;
                 }
             }
         }
+    }
+
+    if(denominator == 0.0) {
+        throw ParPEException("In computeAnalyticalOffsets: denominator is 0.");
     }
 
     return enumerator / denominator;
@@ -734,18 +744,26 @@ double computeAnalyticalSigmas(int sigmaIdx,
     for (auto const conditionIdx: dependentConditions) {
         auto dependentObservables = sigmaReader.getObservablesForParameter(sigmaIdx, conditionIdx);
         for(auto const observableIdx: dependentObservables) {
+            if(observableIdx >= numObservables) {
+                throw ParPEException("applyOptimalOffset: Invalid observableIdx >= numObservables.");
+            }
+
             for(int timeIdx = 0; timeIdx < numTimepoints; ++timeIdx) {
                 double mes = measurements[conditionIdx][observableIdx + timeIdx * numObservables];
                 if(!std::isnan(mes)) {
                     double scaledSim = modelOutputsScaled[conditionIdx][observableIdx + timeIdx * numObservables];
                     if(std::isnan(scaledSim)) {
-                        logmessage(LOGLVL_DEBUG, "Simulation is NaN for condition %d observable %d timepoint %d", conditionIdx, observableIdx, timeIdx);
+                        logmessage(LOGLVL_WARNING, "In computeAnalyticalSigmas: Simulation is NaN for condition %d observable %d timepoint %d", conditionIdx, observableIdx, timeIdx);
                     }
                     enumerator += (mes - scaledSim) * (mes - scaledSim);
                     denominator += 1.0;
                 }
             }
         }
+    }
+
+    if(denominator == 0.0) {
+        throw ParPEException("In computeAnalyticalOffsets: denominator is 0.");
     }
 
     double sigmaSquared = enumerator / denominator;
@@ -761,7 +779,10 @@ void applyOptimalScaling(int scalingIdx, double scalingLin,
     for (auto const conditionIdx: dependentConditions) {
         auto dependentObservables = scalingReader.getObservablesForParameter(scalingIdx, conditionIdx);
         for(auto const observableIdx: dependentObservables) {
-            assert(observableIdx < numObservables);
+            if(observableIdx >= numObservables) {
+                throw ParPEException("applyOptimalOffset: Invalid observableIdx >= numObservables.");
+            }
+
             for(int timeIdx = 0; timeIdx < numTimepoints; ++timeIdx) {
                 // NOTE: this must be in sync with data ordering in AMICI (assumes row-major)
                 modelOutputs[conditionIdx][observableIdx + timeIdx * numObservables] *= scalingLin;
@@ -775,6 +796,8 @@ double getScaledParameter(double parameter, amici::AMICI_parameter_scaling scale
     case amici::AMICI_SCALING_NONE:
         return parameter;
     case amici::AMICI_SCALING_LOG10:
+        if(parameter < 0.0)
+            throw(ParPEException("getScaledParameter: Can't take log of negative value."));
         return log10(parameter);
     default:
         throw(ParPEException("Parameter scaling must be AMICI_SCALING_LOG10 or AMICI_SCALING_NONE."));
@@ -801,7 +824,9 @@ void applyOptimalOffset(int offsetIdx, double offsetLin,
     for (auto const conditionIdx: dependentConditions) {
         auto dependentObservables = offsetReader.getObservablesForParameter(offsetIdx, conditionIdx);
         for(auto const observableIdx: dependentObservables) {
-            assert(observableIdx < numObservables);
+            if(observableIdx >= numObservables) {
+                throw ParPEException("applyOptimalOffset: Invalid observableIdx >= numObservables.");
+            }
             for(int timeIdx = 0; timeIdx < numTimepoints; ++timeIdx) {
                 modelOutputs[conditionIdx][observableIdx + timeIdx * numObservables] += offsetLin;
             }
@@ -872,13 +897,18 @@ double computeNegLogLikelihood(std::vector<double> const& measurements,
             double sim = modelOutputsScaled[i];
             double sigmaSquared = sigmas[i] * sigmas[i];
             if(std::isnan(sim)) {
-                logmessage(LOGLVL_DEBUG, "Simulation is NaN for data point %d", i);
-                return NAN;
+                logmessage(LOGLVL_WARNING, "Simulation is NaN for data point %d", i);
+                return std::numeric_limits<double>::quiet_NaN();
             }
-            if(std::isnan(sim)) {
-                logmessage(LOGLVL_DEBUG, "Sigma is NaN for data point %d", i);
-                return NAN;
+            if(std::isnan(sigmaSquared)) {
+                logmessage(LOGLVL_WARNING, "Sigma is NaN for data point %d", i);
+                return std::numeric_limits<double>::quiet_NaN();
             }
+            if(sigmaSquared < 0.0) {
+                logmessage(LOGLVL_WARNING, "Negative sigma for data point %d", i);
+                return std::numeric_limits<double>::quiet_NaN();
+            }
+
             double diff = mes - sim;
             diff *= diff;
             nllh += log(2.0 * pi * sigmaSquared) + diff / sigmaSquared;
