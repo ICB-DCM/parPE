@@ -1,5 +1,7 @@
 #include "optimizationOptions.h"
+#ifdef PARPE_ENABLE_CERES
 #include "localOptimizationCeres.h"
+#endif
 #include "localOptimizationIpopt.h"
 #include "parpeConfig.h"
 #ifdef PARPE_ENABLE_DLIB

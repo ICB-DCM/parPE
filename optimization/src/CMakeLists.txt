@@ -3,7 +3,7 @@ project(parpeoptimization)
 set(SRC_LIST
     localOptimizationIpopt.cpp
     localOptimizationIpoptTNLP.cpp
-    localOptimizationCeres.cpp
+
     optimizationProblem.cpp
     multiStartOptimization.cpp
     optimizationResultWriter.cpp
@@ -12,16 +12,24 @@ set(SRC_LIST
     optimizer.h
 )
 
+if(${PARPE_ENABLE_CERES})
+    list(APPEND SRC_LIST localOptimizationCeres.cpp)
+    add_definitions(-DPARPE_ENABLE_CERES)
+endif(${PARPE_ENABLE_CERES})
+
 if(${PARPE_ENABLE_DLIB})
     list(APPEND SRC_LIST localOptimizationDlib.cpp)
+    add_definitions(-DPARPE_ENABLE_DLIB)
 endif(${PARPE_ENABLE_DLIB})
 
 if(${PARPE_ENABLE_TOMS611})
     list(APPEND SRC_LIST localOptimizationToms611.cpp)
+    add_definitions(-DPARPE_ENABLE_TOMS611)
 endif(${PARPE_ENABLE_TOMS611})
 
 if(${PARPE_ENABLE_FSQP})
     list(APPEND SRC_LIST localOptimizationFsqp.cpp)
+    add_definitions(-DPARPE_ENABLE_FSQP)
 endif(${PARPE_ENABLE_FSQP})
 
 add_library(${PROJECT_NAME} ${SRC_LIST})
