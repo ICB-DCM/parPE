@@ -708,6 +708,7 @@ double computeAnalyticalOffsets(int offsetIdx,
                 double mes = measurements[conditionIdx][observableIdx + timeIdx * numObservables];
                 if(!std::isnan(mes)) {
                     double sim = modelOutputsUnscaled[conditionIdx][observableIdx + timeIdx * numObservables];
+// TODO replace assert by exec
                     assert(!std::isnan(sim));
                     enumerator += mes - sim;
                     denominator += 1.0;
@@ -906,7 +907,9 @@ HierarchicalOptimizationReporter::HierarchicalOptimizationReporter(HierachicalOp
     hierarchicalWrapper = gradFun;
 }
 
-FunctionEvaluationStatus HierarchicalOptimizationReporter::evaluate(gsl::span<const double> parameters, double &fval, gsl::span<double> gradient) const
+FunctionEvaluationStatus HierarchicalOptimizationReporter::evaluate(
+        gsl::span<const double> parameters,
+        double &fval, gsl::span<double> gradient) const
 {
     if(beforeCostFunctionCall(parameters) != 0)
         return functionEvaluationFailure;
@@ -927,7 +930,8 @@ FunctionEvaluationStatus HierarchicalOptimizationReporter::evaluate(gsl::span<co
         if (!haveCachedCost || !std::equal(parameters.begin(), parameters.end(),
                                            cachedParameters.begin())) {
             // Have to compute anew
-            cachedStatus = hierarchicalWrapper->evaluate(parameters, cachedCost, gsl::span<double>(), cachedFullParameters, cachedFullGradient);
+            cachedStatus = hierarchicalWrapper->evaluate(parameters, cachedCost, gsl::span<double>(),
+                                                         cachedFullParameters, cachedFullGradient);
             haveCachedCost = true;
             haveCachedGradient = false;
         }
@@ -961,9 +965,14 @@ void HierarchicalOptimizationReporter::finished(double optimalCost, gsl::span<co
         resultWriter->saveLocalOptimizerResults(optimalCost, cachedFullParameters, timeElapsed, exitStatus);
 }
 
+const std::vector<double> &HierarchicalOptimizationReporter::getFinalParameters() const
+{
+    return cachedFullParameters;
+}
+
 bool HierarchicalOptimizationReporter::iterationFinished(gsl::span<const double> parameters, double objectiveFunctionValue, gsl::span<const double> objectiveFunctionGradient) const {
-    double wallTimeIter = wallTimer.getRound(); //(double)(clock() - timeIterationBegin) / CLOCKS_PER_SEC;
-    double wallTimeOptim = wallTimer.getTotal(); //double)(clock() - timeOptimizationBegin) / CLOCKS_PER_SEC;
+    double wallTimeIter = wallTimer.getRound();
+    double wallTimeOptim = wallTimer.getTotal();
 
     logmessage(LOGLVL_INFO, "iter: %d cost: %g time_iter: %gs time_optim: %gs", numIterations, objectiveFunctionValue, wallTimeIter, wallTimeOptim);
 
@@ -1001,7 +1010,7 @@ bool HierarchicalOptimizationReporter::afterCostFunctionCall(
     double wallTime = wallTimer.getTotal();//(double)(timeCostEvaluationEnd - timeCostEvaluationBegin) / CLOCKS_PER_SEC;
 
     if(resultWriter) {
-        resultWriter->logLocalOptimizerObjectiveFunctionEvaluation(cachedParameters, cachedCost,
+        resultWriter->logLocalOptimizerObjectiveFunctionEvaluation(cachedFullParameters, cachedCost,
                                                                    cachedFullGradient, numIterations, numFunctionCalls, wallTime);
     }
     return false;

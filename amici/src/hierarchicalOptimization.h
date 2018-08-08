@@ -391,19 +391,27 @@ public:
                          std::unique_ptr<OptimizationResultWriter> rw);
 
 
+
     FunctionEvaluationStatus evaluate(
             gsl::span<const double> parameters, double &fval,
             gsl::span<double> gradient) const override;
 
-    void finished(double optimalCost, gsl::span<const double> parameters, int exitStatus) const;
+    // bool starting(gsl::span<const double> initialParameters) const override;
 
+    // TODO: always update final parameters
     virtual bool iterationFinished(gsl::span<const double> parameters,
                                    double objectiveFunctionValue,
-                                   gsl::span<const double> objectiveFunctionGradient) const;
+                                   gsl::span<const double> objectiveFunctionGradient) const override;
+
+    // virtual bool beforeCostFunctionCall(gsl::span<const double> parameters) const override;
 
     virtual bool afterCostFunctionCall(gsl::span<const double> parameters,
                                        double objectiveFunctionValue,
-                                       gsl::span<double const> objectiveFunctionGradient) const;
+                                       gsl::span<double const> objectiveFunctionGradient) const override;
+
+    void finished(double optimalCost, gsl::span<const double> parameters, int exitStatus) const override;
+
+    std::vector<double> const& getFinalParameters() const override;
 
     HierachicalOptimizationWrapper *hierarchicalWrapper = nullptr;
 

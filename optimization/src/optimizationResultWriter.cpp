@@ -113,10 +113,18 @@ void OptimizationResultWriter::logLocalOptimizerIteration(int numIterations, gsl
 
     hdf5CreateOrExtendAndWriteToDouble2DArray(
                 file_id, fullGroupPath, "iterCostFunCost", &objectiveFunctionValue, 1);
-    if (!gradient.empty())
+
+    if (!gradient.empty()) {
         hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath,
                                                   "iterCostFunGradient",
                                                   gradient.data(), gradient.size());
+    } else if(!parameters.empty()) {
+        std::vector<double> nanGradient(parameters.size(), NAN);
+        hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath,
+                                                  "iterCostFunGradient",
+                                                  nanGradient.data(), nanGradient.size());
+    }
+
     if (!parameters.empty())
         hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath,
                                                   "iterCostFunParameters",

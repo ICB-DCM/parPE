@@ -125,7 +125,7 @@ void LocalOptimizationIpoptTNLP::finalize_solution(
 
     auto unlockIpOpt = ipOptReleaseLock();
 
-    reporter.finished(obj_value, gsl::span<double const>(x,n), status);
+    reporter.finished(obj_value, gsl::span<double const>(x, n), status);
 }
 
 

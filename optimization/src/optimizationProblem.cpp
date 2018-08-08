@@ -305,7 +305,7 @@ double OptimizationReporter::getFinalCost() const
     return cachedCost;
 }
 
-std::vector<double> OptimizationReporter::getFinalParameters() const
+const std::vector<double> &OptimizationReporter::getFinalParameters() const
 {
     return cachedParameters;
 }

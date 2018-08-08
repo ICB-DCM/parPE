@@ -119,9 +119,9 @@ public:
     //                                     double alpha_du, double alpha_pr,
     //                                     int ls_trials);
 
-    double getFinalCost() const;
+    virtual double getFinalCost() const;
 
-    std::vector<double> getFinalParameters() const;
+    virtual std::vector<double> const& getFinalParameters() const;
 
     void setGradientFunction(GradientFunction *gradFun) const;
 
