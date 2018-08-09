@@ -972,7 +972,7 @@ FunctionEvaluationStatus HierarchicalOptimizationReporter::evaluate(
     cachedParameters.resize(numParameters_);
     std::copy(parameters.begin(), parameters.end(), cachedParameters.begin());
 
-    if(afterCostFunctionCall(parameters, cachedCost, gradient.data() ? cachedGradient : gsl::span<double>()) != 0)
+    if(afterCostFunctionCall(parameters, cachedCost, gradient.data() ? cachedFullGradient : gsl::span<double>()) != 0)
         return functionEvaluationFailure;
 
     return cachedStatus;
@@ -1041,7 +1041,7 @@ bool HierarchicalOptimizationReporter::afterCostFunctionCall(
 
     if(resultWriter) {
         resultWriter->logLocalOptimizerObjectiveFunctionEvaluation(cachedFullParameters, cachedCost,
-                                                                   cachedFullGradient, numIterations, numFunctionCalls, wallTime);
+                                                                   objectiveFunctionGradient, numIterations, numFunctionCalls, wallTime);
     }
     return false;
 }
