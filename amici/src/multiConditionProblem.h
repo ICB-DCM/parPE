@@ -17,7 +17,7 @@
 #include <gsl/gsl-lite.hpp>
 
 #include <memory>
-
+#include <cstdlib>
 
 /** @file Interfaces between AMICI model and parPE optimization problem */
 
@@ -61,6 +61,10 @@ public:
           solverOriginal(solver->clone()),
           resultWriter(resultWriter)
     {
+        if(auto env = std::getenv("PARPE_LOG_SIMULATIONS")) {
+            logLineSearch = env[0] == '1';
+        }
+
     }
 
     virtual ~AmiciSummedGradientFunction() = default;
