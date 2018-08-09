@@ -569,6 +569,7 @@ HDF5Exception::HDF5Exception(const char *format, ...) {
     va_start(argptr,format);
     size_t needed = vsnprintf(nullptr, 0, format, argptr) + 1;
     char buf[needed];
+    va_end(argptr);
 
     va_start(argptr,format);
     vsprintf(buf, format, argptr);

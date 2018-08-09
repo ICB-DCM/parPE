@@ -17,7 +17,6 @@
 #include <gsl/gsl-lite.hpp>
 
 #include <memory>
-#include <cmath> //NAN
 
 
 /** @file Interfaces between AMICI model and parPE optimization problem */
@@ -46,6 +45,12 @@ template <typename T>
 class AmiciSummedGradientFunction : public SummedGradientFunction<T> {
 
 public:
+    /**
+     * @brief AmiciSummedGradientFunction
+     * @param dataProvider Provides data and settings for AMICI simulations
+     * @param loadBalancer LoadBalancerMaster for shared memory parallelism, or nullptr
+     * @param resultWriter
+     */
     AmiciSummedGradientFunction(MultiConditionDataProvider *dataProvider,
                                 LoadBalancerMaster *loadBalancer,
                                 MultiConditionProblemResultWriter *resultWriter = nullptr)
@@ -60,6 +65,14 @@ public:
 
     virtual ~AmiciSummedGradientFunction() = default;
 
+    /**
+     * @brief Evaluate cost function on a single condition
+     * @param parameters
+     * @param dataset
+     * @param fval
+     * @param gradient
+     * @return
+     */
     virtual FunctionEvaluationStatus evaluate(
             gsl::span<const double> parameters,
             T dataset,
@@ -100,10 +113,16 @@ public:
         return functionEvaluationSuccess;
     }
 
+
+    /**
+     * @brief Number of optimization parameters
+     * @return
+     */
     virtual int numParameters() const override
     {
         return dataProvider->getNumOptimizationParameters();
     }
+
 
     /**
      * @brief Run simulations (no gradient) with given parameters and collect model outputs
@@ -112,12 +131,6 @@ public:
      * output: Vector of double vectors containing AMICI ReturnData::y (nt x ny, column-major)
      * @return Simulation status
      */
-
-
-    virtual std::vector<std::vector<double>> getAllSigmas() const {
-        return dataProvider->getAllSigmas();
-    }
-
     virtual FunctionEvaluationStatus getModelOutputs(gsl::span<double const> parameters, std::vector<std::vector<double> > &modelOutput) const {
         int errors = 0;
         //    JobIdentifier path; // TODO = this->path;
@@ -157,6 +170,10 @@ public:
         }
 
         return errors == 0 ? functionEvaluationSuccess : functionEvaluationFailure;
+    }
+
+    virtual std::vector<std::vector<double>> getAllSigmas() const {
+        return dataProvider->getAllSigmas();
     }
 
     virtual std::vector<std::vector<double>> getAllMeasurements() const {
@@ -245,7 +262,6 @@ protected:// for testing
                                std::vector<int> dataIndices) const {
 
         int errors = 0;
-        JobIdentifier path; // TODO = this->path;
 
         auto parameterVector = std::vector<double>(optimizationParameters.begin(), optimizationParameters.end());
 
@@ -299,7 +315,7 @@ protected:// for testing
 
             // sum up
             negLogLikelihood -= result.second.llh;
-            //        simulationTimeInS += result.simulationTimeInSec;
+            simulationTimeInS += result.second.simulationTimeSeconds;
 
             if (negLogLikelihoodGradient.size())
                 addSimulationGradientToObjectiveFunctionGradient(
@@ -372,7 +388,7 @@ class MultiConditionProblem : public OptimizationProblem {
     MultiConditionProblem(MultiConditionDataProvider *dp,
                           LoadBalancerMaster *loadBalancer);
 
-    ~MultiConditionProblem() = default;
+    ~MultiConditionProblem() override = default;
 
     /**
      * @brief earlyStopping
@@ -396,7 +412,7 @@ class MultiConditionProblem : public OptimizationProblem {
     void fillParametersMax(gsl::span<double> buffer) const override;
     void fillInitialParameters(gsl::span<double> buffer) const override;
 
-    std::unique_ptr<OptimizationReporter> getReporter() const;
+    std::unique_ptr<OptimizationReporter> getReporter() const override;
 
   protected:
     //TODO std::unique_ptr<OptimizationProblem> validationProblem;

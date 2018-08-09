@@ -78,8 +78,6 @@ void setToms611Option(const std::pair<const std::string, const std::string> &pai
         v[sctol] = std::stod(val);
     } else if(key == "tuner1") {
         v[tuner1] = std::stod(val);
-    } else if(key == "bias") {
-        v[bias] = std::stod(val);
     } else if(key == "xftol") {
         v[xftol] = std::stod(val);
     } else {

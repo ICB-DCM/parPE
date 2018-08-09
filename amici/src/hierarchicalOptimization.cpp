@@ -511,7 +511,7 @@ void AnalyticalParameterHdf5Reader::readParameterConditionObservableMappingFromF
             int observableIdx = rawMap[i * nCols + observableCol];
             mapping[scalingIdx][conditionIdx].push_back(observableIdx);
         }
-    } catch (H5::FileIException e) {
+    } catch (H5::FileIException) {
         return;
     }
     H5_RESTORE_ERROR_HANDLER;

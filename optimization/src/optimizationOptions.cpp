@@ -1,3 +1,4 @@
+#include "parpeConfig.h"
 #include "optimizationOptions.h"
 #ifdef PARPE_ENABLE_CERES
 #include "localOptimizationCeres.h"

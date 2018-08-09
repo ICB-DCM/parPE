@@ -100,7 +100,7 @@ class MultiConditionDataProviderDefault : public MultiConditionDataProvider {
   public:
     MultiConditionDataProviderDefault(std::unique_ptr<amici::Model> model, std::unique_ptr<amici::Solver> solver);
 
-    virtual ~MultiConditionDataProviderDefault() = default;
+    virtual ~MultiConditionDataProviderDefault() override = default;
 
     /**
      * @brief Provides the number of conditions for which data is available and
@@ -196,7 +196,7 @@ class MultiConditionDataProviderHDF5 : public MultiConditionDataProvider {
                                    std::string const& hdf5Filename,
                                    std::string const& rootPath);
 
-    virtual ~MultiConditionDataProviderHDF5() = default;
+    virtual ~MultiConditionDataProviderHDF5() override = default;
 
     void openHdf5File(const std::string &hdf5Filename);
 

@@ -4,7 +4,7 @@
 #include <misc.h>
 #include <multiConditionProblemResultWriter.h>
 
-SteadyStateMultiConditionDataProvider::SteadyStateMultiConditionDataProvider(std::unique_ptr<amici::Model> model, std::string hdf5Filename, std::string rootPath)
+SteadyStateMultiConditionDataProvider::SteadyStateMultiConditionDataProvider(std::unique_ptr<amici::Model> model, std::string const& hdf5Filename, std::string const& rootPath)
     : MultiConditionDataProviderHDF5(std::move(model), hdf5Filename, rootPath),
       solver(this->model->getSolver())
 {
