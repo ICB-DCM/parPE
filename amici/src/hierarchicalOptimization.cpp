@@ -367,7 +367,7 @@ FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluateWithOptimalPara
         fval = computeNegLogLikelihood(measurements, modelOutputsScaled, fullSigmaMatrices);
     }
 
-    return !std::isnan(fval) ? functionEvaluationSuccess : functionEvaluationFailure;
+    return std::isfinite(fval) ? functionEvaluationSuccess : functionEvaluationFailure;
 }
 
 

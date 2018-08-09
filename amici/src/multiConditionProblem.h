@@ -86,17 +86,18 @@ public:
 #endif
 
         setSensitivityOptions(gradient.size());
-        fval = 0;
+        fval = 0.0;
         if (gradient.size())
             std::fill(gradient.begin(), gradient.end(), 0.0);
 
         int errors = runSimulations(parameters, fval, gradient, datasets);
 
-        if (errors) {
-            fval = INFINITY;
+        if (errors || !std::isfinite(fval)) {
+            fval = std::numeric_limits<double>::infinity();
+            return functionEvaluationFailure;
         }
 
-        return errors == 0 ? functionEvaluationSuccess : functionEvaluationFailure;
+        return functionEvaluationSuccess;
     }
 
     virtual int numParameters() const override
