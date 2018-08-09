@@ -651,7 +651,7 @@ double getDefaultOffsetParameter(amici::AMICI_parameter_scaling scaling)
     case amici::AMICI_SCALING_NONE:
         return 0.0;
     case amici::AMICI_SCALING_LOG10:
-        return -std::numeric_limits<double>::infinity();;
+        return -std::numeric_limits<double>::infinity();
     default:
         throw ParPEException("Parameter scaling must be AMICI_SCALING_LOG10 or AMICI_SCALING_NONE.");
     }

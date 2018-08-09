@@ -149,10 +149,10 @@ protected:
     mutable bool haveCachedCost = false;
     mutable bool haveCachedGradient = false;
     mutable std::vector<double> cachedGradient;
-    mutable double cachedCost = INFINITY;
+    mutable double cachedCost = std::numeric_limits<double>::infinity();
     mutable FunctionEvaluationStatus cachedStatus = functionEvaluationSuccess;
 
-    mutable double finalCost = NAN;
+    mutable double finalCost = std::numeric_limits<double>::quiet_NaN();
 
     // keeps the most recent parameters, assuming they are the final ones
     mutable std::vector<double> cachedParameters;
@@ -213,12 +213,12 @@ public:
     using OptimizationProblem::OptimizationProblem;
 
     /** lower bound of parameter values */
-    void fillParametersMin(gsl::span<double> buffer) const {
+    void fillParametersMin(gsl::span<double> buffer) const override {
         std::copy(parametersMin.begin(), parametersMin.end(), buffer.begin());
     }
 
     /** upper bound of parameter values */
-    void fillParametersMax(gsl::span<double> buffer) const {
+    void fillParametersMax(gsl::span<double> buffer) const override {
         std::copy(parametersMax.begin(), parametersMax.end(), buffer.begin());
     }
 
