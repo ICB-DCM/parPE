@@ -1,6 +1,6 @@
- [![Run Status](https://api.shippable.com/projects/59463d3e8993d7070010407b/badge?branch=master)](https://app.shippable.com/github/dweindl/parPE)
- [![Coverage Badge](https://api.shippable.com/projects/59463d3e8993d7070010407b/coverageBadge?branch=master)](https://app.shippable.com/github/dweindl/parPE) 
-
+[![Run Status](https://api.shippable.com/projects/59463d3e8993d7070010407b/badge?branch=master)](https://app.shippable.com/github/dweindl/parPE)
+[![Coverage Badge](https://api.shippable.com/projects/59463d3e8993d7070010407b/coverageBadge?branch=master)](https://app.shippable.com/github/dweindl/parPE) 
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/1f1ee5a0d90d431499f200a148fb7fdc)](https://www.codacy.com?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=ICB-DCM/parPE&amp;utm_campaign=Badge_Grade)
 # parPE
 
 The *parPE* library provides functionality for solving large-scale parameter optimization
