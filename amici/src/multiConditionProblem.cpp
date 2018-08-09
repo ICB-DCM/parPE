@@ -22,18 +22,19 @@ namespace parpe {
 //#define NO_OBJ_FUN_EVAL
 
 MultiConditionProblem::MultiConditionProblem(MultiConditionDataProvider *dp)
-    : MultiConditionProblem(dp, nullptr) {}
+    : MultiConditionProblem(dp, nullptr, nullptr) {}
 
 MultiConditionProblem::MultiConditionProblem(
-        MultiConditionDataProvider *dp, LoadBalancerMaster *loadBalancer)
-    :dataProvider(dp)
+        MultiConditionDataProvider *dp, LoadBalancerMaster *loadBalancer,
+        std::unique_ptr<MultiConditionProblemResultWriter> resultWriter)
+    :dataProvider(dp), resultWriter(std::move(resultWriter))
 {
     // run on all data
     std::vector<int> dataIndices(dataProvider->getNumberOfConditions());
     std::iota(dataIndices.begin(), dataIndices.end(), 0);
 
     costFun = std::make_unique<parpe::SummedGradientFunctionGradientFunctionAdapter<int>>(
-                                                                                             std::make_unique<AmiciSummedGradientFunction<int>>(dataProvider, loadBalancer),
+                                                                                             std::make_unique<AmiciSummedGradientFunction<int>>(dataProvider, loadBalancer, this->resultWriter.get()),
                                                                                              dataIndices
                                                                                              );
     if(auto hdp = dynamic_cast<MultiConditionDataProviderHDF5*>(dp)) {
@@ -130,19 +131,18 @@ std::unique_ptr<OptimizationProblem> MultiConditionProblemMultiStartOptimization
 
     assert(dp != nullptr);
 
-    std::unique_ptr<MultiConditionProblem> problem = std::make_unique<MultiConditionProblem>(dp, loadBalancer);
-
-    problem->setOptimizationOptions(options);
+    std::unique_ptr<MultiConditionProblem> problem;
 
     if (resultWriter) {
         JobIdentifier id = resultWriter->getJobId();
         id.idxLocalOptimization = multiStartIndex;
-
-        problem->resultWriter = std::make_unique<MultiConditionProblemResultWriter>(*resultWriter);
-        problem->resultWriter->setJobId(id);
+        problem = std::make_unique<MultiConditionProblem>(dp, loadBalancer, std::make_unique<MultiConditionProblemResultWriter>(*resultWriter));
+        problem->getResultWriter()->setJobId(id);
         problem->path.idxLocalOptimization = multiStartIndex;
+    } else {
+        problem = std::make_unique<MultiConditionProblem>(dp, loadBalancer, nullptr);
     }
-
+    problem->setOptimizationOptions(options);
     problem->setInitialParameters(parpe::OptimizationOptions::getStartingPoint(dp->getHdf5FileId(), multiStartIndex));
 
     if(options.hierarchicalOptimization)
@@ -181,7 +181,8 @@ void printSimulationResult(const JobIdentifier &path, int jobId, amici::ReturnDa
 void logSimulation(hid_t file_id, std::string const& pathStr, std::vector<double> const& parameters,
                    double llh, gsl::span<double const> gradient, double timeElapsedInSeconds,
                    gsl::span<double const> states, gsl::span<double const> stateSensi,
-                   gsl::span<double const> outputs, int jobId, int iterationsUntilSteadystate, int status)
+                   gsl::span<double const> outputs, int jobId, int iterationsUntilSteadystate,
+                   int status)
 {
     // TODO replace by SimulationResultWriter
     const char *fullGroupPath = pathStr.c_str();

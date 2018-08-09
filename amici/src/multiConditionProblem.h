@@ -53,7 +53,7 @@ public:
      */
     AmiciSummedGradientFunction(MultiConditionDataProvider *dataProvider,
                                 LoadBalancerMaster *loadBalancer,
-                                MultiConditionProblemResultWriter *resultWriter = nullptr)
+                                MultiConditionProblemResultWriter *resultWriter)
         : dataProvider(dataProvider),
           loadBalancer(loadBalancer),
           model(dataProvider->getModel()),
@@ -386,7 +386,8 @@ class MultiConditionProblem : public OptimizationProblem {
     MultiConditionProblem(MultiConditionDataProvider *dp);
 
     MultiConditionProblem(MultiConditionDataProvider *dp,
-                          LoadBalancerMaster *loadBalancer);
+                          LoadBalancerMaster *loadBalancer,
+                          std::unique_ptr<MultiConditionProblemResultWriter> resultWriter);
 
     ~MultiConditionProblem() override = default;
 
@@ -397,12 +398,11 @@ class MultiConditionProblem : public OptimizationProblem {
     virtual int earlyStopping();
 
     MultiConditionDataProvider *getDataProvider();
+    MultiConditionProblemResultWriter *getResultWriter() { return resultWriter.get(); }
 
     //    virtual std::unique_ptr<double[]> getInitialParameters(int multiStartIndex) const override;
 
     JobIdentifier path;
-
-    std::unique_ptr<MultiConditionProblemResultWriter> resultWriter;
 
     void setInitialParameters(const std::vector<double> &startingPoint);
     void setParametersMin(const std::vector<double> &lowerBounds);
@@ -420,6 +420,8 @@ class MultiConditionProblem : public OptimizationProblem {
     MultiConditionDataProvider *dataProvider = nullptr;
 
 private:
+    std::unique_ptr<MultiConditionProblemResultWriter> resultWriter;
+
     std::vector<double> startingPoint;
     std::vector<double> parametersMin;
     std::vector<double> parametersMax;

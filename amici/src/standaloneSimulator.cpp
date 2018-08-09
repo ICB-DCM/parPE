@@ -64,7 +64,7 @@ int StandaloneSimulator::run(const std::string& resultFile,
         auto proportionalityFactorIndices = hierarchicalScalingReader->getOptimizationParameterIndices();
         auto offsetParameterIndices = hierarchicalOffsetReader->getOptimizationParameterIndices();
         auto sigmaParameterIndices = hierarchicalSigmaReader->getOptimizationParameterIndices();
-        auto wrappedFun = std::make_unique<AmiciSummedGradientFunction<int>>(dataProvider, loadBalancer);
+        auto wrappedFun = std::make_unique<AmiciSummedGradientFunction<int>>(dataProvider, loadBalancer, nullptr);
 
         hierarchical = HierachicalOptimizationWrapper(std::move(wrappedFun),
                                                 std::unique_ptr<AnalyticalParameterHdf5Reader>(hierarchicalScalingReader),

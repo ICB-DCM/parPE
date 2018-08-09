@@ -40,7 +40,7 @@ class LocalOptimizationIpoptTNLP : public Ipopt::TNLP {
 
     LocalOptimizationIpoptTNLP(OptimizationProblem &problem, OptimizationReporter &reporter);
 
-    virtual ~LocalOptimizationIpoptTNLP() = default;
+    virtual ~LocalOptimizationIpoptTNLP() override = default;
 
     virtual bool get_nlp_info(Index &n, Index &m, Index &nnz_jac_g,
                               Index &nnz_h_lag,
@@ -57,6 +57,19 @@ class LocalOptimizationIpoptTNLP : public Ipopt::TNLP {
     virtual bool eval_f(Index n, const Number *x, bool new_x,
                         Number &obj_value) override;
 
+    /**
+     * @brief See Ipopt::TNLP::eval_grad_f.
+     *
+     * Note: Failure in eval_f (i.e. returning non-finite value or false) will make IpOpt try a new
+     * step, unless this happens at the starting point. However, if eval_f succeeds, but eval_grad_f
+     * fails, then IpOpt will terminate.
+     *
+     * @param n
+     * @param x
+     * @param new_x
+     * @param grad_f
+     * @return
+     */
     virtual bool eval_grad_f(Index n, const Number *x, bool new_x,
                              Number *grad_f) override;
 

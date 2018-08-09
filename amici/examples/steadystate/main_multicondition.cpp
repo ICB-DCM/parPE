@@ -45,7 +45,12 @@ class SteadystateApplication : public parpe::OptimizationApplication {
         // read options from file
         auto optimizationOptions = parpe::OptimizationOptions::fromHDF5(dataProvider->getHdf5FileId());
 
-        auto multiCondProb = new parpe::MultiConditionProblem(dataProvider.get(), &loadBalancer);
+        // Create one instance for the problem, one for the application for clear ownership
+        parpe::JobIdentifier id;
+        resultWriter = std::make_unique<parpe::MultiConditionProblemResultWriter>(outFileArgument, true, id);
+
+        auto multiCondProb = new parpe::MultiConditionProblem(dataProvider.get(), &loadBalancer,
+                                                              std::make_unique<parpe::MultiConditionProblemResultWriter>(resultWriter->getFileId(), id));
 
         // hierarchical optimization?
         if(optimizationOptions->hierarchicalOptimization) {
@@ -58,19 +63,13 @@ class SteadystateApplication : public parpe::OptimizationApplication {
 
         problem->setOptimizationOptions(*optimizationOptions);
 
-        parpe::JobIdentifier id;
-        resultWriter = std::make_unique<parpe::MultiConditionProblemResultWriter>(outFileArgument, true, id);
-
-        // Create one instance for the problem, one for the application for clear ownership
-        multiCondProb->resultWriter = std::make_unique<parpe::MultiConditionProblemResultWriter>(resultWriter->getFileId(), id);
-
         if(parpe::getMpiRank() < 1)
             dataProvider->copyInputData(resultWriter->getFileId());
 
         auto ms = new parpe::MultiConditionProblemMultiStartOptimizationProblem(
                     dataProvider.get(),
                     problem->getOptimizationOptions(),
-                    multiCondProb->resultWriter.get(),
+                    multiCondProb->getResultWriter(),
                     &loadBalancer
                     );
         multiStartOptimizationProblem.reset(ms);
