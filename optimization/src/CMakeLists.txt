@@ -1,9 +1,6 @@
 project(parpeoptimization)
 
 set(SRC_LIST
-    localOptimizationIpopt.cpp
-    localOptimizationIpoptTNLP.cpp
-
     optimizationProblem.cpp
     multiStartOptimization.cpp
     optimizationResultWriter.cpp
@@ -11,6 +8,13 @@ set(SRC_LIST
     minibatchOptimization.cpp
     optimizer.h
 )
+
+if(${PARPE_ENABLE_IPOPT})
+    list(APPEND SRC_LIST
+        localOptimizationIpopt.cpp
+        localOptimizationIpoptTNLP.cpp
+        )
+endif(${PARPE_ENABLE_IPOPT})
 
 if(${PARPE_ENABLE_CERES})
     list(APPEND SRC_LIST localOptimizationCeres.cpp)
@@ -61,12 +65,18 @@ endif(${PARPE_ENABLE_FSQP})
 
 target_link_libraries(${PROJECT_NAME}
     parpecommon
-    ${IPOPT_LIBRARIES}
-    ${CERES_LIBRARIES}
     ${HDF5_HL_LIBRARIES}
     ${HDF5_C_LIBRARIES}
     ${CMAKE_THREAD_LIBS_INIT}
 )
+
+if(${PARPE_ENABLE_CERES})
+    target_link_libraries(${PROJECT_NAME} ${CERES_LIBRARIES})
+endif(${PARPE_ENABLE_CERES})
+
+if(${PARPE_ENABLE_IPOPT})
+    target_link_libraries(${PROJECT_NAME} ${IPOPT_LIBRARIES})
+endif(${PARPE_ENABLE_IPOPT})
 
 if(${PARPE_ENABLE_DLIB})
     target_link_libraries(${PROJECT_NAME} ${dlib_LIBRARIES})

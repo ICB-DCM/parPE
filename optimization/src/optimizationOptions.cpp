@@ -1,27 +1,35 @@
-#include "parpeConfig.h"
+#include <parpeConfig.h>
 #include "optimizationOptions.h"
+#include "logging.h"
+#include "misc.h"
+
 #ifdef PARPE_ENABLE_CERES
 #include "localOptimizationCeres.h"
 #endif
+
+#ifdef PARPE_ENABLE_IPOPT
 #include "localOptimizationIpopt.h"
-#include "parpeConfig.h"
+#endif
+
 #ifdef PARPE_ENABLE_DLIB
 #include "localOptimizationDlib.h"
 #endif
+
 #ifdef PARPE_ENABLE_TOMS611
 #include "localOptimizationToms611.h"
 #endif
+
 #ifdef PARPE_ENABLE_FSQP
 #include "localOptimizationFsqp.h"
 #endif
-#include "logging.h"
-#include "misc.h"
+
 #include <cassert>
 #include <iostream>
 #include <iomanip>
 #include <sstream>
 #include <limits>
 #include <utility>
+
 #include <hdf5.h>
 #include <H5Cpp.h>
 

@@ -10,6 +10,11 @@ set(CMAKE_DEBUG_POSTFIX "-dbg")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -Wall -Wno-unused-function -fopenmp -D_GNU_SOURCE") # -D_GNU_SOURCE for pthread recursive mutex issues
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wno-unused-function -fopenmp -D_GNU_SOURCE") # -D_GNU_SOURCE for pthread recursive mutex issues
 
+if(BUILD_PYTHON_MODULE)
+    # Build PIC code to be used for swig/python module
+    set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+endif()
+
 # <build optimized>
 if(CMAKE_BUILD_TYPE MATCHES Release OR CMAKE_BUILD_TYPE MATCHES RelWithDebInfo)
     include(CheckCXXCompilerFlag)
@@ -42,6 +47,7 @@ split_version(${PARPE_VERSION} libname major minor patch)
 set(BUILD_TESTS TRUE CACHE BOOL "Build tests? (requires cppUTest)")
 set(BUILD_EXAMPLES TRUE CACHE BOOL "Build examples?")
 set(BUILD_DOCS FALSE CACHE BOOL "Generate documentation?")
+set(BUILD_PYTHON_MODULE FALSE CACHE BOOL "Build Python module?")
 set(BLAS "CBLAS" CACHE STRING "BLAS library to use")
 set_property(CACHE BLAS PROPERTY STRINGS "CBLAS" "MKL")
 #set(USE_MPI TRUE CACHE BOOL "Use MPI?")
@@ -61,6 +67,7 @@ set(USE_MPI ON)
 if(${USE_MPI})
     find_package(MPI REQUIRED)
     add_definitions(-DUSE_MPI)
+    include_directories(/usr/lib/x86_64-linux-gnu/openmpi/include)
 endif(${USE_MPI})
 # </Build options>
 
@@ -170,6 +177,13 @@ add_subdirectory(common)
 add_subdirectory(optimization)
 add_subdirectory(loadbalancer)
 add_subdirectory(amici)
+
+if(BUILD_PYTHON_MODULE)
+    # Only build swig/python module when we are in debug mode
+    # This requires PIC, but we don't want PIC for release build at the moment
+    add_subdirectory(python/swig)
+endif()
+
 
 # create single library
 add_library(${PROJECT_NAME} "")
