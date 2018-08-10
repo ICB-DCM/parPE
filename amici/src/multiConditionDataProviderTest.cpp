@@ -1,4 +1,4 @@
-#include "MultiConditionDataProvider.h"
+#include "multiConditionDataProvider.h"
 #include "testingMisc.h"
 
 #include "CppUTest/TestHarness.h"

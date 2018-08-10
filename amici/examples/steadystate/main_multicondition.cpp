@@ -2,7 +2,7 @@
 #include "wrapfunctions.h"
 
 #include <optimizationOptions.h>
-#include <LoadBalancerWorker.h>
+#include <loadBalancerWorker.h>
 #include <hdf5Misc.h>
 #include <logging.h>
 #include <multiConditionProblemResultWriter.h>

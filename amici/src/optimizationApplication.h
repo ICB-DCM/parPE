@@ -3,8 +3,8 @@
 
 #include "multiConditionProblem.h"
 #include "multiConditionProblemResultWriter.h"
-#include <LoadBalancerMaster.h>
-#include <LoadBalancerWorker.h>
+#include <loadBalancerMaster.h>
+#include <loadBalancerWorker.h>
 #include "hierarchicalOptimization.h"
 
 #include <getopt.h>

@@ -1,8 +1,8 @@
 #ifndef PARPE_AMICI_SIMULATIONRUNNER_H
 #define PARPE_AMICI_SIMULATIONRUNNER_H
 
-#include "MultiConditionDataProvider.h" // JobIdentifier
-#include <LoadBalancerWorker.h>
+#include "multiConditionDataProvider.h" // JobIdentifier
+#include <loadBalancerWorker.h>
 #include <misc.h>
 
 #include <amici/amici.h>

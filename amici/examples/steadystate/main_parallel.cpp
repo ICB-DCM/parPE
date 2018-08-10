@@ -1,7 +1,7 @@
 #include "hdf5Misc.h"
 #include "steadystateProblemParallel.h"
-#include <LoadBalancerMaster.h>
-#include <LoadBalancerWorker.h>
+#include <loadBalancerMaster.h>
+#include <loadBalancerWorker.h>
 #include <logging.h>
 #include <mpi.h>
 #include <cstdio>

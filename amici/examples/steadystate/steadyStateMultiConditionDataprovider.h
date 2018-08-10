@@ -1,7 +1,7 @@
 #ifndef STEADYSTATEMULTICONDITIONPROBLEM_H
 #define STEADYSTATEMULTICONDITIONPROBLEM_H
 
-#include "MultiConditionDataProvider.h"
+#include "multiConditionDataProvider.h"
 #include "multiConditionProblem.h"
 #include "steadystateProblem.h"
 

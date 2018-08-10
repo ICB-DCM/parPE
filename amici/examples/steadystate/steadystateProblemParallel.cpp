@@ -1,7 +1,8 @@
 #include "steadystateProblemParallel.h"
 #include "wrapfunctions.h"
 #include <logging.h>
-#include <LoadBalancerMaster.h>
+#include <loadBalancerMaster.h>
+
 #include <cstring>
 #include <mpi.h>
 #include <pthread.h>

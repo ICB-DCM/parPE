@@ -2,8 +2,8 @@
 #define STEADYSTATEPROBLEM_PARALLEL_H
 
 #include "steadyStateMultiConditionDataprovider.h"
-#include <LoadBalancerMaster.h>
-#include <LoadBalancerWorker.h>
+#include <loadBalancerMaster.h>
+#include <loadBalancerWorker.h>
 #include <memory>
 
 #include <gsl/gsl-lite.hpp>

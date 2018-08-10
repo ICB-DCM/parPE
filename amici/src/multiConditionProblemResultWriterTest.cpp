@@ -1,6 +1,6 @@
 #include <bits/stl_tree.h>
 
-#include "MultiConditionDataProvider.h"
+#include "multiConditionDataProvider.h"
 #include "multiConditionProblem.h"
 #include "multiConditionProblemResultWriter.h"
 #include "testingMisc.h"

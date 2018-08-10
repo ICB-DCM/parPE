@@ -47,7 +47,7 @@ int MPI_Iprobe(int source, int tag, MPI_Comm comm, int *flag,
     return 0;
 }
 
-#include <LoadBalancerMaster.cpp>
+#include <loadBalancerMaster.cpp>
 
 TEST(queuemaster, test_queueinit) {
     mock().expectOneCall("MPI_Comm_size");

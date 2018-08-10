@@ -1,5 +1,5 @@
 #include "simulationRunner.h"
-#include <LoadBalancerMaster.h>
+#include <loadBalancerMaster.h>
 
 #include <omp.h>
 

@@ -4,12 +4,12 @@
 #include <amici/serialization.h>
 #include <boost/serialization/map.hpp>
 
-#include "MultiConditionDataProvider.h"
+#include "multiConditionDataProvider.h"
 #include "multiConditionProblemResultWriter.h"
 #include <multiStartOptimization.h>
 #include <optimizationProblem.h>
-#include <LoadBalancerMaster.h>
-#include <LoadBalancerWorker.h>
+#include <loadBalancerMaster.h>
+#include <loadBalancerWorker.h>
 #include "simulationRunner.h"
 
 #include <amici/amici.h>

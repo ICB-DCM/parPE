@@ -1,7 +1,7 @@
 #ifndef LOGGER_H
 #define LOGGER_H
 
-#include "MultiConditionDataProvider.h"
+#include "multiConditionDataProvider.h"
 #include "optimizationProblem.h"
 #include "optimizationResultWriter.h"
 

@@ -1,7 +1,7 @@
 project(parpeamici)
 
 set(SRC_LIST
-    MultiConditionDataProvider.cpp
+    multiConditionDataProvider.cpp
     multiConditionProblem.cpp
     multiConditionProblemResultWriter.cpp
     steadystateSimulator.cpp

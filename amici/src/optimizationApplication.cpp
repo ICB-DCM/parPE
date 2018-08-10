@@ -1,5 +1,4 @@
 #include "optimizationApplication.h"
-#include "LoadBalancerMaster.h"
 #include "hdf5Misc.h"
 #include "logging.h"
 #include "misc.h"

@@ -1,8 +1,8 @@
 #include "standaloneSimulator.h"
 #include "simulationRunner.h"
 #include "simulationResultWriter.h"
-#include <LoadBalancerMaster.h>
-#include <LoadBalancerWorker.h>
+#include <loadBalancerMaster.h>
+#include <loadBalancerWorker.h>
 #include <optimizationOptions.h>
 #include <misc.h>
 #include "hierarchicalOptimization.h"

@@ -1,4 +1,4 @@
-#include "MultiConditionDataProvider.h"
+#include "multiConditionDataProvider.h"
 #include "hierarchicalOptimization.h"
 #include "logging.h"
 #include "misc.h"
