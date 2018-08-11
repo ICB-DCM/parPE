@@ -24,10 +24,14 @@ namespace std {
 }
 
 %define wrap_unique_ptr(Name, Type)
+
   %typemap(out) std::unique_ptr<Type> %{
     $result = SWIG_NewPointerObj(new $1_ltype(std::move($1)), $&1_descriptor, SWIG_POINTER_OWN);
   %}
 
+  %typemap(in) std::unique_ptr<Type> {
+  // in typemap to avoid generating default code calling the deleted copy constructor
+  };
 
   %template(Name) std::unique_ptr<Type>;
   %newobject std::unique_ptr<Type>::release;
