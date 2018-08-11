@@ -63,7 +63,7 @@ int OptimizationApplication::init(int argc, char **argv) {
     return status;
 }
 
-int OptimizationApplication::runMultiStarts(LoadBalancerMaster *lbm)
+void OptimizationApplication::runMultiStarts(LoadBalancerMaster *lbm)
 {
     // TODO: use uniqe_ptr, not ref
     MultiStartOptimization optimizer(*multiStartOptimizationProblem, false);
@@ -74,7 +74,7 @@ int OptimizationApplication::runMultiStarts(LoadBalancerMaster *lbm)
     // to CVODES threading issues
     optimizer.setRunParallel(getMpiCommSize() > 1);
 
-    return optimizer.run();
+    optimizer.run();
 }
 
 int OptimizationApplication::parseOptions(int argc, char **argv) {
@@ -205,10 +205,8 @@ int OptimizationApplication::runMaster() {
     }
     case OP_TYPE_PARAMETER_ESTIMATION:
     default:
-        return runMultiStarts(&loadBalancer);
+        runMultiStarts(&loadBalancer);
     }
-
-    return 0;
 }
 
 int OptimizationApplication::runWorker() {
@@ -245,9 +243,9 @@ int OptimizationApplication::runSingleMpiProcess() {
     case OP_TYPE_PARAMETER_ESTIMATION:
     default:
         if (problem->getOptimizationOptions().numStarts > 0) {
-            return runMultiStarts(nullptr);
+            runMultiStarts(nullptr);
         } else {
-            return getLocalOptimum(problem.get());
+            getLocalOptimum(problem.get());
         }
     }
 

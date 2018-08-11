@@ -16,14 +16,13 @@ MultiStartOptimization::MultiStartOptimization(MultiStartOptimizationProblem &pr
 
 }
 
-int MultiStartOptimization::run() {
+void MultiStartOptimization::run() {
     if (runParallel)
-        return runMultiThreaded();
-
-    return runSingleThreaded();
+        runMultiThreaded();
+    runSingleThreaded();
 }
 
-int MultiStartOptimization::runMultiThreaded()
+void MultiStartOptimization::runMultiThreaded()
 {
     logmessage(LOGLVL_DEBUG,
                "Starting runParallelMultiStartOptimization with %d starts",
@@ -113,11 +112,9 @@ int MultiStartOptimization::runMultiThreaded()
     logmessage(LOGLVL_DEBUG, "runParallelMultiStartOptimization finished");
 
     pthread_attr_destroy(&threadAttr);
-
-    return 0;
 }
 
-int MultiStartOptimization::runSingleThreaded()
+void MultiStartOptimization::runSingleThreaded()
 {
     logmessage(LOGLVL_DEBUG,
                "Starting runParallelMultiStartOptimization with %d starts sequentially",
@@ -147,9 +144,6 @@ int MultiStartOptimization::runSingleThreaded()
     }
 
     logmessage(LOGLVL_DEBUG, "runParallelMultiStartOptimization finished");
-
-    return 0;
-
 }
 
 void MultiStartOptimization::setRunParallel(bool runParallel)
