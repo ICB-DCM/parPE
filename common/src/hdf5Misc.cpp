@@ -8,7 +8,7 @@
 
 namespace parpe {
 
-// mutex for **ALL** HDF5 library calls; read and write; any file(?)
+/** mutex for **ALL** HDF5 library calls; read and write; any file(?) */
 static mutexHdfType mutexHdf;
 
 void initHDF5Mutex() {

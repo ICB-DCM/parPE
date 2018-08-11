@@ -10,7 +10,7 @@
 #include <optimizationProblem.h>
 #include <loadBalancerMaster.h>
 #include <loadBalancerWorker.h>
-#include "simulationRunner.h"
+#include "amiciSimulationRunner.h"
 
 #include <amici/amici.h>
 
@@ -26,7 +26,7 @@ namespace parpe {
 class MultiConditionDataProvider;
 class MultiConditionProblemResultWriter;
 
-SimulationRunnerSimple::AmiciResultPackageSimple  runAndLogSimulation(
+AmiciSimulationRunner::AmiciResultPackageSimple  runAndLogSimulation(
         amici::Solver &solver,
         amici::Model &model,
         JobIdentifier path,
@@ -145,14 +145,14 @@ public:
         setSensitivityOptions(false);
         modelOutput.resize(dataIndices.size());
         auto parameterVector = std::vector<double>(parameters.begin(), parameters.end());
-        SimulationRunnerSimple simRunner(parameterVector,
+        AmiciSimulationRunner simRunner(parameterVector,
                                          amici::AMICI_SENSI_ORDER_NONE,
                                          dataIndices,
                                          [&](JobData *job, int dataIdx) { // jobFinished
             // deserialize
             auto results =
                     amici::deserializeFromChar<
-                    std::map<int, SimulationRunnerSimple::AmiciResultPackageSimple> > (
+                    std::map<int, AmiciSimulationRunner::AmiciResultPackageSimple> > (
                         job->recvBuffer.data(), job->recvBuffer.size());
             job->recvBuffer = std::vector<char>(); // free buffer
 
@@ -196,7 +196,7 @@ public:
      * @return
      */
     // TODO does not belong here
-    SimulationRunnerSimple::AmiciResultPackageSimple  runAndLogSimulation(
+    AmiciSimulationRunner::AmiciResultPackageSimple  runAndLogSimulation(
             amici::Solver &solver, amici::Model &model, JobIdentifier path,
             int jobId) const
     {
@@ -215,7 +215,7 @@ public:
         auto solver = dataProvider->getSolver();
         auto model = dataProvider->getModel();
         auto sim = amici::deserializeFromChar<
-                SimulationRunnerSimple::AmiciWorkPackageSimple>(buffer.data(), buffer.size());
+                AmiciSimulationRunner::AmiciWorkPackageSimple>(buffer.data(), buffer.size());
 
 #if QUEUE_WORKER_H_VERBOSE >= 2
         int mpiRank;
@@ -225,7 +225,7 @@ public:
 #endif
         solver->setSensitivityOrder(sim.sensitivityOrder);
 
-        std::map<int, SimulationRunnerSimple::AmiciResultPackageSimple> results;
+        std::map<int, AmiciSimulationRunner::AmiciResultPackageSimple> results;
         // run simulations for all condition indices
         for(auto conditionIndex: sim.conditionIndices) {
             path.idxConditions = conditionIndex;
@@ -269,7 +269,7 @@ protected:// for testing
 
         auto parameterVector = std::vector<double>(optimizationParameters.begin(), optimizationParameters.end());
 
-        SimulationRunnerSimple simRunner(parameterVector,
+        AmiciSimulationRunner simRunner(parameterVector,
                                          objectiveFunctionGradient.size()?amici::AMICI_SENSI_ORDER_FIRST:amici::AMICI_SENSI_ORDER_NONE,
                                          dataIndices,
                                          [&](JobData *job, int /*jobIdx*/) {
@@ -310,7 +310,7 @@ protected:// for testing
         // deserialize
         auto results =
                 amici::deserializeFromChar<
-                std::map<int, SimulationRunnerSimple::AmiciResultPackageSimple> > (
+                std::map<int, AmiciSimulationRunner::AmiciResultPackageSimple> > (
                     data.recvBuffer.data(), data.recvBuffer.size());
         data.recvBuffer = std::vector<char>(); // free buffer
 

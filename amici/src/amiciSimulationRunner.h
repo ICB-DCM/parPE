@@ -28,7 +28,7 @@ class LoadBalancerMaster;
  * @brief The SimulationRunnerSimple class queues AMICI simulations, waits for the
  * results and calls a user-provided aggregation function
  */
-class SimulationRunnerSimple {
+class AmiciSimulationRunner {
   public:
 
     /**
@@ -42,6 +42,9 @@ class SimulationRunnerSimple {
         // TODO bool sendY, ...
     };
 
+    /**
+     * @brief Result from a single AMICI simulation
+     */
     struct AmiciResultPackageSimple {
         AmiciResultPackageSimple() = default;
         double llh;
@@ -51,7 +54,10 @@ class SimulationRunnerSimple {
         int status;
     };
 
+    /** Type of function be called after a single job finished  */
     using callbackJobFinishedType = std::function<void(JobData*, int)>;
+
+    /** Type of function be called after all jobs are finished  */
     using callbackAllFinishedType = std::function<int(std::vector<JobData> &)>;
 
     /**
@@ -62,7 +68,7 @@ class SimulationRunnerSimple {
      * @param aggregate Function which is called after all simulations are completed. May be nullptr.
      */
 
-    SimulationRunnerSimple(const std::vector<double> &optimizationParameters,
+    AmiciSimulationRunner(const std::vector<double> &optimizationParameters,
                            amici::AMICI_sensi_order sensitivityOrder,
                            const std::vector<int> &conditionIndices,
                            callbackJobFinishedType callbackJobFinished = nullptr,
@@ -102,7 +108,7 @@ private:
     int errors = 0;
 };
 
-void swap(SimulationRunnerSimple::AmiciResultPackageSimple& first, SimulationRunnerSimple::AmiciResultPackageSimple& second);
+void swap(AmiciSimulationRunner::AmiciResultPackageSimple& first, AmiciSimulationRunner::AmiciResultPackageSimple& second);
 
 } // namespace parpe
 
@@ -111,14 +117,14 @@ namespace boost {
 namespace serialization {
 
 template <class Archive>
-void serialize(Archive &ar, parpe::SimulationRunnerSimple::AmiciWorkPackageSimple &u, const unsigned int version) {
+void serialize(Archive &ar, parpe::AmiciSimulationRunner::AmiciWorkPackageSimple &u, const unsigned int version) {
     ar & u.optimizationParameters;
     ar & u.sensitivityOrder;
     ar & u.conditionIndices;
 }
 
 template <class Archive>
-void serialize(Archive &ar, parpe::SimulationRunnerSimple::AmiciResultPackageSimple &u, const unsigned int version) {
+void serialize(Archive &ar, parpe::AmiciSimulationRunner::AmiciResultPackageSimple &u, const unsigned int version) {
     ar & u.llh;
     ar & u.simulationTimeSeconds;
     ar & u.gradient;

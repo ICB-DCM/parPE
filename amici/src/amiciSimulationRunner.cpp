@@ -1,4 +1,4 @@
-#include "simulationRunner.h"
+#include "amiciSimulationRunner.h"
 #include <loadBalancerMaster.h>
 
 #include <omp.h>
@@ -11,12 +11,12 @@
 
 namespace parpe {
 
-SimulationRunnerSimple::SimulationRunnerSimple(
+AmiciSimulationRunner::AmiciSimulationRunner(
         std::vector<double> const& optimizationParameters,
         amici::AMICI_sensi_order sensitivityOrder,
         std::vector<int> const& conditionIndices,
-        SimulationRunnerSimple::callbackJobFinishedType callbackJobFinished,
-        SimulationRunnerSimple::callbackAllFinishedType aggregate)
+        AmiciSimulationRunner::callbackJobFinishedType callbackJobFinished,
+        AmiciSimulationRunner::callbackAllFinishedType aggregate)
     : optimizationParameters(optimizationParameters),
     sensitivityOrder(sensitivityOrder),
     conditionIndices(conditionIndices),
@@ -27,7 +27,7 @@ SimulationRunnerSimple::SimulationRunnerSimple(
 }
 
 
-int SimulationRunnerSimple::runDistributedMemory(LoadBalancerMaster *loadBalancer, const int maxSimulationsPerPackage)
+int AmiciSimulationRunner::runDistributedMemory(LoadBalancerMaster *loadBalancer, const int maxSimulationsPerPackage)
 {
 #ifdef PARPE_SIMULATION_RUNNER_DEBUG
     printf("runDistributedMemory\n");
@@ -79,7 +79,7 @@ int SimulationRunnerSimple::runDistributedMemory(LoadBalancerMaster *loadBalance
     return errors;
 }
 
-int SimulationRunnerSimple::runSharedMemory(const LoadBalancerWorker::messageHandlerFunc& messageHandler, bool sequential)
+int AmiciSimulationRunner::runSharedMemory(const LoadBalancerWorker::messageHandlerFunc& messageHandler, bool sequential)
 {
 #ifdef PARPE_SIMULATION_RUNNER_DEBUG
     printf("runSharedMemory\n");
@@ -112,7 +112,7 @@ int SimulationRunnerSimple::runSharedMemory(const LoadBalancerWorker::messageHan
 
 }
 
-void SimulationRunnerSimple::queueSimulation(LoadBalancerMaster *loadBalancer,
+void AmiciSimulationRunner::queueSimulation(LoadBalancerMaster *loadBalancer,
                                              JobData *d, int *jobDone,
                                              pthread_cond_t *jobDoneChangedCondition, pthread_mutex_t *jobDoneChangedMutex, int jobIdx,
                                              std::vector<double> const& optimizationParameters,
@@ -133,7 +133,7 @@ void SimulationRunnerSimple::queueSimulation(LoadBalancerMaster *loadBalancer,
 
 }
 
-void swap(SimulationRunnerSimple::AmiciResultPackageSimple &first, SimulationRunnerSimple::AmiciResultPackageSimple &second) {
+void swap(AmiciSimulationRunner::AmiciResultPackageSimple &first, AmiciSimulationRunner::AmiciResultPackageSimple &second) {
     using std::swap;
     swap(first.llh, second.llh);
     swap(first.simulationTimeSeconds, second.simulationTimeSeconds);

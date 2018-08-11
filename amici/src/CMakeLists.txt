@@ -6,7 +6,7 @@ set(SRC_LIST
     multiConditionProblemResultWriter.cpp
     steadystateSimulator.cpp
     optimizationApplication.cpp
-    simulationRunner.cpp
+    amiciSimulationRunner.cpp
     simulationResultWriter.cpp
     standaloneSimulator.cpp
     amiciMisc.cpp

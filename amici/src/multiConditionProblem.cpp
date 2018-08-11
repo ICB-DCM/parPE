@@ -237,7 +237,7 @@ void logSimulation(hid_t file_id, std::string const& pathStr, std::vector<double
 
 }
 
-SimulationRunnerSimple::AmiciResultPackageSimple runAndLogSimulation(
+AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
         amici::Solver &solver, amici::Model &model, JobIdentifier path, int jobId,
         MultiConditionDataProvider *dataProvider, MultiConditionProblemResultWriter *resultWriter,
         bool logLineSearch)
@@ -274,7 +274,7 @@ SimulationRunnerSimple::AmiciResultPackageSimple runAndLogSimulation(
                       jobId, iterationsUntilSteadystate, rdata->status);
     }
 
-    return SimulationRunnerSimple::AmiciResultPackageSimple {
+    return AmiciSimulationRunner::AmiciResultPackageSimple {
         rdata->llh,
                 timeSeconds,
                 (solver.getSensitivityOrder() > amici::AMICI_SENSI_ORDER_NONE) ? rdata->sllh : std::vector<double>(),
