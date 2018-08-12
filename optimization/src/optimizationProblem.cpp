@@ -255,7 +255,7 @@ bool OptimizationReporter::starting(gsl::span<const double> initialParameters) c
 
     started = true;
 
-    logger->setPrefix(defaultLoggerPrefix + "." + std::to_string(numIterations));
+    logger->setPrefix(defaultLoggerPrefix + "i" + std::to_string(numIterations));
 
     return false;
 }
@@ -281,7 +281,7 @@ bool OptimizationReporter::iterationFinished(gsl::span<const double> parameters,
                     wallTimeIter, cpuTimeIterationSec);
     ++numIterations;
 
-    logger->setPrefix(defaultLoggerPrefix + "." + std::to_string(numIterations));
+    logger->setPrefix(defaultLoggerPrefix + "i" + std::to_string(numIterations));
 
     cpuTimeIterationSec = 0.0;
 

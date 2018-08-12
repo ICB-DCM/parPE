@@ -240,7 +240,7 @@ public:
         // run simulations for all condition indices
         for(auto conditionIdx: workPackage.conditionIndices) {
             dataProvider->updateSimulationParameters(conditionIdx, workPackage.optimizationParameters, *model);
-            Logger logger(workPackage.logPrefix + "." + std::to_string(conditionIdx));
+            Logger logger(workPackage.logPrefix + "c" + std::to_string(conditionIdx));
             auto result = runAndLogSimulation(*solver, *model, conditionIdx, jobId, &logger);
             results[conditionIdx] = result;
         }

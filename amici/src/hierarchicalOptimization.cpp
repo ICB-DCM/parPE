@@ -1062,7 +1062,7 @@ bool HierarchicalOptimizationReporter::iterationFinished(gsl::span<const double>
     }
     ++numIterations;
 
-    logger->setPrefix(defaultLoggerPrefix + "." + std::to_string(numIterations));
+    logger->setPrefix(defaultLoggerPrefix + "i" + std::to_string(numIterations));
 
     cpuTimeIterationSec = 0.0;
 

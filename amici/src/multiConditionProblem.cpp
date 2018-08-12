@@ -143,12 +143,12 @@ std::unique_ptr<OptimizationProblem> MultiConditionProblemMultiStartOptimization
     if (resultWriter) {
         problem = std::make_unique<MultiConditionProblem>(
                     dp, loadBalancer,
-                    logger->getChild(std::string(".") + std::to_string(multiStartIndex)),
+                    logger->getChild(std::string("o") + std::to_string(multiStartIndex)),
                     std::make_unique<OptimizationResultWriter>(*resultWriter));
         problem->getResultWriter()->setRootPath("/multistarts/" + std::to_string(multiStartIndex));
     } else {
         problem = std::make_unique<MultiConditionProblem>(dp, loadBalancer,
-                                                          logger->getChild(std::string(".") + std::to_string(multiStartIndex)), nullptr);
+                                                          logger->getChild(std::string("o") + std::to_string(multiStartIndex)), nullptr);
     }
     problem->setOptimizationOptions(options);
     problem->setInitialParameters(parpe::OptimizationOptions::getStartingPoint(dp->getHdf5FileId(), multiStartIndex));
@@ -161,8 +161,8 @@ std::unique_ptr<OptimizationProblem> MultiConditionProblemMultiStartOptimization
 }
 
 void printSimulationResult(Logger *logger, int jobId, amici::ReturnData const* rdata, double timeSeconds) {
-    logger->logmessage(LOGLVL_DEBUG, "Result for %d: %g (%d) (%.4fs)",
-               jobId, rdata->llh, rdata->status, timeSeconds);
+    logger->logmessage(LOGLVL_DEBUG, "Result for %d: %g (%d) (%.4fs%c)",
+               jobId, rdata->llh, rdata->status, timeSeconds, rdata->sensi >= amici::AMICI_SENSI_ORDER_FIRST?'+':'-');
 
 
     // check for NaNs, only report first
