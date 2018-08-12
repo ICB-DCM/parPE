@@ -16,66 +16,6 @@
 
 namespace parpe {
 
-// TODO: distinguish between training and test set?
-class SimulationConditionTracker {
-public:
-    virtual int getConditionId() const = 0;
-    virtual void setConditionId(int id) = 0;
-    virtual std::string toString() const = 0;
-    virtual ~SimulationConditionTracker() = default;
-};
-
-class OptimizationTracker {
-public:
-    virtual int getOptimizationId() const = 0;
-    virtual void setOptimizationId(int id) = 0;
-    virtual std::string toString() const = 0;
-    virtual ~OptimizationTracker() = default;
-};
-
-class MinibatchOptimizationTracker {
-public:
-    virtual int getBatchId() const = 0;
-    virtual void setBatchId(int id) = 0;
-    virtual std::string toString() const = 0;
-    virtual ~MinibatchOptimizationTracker() = default;
-};
-
-
-class MyJobTracker
-        :
-        public SimulationConditionTracker,
-        public OptimizationTracker
-        //public MinibatchOptimizationTracker
-{
-
-    int getConditionId() const override { return idxConditions; }
-    void setConditionId(int id) override { idxConditions = id; }
-    int getOptimizationId() const override { return idxLocalOptimization; }
-    void setOptimizationId(int id) override { idxLocalOptimization = id; }
-
-    std::string toString() const override {
-        return std::to_string(idxLocalOptimization)
-                + "." + std::to_string(idxConditions);
-    }
-    ~MyJobTracker() override = default;
-
-private:
-    /** current multistart batch (e.g. for crossvalidation) */
-    //int idxMultiStart = 0;
-
-    /** current start index in multistart run */
-    int idxLocalOptimization = 0;
-
-    /** iteration of local solver or epoch for minibatch */
-    //int idxLocalOptimizationIteration = 0;
-
-    // TODO int idxMiniBatch           /** current minibatch index */
-
-    /** condition index (current data record) */
-    // TODO Only this one is used for the moment
-    int idxConditions = 0;
-};
 
 /** Struct to tell simulation workers which dataset they are operating on.
   */
