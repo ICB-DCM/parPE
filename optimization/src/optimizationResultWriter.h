@@ -86,7 +86,7 @@ public:
             gsl::span<const double> parameters,
             double objectiveFunctionValue,
             gsl::span<const double> gradient,
-            double timeElapsedInSeconds);
+            double wallSeconds, double cpuSeconds);
     /*, int alg_mod, double inf_pr, double inf_du,
     double mu, double d_norm, double regularization_size, double alpha_du,
     double alpha_pr, int ls_trials*/
@@ -102,7 +102,8 @@ public:
      * @param exitStatus Exit status (cause of optimizer termination)
      */
     virtual void saveOptimizerResults(double finalNegLogLikelihood,
-                                           gsl::span<const double> optimalParameters, double masterTime,
+                                           gsl::span<const double> optimalParameters,
+                                      double wallSec, double cpuSec,
                                            int exitStatus) const;
 
     hid_t getFileId() const;

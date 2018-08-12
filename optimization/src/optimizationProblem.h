@@ -142,6 +142,9 @@ protected:
     // and evaluate() is const there. This could probably be solved better....
 
     mutable WallTimer wallTimer;
+    mutable double cpuTimeTotalSec = 0.0;
+    mutable double cpuTimeIterationSec = 0.0;
+
 //    clock_t timeOptimizationBegin;
 //    clock_t timeIterationBegin;
 //    clock_t timeCostEvaluationBegin;

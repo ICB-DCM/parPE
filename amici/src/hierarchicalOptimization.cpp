@@ -956,6 +956,7 @@ HierarchicalOptimizationReporter::HierarchicalOptimizationReporter(
 FunctionEvaluationStatus HierarchicalOptimizationReporter::evaluate(gsl::span<const double> parameters,
         double &fval, gsl::span<double> gradient, Logger *logger, double *cpuTime) const
 {
+    double myCpuTimeSec = 0.0;
     if(cpuTime)
         *cpuTime = 0.0;
 
@@ -968,7 +969,7 @@ FunctionEvaluationStatus HierarchicalOptimizationReporter::evaluate(gsl::span<co
             // Have to compute anew
             cachedStatus = hierarchicalWrapper->evaluate(parameters, cachedCost, cachedGradient,
                                                          cachedFullParameters, cachedFullGradient,
-                                                         logger, cpuTime);
+                                                         logger, &myCpuTimeSec);
             haveCachedCost = true;
             haveCachedGradient = true;
         }
@@ -981,7 +982,7 @@ FunctionEvaluationStatus HierarchicalOptimizationReporter::evaluate(gsl::span<co
             // Have to compute anew
             cachedStatus = hierarchicalWrapper->evaluate(parameters, cachedCost, gsl::span<double>(),
                                                          cachedFullParameters, cachedFullGradient,
-                                                         logger, cpuTime);
+                                                         logger, &myCpuTimeSec);
             haveCachedCost = true;
             haveCachedGradient = false;
         }
@@ -991,6 +992,11 @@ FunctionEvaluationStatus HierarchicalOptimizationReporter::evaluate(gsl::span<co
     // update cached parameters
     cachedParameters.resize(numParameters_);
     std::copy(parameters.begin(), parameters.end(), cachedParameters.begin());
+
+    cpuTimeIterationSec += myCpuTimeSec;
+    cpuTimeTotalSec += myCpuTimeSec;
+    if(cpuTime)
+        *cpuTime = myCpuTimeSec;
 
     if(afterCostFunctionCall(parameters, cachedCost, gradient.data() ? cachedFullGradient : gsl::span<double>()) != 0)
         return functionEvaluationFailure;
@@ -1012,11 +1018,12 @@ void HierarchicalOptimizationReporter::finished(double optimalCost, gsl::span<co
     }
 
     if(logger)
-        logger->logmessage(LOGLVL_INFO, "Optimizer status %d, final llh: %e, time: %f.",
-               exitStatus, cachedCost, timeElapsed);
+        logger->logmessage(LOGLVL_INFO, "Optimizer status %d, final llh: %e, time: wall: %f cpu: %f.",
+               exitStatus, cachedCost, timeElapsed, cpuTimeTotalSec);
 
     if(resultWriter)
-        resultWriter->saveOptimizerResults(cachedCost, cachedFullParameters, timeElapsed, exitStatus);
+        resultWriter->saveOptimizerResults(cachedCost, cachedFullParameters,
+                                           timeElapsed, cpuTimeTotalSec, exitStatus);
 }
 
 const std::vector<double> &HierarchicalOptimizationReporter::getFinalParameters() const
@@ -1028,7 +1035,10 @@ bool HierarchicalOptimizationReporter::iterationFinished(gsl::span<const double>
     double wallTimeIter = wallTimer.getRound();
     double wallTimeOptim = wallTimer.getTotal();
 
-    if(logger) logger->logmessage(LOGLVL_INFO, "iter: %d cost: %g time_iter: %gs time_optim: %gs", numIterations, objectiveFunctionValue, wallTimeIter, wallTimeOptim);
+    if(logger)
+        logger->logmessage(LOGLVL_INFO, "iter: %d cost: %g time_iter: wall: %gs cpu: %gs time_optim: wall: %gs cpu: %gs",
+                           numIterations, objectiveFunctionValue,
+                           wallTimeIter, cpuTimeIterationSec, wallTimeOptim, cpuTimeTotalSec);
 
     if(resultWriter) {
         /* check if the optimizer-reported cost matches the last function evaluation.
@@ -1042,17 +1052,19 @@ bool HierarchicalOptimizationReporter::iterationFinished(gsl::span<const double>
             resultWriter->logOptimizerIteration(numIterations, cachedFullParameters,
                                                      objectiveFunctionValue,
                                                      cachedFullGradient, // This might be misleading, the gradient could evaluated at other parameters if there was a line search inbetween
-                                                     wallTimeIter);
+                                                     wallTimeIter, cpuTimeIterationSec);
         } else {
             resultWriter->logOptimizerIteration(numIterations, parameters,
                                                      objectiveFunctionValue,
                                                      objectiveFunctionGradient, // This might be misleading, the gradient could evaluated at other parameters if there was a line search inbetween
-                                                     wallTimeIter);
+                                                     wallTimeIter, cpuTimeIterationSec);
         }
     }
     ++numIterations;
 
     logger->setPrefix(defaultLoggerPrefix + "." + std::to_string(numIterations));
+
+    cpuTimeIterationSec = 0.0;
 
     return false;
 

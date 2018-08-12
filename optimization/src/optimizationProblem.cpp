@@ -185,6 +185,7 @@ FunctionEvaluationStatus OptimizationReporter::evaluate(
         Logger *logger,
         double *cpuTime) const
 {
+    double myCpuTimeSec = 0.0;
     if(cpuTime)
         *cpuTime = 0.0;
 
@@ -195,7 +196,7 @@ FunctionEvaluationStatus OptimizationReporter::evaluate(
         if (!haveCachedGradient || !std::equal(parameters.begin(), parameters.end(),
                                                cachedParameters.begin())) {
             // Have to compute anew
-            cachedStatus = gradFun->evaluate(parameters, cachedCost, cachedGradient, logger, cpuTime);
+            cachedStatus = gradFun->evaluate(parameters, cachedCost, cachedGradient, logger, &myCpuTimeSec);
             haveCachedCost = true;
             haveCachedGradient = true;
         }
@@ -206,7 +207,7 @@ FunctionEvaluationStatus OptimizationReporter::evaluate(
         if (!haveCachedCost || !std::equal(parameters.begin(), parameters.end(),
                                            cachedParameters.begin())) {
             // Have to compute anew
-            cachedStatus = gradFun->evaluate(parameters, cachedCost, gsl::span<double>(), logger, cpuTime);
+            cachedStatus = gradFun->evaluate(parameters, cachedCost, gsl::span<double>(), logger, &myCpuTimeSec);
             haveCachedCost = true;
             haveCachedGradient = false;
         }
@@ -216,6 +217,11 @@ FunctionEvaluationStatus OptimizationReporter::evaluate(
     // update cached parameters
     cachedParameters.resize(numParameters_);
     std::copy(parameters.begin(), parameters.end(), cachedParameters.begin());
+
+    cpuTimeIterationSec += myCpuTimeSec;
+    cpuTimeTotalSec += myCpuTimeSec;
+    if(cpuTime)
+        *cpuTime = myCpuTimeSec;
 
     if(afterCostFunctionCall(parameters, cachedCost, gradient.data() ? cachedGradient : gsl::span<double>()) != 0)
         return functionEvaluationFailure;
@@ -262,7 +268,9 @@ bool OptimizationReporter::iterationFinished(gsl::span<const double> parameters,
     double wallTimeOptim = wallTimer.getTotal(); //double)(clock() - timeOptimizationBegin) / CLOCKS_PER_SEC;
 
     if(logger)
-        logger->logmessage(LOGLVL_INFO, "iter: %d cost: %g time_iter: %gs time_optim: %gs", numIterations, objectiveFunctionValue, wallTimeIter, wallTimeOptim);
+        logger->logmessage(LOGLVL_INFO, "iter: %d cost: %g time_iter: wall: %gs cpu: %gs time_optim: wall: %gs cpu: %gs",
+                           numIterations, objectiveFunctionValue,
+                           wallTimeIter, cpuTimeIterationSec, wallTimeOptim, cpuTimeTotalSec);
 
     if(resultWriter)
         resultWriter->logOptimizerIteration(
@@ -270,10 +278,12 @@ bool OptimizationReporter::iterationFinished(gsl::span<const double> parameters,
                     parameters.empty() ? cachedParameters : parameters,
                     objectiveFunctionValue,
                     objectiveFunctionGradient.empty() ? cachedGradient : objectiveFunctionGradient, // This might be misleading, the gradient could evaluated at other parameters if there was a line search inbetween
-                    wallTimeIter);
+                    wallTimeIter, cpuTimeIterationSec);
     ++numIterations;
 
     logger->setPrefix(defaultLoggerPrefix + "." + std::to_string(numIterations));
+
+    cpuTimeIterationSec = 0.0;
 
     return false;
 }
@@ -324,12 +334,13 @@ void OptimizationReporter::finished(double optimalCost, gsl::span<const double> 
 
 
     if(logger)
-        logger->logmessage(LOGLVL_INFO, "Optimizer status %d, final llh: %e, time: %f.",
-               exitStatus, cachedCost, timeElapsed);
+        logger->logmessage(LOGLVL_INFO, "Optimizer status %d, final llh: %e, time: wall: %f cpu: %f.",
+               exitStatus, cachedCost, timeElapsed, cpuTimeTotalSec);
 
 
     if(resultWriter)
-        resultWriter->saveOptimizerResults(cachedCost, cachedParameters, timeElapsed, exitStatus);
+        resultWriter->saveOptimizerResults(cachedCost, cachedParameters,
+                                           timeElapsed, cpuTimeTotalSec, exitStatus);
 }
 
 double OptimizationReporter::getFinalCost() const

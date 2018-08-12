@@ -99,7 +99,7 @@ void OptimizationResultWriter::logObjectiveFunctionEvaluation(
 
 void OptimizationResultWriter::logOptimizerIteration(int numIterations, gsl::span<const double> parameters,
                                                           double objectiveFunctionValue, gsl::span<const double> gradient,
-                                                          double timeElapsedInSeconds)
+                                                          double wallSeconds, double cpuSeconds)
 {
     std::string const& pathStr = getRootPath();
     const char *fullGroupPath = pathStr.c_str();
@@ -122,9 +122,14 @@ void OptimizationResultWriter::logOptimizerIteration(int numIterations, gsl::spa
         hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath,
                                                   "iterCostFunParameters",
                                                   parameters.data(), parameters.size());
+
     hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath,
-                                              "iterCostFunWallTimeInSec",
-                                              &timeElapsedInSeconds, 1);
+                                              "iterCostFunWallSec",
+                                              &wallSeconds, 1);
+
+    hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath,
+                                              "iterCostFunCpuSec",
+                                              &cpuSeconds, 1);
 
     hdf5CreateOrExtendAndWriteToInt2DArray(file_id, fullGroupPath, "iterIndex",
                                            &numIterations, 1);
@@ -173,8 +178,12 @@ void OptimizationResultWriter::flushResultWriter() const {
     H5Fflush(file_id, H5F_SCOPE_LOCAL);
 }
 
-void OptimizationResultWriter::saveOptimizerResults(double finalNegLogLikelihood, gsl::span<const double> optimalParameters,
-                                                         double masterTime, int exitStatus) const {
+void OptimizationResultWriter::saveOptimizerResults(double finalNegLogLikelihood,
+                                                    gsl::span<const double> optimalParameters,
+                                                    double wallSec,
+                                                    double cpuSec,
+                                                    int exitStatus) const
+{
 
     std::string const& optimPath = getRootPath();
     hdf5EnsureGroupExists(file_id, optimPath.c_str());
@@ -188,9 +197,13 @@ void OptimizationResultWriter::saveOptimizerResults(double finalNegLogLikelihood
     H5LTmake_dataset(file_id, fullGroupPath.c_str(), 1, dimensions,
                      H5T_NATIVE_DOUBLE, &finalNegLogLikelihood);
 
-    fullGroupPath = (optimPath + "/wallTimeInSec");
+    fullGroupPath = (optimPath + "/wallSec");
     H5LTmake_dataset(file_id, fullGroupPath.c_str(), 1, dimensions,
-                     H5T_NATIVE_DOUBLE, &masterTime);
+                     H5T_NATIVE_DOUBLE, &wallSec);
+
+    fullGroupPath = (optimPath + "/cpuSec");
+    H5LTmake_dataset(file_id, fullGroupPath.c_str(), 1, dimensions,
+                     H5T_NATIVE_DOUBLE, &cpuSec);
 
     fullGroupPath = (optimPath + "/exitStatus");
     H5LTmake_dataset(file_id, fullGroupPath.c_str(), 1, dimensions,
