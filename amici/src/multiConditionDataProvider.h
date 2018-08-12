@@ -17,8 +17,7 @@
 namespace parpe {
 
 
-/** Struct to tell simulation workers which dataset they are operating on.
-  */
+/** Struct to tell simulation workers which dataset they are operating on. */
 struct JobIdentifier {
     /** current multistart batch (e.g. for crossvalidation) */
     int idxMultiStart = 0;

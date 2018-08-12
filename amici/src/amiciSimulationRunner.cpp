@@ -11,17 +11,17 @@
 
 namespace parpe {
 
-AmiciSimulationRunner::AmiciSimulationRunner(
-        std::vector<double> const& optimizationParameters,
+AmiciSimulationRunner::AmiciSimulationRunner(std::vector<double> const& optimizationParameters,
         amici::AMICI_sensi_order sensitivityOrder,
         std::vector<int> const& conditionIndices,
         AmiciSimulationRunner::callbackJobFinishedType callbackJobFinished,
-        AmiciSimulationRunner::callbackAllFinishedType aggregate)
+        AmiciSimulationRunner::callbackAllFinishedType aggregate, const std::string &logPrefix)
     : optimizationParameters(optimizationParameters),
     sensitivityOrder(sensitivityOrder),
     conditionIndices(conditionIndices),
     callbackJobFinished(std::move(std::move(callbackJobFinished))),
-    aggregate(std::move(std::move(aggregate)))
+    aggregate(std::move(std::move(aggregate))),
+    logPrefix(logPrefix)
 {
 
 }
@@ -94,7 +94,7 @@ int AmiciSimulationRunner::runSharedMemory(const LoadBalancerWorker::messageHand
     for (int simulationIdx = 0; simulationIdx < (signed)conditionIndices.size(); ++simulationIdx) {
         // to resuse the parallel code and for debugging we still serialze the job data here
         auto curConditionIndices = std::vector<int> {simulationIdx};
-        AmiciWorkPackageSimple work {optimizationParameters, sensitivityOrder, curConditionIndices};
+        AmiciWorkPackageSimple work {optimizationParameters, sensitivityOrder, curConditionIndices, logPrefix};
         auto buffer = amici::serializeToStdVec<AmiciWorkPackageSimple>(work);
 
         messageHandler(buffer, simulationIdx);
@@ -122,7 +122,7 @@ void AmiciSimulationRunner::queueSimulation(LoadBalancerMaster *loadBalancer,
     // TODO avoid copy optimizationParameters; reuse;; for const& in work package need to split into(de)serialize
     *d = JobData(jobDone, jobDoneChangedCondition, jobDoneChangedMutex);
 
-    AmiciWorkPackageSimple work {optimizationParameters, sensitivityOrder, conditionIndices};
+    AmiciWorkPackageSimple work {optimizationParameters, sensitivityOrder, conditionIndices, logPrefix};
     d->sendBuffer = amici::serializeToStdVec<AmiciWorkPackageSimple>(work);
 
     // TODO: must ignore 2nd argument for SimulationRunnerSimple

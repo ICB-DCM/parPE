@@ -954,7 +954,7 @@ HierarchicalOptimizationReporter::HierarchicalOptimizationReporter(
 }
 
 FunctionEvaluationStatus HierarchicalOptimizationReporter::evaluate(gsl::span<const double> parameters,
-        double &fval, gsl::span<double> gradient, Logger *logger, double *cpuTime) const
+        double &fval, gsl::span<double> gradient, Logger */*logger*/, double *cpuTime) const
 {
     double myCpuTimeSec = 0.0;
     if(cpuTime)
@@ -969,7 +969,7 @@ FunctionEvaluationStatus HierarchicalOptimizationReporter::evaluate(gsl::span<co
             // Have to compute anew
             cachedStatus = hierarchicalWrapper->evaluate(parameters, cachedCost, cachedGradient,
                                                          cachedFullParameters, cachedFullGradient,
-                                                         logger, &myCpuTimeSec);
+                                                         this->logger.get(), &myCpuTimeSec);
             haveCachedCost = true;
             haveCachedGradient = true;
         }
@@ -982,7 +982,7 @@ FunctionEvaluationStatus HierarchicalOptimizationReporter::evaluate(gsl::span<co
             // Have to compute anew
             cachedStatus = hierarchicalWrapper->evaluate(parameters, cachedCost, gsl::span<double>(),
                                                          cachedFullParameters, cachedFullGradient,
-                                                         logger, &myCpuTimeSec);
+                                                         this->logger.get(), &myCpuTimeSec);
             haveCachedCost = true;
             haveCachedGradient = false;
         }

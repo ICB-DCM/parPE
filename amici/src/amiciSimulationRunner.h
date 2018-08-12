@@ -39,6 +39,7 @@ class AmiciSimulationRunner {
         std::vector<double> optimizationParameters;
         amici::AMICI_sensi_order sensitivityOrder;
         std::vector<int> conditionIndices;
+        std::string logPrefix;
         // TODO bool sendY, ...
     };
 
@@ -69,10 +70,11 @@ class AmiciSimulationRunner {
      */
 
     AmiciSimulationRunner(const std::vector<double> &optimizationParameters,
-                           amici::AMICI_sensi_order sensitivityOrder,
-                           const std::vector<int> &conditionIndices,
-                           callbackJobFinishedType callbackJobFinished = nullptr,
-                           callbackAllFinishedType aggregate = nullptr);
+                          amici::AMICI_sensi_order sensitivityOrder,
+                          const std::vector<int> &conditionIndices,
+                          callbackJobFinishedType callbackJobFinished = nullptr,
+                          callbackAllFinishedType aggregate = nullptr,
+                          std::string const& logPrefix = "");
 
     /**
      * @brief Dispatch simulation jobs using LoadBalancerMaster
@@ -97,7 +99,8 @@ private:
                          pthread_cond_t *jobDoneChangedCondition,
                          pthread_mutex_t *jobDoneChangedMutex,
                          int jobIdx, const std::vector<double> &optimizationParameters,
-                         amici::AMICI_sensi_order sensitivityOrder, const std::vector<int> &conditionIndices);
+                         amici::AMICI_sensi_order sensitivityOrder,
+                         const std::vector<int> &conditionIndices);
 
     std::vector<double> const& optimizationParameters;
     amici::AMICI_sensi_order sensitivityOrder;
@@ -106,6 +109,7 @@ private:
     callbackJobFinishedType callbackJobFinished = nullptr;
     callbackAllFinishedType aggregate = nullptr;
     int errors = 0;
+    std::string logPrefix;
 };
 
 void swap(AmiciSimulationRunner::AmiciResultPackageSimple& first, AmiciSimulationRunner::AmiciResultPackageSimple& second);
@@ -121,6 +125,7 @@ void serialize(Archive &ar, parpe::AmiciSimulationRunner::AmiciWorkPackageSimple
     ar & u.optimizationParameters;
     ar & u.sensitivityOrder;
     ar & u.conditionIndices;
+    ar & u.logPrefix;
 }
 
 template <class Archive>

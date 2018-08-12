@@ -24,14 +24,13 @@ namespace parpe {
 
 class MultiConditionDataProvider;
 
-AmiciSimulationRunner::AmiciResultPackageSimple  runAndLogSimulation(
-        amici::Solver &solver,
+AmiciSimulationRunner::AmiciResultPackageSimple  runAndLogSimulation(amici::Solver &solver,
         amici::Model &model,
-        JobIdentifier path,
+        int conditionIdx,
         int jobId,
         MultiConditionDataProvider *dataProvider,
         OptimizationResultWriter *resultWriter,
-        bool logLineSearch);
+        bool logLineSearch, Logger *logger);
 
 
 /**
@@ -168,7 +167,8 @@ public:
                 modelOutput[result.first] = result.second.modelOutput;
             }
         },
-        nullptr /* aggregate */);
+        nullptr /* aggregate */,
+                logger?logger->getPrefix():"");
 
 
         if (loadBalancer && loadBalancer->isRunning()) {
@@ -204,10 +204,12 @@ public:
      */
     // TODO does not belong here
     AmiciSimulationRunner::AmiciResultPackageSimple  runAndLogSimulation(
-            amici::Solver &solver, amici::Model &model, JobIdentifier path,
-            int jobId) const
+            amici::Solver &solver, amici::Model &model, int conditionIdx,
+            int jobId, Logger* logger) const
     {
-        return parpe::runAndLogSimulation(solver, model, path, jobId, dataProvider, resultWriter, logLineSearch);
+        return parpe::runAndLogSimulation(solver, model,
+                                          conditionIdx, jobId, dataProvider,
+                                          resultWriter, logLineSearch, logger);
     }
 
 
@@ -217,12 +219,6 @@ public:
      * @param jobId: In: Identifier of the job (unique up to INT_MAX)
      */
     virtual void messageHandler(std::vector<char> &buffer, int jobId) const {
-        // unpack simulation job data
-        JobIdentifier path;
-        auto solver = dataProvider->getSolver();
-        auto model = dataProvider->getModel();
-        auto sim = amici::deserializeFromChar<
-                AmiciSimulationRunner::AmiciWorkPackageSimple>(buffer.data(), buffer.size());
 
 #if QUEUE_WORKER_H_VERBOSE >= 2
         int mpiRank;
@@ -230,15 +226,23 @@ public:
         printf("[%d] Received work. ", mpiRank);
         fflush(stdout);
 #endif
-        solver->setSensitivityOrder(sim.sensitivityOrder);
+
+        auto solver = dataProvider->getSolver();
+        auto model = dataProvider->getModel();
+
+        // unpack simulation job data
+        auto workPackage = amici::deserializeFromChar<
+                AmiciSimulationRunner::AmiciWorkPackageSimple>(buffer.data(), buffer.size());
+
+        solver->setSensitivityOrder(workPackage.sensitivityOrder);
 
         std::map<int, AmiciSimulationRunner::AmiciResultPackageSimple> results;
         // run simulations for all condition indices
-        for(auto conditionIndex: sim.conditionIndices) {
-            path.idxConditions = conditionIndex;
-            dataProvider->updateSimulationParameters(conditionIndex, sim.optimizationParameters, *model);
-            auto result = runAndLogSimulation(*solver, *model, path, jobId);
-            results[conditionIndex] = result;
+        for(auto conditionIdx: workPackage.conditionIndices) {
+            dataProvider->updateSimulationParameters(conditionIdx, workPackage.optimizationParameters, *model);
+            Logger logger(workPackage.logPrefix + "." + std::to_string(conditionIdx));
+            auto result = runAndLogSimulation(*solver, *model, conditionIdx, jobId, &logger);
+            results[conditionIdx] = result;
         }
 
 #if QUEUE_WORKER_H_VERBOSE >= 2
@@ -280,14 +284,14 @@ protected:// for testing
         double simulationTimeSec = 0.0;
 
         AmiciSimulationRunner simRunner(parameterVector,
-                                         objectiveFunctionGradient.size()?amici::AMICI_SENSI_ORDER_FIRST:amici::AMICI_SENSI_ORDER_NONE,
-                                         dataIndices,
-                                         [&](JobData *job, int /*jobIdx*/) {
+                                        objectiveFunctionGradient.size()?amici::AMICI_SENSI_ORDER_FIRST:amici::AMICI_SENSI_ORDER_NONE,
+                                        dataIndices,
+                                        [&](JobData *job, int /*jobIdx*/) {
             errors += aggregateLikelihood(*job,
                                           nllh,
                                           objectiveFunctionGradient,
                                           simulationTimeSec);
-        }, nullptr);
+        }, nullptr,  logger?logger->getPrefix():"");
         if (loadBalancer && loadBalancer->isRunning()) {
             // When running simulations (without gradient), send more simulations to each worker
             // to reduce communication overhead
@@ -480,10 +484,9 @@ private:
 
 void printSimulationResult(JobIdentifier const& path, int jobId, const amici::ReturnData *rdata, double timeSeconds);
 
-void logSimulation(hid_t file_id, const std::string &pathStr, const std::vector<double> &parameters, double llh,
+void saveSimulation(hid_t file_id, const std::string &pathStr, const std::vector<double> &parameters, double llh,
                    gsl::span<const double> gradient, double timeElapsedInSeconds, gsl::span<const double> states,
-                   gsl::span<const double> stateSensi, gsl::span<const double> outputs, int jobId,
-                   int iterationsUntilSteadystate, int status);
+                   gsl::span<const double> stateSensi, gsl::span<const double> outputs, int jobId, int status, std::string label);
 
 
 } // namespace parpe

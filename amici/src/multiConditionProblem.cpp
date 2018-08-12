@@ -161,25 +161,21 @@ std::unique_ptr<OptimizationProblem> MultiConditionProblemMultiStartOptimization
     return std::move(problem);
 }
 
-void printSimulationResult(const JobIdentifier &path, int jobId, amici::ReturnData const* rdata, double timeSeconds) {
-    char pathStrBuf[100];
-    path.sprint(pathStrBuf);
-    logmessage(LOGLVL_DEBUG, "Result for %s (%d): %g (%d) (%.4fs)", pathStrBuf,
+void printSimulationResult(Logger *logger, int jobId, amici::ReturnData const* rdata, double timeSeconds) {
+    logger->logmessage(LOGLVL_DEBUG, "Result for %d: %g (%d) (%.4fs)",
                jobId, rdata->llh, rdata->status, timeSeconds);
 
 
-    // check for NaNs
+    // check for NaNs, only report first
     if (rdata->sensi >= amici::AMICI_SENSI_ORDER_FIRST) {
         for (int i = 0; i < rdata->np; ++i) {
             if (std::isnan(rdata->sllh[i])) {
-                logmessage(LOGLVL_DEBUG, "Result for %s: contains NaN at %d",
-                           pathStrBuf, i);
+                logmessage(LOGLVL_DEBUG, "Gradient contains NaN at %d", i);
                 break;
             }
 
             if (std::isinf(rdata->sllh[i])) {
-                logmessage(LOGLVL_DEBUG, "Result for %s: contains Inf at %d",
-                           pathStrBuf, i);
+                logmessage(LOGLVL_DEBUG, "Gradient contains Inf at %d", i);
                 break;
             }
         }
@@ -187,11 +183,11 @@ void printSimulationResult(const JobIdentifier &path, int jobId, amici::ReturnDa
 }
 
 
-void logSimulation(hid_t file_id, std::string const& pathStr, std::vector<double> const& parameters,
+void saveSimulation(hid_t file_id, std::string const& pathStr, std::vector<double> const& parameters,
                    double llh, gsl::span<double const> gradient, double timeElapsedInSeconds,
                    gsl::span<double const> states, gsl::span<double const> stateSensi,
-                   gsl::span<double const> outputs, int jobId, int iterationsUntilSteadystate,
-                   int status)
+                   gsl::span<double const> outputs, int jobId,
+                   int status, std::string label)
 {
     // TODO replace by SimulationResultWriter
     const char *fullGroupPath = pathStr.c_str();
@@ -230,10 +226,6 @@ void logSimulation(hid_t file_id, std::string const& pathStr, std::vector<double
         hdf5CreateOrExtendAndWriteToDouble2DArray(
             file_id, fullGroupPath, "simulationObservables", outputs.data(), outputs.size());
 
-    hdf5CreateOrExtendAndWriteToInt2DArray(file_id, fullGroupPath,
-                                           "iterationsUntilSteadystate",
-                                           &iterationsUntilSteadystate, 1);
-
     if (!stateSensi.empty())
         hdf5CreateOrExtendAndWriteToDouble3DArray(
             file_id, fullGroupPath, "simulationStateSensitivities", stateSensi.data(),
@@ -242,13 +234,17 @@ void logSimulation(hid_t file_id, std::string const& pathStr, std::vector<double
     hdf5CreateOrExtendAndWriteToInt2DArray(file_id, fullGroupPath,
                                            "simulationStatus", &status, 1);
 
+    hdf5CreateOrExtendAndWriteToString1DArray(file_id, fullGroupPath,
+                                           "simulationLabel", label);
+
     H5Fflush(file_id, H5F_SCOPE_LOCAL);
 
 }
 
-AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(amici::Solver &solver, amici::Model &model, JobIdentifier path, int jobId,
+AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
+        amici::Solver &solver, amici::Model &model, int conditionIdx, int jobId,
         MultiConditionDataProvider *dataProvider, OptimizationResultWriter *resultWriter,
-        bool logLineSearch)
+        bool logLineSearch, Logger* logger)
 {
     /* wall time  on worker for current simulation */
     double startTime = MPI_Wtime();
@@ -259,27 +255,26 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(amici::Solve
     // (other model parameter have been set already, parameter mapping
     // has been done by master)
 
-    auto edata = dataProvider->getExperimentalDataForCondition(path.idxConditions);
+    auto edata = dataProvider->getExperimentalDataForCondition(conditionIdx);
 
     std::unique_ptr<amici::ReturnData> rdata;
     try {
         rdata = amici::runAmiciSimulation(solver, edata.get(), model);
     } catch (std::exception &e) {
-        logmessage(LOGLVL_DEBUG, "Error during simulation: %s (%d)", e.what(), rdata->status);
+        logger->logmessage(LOGLVL_DEBUG, "Error during simulation: %s (%d)", e.what(), rdata->status);
         rdata->invalidateLLH();
     }
 
     double endTime = MPI_Wtime();
     double timeSeconds = (endTime - startTime);
 
-    printSimulationResult(path, jobId, rdata.get(), timeSeconds);
+    printSimulationResult(logger, jobId, rdata.get(), timeSeconds);
 
     if (resultWriter && (solver.getSensitivityOrder() > amici::AMICI_SENSI_ORDER_NONE || logLineSearch)) {
-        int iterationsUntilSteadystate = -1;
-        logSimulation(resultWriter->getFileId(), resultWriter->getRootPath(),
+        saveSimulation(resultWriter->getFileId(), resultWriter->getRootPath(),
                       model.getParameters(), rdata->llh, rdata->sllh,
                       timeSeconds, rdata->x, rdata->sx, rdata->y,
-                      jobId, iterationsUntilSteadystate, rdata->status);
+                      jobId, rdata->status, logger->getPrefix());
     }
 
     return AmiciSimulationRunner::AmiciResultPackageSimple {
