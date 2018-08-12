@@ -55,7 +55,7 @@ public:
      * @param timeElapsedInSeconds CPU time for the last objective function
      * evaluation (wall time)
      */
-    virtual void logLocalOptimizerObjectiveFunctionEvaluation(
+    virtual void logObjectiveFunctionEvaluation(
             gsl::span<const double> parameters,
             double objectiveFunctionValue,
             gsl::span<const double> objectiveFunctionGradient,
@@ -81,7 +81,7 @@ public:
      * @param alpha_pr
      * @param ls_trials
      */
-    virtual void logLocalOptimizerIteration(
+    virtual void logOptimizerIteration(
             int numIterations,
             gsl::span<const double> parameters,
             double objectiveFunctionValue,
@@ -101,7 +101,7 @@ public:
      * @param masterTime Wall time for this optimization
      * @param exitStatus Exit status (cause of optimizer termination)
      */
-    virtual void saveLocalOptimizerResults(double finalNegLogLikelihood,
+    virtual void saveOptimizerResults(double finalNegLogLikelihood,
                                            gsl::span<const double> optimalParameters, double masterTime,
                                            int exitStatus) const;
 

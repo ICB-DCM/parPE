@@ -260,7 +260,7 @@ bool OptimizationReporter::iterationFinished(gsl::span<const double> parameters,
         logger->logmessage(LOGLVL_INFO, "iter: %d cost: %g time_iter: %gs time_optim: %gs", numIterations, objectiveFunctionValue, wallTimeIter, wallTimeOptim);
 
     if(resultWriter)
-        resultWriter->logLocalOptimizerIteration(
+        resultWriter->logOptimizerIteration(
                     numIterations,
                     parameters.empty() ? cachedParameters : parameters,
                     objectiveFunctionValue,
@@ -293,8 +293,12 @@ bool OptimizationReporter::afterCostFunctionCall(gsl::span<const double> paramet
         printObjectiveFunctionFailureMessage();
 
     if(resultWriter) {
-        resultWriter->logLocalOptimizerObjectiveFunctionEvaluation(parameters, objectiveFunctionValue,
-                                                                   objectiveFunctionGradient, numIterations, numFunctionCalls, wallTime);
+        resultWriter->logObjectiveFunctionEvaluation(parameters,
+                                                                   objectiveFunctionValue,
+                                                                   objectiveFunctionGradient,
+                                                                   numIterations,
+                                                                   numFunctionCalls,
+                                                                   wallTime);
     }
     return false;
 }
@@ -303,24 +307,24 @@ void OptimizationReporter::finished(double optimalCost, gsl::span<const double> 
 {
     double timeElapsed = wallTimer.getTotal();
 
-    if(cachedCost != optimalCost && parameters.empty()) {
+    if(cachedCost > optimalCost && parameters.empty()) {
         // the optimal value is not from the cached parameters and we did not get
         // the optimal parameters from the optimizer. since we don't know them, rather set to nan
         if(logger) logger->logmessage(LOGLVL_INFO, "cachedCost != optimalCost && parameters.empty()");
         cachedParameters.assign(cachedParameters.size(), NAN);
+        cachedCost = optimalCost;
     } else if(parameters.data()) {
         std::copy(parameters.begin(), parameters.end(), cachedParameters.data());
     }
 
-    cachedCost = optimalCost;
 
     if(logger)
         logger->logmessage(LOGLVL_INFO, "Optimizer status %d, final llh: %e, time: %f.",
-               exitStatus, optimalCost, timeElapsed);
+               exitStatus, cachedCost, timeElapsed);
 
 
     if(resultWriter)
-        resultWriter->saveLocalOptimizerResults(optimalCost, parameters, timeElapsed, exitStatus);
+        resultWriter->saveOptimizerResults(cachedCost, cachedParameters, timeElapsed, exitStatus);
 }
 
 double OptimizationReporter::getFinalCost() const

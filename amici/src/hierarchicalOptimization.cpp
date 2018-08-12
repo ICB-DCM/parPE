@@ -1003,7 +1003,7 @@ void HierarchicalOptimizationReporter::finished(double optimalCost, gsl::span<co
                exitStatus, cachedCost, timeElapsed);
 
     if(resultWriter)
-        resultWriter->saveLocalOptimizerResults(cachedCost, cachedFullParameters, timeElapsed, exitStatus);
+        resultWriter->saveOptimizerResults(cachedCost, cachedFullParameters, timeElapsed, exitStatus);
 }
 
 const std::vector<double> &HierarchicalOptimizationReporter::getFinalParameters() const
@@ -1026,12 +1026,12 @@ bool HierarchicalOptimizationReporter::iterationFinished(gsl::span<const double>
         if(objectiveFunctionValue == cachedCost
                 && (parameters.empty()
                     || std::equal(parameters.begin(), parameters.end(), cachedParameters.begin()))) {
-            resultWriter->logLocalOptimizerIteration(numIterations, cachedFullParameters,
+            resultWriter->logOptimizerIteration(numIterations, cachedFullParameters,
                                                      objectiveFunctionValue,
                                                      cachedFullGradient, // This might be misleading, the gradient could evaluated at other parameters if there was a line search inbetween
                                                      wallTimeIter);
         } else {
-            resultWriter->logLocalOptimizerIteration(numIterations, parameters,
+            resultWriter->logOptimizerIteration(numIterations, parameters,
                                                      objectiveFunctionValue,
                                                      objectiveFunctionGradient, // This might be misleading, the gradient could evaluated at other parameters if there was a line search inbetween
                                                      wallTimeIter);
@@ -1056,7 +1056,7 @@ bool HierarchicalOptimizationReporter::afterCostFunctionCall(
         printObjectiveFunctionFailureMessage();
 
     if(resultWriter) {
-        resultWriter->logLocalOptimizerObjectiveFunctionEvaluation(cachedFullParameters, cachedCost,
+        resultWriter->logObjectiveFunctionEvaluation(cachedFullParameters, cachedCost,
                                                                    objectiveFunctionGradient, numIterations, numFunctionCalls, wallTime);
     }
     return false;

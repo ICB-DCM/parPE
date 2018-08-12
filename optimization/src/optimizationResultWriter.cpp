@@ -51,7 +51,7 @@ std::string OptimizationResultWriter::getIterationPath(int iterationIdx) const {
 }
 
 
-void OptimizationResultWriter::logLocalOptimizerObjectiveFunctionEvaluation(
+void OptimizationResultWriter::logObjectiveFunctionEvaluation(
         gsl::span<const double> parameters,
         double objectiveFunctionValue,
         gsl::span<const double> objectiveFunctionGradient,
@@ -93,7 +93,7 @@ void OptimizationResultWriter::logLocalOptimizerObjectiveFunctionEvaluation(
 }
 
 
-void OptimizationResultWriter::logLocalOptimizerIteration(int numIterations, gsl::span<const double> parameters,
+void OptimizationResultWriter::logOptimizerIteration(int numIterations, gsl::span<const double> parameters,
                                                           double objectiveFunctionValue, gsl::span<const double> gradient,
                                                           double timeElapsedInSeconds)
 {
@@ -169,7 +169,7 @@ void OptimizationResultWriter::flushResultWriter() const {
     H5Fflush(file_id, H5F_SCOPE_LOCAL);
 }
 
-void OptimizationResultWriter::saveLocalOptimizerResults(double finalNegLogLikelihood, gsl::span<const double> optimalParameters,
+void OptimizationResultWriter::saveOptimizerResults(double finalNegLogLikelihood, gsl::span<const double> optimalParameters,
                                                          double masterTime, int exitStatus) const {
 
     std::string const& optimPath = getRootPath();
