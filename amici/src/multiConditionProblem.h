@@ -79,11 +79,13 @@ public:
             gsl::span<const double> parameters,
             T dataset,
             double &fval,
-            gsl::span<double> gradient) const override
+            gsl::span<double> gradient,
+            Logger *logger,
+            double *cpuTime) const override
     {
         std::vector<T> datasets(1);
         datasets.at(0) = dataset;
-        return evaluate(parameters, datasets, fval, gradient);
+        return evaluate(parameters, datasets, fval, gradient, logger, cpuTime);
     }
 
 
@@ -91,7 +93,9 @@ public:
             gsl::span<const double> parameters,
             std::vector<T> datasets,
             double &fval,
-            gsl::span<double> gradient) const override
+            gsl::span<double> gradient,
+            Logger *logger,
+            double *cpuTime) const override
     {
 #ifdef NO_OBJ_FUN_EVAL
         if (objectiveFunctionGradient)
@@ -105,7 +109,7 @@ public:
         if (gradient.size())
             std::fill(gradient.begin(), gradient.end(), 0.0);
 
-        int errors = runSimulations(parameters, fval, gradient, datasets);
+        int errors = runSimulations(parameters, fval, gradient, datasets, logger, cpuTime);
 
         if (errors || !std::isfinite(fval)) {
             fval = std::numeric_limits<double>::infinity();
@@ -133,7 +137,12 @@ public:
      * output: Vector of double vectors containing AMICI ReturnData::y (nt x ny, column-major)
      * @return Simulation status
      */
-    virtual FunctionEvaluationStatus getModelOutputs(gsl::span<double const> parameters, std::vector<std::vector<double> > &modelOutput) const {
+    virtual FunctionEvaluationStatus getModelOutputs(
+            gsl::span<double const> parameters,
+            std::vector<std::vector<double> > &modelOutput,
+            Logger *logger,
+            double *cpuTime) const
+    {
         int errors = 0;
         //    JobIdentifier path; // TODO = this->path;
 
@@ -261,17 +270,19 @@ protected:// for testing
     virtual int runSimulations(gsl::span<double const> optimizationParameters,
                                double &nllh,
                                gsl::span<double> objectiveFunctionGradient,
-                               std::vector<int> dataIndices) const {
+                               std::vector<int> dataIndices,
+                               Logger *logger,
+                               double *cpuTime) const {
 
         int errors = 0;
 
         auto parameterVector = std::vector<double>(optimizationParameters.begin(), optimizationParameters.end());
+        double simulationTimeSec = 0.0;
 
         AmiciSimulationRunner simRunner(parameterVector,
                                          objectiveFunctionGradient.size()?amici::AMICI_SENSI_ORDER_FIRST:amici::AMICI_SENSI_ORDER_NONE,
                                          dataIndices,
                                          [&](JobData *job, int /*jobIdx*/) {
-            double simulationTimeSec = 0.0; // TODO not used
             errors += aggregateLikelihood(*job,
                                           nllh,
                                           objectiveFunctionGradient,
@@ -288,6 +299,8 @@ protected:// for testing
                     messageHandler(buffer, jobId);
         }, true);
         }
+        if(cpuTime)
+            *cpuTime = simulationTimeSec;
 
         return errors;
     }

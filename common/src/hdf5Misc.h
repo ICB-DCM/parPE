@@ -58,7 +58,7 @@ bool hdf5GroupExists(hid_t file_id, const char *groupName);
 
 void hdf5EnsureGroupExists(hid_t file_id, const char *groupName);
 
-void hdf5EnsureGroupExists(hid_t file_id, std::string groupName);
+void hdf5EnsureGroupExists(hid_t file_id, const std::string &groupName);
 
 void hdf5CreateGroup(hid_t file_id, const char *groupPath, bool recursively = false);
 

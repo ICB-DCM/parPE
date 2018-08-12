@@ -42,9 +42,8 @@ std::unique_ptr<OptimizationProblem> QuadraticOptimizationMultiStartProblem::get
     return p;
 }
 
-FunctionEvaluationStatus QuadraticGradientFunction::evaluate(
-        gsl::span<const double> parameters,
-        double &fval, gsl::span<double> gradient) const
+FunctionEvaluationStatus QuadraticGradientFunction::evaluate(gsl::span<const double> parameters,
+        double &fval, gsl::span<double> gradient, Logger */*logger*/, double */*cpuTime*/) const
 {
     fval = pow(parameters[0] + 1.0, 2) + 42.0;
 

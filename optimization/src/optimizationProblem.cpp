@@ -181,8 +181,13 @@ OptimizationReporter::OptimizationReporter(GradientFunction *gradFun,
 
 FunctionEvaluationStatus OptimizationReporter::evaluate(
         gsl::span<const double> parameters, double &fval,
-        gsl::span<double> gradient) const
+        gsl::span<double> gradient,
+        Logger *logger,
+        double *cpuTime) const
 {
+    if(cpuTime)
+        *cpuTime = 0.0;
+
     if(beforeCostFunctionCall(parameters) != 0)
         return functionEvaluationFailure;
 
@@ -190,7 +195,7 @@ FunctionEvaluationStatus OptimizationReporter::evaluate(
         if (!haveCachedGradient || !std::equal(parameters.begin(), parameters.end(),
                                                cachedParameters.begin())) {
             // Have to compute anew
-            cachedStatus = gradFun->evaluate(parameters, cachedCost, cachedGradient);
+            cachedStatus = gradFun->evaluate(parameters, cachedCost, cachedGradient, logger, cpuTime);
             haveCachedCost = true;
             haveCachedGradient = true;
         }
@@ -201,7 +206,7 @@ FunctionEvaluationStatus OptimizationReporter::evaluate(
         if (!haveCachedCost || !std::equal(parameters.begin(), parameters.end(),
                                            cachedParameters.begin())) {
             // Have to compute anew
-            cachedStatus = gradFun->evaluate(parameters, cachedCost, gsl::span<double>());
+            cachedStatus = gradFun->evaluate(parameters, cachedCost, gsl::span<double>(), logger, cpuTime);
             haveCachedCost = true;
             haveCachedGradient = false;
         }

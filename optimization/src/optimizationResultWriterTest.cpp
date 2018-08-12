@@ -24,9 +24,9 @@ TEST(optimizationResultWriter, testResultWriter) {
 
     H5::H5File file(tmpFilename, H5F_ACC_RDONLY);
 
-    w.setRootPath("/bla2");
-
     CHECK_TRUE(parpe::hdf5GroupExists(file.getId(), "/bla"));
+
+    w.setRootPath("/bla2");
 
     w.logOptimizerIteration(1, gsl::span<double>(), 0.0, gsl::span<double>(), 1.0);
     // should it be possible to have the same iteration twice?

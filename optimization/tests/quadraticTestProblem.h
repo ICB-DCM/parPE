@@ -51,10 +51,11 @@ class OptimizationReporterTest : public OptimizationReporter {
 
 class QuadraticGradientFunction : public GradientFunction {
 public:
-    FunctionEvaluationStatus evaluate(
-            gsl::span<const double> parameters,
+    FunctionEvaluationStatus evaluate(gsl::span<const double> parameters,
             double &fval,
-            gsl::span<double> gradient) const override;
+            gsl::span<double> gradient,
+            Logger *logger = nullptr,
+            double *cpuTime = nullptr) const override;
 
     int numParameters() const override;
 };

@@ -95,14 +95,18 @@ public:
     FunctionEvaluationStatus evaluate(
             gsl::span<double const> parameters,
             double &fval,
-            gsl::span<double> gradient) const override;
+            gsl::span<double> gradient,
+            Logger *logger,
+            double *cpuTime) const override;
 
     FunctionEvaluationStatus evaluate(
             gsl::span<double const> reducedParameters,
             double &fval,
             gsl::span<double> gradient,
             std::vector<double> &fullParameters,
-            std::vector<double> &fullGradient) const;
+            std::vector<double> &fullGradient,
+            Logger *logger,
+            double *cpuTime) const;
 
     /**
      * @brief Get parameters for initial function evaluation
@@ -123,7 +127,7 @@ public:
      * @param reducedParameters parameter vector for `fun` without scaling parameters
      * @return Vector of double vectors containing AMICI ReturnData::y (nt x ny, column-major)
      */
-    std::vector <std::vector<double>> getUnscaledModelOutputs(const gsl::span<double const> reducedParameters) const;
+    std::vector <std::vector<double>> getUnscaledModelOutputs(const gsl::span<double const> reducedParameters, Logger *logger, double *cpuTime) const;
 
 
     /**
@@ -177,7 +181,8 @@ public:
             std::vector<std::vector<double>> const& measurements,
             std::vector<std::vector<double>> const& modelOutputsScaled,
             double &fval,
-            const gsl::span<double> gradient, std::vector<double> &fullGradient) const;
+            const gsl::span<double> gradient, std::vector<double> &fullGradient,
+            Logger *logger, double *cpuTime) const;
 
     /**
      * @brief Get number of parameters the function expects
@@ -396,7 +401,9 @@ public:
 
     FunctionEvaluationStatus evaluate(
             gsl::span<const double> parameters, double &fval,
-            gsl::span<double> gradient) const override;
+            gsl::span<double> gradient,
+            Logger *logger = nullptr,
+            double *cpuTime = nullptr) const override;
 
     // bool starting(gsl::span<const double> initialParameters) const override;
 

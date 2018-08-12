@@ -148,12 +148,12 @@ TEST(steadystateProblemTests, testSteadystateHierarchical) {
                                                modelNonOwning->nt(),
                                                parpe::ErrorModel::normal);
     double cost;
-    hier.evaluate(pReduced, cost, gsl::span<double>());
+    hier.evaluate(pReduced, cost, gsl::span<double>(), nullptr, nullptr);
     DOUBLES_EQUAL(-parpe::getLogLikelihoodOffset(dp.edata[0].my.size()), cost, 1e-5);
 
     const std::vector<double> pFull { 1.0, 0.5, 0.4, 2.0,
                                       0.1, scalingExp, offsetExp, 1.0 };
-    hier.fun->evaluate(pFull, {0}, cost, gsl::span<double>());
+    hier.fun->evaluate(pFull, {0}, cost, gsl::span<double>(), nullptr, nullptr);
     DOUBLES_EQUAL(-parpe::getLogLikelihoodOffset(dp.edata[0].my.size()), cost, 1e-5);
 }
 
@@ -220,12 +220,12 @@ TEST(steadystateProblemTests, testOptimizationHierarchical) {
                                                                         parpe::ErrorModel::normal);
     // evaluate and ensure scaling factor is computed so that y_mes = y_sim
     double cost;
-    hier->evaluate(pReduced, cost, gsl::span<double>());
+    hier->evaluate(pReduced, cost, gsl::span<double>(), nullptr, nullptr);
     DOUBLES_EQUAL(-parpe::getLogLikelihoodOffset(dp.edata[0].my.size()), cost, 1e-5);
 
     const std::vector<double> pFull { 1.0, 0.5, 0.4, 2.0,
                                       0.1, scalingExp, offsetExp, 1.0 };
-    hier->fun->evaluate(pFull, {0}, cost, gsl::span<double>());
+    hier->fun->evaluate(pFull, {0}, cost, gsl::span<double>(), nullptr, nullptr);
     DOUBLES_EQUAL(-parpe::getLogLikelihoodOffset(dp.edata[0].my.size()), cost, 1e-5);
 
     parpe::OptimizationProblemImpl problem(std::move(hier), std::make_unique<parpe::Logger>());

@@ -606,7 +606,7 @@ void closeHDF5File(hid_t file_id) {
     H5_RESTORE_ERROR_HANDLER;
 }
 
-void hdf5EnsureGroupExists(hid_t file_id, std::string groupName)
+void hdf5EnsureGroupExists(hid_t file_id, std::string const& groupName)
 {
     hdf5EnsureGroupExists(file_id, groupName.c_str());
 }

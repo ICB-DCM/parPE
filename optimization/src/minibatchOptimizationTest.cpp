@@ -124,7 +124,7 @@ TEST_GROUP(minibatchOptimizationLinearModel){
         p->costFun = std::move(sgf);
         p->setParametersMin(std::vector<double>(trueParameters.size(), 0.0));
         p->setParametersMax(std::vector<double>(trueParameters.size(), 5.0));
-
+        p->logger = std::make_unique<parpe::Logger>();
         return p;
     }
 
@@ -158,7 +158,7 @@ TEST(minibatchOptimizationLinearModel, testCostWithTrueParametersIsZeroIndivdual
     double mse = NAN;
     std::vector<double> gradient(trueParameters.size());
     for(int i = 0; i < numDatasets; ++i) {
-        lm2->evaluate(trueParameters, i, mse, gradient);
+        lm2->evaluate(trueParameters, i, mse, gradient, nullptr, nullptr);
         CHECK_EQUAL(0.0, mse);
         CHECK_TRUE(std::vector<double>(trueParameters.size(), 0.0) == gradient);
     }
@@ -169,7 +169,7 @@ TEST(minibatchOptimizationLinearModel, testCostWithTrueParametersIsZeroFull) {
     auto lm2 = getLinearModelMSE();
     double mse = NAN;
     std::vector<double> gradient(trueParameters.size());
-    lm2->evaluate(trueParameters, dataIndices, mse, gradient);
+    lm2->evaluate(trueParameters, dataIndices, mse, gradient, nullptr, nullptr);
     CHECK_EQUAL(0.0, mse);
     CHECK_TRUE(std::vector<double>(trueParameters.size(), 0.0) == gradient);
 }

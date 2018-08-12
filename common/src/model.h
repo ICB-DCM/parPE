@@ -71,16 +71,20 @@ public:
             gsl::span<const double> parameters,
             int dataset,
             double &fval,
-            gsl::span<double> gradient) const override {
+            gsl::span<double> gradient,
+            Logger *logger,
+            double *cpuTime) const override {
         std::vector<int> dsets {dataset};
-        return evaluate(parameters, dsets , fval, gradient);
+        return evaluate(parameters, dsets , fval, gradient, logger, cpuTime);
     }
 
     FunctionEvaluationStatus evaluate(
             gsl::span<const double> parameters,
             std::vector<int> dataIndices,
             double &fval,
-            gsl::span<double> gradient) const override;
+            gsl::span<double> gradient,
+            Logger *logger,
+            double *cpuTime) const override;
 
     int numParameters() const {return numParameters_;}
 

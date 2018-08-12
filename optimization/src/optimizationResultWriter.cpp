@@ -19,6 +19,8 @@ OptimizationResultWriter::OptimizationResultWriter(hid_t file_id, std::string ro
 {
     auto lock = hdf5MutexGetLock();
     this->file_id = H5Freopen(file_id);
+
+    hdf5EnsureGroupExists(file_id, this->rootPath);
 }
 
 
@@ -30,13 +32,15 @@ OptimizationResultWriter::OptimizationResultWriter(const std::string &filename,
 
     mkpathConstChar(filename.c_str(), 0755);
     file_id = hdf5CreateFile(filename.c_str(), overwrite);
+
+    hdf5EnsureGroupExists(file_id, this->rootPath);
 }
 
 OptimizationResultWriter::OptimizationResultWriter(const OptimizationResultWriter &other)
     : file_id(H5Freopen(other.file_id)),
       rootPath(other.rootPath)
 {
-    hdf5EnsureGroupExists(file_id, rootPath);
+    hdf5EnsureGroupExists(file_id, this->rootPath);
 }
 
 

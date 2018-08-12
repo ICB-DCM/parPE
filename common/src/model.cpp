@@ -42,12 +42,11 @@ void LinearModel::evaluate(gsl::span<const double> parameters, const std::vector
     }
 }
 
-FunctionEvaluationStatus LinearModelMSE::evaluate(
-        gsl::span<const double> parameters,
+FunctionEvaluationStatus LinearModelMSE::evaluate(gsl::span<const double> parameters,
         std::vector<int> dataIndices,
         double &fval,
-        gsl::span<double> gradient
-        ) const
+        gsl::span<double> gradient,
+        Logger *logger, double *cpuTime) const
 {
     int numDatasets = dataIndices.size();
 
