@@ -994,7 +994,7 @@ void HierarchicalOptimizationReporter::finished(double optimalCost, gsl::span<co
         // the optimal full parameter vector. since we don't know them, rather set to nan
         cachedFullParameters.assign(cachedFullParameters.size(), NAN);
         std::copy(parameters.begin(), parameters.end(), cachedParameters.data());
-        logmessage(LOGLVL_INFO, "cachedCost != optimalCost");
+        if(logger) logger->logmessage(LOGLVL_INFO, "cachedCost != optimalCost");
         cachedCost = NAN;
     }
 
@@ -1015,7 +1015,7 @@ bool HierarchicalOptimizationReporter::iterationFinished(gsl::span<const double>
     double wallTimeIter = wallTimer.getRound();
     double wallTimeOptim = wallTimer.getTotal();
 
-    logmessage(LOGLVL_INFO, "iter: %d cost: %g time_iter: %gs time_optim: %gs", numIterations, objectiveFunctionValue, wallTimeIter, wallTimeOptim);
+    if(logger) logger->logmessage(LOGLVL_INFO, "iter: %d cost: %g time_iter: %gs time_optim: %gs", numIterations, objectiveFunctionValue, wallTimeIter, wallTimeOptim);
 
     if(resultWriter) {
         /* check if the optimizer-reported cost matches the last function evaluation.
@@ -1038,6 +1038,8 @@ bool HierarchicalOptimizationReporter::iterationFinished(gsl::span<const double>
         }
     }
     ++numIterations;
+
+    logger->setPrefix(defaultLoggerPrefix + "." + std::to_string(numIterations));
 
     return false;
 

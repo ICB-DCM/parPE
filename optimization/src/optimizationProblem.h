@@ -166,6 +166,7 @@ protected:
     mutable std::vector<double> cachedParameters;
 
     std::unique_ptr<Logger> logger;
+    std::string defaultLoggerPrefix;
 private:
 
 };

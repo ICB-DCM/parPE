@@ -167,7 +167,7 @@ void OptimizationProblem::fillInitialParameters(gsl::span<double> buffer) const 
 OptimizationReporter::OptimizationReporter(GradientFunction *gradFun, std::unique_ptr<Logger> logger)
     : OptimizationReporter(gradFun, nullptr, std::move(logger))
 {
-
+    defaultLoggerPrefix = this->logger->getPrefix();
 }
 
 OptimizationReporter::OptimizationReporter(GradientFunction *gradFun,
@@ -176,6 +176,7 @@ OptimizationReporter::OptimizationReporter(GradientFunction *gradFun,
       logger(std::move(logger))
 {
     setGradientFunction(gradFun);
+    defaultLoggerPrefix = this->logger->getPrefix();
 }
 
 FunctionEvaluationStatus OptimizationReporter::evaluate(
@@ -243,6 +244,8 @@ bool OptimizationReporter::starting(gsl::span<const double> initialParameters) c
 
     started = true;
 
+    logger->setPrefix(defaultLoggerPrefix + "." + std::to_string(numIterations));
+
     return false;
 }
 
@@ -253,7 +256,8 @@ bool OptimizationReporter::iterationFinished(gsl::span<const double> parameters,
     double wallTimeIter = wallTimer.getRound(); //(double)(clock() - timeIterationBegin) / CLOCKS_PER_SEC;
     double wallTimeOptim = wallTimer.getTotal(); //double)(clock() - timeOptimizationBegin) / CLOCKS_PER_SEC;
 
-    logmessage(LOGLVL_INFO, "iter: %d cost: %g time_iter: %gs time_optim: %gs", numIterations, objectiveFunctionValue, wallTimeIter, wallTimeOptim);
+    if(logger)
+        logger->logmessage(LOGLVL_INFO, "iter: %d cost: %g time_iter: %gs time_optim: %gs", numIterations, objectiveFunctionValue, wallTimeIter, wallTimeOptim);
 
     if(resultWriter)
         resultWriter->logLocalOptimizerIteration(
@@ -263,6 +267,8 @@ bool OptimizationReporter::iterationFinished(gsl::span<const double> parameters,
                     objectiveFunctionGradient.empty() ? cachedGradient : objectiveFunctionGradient, // This might be misleading, the gradient could evaluated at other parameters if there was a line search inbetween
                     wallTimeIter);
     ++numIterations;
+
+    logger->setPrefix(defaultLoggerPrefix + "." + std::to_string(numIterations));
 
     return false;
 }
@@ -300,7 +306,7 @@ void OptimizationReporter::finished(double optimalCost, gsl::span<const double> 
     if(cachedCost != optimalCost && parameters.empty()) {
         // the optimal value is not from the cached parameters and we did not get
         // the optimal parameters from the optimizer. since we don't know them, rather set to nan
-        logmessage(LOGLVL_INFO, "cachedCost != optimalCost && parameters.empty()");
+        if(logger) logger->logmessage(LOGLVL_INFO, "cachedCost != optimalCost && parameters.empty()");
         cachedParameters.assign(cachedParameters.size(), NAN);
     } else if(parameters.data()) {
         std::copy(parameters.begin(), parameters.end(), cachedParameters.data());
