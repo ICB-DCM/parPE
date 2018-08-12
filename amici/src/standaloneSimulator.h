@@ -40,7 +40,7 @@ public:
 
 private:
 
-    SimulationRunnerSimple::AmiciResultPackageSimple runSimulation(JobIdentifier path, amici::Solver &solver, amici::Model &model);
+    AmiciSimulationRunner::AmiciResultPackageSimple runSimulation(int conditionIdx, amici::Solver &solver, amici::Model &model);
 
     MultiConditionDataProvider *dataProvider = nullptr;
 

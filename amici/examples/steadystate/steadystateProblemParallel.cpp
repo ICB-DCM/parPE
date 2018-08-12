@@ -1,7 +1,8 @@
 #include "steadystateProblemParallel.h"
 #include "wrapfunctions.h"
 #include <logging.h>
-#include <LoadBalancerMaster.h>
+#include <loadBalancerMaster.h>
+
 #include <cstring>
 #include <mpi.h>
 #include <pthread.h>
@@ -18,7 +19,7 @@ ExampleSteadystateGradientFunctionParallel::ExampleSteadystateGradientFunctionPa
     numConditions = dataProvider->getNumberOfConditions();
 }
 
-parpe::FunctionEvaluationStatus ExampleSteadystateGradientFunctionParallel::evaluate(gsl::span<const double> parameters, double &fval, gsl::span<double> gradient) const
+parpe::FunctionEvaluationStatus ExampleSteadystateGradientFunctionParallel::evaluate(gsl::span<const double> parameters, double &fval, gsl::span<double> gradient, parpe::Logger *logger, double *cpuTime) const
 
 {
     if (parpe::getMpiCommSize() > 1) {

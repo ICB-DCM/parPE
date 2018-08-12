@@ -24,7 +24,7 @@ SimulationResultWriter::SimulationResultWriter(const std::string &hdf5FileName, 
 
     try {
         file = H5::H5File(hdf5FileName, H5F_ACC_RDWR);
-    } catch (H5::FileIException) {
+    } catch (H5::FileIException const&) {
         // create if doesn't exist
         file = H5::H5File(hdf5FileName, H5F_ACC_EXCL);
     }

@@ -1,8 +1,9 @@
 #include "standaloneSimulator.h"
-#include "simulationRunner.h"
+
+#include "amiciSimulationRunner.h"
 #include "simulationResultWriter.h"
-#include <LoadBalancerMaster.h>
-#include <LoadBalancerWorker.h>
+#include <loadBalancerMaster.h>
+#include <loadBalancerWorker.h>
 #include <optimizationOptions.h>
 #include <misc.h>
 #include "hierarchicalOptimization.h"
@@ -28,8 +29,6 @@ int StandaloneSimulator::run(const std::string& resultFile,
                              H5::H5File const& inputFile)
 {
     // std::cout<<"file: "<<resultFile<<" path: "<<resultPath<<" lbm:"<<loadBalancer<<std::endl;
-    int errors = 0;
-    JobIdentifier path;
 
     SimulationResultWriter rw(resultFile, resultPath);
     rw.saveYMes = true;
@@ -97,8 +96,9 @@ int StandaloneSimulator::run(const std::string& resultFile,
 
     std::vector<int> dataIndices(dataProvider->getNumberOfConditions());
     std::iota(dataIndices.begin(), dataIndices.end(), 0);
+    int errors = 0;
 
-    SimulationRunnerSimple simRunner(
+    AmiciSimulationRunner simRunner(
                 parameters,
                 amici::AMICI_SENSI_ORDER_NONE,
                 dataIndices,
@@ -109,7 +109,7 @@ int StandaloneSimulator::run(const std::string& resultFile,
 
         auto results =
                 amici::deserializeFromChar<
-                std::map<int, SimulationRunnerSimple::AmiciResultPackageSimple>>(
+                std::map<int, AmiciSimulationRunner::AmiciResultPackageSimple>>(
                     job->recvBuffer.data(), job->recvBuffer.size());
         job->recvBuffer = std::vector<char>(); // free buffer
 
@@ -129,13 +129,13 @@ int StandaloneSimulator::run(const std::string& resultFile,
             return 0; // Work was already done in above function
 
         // must wait for all jobs to finish because of hierarchical optimization and scaling factors
-        std::vector<SimulationRunnerSimple::AmiciResultPackageSimple> simulationResults(dataIndices.size());
+        std::vector<AmiciSimulationRunner::AmiciResultPackageSimple> simulationResults(dataIndices.size());
         std::vector<std::vector<double> > modelOutputs(dataIndices.size());
 
         // collect all model outputs
         for(auto& job : jobs) {
             auto results = amici::deserializeFromChar<
-                    std::map<int, SimulationRunnerSimple::AmiciResultPackageSimple>>(
+                    std::map<int, AmiciSimulationRunner::AmiciResultPackageSimple>>(
                         job.recvBuffer.data(), job.recvBuffer.size());
             job.recvBuffer = std::vector<char>(); // free buffer
             for (auto& result : results) {
@@ -194,11 +194,10 @@ void StandaloneSimulator::messageHandler(std::vector<char> &buffer, int jobId)
 {
     // TODO: pretty redundant with messageHandler in multiconditionproblem
     // unpack simulation job data
-    JobIdentifier path;
     auto model = dataProvider->getModel();
     auto solver = dataProvider->getSolver();
     auto sim = amici::deserializeFromChar<
-            SimulationRunnerSimple::AmiciWorkPackageSimple>(buffer.data(), buffer.size());
+            AmiciSimulationRunner::AmiciWorkPackageSimple>(buffer.data(), buffer.size());
     solver->setSensitivityOrder(sim.sensitivityOrder);
 
 #if QUEUE_WORKER_H_VERBOSE >= 2
@@ -208,12 +207,11 @@ void StandaloneSimulator::messageHandler(std::vector<char> &buffer, int jobId)
     fflush(stdout);
 #endif
 
-    std::map<int, SimulationRunnerSimple::AmiciResultPackageSimple> results;
+    std::map<int, AmiciSimulationRunner::AmiciResultPackageSimple> results;
     // run simulations for all condition indices
     for(auto conditionIndex: sim.conditionIndices) {
-        path.idxConditions = conditionIndex;
         dataProvider->updateSimulationParameters(conditionIndex, sim.optimizationParameters, *model);
-        auto result = runSimulation(path, *solver, *model);
+        auto result = runSimulation(conditionIndex, *solver, *model);
         results[conditionIndex] = result;
     }
 
@@ -226,17 +224,17 @@ void StandaloneSimulator::messageHandler(std::vector<char> &buffer, int jobId)
 }
 
 
-SimulationRunnerSimple::AmiciResultPackageSimple StandaloneSimulator::runSimulation(JobIdentifier path,
+AmiciSimulationRunner::AmiciResultPackageSimple StandaloneSimulator::runSimulation(int conditionIdx,
                                                             amici::Solver& solver, amici::Model& model)
 {
     // currently requires edata, since all condition specific parameters are set via edata
-    auto edata = dataProvider->getExperimentalDataForCondition(path.idxConditions);
+    auto edata = dataProvider->getExperimentalDataForCondition(conditionIdx);
 
     auto rdata = amici::runAmiciSimulation(solver, edata.get(), model);
 
     RELEASE_ASSERT(rdata != nullptr, "");
 
-    return SimulationRunnerSimple::AmiciResultPackageSimple {
+    return AmiciSimulationRunner::AmiciResultPackageSimple {
         rdata->llh,
                 NAN,
                 (solver.getSensitivityOrder() > amici::AMICI_SENSI_ORDER_NONE) ? rdata->sllh : std::vector<double>(),

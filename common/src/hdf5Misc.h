@@ -58,10 +58,14 @@ bool hdf5GroupExists(hid_t file_id, const char *groupName);
 
 void hdf5EnsureGroupExists(hid_t file_id, const char *groupName);
 
+void hdf5EnsureGroupExists(hid_t file_id, const std::string &groupName);
+
 void hdf5CreateGroup(hid_t file_id, const char *groupPath, bool recursively = false);
 
 hid_t hdf5CreateFile(const char *filename,
                    bool overwrite = false);
+
+void closeHDF5File(hid_t file_id);
 
 void hdf5CreateExtendableDouble2DArray(hid_t file_id, const char *datasetPath,
                                        hsize_t stride);
@@ -72,6 +76,8 @@ void hdf5CreateExtendableInt2DArray(hid_t file_id, const char *datasetPath,
 void hdf5CreateExtendableDouble3DArray(hid_t file_id, const char *datasetPath,
                                        hsize_t stride1, hsize_t stride2);
 
+void hdf5CreateExtendableString1DArray(hid_t file_id, const char *datasetPath);
+
 void hdf5Extend2ndDimensionAndWriteToDouble2DArray(hid_t file_id,
                                                    const char *datasetPath,
                                                    const double *buffer);
@@ -79,6 +85,10 @@ void hdf5Extend2ndDimensionAndWriteToDouble2DArray(hid_t file_id,
 void hdf5Extend2ndDimensionAndWriteToInt2DArray(hid_t file_id,
                                                 const char *datasetPath,
                                                 const int *buffer);
+
+void hdf5ExtendAndWriteToString1DArray(hid_t file_id,
+                                       const char *datasetPath,
+                                       std::string const& buffer);
 
 void hdf5CreateOrExtendAndWriteToDouble2DArray(hid_t file_id,
                                                const char *parentPath,
@@ -96,6 +106,11 @@ void hdf5CreateOrExtendAndWriteToDouble3DArray(hid_t file_id,
                                                const char *datasetName,
                                                const double *buffer,
                                                hsize_t stride1, hsize_t stride2);
+
+void hdf5CreateOrExtendAndWriteToString1DArray(hid_t file_id,
+                                               const char *parentPath,
+                                               const char *datasetName,
+                                               std::string const& buffer);
 
 int hdf5Read2DDoubleHyperslab(hid_t file_id, const char *path, hsize_t size0,
                               hsize_t size1, hsize_t offset0, hsize_t offset1,

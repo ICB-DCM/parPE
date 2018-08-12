@@ -81,7 +81,9 @@ public:
 class AmiciSummedGradientFunctionMock : public parpe::AmiciSummedGradientFunction<int> {
 public:
     parpe::FunctionEvaluationStatus getModelOutputs(gsl::span<double const> parameters,
-                                                    std::vector<std::vector<double> > &modelOutput) const override {
+                                                    std::vector<std::vector<double> > &modelOutput,
+                                                    parpe::Logger *logger, double *cpuTime) const override
+    {
         mock().actualCall("AmiciSummedGradientFunctionMock::getModelOutputs");
 
         modelOutput = this->modelOutput;
@@ -97,7 +99,9 @@ public:
             gsl::span<double const> parameters,
             std::vector<int> datasets,
             double &fval,
-            gsl::span<double> gradient) const override {
+            gsl::span<double> gradient,
+            parpe::Logger *logger, double *cpuTime) const override
+    {
 
         mock().actualCall("AmiciSummedGradientFunctionMock::evaluate").withBoolParameter("gradient", !gradient.empty());
 
@@ -112,7 +116,8 @@ public:
             gsl::span<double const> parameters,
             int dataset,
             double &fval,
-            gsl::span<double> gradient) const override {
+            gsl::span<double> gradient,
+            parpe::Logger *logger, double *cpuTime) const override {
 
         mock().actualCall("AmiciSummedGradientFunctionMock::evaluate").withBoolParameter("gradient", !gradient.empty());
 
@@ -193,7 +198,7 @@ TEST(hierarchicalOptimization, hierarchicalOptimization) {
                                                              scalingDummy, offsetDummy, sigmaDummy));
 
     // Ensure it is called with proper parameter vector:
-    auto outputs = hierarchicalOptimizationWrapper.getUnscaledModelOutputs(gsl::make_span(reducedParameters.data(), reducedParameters.size()));
+    auto outputs = hierarchicalOptimizationWrapper.getUnscaledModelOutputs(gsl::make_span(reducedParameters.data(), reducedParameters.size()), nullptr, nullptr);
     CHECK_TRUE(onesFullParameters == fun->lastParameters);
 
     auto s = parpe::getScaledParameter(parpe::computeAnalyticalScalings(0,
@@ -249,7 +254,7 @@ TEST(hierarchicalOptimization, testNoAnalyticalParameters) {
 
     std::vector<double> parameters{3.0, 2.0, 1.5, 1.3};
     double fval;
-    w.evaluate(parameters, fval, gsl::span<double>());
+    w.evaluate(parameters, fval, gsl::span<double>(), nullptr, nullptr);
 }
 
 
@@ -517,7 +522,7 @@ TEST(hierarchicalOptimization, testWrappedFunIsCalledWithGradient) {
             .withIntParameter("conditionIdx", 0);
     mock().expectNCalls(1, "AmiciSummedGradientFunctionMock::evaluate").withBoolParameter("gradient", true);
 
-    hierarchicalWrapper.evaluate(parameters, fval, gradient);
+    hierarchicalWrapper.evaluate(parameters, fval, gradient, nullptr, nullptr);
 
     mock().checkExpectations();
     mock().clear();
@@ -536,7 +541,7 @@ TEST(hierarchicalOptimization, testWrappedFunIsCalledWithGradient) {
             .withIntParameter("parameterIndex", 0)
             .withIntParameter("conditionIdx", 0);
 
-    hierarchicalWrapper.evaluate(parameters, fval, gsl::span<double>());
+    hierarchicalWrapper.evaluate(parameters, fval, gsl::span<double>(), nullptr, nullptr);
 }
 
 TEST(hierarchicalOptimization, likelihoodOfMatchingData) {

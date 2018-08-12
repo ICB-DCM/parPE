@@ -1,14 +1,17 @@
 #include "hdf5Misc.h"
 #include "logging.h"
+#include <misc.h>
+
 #include <cassert>
 #include <cstdlib>
 #include <unistd.h>
 #include <sys/stat.h>
-#include <misc.h>
+
+#include <H5Tpublic.h>
 
 namespace parpe {
 
-// mutex for **ALL** HDF5 library calls; read and write; any file(?)
+/** mutex for **ALL** HDF5 library calls; read and write; any file(?) */
 static mutexHdfType mutexHdf;
 
 void initHDF5Mutex() {
@@ -86,8 +89,8 @@ void hdf5CreateGroup(hid_t file_id, const char *groupPath, bool recursively) {
                             H5P_DEFAULT, H5P_DEFAULT);
     if (group < 0)
         throw(HDF5Exception("Failed to create group in hdf5CreateGroup: %s", groupPath));
-    H5Gclose(group);
 
+    H5Gclose(group);
 }
 
 void hdf5CreateExtendableDouble2DArray(hid_t file_id, const char *datasetPath,
@@ -109,6 +112,9 @@ void hdf5CreateExtendableDouble2DArray(hid_t file_id, const char *datasetPath,
     hid_t dataset =
         H5Dcreate2(file_id, datasetPath, H5T_NATIVE_DOUBLE, dataspace,
                    H5P_DEFAULT, datasetCreationProperty, H5P_DEFAULT);
+
+    if(dataset < 0)
+        throw HDF5Exception("hdf5CreateExtendableDouble2DArray");
 
     H5Dclose(dataset);
     H5Sclose(dataspace);
@@ -211,7 +217,7 @@ void hdf5CreateOrExtendAndWriteToDouble2DArray(hid_t file_id,
                                                hsize_t stride) {
     hdf5EnsureGroupExists(file_id, parentPath);
 
-    std::string fullDatasetPath = std::string(parentPath) + datasetName;
+    std::string fullDatasetPath = std::string(parentPath) + "/" + datasetName;
 
     if (!hdf5DatasetExists(file_id, fullDatasetPath.c_str())) {
         hdf5CreateExtendableDouble2DArray(file_id, fullDatasetPath.c_str(), stride);
@@ -228,7 +234,7 @@ void hdf5CreateOrExtendAndWriteToDouble3DArray(hid_t file_id,
                                                hsize_t stride1, hsize_t stride2) {
     hdf5EnsureGroupExists(file_id, parentPath);
 
-    std::string fullDatasetPath = std::string(parentPath) + datasetName;
+    std::string fullDatasetPath = std::string(parentPath) + "/" + datasetName;
 
     if (!hdf5DatasetExists(file_id, fullDatasetPath.c_str())) {
         hdf5CreateExtendableDouble3DArray(file_id, fullDatasetPath.c_str(), stride1,
@@ -248,7 +254,7 @@ void hdf5CreateOrExtendAndWriteToInt2DArray(hid_t file_id,
 
     hdf5EnsureGroupExists(file_id, parentPath);
 
-    auto fullDatasetPath = std::string(parentPath) + datasetName;
+    auto fullDatasetPath = std::string(parentPath) + "/" + datasetName;
 
     if (!hdf5DatasetExists(file_id, fullDatasetPath.c_str())) {
         hdf5CreateExtendableInt2DArray(file_id, fullDatasetPath.c_str(), stride);
@@ -320,7 +326,9 @@ void hdf5CreateExtendableInt2DArray(hid_t file_id, const char *datasetPath,
     hid_t dataset =
         H5Dcreate2(file_id, datasetPath, H5T_NATIVE_INT, dataspace, H5P_DEFAULT,
                    datasetCreationProperty, H5P_DEFAULT);
-    assert(dataset >= 0 && "Unable to open dataset!");
+
+    if(dataset < 0)
+        throw HDF5Exception("hdf5CreateExtendableInt2DArray");
 
     H5Dclose(dataset);
     H5Sclose(dataspace);
@@ -346,6 +354,9 @@ void hdf5CreateExtendableDouble3DArray(hid_t file_id, const char *datasetPath,
     hid_t dataset =
         H5Dcreate2(file_id, datasetPath, H5T_NATIVE_DOUBLE, dataspace,
                    H5P_DEFAULT, datasetCreationProperty, H5P_DEFAULT);
+
+    if(dataset < 0)
+        throw HDF5Exception("hdf5CreateExtendableDouble3DArray");
 
     H5Dclose(dataset);
     H5Sclose(dataspace);
@@ -581,6 +592,92 @@ HDF5Exception::HDF5Exception(const char *format, ...) {
 bool hdf5DatasetExists(hid_t file_id, const std::string &datasetName)
 {
     return hdf5DatasetExists(file_id, datasetName.c_str());
+}
+
+void closeHDF5File(hid_t file_id) {
+    std::lock_guard<mutexHdfType> lock(mutexHdf);
+    if(file_id < 1)
+        throw HDF5Exception("closeHDF5File: Invalid file handle given.");
+
+            H5_SAVE_ERROR_HANDLER;
+    herr_t status = H5Fclose(file_id);
+
+    if (status < 0) {
+        error("closeHDF5File failed to close HDF5 file.");
+        H5Eprint(H5E_DEFAULT, stderr);
+    }
+    H5_RESTORE_ERROR_HANDLER;
+}
+
+void hdf5EnsureGroupExists(hid_t file_id, std::string const& groupName)
+{
+    hdf5EnsureGroupExists(file_id, groupName.c_str());
+}
+
+void hdf5CreateExtendableString1DArray(hid_t file_id, const char *datasetPath)
+{
+    int rank = 1;
+    hsize_t initialDimensions[1] = {0};
+    hsize_t maximumDimensions[1] = {H5S_UNLIMITED};
+
+    std::lock_guard<mutexHdfType> lock(mutexHdf);
+
+    H5::DataSpace dataspace(rank, initialDimensions, maximumDimensions);
+    H5::H5File file (file_id);
+
+    // need chunking for extendable dataset
+    hsize_t chunkDimensions[1] = {1};
+    H5::DSetCreatPropList datasetCreationProperty;
+    datasetCreationProperty.setChunk(rank, chunkDimensions);
+
+    H5::StrType strType(0, H5T_VARIABLE);
+    RELEASE_ASSERT(H5T_STRING == H5Tget_class(strType.getId())
+                   && H5Tis_variable_str(strType.getId()), "");
+
+    auto dataset = file.createDataSet(datasetPath, strType, dataspace,
+                                      datasetCreationProperty);
+}
+
+void hdf5ExtendAndWriteToString1DArray(hid_t file_id, const char *datasetPath, const std::string &buffer)
+{
+    std::lock_guard<mutexHdfType> lock(mutexHdf);
+
+    H5::H5File file (file_id);
+    auto dataset = file.openDataSet(datasetPath);
+
+    // extend
+    auto filespace = dataset.getSpace();
+    int rank = filespace.getSimpleExtentNdims();
+    if(rank != 1)
+        throw HDF5Exception("Only works for 1D arrays!");
+
+    hsize_t currentDimensions[1];
+    filespace.getSimpleExtentDims(currentDimensions);
+    hsize_t newDimensions[1] = {currentDimensions[0] + 1};
+    dataset.extend(newDimensions);
+
+    filespace = dataset.getSpace();
+    hsize_t offset[1] = {currentDimensions[0]};
+    hsize_t slabsize[1] = {1};
+    filespace.selectHyperslab(H5S_SELECT_SET, slabsize, offset);
+
+    H5::StrType strType(0, H5T_VARIABLE);
+    H5::DataSpace memspace(rank, slabsize);
+
+    dataset.write(buffer, strType, memspace, filespace);
+}
+
+void hdf5CreateOrExtendAndWriteToString1DArray(hid_t file_id, const char *parentPath, const char *datasetName, const std::string &buffer)
+{
+    hdf5EnsureGroupExists(file_id, parentPath);
+
+    std::string fullDatasetPath = std::string(parentPath) + "/" + datasetName;
+
+    if (!hdf5DatasetExists(file_id, fullDatasetPath.c_str())) {
+        hdf5CreateExtendableString1DArray(file_id, fullDatasetPath.c_str());
+    }
+
+    hdf5ExtendAndWriteToString1DArray(file_id, fullDatasetPath.c_str(), buffer);
 }
 
 } // namespace parpe

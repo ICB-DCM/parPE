@@ -1,5 +1,5 @@
-#include "simulationRunner.h"
-#include <LoadBalancerMaster.h>
+#include "amiciSimulationRunner.h"
+#include <loadBalancerMaster.h>
 
 #include <omp.h>
 
@@ -11,23 +11,23 @@
 
 namespace parpe {
 
-SimulationRunnerSimple::SimulationRunnerSimple(
-        std::vector<double> const& optimizationParameters,
+AmiciSimulationRunner::AmiciSimulationRunner(std::vector<double> const& optimizationParameters,
         amici::AMICI_sensi_order sensitivityOrder,
         std::vector<int> const& conditionIndices,
-        SimulationRunnerSimple::callbackJobFinishedType callbackJobFinished,
-        SimulationRunnerSimple::callbackAllFinishedType aggregate)
+        AmiciSimulationRunner::callbackJobFinishedType callbackJobFinished,
+        AmiciSimulationRunner::callbackAllFinishedType aggregate, const std::string &logPrefix)
     : optimizationParameters(optimizationParameters),
     sensitivityOrder(sensitivityOrder),
     conditionIndices(conditionIndices),
     callbackJobFinished(std::move(std::move(callbackJobFinished))),
-    aggregate(std::move(std::move(aggregate)))
+    aggregate(std::move(std::move(aggregate))),
+    logPrefix(logPrefix)
 {
 
 }
 
 
-int SimulationRunnerSimple::runDistributedMemory(LoadBalancerMaster *loadBalancer, const int maxSimulationsPerPackage)
+int AmiciSimulationRunner::runDistributedMemory(LoadBalancerMaster *loadBalancer, const int maxSimulationsPerPackage)
 {
 #ifdef PARPE_SIMULATION_RUNNER_DEBUG
     printf("runDistributedMemory\n");
@@ -79,7 +79,7 @@ int SimulationRunnerSimple::runDistributedMemory(LoadBalancerMaster *loadBalance
     return errors;
 }
 
-int SimulationRunnerSimple::runSharedMemory(const LoadBalancerWorker::messageHandlerFunc& messageHandler, bool sequential)
+int AmiciSimulationRunner::runSharedMemory(const LoadBalancerWorker::messageHandlerFunc& messageHandler, bool sequential)
 {
 #ifdef PARPE_SIMULATION_RUNNER_DEBUG
     printf("runSharedMemory\n");
@@ -94,7 +94,7 @@ int SimulationRunnerSimple::runSharedMemory(const LoadBalancerWorker::messageHan
     for (int simulationIdx = 0; simulationIdx < (signed)conditionIndices.size(); ++simulationIdx) {
         // to resuse the parallel code and for debugging we still serialze the job data here
         auto curConditionIndices = std::vector<int> {simulationIdx};
-        AmiciWorkPackageSimple work {optimizationParameters, sensitivityOrder, curConditionIndices};
+        AmiciWorkPackageSimple work {optimizationParameters, sensitivityOrder, curConditionIndices, logPrefix};
         auto buffer = amici::serializeToStdVec<AmiciWorkPackageSimple>(work);
 
         messageHandler(buffer, simulationIdx);
@@ -112,7 +112,7 @@ int SimulationRunnerSimple::runSharedMemory(const LoadBalancerWorker::messageHan
 
 }
 
-void SimulationRunnerSimple::queueSimulation(LoadBalancerMaster *loadBalancer,
+void AmiciSimulationRunner::queueSimulation(LoadBalancerMaster *loadBalancer,
                                              JobData *d, int *jobDone,
                                              pthread_cond_t *jobDoneChangedCondition, pthread_mutex_t *jobDoneChangedMutex, int jobIdx,
                                              std::vector<double> const& optimizationParameters,
@@ -122,7 +122,7 @@ void SimulationRunnerSimple::queueSimulation(LoadBalancerMaster *loadBalancer,
     // TODO avoid copy optimizationParameters; reuse;; for const& in work package need to split into(de)serialize
     *d = JobData(jobDone, jobDoneChangedCondition, jobDoneChangedMutex);
 
-    AmiciWorkPackageSimple work {optimizationParameters, sensitivityOrder, conditionIndices};
+    AmiciWorkPackageSimple work {optimizationParameters, sensitivityOrder, conditionIndices, logPrefix};
     d->sendBuffer = amici::serializeToStdVec<AmiciWorkPackageSimple>(work);
 
     // TODO: must ignore 2nd argument for SimulationRunnerSimple
@@ -133,7 +133,7 @@ void SimulationRunnerSimple::queueSimulation(LoadBalancerMaster *loadBalancer,
 
 }
 
-void swap(SimulationRunnerSimple::AmiciResultPackageSimple &first, SimulationRunnerSimple::AmiciResultPackageSimple &second) {
+void swap(AmiciSimulationRunner::AmiciResultPackageSimple &first, AmiciSimulationRunner::AmiciResultPackageSimple &second) {
     using std::swap;
     swap(first.llh, second.llh);
     swap(first.simulationTimeSeconds, second.simulationTimeSeconds);

@@ -1,8 +1,11 @@
 #ifndef LOGGING_H
 #define LOGGING_H
 
+#include <misc.h> // make_unique
+
 #include <string>
 #include <cstdarg>
+#include <memory>
 
 namespace parpe {
 
@@ -14,6 +17,7 @@ namespace parpe {
 #define ANSI_COLOR_CYAN "\x1b[36m"
 #define ANSI_COLOR_RESET "\x1b[0m"
 
+// TODO enum class
 typedef enum loglevel_tag {
     LOGLVL_CRITICAL = 1,
     LOGLVL_ERROR,
@@ -44,6 +48,24 @@ void error(const char *message);
 // TODO remove
 void warning(const char *message);
 
+class Logger {
+public:
+    Logger() = default;
+    Logger(std::string prefix);
+
+    std::unique_ptr<Logger> getChild(std::string const& appendedPrefix) const;
+
+    // TODO add stream operator
+
+    void logmessage(loglevel lvl, std::string const& msg) const;
+    void logmessage(loglevel lvl, const char *format, ...) const;
+    void logmessage(loglevel lvl, const char *format, va_list argptr) const;
+    void setPrefix(std::string const& pre);
+    std::string const& getPrefix() const;
+
+private:
+    std::string prefix;
+};
 
 } // namespace parpe
 #endif

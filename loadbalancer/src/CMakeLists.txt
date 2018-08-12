@@ -1,8 +1,8 @@
 project(parpeloadbalancer)
 
 set(SRC_LIST
-    LoadBalancerWorker.cpp
-    LoadBalancerMaster.cpp
+    loadBalancerWorker.cpp
+    loadBalancerMaster.cpp
 )
 
 add_library(${PROJECT_NAME} ${SRC_LIST})

@@ -1,6 +1,8 @@
 #ifndef PARPE_OPTIMIZATION_FUNCTIONS_H
 #define PARPE_OPTIMIZATION_FUNCTIONS_H
 
+#include <logging.h>
+
 #include <vector>
 #include <memory>
 
@@ -34,7 +36,15 @@ public:
     virtual FunctionEvaluationStatus evaluate(
             gsl::span<double const> parameters,
             double &fval,
-            gsl::span<double>) const = 0;
+            gsl::span<double> gradient) const;;
+
+
+    virtual FunctionEvaluationStatus evaluate(
+            gsl::span<double const> parameters,
+            double &fval,
+            gsl::span<double> gradient,
+            Logger *logger,
+            double *cpuTime) const = 0;
 
     virtual int numParameters() const = 0;
 
@@ -63,7 +73,9 @@ public:
             gsl::span<const double> parameters,
             T dataset,
             double &fval,
-            gsl::span<double> gradient) const = 0;
+            gsl::span<double> gradient,
+            Logger *logger,
+            double *cpuTime) const = 0;
 
     /**
      * @brief Evaluate on vector of data points
@@ -77,7 +89,9 @@ public:
             gsl::span<const double> parameters,
             std::vector<T> datasets,
             double &fval,
-            gsl::span<double> gradient
+            gsl::span<double> gradient,
+            Logger *logger,
+            double *cpuTime
             ) const = 0;
 
     virtual int numParameters() const = 0;
@@ -111,8 +125,10 @@ public:
     FunctionEvaluationStatus evaluate(
             gsl::span<const double> parameters,
             double &fval,
-            gsl::span<double> gradient) const override {
-        return gradFun->evaluate(parameters, datasets, fval, gradient);
+            gsl::span<double> gradient,
+            Logger *logger = nullptr,
+            double *cpuTime = nullptr) const override {
+        return gradFun->evaluate(parameters, datasets, fval, gradient, logger, cpuTime);
 
     }
 

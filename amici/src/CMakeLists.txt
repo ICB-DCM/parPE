@@ -1,12 +1,11 @@
 project(parpeamici)
 
 set(SRC_LIST
-    MultiConditionDataProvider.cpp
+    multiConditionDataProvider.cpp
     multiConditionProblem.cpp
-    multiConditionProblemResultWriter.cpp
     steadystateSimulator.cpp
     optimizationApplication.cpp
-    simulationRunner.cpp
+    amiciSimulationRunner.cpp
     simulationResultWriter.cpp
     standaloneSimulator.cpp
     amiciMisc.cpp

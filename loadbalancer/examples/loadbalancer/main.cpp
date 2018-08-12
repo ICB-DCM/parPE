@@ -1,5 +1,5 @@
-#include "LoadBalancerMaster.h"
-#include "LoadBalancerWorker.h"
+#include "loadBalancerMaster.h"
+#include "loadBalancerWorker.h"
 #include <cstdlib>
 #include <mpi.h>
 #include <stdio.h>

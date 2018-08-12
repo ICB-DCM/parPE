@@ -1,4 +1,4 @@
-#include "MultiConditionDataProvider.h"
+#include "multiConditionDataProvider.h"
 #include "hierarchicalOptimization.h"
 #include "logging.h"
 #include "misc.h"
@@ -28,11 +28,9 @@ MultiConditionDataProviderHDF5::MultiConditionDataProviderHDF5(std::unique_ptr<a
                                                                std::string const& rootPath)
     : model(std::move(model)), rootPath(rootPath) {
 
-    optimizationOptions = parpe::OptimizationOptions::fromHDF5(getHdf5FileId());
-
     auto lock = hdf5MutexGetLock();
-
     openHdf5File(hdf5Filename);
+    optimizationOptions = parpe::OptimizationOptions::fromHDF5(getHdf5FileId());
 
     hdf5MeasurementPath = rootPath + "/measurements/y";
     hdf5MeasurementSigmaPath = rootPath + "/measurements/ysigma";
@@ -347,15 +345,6 @@ void MultiConditionDataProviderHDF5::checkDataIntegrity() const {
     assert(d2 >= numConditions);
 }
 
-void JobIdentifier::print() const {
-    printf("%d.%d.%d.%d", idxMultiStart, idxLocalOptimization,
-           idxLocalOptimizationIteration, idxConditions);
-}
-
-void JobIdentifier::sprint(char *buffer) const {
-    sprintf(buffer, "%d.%d.%d.%d", idxMultiStart, idxLocalOptimization,
-            idxLocalOptimizationIteration, idxConditions);
-}
 
 MultiConditionDataProviderDefault::MultiConditionDataProviderDefault(std::unique_ptr<amici::Model> model, std::unique_ptr<amici::Solver> solver)
     :model(std::move(model)), solver(std::move(solver))

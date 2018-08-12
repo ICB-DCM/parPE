@@ -1,4 +1,4 @@
-#include "LoadBalancerMaster.h"
+#include "loadBalancerMaster.h"
 
 #include <cassert>
 #include <climits>

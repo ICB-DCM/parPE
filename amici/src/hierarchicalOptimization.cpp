@@ -103,20 +103,23 @@ void HierachicalOptimizationWrapper::init() {
 FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluate(
         gsl::span<const double> parameters,
         double &fval,
-        gsl::span<double> gradient) const {
+        gsl::span<double> gradient,
+        Logger *logger,
+        double *cpuTime) const {
 
     std::vector<double> fullParameters;
     std::vector<double> fullGradient;
-    return evaluate(parameters, fval, gradient, fullParameters, fullGradient);
+    return evaluate(parameters, fval, gradient, fullParameters, fullGradient, logger, cpuTime);
 }
 
-FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluate(
-        gsl::span<const double> reducedParameters,
+FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluate(gsl::span<const double> reducedParameters,
         double &fval,
         gsl::span<double> gradient,
         std::vector<double> &fullParameters,
-        std::vector<double> &fullGradient) const
+        std::vector<double> &fullGradient, Logger *logger, double *cpuTime) const
 {
+    WallTimer walltimer;
+
     RELEASE_ASSERT(reducedParameters.size() == (unsigned)numParameters(), "");
     RELEASE_ASSERT(gradient.empty() || gradient.size() == reducedParameters.size(), "");
     if(numProportionalityFactors() == 0 && numOffsetParameters() == 0 && numSigmaParameters() == 0) {
@@ -125,12 +128,13 @@ FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluate(
         // evaluate for all conditions
         std::vector<int> dataIndices(numConditions);
         std::iota(dataIndices.begin(), dataIndices.end(), 0);
-
-        return fun->evaluate(reducedParameters, dataIndices, fval, gradient);
+        return fun->evaluate(reducedParameters, dataIndices, fval, gradient, logger, cpuTime);
     }
 
+
     // evaluate with scaling parameters set to 1 and offsets to 0
-    auto modelOutput = getUnscaledModelOutputs(reducedParameters);
+    auto modelOutput = getUnscaledModelOutputs(reducedParameters, logger, cpuTime);
+
 
     auto measurements = fun->getAllMeasurements();
 
@@ -153,12 +157,15 @@ FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluate(
                                       proportionalityFactorIndices, offsetParameterIndices, sigmaParameterIndices,
                                       scalings, offsets, sigmas);
 
-
+    double cpuTimeInner = 0.0;
     // evaluate with analytical scaling parameters
     auto status = evaluateWithOptimalParameters(fullParameters, sigmas,
                                                 measurements, modelOutput,
                                                 fval, gradient,
-                                                fullGradient);
+                                                fullGradient, logger, &cpuTimeInner);
+
+    if(cpuTime)
+        *cpuTime += cpuTimeInner + walltimer.getTotal();
 
     return status;
 }
@@ -202,7 +209,8 @@ std::vector<double> HierachicalOptimizationWrapper::getDefaultSigmaParameters() 
 }
 
 std::vector<std::vector<double> > HierachicalOptimizationWrapper::getUnscaledModelOutputs(
-        const gsl::span<const double> reducedParameters) const {
+        const gsl::span<const double> reducedParameters, Logger *logger,
+        double *cpuTime) const {
     // run simulations, collect outputs
     auto scalingDummy = getDefaultScalingFactors();
     auto offsetDummy = getDefaultOffsetParameters();
@@ -214,7 +222,7 @@ std::vector<std::vector<double> > HierachicalOptimizationWrapper::getUnscaledMod
                                            scalingDummy, offsetDummy, sigmaDummy);
 
     std::vector<std::vector<double> > modelOutput(numConditions);
-    fun->getModelOutputs(fullParameters, modelOutput);
+    fun->getModelOutputs(fullParameters, modelOutput, logger, cpuTime);
 
     return modelOutput;
 }
@@ -336,7 +344,8 @@ FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluateWithOptimalPara
         std::vector<std::vector<double>> const& modelOutputsScaled,
         double &fval,
         const gsl::span<double> gradient,
-        std::vector<double>& fullGradient) const {
+        std::vector<double>& fullGradient,
+        Logger *logger, double *cpuTime) const {
 
     if(!gradient.empty()) {
         // simulate with updated theta for sensitivities
@@ -346,7 +355,7 @@ FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluateWithOptimalPara
 
         // Need intermediary buffer because optimizer expects fewer parameters than `fun` delivers
         fullGradient.resize(fullParameters.size());
-        auto status = fun->evaluate(fullParameters, dataIndices, fval, fullGradient);
+        auto status = fun->evaluate(fullParameters, dataIndices, fval, fullGradient, logger, cpuTime);
         if(status != functionEvaluationSuccess)
             return status;
 
@@ -543,6 +552,7 @@ HierachicalOptimizationProblemWrapper::HierachicalOptimizationProblemWrapper(
         const MultiConditionDataProviderHDF5 *dataProvider)
     : wrappedProblem(std::move(problemToWrap))
 {
+    logger = std::make_unique<Logger>(*wrappedProblem->logger);
     auto wrappedFun = dynamic_cast<SummedGradientFunctionGradientFunctionAdapter<int>*>(
                 wrappedProblem->costFun.get());
 
@@ -559,8 +569,10 @@ HierachicalOptimizationProblemWrapper::HierachicalOptimizationProblemWrapper(
 }
 
 HierachicalOptimizationProblemWrapper::HierachicalOptimizationProblemWrapper(std::unique_ptr<OptimizationProblem> problemToWrap,
-                                                                             std::unique_ptr<HierachicalOptimizationWrapper> costFun)
-    : OptimizationProblem(std::move(costFun)),
+                                                                             std::unique_ptr<HierachicalOptimizationWrapper> costFun,
+                                                                             std::unique_ptr<Logger> logger)
+    : OptimizationProblem(std::move(costFun),
+                          std::move(logger)),
       wrappedProblem(std::move(problemToWrap))
 {
 
@@ -606,7 +618,8 @@ std::unique_ptr<OptimizationReporter> HierachicalOptimizationProblemWrapper::get
     auto outerReporter = std::unique_ptr<OptimizationReporter>(
                 new HierarchicalOptimizationReporter(
                     dynamic_cast<HierachicalOptimizationWrapper*>(costFun.get()),
-                        std::move(innerReporter->resultWriter)
+                        std::move(innerReporter->resultWriter),
+                    std::make_unique<Logger>(*logger)
                     ));
     return outerReporter;
 }
@@ -931,16 +944,22 @@ std::vector<int> AnalyticalParameterProviderDefault::getOptimizationParameterInd
     return optimizationParameterIndices;
 }
 
-HierarchicalOptimizationReporter::HierarchicalOptimizationReporter(HierachicalOptimizationWrapper *gradFun, std::unique_ptr<OptimizationResultWriter> rw)
-    : OptimizationReporter(gradFun, std::move(rw))
+HierarchicalOptimizationReporter::HierarchicalOptimizationReporter(
+        HierachicalOptimizationWrapper *gradFun,
+        std::unique_ptr<OptimizationResultWriter> rw,
+        std::unique_ptr<Logger> logger)
+    : OptimizationReporter(gradFun, std::move(rw), std::move(logger))
 {
     hierarchicalWrapper = gradFun;
 }
 
-FunctionEvaluationStatus HierarchicalOptimizationReporter::evaluate(
-        gsl::span<const double> parameters,
-        double &fval, gsl::span<double> gradient) const
+FunctionEvaluationStatus HierarchicalOptimizationReporter::evaluate(gsl::span<const double> parameters,
+        double &fval, gsl::span<double> gradient, Logger */*logger*/, double *cpuTime) const
 {
+    double myCpuTimeSec = 0.0;
+    if(cpuTime)
+        *cpuTime = 0.0;
+
     if(beforeCostFunctionCall(parameters) != 0)
         return functionEvaluationFailure;
 
@@ -949,7 +968,8 @@ FunctionEvaluationStatus HierarchicalOptimizationReporter::evaluate(
                                                cachedParameters.begin())) {
             // Have to compute anew
             cachedStatus = hierarchicalWrapper->evaluate(parameters, cachedCost, cachedGradient,
-                                                         cachedFullParameters, cachedFullGradient);
+                                                         cachedFullParameters, cachedFullGradient,
+                                                         this->logger.get(), &myCpuTimeSec);
             haveCachedCost = true;
             haveCachedGradient = true;
         }
@@ -961,7 +981,8 @@ FunctionEvaluationStatus HierarchicalOptimizationReporter::evaluate(
                                            cachedParameters.begin())) {
             // Have to compute anew
             cachedStatus = hierarchicalWrapper->evaluate(parameters, cachedCost, gsl::span<double>(),
-                                                         cachedFullParameters, cachedFullGradient);
+                                                         cachedFullParameters, cachedFullGradient,
+                                                         this->logger.get(), &myCpuTimeSec);
             haveCachedCost = true;
             haveCachedGradient = false;
         }
@@ -971,6 +992,11 @@ FunctionEvaluationStatus HierarchicalOptimizationReporter::evaluate(
     // update cached parameters
     cachedParameters.resize(numParameters_);
     std::copy(parameters.begin(), parameters.end(), cachedParameters.begin());
+
+    cpuTimeIterationSec += myCpuTimeSec;
+    cpuTimeTotalSec += myCpuTimeSec;
+    if(cpuTime)
+        *cpuTime = myCpuTimeSec;
 
     if(afterCostFunctionCall(parameters, cachedCost, gradient.data() ? cachedFullGradient : gsl::span<double>()) != 0)
         return functionEvaluationFailure;
@@ -982,17 +1008,22 @@ void HierarchicalOptimizationReporter::finished(double optimalCost, gsl::span<co
 {
     double timeElapsed = wallTimer.getTotal();
 
-    if(cachedCost != optimalCost) {
+    if(cachedCost > optimalCost) {
         // the optimal value is not from the cached parameters and we did not get
         // the optimal full parameter vector. since we don't know them, rather set to nan
         cachedFullParameters.assign(cachedFullParameters.size(), NAN);
         std::copy(parameters.begin(), parameters.end(), cachedParameters.data());
+        if(logger) logger->logmessage(LOGLVL_INFO, "cachedCost != optimalCost");
+        cachedCost = NAN;
     }
 
-    cachedCost = optimalCost;
+    if(logger)
+        logger->logmessage(LOGLVL_INFO, "Optimizer status %d, final llh: %e, time: wall: %f cpu: %f.",
+               exitStatus, cachedCost, timeElapsed, cpuTimeTotalSec);
 
     if(resultWriter)
-        resultWriter->saveLocalOptimizerResults(optimalCost, cachedFullParameters, timeElapsed, exitStatus);
+        resultWriter->saveOptimizerResults(cachedCost, cachedFullParameters,
+                                           timeElapsed, cpuTimeTotalSec, exitStatus);
 }
 
 const std::vector<double> &HierarchicalOptimizationReporter::getFinalParameters() const
@@ -1004,7 +1035,10 @@ bool HierarchicalOptimizationReporter::iterationFinished(gsl::span<const double>
     double wallTimeIter = wallTimer.getRound();
     double wallTimeOptim = wallTimer.getTotal();
 
-    logmessage(LOGLVL_INFO, "iter: %d cost: %g time_iter: %gs time_optim: %gs", numIterations, objectiveFunctionValue, wallTimeIter, wallTimeOptim);
+    if(logger)
+        logger->logmessage(LOGLVL_INFO, "iter: %d cost: %g time_iter: wall: %gs cpu: %gs time_optim: wall: %gs cpu: %gs",
+                           numIterations, objectiveFunctionValue,
+                           wallTimeIter, cpuTimeIterationSec, wallTimeOptim, cpuTimeTotalSec);
 
     if(resultWriter) {
         /* check if the optimizer-reported cost matches the last function evaluation.
@@ -1015,18 +1049,22 @@ bool HierarchicalOptimizationReporter::iterationFinished(gsl::span<const double>
         if(objectiveFunctionValue == cachedCost
                 && (parameters.empty()
                     || std::equal(parameters.begin(), parameters.end(), cachedParameters.begin()))) {
-            resultWriter->logLocalOptimizerIteration(numIterations, cachedFullParameters,
+            resultWriter->logOptimizerIteration(numIterations, cachedFullParameters,
                                                      objectiveFunctionValue,
                                                      cachedFullGradient, // This might be misleading, the gradient could evaluated at other parameters if there was a line search inbetween
-                                                     wallTimeIter);
+                                                     wallTimeIter, cpuTimeIterationSec);
         } else {
-            resultWriter->logLocalOptimizerIteration(numIterations, parameters,
+            resultWriter->logOptimizerIteration(numIterations, parameters,
                                                      objectiveFunctionValue,
                                                      objectiveFunctionGradient, // This might be misleading, the gradient could evaluated at other parameters if there was a line search inbetween
-                                                     wallTimeIter);
+                                                     wallTimeIter, cpuTimeIterationSec);
         }
     }
     ++numIterations;
+
+    logger->setPrefix(defaultLoggerPrefix + "i" + std::to_string(numIterations));
+
+    cpuTimeIterationSec = 0.0;
 
     return false;
 
@@ -1039,8 +1077,11 @@ bool HierarchicalOptimizationReporter::afterCostFunctionCall(
 {
     double wallTime = wallTimer.getTotal();//(double)(timeCostEvaluationEnd - timeCostEvaluationBegin) / CLOCKS_PER_SEC;
 
+    if(!std::isfinite(objectiveFunctionValue))
+        printObjectiveFunctionFailureMessage();
+
     if(resultWriter) {
-        resultWriter->logLocalOptimizerObjectiveFunctionEvaluation(cachedFullParameters, cachedCost,
+        resultWriter->logObjectiveFunctionEvaluation(cachedFullParameters, cachedCost,
                                                                    objectiveFunctionGradient, numIterations, numFunctionCalls, wallTime);
     }
     return false;

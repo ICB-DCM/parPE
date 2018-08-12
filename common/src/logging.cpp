@@ -153,4 +153,36 @@ void logmessage(loglevel lvl, const char *format, va_list argptr)
 
 }
 
+Logger::Logger(std::string prefix) : prefix(std::move(prefix)) {}
+
+std::unique_ptr<Logger> Logger::getChild(const std::string &appendedPrefix) const {
+    return std::make_unique<Logger>(prefix + appendedPrefix);
+}
+
+void Logger::logmessage(loglevel lvl, const std::string &msg) const {
+    parpe::logmessage(lvl, "[" + prefix + "] " + msg);
+}
+
+void Logger::logmessage(loglevel lvl, const char *format, ...) const {
+    std::string str = "[" + prefix + "] " + format;
+
+    va_list argptr;
+    va_start(argptr,format);
+    parpe::logmessage(lvl, str.c_str(), argptr);
+    va_end(argptr);
+}
+
+void Logger::logmessage(loglevel lvl, const char *format, va_list argptr) const {
+    std::string str = "[" + prefix + "] " + format;
+    parpe::logmessage(lvl, str.c_str(), argptr);
+}
+
+void Logger::setPrefix(const std::string &pre) {
+    prefix = pre;
+}
+
+const std::string &Logger::getPrefix() const {
+    return prefix;
+}
+
 } // namespace parpe

@@ -2,8 +2,8 @@
 #define STEADYSTATEPROBLEM_PARALLEL_H
 
 #include "steadyStateMultiConditionDataprovider.h"
-#include <LoadBalancerMaster.h>
-#include <LoadBalancerWorker.h>
+#include <loadBalancerMaster.h>
+#include <loadBalancerWorker.h>
 #include <memory>
 
 #include <gsl/gsl-lite.hpp>
@@ -19,7 +19,7 @@ public:
     parpe::FunctionEvaluationStatus evaluate(
             gsl::span<double const> parameters,
             double &fval,
-            gsl::span<double> gradient) const override;
+            gsl::span<double> gradient, parpe::Logger* logger, double *cpuTime) const override;
 
     int numParameters() const override;
     void setupUserData(int conditionIdx);
