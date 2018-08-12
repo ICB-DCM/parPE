@@ -25,6 +25,7 @@ import os
 from termcolor import colored
 import collections
 import math
+import sympy as sp
 
 SCALING_LOG10 = 2
 SCALING_LIN = 0
@@ -56,11 +57,28 @@ class AmiciPyModelParser:
         """Read list of fixed parameter names"""
         return self.parseHeader(os.path.join(self.modelDir, 'fixed_parameter.h'))
     
-    def readObservables(self):
+    def readObservableNames(self):
         """Read list of observable names"""
         return self.parseHeader(os.path.join(self.modelDir, 'observable.h'))
       
-    
+    def readObservableFormula(self):
+        """Read list of observable formula"""
+        import glob
+        srcs = glob.glob(os.path.join(self.modelDir, '*_y.cpp'))
+        assert len(srcs) == 1
+        
+        observables = []
+        with open(srcs[0], 'r') as f:
+            for line in f:
+                match = re.sub(r'^ +y\[\d+\] = ([^;]+);\W$', r'\1', line, 1)
+                if match == line: continue
+                observables.append(match)
+        return observables
+
+    def readObservables(self):
+        # for backwards compatibility
+        return self.readObservableFormula()
+
 class HDF5DataGenerator:
     """    
     Generate HDF5 file with fixed parameters and measurements for an AMICI-imported SBML model 
@@ -729,26 +747,33 @@ class HDF5DataGenerator:
         Will fail silently if this is not true, therefore check here that it is in indeed an offset parameter and 
         that it has positive sign.
         """
-        #TODO: sympy
-        #TODO: formula not showing when using python-model self.y is wrong
 
-        print(colored("Ensure that %s is selected correctly as offset for hierarchical optimization and has positive sign (%s)." 
-                      % (scaling, self.getFormulaForConditionSpecificParameter(scaling)), "yellow"))
+        name, formulae = self.getNameAndFormulasForConditionSpecificParameter(scaling)
+        param = sp.sympify(name)
+        itsOkay = True
+        for formula in formulae:
+            obs = sp.sympify(formula)
+            itsOkay = itsOkay and (param not in (obs - param).free_symbols)
+            
+            if itsOkay:
+                print(colored("Parameter %s selected as offset for hierarchical optimization (%s)." % (scaling, formula), "green"))
+            else:
+                print(colored("ERROR: Parameter %s incorrectly selected as offset factor for hierarchical optimization (%s). Has positive sign?" % (scaling, formula), "green"))
         
+        if not itsOkay: raise AssertionError               
         
-    def getFormulaForConditionSpecificParameter(self, parameterName):
+    def getNameAndFormulasForConditionSpecificParameter(self, parameterName):
         """
         Get formula for the (first) observable associated with the provided condition-specific parameter 
         (name provided as in measurement list, not as in model) 
         """
         # get model parameter name
         name = self.getGenericParameterName(parameterName)
-        formula = ''
-        for i in range(len(self.y)):
-            if self.y[i].find(name) > -1:
-                formula = self.y[i]
-                break
-        return formula
+        formulaMatches = []
+        for formula in self.y:
+            if re.search(r'(^|\W)' + re.escape(name) + r'($|\W)', formula):
+                formulaMatches.append(formula)
+        return name, formulaMatches
 
 
     def handleProportionalityFactors(self):
@@ -782,14 +807,24 @@ class HDF5DataGenerator:
 
     def ensureProportionalityFactorIsProportionalityFactor(self, scaling):
         """
-        Ensure that this is a proportionality factor (a as in y = ax + b)
+        Ensure that this is a proportionality factor (a as in y = a*x)
+        Note: a*x + b not supported
         """
-    
-        # TODO: sympy: verify: obs / proportionality does not contain proportionality
 
-        formula = self.getFormulaForConditionSpecificParameter(scaling)
-        print(colored("Ensure that %s is selected correctly as proportionality factor for hierarchical optimization (%s)." % (scaling, formula), "yellow"))
-    
+        name, formulae = self.getNameAndFormulasForConditionSpecificParameter(scaling)
+        param = sp.sympify(name)
+        itsOkay = True
+        for formula in formulae:
+            obs = sp.sympify(formula)
+            itsOkay = itsOkay and (param not in (obs / param).free_symbols)
+            
+            if itsOkay:
+                print(colored("Parameter %s selected as proportionality factor for hierarchical optimization (%s)." % (scaling, formula), "green"))
+            else:
+                print(colored("ERROR: Parameter %s incorrectly selected as proportionality factor for hierarchical optimization (%s)." % (scaling, formula), "green"))
+        
+        if not itsOkay: raise AssertionError        
+        
     
     def handleSigmas(self):
         """
