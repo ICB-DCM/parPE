@@ -146,7 +146,6 @@ std::unique_ptr<OptimizationProblem> MultiConditionProblemMultiStartOptimization
                     logger->getChild(std::string(".") + std::to_string(multiStartIndex)),
                     std::make_unique<OptimizationResultWriter>(*resultWriter));
         problem->getResultWriter()->setRootPath("/multistarts/" + std::to_string(multiStartIndex));
-        problem->path.idxLocalOptimization = multiStartIndex;
     } else {
         problem = std::make_unique<MultiConditionProblem>(dp, loadBalancer,
                                                           logger->getChild(std::string(".") + std::to_string(multiStartIndex)), nullptr);

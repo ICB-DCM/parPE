@@ -16,30 +16,6 @@
 
 namespace parpe {
 
-
-/** Struct to tell simulation workers which dataset they are operating on. */
-struct JobIdentifier {
-    /** current multistart batch (e.g. for crossvalidation) */
-    int idxMultiStart = 0;
-
-    /** current start index in multistart run */
-    int idxLocalOptimization = 0;
-
-    /** iteration of local solver or epoch for minibatch */
-    int idxLocalOptimizationIteration = 0;
-
-    // TODO int idxMiniBatch           /** current minibatch index */
-
-    /** condition index (current data record) */
-    // TODO Only this one is used for the moment
-    int idxConditions = 0;
-
-    void print() const;
-
-    void sprint(char *buffer) const;
-};
-
-
 /**
  * @brief The MultiConditionDataProvider interface
  */
@@ -324,22 +300,5 @@ protected:
 };
 
 } // namespace parpe
-
-
-
-namespace boost {
-namespace serialization {
-
-//template <class Archive>
-//void serialize(Archive &ar, parpe::JobIdentifier &d, const unsigned int version) {
-//    ar & d.idxMultiStart;
-//    ar & d.idxLocalOptimization;
-//    ar & d.idxLocalOptimizationIteration;
-//    ar & d.idxConditions;
-//}
-
-
-} // namespace serialization
-} // namespace boost
 
 #endif // MULTICONDITIONDATAPROVIDER_H

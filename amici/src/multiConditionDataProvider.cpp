@@ -345,15 +345,6 @@ void MultiConditionDataProviderHDF5::checkDataIntegrity() const {
     assert(d2 >= numConditions);
 }
 
-void JobIdentifier::print() const {
-    printf("%d.%d.%d.%d", idxMultiStart, idxLocalOptimization,
-           idxLocalOptimizationIteration, idxConditions);
-}
-
-void JobIdentifier::sprint(char *buffer) const {
-    sprintf(buffer, "%d.%d.%d.%d", idxMultiStart, idxLocalOptimization,
-            idxLocalOptimizationIteration, idxConditions);
-}
 
 MultiConditionDataProviderDefault::MultiConditionDataProviderDefault(std::unique_ptr<amici::Model> model, std::unique_ptr<amici::Solver> solver)
     :model(std::move(model)), solver(std::move(solver))

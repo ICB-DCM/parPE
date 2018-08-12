@@ -360,11 +360,6 @@ protected:// for testing
                     conditionIdx, simulationGradient, objectiveFunctionGradient, -1.0);
     }
 
-    void queueSimulation(JobIdentifier path, JobData *d, int *jobDone,
-                         pthread_cond_t *jobDoneChangedCondition,
-                         pthread_mutex_t *jobDoneChangedMutex,
-                         int lenSendBuffer);
-
     void setSensitivityOptions(bool sensiRequired) const {
         // sensitivities requested?
         if (sensiRequired) {
@@ -422,8 +417,6 @@ class MultiConditionProblem : public OptimizationProblem {
 
     //    virtual std::unique_ptr<double[]> getInitialParameters(int multiStartIndex) const override;
 
-    JobIdentifier path;
-
     void setInitialParameters(const std::vector<double> &startingPoint);
     void setParametersMin(const std::vector<double> &lowerBounds);
     void setParametersMax(std::vector<double> const& upperBounds);
@@ -480,9 +473,6 @@ private:
     std::unique_ptr<Logger> logger;
 };
 
-
-
-void printSimulationResult(JobIdentifier const& path, int jobId, const amici::ReturnData *rdata, double timeSeconds);
 
 void saveSimulation(hid_t file_id, const std::string &pathStr, const std::vector<double> &parameters, double llh,
                    gsl::span<const double> gradient, double timeElapsedInSeconds, gsl::span<const double> states,
