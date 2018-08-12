@@ -184,8 +184,8 @@ FunctionEvaluationStatus OptimizationReporter::evaluate(
         gsl::span<double> gradient,
         Logger *logger,
         double *cpuTime) const
-{
-    double myCpuTimeSec = 0.0;
+{  
+    double functionCpuSec = 0.0;
     if(cpuTime)
         *cpuTime = 0.0;
 
@@ -196,7 +196,7 @@ FunctionEvaluationStatus OptimizationReporter::evaluate(
         if (!haveCachedGradient || !std::equal(parameters.begin(), parameters.end(),
                                                cachedParameters.begin())) {
             // Have to compute anew
-            cachedStatus = gradFun->evaluate(parameters, cachedCost, cachedGradient, logger, &myCpuTimeSec);
+            cachedStatus = gradFun->evaluate(parameters, cachedCost, cachedGradient, logger, &functionCpuSec);
             haveCachedCost = true;
             haveCachedGradient = true;
         }
@@ -207,7 +207,7 @@ FunctionEvaluationStatus OptimizationReporter::evaluate(
         if (!haveCachedCost || !std::equal(parameters.begin(), parameters.end(),
                                            cachedParameters.begin())) {
             // Have to compute anew
-            cachedStatus = gradFun->evaluate(parameters, cachedCost, gsl::span<double>(), logger, &myCpuTimeSec);
+            cachedStatus = gradFun->evaluate(parameters, cachedCost, gsl::span<double>(), logger, &functionCpuSec);
             haveCachedCost = true;
             haveCachedGradient = false;
         }
@@ -218,10 +218,10 @@ FunctionEvaluationStatus OptimizationReporter::evaluate(
     cachedParameters.resize(numParameters_);
     std::copy(parameters.begin(), parameters.end(), cachedParameters.begin());
 
-    cpuTimeIterationSec += myCpuTimeSec;
-    cpuTimeTotalSec += myCpuTimeSec;
+    cpuTimeIterationSec += functionCpuSec;
+    cpuTimeTotalSec += functionCpuSec;
     if(cpuTime)
-        *cpuTime = myCpuTimeSec;
+        *cpuTime = functionCpuSec;
 
     if(afterCostFunctionCall(parameters, cachedCost, gradient.data() ? cachedGradient : gsl::span<double>()) != 0)
         return functionEvaluationFailure;
