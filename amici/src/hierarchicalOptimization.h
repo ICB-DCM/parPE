@@ -357,9 +357,12 @@ public:
                                           const MultiConditionDataProviderHDF5 *dataProvider);
 
     HierachicalOptimizationProblemWrapper(std::unique_ptr<OptimizationProblem> problemToWrap,
-                                          std::unique_ptr<HierachicalOptimizationWrapper> costFun);
+                                          std::unique_ptr<HierachicalOptimizationWrapper> costFun,
+                                          std::unique_ptr<Logger> logger);
 
-    virtual ~HierachicalOptimizationProblemWrapper();
+    HierachicalOptimizationProblemWrapper(HierachicalOptimizationProblemWrapper const& other) = delete;
+
+    virtual ~HierachicalOptimizationProblemWrapper() override;
 
     virtual void fillInitialParameters(gsl::span<double> buffer) const override;
 
@@ -388,9 +391,8 @@ private:
 class HierarchicalOptimizationReporter : public OptimizationReporter {
 public:
     HierarchicalOptimizationReporter(HierachicalOptimizationWrapper *gradFun,
-                         std::unique_ptr<OptimizationResultWriter> rw);
-
-
+                                     std::unique_ptr<OptimizationResultWriter> rw,
+                                     std::unique_ptr<Logger> logger);
 
     FunctionEvaluationStatus evaluate(
             gsl::span<const double> parameters, double &fval,

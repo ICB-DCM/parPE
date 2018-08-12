@@ -5,9 +5,9 @@
 #include <loadBalancerWorker.h>
 #include <hdf5Misc.h>
 #include <logging.h>
-#include <multiConditionProblemResultWriter.h>
 #include <optimizationApplication.h>
 #include <misc.h>
+#include <hdf5Misc.h>
 
 #include <iostream>
 #include <unistd.h>
@@ -35,9 +35,14 @@ class SteadystateApplication : public parpe::OptimizationApplication {
   public:
     using OptimizationApplication::OptimizationApplication;
 
+    virtual ~SteadystateApplication() override = default;
+
     virtual void initProblem(std::string inFileArgument,
                              std::string outFileArgument) override {
 
+        // The same file should only be opened/created once, an then only be reopened
+        file_id = parpe::hdf5CreateFile(outFileArgument.c_str(), true);
+        logParPEVersion(file_id);
 
         dataProvider = std::make_unique<SteadyStateMultiConditionDataProvider>(
                     getModel(), inFileArgument);
@@ -46,31 +51,37 @@ class SteadystateApplication : public parpe::OptimizationApplication {
         auto optimizationOptions = parpe::OptimizationOptions::fromHDF5(dataProvider->getHdf5FileId());
 
         // Create one instance for the problem, one for the application for clear ownership
-        parpe::JobIdentifier id;
-        resultWriter = std::make_unique<parpe::MultiConditionProblemResultWriter>(outFileArgument, true, id);
-
-        auto multiCondProb = new parpe::MultiConditionProblem(dataProvider.get(), &loadBalancer,
-                                                              std::make_unique<parpe::MultiConditionProblemResultWriter>(resultWriter->getFileId(), id));
+        auto multiCondProb = new parpe::MultiConditionProblem(
+                    dataProvider.get(), &loadBalancer,
+                    std::make_unique<parpe::Logger>(),
+                    // TODO remove this resultwriter
+                    std::make_unique<parpe::OptimizationResultWriter>(
+                        file_id,
+                        std::string("/multistarts/"))
+                    );
 
         // hierarchical optimization?
         if(optimizationOptions->hierarchicalOptimization) {
             problem.reset(new parpe::HierachicalOptimizationProblemWrapper(
                               std::unique_ptr<parpe::MultiConditionProblem>(multiCondProb),
-                              dataProvider.get()));
+                              dataProvider.get())
+                          );
         } else {
             problem.reset(multiCondProb);
         }
 
         problem->setOptimizationOptions(*optimizationOptions);
 
+        // On master, copy input data to result file
         if(parpe::getMpiRank() < 1)
-            dataProvider->copyInputData(resultWriter->getFileId());
+            dataProvider->copyInputData(file_id);
 
         auto ms = new parpe::MultiConditionProblemMultiStartOptimizationProblem(
                     dataProvider.get(),
                     problem->getOptimizationOptions(),
                     multiCondProb->getResultWriter(),
-                    &loadBalancer
+                    &loadBalancer,
+                    std::make_unique<parpe::Logger>()
                     );
         multiStartOptimizationProblem.reset(ms);
     }
@@ -87,9 +98,9 @@ class SteadystateLocalOptimizationApplication : public SteadystateApplication {
 
     using SteadystateApplication::SteadystateApplication;
 
-    virtual int runMaster() override {
+    void runMaster() override {
         // Single optimization
-        return getLocalOptimum(problem.get());
+        getLocalOptimum(problem.get());
     }
 };
 

@@ -228,7 +228,7 @@ TEST(steadystateProblemTests, testOptimizationHierarchical) {
     hier->fun->evaluate(pFull, {0}, cost, gsl::span<double>());
     DOUBLES_EQUAL(-parpe::getLogLikelihoodOffset(dp.edata[0].my.size()), cost, 1e-5);
 
-    parpe::OptimizationProblemImpl problem(std::move(hier));
+    parpe::OptimizationProblemImpl problem(std::move(hier), std::make_unique<parpe::Logger>());
     //    std::vector<double> startingPoint = pReduced;
     //    for(auto& pp : startingPoint)
     //        pp += 1;

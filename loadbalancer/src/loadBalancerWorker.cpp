@@ -9,7 +9,10 @@
 #define QUEUE_WORKER_H_VERBOSE 0
 #define LOADBALANCERWORKER_REPORT_WAITING_TIME 1
 
+#ifdef LOADBALANCERWORKER_REPORT_WAITING_TIME
 #include <logging.h>
+#endif
+
 namespace parpe {
 
 void LoadBalancerWorker::run(messageHandlerFunc messageHandler) {
@@ -56,7 +59,7 @@ bool LoadBalancerWorker::waitForAndHandleJobs(messageHandlerFunc messageHandler)
 #ifdef LOADBALANCERWORKER_REPORT_WAITING_TIME
     double endTime = MPI_Wtime();
     double waitedSeconds = (endTime - startTime);
-    printf("[%d] Message received after waiting %fs.\n", rank, waitedSeconds);
+    logmessage(LOGLVL_DEBUG, "Message received after waiting %fs.", rank, waitedSeconds);
 #endif
 
     messageHandler(buffer, mpiStatus.MPI_TAG);

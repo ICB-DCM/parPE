@@ -20,11 +20,11 @@ TEST_GROUP(optimizationResultWriter){
 TEST(optimizationResultWriter, testResultWriter) {
     const char* tmpFilename = "deleteme.h5";
 
-    parpe::OptimizationResultWriter w(tmpFilename, true);
+    parpe::OptimizationResultWriter w(tmpFilename, true, "/bla/");
 
     H5::H5File file(tmpFilename, H5F_ACC_RDONLY);
 
-    w.setRootPath("/bla/");
+    w.setRootPath("/bla2");
 
     CHECK_TRUE(parpe::hdf5GroupExists(file.getId(), "/bla"));
 

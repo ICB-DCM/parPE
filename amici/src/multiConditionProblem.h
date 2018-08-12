@@ -5,7 +5,6 @@
 #include <boost/serialization/map.hpp>
 
 #include "multiConditionDataProvider.h"
-#include "multiConditionProblemResultWriter.h"
 #include <multiStartOptimization.h>
 #include <optimizationProblem.h>
 #include <loadBalancerMaster.h>
@@ -24,7 +23,6 @@
 namespace parpe {
 
 class MultiConditionDataProvider;
-class MultiConditionProblemResultWriter;
 
 AmiciSimulationRunner::AmiciResultPackageSimple  runAndLogSimulation(
         amici::Solver &solver,
@@ -32,7 +30,7 @@ AmiciSimulationRunner::AmiciResultPackageSimple  runAndLogSimulation(
         JobIdentifier path,
         int jobId,
         MultiConditionDataProvider *dataProvider,
-        MultiConditionProblemResultWriter *resultWriter,
+        OptimizationResultWriter *resultWriter,
         bool logLineSearch);
 
 
@@ -53,7 +51,7 @@ public:
      */
     AmiciSummedGradientFunction(MultiConditionDataProvider *dataProvider,
                                 LoadBalancerMaster *loadBalancer,
-                                MultiConditionProblemResultWriter *resultWriter)
+                                OptimizationResultWriter *resultWriter)
         : dataProvider(dataProvider),
           loadBalancer(loadBalancer),
           model(dataProvider->getModel()),
@@ -369,7 +367,7 @@ private:
     std::unique_ptr<amici::Model> model;
     std::unique_ptr<amici::Solver> solver;
     std::unique_ptr<amici::Solver> solverOriginal; // for saving sensitivity options which are changed depending on whether gradient is needed
-    MultiConditionProblemResultWriter *resultWriter = nullptr; // TODO: owning?
+    OptimizationResultWriter *resultWriter = nullptr; // TODO: owning?
     bool logLineSearch = false;
     const int maxSimulationsPerPackage = 8;
     const int maxGradientSimulationsPerPackage = 1;
@@ -391,7 +389,8 @@ class MultiConditionProblem : public OptimizationProblem {
 
     MultiConditionProblem(MultiConditionDataProvider *dp,
                           LoadBalancerMaster *loadBalancer,
-                          std::unique_ptr<MultiConditionProblemResultWriter> resultWriter);
+                          std::unique_ptr<Logger> logger,
+                          std::unique_ptr<OptimizationResultWriter> resultWriter);
 
     ~MultiConditionProblem() override = default;
 
@@ -402,7 +401,7 @@ class MultiConditionProblem : public OptimizationProblem {
     virtual int earlyStopping();
 
     MultiConditionDataProvider *getDataProvider();
-    MultiConditionProblemResultWriter *getResultWriter() { return resultWriter.get(); }
+    OptimizationResultWriter *getResultWriter() { return resultWriter.get(); }
 
     //    virtual std::unique_ptr<double[]> getInitialParameters(int multiStartIndex) const override;
 
@@ -424,7 +423,7 @@ class MultiConditionProblem : public OptimizationProblem {
     MultiConditionDataProvider *dataProvider = nullptr;
 
 private:
-    std::unique_ptr<MultiConditionProblemResultWriter> resultWriter;
+    std::unique_ptr<OptimizationResultWriter> resultWriter;
 
     std::vector<double> startingPoint;
     std::vector<double> parametersMin;
@@ -445,8 +444,9 @@ class MultiConditionProblemMultiStartOptimizationProblem
   public:
     MultiConditionProblemMultiStartOptimizationProblem(MultiConditionDataProviderHDF5 *dp,
                                                        OptimizationOptions options,
-                                                       MultiConditionProblemResultWriter *resultWriter,
-                                                       LoadBalancerMaster *loadBalancer);
+                                                       OptimizationResultWriter *resultWriter,
+                                                       LoadBalancerMaster *loadBalancer,
+                                                       std::unique_ptr<Logger> logger);
 
 
     int getNumberOfStarts() const { return options.numStarts; }
@@ -458,8 +458,9 @@ class MultiConditionProblemMultiStartOptimizationProblem
 private:
     MultiConditionDataProviderHDF5 *dp = nullptr;
     OptimizationOptions options;
-    MultiConditionProblemResultWriter *resultWriter = nullptr;
+    OptimizationResultWriter *resultWriter = nullptr;
     LoadBalancerMaster *loadBalancer = nullptr;
+    std::unique_ptr<Logger> logger;
 };
 
 

@@ -4,14 +4,9 @@
 #include <string>
 
 #include <hdf5.h>
-#include <hdf5_hl.h>
 #include <gsl/gsl-lite.hpp>
 
-#include "optimizationProblem.h"
-
 namespace parpe {
-
-class OptimizationProblem;
 
 /**
  * @brief The OptimizationResultWriter class receives results during an
@@ -32,7 +27,7 @@ public:
      * @param problem
      * @param file_id
      */
-    OptimizationResultWriter(hid_t file_id);
+    OptimizationResultWriter(hid_t file_id, std::string rootPath);
 
     /**
      * @brief Open HDF5 file and write there
@@ -40,7 +35,12 @@ public:
      * @param filename Name of the result file
      * @param overwrite Overwrite output file if already exists
      */
-    OptimizationResultWriter(const std::string &filename, bool overwrite);
+    OptimizationResultWriter(const std::string &filename,
+                             bool overwrite,
+                             std::string rootPath);
+
+    OptimizationResultWriter(OptimizationResultWriter const& other);
+
 
     virtual ~OptimizationResultWriter();
 
@@ -55,9 +55,13 @@ public:
      * @param timeElapsedInSeconds CPU time for the last objective function
      * evaluation (wall time)
      */
-    virtual void logLocalOptimizerObjectiveFunctionEvaluation(gsl::span<const double> parameters,
-            double objectiveFunctionValue, gsl::span<const double> objectiveFunctionGradient, int numIterations,
-            int numFunctionCalls, double timeElapsedInSeconds);
+    virtual void logLocalOptimizerObjectiveFunctionEvaluation(
+            gsl::span<const double> parameters,
+            double objectiveFunctionValue,
+            gsl::span<const double> objectiveFunctionGradient,
+            int numIterations,
+            int numFunctionCalls,
+            double timeElapsedInSeconds);
 
     /**
      * @brief Function to be called after each optimizer iteration. (For
@@ -77,9 +81,12 @@ public:
      * @param alpha_pr
      * @param ls_trials
      */
-    virtual void logLocalOptimizerIteration(int numIterations, gsl::span<const double> parameters,
-                                            double objectiveFunctionValue, gsl::span<const double> gradient,
-                                            double timeElapsedInSeconds);
+    virtual void logLocalOptimizerIteration(
+            int numIterations,
+            gsl::span<const double> parameters,
+            double objectiveFunctionValue,
+            gsl::span<const double> gradient,
+            double timeElapsedInSeconds);
     /*, int alg_mod, double inf_pr, double inf_du,
     double mu, double d_norm, double regularization_size, double alpha_du,
     double alpha_pr, int ls_trials*/
@@ -98,9 +105,11 @@ public:
                                            gsl::span<const double> optimalParameters, double masterTime,
                                            int exitStatus) const;
 
-    void setRootPath(std::string const& path);
-
     hid_t getFileId() const;
+
+    virtual std::string const& getRootPath() const;
+
+    void setRootPath(std::string const& path);
 
 protected:
     /**
@@ -109,17 +118,8 @@ protected:
     virtual void flushResultWriter() const;
 
 
-
 private:
-    int initResultHDFFile(const char *filename, bool overwrite);
-
-    void closeResultHDFFile();
-    virtual std::string getOptimizationPath() const;
-
     virtual std::string getIterationPath(int iterationIdx) const;
-
-    // TODO move out of here
-    virtual void logParPEVersion() const;
 
     hid_t file_id = 0;
 

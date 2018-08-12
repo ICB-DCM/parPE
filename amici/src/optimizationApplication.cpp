@@ -15,6 +15,7 @@
 #include <cstdlib>
 
 #include <amiciMisc.h>
+#include <hdf5Misc.h>
 
 #include <mpi.h>
 
@@ -134,6 +135,12 @@ void OptimizationApplication::printUsage(char * const argZero)
            "  -v, --version Print version info\n");
 }
 
+void OptimizationApplication::logParPEVersion(hid_t file_id) const
+{
+    hdf5WriteStringAttribute(file_id, "/", "PARPE_VERSION",
+                             PARPE_VERSION);
+}
+
 void OptimizationApplication::initMPI(int *argc, char ***argv) {
     int mpiErr = MPI_Init(argc, argv);
     if (mpiErr != MPI_SUCCESS) {
@@ -173,7 +180,7 @@ int OptimizationApplication::run(int argc, char **argv) {
     if (commSize > 1) {
         if (getMpiRank() == 0) {
             loadBalancer.run();
-            status = runMaster();
+            runMaster();
 
             loadBalancer.terminate();
             loadBalancer.sendTerminationSignalToAllWorkers();
@@ -181,7 +188,7 @@ int OptimizationApplication::run(int argc, char **argv) {
             logmessage(LOGLVL_INFO, "Sent termination signal to workers.");
 
         } else {
-            status = runWorker();
+            runWorker();
             finalizeTiming(wallTimer.getTotal(), cpuTimer.getTotal());
         }
     } else {
@@ -193,7 +200,7 @@ int OptimizationApplication::run(int argc, char **argv) {
     return status;
 }
 
-int OptimizationApplication::runMaster() {
+void OptimizationApplication::runMaster() {
     switch (opType) {
     case OP_TYPE_GRADIENT_CHECK: {
         const int numParameterIndicesToCheck = 50;
@@ -209,7 +216,7 @@ int OptimizationApplication::runMaster() {
     }
 }
 
-int OptimizationApplication::runWorker() {
+void OptimizationApplication::runWorker() {
     // TODO: Move out of here
     LoadBalancerWorker lbw;
     lbw.run([this](std::vector<char> &buffer, int jobId) {
@@ -221,15 +228,13 @@ int OptimizationApplication::runWorker() {
         } else {
             // hierarchical
             auto hierarch = dynamic_cast<HierachicalOptimizationWrapper *>(problem->costFun.get());
-            assert(hierarch);
+            RELEASE_ASSERT(hierarch, "");
             hierarch->fun->messageHandler(buffer, jobId);
         }
     });
-
-    return 0;
 }
 
-int OptimizationApplication::runSingleMpiProcess() {
+void OptimizationApplication::runSingleMpiProcess() {
     // run serially
     switch (opType) {
     case OP_TYPE_GRADIENT_CHECK: {
@@ -248,8 +253,6 @@ int OptimizationApplication::runSingleMpiProcess() {
             getLocalOptimum(problem.get());
         }
     }
-
-    return 0;
 }
 
 void OptimizationApplication::finalizeTiming(double wallTimeSeconds, double cpuTimeSeconds) {
@@ -269,8 +272,7 @@ void OptimizationApplication::finalizeTiming(double wallTimeSeconds, double cpuT
     if (mpiRank < 1) {
         logmessage(LOGLVL_INFO, "Walltime on master: %fs, CPU time of all processes: %fs",
                    wallTimeSeconds, totalCpuTimeInSeconds);
-        if (resultWriter)
-            saveTotalCpuTime(resultWriter->getFileId(), totalCpuTimeInSeconds);
+        saveTotalCpuTime(file_id, totalCpuTimeInSeconds);
     }
 }
 
@@ -313,8 +315,8 @@ bool OptimizationApplication::isWorker() { return getMpiRank() > 0; }
 OptimizationApplication::~OptimizationApplication() {
     // objects must be destroyed before MPI_Finalize is called
     // and Hdf5 mutex is destroyed
+    closeHDF5File(file_id);
     problem.reset(nullptr);
-    resultWriter.reset(nullptr);
     if(getMpiActive())
         MPI_Finalize();
 }

@@ -165,7 +165,7 @@ TEST(optimizationProblem, linearModelToGradientFunOptimization) {
     auto gradFun = std::unique_ptr<parpe::GradientFunction>(
                 new parpe::SummedGradientFunctionGradientFunctionAdapter<double>(
                     std::move(model), dataset));
-    parpe::OptimizationProblemImpl problem {std::move(gradFun)};
+    parpe::OptimizationProblemImpl problem {std::move(gradFun), std::make_unique<parpe::Logger>()};
 
     std::vector<double> parametersMin {-100, -100};
     std::vector<double> parametersMax {100, 100};

@@ -1,5 +1,7 @@
 #include "multiStartOptimization.h"
 #include "logging.h"
+#include "parpeException.h"
+
 #include <cstdlib>
 #include <cstring>
 #include <pthread.h>
@@ -19,7 +21,8 @@ MultiStartOptimization::MultiStartOptimization(MultiStartOptimizationProblem &pr
 void MultiStartOptimization::run() {
     if (runParallel)
         runMultiThreaded();
-    runSingleThreaded();
+    else
+        runSingleThreaded();
 }
 
 void MultiStartOptimization::runMultiThreaded()
@@ -32,7 +35,10 @@ void MultiStartOptimization::runMultiThreaded()
 
     std::vector<OptimizationProblem *> localProblems =
             createLocalOptimizationProblems();
-    assert(localProblems.size() == (unsigned)numberOfStarts);
+
+    if(localProblems.size() != static_cast<std::vector<OptimizationProblem *>::size_type>(numberOfStarts)) {
+        throw ParPEException("Number of problems does not match number of specific starts.");
+    }
 
     pthread_attr_t threadAttr;
     pthread_attr_init(&threadAttr);

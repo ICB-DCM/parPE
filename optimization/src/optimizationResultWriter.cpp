@@ -1,74 +1,63 @@
 #include "optimizationResultWriter.h"
+
 #include <parpeVersion.h>
-
-#include <cassert>
-#include <cmath>
-#include <sstream>
-#include <iostream>
-
 #include <hdf5Misc.h>
 #include <misc.h>
 #include <logging.h>
 
+#include <cmath>
+#include <sstream>
+#include <iostream>
+
+#include <hdf5_hl.h>
+
+
 namespace parpe {
 
-OptimizationResultWriter::OptimizationResultWriter(hid_t file_id)
+OptimizationResultWriter::OptimizationResultWriter(hid_t file_id, std::string rootPath)
+    : rootPath(rootPath)
 {
     auto lock = hdf5MutexGetLock();
     this->file_id = H5Freopen(file_id);
-
-    logParPEVersion();
 }
 
 
 OptimizationResultWriter::OptimizationResultWriter(const std::string &filename,
-                                                   bool overwrite) {
+                                                   bool overwrite, std::string rootPath)
+    : rootPath(std::move(rootPath))
+{
     logmessage(LOGLVL_DEBUG, "Writing results to %s.", filename.c_str());
+
     mkpathConstChar(filename.c_str(), 0755);
     file_id = hdf5CreateFile(filename.c_str(), overwrite);
+}
 
-    if(file_id < 0)
-        throw(HDF5Exception());
-
-    logParPEVersion();
+OptimizationResultWriter::OptimizationResultWriter(const OptimizationResultWriter &other)
+    : file_id(H5Freopen(other.file_id)),
+      rootPath(other.rootPath)
+{
+    hdf5EnsureGroupExists(file_id, rootPath);
 }
 
 
-std::string OptimizationResultWriter::getOptimizationPath() const { return rootPath; }
+const std::string &OptimizationResultWriter::getRootPath() const { return rootPath; }
 
 
 std::string OptimizationResultWriter::getIterationPath(int iterationIdx) const {
     std::ostringstream ss;
-    ss << rootPath << "/" << iterationIdx << "/";
+    ss << rootPath << "/iteration/" << iterationIdx << "/";
 
     return ss.str();
 }
 
 
-void OptimizationResultWriter::logParPEVersion() const {
-    hdf5EnsureGroupExists(file_id, rootPath.c_str());
-    hdf5WriteStringAttribute(file_id, rootPath.c_str(), "PARPE_VERSION",
-                             PARPE_VERSION);
-}
-
-
-void OptimizationResultWriter::closeResultHDFFile() {
-    auto lock = hdf5MutexGetLock();
-
-    H5_SAVE_ERROR_HANDLER;
-    herr_t status = H5Fclose(file_id);
-
-    if (status < 0) {
-        error("closeResultHDFFile failed to close HDF5 file.");
-        H5Eprint(H5E_DEFAULT, stderr);
-    }
-    H5_RESTORE_ERROR_HANDLER;
-}
-
-
-void OptimizationResultWriter::logLocalOptimizerObjectiveFunctionEvaluation(gsl::span<const double> parameters, double objectiveFunctionValue,
-        gsl::span<const double> objectiveFunctionGradient, int numIterations, int numFunctionCalls,
-        double timeElapsedInSeconds) {
+void OptimizationResultWriter::logLocalOptimizerObjectiveFunctionEvaluation(
+        gsl::span<const double> parameters,
+        double objectiveFunctionValue,
+        gsl::span<const double> objectiveFunctionGradient,
+        int numIterations, int numFunctionCalls,
+        double timeElapsedInSeconds)
+{
 
     std::string pathStr = getIterationPath(numIterations);
     const char *fullGroupPath = pathStr.c_str();
@@ -108,7 +97,7 @@ void OptimizationResultWriter::logLocalOptimizerIteration(int numIterations, gsl
                                                           double objectiveFunctionValue, gsl::span<const double> gradient,
                                                           double timeElapsedInSeconds)
 {
-    std::string pathStr = getOptimizationPath();
+    std::string const& pathStr = getRootPath();
     const char *fullGroupPath = pathStr.c_str();
 
     hdf5CreateOrExtendAndWriteToDouble2DArray(
@@ -163,7 +152,7 @@ void OptimizationResultWriter::logLocalOptimizerIteration(int numIterations, gsl
 void OptimizationResultWriter::starting(gsl::span<double const> initialParameters)
 {
     if (!initialParameters.empty()) {
-        std::string pathStr = getOptimizationPath();
+        std::string const& pathStr = getRootPath();
         const char *fullGroupPath = pathStr.c_str();
 
         hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath,
@@ -183,7 +172,7 @@ void OptimizationResultWriter::flushResultWriter() const {
 void OptimizationResultWriter::saveLocalOptimizerResults(double finalNegLogLikelihood, gsl::span<const double> optimalParameters,
                                                          double masterTime, int exitStatus) const {
 
-    std::string optimPath = getOptimizationPath();
+    std::string const& optimPath = getRootPath();
     hdf5EnsureGroupExists(file_id, optimPath.c_str());
 
     std::string fullGroupPath;
@@ -220,7 +209,7 @@ void OptimizationResultWriter::setRootPath(const std::string &path)
 }
 
 OptimizationResultWriter::~OptimizationResultWriter() {
-    closeResultHDFFile();
+    closeHDF5File(file_id);
 }
 
 hid_t OptimizationResultWriter::getFileId() const

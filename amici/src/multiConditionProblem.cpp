@@ -22,13 +22,17 @@ namespace parpe {
 //#define NO_OBJ_FUN_EVAL
 
 MultiConditionProblem::MultiConditionProblem(MultiConditionDataProvider *dp)
-    : MultiConditionProblem(dp, nullptr, nullptr) {}
+    : MultiConditionProblem(dp, nullptr, nullptr, nullptr) {}
 
 MultiConditionProblem::MultiConditionProblem(
-        MultiConditionDataProvider *dp, LoadBalancerMaster *loadBalancer,
-        std::unique_ptr<MultiConditionProblemResultWriter> resultWriter)
-    :dataProvider(dp), resultWriter(std::move(resultWriter))
+        MultiConditionDataProvider *dp,
+        LoadBalancerMaster *loadBalancer,
+        std::unique_ptr<Logger> logger,
+        std::unique_ptr<OptimizationResultWriter> resultWriter)
+    : dataProvider(dp),
+      resultWriter(std::move(resultWriter))
 {
+    this->logger = std::move(logger);
     // run on all data
     std::vector<int> dataIndices(dataProvider->getNumberOfConditions());
     std::iota(dataIndices.begin(), dataIndices.end(), 0);
@@ -107,8 +111,10 @@ void MultiConditionProblem::setParametersMax(std::vector<double> const& upperBou
 std::unique_ptr<OptimizationReporter> MultiConditionProblem::getReporter() const
 {
 
-    return std::make_unique<OptimizationReporter>(costFun.get(),
-                std::make_unique<MultiConditionProblemResultWriter>(*resultWriter));
+    return std::make_unique<OptimizationReporter>(
+                costFun.get(),
+                std::make_unique<OptimizationResultWriter>(*resultWriter),
+                                                  std::make_unique<Logger>(*logger));
 }
 
 
@@ -117,30 +123,33 @@ MultiConditionDataProvider *MultiConditionProblem::getDataProvider() {
     return dataProvider;
 }
 
-MultiConditionProblemMultiStartOptimizationProblem::MultiConditionProblemMultiStartOptimizationProblem(
-        MultiConditionDataProviderHDF5 *dp,
+MultiConditionProblemMultiStartOptimizationProblem::MultiConditionProblemMultiStartOptimizationProblem(MultiConditionDataProviderHDF5 *dp,
         OptimizationOptions options,
-        MultiConditionProblemResultWriter *resultWriter,
-        LoadBalancerMaster *loadBalancer)
-    : dp(dp), options(std::move(options)), resultWriter(resultWriter), loadBalancer(loadBalancer)
+        OptimizationResultWriter *resultWriter,
+        LoadBalancerMaster *loadBalancer, std::unique_ptr<Logger> logger)
+    : dp(dp), options(std::move(options)),
+      resultWriter(resultWriter), loadBalancer(loadBalancer),
+      logger(std::move(logger))
 {}
 
 std::unique_ptr<OptimizationProblem> MultiConditionProblemMultiStartOptimizationProblem::getLocalProblem(
         int multiStartIndex) const {
     // generate new OptimizationProblem with data from dp
 
-    assert(dp != nullptr);
+    RELEASE_ASSERT(dp != nullptr, "");
 
     std::unique_ptr<MultiConditionProblem> problem;
 
     if (resultWriter) {
-        JobIdentifier id = resultWriter->getJobId();
-        id.idxLocalOptimization = multiStartIndex;
-        problem = std::make_unique<MultiConditionProblem>(dp, loadBalancer, std::make_unique<MultiConditionProblemResultWriter>(*resultWriter));
-        problem->getResultWriter()->setJobId(id);
+        problem = std::make_unique<MultiConditionProblem>(
+                    dp, loadBalancer,
+                    logger->getChild(std::string(".") + std::to_string(multiStartIndex)),
+                    std::make_unique<OptimizationResultWriter>(*resultWriter));
+        problem->getResultWriter()->setRootPath("/multistarts/" + std::to_string(multiStartIndex));
         problem->path.idxLocalOptimization = multiStartIndex;
     } else {
-        problem = std::make_unique<MultiConditionProblem>(dp, loadBalancer, nullptr);
+        problem = std::make_unique<MultiConditionProblem>(dp, loadBalancer,
+                                                          logger->getChild(std::string(".") + std::to_string(multiStartIndex)), nullptr);
     }
     problem->setOptimizationOptions(options);
     problem->setInitialParameters(parpe::OptimizationOptions::getStartingPoint(dp->getHdf5FileId(), multiStartIndex));
@@ -237,9 +246,8 @@ void logSimulation(hid_t file_id, std::string const& pathStr, std::vector<double
 
 }
 
-AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
-        amici::Solver &solver, amici::Model &model, JobIdentifier path, int jobId,
-        MultiConditionDataProvider *dataProvider, MultiConditionProblemResultWriter *resultWriter,
+AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(amici::Solver &solver, amici::Model &model, JobIdentifier path, int jobId,
+        MultiConditionDataProvider *dataProvider, OptimizationResultWriter *resultWriter,
         bool logLineSearch)
 {
     /* wall time  on worker for current simulation */
@@ -268,7 +276,7 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
 
     if (resultWriter && (solver.getSensitivityOrder() > amici::AMICI_SENSI_ORDER_NONE || logLineSearch)) {
         int iterationsUntilSteadystate = -1;
-        logSimulation(resultWriter->getFileId(), resultWriter->getOptimizationPath(),
+        logSimulation(resultWriter->getFileId(), resultWriter->getRootPath(),
                       model.getParameters(), rdata->llh, rdata->sllh,
                       timeSeconds, rdata->x, rdata->sx, rdata->y,
                       jobId, iterationsUntilSteadystate, rdata->status);

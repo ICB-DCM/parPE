@@ -2,7 +2,6 @@
 #define OPTIMIZATIONAPPLICATION_H
 
 #include "multiConditionProblem.h"
-#include "multiConditionProblemResultWriter.h"
 #include <loadBalancerMaster.h>
 #include <loadBalancerWorker.h>
 #include "hierarchicalOptimization.h"
@@ -45,18 +44,20 @@ class OptimizationApplication {
      * processes.
      * @return
      */
-    virtual int runMaster();
+    virtual void runMaster();
 
     /**
      * @brief Code to be run on worker processes. Waits for jobs to be sent to
      * messageHandler()
      */
-    virtual int runWorker();
+    virtual void runWorker();
 
     /**
      * @brief Code to be run if the application is running on only 1 process
      */
-    virtual int runSingleMpiProcess();
+    virtual void runSingleMpiProcess();
+
+  protected:
 
     /**
      * @brief Writes the total programm runtime
@@ -70,8 +71,6 @@ class OptimizationApplication {
     bool isMaster();
 
     bool isWorker();
-
-  protected:
 
     /**
      * @brief Initialize MPI
@@ -90,7 +89,9 @@ class OptimizationApplication {
      */
     virtual int parseOptions(int argc, char **argv);
 
-    void printUsage(char* const argZero);
+    virtual void printUsage(char* const argZero);
+
+    virtual void logParPEVersion(hid_t file_id) const;
 
 private:
     /**
@@ -125,8 +126,7 @@ protected:
     // the need to be filled in by sub
     std::unique_ptr<MultiStartOptimizationProblem> multiStartOptimizationProblem;
     std::unique_ptr<OptimizationProblem> problem;
-    std::unique_ptr<MultiConditionProblemResultWriter> resultWriter;
-
+    hid_t file_id;
     operationTypeEnum opType = OP_TYPE_PARAMETER_ESTIMATION;
     LoadBalancerMaster loadBalancer;
 };

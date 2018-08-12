@@ -543,6 +543,7 @@ HierachicalOptimizationProblemWrapper::HierachicalOptimizationProblemWrapper(
         const MultiConditionDataProviderHDF5 *dataProvider)
     : wrappedProblem(std::move(problemToWrap))
 {
+    logger = std::make_unique<Logger>(*wrappedProblem->logger);
     auto wrappedFun = dynamic_cast<SummedGradientFunctionGradientFunctionAdapter<int>*>(
                 wrappedProblem->costFun.get());
 
@@ -559,8 +560,10 @@ HierachicalOptimizationProblemWrapper::HierachicalOptimizationProblemWrapper(
 }
 
 HierachicalOptimizationProblemWrapper::HierachicalOptimizationProblemWrapper(std::unique_ptr<OptimizationProblem> problemToWrap,
-                                                                             std::unique_ptr<HierachicalOptimizationWrapper> costFun)
-    : OptimizationProblem(std::move(costFun)),
+                                                                             std::unique_ptr<HierachicalOptimizationWrapper> costFun,
+                                                                             std::unique_ptr<Logger> logger)
+    : OptimizationProblem(std::move(costFun),
+                          std::move(logger)),
       wrappedProblem(std::move(problemToWrap))
 {
 
@@ -606,7 +609,8 @@ std::unique_ptr<OptimizationReporter> HierachicalOptimizationProblemWrapper::get
     auto outerReporter = std::unique_ptr<OptimizationReporter>(
                 new HierarchicalOptimizationReporter(
                     dynamic_cast<HierachicalOptimizationWrapper*>(costFun.get()),
-                        std::move(innerReporter->resultWriter)
+                        std::move(innerReporter->resultWriter),
+                    std::make_unique<Logger>(*logger)
                     ));
     return outerReporter;
 }
@@ -931,8 +935,11 @@ std::vector<int> AnalyticalParameterProviderDefault::getOptimizationParameterInd
     return optimizationParameterIndices;
 }
 
-HierarchicalOptimizationReporter::HierarchicalOptimizationReporter(HierachicalOptimizationWrapper *gradFun, std::unique_ptr<OptimizationResultWriter> rw)
-    : OptimizationReporter(gradFun, std::move(rw))
+HierarchicalOptimizationReporter::HierarchicalOptimizationReporter(
+        HierachicalOptimizationWrapper *gradFun,
+        std::unique_ptr<OptimizationResultWriter> rw,
+        std::unique_ptr<Logger> logger)
+    : OptimizationReporter(gradFun, std::move(rw), std::move(logger))
 {
     hierarchicalWrapper = gradFun;
 }
@@ -982,17 +989,21 @@ void HierarchicalOptimizationReporter::finished(double optimalCost, gsl::span<co
 {
     double timeElapsed = wallTimer.getTotal();
 
-    if(cachedCost != optimalCost) {
+    if(cachedCost > optimalCost) {
         // the optimal value is not from the cached parameters and we did not get
         // the optimal full parameter vector. since we don't know them, rather set to nan
         cachedFullParameters.assign(cachedFullParameters.size(), NAN);
         std::copy(parameters.begin(), parameters.end(), cachedParameters.data());
+        logmessage(LOGLVL_INFO, "cachedCost != optimalCost");
+        cachedCost = NAN;
     }
 
-    cachedCost = optimalCost;
+    if(logger)
+        logger->logmessage(LOGLVL_INFO, "Optimizer status %d, final llh: %e, time: %f.",
+               exitStatus, cachedCost, timeElapsed);
 
     if(resultWriter)
-        resultWriter->saveLocalOptimizerResults(optimalCost, cachedFullParameters, timeElapsed, exitStatus);
+        resultWriter->saveLocalOptimizerResults(cachedCost, cachedFullParameters, timeElapsed, exitStatus);
 }
 
 const std::vector<double> &HierarchicalOptimizationReporter::getFinalParameters() const
@@ -1038,6 +1049,9 @@ bool HierarchicalOptimizationReporter::afterCostFunctionCall(
         gsl::span<const double> objectiveFunctionGradient) const
 {
     double wallTime = wallTimer.getTotal();//(double)(timeCostEvaluationEnd - timeCostEvaluationBegin) / CLOCKS_PER_SEC;
+
+    if(!std::isfinite(objectiveFunctionValue))
+        printObjectiveFunctionFailureMessage();
 
     if(resultWriter) {
         resultWriter->logLocalOptimizerObjectiveFunctionEvaluation(cachedFullParameters, cachedCost,

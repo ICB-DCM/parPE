@@ -7,8 +7,9 @@
 
 namespace parpe {
 
-QuadraticTestProblem::QuadraticTestProblem()
-    : OptimizationProblem(std::unique_ptr<GradientFunction>(new QuadraticGradientFunction())) {
+QuadraticTestProblem::QuadraticTestProblem(std::unique_ptr<Logger> logger)
+    : OptimizationProblem(
+          std::unique_ptr<GradientFunction>(new QuadraticGradientFunction()), std::move(logger)) {
     auto options = getOptimizationOptions();
     options.maxOptimizerIterations = 12;
     options.optimizer = optimizerName::OPTIMIZER_IPOPT;
@@ -28,12 +29,15 @@ void QuadraticTestProblem::fillParametersMax(gsl::span<double> buffer) const
 
 std::unique_ptr<OptimizationReporter> QuadraticTestProblem::getReporter() const
 {
-    return std::unique_ptr<OptimizationReporter>(new OptimizationReporterTest(costFun.get()));
+    return std::unique_ptr<OptimizationReporter>(
+                new OptimizationReporterTest(costFun.get(), std::make_unique<Logger>()));
 }
 
 std::unique_ptr<OptimizationProblem> QuadraticOptimizationMultiStartProblem::getLocalProblem(
-        int  /*multiStartIndex*/) const {
-    auto p = std::unique_ptr<OptimizationProblem>(new QuadraticTestProblem());
+        int  multiStartIndex) const {
+    auto loggerPrefix = std::string("[start ") + std::to_string(multiStartIndex) + "]";
+    auto p = std::unique_ptr<OptimizationProblem>(
+                new QuadraticTestProblem(std::make_unique<Logger>(loggerPrefix)));
     p->setOptimizationOptions(options);
     return p;
 }

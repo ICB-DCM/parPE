@@ -5,7 +5,6 @@ add_test (NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME} -c)
 set(SRC_LIST_CPP
     main.cpp
     ../src/amiciSimulationRunnerTest.cpp
-    ../src/multiConditionProblemResultWriterTest.cpp
     ../src/multiConditionDataProviderTest.cpp
     ../src/multiConditionProblemTest.cpp
     ../src/simulationResultWriterTest.cpp

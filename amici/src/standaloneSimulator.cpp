@@ -1,4 +1,5 @@
 #include "standaloneSimulator.h"
+
 #include "amiciSimulationRunner.h"
 #include "simulationResultWriter.h"
 #include <loadBalancerMaster.h>
@@ -28,8 +29,6 @@ int StandaloneSimulator::run(const std::string& resultFile,
                              H5::H5File const& inputFile)
 {
     // std::cout<<"file: "<<resultFile<<" path: "<<resultPath<<" lbm:"<<loadBalancer<<std::endl;
-    int errors = 0;
-    JobIdentifier path;
 
     SimulationResultWriter rw(resultFile, resultPath);
     rw.saveYMes = true;
@@ -97,6 +96,7 @@ int StandaloneSimulator::run(const std::string& resultFile,
 
     std::vector<int> dataIndices(dataProvider->getNumberOfConditions());
     std::iota(dataIndices.begin(), dataIndices.end(), 0);
+    int errors = 0;
 
     AmiciSimulationRunner simRunner(
                 parameters,
@@ -194,7 +194,6 @@ void StandaloneSimulator::messageHandler(std::vector<char> &buffer, int jobId)
 {
     // TODO: pretty redundant with messageHandler in multiconditionproblem
     // unpack simulation job data
-    JobIdentifier path;
     auto model = dataProvider->getModel();
     auto solver = dataProvider->getSolver();
     auto sim = amici::deserializeFromChar<
@@ -211,9 +210,8 @@ void StandaloneSimulator::messageHandler(std::vector<char> &buffer, int jobId)
     std::map<int, AmiciSimulationRunner::AmiciResultPackageSimple> results;
     // run simulations for all condition indices
     for(auto conditionIndex: sim.conditionIndices) {
-        path.idxConditions = conditionIndex;
         dataProvider->updateSimulationParameters(conditionIndex, sim.optimizationParameters, *model);
-        auto result = runSimulation(path, *solver, *model);
+        auto result = runSimulation(conditionIndex, *solver, *model);
         results[conditionIndex] = result;
     }
 
@@ -226,11 +224,11 @@ void StandaloneSimulator::messageHandler(std::vector<char> &buffer, int jobId)
 }
 
 
-AmiciSimulationRunner::AmiciResultPackageSimple StandaloneSimulator::runSimulation(JobIdentifier path,
+AmiciSimulationRunner::AmiciResultPackageSimple StandaloneSimulator::runSimulation(int conditionIdx,
                                                             amici::Solver& solver, amici::Model& model)
 {
     // currently requires edata, since all condition specific parameters are set via edata
-    auto edata = dataProvider->getExperimentalDataForCondition(path.idxConditions);
+    auto edata = dataProvider->getExperimentalDataForCondition(conditionIdx);
 
     auto rdata = amici::runAmiciSimulation(solver, edata.get(), model);
 

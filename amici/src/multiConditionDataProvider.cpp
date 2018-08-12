@@ -28,11 +28,9 @@ MultiConditionDataProviderHDF5::MultiConditionDataProviderHDF5(std::unique_ptr<a
                                                                std::string const& rootPath)
     : model(std::move(model)), rootPath(rootPath) {
 
-    optimizationOptions = parpe::OptimizationOptions::fromHDF5(getHdf5FileId());
-
     auto lock = hdf5MutexGetLock();
-
     openHdf5File(hdf5Filename);
+    optimizationOptions = parpe::OptimizationOptions::fromHDF5(getHdf5FileId());
 
     hdf5MeasurementPath = rootPath + "/measurements/y";
     hdf5MeasurementSigmaPath = rootPath + "/measurements/ysigma";
