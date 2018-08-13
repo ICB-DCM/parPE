@@ -256,13 +256,52 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
 
     auto edata = dataProvider->getExperimentalDataForCondition(conditionIdx);
 
+    // save tolerances to restore later
+    auto absTolOrig = solver.getAbsoluteTolerance();
+    auto absTolQuadOrig = solver.getAbsoluteToleranceQuadratures();
+    auto relTolOrig = solver.getRelativeTolerance();
+    auto relTolQuadOrig = solver.getRelativeToleranceQuadratures();
+
+    /* In case of simulation failure, try rerunning with higher error tolerance */
+    constexpr int maxNumTrials = 4; // on failure, rerun simulation
+    constexpr double errorRelaxation = 1e2;
     std::unique_ptr<amici::ReturnData> rdata;
-    try {
-        rdata = amici::runAmiciSimulation(solver, edata.get(), model);
-    } catch (std::exception &e) {
-        logger->logmessage(LOGLVL_DEBUG, "Error during simulation: %s (%d)", e.what(), rdata->status);
-        rdata->invalidateLLH();
+    for(int trial = 1; trial <= maxNumTrials; ++trial) {
+        try {
+            rdata = amici::runAmiciSimulation(solver, edata.get(), model);
+        } catch (std::exception const& e) {
+            logger->logmessage(LOGLVL_DEBUG, "Error during simulation: %s (%d)", e.what(), rdata->status);
+            if(rdata->status == AMICI_SUCCESS)
+                rdata->status = AMICI_ERROR;
+            rdata->invalidateLLH();
+        }
+
+        if(rdata->status == AMICI_SUCCESS)
+            break;
+
+        if(trial < maxNumTrials) {
+            solver.setAbsoluteTolerance(errorRelaxation * solver.getAbsoluteTolerance());
+            solver.setAbsoluteToleranceQuadratures(errorRelaxation * solver.getAbsoluteToleranceQuadratures());
+            solver.setRelativeTolerance(errorRelaxation * solver.getRelativeTolerance());
+            solver.setRelativeToleranceQuadratures(errorRelaxation * solver.getRelativeToleranceQuadratures());
+
+            logger->logmessage(LOGLVL_WARNING, "Error during simulation (try %d/%d), "
+                                               "retrying with relaxed error tolerances (*= %g): "
+                                               "abs: %g rel: %g quadAbs: %g quadRel: %g ",
+                               trial, maxNumTrials, errorRelaxation,
+                               solver.getAbsoluteTolerance(), solver.getRelativeTolerance(),
+                               solver.getAbsoluteToleranceQuadratures(),
+                               solver.getRelativeToleranceQuadratures());
+        } else {
+            logger->logmessage(LOGLVL_ERROR, "Simulation trial %d/%d failed. Giving up.", trial, maxNumTrials);
+        }
     }
+
+    // reset tolerances (solver might be reused)
+    solver.setAbsoluteTolerance(absTolOrig);
+    solver.setAbsoluteToleranceQuadratures(absTolQuadOrig);
+    solver.setRelativeTolerance(relTolOrig);
+    solver.setRelativeToleranceQuadratures(relTolQuadOrig);
 
     double endTime = MPI_Wtime();
     double timeSeconds = (endTime - startTime);
