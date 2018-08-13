@@ -62,6 +62,16 @@ void hdf5EnsureGroupExists(hid_t file_id, const std::string &groupName);
 
 void hdf5CreateGroup(hid_t file_id, const char *groupPath, bool recursively = false);
 
+/**
+ * @brief Create and open HDF5 file for writing.
+ *
+ * Creates parent path if it doesn't exist before creating the file.
+ * Throws HDF5Exception on failure.
+ * @param filename Filename, optionally including path of the new file
+ * @param overwrite Overwrite file if exists. If false and file exists,
+ * throws HDF5Exception on failure.
+ * @return HDF5 file handle of the created/opened file
+ */
 hid_t hdf5CreateFile(const char *filename,
                    bool overwrite = false);
 
