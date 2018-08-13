@@ -30,7 +30,6 @@ OptimizationResultWriter::OptimizationResultWriter(const std::string &filename,
 {
     logmessage(LOGLVL_DEBUG, "Writing results to %s.", filename.c_str());
 
-    mkpathConstChar(filename.c_str(), 0755);
     file_id = hdf5CreateFile(filename.c_str(), overwrite);
 
     hdf5EnsureGroupExists(file_id, this->rootPath);

@@ -520,6 +520,9 @@ void hdf5WriteStringAttribute(hid_t fileId, const char *datasetPath,
 
 hid_t hdf5CreateFile(const char *filename, bool overwrite)
 {
+    // Create parent folders
+    mkpathConstChar(filename, 0755);
+
     std::lock_guard<mutexHdfType> lock(mutexHdf);
 
     if (!overwrite) {

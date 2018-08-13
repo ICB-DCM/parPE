@@ -24,7 +24,7 @@ namespace parpe {
 
 class MultiConditionDataProvider;
 
-AmiciSimulationRunner::AmiciResultPackageSimple  runAndLogSimulation(amici::Solver &solver,
+AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(amici::Solver &solver,
         amici::Model &model,
         int conditionIdx,
         int jobId,
