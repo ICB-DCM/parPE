@@ -64,7 +64,7 @@ public:
               9, // nnz
               3, // ubw
               3, // lbw
-              amici::AMICI_O2MODE_NONE, // o2mode
+              amici::SecondOrderMode::none, // o2mode
               std::vector<realtype>{1.0, 0.5, 0.4, 2.0, 0.1, 2.0, 3.0, 0.2}, // dynamic parameters
               std::vector<realtype>{1.0}, // fixedParameters
               std::vector<int>{}, // plist
@@ -703,7 +703,45 @@ public:
      * @brief Get names of the model parameters
      * @return the names
      */
-    virtual std::vector<std::string> getParameterNames() const { return std::vector<std::string> {"p1",
+    virtual std::vector<std::string> getParameterNames() const override { return std::vector<std::string> {"",
+"",
+"",
+"",
+"",
+"",
+"",
+"",}; }
+
+    /**
+     * @brief Get names of the model states
+     * @return the names
+     */
+    virtual std::vector<std::string> getStateNames() const override { return std::vector<std::string> {"",
+"",
+"",}; }
+
+    /**
+     * @brief Get names of the fixed model parameters
+     * @return the names
+     */
+    virtual std::vector<std::string> getFixedParameterNames() const override { return std::vector<std::string> {"",}; }
+
+    /**
+     * @brief Get names of the observables
+     * @return the names
+     */
+    virtual std::vector<std::string> getObservableNames() const override { return std::vector<std::string> {"",
+"",
+"",
+"",
+"",
+"",}; }
+
+    /**
+     * @brief Get ids of the model parameters
+     * @return the ids
+     */
+    virtual std::vector<std::string> getParameterIds() const override { return std::vector<std::string> {"p1",
 "p2",
 "p3",
 "p4",
@@ -711,26 +749,26 @@ public:
 "scaling_x1",
 "offset_x2",
 "observable_x1withsigma_sigma",}; }
-
+    
     /**
-     * @brief Get names of the model states
-     * @return the names
+     * @brief Get ids of the model states
+     * @return the ids
      */
-    virtual std::vector<std::string> getStateNames() const { return std::vector<std::string> {"x1",
+    virtual std::vector<std::string> getStateIds() const override { return std::vector<std::string> {"x1",
 "x2",
 "x3",}; }
-
+    
     /**
-     * @brief Get names of the fixed model parameters
-     * @return the names
+     * @brief Get ids of the fixed model parameters
+     * @return the ids
      */
-    virtual std::vector<std::string> getFixedParameterNames() const { return std::vector<std::string> {"k0",}; }
-
+    virtual std::vector<std::string> getFixedParameterIds() const override { return std::vector<std::string> {"k0",}; }
+    
     /**
-     * @brief Get names of the observables
-     * @return the names
+     * @brief Get ids of the observables
+     * @return the ids
      */
-    virtual std::vector<std::string> getObservableNames() const { return std::vector<std::string> {"observable_x1",
+    virtual std::vector<std::string> getObservableIds() const override { return std::vector<std::string> {"observable_x1",
 "observable_x2",
 "observable_x3",
 "observable_x1_scaled",
