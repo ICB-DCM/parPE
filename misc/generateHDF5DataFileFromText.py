@@ -538,7 +538,7 @@ class HDF5DataGenerator:
         self.ny = len(self.y)
         self.observables = self.getObservableNamesFromSbml()
         self.checkObservablesSbmlMatchAmici(self.observables, self.y)
-        self.writeStringArray("/measurements/observableNames", self.observables)
+        self.writeStringArray("/measurements/observableNames", self.y)
 
         print("Number of observables: %d" % self.ny)
 
@@ -971,10 +971,10 @@ class HDF5DataGenerator:
         # set toms611/SUMSL options
         g = self.f.require_group('optimizationOptions/toms611')
         g.attrs['mxfcal'] = 1e8
-    
+
         self.writeBounds()
         self.writeStartingPoints()
-        
+
         
     def writeBounds(self):
         """
@@ -988,10 +988,11 @@ class HDF5DataGenerator:
         min[:] = [-5] * numParams
         max[:] = [3] * numParams
         
-        # offset parameters are optimized in linear space 
+        # offset parameters are optimized in linear space
         offsetIndices = [i for i, p in enumerate(self.f['/parameters/parameterNames']) if p.startswith('offset_')]
-        min[offsetIndices] = -1e10
-        max[offsetIndices] = +1e10
+        if len(offsetIndices) > 0:
+            min[offsetIndices] = -1e10
+            max[offsetIndices] = +1e10
 
     def writeStartingPoints(self):
         """
