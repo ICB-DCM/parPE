@@ -683,4 +683,24 @@ void hdf5CreateOrExtendAndWriteToString1DArray(hid_t file_id, const char *parent
     hdf5ExtendAndWriteToString1DArray(file_id, fullDatasetPath.c_str(), buffer);
 }
 
+H5::H5File hdf5OpenForReading(const std::string &hdf5Filename)
+{
+    auto lock = hdf5MutexGetLock();
+
+    H5_SAVE_ERROR_HANDLER;
+    try {
+        auto file = H5::H5File(hdf5Filename, H5F_ACC_RDONLY);
+        H5_RESTORE_ERROR_HANDLER;
+        return file;
+    } catch (...) {
+        logmessage(LOGLVL_CRITICAL,
+                   "failed to open HDF5 file '%s'.",
+                   hdf5Filename.c_str());
+        printBacktrace(20);
+        H5Ewalk2(H5E_DEFAULT, H5E_WALK_DOWNWARD, hdf5ErrorStackWalker_cb, nullptr);
+        H5_RESTORE_ERROR_HANDLER;
+        throw(HDF5Exception());
+    }
+}
+
 } // namespace parpe

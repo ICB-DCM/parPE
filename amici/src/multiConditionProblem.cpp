@@ -191,6 +191,8 @@ void saveSimulation(hid_t file_id, std::string const& pathStr, std::vector<doubl
     // TODO replace by SimulationResultWriter
     const char *fullGroupPath = pathStr.c_str();
 
+    auto lock = hdf5MutexGetLock();
+
     hdf5CreateOrExtendAndWriteToDouble2DArray(
         file_id, fullGroupPath, "simulationLogLikelihood", &llh, 1);
 

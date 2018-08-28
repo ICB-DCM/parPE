@@ -306,6 +306,8 @@ public:
                                   const std::string &analyticalParameterIndicesPath,
                                   const std::string &mapPath);
 
+    AnalyticalParameterHdf5Reader(AnalyticalParameterHdf5Reader const&) = delete;
+
     /**
      * @brief Get vector of condition indices for which the parameter with the given index is used.
      * @param parameterIndex referring to the index in the analytical parameter list in the hdf5 file

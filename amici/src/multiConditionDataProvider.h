@@ -172,6 +172,8 @@ class MultiConditionDataProviderHDF5 : public MultiConditionDataProvider {
                                    std::string const& hdf5Filename,
                                    std::string const& rootPath);
 
+    MultiConditionDataProviderHDF5(MultiConditionDataProviderHDF5 const&) = delete;
+
     virtual ~MultiConditionDataProviderHDF5() override = default;
 
     void openHdf5File(const std::string &hdf5Filename);
@@ -294,7 +296,6 @@ protected:
      * @brief HDF5 file handles for C++ and C API
      */
     H5::H5File file;
-    hid_t fileId = 0;
 
     std::unique_ptr<OptimizationOptions> optimizationOptions;
 };
