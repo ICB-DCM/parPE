@@ -36,7 +36,7 @@ public:
     virtual FunctionEvaluationStatus evaluate(
             gsl::span<double const> parameters,
             double &fval,
-            gsl::span<double> gradient) const;;
+            gsl::span<double> gradient) const;
 
 
     virtual FunctionEvaluationStatus evaluate(

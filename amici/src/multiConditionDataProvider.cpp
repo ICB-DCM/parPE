@@ -1,5 +1,4 @@
 #include "multiConditionDataProvider.h"
-#include "hierarchicalOptimization.h"
 #include "logging.h"
 #include "misc.h"
 #include <parpeException.h>

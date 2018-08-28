@@ -155,7 +155,7 @@ std::unique_ptr<OptimizationProblem> MultiConditionProblemMultiStartOptimization
 
     if(options.hierarchicalOptimization)
         return std::unique_ptr<OptimizationProblem>(
-                    new parpe::HierachicalOptimizationProblemWrapper(std::move(problem), dp));
+                    new parpe::HierarchicalOptimizationProblemWrapper(std::move(problem), dp));
 
     return std::move(problem);
 }

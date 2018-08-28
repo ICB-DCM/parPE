@@ -526,7 +526,7 @@ hid_t hdf5CreateFile(const char *filename, bool overwrite)
     std::lock_guard<mutexHdfType> lock(mutexHdf);
 
     if (!overwrite) {
-        struct stat st = {0};
+        struct stat st = {};
         bool fileExists = stat(filename, &st) == 0;
 
         if(fileExists)

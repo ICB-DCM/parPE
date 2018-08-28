@@ -40,7 +40,7 @@ int StandaloneSimulator::run(const std::string& resultFile,
     solver->setSensitivityOrder(amici::AMICI_SENSI_ORDER_NONE);
 
     std::vector<double> parameters = optimizationParameters;
-    HierachicalOptimizationWrapper hierarchical(nullptr, 0, 0, 0);
+    HierarchicalOptimizationWrapper hierarchical(nullptr, 0, 0, 0);
 
     auto options = OptimizationOptions::fromHDF5(inputFile.getId(), "/inputData/optimizationOptions");
     /* if hierarchical optimization is selected and the analytical parameters have not been saved,
@@ -65,7 +65,7 @@ int StandaloneSimulator::run(const std::string& resultFile,
         auto sigmaParameterIndices = hierarchicalSigmaReader->getOptimizationParameterIndices();
         auto wrappedFun = std::make_unique<AmiciSummedGradientFunction<int>>(dataProvider, loadBalancer, nullptr);
 
-        hierarchical = HierachicalOptimizationWrapper(std::move(wrappedFun),
+        hierarchical = HierarchicalOptimizationWrapper(std::move(wrappedFun),
                                                 std::unique_ptr<AnalyticalParameterHdf5Reader>(hierarchicalScalingReader),
                                                 std::unique_ptr<AnalyticalParameterHdf5Reader>(hierarchicalOffsetReader),
                                                 std::unique_ptr<AnalyticalParameterHdf5Reader>(hierarchicalSigmaReader),

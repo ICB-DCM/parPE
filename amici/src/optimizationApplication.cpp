@@ -227,7 +227,7 @@ void OptimizationApplication::runWorker() {
             dynamic_cast<AmiciSummedGradientFunction<int>*>(sgf->getWrappedFunction())->messageHandler(buffer, jobId);
         } else {
             // hierarchical
-            auto hierarch = dynamic_cast<HierachicalOptimizationWrapper *>(problem->costFun.get());
+            auto hierarch = dynamic_cast<HierarchicalOptimizationWrapper *>(problem->costFun.get());
             RELEASE_ASSERT(hierarch, "");
             hierarch->fun->messageHandler(buffer, jobId);
         }
