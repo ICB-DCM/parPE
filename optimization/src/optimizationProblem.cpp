@@ -5,6 +5,7 @@
 #include "misc.h"
 #include "optimizationOptions.h"
 #include <optimizer.h>
+#include <parpeException.h>
 
 #include <cstdio>
 #include <cstdlib>
@@ -26,6 +27,8 @@ namespace parpe {
 
 int getLocalOptimum(OptimizationProblem *problem) {
     auto optimizer = std::unique_ptr<Optimizer>(problem->getOptimizationOptions().createOptimizer());
+    if(!optimizer)
+        throw ParPEException("Invalid optimizer selected. Did you compile parPE with support for the selected optimizer?");
     auto status = optimizer->optimize(problem);
     return std::get<0>(status);
 }
