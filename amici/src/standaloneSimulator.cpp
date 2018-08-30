@@ -98,11 +98,7 @@ int StandaloneSimulator::run(const std::string& resultFile,
     std::iota(dataIndices.begin(), dataIndices.end(), 0);
     int errors = 0;
 
-    AmiciSimulationRunner simRunner(
-                parameters,
-                amici::AMICI_SENSI_ORDER_NONE,
-                dataIndices,
-    [&](JobData *job, int /*dataIdx*/) { /* job finished */
+    auto jobFinished = [&](JobData *job, int /*dataIdx*/) { /* job finished */
         // if we are running hierarchical optimization we need to wait until all jobs are finished
         if(needComputeAnalyticalParameters)
             return;
@@ -117,14 +113,13 @@ int StandaloneSimulator::run(const std::string& resultFile,
             errors += result.second.status;
             int conditionIdx = result.first;
             auto edata = dataProvider->getExperimentalDataForCondition(conditionIdx);
-
             rw.saveMeasurements(edata->my, edata->nt, edata->nytrue, conditionIdx);
             rw.saveModelOutputs(result.second.modelOutput,  model->nt(), model->nytrue, conditionIdx);
             rw.saveLikelihood(result.second.llh, conditionIdx);
         }
+    };
 
-    },
-    [&](std::vector<JobData> &jobs) -> int { /* all finished */
+    auto allFinished = [&](std::vector<JobData> &jobs) -> int { /* all finished */
         if(!needComputeAnalyticalParameters)
             return 0; // Work was already done in above function
 
@@ -171,8 +166,13 @@ int StandaloneSimulator::run(const std::string& resultFile,
             rw.saveLikelihood(llh, conditionIdx);
         }
         return 0;
-    });
+    };
 
+    AmiciSimulationRunner simRunner(parameters,
+                                    amici::AMICI_SENSI_ORDER_NONE,
+                                    dataIndices,
+                                    jobFinished,
+                                    allFinished);
 
     if (loadBalancer && loadBalancer->isRunning()) {
         errors += simRunner.runDistributedMemory(loadBalancer, maxSimulationsPerPackage);
