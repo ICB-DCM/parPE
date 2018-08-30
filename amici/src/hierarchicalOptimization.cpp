@@ -24,7 +24,8 @@ HierarchicalOptimizationWrapper::HierarchicalOptimizationWrapper(
     scalingReader = std::make_unique<AnalyticalParameterHdf5Reader>();
     offsetReader  = std::make_unique<AnalyticalParameterHdf5Reader>();
     sigmaReader   = std::make_unique<AnalyticalParameterHdf5Reader>();
-    init();
+    if(fun)
+        init();
 }
 
 HierarchicalOptimizationWrapper::HierarchicalOptimizationWrapper(
