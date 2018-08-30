@@ -125,6 +125,9 @@ std::unique_ptr<OptimizationOptions> OptimizationOptions::fromHDF5(hid_t fileId,
     case optimizerName::OPTIMIZER_TOMS611:
         optimizerPath = std::string(hdf5path) + "/toms611";
         break;
+    case optimizerName::OPTIMIZER_MINIBATCH_1:
+        optimizerPath = std::string(hdf5path) + "/minibatch";
+        break;
     case optimizerName::OPTIMIZER_IPOPT:
     default:
         optimizerPath = std::string(hdf5path) + "/ipopt";

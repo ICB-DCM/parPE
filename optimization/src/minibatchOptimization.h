@@ -10,22 +10,50 @@
 #include <model.h>
 #include <iostream>
 #include <misc.h>
+#include <optimizationOptions.h>
+#include <optimizationProblem.h>
 
 namespace parpe {
 
 enum class minibatchExitStatus {
     gradientNormConvergence,
     maxEpochsExceeded,
+    invalidNumber
+};
+
+
+template<typename T>
+class MinibatchOptimizationProblem : public OptimizationProblem {
+public:
+    MinibatchOptimizationProblem() = default;
+    MinibatchOptimizationProblem(std::unique_ptr<SummedGradientFunction<T>> costFun,
+                                 std::unique_ptr<Logger> logger)
+        : OptimizationProblem(costFun, logger)
+    {
+
+    }
+
+    MinibatchOptimizationProblem(MinibatchOptimizationProblem const& other) = delete;
+
+    virtual ~MinibatchOptimizationProblem() override = default;
+
+    virtual std::vector<T> getTrainingData() const = 0;
+
+    SummedGradientFunction<T>* getGradientFunction() const {
+        auto summedGradientFunction = dynamic_cast<SummedGradientFunction<T>*>(costFun.get());
+        RELEASE_ASSERT(summedGradientFunction, "");
+        return summedGradientFunction;
+    }
 };
 
 /**
  * Split a vector into batches of the given size. All but possibly the last one will be of Size batchSize.
  */
-template<typename DATUM>
-std::vector<std::vector<DATUM>> getBatches(std::vector<DATUM> const& data, int batchSize) {
+template<typename T>
+std::vector<std::vector<T>> getBatches(gsl::span<const T> data, int batchSize) {
     int numBatches = ceil(static_cast<double>(data.size()) / batchSize);
 
-    std::vector<std::vector<DATUM>> batches(numBatches, std::vector<DATUM>());
+    std::vector<std::vector<T>> batches(numBatches, std::vector<T>());
     for(int i = 0, batchIdx = -1; (unsigned) i < data.size(); ++i) {
         if(i % batchSize == 0) {
             ++batchIdx;
@@ -43,18 +71,12 @@ std::vector<std::vector<DATUM>> getBatches(std::vector<DATUM> const& data, int b
  * @param v
  * @return the norm
  */
-double getVectorNorm(std::vector<double> const& v) {
-    double norm = 0.0;
-    for(auto e : v)
-        norm += std::pow(e, 2.0);
-    norm = std::sqrt(norm);
-    return norm;
-}
+double getVectorNorm(std::vector<double> const& v);
 
 
 class ParameterUpdater {
 public:
-    virtual void updateParameters(std::vector<double> const& gradient, std::vector<double>& parameters) = 0;
+    virtual void updateParameters(gsl::span<const double> gradient, gsl::span<double> parameters) = 0;
     virtual ~ParameterUpdater() = default;
 };
 
@@ -63,7 +85,7 @@ public:
     ParameterUpdaterVanilla() = default;
     ParameterUpdaterVanilla(double learningRate) : learningRate(learningRate) {}
 
-    void updateParameters(std::vector<double> const& gradient, std::vector<double>& parameters) {
+    void updateParameters(gsl::span<const double> gradient, gsl::span<double> parameters) {
         int numParameters = gradient.size();
         for(int i = 0; i < numParameters; ++i)
             parameters[i] -= learningRate * gradient[i];
@@ -77,24 +99,8 @@ public:
     ParameterUpdaterRmsProp() = default;
     ParameterUpdaterRmsProp(double learningRate) : learningRate(learningRate) {}
 
-    void updateParameters(std::vector<double> const& gradient, std::vector<double>& parameters) {
-        if(++updates % 10 == 0) {
-            std::cout<<"Adapting learning rate "<<learningRate;
-            learningRate /= 2.0;
-            std::cout<<" to "<<learningRate<<std::endl;
-        }
+    void updateParameters(gsl::span<const double> gradient, gsl::span<double> parameters);
 
-        int numParameters = gradient.size();
-        gradientCache.resize(numParameters);
-
-        for(int i = 0; i < numParameters; ++i) {
-            gradientCache[i] = decayRate * gradientCache[i]
-                    + (1 - decayRate) * gradient[i] * gradient[i];
-
-            parameters[i] += - learningRate * gradient[i] / (std::sqrt(gradientCache[i]) + eps);
-        }
-
-    }
     int updates = 0;
     double learningRate = 1.0;
     double decayRate = 0.9;
@@ -107,7 +113,14 @@ public:
 template<typename DATUM>
 class MinibatchOptimizer {
 public:
-    std::tuple<int, double, std::vector<double> > optimize(SummedGradientFunction<DATUM> const& f, std::vector<DATUM> data, int batchSize, std::vector<double> parameters) {
+    std::tuple<int, double, std::vector<double> > optimize(
+            SummedGradientFunction<DATUM> const& f,
+            gsl::span<const DATUM> data,
+            gsl::span<const double> initialParameters)
+    {
+        std::vector<double> parameters(initialParameters.begin(), initialParameters.end());
+        std::vector<DATUM> shuffledData(data.begin(), data.end());
+
         int numParameters = f.numParameters();
         assert((unsigned) numParameters == parameters.size());
         std::vector<double> gradient(numParameters, 0.0);
@@ -119,15 +132,21 @@ public:
         for(int epoch = 0; epoch < maxEpochs; ++epoch) {
             std::cout<<"Epoch "<<epoch<<std::endl;
 
-            std::shuffle(data.begin(), data.end(), rng);
-            auto batches = getBatches(data, batchSize);
+            std::shuffle(shuffledData.begin(), shuffledData.end(), rng);
+            auto batches = getBatches<DATUM>(shuffledData, batchSize);
 
             for(int batchIdx = 0; (unsigned) batchIdx < batches.size(); ++batchIdx) {
-                f.evaluate(parameters, batches[batchIdx], cost, gradient, nullptr, nullptr);
+                auto status = f.evaluate(parameters, batches[batchIdx], cost, gradient, nullptr, nullptr);
                 std::cout<<"\tBatch "<<batchIdx<<": p: "<<parameters
                         <<" Cost: "<<cost<<" Gradient:"<<gradient
                        << " |g|2: "<<getVectorNorm(gradient)
                        << " Batch: "<<batches[batchIdx]<<std::endl;
+                // TODO: do something smarter
+                if(status == functionEvaluationFailure) {
+                    std::cout<<"Minibatch cost function evaluation failed."<<std::endl;
+                    return std::tuple<int, double, std::vector<double> >((int)minibatchExitStatus::invalidNumber, cost, parameters);
+                }
+
                 parameterUpdater->updateParameters(gradient, parameters);
             }
 
@@ -144,13 +163,27 @@ public:
 
     std::unique_ptr<ParameterUpdater> parameterUpdater = std::make_unique<ParameterUpdaterVanilla>();
 
+    int batchSize = 1;
     int maxEpochs = 10;
     double gradientNormThreshold = 0.0;
 };
 
+void setMinibatchOption(const std::pair<const std::string, const std::string> &pair,
+                        MinibatchOptimizer<int>* optimizer);
 
 
+template<typename DATUM>
+std::unique_ptr<MinibatchOptimizer<DATUM>> getMinibatchOptimizer(OptimizationOptions const& options) {
+    auto optim = std::make_unique<MinibatchOptimizer<int>>();
 
+    options.for_each<MinibatchOptimizer<int>*>(setMinibatchOption, optim.get());
+
+    return optim;
 }
+
+std::tuple<int, double, std::vector<double> > runMinibatchOptimization(OptimizationProblem *problem);
+
+
+} // namespace parpe
 
 #endif

@@ -114,10 +114,15 @@ std::unique_ptr<OptimizationReporter> MultiConditionProblem::getReporter() const
     return std::make_unique<OptimizationReporter>(
                 costFun.get(),
                 std::make_unique<OptimizationResultWriter>(*resultWriter),
-                                                  std::make_unique<Logger>(*logger));
+                std::make_unique<Logger>(*logger));
 }
 
-
+std::vector<int> MultiConditionProblem::getTrainingData() const
+{
+    std::vector<int> dataIndices(dataProvider->getNumberOfConditions());
+    std::iota(dataIndices.begin(), dataIndices.end(), 0);
+    return dataIndices;
+}
 
 MultiConditionDataProvider *MultiConditionProblem::getDataProvider() {
     return dataProvider;

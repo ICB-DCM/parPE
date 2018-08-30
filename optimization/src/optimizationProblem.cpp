@@ -6,6 +6,7 @@
 #include "optimizationOptions.h"
 #include <optimizer.h>
 #include <parpeException.h>
+#include <minibatchOptimization.h>
 
 #include <cstdio>
 #include <cstdlib>
@@ -26,6 +27,15 @@ namespace parpe {
  */
 
 int getLocalOptimum(OptimizationProblem *problem) {
+    // TODO how to make this nicer? minibatchOptimizer should not inherit
+    // from Optimizer since they have different interfaces, so we can not
+    // use the same factory method
+    auto options = problem->getOptimizationOptions();
+    if(options.optimizer == optimizerName::OPTIMIZER_MINIBATCH_1) {
+        auto status = runMinibatchOptimization(problem);
+        return std::get<0>(status);
+    }
+
     auto optimizer = std::unique_ptr<Optimizer>(problem->getOptimizationOptions().createOptimizer());
     if(!optimizer)
         throw ParPEException("Invalid optimizer selected. Did you compile parPE with support for the selected optimizer?");
