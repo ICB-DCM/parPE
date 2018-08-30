@@ -49,14 +49,16 @@ herr_t hdf5ErrorStackWalker_cb(unsigned int n, const H5E_error_t *err_desc,
     return 0;
 }
 
-bool hdf5DatasetExists(hid_t file_id, const char *datasetName) {
+bool hdf5DatasetExists(hid_t file_id, const char *datasetName)
+{
     std::lock_guard<mutexHdfType> lock(mutexHdf);
     bool exists = H5Lexists(file_id, datasetName, H5P_DEFAULT) > 0;
 
     return exists;
 }
 
-bool hdf5GroupExists(hid_t file_id, const char *groupName) {
+bool hdf5GroupExists(hid_t file_id, const char *groupName)
+{
     std::lock_guard<mutexHdfType> lock(mutexHdf);
 
     // switch off error handler, check existance and reenable
@@ -75,7 +77,8 @@ void hdf5EnsureGroupExists(hid_t file_id, const char *groupName) {
     }
 }
 
-void hdf5CreateGroup(hid_t file_id, const char *groupPath, bool recursively) {
+void hdf5CreateGroup(hid_t file_id, const char *groupPath, bool recursively)
+{
     auto groupCreationPropertyList = H5P_DEFAULT;
 
     std::lock_guard<mutexHdfType> lock(mutexHdf);
@@ -86,15 +89,17 @@ void hdf5CreateGroup(hid_t file_id, const char *groupPath, bool recursively) {
     }
 
     auto group = H5Gcreate(file_id, groupPath, groupCreationPropertyList,
-                            H5P_DEFAULT, H5P_DEFAULT);
+                           H5P_DEFAULT, H5P_DEFAULT);
     if (group < 0)
         throw(HDF5Exception("Failed to create group in hdf5CreateGroup: %s", groupPath));
 
     H5Gclose(group);
 }
 
-void hdf5CreateExtendableDouble2DArray(hid_t file_id, const char *datasetPath,
-                                       hsize_t stride) {
+void hdf5CreateExtendableDouble2DArray(hid_t file_id,
+                                       const char *datasetPath,
+                                       hsize_t stride)
+{
     int rank = 2;
     hsize_t initialDimensions[2] = {stride, 0};
     hsize_t maximumDimensions[2] = {stride, H5S_UNLIMITED};
@@ -102,7 +107,7 @@ void hdf5CreateExtendableDouble2DArray(hid_t file_id, const char *datasetPath,
     std::lock_guard<mutexHdfType> lock(mutexHdf);
 
     hid_t dataspace =
-        H5Screate_simple(rank, initialDimensions, maximumDimensions);
+            H5Screate_simple(rank, initialDimensions, maximumDimensions);
 
     // need chunking for extendable dataset
     hsize_t chunkDimensions[2] = {stride, 1};
@@ -110,8 +115,8 @@ void hdf5CreateExtendableDouble2DArray(hid_t file_id, const char *datasetPath,
     H5Pset_chunk(datasetCreationProperty, rank, chunkDimensions);
 
     hid_t dataset =
-        H5Dcreate2(file_id, datasetPath, H5T_NATIVE_DOUBLE, dataspace,
-                   H5P_DEFAULT, datasetCreationProperty, H5P_DEFAULT);
+            H5Dcreate2(file_id, datasetPath, H5T_NATIVE_DOUBLE, dataspace,
+                       H5P_DEFAULT, datasetCreationProperty, H5P_DEFAULT);
 
     if(dataset < 0)
         throw HDF5Exception("hdf5CreateExtendableDouble2DArray");
@@ -123,11 +128,12 @@ void hdf5CreateExtendableDouble2DArray(hid_t file_id, const char *datasetPath,
 
 void hdf5Extend2ndDimensionAndWriteToDouble2DArray(hid_t file_id,
                                                    const char *datasetPath,
-                                                   const double *buffer) {
+                                                   const double *buffer)
+{
     std::lock_guard<mutexHdfType> lock(mutexHdf);
 
     hid_t dataset = H5Dopen2(file_id, datasetPath, H5P_DEFAULT);
-    if (dataset < 0) {       
+    if (dataset < 0) {
         throw HDF5Exception("Failed to open dataset %s in hdf5Extend2ndDimensionAndWriteToDouble2DArray", datasetPath);
     }
 
@@ -138,7 +144,7 @@ void hdf5Extend2ndDimensionAndWriteToDouble2DArray(hid_t file_id,
         H5Sclose(filespace);
         H5Dclose(dataset);
         throw HDF5Exception("Failed to write data in hdf5Extend2ndDimensionAndWriteToDouble2DArray: not of rank 2 (%d) when writing %s",
-                   rank, datasetPath);
+                            rank, datasetPath);
     }
 
     // extend
@@ -172,7 +178,8 @@ void hdf5Extend2ndDimensionAndWriteToDouble2DArray(hid_t file_id,
 
 void hdf5Extend3rdDimensionAndWriteToDouble3DArray(hid_t file_id,
                                                    const char *datasetPath,
-                                                   const double *buffer) {
+                                                   const double *buffer)
+{
     std::lock_guard<mutexHdfType> lock(mutexHdf);
 
     hid_t dataset = H5Dopen2(file_id, datasetPath, H5P_DEFAULT);
@@ -207,14 +214,15 @@ void hdf5Extend3rdDimensionAndWriteToDouble3DArray(hid_t file_id,
 
     if (status < 0)
         throw HDF5Exception("Failed to write data in "
-              "hdf5Extend3rdDimensionAndWriteToDouble3DArray");
+                            "hdf5Extend3rdDimensionAndWriteToDouble3DArray");
 }
 
 void hdf5CreateOrExtendAndWriteToDouble2DArray(hid_t file_id,
                                                const char *parentPath,
                                                const char *datasetName,
                                                const double *buffer,
-                                               hsize_t stride) {
+                                               hsize_t stride)
+{
     hdf5EnsureGroupExists(file_id, parentPath);
 
     std::string fullDatasetPath = std::string(parentPath) + "/" + datasetName;
@@ -249,7 +257,8 @@ void hdf5CreateOrExtendAndWriteToDouble3DArray(hid_t file_id,
 void hdf5CreateOrExtendAndWriteToInt2DArray(hid_t file_id,
                                             const char *parentPath,
                                             const char *datasetName,
-                                            const int *buffer, hsize_t stride) {
+                                            const int *buffer, hsize_t stride)
+{
     std::lock_guard<mutexHdfType> lock(mutexHdf);
 
     hdf5EnsureGroupExists(file_id, parentPath);
@@ -266,7 +275,8 @@ void hdf5CreateOrExtendAndWriteToInt2DArray(hid_t file_id,
 
 void hdf5Extend2ndDimensionAndWriteToInt2DArray(hid_t file_id,
                                                 const char *datasetPath,
-                                                const int *buffer) {
+                                                const int *buffer)
+{
     std::lock_guard<mutexHdfType> lock(mutexHdf);
 
     hid_t dataset = H5Dopen2(file_id, datasetPath, H5P_DEFAULT);
@@ -303,11 +313,13 @@ void hdf5Extend2ndDimensionAndWriteToInt2DArray(hid_t file_id,
 
     if (status < 0)
         throw HDF5Exception("Error writing data in "
-              "hdf5Extend2ndDimensionAndWriteToInt2DArray.");
+                            "hdf5Extend2ndDimensionAndWriteToInt2DArray.");
 }
 
-void hdf5CreateExtendableInt2DArray(hid_t file_id, const char *datasetPath,
-                                    hsize_t stride) {
+void hdf5CreateExtendableInt2DArray(hid_t file_id,
+                                    const char *datasetPath,
+                                    hsize_t stride)
+{
     std::lock_guard<mutexHdfType> lock(mutexHdf);
 
     int rank = 2;
@@ -315,7 +327,7 @@ void hdf5CreateExtendableInt2DArray(hid_t file_id, const char *datasetPath,
     hsize_t maximumDimensions[2] = {stride, H5S_UNLIMITED};
 
     hid_t dataspace =
-        H5Screate_simple(rank, initialDimensions, maximumDimensions);
+            H5Screate_simple(rank, initialDimensions, maximumDimensions);
 
     // need chunking for extendable dataset
     hsize_t chunkDimensions[2] = {stride, 1};
@@ -324,8 +336,8 @@ void hdf5CreateExtendableInt2DArray(hid_t file_id, const char *datasetPath,
 
     assert(H5Tget_size(H5T_NATIVE_INT) == sizeof(int));
     hid_t dataset =
-        H5Dcreate2(file_id, datasetPath, H5T_NATIVE_INT, dataspace, H5P_DEFAULT,
-                   datasetCreationProperty, H5P_DEFAULT);
+            H5Dcreate2(file_id, datasetPath, H5T_NATIVE_INT, dataspace, H5P_DEFAULT,
+                       datasetCreationProperty, H5P_DEFAULT);
 
     if(dataset < 0)
         throw HDF5Exception("hdf5CreateExtendableInt2DArray");
@@ -334,8 +346,11 @@ void hdf5CreateExtendableInt2DArray(hid_t file_id, const char *datasetPath,
     H5Sclose(dataspace);
 }
 
-void hdf5CreateExtendableDouble3DArray(hid_t file_id, const char *datasetPath,
-                                       hsize_t stride1, hsize_t stride2) {
+void hdf5CreateExtendableDouble3DArray(hid_t file_id,
+                                       const char *datasetPath,
+                                       hsize_t stride1,
+                                       hsize_t stride2)
+{
 
     int rank = 3;
     hsize_t initialDimensions[3] = {stride1, stride2, 0};
@@ -344,7 +359,7 @@ void hdf5CreateExtendableDouble3DArray(hid_t file_id, const char *datasetPath,
     std::lock_guard<mutexHdfType> lock(mutexHdf);
 
     hid_t dataspace =
-        H5Screate_simple(rank, initialDimensions, maximumDimensions);
+            H5Screate_simple(rank, initialDimensions, maximumDimensions);
 
     // need chunking for extendable dataset
     hsize_t chunkDimensions[3] = {stride1, stride2, 1};
@@ -352,8 +367,8 @@ void hdf5CreateExtendableDouble3DArray(hid_t file_id, const char *datasetPath,
     H5Pset_chunk(datasetCreationProperty, rank, chunkDimensions);
 
     hid_t dataset =
-        H5Dcreate2(file_id, datasetPath, H5T_NATIVE_DOUBLE, dataspace,
-                   H5P_DEFAULT, datasetCreationProperty, H5P_DEFAULT);
+            H5Dcreate2(file_id, datasetPath, H5T_NATIVE_DOUBLE, dataspace,
+                       H5P_DEFAULT, datasetCreationProperty, H5P_DEFAULT);
 
     if(dataset < 0)
         throw HDF5Exception("hdf5CreateExtendableDouble3DArray");
@@ -362,9 +377,14 @@ void hdf5CreateExtendableDouble3DArray(hid_t file_id, const char *datasetPath,
     H5Sclose(dataspace);
 }
 
-int hdf5Read2DDoubleHyperslab(hid_t file_id, const char *path, hsize_t size0,
-                              hsize_t size1, hsize_t offset0, hsize_t offset1,
-                              double *buffer) {
+int hdf5Read2DDoubleHyperslab(hid_t file_id,
+                              const char *path,
+                              hsize_t size0,
+                              hsize_t size1,
+                              hsize_t offset0,
+                              hsize_t offset1,
+                              double *buffer)
+{
     std::lock_guard<mutexHdfType> lock(mutexHdf);
 
     hid_t dataset = H5Dopen2(file_id, path, H5P_DEFAULT);
@@ -379,9 +399,9 @@ int hdf5Read2DDoubleHyperslab(hid_t file_id, const char *path, hsize_t size0,
     // printf("%lld %lld, %lld %lld, %lld %lld\n", dims[0], dims[1], offset0,
     // offset1, size0, size1);
     assert(dims[0] >= offset0 && dims[0] >= size0 &&
-           "Offset larger than dataspace dimensions!");
+            "Offset larger than dataspace dimensions!");
     assert(dims[1] >= offset1 && dims[1] >= size1 &&
-           "Offset larger than dataspace dimensions!");
+            "Offset larger than dataspace dimensions!");
 
     H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, offset, nullptr, count, nullptr);
 
@@ -396,8 +416,11 @@ int hdf5Read2DDoubleHyperslab(hid_t file_id, const char *path, hsize_t size0,
     return 0;
 }
 
-std::vector<int> hdf5Read1DIntegerHyperslab(H5::H5File const& file, std::string const& path,
-                                            hsize_t count, hsize_t offset) {
+std::vector<int> hdf5Read1DIntegerHyperslab(H5::H5File const& file,
+                                            std::string const& path,
+                                            hsize_t count,
+                                            hsize_t offset)
+{
     std::lock_guard<mutexHdfType> lock(mutexHdf);
 
     H5::DataSet dataset = file.openDataSet(path);
@@ -420,8 +443,13 @@ std::vector<int> hdf5Read1DIntegerHyperslab(H5::H5File const& file, std::string 
     return buffer;
 }
 
-std::vector<int> hdf5Read2DIntegerHyperslab(const H5::H5File &file, std::string const& path,
-                                            hsize_t size0, hsize_t size1, hsize_t offset0, hsize_t offset1) {
+std::vector<int> hdf5Read2DIntegerHyperslab(const H5::H5File &file,
+                                            std::string const& path,
+                                            hsize_t size0,
+                                            hsize_t size1,
+                                            hsize_t offset0,
+                                            hsize_t offset1)
+{
     std::lock_guard<mutexHdfType> lock(mutexHdf);
 
     H5::DataSet dataset = file.openDataSet(path);
@@ -437,9 +465,9 @@ std::vector<int> hdf5Read2DIntegerHyperslab(const H5::H5File &file, std::string 
     // printf("%lld %lld, %lld %lld, %lld %lld\n", dims[0], dims[1], offset0,
     // offset1, size0, size1);
     assert(dims[0] >= offset0 && dims[0] >= size0 &&
-           "Offset larger than dataspace dimensions!");
+            "Offset larger than dataspace dimensions!");
     assert(dims[1] >= offset1 && dims[1] >= size1 &&
-           "Offset larger than dataspace dimensions!");
+            "Offset larger than dataspace dimensions!");
 
     filespace.selectHyperslab(H5S_SELECT_SET, count, offset);
 
@@ -451,10 +479,16 @@ std::vector<int> hdf5Read2DIntegerHyperslab(const H5::H5File &file, std::string 
     return buffer;
 }
 
-int hdf5Read3DDoubleHyperslab(hid_t file_id, const char *path, hsize_t size0,
-                              hsize_t size1, hsize_t size2, hsize_t offset0,
-                              hsize_t offset1, hsize_t offset2,
-                              double *buffer) {
+int hdf5Read3DDoubleHyperslab(hid_t file_id,
+                              const char *path,
+                              hsize_t size0,
+                              hsize_t size1,
+                              hsize_t size2,
+                              hsize_t offset0,
+                              hsize_t offset1,
+                              hsize_t offset2,
+                              double *buffer)
+{
     std::lock_guard<mutexHdfType> lock(mutexHdf);
 
     const int rank = 3;
@@ -468,11 +502,11 @@ int hdf5Read3DDoubleHyperslab(hid_t file_id, const char *path, hsize_t size0,
     hsize_t dims[ndims];
     H5Sget_simple_extent_dims(dataspace, dims, nullptr);
     assert(dims[0] >= offset0 && dims[0] >= size0 &&
-           "Offset larger than dataspace dimensions!");
+            "Offset larger than dataspace dimensions!");
     assert(dims[1] >= offset1 && dims[1] >= size1 &&
-           "Offset larger than dataspace dimensions!");
+            "Offset larger than dataspace dimensions!");
     assert(dims[2] >= offset2 && dims[2] >= size2 &&
-           "Offset larger than dataspace dimensions!");
+            "Offset larger than dataspace dimensions!");
 
     H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, offset, nullptr, count, nullptr);
 
@@ -487,8 +521,10 @@ int hdf5Read3DDoubleHyperslab(hid_t file_id, const char *path, hsize_t size0,
     return 0;
 }
 
-bool hdf5AttributeExists(hid_t fileId, const char *datasetPath,
-                        const char *attributeName) {
+bool hdf5AttributeExists(hid_t fileId,
+                         const char *datasetPath,
+                         const char *attributeName)
+{
     std::lock_guard<mutexHdfType> lock(mutexHdf);
 
     int exists = false;
@@ -506,19 +542,22 @@ bool hdf5AttributeExists(hid_t fileId, const char *datasetPath,
     return exists;
 }
 
-void hdf5WriteStringAttribute(hid_t fileId, const char *datasetPath,
-                             const char *attributeName,
-                             const char *attributeValue) {
+void hdf5WriteStringAttribute(hid_t fileId,
+                              const char *datasetPath,
+                              const char *attributeName,
+                              const char *attributeValue)
+{
     std::lock_guard<mutexHdfType> lock(mutexHdf);
 
     int ret = H5LTset_attribute_string(fileId, datasetPath, attributeName,
-                                    attributeValue);
+                                       attributeValue);
     if(ret < 0)
         throw HDF5Exception("Unable to write attribute %s on %s",
                             datasetPath, attributeName);
 }
 
-hid_t hdf5CreateFile(const char *filename, bool overwrite)
+hid_t hdf5CreateFile(const char *filename,
+                     bool overwrite)
 {
     // Create parent folders
     mkpathConstChar(filename, 0755);
@@ -547,8 +586,13 @@ hid_t hdf5CreateFile(const char *filename, bool overwrite)
 }
 
 
-void hdf5GetDatasetDimensions(hid_t file_id, const char *path, hsize_t nDimsExpected,
-                              int *d1, int *d2, int *d3, int *d4)
+void hdf5GetDatasetDimensions(hid_t file_id,
+                              const char *path,
+                              hsize_t nDimsExpected,
+                              int *d1,
+                              int *d2,
+                              int *d3,
+                              int *d4)
 {
     assert(file_id >= 0);
 
@@ -578,7 +622,8 @@ void hdf5GetDatasetDimensions(hid_t file_id, const char *path, hsize_t nDimsExpe
     H5_RESTORE_ERROR_HANDLER;
 }
 
-HDF5Exception::HDF5Exception(const char *format, ...) {
+HDF5Exception::HDF5Exception(const char *format, ...)
+{
     va_list argptr;
     va_start(argptr,format);
     size_t needed = vsnprintf(nullptr, 0, format, argptr) + 1;
@@ -597,12 +642,13 @@ bool hdf5DatasetExists(hid_t file_id, const std::string &datasetName)
     return hdf5DatasetExists(file_id, datasetName.c_str());
 }
 
-void closeHDF5File(hid_t file_id) {
+void closeHDF5File(hid_t file_id)
+{
     std::lock_guard<mutexHdfType> lock(mutexHdf);
     if(file_id < 1)
         throw HDF5Exception("closeHDF5File: Invalid file handle given.");
 
-            H5_SAVE_ERROR_HANDLER;
+    H5_SAVE_ERROR_HANDLER;
     herr_t status = H5Fclose(file_id);
 
     if (status < 0) {
