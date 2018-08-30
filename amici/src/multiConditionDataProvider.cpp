@@ -313,20 +313,20 @@ void MultiConditionDataProviderHDF5::checkDataIntegrity() const {
 
     parpe::hdf5GetDatasetDimensions(file.getId(), hdf5MeasurementPath.c_str(),
                                     3, &d1, &d2, &d3);
-    assert(d1 >= numConditions);
-    assert(d2 == model->nytrue);
-    assert(d3 >= model->nt());
+    RELEASE_ASSERT(d1 >= numConditions, "");
+    RELEASE_ASSERT(d2 == model->nytrue, "");
+    RELEASE_ASSERT(d3 >= model->nt(), "");
 
     parpe::hdf5GetDatasetDimensions(file.getId(), hdf5MeasurementSigmaPath.c_str(),
                                     3, &d1, &d2, &d3);
-    assert(d1 >= numConditions);
-    assert(d2 == model->nytrue);
-    assert(d3 >= model->nt());
+    RELEASE_ASSERT(d1 >= numConditions, "");
+    RELEASE_ASSERT(d2 == model->nytrue, "");
+    RELEASE_ASSERT(d3 >= model->nt(), "");
 
     parpe::hdf5GetDatasetDimensions(file.getId(), hdf5ConditionPath.c_str(),
                                     2, &d1, &d2);
-    assert(d1 == model->nk());
-    assert(d2 >= numConditions);
+    RELEASE_ASSERT(d1 == model->nk(), "");
+    RELEASE_ASSERT(d2 >= numConditions, "");
 }
 
 
