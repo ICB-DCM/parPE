@@ -76,6 +76,8 @@ class AmiciSimulationRunner {
                           callbackAllFinishedType aggregate = nullptr,
                           std::string const& logPrefix = "");
 
+    AmiciSimulationRunner(AmiciSimulationRunner const& other) = delete;
+
     /**
      * @brief Dispatch simulation jobs using LoadBalancerMaster
      * @param loadBalancer

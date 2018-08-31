@@ -75,16 +75,7 @@ Optimizer *OptimizationOptions::createOptimizer() const {
 }
 
 std::unique_ptr<OptimizationOptions> OptimizationOptions::fromHDF5(const char *fileName) {
-    H5::H5File file;
-    try {
-        auto lock = hdf5MutexGetLock();
-        file = H5::H5File(fileName, H5F_ACC_RDONLY);
-    } catch (...) {
-        throw HDF5Exception(
-                    "OptimizationOptions::fromHDF5 failed to open HDF5 file '%s'.",
-                    fileName);
-    }
-
+    auto file = hdf5OpenForReading(fileName);
     return fromHDF5(file.getId());
 }
 
@@ -93,6 +84,7 @@ std::unique_ptr<OptimizationOptions> OptimizationOptions::fromHDF5(hid_t fileId,
 
     const char *hdf5path = path.c_str();
 
+    auto lock = hdf5MutexGetLock();
 
     if (hdf5AttributeExists(fileId, hdf5path, "optimizer")) {
         int buffer;
@@ -132,6 +124,9 @@ std::unique_ptr<OptimizationOptions> OptimizationOptions::fromHDF5(hid_t fileId,
         break;
     case optimizerName::OPTIMIZER_TOMS611:
         optimizerPath = std::string(hdf5path) + "/toms611";
+        break;
+    case optimizerName::OPTIMIZER_MINIBATCH_1:
+        optimizerPath = std::string(hdf5path) + "/minibatch";
         break;
     case optimizerName::OPTIMIZER_IPOPT:
     default:

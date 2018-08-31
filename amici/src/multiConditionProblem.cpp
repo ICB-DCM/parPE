@@ -114,10 +114,15 @@ std::unique_ptr<OptimizationReporter> MultiConditionProblem::getReporter() const
     return std::make_unique<OptimizationReporter>(
                 costFun.get(),
                 std::make_unique<OptimizationResultWriter>(*resultWriter),
-                                                  std::make_unique<Logger>(*logger));
+                std::make_unique<Logger>(*logger));
 }
 
-
+std::vector<int> MultiConditionProblem::getTrainingData() const
+{
+    std::vector<int> dataIndices(dataProvider->getNumberOfConditions());
+    std::iota(dataIndices.begin(), dataIndices.end(), 0);
+    return dataIndices;
+}
 
 MultiConditionDataProvider *MultiConditionProblem::getDataProvider() {
     return dataProvider;
@@ -155,7 +160,7 @@ std::unique_ptr<OptimizationProblem> MultiConditionProblemMultiStartOptimization
 
     if(options.hierarchicalOptimization)
         return std::unique_ptr<OptimizationProblem>(
-                    new parpe::HierachicalOptimizationProblemWrapper(std::move(problem), dp));
+                    new parpe::HierarchicalOptimizationProblemWrapper(std::move(problem), dp));
 
     return std::move(problem);
 }
@@ -169,12 +174,12 @@ void printSimulationResult(Logger *logger, int jobId, amici::ReturnData const* r
     if (rdata->sensi >= amici::AMICI_SENSI_ORDER_FIRST) {
         for (int i = 0; i < rdata->np; ++i) {
             if (std::isnan(rdata->sllh[i])) {
-                logmessage(LOGLVL_DEBUG, "Gradient contains NaN at %d", i);
+                logger->logmessage(LOGLVL_DEBUG, "Gradient contains NaN at %d", i);
                 break;
             }
 
             if (std::isinf(rdata->sllh[i])) {
-                logmessage(LOGLVL_DEBUG, "Gradient contains Inf at %d", i);
+                logger->logmessage(LOGLVL_DEBUG, "Gradient contains Inf at %d", i);
                 break;
             }
         }
@@ -190,6 +195,8 @@ void saveSimulation(hid_t file_id, std::string const& pathStr, std::vector<doubl
 {
     // TODO replace by SimulationResultWriter
     const char *fullGroupPath = pathStr.c_str();
+
+    auto lock = hdf5MutexGetLock();
 
     hdf5CreateOrExtendAndWriteToDouble2DArray(
         file_id, fullGroupPath, "simulationLogLikelihood", &llh, 1);

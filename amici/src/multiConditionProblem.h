@@ -10,6 +10,7 @@
 #include <loadBalancerMaster.h>
 #include <loadBalancerWorker.h>
 #include "amiciSimulationRunner.h"
+#include <minibatchOptimization.h>
 
 #include <amici/amici.h>
 
@@ -392,7 +393,9 @@ private:
  * on an MultiConditionGradientFunction (AMICI ODE model)
  */
 
-class MultiConditionProblem : public OptimizationProblem {
+class MultiConditionProblem
+        : public MinibatchOptimizationProblem<int>
+{
 
   public:
     MultiConditionProblem() = default;
@@ -427,7 +430,9 @@ class MultiConditionProblem : public OptimizationProblem {
 
     std::unique_ptr<OptimizationReporter> getReporter() const override;
 
-  protected:
+    std::vector<int> getTrainingData() const override;
+
+protected:
     //TODO std::unique_ptr<OptimizationProblem> validationProblem;
 
     MultiConditionDataProvider *dataProvider = nullptr;

@@ -23,6 +23,7 @@ public:
 
     SimulationResultWriter(std::string const& hdf5FileName, std::string  rootPath);
 
+    SimulationResultWriter(SimulationResultWriter const&) = delete;
     /**
      * @brief Create results datasets. Condition index is first dimension.
      * @param udata

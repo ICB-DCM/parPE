@@ -2,7 +2,8 @@
 #include "optimizationProblem.h"
 #include <cassert>
 #include <cstring>
-//#include <IpIpoptData.hpp>
+#include <IpIpoptData.hpp>
+#include <IpDenseVector.hpp>
 //#include <IpIpoptCalculatedQuantities.hpp>
 
 namespace parpe {
@@ -98,14 +99,22 @@ bool LocalOptimizationIpoptTNLP::eval_jac_g(Index  /*n*/, const Number * /*x*/,
 bool LocalOptimizationIpoptTNLP::intermediate_callback(
     AlgorithmMode  /*mode*/, Index  /*iter*/, Number obj_value, Number  /*inf_pr*/,
     Number  /*inf_du*/, Number  /*mu*/, Number  /*d_norm*/, Number  /*regularization_size*/,
-    Number  /*alpha_du*/, Number  /*alpha_pr*/, Index  /*ls_trials*/, const IpoptData * /*ip_data*/,
+    Number  /*alpha_du*/, Number  /*alpha_pr*/, Index  /*ls_trials*/, const IpoptData *ip_data,
     IpoptCalculatedQuantities * /*ip_cq*/) {
 
     auto unlockIpOpt = ipOptReleaseLock();
 
-    // better: find x in ip_data->curr()->x();
+    // get current parameters from IpOpt which are not available directly
+    gsl::span<double const> parameters;
+    auto x = ip_data->curr()->x();
+    auto xx = dynamic_cast<const Ipopt::DenseVector*>(Ipopt::GetRawPtr(x));
+    if(xx)
+        parameters = gsl::span<double const>(xx->Values(), xx->Dim());
+    else
+        logmessage(LOGLVL_WARNING, "Not Ipopt::DenseVector in LocalOptimizationIpoptTNLP::intermediate_callback");
+
     // is always the last step accepted?
-    int status = reporter.iterationFinished(gsl::span<double const>(), obj_value, gsl::span<double>());
+    int status = reporter.iterationFinished(parameters, obj_value, gsl::span<double>());
 
 #ifdef INSTALL_SIGNAL_HANDLER
     if (caughtTerminationSignal) {

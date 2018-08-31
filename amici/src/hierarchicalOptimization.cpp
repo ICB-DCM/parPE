@@ -11,9 +11,11 @@
 namespace parpe {
 
 
-HierachicalOptimizationWrapper::HierachicalOptimizationWrapper(
-        std::unique_ptr<AmiciSummedGradientFunction<int> > fun,
-        int numConditions, int numObservables, int numTimepoints)
+HierarchicalOptimizationWrapper::HierarchicalOptimizationWrapper(
+        std::unique_ptr<AmiciSummedGradientFunction<int>> fun,
+        int numConditions,
+        int numObservables,
+        int numTimepoints)
     : fun(std::move(fun)),
       numConditions(numConditions),
       numObservables(numObservables),
@@ -22,10 +24,11 @@ HierachicalOptimizationWrapper::HierachicalOptimizationWrapper(
     scalingReader = std::make_unique<AnalyticalParameterHdf5Reader>();
     offsetReader  = std::make_unique<AnalyticalParameterHdf5Reader>();
     sigmaReader   = std::make_unique<AnalyticalParameterHdf5Reader>();
-    init();
+    if(fun)
+        init();
 }
 
-HierachicalOptimizationWrapper::HierachicalOptimizationWrapper(
+HierarchicalOptimizationWrapper::HierarchicalOptimizationWrapper(
         std::unique_ptr<AmiciSummedGradientFunction<int> > fun,
         H5::H5File const& file,
         std::string const& hdf5RootPath,
@@ -50,7 +53,7 @@ HierachicalOptimizationWrapper::HierachicalOptimizationWrapper(
     init();
 }
 
-HierachicalOptimizationWrapper::HierachicalOptimizationWrapper(
+HierarchicalOptimizationWrapper::HierarchicalOptimizationWrapper(
         std::unique_ptr<AmiciSummedGradientFunction<int> > fun,
         std::unique_ptr<parpe::AnalyticalParameterProvider> scalingReader,
         std::unique_ptr<parpe::AnalyticalParameterProvider> offsetReader,
@@ -70,7 +73,7 @@ HierachicalOptimizationWrapper::HierachicalOptimizationWrapper(
 }
 
 
-void HierachicalOptimizationWrapper::init() {
+void HierarchicalOptimizationWrapper::init() {
     if(errorModel != ErrorModel::normal) {
         throw ParPEException("Only gaussian noise is supported so far.");
     }
@@ -90,7 +93,7 @@ void HierachicalOptimizationWrapper::init() {
                                   this->sigmaParameterIndices.end()), "");
 
     if(fun) {
-        std::cout<<"HierachicalOptimizationWrapper parameters: "
+        std::cout<<"HierarchicalOptimizationWrapper parameters: "
                 <<fun->numParameters()<<" total, "
                <<numParameters()<< " numerical, "
               <<proportionalityFactorIndices.size()<<" proportionality, "
@@ -100,7 +103,7 @@ void HierachicalOptimizationWrapper::init() {
 }
 
 
-FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluate(
+FunctionEvaluationStatus HierarchicalOptimizationWrapper::evaluate(
         gsl::span<const double> parameters,
         double &fval,
         gsl::span<double> gradient,
@@ -112,7 +115,7 @@ FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluate(
     return evaluate(parameters, fval, gradient, fullParameters, fullGradient, logger, cpuTime);
 }
 
-FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluate(gsl::span<const double> reducedParameters,
+FunctionEvaluationStatus HierarchicalOptimizationWrapper::evaluate(gsl::span<const double> reducedParameters,
         double &fval,
         gsl::span<double> gradient,
         std::vector<double> &fullParameters,
@@ -170,7 +173,7 @@ FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluate(gsl::span<cons
     return status;
 }
 
-std::vector<double> HierachicalOptimizationWrapper::getDefaultScalingFactors() const
+std::vector<double> HierarchicalOptimizationWrapper::getDefaultScalingFactors() const
 {
     auto result = std::vector<double>(numProportionalityFactors());
 
@@ -182,7 +185,7 @@ std::vector<double> HierachicalOptimizationWrapper::getDefaultScalingFactors() c
     return result;
 }
 
-std::vector<double> HierachicalOptimizationWrapper::getDefaultOffsetParameters() const
+std::vector<double> HierarchicalOptimizationWrapper::getDefaultOffsetParameters() const
 {
     auto result = std::vector<double>(numOffsetParameters());
 
@@ -194,7 +197,7 @@ std::vector<double> HierachicalOptimizationWrapper::getDefaultOffsetParameters()
     return result;
 }
 
-std::vector<double> HierachicalOptimizationWrapper::getDefaultSigmaParameters() const
+std::vector<double> HierarchicalOptimizationWrapper::getDefaultSigmaParameters() const
 {
     auto result = std::vector<double>(numSigmaParameters());
 
@@ -208,7 +211,7 @@ std::vector<double> HierachicalOptimizationWrapper::getDefaultSigmaParameters() 
 
 }
 
-std::vector<std::vector<double> > HierachicalOptimizationWrapper::getUnscaledModelOutputs(
+std::vector<std::vector<double> > HierarchicalOptimizationWrapper::getUnscaledModelOutputs(
         const gsl::span<const double> reducedParameters, Logger *logger,
         double *cpuTime) const {
     // run simulations, collect outputs
@@ -227,7 +230,7 @@ std::vector<std::vector<double> > HierachicalOptimizationWrapper::getUnscaledMod
     return modelOutput;
 }
 
-std::vector<double> HierachicalOptimizationWrapper::computeAnalyticalScalings(
+std::vector<double> HierarchicalOptimizationWrapper::computeAnalyticalScalings(
         std::vector<std::vector<double>> const& measurements,
         std::vector<std::vector<double>> const& modelOutputsUnscaled) const
 {
@@ -247,7 +250,7 @@ std::vector<double> HierachicalOptimizationWrapper::computeAnalyticalScalings(
     return proportionalityFactors;
 }
 
-void HierachicalOptimizationWrapper::applyOptimalScalings(std::vector<double> const& proportionalityFactors,
+void HierarchicalOptimizationWrapper::applyOptimalScalings(std::vector<double> const& proportionalityFactors,
                                                           std::vector<std::vector<double> > &modelOutputs) const {
 
     for(int i = 0; (unsigned) i < proportionalityFactors.size(); ++i) {
@@ -260,7 +263,7 @@ void HierachicalOptimizationWrapper::applyOptimalScalings(std::vector<double> co
 }
 
 
-std::vector<double> HierachicalOptimizationWrapper::computeAnalyticalOffsets(std::vector<std::vector<double>> const& measurements,
+std::vector<double> HierarchicalOptimizationWrapper::computeAnalyticalOffsets(std::vector<std::vector<double>> const& measurements,
                                                                              std::vector<std::vector<double> > &modelOutputsUnscaled) const {
     // NOTE: does not handle replicates, assumes normal distribution
 
@@ -278,7 +281,7 @@ std::vector<double> HierachicalOptimizationWrapper::computeAnalyticalOffsets(std
     return offsetParameters;
 }
 
-std::vector<double> HierachicalOptimizationWrapper::computeAnalyticalSigmas(
+std::vector<double> HierarchicalOptimizationWrapper::computeAnalyticalSigmas(
         const std::vector<std::vector<double> > &measurements,
         std::vector<std::vector<double> > &modelOutputsScaled) const
 {
@@ -298,7 +301,7 @@ std::vector<double> HierachicalOptimizationWrapper::computeAnalyticalSigmas(
     return sigmas;
 }
 
-void HierachicalOptimizationWrapper::applyOptimalOffsets(std::vector<double> const& offsetParameters,
+void HierarchicalOptimizationWrapper::applyOptimalOffsets(std::vector<double> const& offsetParameters,
                                                          std::vector<std::vector<double> > &modelOutputs) const {
 
     for(int i = 0; (unsigned) i < offsetParameters.size(); ++i) {
@@ -309,7 +312,7 @@ void HierachicalOptimizationWrapper::applyOptimalOffsets(std::vector<double> con
     }
 }
 
-void HierachicalOptimizationWrapper::fillInAnalyticalSigmas(
+void HierarchicalOptimizationWrapper::fillInAnalyticalSigmas(
         std::vector<std::vector<double> > &allSigmas,
         std::vector<double> const& analyticalSigmas) const
 {
@@ -337,7 +340,7 @@ void HierachicalOptimizationWrapper::fillInAnalyticalSigmas(
 
 
 
-FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluateWithOptimalParameters(
+FunctionEvaluationStatus HierarchicalOptimizationWrapper::evaluateWithOptimalParameters(
         std::vector<double> const& fullParameters,
         std::vector<double> const& sigmas,
         std::vector<std::vector<double>> const& measurements,
@@ -380,15 +383,15 @@ FunctionEvaluationStatus HierachicalOptimizationWrapper::evaluateWithOptimalPara
 }
 
 
-int HierachicalOptimizationWrapper::numParameters() const {
+int HierarchicalOptimizationWrapper::numParameters() const {
     return fun->numParameters() - numProportionalityFactors() - numOffsetParameters() - numSigmaParameters();
 }
 
-int HierachicalOptimizationWrapper::numProportionalityFactors() const {
+int HierarchicalOptimizationWrapper::numProportionalityFactors() const {
     return proportionalityFactorIndices.size();
 }
 
-const std::vector<int> &HierachicalOptimizationWrapper::getProportionalityFactorIndices() const
+const std::vector<int> &HierarchicalOptimizationWrapper::getProportionalityFactorIndices() const
 {
     return proportionalityFactorIndices;
 }
@@ -406,27 +409,27 @@ AnalyticalParameterHdf5Reader::AnalyticalParameterHdf5Reader(H5::H5File const& f
 }
 
 
-int HierachicalOptimizationWrapper::numOffsetParameters() const {
+int HierarchicalOptimizationWrapper::numOffsetParameters() const {
     return offsetParameterIndices.size();
 }
 
-int HierachicalOptimizationWrapper::numSigmaParameters() const
+int HierarchicalOptimizationWrapper::numSigmaParameters() const
 {
     return sigmaParameterIndices.size();
 }
 
-const std::vector<int> &HierachicalOptimizationWrapper::getOffsetParameterIndices() const
+const std::vector<int> &HierarchicalOptimizationWrapper::getOffsetParameterIndices() const
 {
     return offsetParameterIndices;
 }
 
-const std::vector<int> &HierachicalOptimizationWrapper::getSigmaParameterIndices() const
+const std::vector<int> &HierarchicalOptimizationWrapper::getSigmaParameterIndices() const
 {
     return sigmaParameterIndices;
 }
 
 
-std::vector<int> HierachicalOptimizationWrapper::getAnalyticalParameterIndices() const
+std::vector<int> HierarchicalOptimizationWrapper::getAnalyticalParameterIndices() const
 {
     auto combinedIndices = proportionalityFactorIndices;
     combinedIndices.insert(combinedIndices.end(), offsetParameterIndices.begin(), offsetParameterIndices.end());
@@ -547,7 +550,7 @@ std::vector<int> AnalyticalParameterHdf5Reader::readRawMap(H5::DataSet& dataset,
 }
 
 //
-HierachicalOptimizationProblemWrapper::HierachicalOptimizationProblemWrapper(
+HierarchicalOptimizationProblemWrapper::HierarchicalOptimizationProblemWrapper(
         std::unique_ptr<OptimizationProblem> problemToWrap,
         const MultiConditionDataProviderHDF5 *dataProvider)
     : wrappedProblem(std::move(problemToWrap))
@@ -558,7 +561,7 @@ HierachicalOptimizationProblemWrapper::HierachicalOptimizationProblemWrapper(
 
     auto model = dataProvider->getModel();
 
-    costFun.reset(new HierachicalOptimizationWrapper(
+    costFun.reset(new HierarchicalOptimizationWrapper(
                       std::unique_ptr<AmiciSummedGradientFunction<int>>(
                           dynamic_cast<AmiciSummedGradientFunction<int>*>(wrappedFun->getWrappedFunction())),
                       dataProvider->getHdf5FileId(), "/",
@@ -568,8 +571,8 @@ HierachicalOptimizationProblemWrapper::HierachicalOptimizationProblemWrapper(
                       ErrorModel::normal));
 }
 
-HierachicalOptimizationProblemWrapper::HierachicalOptimizationProblemWrapper(std::unique_ptr<OptimizationProblem> problemToWrap,
-                                                                             std::unique_ptr<HierachicalOptimizationWrapper> costFun,
+HierarchicalOptimizationProblemWrapper::HierarchicalOptimizationProblemWrapper(std::unique_ptr<OptimizationProblem> problemToWrap,
+                                                                             std::unique_ptr<HierarchicalOptimizationWrapper> costFun,
                                                                              std::unique_ptr<Logger> logger)
     : OptimizationProblem(std::move(costFun),
                           std::move(logger)),
@@ -578,46 +581,46 @@ HierachicalOptimizationProblemWrapper::HierachicalOptimizationProblemWrapper(std
 
 }
 
-HierachicalOptimizationProblemWrapper::~HierachicalOptimizationProblemWrapper()
+HierarchicalOptimizationProblemWrapper::~HierarchicalOptimizationProblemWrapper()
 {
     // Avoid double delete. This will be destroyed when wrappedProblem goes out of scope!
-    dynamic_cast<HierachicalOptimizationWrapper *>(costFun.get())->fun.release();
+    dynamic_cast<HierarchicalOptimizationWrapper *>(costFun.get())->fun.release();
 }
 
-void HierachicalOptimizationProblemWrapper::fillInitialParameters(gsl::span<double> buffer) const
+void HierarchicalOptimizationProblemWrapper::fillInitialParameters(gsl::span<double> buffer) const
 {
     std::vector<double> full(wrappedProblem->costFun->numParameters());
     wrappedProblem->fillInitialParameters(full);
     fillFilteredParams(full, buffer);
 }
 
-void HierachicalOptimizationProblemWrapper::fillParametersMax(gsl::span<double> buffer) const
+void HierarchicalOptimizationProblemWrapper::fillParametersMax(gsl::span<double> buffer) const
 {
     std::vector<double> full(wrappedProblem->costFun->numParameters());
     wrappedProblem->fillParametersMax(full);
     fillFilteredParams(full, buffer);
 }
 
-void HierachicalOptimizationProblemWrapper::fillParametersMin(gsl::span<double> buffer) const
+void HierarchicalOptimizationProblemWrapper::fillParametersMin(gsl::span<double> buffer) const
 {
     std::vector<double> full(wrappedProblem->costFun->numParameters());
     wrappedProblem->fillParametersMin(full);
     fillFilteredParams(full, buffer);
 }
 
-void HierachicalOptimizationProblemWrapper::fillFilteredParams(const std::vector<double> &fullParams,
+void HierarchicalOptimizationProblemWrapper::fillFilteredParams(const std::vector<double> &fullParams,
                                                                gsl::span<double> buffer) const
 {
-    auto hierarchical = dynamic_cast<HierachicalOptimizationWrapper *>(costFun.get());
+    auto hierarchical = dynamic_cast<HierarchicalOptimizationWrapper *>(costFun.get());
     auto combinedIndices = hierarchical->getAnalyticalParameterIndices();
     parpe::fillFilteredParams(fullParams, combinedIndices, buffer);
 }
 
-std::unique_ptr<OptimizationReporter> HierachicalOptimizationProblemWrapper::getReporter() const {
+std::unique_ptr<OptimizationReporter> HierarchicalOptimizationProblemWrapper::getReporter() const {
     auto innerReporter = wrappedProblem->getReporter();
     auto outerReporter = std::unique_ptr<OptimizationReporter>(
                 new HierarchicalOptimizationReporter(
-                    dynamic_cast<HierachicalOptimizationWrapper*>(costFun.get()),
+                    dynamic_cast<HierarchicalOptimizationWrapper*>(costFun.get()),
                         std::move(innerReporter->resultWriter),
                     std::make_unique<Logger>(*logger)
                     ));
@@ -945,7 +948,7 @@ std::vector<int> AnalyticalParameterProviderDefault::getOptimizationParameterInd
 }
 
 HierarchicalOptimizationReporter::HierarchicalOptimizationReporter(
-        HierachicalOptimizationWrapper *gradFun,
+        HierarchicalOptimizationWrapper *gradFun,
         std::unique_ptr<OptimizationResultWriter> rw,
         std::unique_ptr<Logger> logger)
     : OptimizationReporter(gradFun, std::move(rw), std::move(logger))

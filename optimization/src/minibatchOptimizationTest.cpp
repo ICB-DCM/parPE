@@ -34,20 +34,20 @@ TEST(minibatchOptimization, getBatches) {
 
     // single batch
     int batchSize = numElements;
-    auto batchesAct = parpe::getBatches(input, batchSize);
+    auto batchesAct = parpe::getBatches<int>(input, batchSize);
     CHECK_EQUAL(1, batchesAct.size());
     CHECK_TRUE(input == batchesAct[0]);
 
     // 2 batches, equal size
     batchSize = 5;
-    batchesAct = parpe::getBatches(input, batchSize);
+    batchesAct = parpe::getBatches<int>(input, batchSize);
     CHECK_EQUAL(2, batchesAct.size());
     CHECK_TRUE(std::vector<int>(input.begin(), input.begin() + batchSize) == batchesAct[0]);
     CHECK_TRUE(std::vector<int>(input.begin() + batchSize, input.end()) == batchesAct[1]);
 
     // 2 batches, unequal
     batchSize = 6;
-    batchesAct = parpe::getBatches(input, batchSize);
+    batchesAct = parpe::getBatches<int>(input, batchSize);
     CHECK_EQUAL(2, batchesAct.size());
     CHECK_TRUE(std::vector<int>(input.begin(), input.begin() + batchSize) == batchesAct[0]);
     CHECK_TRUE(std::vector<int>(input.begin() + batchSize, input.end()) == batchesAct[1]);
@@ -179,8 +179,9 @@ TEST(minibatchOptimizationLinearModel, testMinibatchSucceedFromOptimum) {
     auto lm2 = getLinearModelMSE();
     parpe::MinibatchOptimizer<int> mb;
     mb.maxEpochs = 20;
+    mb.batchSize = 2;
     std::vector<double> startingPoint = { 3.0, 2.0 };
-    auto result = mb.optimize(*lm2, dataIndices, 2, startingPoint);
+    auto result = mb.optimize(*lm2, dataIndices, startingPoint, nullptr, nullptr);
     CHECK_EQUAL((int)parpe::minibatchExitStatus::gradientNormConvergence, std::get<0>(result));
     CHECK_EQUAL(0.0, std::get<1>(result));
     CHECK_TRUE(trueParameters == std::get<2>(result));
@@ -233,7 +234,8 @@ TEST(minibatchOptimizationLinearModel, linearModel) {
     mb.maxEpochs = 100;
     //mb.parameterUpdater = std::make_unique<parpe::ParameterUpdaterVanilla>(0.02);
     mb.parameterUpdater = std::make_unique<parpe::ParameterUpdaterRmsProp>();
-    auto result = mb.optimize(*lm3, dataIndices, batchSize, startingPoint);
+    mb.batchSize = batchSize;
+    auto result = mb.optimize(*lm3, dataIndices, startingPoint, nullptr, nullptr);
 
 
     // TODO add some gaussian noise

@@ -5,6 +5,8 @@
 #include "misc.h"
 #include "optimizationOptions.h"
 #include <optimizer.h>
+#include <parpeException.h>
+#include <minibatchOptimization.h>
 
 #include <cstdio>
 #include <cstdlib>
@@ -25,7 +27,21 @@ namespace parpe {
  */
 
 int getLocalOptimum(OptimizationProblem *problem) {
+    // TODO how to make this nicer? minibatchOptimizer should not inherit
+    // from Optimizer since they have different interfaces, so we can not
+    // use the same factory method
+    auto options = problem->getOptimizationOptions();
+    if(options.optimizer == optimizerName::OPTIMIZER_MINIBATCH_1) {
+        auto minibatchProblem = dynamic_cast<MinibatchOptimizationProblem<int>*>(problem);
+        if(!minibatchProblem)
+            throw ParPEException("Minibatch optimizer selected but given optimization problem cannot be solved by minibatch optimizer");
+        auto status = runMinibatchOptimization(minibatchProblem);
+        return std::get<0>(status);
+    }
+
     auto optimizer = std::unique_ptr<Optimizer>(problem->getOptimizationOptions().createOptimizer());
+    if(!optimizer)
+        throw ParPEException("Invalid optimizer selected. Did you compile parPE with support for the selected optimizer?");
     auto status = optimizer->optimize(problem);
     return std::get<0>(status);
 }
@@ -180,7 +196,8 @@ OptimizationReporter::OptimizationReporter(GradientFunction *gradFun,
 }
 
 FunctionEvaluationStatus OptimizationReporter::evaluate(
-        gsl::span<const double> parameters, double &fval,
+        gsl::span<const double> parameters,
+        double &fval,
         gsl::span<double> gradient,
         Logger *logger,
         double *cpuTime) const
@@ -329,7 +346,7 @@ void OptimizationReporter::finished(double optimalCost, gsl::span<const double> 
         cachedParameters.assign(cachedParameters.size(), NAN);
         cachedCost = optimalCost;
     } else if(parameters.data()) {
-        std::copy(parameters.begin(), parameters.end(), cachedParameters.data());
+        cachedParameters.assign(parameters.begin(), parameters.end());
     }
 
 
