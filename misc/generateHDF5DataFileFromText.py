@@ -1053,8 +1053,9 @@ class HDF5DataGenerator:
         # offset parameters are optimized in linear space
         offsetIndices = [i for i, p in enumerate(
             self.f['/parameters/parameterNames']) if p.startswith('offset_')]
-        lower[offsetIndices] = -1e10
-        upper[offsetIndices] = +1e10
+        if len(offsetIndices):
+            lower[offsetIndices] = -1e10
+            upper[offsetIndices] = +1e10
 
     def writeStartingPoints(self):
         """
@@ -1067,7 +1068,7 @@ class HDF5DataGenerator:
         startingPoints = self.f.require_dataset(
             '/optimizationOptions/randomStarts', [numParams, numStartingPoints], 'f8')
         lower = self.f['/parameters/lowerBound'][:]
-        upper = self.f['/parameters/upperBound'][:]../../../misc/generateHDF5DataFileFromText.py
+        upper = self.f['/parameters/upperBound'][:]
         startingPoints[:] = np.transpose(np.random.rand(numStartingPoints, numParams) * (upper - lower) + lower)
 
 
