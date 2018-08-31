@@ -1,15 +1,18 @@
 #include "minibatchOptimization.h"
 
+#include <parpeException.h>
 
 namespace parpe {
 
-double getVectorNorm(const std::vector<double> &v) {
+double getVectorNorm(gsl::span<const double> v) {
     double norm = 0.0;
     for(auto e : v)
         norm += std::pow(e, 2.0);
     norm = std::sqrt(norm);
     return norm;
 }
+
+ParameterUpdaterRmsProp::ParameterUpdaterRmsProp(double learningRate) : learningRate(learningRate) {}
 
 void ParameterUpdaterRmsProp::updateParameters(gsl::span<double const> gradient, gsl::span<double> parameters) {
     if(++updates % 10 == 0) {
@@ -65,19 +68,31 @@ void setMinibatchOption(const std::pair<const std::string, const std::string> &p
     logmessage(LOGLVL_DEBUG, "Set optimization option %s to %s.", key.c_str(), val.c_str());
 }
 
-std::tuple<int, double, std::vector<double> > runMinibatchOptimization(OptimizationProblem *problem) {
-    auto minibatchProblem = dynamic_cast<MinibatchOptimizationProblem<int>*>(problem);
-    if(!minibatchProblem)
-        throw ParPEException("Minibatch optimizer selected but given optimization problem cannot be solved by minibatch optimizer");
-
+std::tuple<int, double, std::vector<double> > runMinibatchOptimization(MinibatchOptimizationProblem<int> *problem)
+{
     auto minibatchOptimizer = getMinibatchOptimizer<int>(problem->getOptimizationOptions());
+
     std::vector<double> parameters(problem->costFun->numParameters());
     problem->fillInitialParameters(parameters);
 
-    auto costFun = minibatchProblem->getGradientFunction();
-    auto data = minibatchProblem->getTrainingData();
+    // problem->getReporter()->;
 
-    return minibatchOptimizer->optimize(*costFun, data, parameters);
+    auto costFun = problem->getGradientFunction();
+    auto data = problem->getTrainingData();
+
+    return minibatchOptimizer->optimize(*costFun, data, parameters,
+                                        problem->getReporter().get(),
+                                        problem->logger.get());
+}
+
+ParameterUpdaterVanilla::ParameterUpdaterVanilla(double learningRate) : learningRate(learningRate) {}
+
+void ParameterUpdaterVanilla::updateParameters(gsl::span<const double> gradient, gsl::span<double> parameters) {
+    int numParameters = gradient.size();
+    for(int i = 0; i < numParameters; ++i) {
+        // logmessage(LOGLVL_DEBUG, "p_%d: %f - %f = %f", i, parameters[i], learningRate * gradient[i], parameters[i] - learningRate * gradient[i]);
+        parameters[i] -= learningRate * gradient[i];
+    }
 }
 
 }

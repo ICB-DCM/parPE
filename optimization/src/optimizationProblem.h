@@ -134,6 +134,10 @@ public:
 
     std::unique_ptr<OptimizationResultWriter> resultWriter;
 
+    mutable double cpuTimeTotalSec = 0.0;
+    mutable double cpuTimeIterationSec = 0.0;
+    std::unique_ptr<Logger> logger;
+
 protected:
     void printObjectiveFunctionFailureMessage() const;
 
@@ -142,8 +146,6 @@ protected:
     // and evaluate() is const there. This could probably be solved better....
 
     mutable WallTimer wallTimer;
-    mutable double cpuTimeTotalSec = 0.0;
-    mutable double cpuTimeIterationSec = 0.0;
 
 //    clock_t timeOptimizationBegin;
 //    clock_t timeIterationBegin;
@@ -170,7 +172,6 @@ protected:
     // keeps the most recent parameters, assuming they are the final ones
     mutable std::vector<double> cachedParameters;
 
-    std::unique_ptr<Logger> logger;
     std::string defaultLoggerPrefix;
 private:
 

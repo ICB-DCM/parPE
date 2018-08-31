@@ -174,12 +174,12 @@ void printSimulationResult(Logger *logger, int jobId, amici::ReturnData const* r
     if (rdata->sensi >= amici::AMICI_SENSI_ORDER_FIRST) {
         for (int i = 0; i < rdata->np; ++i) {
             if (std::isnan(rdata->sllh[i])) {
-                logmessage(LOGLVL_DEBUG, "Gradient contains NaN at %d", i);
+                logger->logmessage(LOGLVL_DEBUG, "Gradient contains NaN at %d", i);
                 break;
             }
 
             if (std::isinf(rdata->sllh[i])) {
-                logmessage(LOGLVL_DEBUG, "Gradient contains Inf at %d", i);
+                logger->logmessage(LOGLVL_DEBUG, "Gradient contains Inf at %d", i);
                 break;
             }
         }
