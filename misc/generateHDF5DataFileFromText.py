@@ -1068,8 +1068,7 @@ class HDF5DataGenerator:
             '/optimizationOptions/randomStarts', [numParams, numStartingPoints], 'f8')
         lower = self.f['/parameters/lowerBound'][:]
         upper = self.f['/parameters/upperBound'][:]
-        startingPoints[:] = np.transpose(np.transpose(np.random.rand(
-            numParams, numStartingPoints)) * (upper - lower) + lower)
+        startingPoints[:] = np.transpose(np.random.rand(numStartingPoints, numParams) * (upper - lower) + lower)
 
 
 def main():
