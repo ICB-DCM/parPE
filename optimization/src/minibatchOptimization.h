@@ -175,7 +175,7 @@ public:
 
                 if(reporter) {
                     reporter->beforeCostFunctionCall(parameters);
-                    reporter->batchLogger->setPrefix(logger.getPrefix());
+                    reporter->logger->setPrefix(batchLogger->getPrefix());
                 }
                 double cpuTime = 0.0;
                 auto status = f.evaluate(parameters, batches[batchIdx], cost, gradient, batchLogger.get(), &cpuTime);
