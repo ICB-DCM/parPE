@@ -11,10 +11,6 @@ def getModelSources():
     import glob
     import re
     modelSources = glob.glob('*.cpp')
-    try:
-        modelSources.remove('main.cpp')
-    except ValueError:
-        pass
     return modelSources
 
 
