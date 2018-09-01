@@ -14,7 +14,11 @@ double getVectorNorm(gsl::span<const double> v) {
 
 ParameterUpdaterRmsProp::ParameterUpdaterRmsProp(double learningRate) : learningRate(learningRate) {}
 
-void ParameterUpdaterRmsProp::updateParameters(gsl::span<double const> gradient, gsl::span<double> parameters) {
+void ParameterUpdaterRmsProp::updateParameters(gsl::span<double const> gradient,
+                                               gsl::span<double> parameters,
+                                               gsl::span<const double> lowerBounds,
+                                               gsl::span<const double> upperBounds)
+{
     if(++updates % 10 == 0) {
         std::cout<<"Adapting learning rate "<<learningRate;
         learningRate /= 2.0;
@@ -31,6 +35,7 @@ void ParameterUpdaterRmsProp::updateParameters(gsl::span<double const> gradient,
         parameters[i] += - learningRate * gradient[i] / (std::sqrt(gradientCache[i]) + eps);
     }
 
+    clipToBounds(lowerBounds, upperBounds, parameters);
 }
 
 void setMinibatchOption(const std::pair<const std::string, const std::string> &pair, MinibatchOptimizer<int> *optimizer) {
@@ -60,6 +65,10 @@ void setMinibatchOption(const std::pair<const std::string, const std::string> &p
         RELEASE_ASSERT(updater, "");
 
         updater->learningRate = std::stod(val);
+    } else if(key == "Vanilla-learningRate") {
+        if(auto updater = dynamic_cast<ParameterUpdaterVanilla*>(optimizer->parameterUpdater.get())) {
+            updater->learningRate = std::stod(val);
+        }
     } else {
         logmessage(LOGLVL_WARNING, "Ignoring unknown optimization option %s.", key.c_str());
         return;
@@ -72,27 +81,39 @@ std::tuple<int, double, std::vector<double> > runMinibatchOptimization(Minibatch
 {
     auto minibatchOptimizer = getMinibatchOptimizer<int>(problem->getOptimizationOptions());
 
-    std::vector<double> parameters(problem->costFun->numParameters());
-    problem->fillInitialParameters(parameters);
-
-    // problem->getReporter()->;
-
     auto costFun = problem->getGradientFunction();
+
+    std::vector<double> initialParameters(costFun->numParameters());
+    problem->fillInitialParameters(initialParameters);
+
+    std::vector<double> lowerParameterBounds(costFun->numParameters());
+    problem->fillParametersMin(lowerParameterBounds);
+
+    std::vector<double> upperParameterBounds(costFun->numParameters());
+    problem->fillParametersMax(upperParameterBounds);
+
     auto data = problem->getTrainingData();
 
-    return minibatchOptimizer->optimize(*costFun, data, parameters,
+    return minibatchOptimizer->optimize(*costFun, data, initialParameters,
+                                        lowerParameterBounds, upperParameterBounds,
                                         problem->getReporter().get(),
                                         problem->logger.get());
 }
 
 ParameterUpdaterVanilla::ParameterUpdaterVanilla(double learningRate) : learningRate(learningRate) {}
 
-void ParameterUpdaterVanilla::updateParameters(gsl::span<const double> gradient, gsl::span<double> parameters) {
+void ParameterUpdaterVanilla::updateParameters(gsl::span<const double> gradient,
+                                               gsl::span<double> parameters,
+                                               gsl::span<const double> lowerBounds,
+                                               gsl::span<const double> upperBounds)
+{
     int numParameters = gradient.size();
     for(int i = 0; i < numParameters; ++i) {
         // logmessage(LOGLVL_DEBUG, "p_%d: %f - %f = %f", i, parameters[i], learningRate * gradient[i], parameters[i] - learningRate * gradient[i]);
         parameters[i] -= learningRate * gradient[i];
     }
+
+    clipToBounds(lowerBounds, upperBounds, parameters);
 }
 
 }
