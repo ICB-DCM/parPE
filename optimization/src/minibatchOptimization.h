@@ -167,7 +167,6 @@ public:
         std::vector<double> gradient(parameters.size(), 0.0);
         std::random_device rd;
         std::mt19937 rng(rd());
-        minibatchExitStatus status = minibatchExitStatus::gradientNormConvergence;
         double cost = NAN;
 
         if(reporter) reporter->starting(initialParameters);
@@ -182,17 +181,7 @@ public:
             for(int batchIdx = 0; (unsigned) batchIdx < batches.size(); ++batchIdx) {
                 auto batchLogger = epochLogger->getChild(std::string("b") + std::to_string(batchIdx));
 
-                if(reporter) {
-                    reporter->beforeCostFunctionCall(parameters);
-                    reporter->logger->setPrefix(batchLogger->getPrefix());
-                }
-                double cpuTime = 0.0;
-                auto status = f.evaluate(parameters, batches[batchIdx], cost, gradient, batchLogger.get(), &cpuTime);
-                if(reporter) {
-                    reporter->cpuTimeIterationSec += cpuTime;
-                    reporter->cpuTimeTotalSec += cpuTime;
-                    reporter->afterCostFunctionCall(parameters, cost, gradient);
-                }
+                auto status = evaluate(f, parameters, batches[batchIdx], cost, gradient, batchLogger.get(), reporter);
 
                 std::stringstream ss;
                 ss<<": p: "<<parameters<<" Cost: "<<cost<<" Gradient:"<<gradient
@@ -219,8 +208,42 @@ public:
             }
         }
 
-        reporter->finished(cost, parameters, (int)status);
-        return std::tuple<int, double, std::vector<double> >((int)status, cost, parameters);
+        logger.logmessage(LOGLVL_INFO, "Number of epochs exceeded.");
+        reporter->finished(cost, parameters, (int)minibatchExitStatus::maxEpochsExceeded);
+        return std::tuple<int, double, std::vector<double> >((int)minibatchExitStatus::maxEpochsExceeded, cost, parameters);
+    }
+
+    FunctionEvaluationStatus evaluate(
+            SummedGradientFunction<BATCH_ELEMENT> const& f,
+            gsl::span<const double> parameters,
+            std::vector<BATCH_ELEMENT> datasets,
+            double &cost,
+            gsl::span<double> gradient,
+            Logger *logger,
+            OptimizationReporter *reporter
+            ) const
+    {
+        if(reporter) {
+            reporter->beforeCostFunctionCall(parameters);
+            reporter->logger->setPrefix(logger->getPrefix());
+        }
+
+        double cpuTime = 0.0;
+        auto status = f.evaluate(parameters, datasets, cost, gradient, logger, &cpuTime);
+
+        if(reporter) {
+            reporter->cpuTimeIterationSec += cpuTime;
+            reporter->cpuTimeTotalSec += cpuTime;
+            reporter->afterCostFunctionCall(parameters, cost, gradient);
+        }
+
+        // Normalize to batch size
+        double batchSize = datasets.size();
+        cost /= batchSize;
+        for(auto &g: gradient)
+            g /= batchSize;
+
+        return status;
     }
 
     std::unique_ptr<ParameterUpdater> parameterUpdater = std::make_unique<ParameterUpdaterVanilla>();
