@@ -204,7 +204,8 @@ public:
 
             if(getVectorNorm(gradient) <= gradientNormThreshold) {
                 epochLogger->logmessage(LOGLVL_INFO, "Convergence: gradientNormThreshold reached.");
-                break;
+                if(reporter) reporter->finished(cost, parameters, (int)minibatchExitStatus::gradientNormConvergence);
+                return std::tuple<int, double, std::vector<double> >((int)minibatchExitStatus::gradientNormConvergence, cost, parameters);
             }
         }
 
