@@ -65,6 +65,10 @@ void setMinibatchOption(const std::pair<const std::string, const std::string> &p
         RELEASE_ASSERT(updater, "");
 
         updater->learningRate = std::stod(val);
+    } else if(key == "Vanilla-learningRate") {
+        if(auto updater = dynamic_cast<ParameterUpdaterVanilla*>(optimizer->parameterUpdater.get())) {
+            updater->learningRate = std::stod(val);
+        }
     } else {
         logmessage(LOGLVL_WARNING, "Ignoring unknown optimization option %s.", key.c_str());
         return;
