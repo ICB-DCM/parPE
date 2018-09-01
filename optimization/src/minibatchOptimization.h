@@ -192,7 +192,7 @@ public:
                 if(status == functionEvaluationFailure) {
                     // TODO: do something smarter
                     batchLogger->logmessage(LOGLVL_ERROR, "Minibatch cost function evaluation failed.");
-                    reporter->finished(cost, parameters, (int)minibatchExitStatus::invalidNumber);
+                    if(reporter) reporter->finished(cost, parameters, (int)minibatchExitStatus::invalidNumber);
                     return std::tuple<int, double, std::vector<double> >((int)minibatchExitStatus::invalidNumber, cost, parameters);
                 }
 
@@ -209,7 +209,7 @@ public:
         }
 
         logger.logmessage(LOGLVL_INFO, "Number of epochs exceeded.");
-        reporter->finished(cost, parameters, (int)minibatchExitStatus::maxEpochsExceeded);
+        if(reporter) reporter->finished(cost, parameters, (int)minibatchExitStatus::maxEpochsExceeded);
         return std::tuple<int, double, std::vector<double> >((int)minibatchExitStatus::maxEpochsExceeded, cost, parameters);
     }
 
