@@ -96,7 +96,10 @@ public:
      * @param gradient Cost function gradient at parameters
      * @param parameters In: Current parameters, Out: Updated parameters
      */
-    virtual void updateParameters(gsl::span<const double> gradient, gsl::span<double> parameters) = 0;
+    virtual void updateParameters(gsl::span<const double> gradient,
+                                  gsl::span<double> parameters,
+                                  gsl::span<const double> lowerBounds = gsl::span<const double>(),
+                                  gsl::span<const double> upperBounds = gsl::span<const double>()) = 0;
 
     virtual ~ParameterUpdater() = default;
 };
@@ -107,7 +110,9 @@ public:
     ParameterUpdaterVanilla() = default;
     ParameterUpdaterVanilla(double learningRate);
 
-    void updateParameters(gsl::span<const double> gradient, gsl::span<double> parameters);
+    void updateParameters(gsl::span<const double> gradient, gsl::span<double> parameters,
+                          gsl::span<const double> lowerBounds = gsl::span<const double>(),
+                          gsl::span<const double> upperBounds = gsl::span<const double>());
 
     double learningRate = 0.1;
 };
@@ -118,7 +123,9 @@ public:
     ParameterUpdaterRmsProp() = default;
     ParameterUpdaterRmsProp(double learningRate);
 
-    void updateParameters(gsl::span<const double> gradient, gsl::span<double> parameters);
+    void updateParameters(gsl::span<const double> gradient, gsl::span<double> parameters,
+                          gsl::span<const double> lowerBounds = gsl::span<const double>(),
+                          gsl::span<const double> upperBounds = gsl::span<const double>());
 
     int updates = 0;
     double learningRate = 1.0;
@@ -145,6 +152,8 @@ public:
             SummedGradientFunction<BATCH_ELEMENT> const& f,
             gsl::span<const BATCH_ELEMENT> data,
             gsl::span<const double> initialParameters,
+            gsl::span<const double> lowerParameterBounds,
+            gsl::span<const double> upperParameterBounds,
             OptimizationReporter *reporter,
             Logger *logger_)
     {
@@ -200,7 +209,8 @@ public:
 
                 if(reporter) reporter->iterationFinished(parameters, cost, gradient);
 
-                parameterUpdater->updateParameters(gradient, parameters);
+                parameterUpdater->updateParameters(gradient, parameters,
+                                                   lowerParameterBounds, upperParameterBounds);
             }
 
             if(getVectorNorm(gradient) <= gradientNormThreshold) {
@@ -248,5 +258,23 @@ std::unique_ptr<MinibatchOptimizer<BATCH_ELEMENT>> getMinibatchOptimizer(Optimiz
 std::tuple<int, double, std::vector<double> > runMinibatchOptimization(MinibatchOptimizationProblem<int> *problem);
 
 } // namespace parpe
+
+/**
+ * @brief Clip values to given element-wise bounds.
+ * @param lowerBounds
+ * @param upperBounds
+ * @param x
+ */
+template<typename T>
+void clipToBounds(gsl::span<const T> lowerBounds, gsl::span<const T> upperBounds, gsl::span<T> x) {
+    if(lowerBounds.empty() && upperBounds.empty())
+        return;
+
+    RELEASE_ASSERT(lowerBounds.size() == upperBounds.size(), "");
+    RELEASE_ASSERT(lowerBounds.size() == x.size(), "");
+
+    for(int i = 0; static_cast<typename gsl::span<const T>::index_type>(i) < x.size(); ++i)
+        x[i] = std::min(std::max(lowerBounds[i], x[i]), upperBounds[i]);
+}
 
 #endif

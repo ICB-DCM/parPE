@@ -181,7 +181,7 @@ TEST(minibatchOptimizationLinearModel, testMinibatchSucceedFromOptimum) {
     mb.maxEpochs = 20;
     mb.batchSize = 2;
     std::vector<double> startingPoint = { 3.0, 2.0 };
-    auto result = mb.optimize(*lm2, dataIndices, startingPoint, nullptr, nullptr);
+    auto result = mb.optimize(*lm2, dataIndices, startingPoint, gsl::span<const double>(), gsl::span<const double>(), nullptr, nullptr);
     CHECK_EQUAL((int)parpe::minibatchExitStatus::gradientNormConvergence, std::get<0>(result));
     CHECK_EQUAL(0.0, std::get<1>(result));
     CHECK_TRUE(trueParameters == std::get<2>(result));
@@ -235,7 +235,9 @@ TEST(minibatchOptimizationLinearModel, linearModel) {
     //mb.parameterUpdater = std::make_unique<parpe::ParameterUpdaterVanilla>(0.02);
     mb.parameterUpdater = std::make_unique<parpe::ParameterUpdaterRmsProp>();
     mb.batchSize = batchSize;
-    auto result = mb.optimize(*lm3, dataIndices, startingPoint, nullptr, nullptr);
+    auto result = mb.optimize(*lm3, dataIndices, startingPoint,
+                              gsl::span<const double>(), gsl::span<const double>(),
+                              nullptr, nullptr);
 
 
     // TODO add some gaussian noise
