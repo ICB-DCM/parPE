@@ -7,9 +7,19 @@
 #include <chrono>
 #include <vector>
 #include <ostream>
+#include <gsl/gsl-lite.hpp>
 
 template<typename T>
 std::ostream& operator <<(std::ostream& o, std::vector<T> const& v) {
+    o << "[ ";
+    for(auto const& e: v)
+        o << e << " ";
+    o << "]";
+    return o;
+}
+
+template<typename T>
+std::ostream& operator <<(std::ostream& o, gsl::span<T> const& v) {
     o << "[ ";
     for(auto const& e: v)
         o << e << " ";
@@ -29,8 +39,8 @@ public:
 
     double getTotal();
 
-    std::chrono::time_point<std::chrono::high_resolution_clock> start;
-    std::chrono::time_point<std::chrono::high_resolution_clock> roundStart;
+    std::chrono::time_point<std::chrono::system_clock> start;
+    std::chrono::time_point<std::chrono::system_clock> roundStart;
 
 };
 

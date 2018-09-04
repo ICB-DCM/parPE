@@ -178,7 +178,7 @@ TEST(hierarchicalOptimization, hierarchicalOptimization) {
     auto sigmaReaderUnique = std::make_unique<parpe::AnalyticalParameterHdf5Reader>(H5::H5File(TESTFILE, H5F_ACC_RDONLY),
                                                                                      "/sigmaParameterIndices",
                                                                                      "/sigmaParametersMapToObservables");
-    parpe::HierachicalOptimizationWrapper hierarchicalOptimizationWrapper(std::move(funUnqiue),
+    parpe::HierarchicalOptimizationWrapper hierarchicalOptimizationWrapper(std::move(funUnqiue),
                                             std::move(scalingReaderUnique), std::move(offsetReaderUnique), std::move(sigmaReaderUnique),
                                             fun->numConditions, fun->numObservables, fun->numTimepoints,
                                             parpe::ErrorModel::normal);
@@ -244,7 +244,7 @@ TEST(hierarchicalOptimization, testNoAnalyticalParameters) {
     // for offsets and proportionality factors and sigmas
     mock().expectNCalls(3, "AnalyticalParameterProviderMock::getOptimizationParameterIndices");
 
-    parpe::HierachicalOptimizationWrapper w(std::move(fun),
+    parpe::HierarchicalOptimizationWrapper w(std::move(fun),
                                             std::move(scalingProvider), std::move(offsetProvider), std::move(sigmaProvider),
                                             fun2->numConditions, fun2->numObservables, fun2->numTimepoints,
                                             parpe::ErrorModel::normal);
@@ -501,7 +501,7 @@ TEST(hierarchicalOptimization, testWrappedFunIsCalledWithGradient) {
     // for offsets and proportionality factors and sigmas
     mock().expectNCalls(3, "AnalyticalParameterProviderMock::getOptimizationParameterIndices");
 
-    parpe::HierachicalOptimizationWrapper hierarchicalWrapper(std::move(fun), std::move(scalingProvider), std::move(offsetProvider), std::move(sigmaProvider),
+    parpe::HierarchicalOptimizationWrapper hierarchicalWrapper(std::move(fun), std::move(scalingProvider), std::move(offsetProvider), std::move(sigmaProvider),
                                             funNonOwning->numConditions, funNonOwning->numObservables, funNonOwning->numTimepoints,
                                             parpe::ErrorModel::normal);
 
@@ -559,10 +559,10 @@ TEST(hierarchicalOptimization, likelihoodOfMatchingData) {
 
 TEST(hierarchicalOptimization, problemWrapper) {
     //std::unique_ptr<parpe::OptimizationProblem> problem(new parpe::QuadraticTestProblem());
-    //auto hCost = std::make_unique<parpe::HierachicalOptimizationWrapper>();
+    //auto hCost = std::make_unique<parpe::HierarchicalOptimizationWrapper>();
     //auto wrappedFun = dynamic_cast<SummedGradientFunctionGradientFunctionAdapter<int>*>(wrappedProblem->costFun.get());
 
-    //parpe::HierachicalOptimizationProblemWrapper hw(std::move(problem), std::move(hCost));
+    //parpe::HierarchicalOptimizationProblemWrapper hw(std::move(problem), std::move(hCost));
 
     // TODO test wrapper; need dataprovider?!
     //    mock().ignoreOtherCalls();

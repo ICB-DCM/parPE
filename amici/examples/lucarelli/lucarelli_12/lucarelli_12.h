@@ -64,7 +64,7 @@ public:
               141, // nnz
               33, // ubw
               33, // lbw
-              amici::SecondOrderMode::none, // o2mode
+              amici::AMICI_O2MODE_NONE, // o2mode
               std::vector<realtype>{0.00598343088790046, 0.286397320264704, 0.0489949146416608, 0.379720142751521, 0.0141389661164018, 0.000797280887701997, 0.0, 0.0, 0.0462523981984203, 0.026381058989095, 0.00455788978022206, 0.461699170803527, 0.073852775177442, 0.0304255473876269, 0.0, 0.747200749545747, 0.407329851468312, 0.0112459404708192, 0.00714636599139809, 0.0, 0.0, 0.0, 0.018441582221635, 0.035379693264711, 0.00378630404521753, 0.0111673720417551, 0.000268942132758932, 0.0, 0.0, 0.0868803385899104, 0.101419105775767, 0.000802160834341515, 0.0, 1.03661055568903, 6.10224669858575, 8.20035989079744, 1.4392548717489, 9.67035015330535, 0.124380538819967, 998.299919973209, 0.135655043663672, 20.6442242166861, 3.63157061548523, 0.0, 0.0, 36.6724104315148, 626.768522107231, 55.9534537604082, 0.0, 0.0, 0.0175854489108708, 0.000815621975867545, 295.971427530835, 0.0, 89.9866382703511, 999.921986303898, 999.998960700206, 19.0317907364409, 218.356690800299, 0.992827361229694, 9.30152789301652, 0.0, 0.0, 0.0, 320.763519415643, 999.981624754706, 0.00328197841814657, 0.0, 0.0, 0.0, 0.47739150796461, 0.00985305306597475, 0.00851371884219428, 0.0140190729281921, 0.0125133830064198, 0.000284224503418874, 0.0, 0.0, 1.36603583936842, 2.43594567888689, 0.00359915570352007, 0.0, 0.000474849473374749, 0.0, 1.29976503414042, 0.062323573525662, 0.13414856027346, 0.0149504509077553, 1.83614829885072, 0.0, 0.0, 0.148655616115831, 0.000403100938582095, 8.56307475687022e-06, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0404498417896043, 0.140066630704836, 0.133558955086407, 0.0961378774278948, 0.104874995503069, 0.163608622879931, 0.116787493223069, 0.0733384767144999, 0.101509175364595, 0.173716659133795, 0.0699132545087422, 0.125435007986767, 0.0766684551714607}, // dynamic parameters
               std::vector<realtype>{1.0, 142.777172927249, 16.258584970194, 67.0508150691882}, // fixedParameters
               std::vector<int>{}, // plist
@@ -703,190 +703,7 @@ public:
      * @brief Get names of the model parameters
      * @return the names
      */
-    virtual std::vector<std::string> getParameterNames() const override { return std::vector<std::string> {"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",}; }
-
-    /**
-     * @brief Get names of the model states
-     * @return the names
-     */
-    virtual std::vector<std::string> getStateNames() const override { return std::vector<std::string> {"TGFb",
-"Rec",
-"TGFb_pRec",
-"S2",
-"S3",
-"S4",
-"S2_S4_S4",
-"ppS2_ppS2_ppS2",
-"ppS3_ppS3_ppS3",
-"S4_S4_S4",
-"pS2",
-"pS3",
-"ppS2",
-"ppS3",
-"ppS2_ppS2_S4",
-"ppS2_ppS2_ppS3",
-"ppS2_ppS3_ppS3",
-"ppS3_ppS3_S4",
-"ppS2_ppS3_S4",
-"ppS3_S4_S4",
-"ppS2_S4_S4",
-"geneA",
-"geneB",
-"geneC",
-"geneD",
-"geneE",
-"geneF",
-"geneG",
-"geneH",
-"geneI",
-"geneJ",
-"geneK",
-"geneL",}; }
-
-    /**
-     * @brief Get names of the fixed model parameters
-     * @return the names
-     */
-    virtual std::vector<std::string> getFixedParameterNames() const override { return std::vector<std::string> {"",
-"",
-"",
-"",}; }
-
-    /**
-     * @brief Get names of the observables
-     * @return the names
-     */
-    virtual std::vector<std::string> getObservableNames() const override { return std::vector<std::string> {"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"",}; }
-
-    /**
-     * @brief Get ids of the model parameters
-     * @return the ids
-     */
-    virtual std::vector<std::string> getParameterIds() const override { return std::vector<std::string> {"Rec_act",
+    virtual std::vector<std::string> getParameterNames() const { return std::vector<std::string> {"Rec_act",
 "S_dephos",
 "S_dephosphos",
 "S_phos",
@@ -1000,12 +817,12 @@ public:
 "sd_Smad7_nExpID100",
 "sd_Sox4_nExpID100",
 "sd_Tgfa_nExpID100",}; }
-    
+
     /**
-     * @brief Get ids of the model states
-     * @return the ids
+     * @brief Get names of the model states
+     * @return the names
      */
-    virtual std::vector<std::string> getStateIds() const override { return std::vector<std::string> {"TGFb",
+    virtual std::vector<std::string> getStateNames() const { return std::vector<std::string> {"TGFb",
 "Rec",
 "TGFb_pRec",
 "S2",
@@ -1038,21 +855,21 @@ public:
 "geneJ",
 "geneK",
 "geneL",}; }
-    
+
     /**
-     * @brief Get ids of the fixed model parameters
-     * @return the ids
+     * @brief Get names of the fixed model parameters
+     * @return the names
      */
-    virtual std::vector<std::string> getFixedParameterIds() const override { return std::vector<std::string> {"init_TGFb",
+    virtual std::vector<std::string> getFixedParameterNames() const { return std::vector<std::string> {"init_TGFb",
 "init_S2",
 "init_S3",
 "init_S4",}; }
-    
+
     /**
-     * @brief Get ids of the observables
-     * @return the ids
+     * @brief Get names of the observables
+     * @return the names
      */
-    virtual std::vector<std::string> getObservableIds() const override { return std::vector<std::string> {"observable_Ski",
+    virtual std::vector<std::string> getObservableNames() const { return std::vector<std::string> {"observable_Ski",
 "observable_Skil",
 "observable_Dnmt3a",
 "observable_Sox4",

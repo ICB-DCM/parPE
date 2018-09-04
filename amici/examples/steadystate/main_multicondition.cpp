@@ -62,7 +62,7 @@ class SteadystateApplication : public parpe::OptimizationApplication {
 
         // hierarchical optimization?
         if(optimizationOptions->hierarchicalOptimization) {
-            problem.reset(new parpe::HierachicalOptimizationProblemWrapper(
+            problem.reset(new parpe::HierarchicalOptimizationProblemWrapper(
                               std::unique_ptr<parpe::MultiConditionProblem>(multiCondProb),
                               dataProvider.get())
                           );

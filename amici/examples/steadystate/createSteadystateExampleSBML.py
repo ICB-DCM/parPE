@@ -77,6 +77,7 @@ def create_species(model, id, compartment, constant = False, initialAmount = 0.0
 def create_parameter(model, id, constant, value, units):
     k = model.createParameter()
     k.setId(id)
+    k.setName(id)
     k.setConstant(constant)
     k.setValue(value)
     k.setUnits(units)

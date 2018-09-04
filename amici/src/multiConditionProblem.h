@@ -10,6 +10,7 @@
 #include <loadBalancerMaster.h>
 #include <loadBalancerWorker.h>
 #include "amiciSimulationRunner.h"
+#include <minibatchOptimization.h>
 
 #include <amici/amici.h>
 
@@ -62,6 +63,13 @@ public:
             logLineSearch = env[0] == '1';
         }
 
+        if(auto env = std::getenv("PARPE_MAX_SIMULATIONS_PER_PACKAGE")) {
+            maxSimulationsPerPackage = std::stoi(env);
+        }
+
+        if(auto env = std::getenv("PARPE_MAX_GRADIENT_SIMULATIONS_PER_PACKAGE")) {
+            maxGradientSimulationsPerPackage = std::stoi(env);
+        }
     }
 
     virtual ~AmiciSummedGradientFunction() = default;
@@ -381,8 +389,8 @@ private:
     std::unique_ptr<amici::Solver> solverOriginal; // for saving sensitivity options which are changed depending on whether gradient is needed
     OptimizationResultWriter *resultWriter = nullptr; // TODO: owning?
     bool logLineSearch = false;
-    const int maxSimulationsPerPackage = 8;
-    const int maxGradientSimulationsPerPackage = 1;
+    int maxSimulationsPerPackage = 8;
+    int maxGradientSimulationsPerPackage = 1;
 };
 
 
@@ -392,7 +400,9 @@ private:
  * on an MultiConditionGradientFunction (AMICI ODE model)
  */
 
-class MultiConditionProblem : public OptimizationProblem {
+class MultiConditionProblem
+        : public MinibatchOptimizationProblem<int>
+{
 
   public:
     MultiConditionProblem() = default;
@@ -427,7 +437,9 @@ class MultiConditionProblem : public OptimizationProblem {
 
     std::unique_ptr<OptimizationReporter> getReporter() const override;
 
-  protected:
+    std::vector<int> getTrainingData() const override;
+
+protected:
     //TODO std::unique_ptr<OptimizationProblem> validationProblem;
 
     MultiConditionDataProvider *dataProvider = nullptr;

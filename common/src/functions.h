@@ -36,7 +36,7 @@ public:
     virtual FunctionEvaluationStatus evaluate(
             gsl::span<double const> parameters,
             double &fval,
-            gsl::span<double> gradient) const;;
+            gsl::span<double> gradient) const;
 
 
     virtual FunctionEvaluationStatus evaluate(
@@ -102,12 +102,14 @@ public:
 
 
 /**
- * Adapter / wrapper for SummedGradientFunction to GradientFunction.
+ * Adapter / wrapper for SummedGradientFunction to GradientFunction..
  *
  * Simply evaluates SummedGradientFunction on all datasets.
  */
 template<typename T>
-class SummedGradientFunctionGradientFunctionAdapter : public GradientFunction {
+class SummedGradientFunctionGradientFunctionAdapter
+        : public GradientFunction, public SummedGradientFunction<T>
+{
 public:
     /**
      * @brief SummedGradientFunctionGradientFunctionAdapter
@@ -127,9 +129,32 @@ public:
             double &fval,
             gsl::span<double> gradient,
             Logger *logger = nullptr,
-            double *cpuTime = nullptr) const override {
+            double *cpuTime = nullptr) const override
+    {
         return gradFun->evaluate(parameters, datasets, fval, gradient, logger, cpuTime);
+    }
 
+    FunctionEvaluationStatus evaluate(
+            gsl::span<const double> parameters,
+            T dataset,
+            double &fval,
+            gsl::span<double> gradient,
+            Logger *logger,
+            double *cpuTime) const override
+    {
+        return gradFun->evaluate(parameters, dataset, fval, gradient, logger, cpuTime);
+    }
+
+    FunctionEvaluationStatus evaluate(
+            gsl::span<const double> parameters,
+            std::vector<T> datasets,
+            double &fval,
+            gsl::span<double> gradient,
+            Logger *logger,
+            double *cpuTime
+            ) const override
+    {
+        return gradFun->evaluate(parameters, datasets, fval, gradient, logger, cpuTime);
     }
 
     int numParameters() const override { return gradFun->numParameters(); }

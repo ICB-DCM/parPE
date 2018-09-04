@@ -139,7 +139,7 @@ TEST(steadystateProblemTests, testSteadystateHierarchical) {
     auto sigmas = std::make_unique<parpe::AnalyticalParameterProviderDefault>();
 
     auto gradFun = std::make_unique<parpe::AmiciSummedGradientFunction<int>>(&dp, nullptr, nullptr);
-    parpe::HierachicalOptimizationWrapper hier(std::move(gradFun),
+    parpe::HierarchicalOptimizationWrapper hier(std::move(gradFun),
                                                std::move(scalings),
                                                std::move(offsets),
                                                std::move(sigmas),
@@ -210,7 +210,7 @@ TEST(steadystateProblemTests, testOptimizationHierarchical) {
 
     // create wrapper
     auto gradFun = std::make_unique<parpe::AmiciSummedGradientFunction<int>>(&dp, nullptr, nullptr);
-    auto hier = std::make_unique<parpe::HierachicalOptimizationWrapper>(std::move(gradFun),
+    auto hier = std::make_unique<parpe::HierarchicalOptimizationWrapper>(std::move(gradFun),
                                                                         std::move(scalings),
                                                                         std::move(offsets),
                                                                         std::move(sigmas),
