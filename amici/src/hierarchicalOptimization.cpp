@@ -704,7 +704,7 @@ double computeAnalyticalScalings(int scalingIdx,
     }
 
     if(denominator == 0.0) {
-        throw ParPEException("In computeAnalyticalScalings: denominator is 0.");
+        throw ParPEException(std::string("In computeAnalyticalScalings: denominator is 0 for scaling parameter ") + std::to_string(scalingIdx));
     }
 
     return enumerator / denominator;
