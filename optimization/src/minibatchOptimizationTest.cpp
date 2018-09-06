@@ -58,9 +58,10 @@ TEST(minibatchOptimization, updateParameters) {
     std::vector<double> gradient {1.0, 2.0};
     std::vector<double> parameters {2.0, 3.0};
     std::vector<double> parametersExp {1.5, 2.0};
+    int epoch = 1;
 
-    parpe::ParameterUpdaterVanilla pu(0.5);
-    pu.updateParameters(gradient, parameters);
+    parpe::ParameterUpdaterVanilla pu(0.5, 0.5);
+    pu.updateParameters(epoch, gradient, parameters);
     CHECK_TRUE(parametersExp == parameters);
 }
 
@@ -68,10 +69,11 @@ TEST(minibatchOptimization, updateParametersRMSProp) {
     std::vector<double> gradient {1.0, 2.0};
     std::vector<double> parameters {2.0, 3.0};
     //std::vector<double> parametersExp {1.5, 2.0};
+    int epoch = 1;
 
     parpe::ParameterUpdaterRmsProp pu;
-    pu.updateParameters(gradient, parameters);
-    pu.updateParameters(gradient, parameters);
+    pu.updateParameters(epoch, gradient, parameters);
+    pu.updateParameters(epoch, gradient, parameters);
     //CHECK_TRUE(parametersExp == parameters);
 }
 

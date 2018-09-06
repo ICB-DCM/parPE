@@ -52,6 +52,63 @@ public:
 };
 
 
+
+/**
+ * @brief Interface for parameter updaters for minibatch optimizers
+ */
+class ParameterUpdater {
+public:
+    /**
+     * @brief Update parameter vector
+     * @param gradient Cost function gradient at parameters
+     * @param parameters In: Current parameters, Out: Updated parameters
+     */
+    virtual void updateParameters(int iteration,
+                                  gsl::span<const double> gradient,
+                                  gsl::span<double> parameters,
+                                  gsl::span<const double> lowerBounds = gsl::span<const double>(),
+                                  gsl::span<const double> upperBounds = gsl::span<const double>()) = 0;
+
+    virtual ~ParameterUpdater() = default;
+};
+
+
+class ParameterUpdaterVanilla : public ParameterUpdater {
+public:
+    ParameterUpdaterVanilla() = default;
+    ParameterUpdaterVanilla(double startLearningRate, double endLearningRate);
+
+    void updateParameters(int iteration,
+			  gsl::span<const double> gradient, 
+			  gsl::span<double> parameters,
+                          gsl::span<const double> lowerBounds = gsl::span<const double>(),
+                          gsl::span<const double> upperBounds = gsl::span<const double>());
+
+    double startLearningRate = 0.1;
+    double endLearningRate = 0.001;
+};
+
+
+class ParameterUpdaterRmsProp : public ParameterUpdater {
+public:
+    ParameterUpdaterRmsProp() = default;
+    ParameterUpdaterRmsProp(double startLearningRate, double endLearningRate);
+
+    void updateParameters(int iteration,
+                          gsl::span<const double> gradient, 
+                          gsl::span<double> parameters,
+                          gsl::span<const double> lowerBounds = gsl::span<const double>(),
+                          gsl::span<const double> upperBounds = gsl::span<const double>());
+
+    int updates = 0;
+    double startLearningRate = 0.1;
+    double endLearningRate = 0.001;
+    double decayRate = 0.9;
+    double delta = 1e-7;
+    std::vector<double> gradientNormCache;
+};
+
+
 /**
  * @brief Split a vector into batches of the given size.
  *
@@ -85,54 +142,6 @@ std::vector<std::vector<T>> getBatches(gsl::span<const T> data, int batchSize) {
  * @return the norm
  */
 double getVectorNorm(gsl::span<const double> v);
-
-/**
- * @brief Interface for parameter updaters for minibatch optimizers
- */
-class ParameterUpdater {
-public:
-    /**
-     * @brief Update parameter vector
-     * @param gradient Cost function gradient at parameters
-     * @param parameters In: Current parameters, Out: Updated parameters
-     */
-    virtual void updateParameters(gsl::span<const double> gradient,
-                                  gsl::span<double> parameters,
-                                  gsl::span<const double> lowerBounds = gsl::span<const double>(),
-                                  gsl::span<const double> upperBounds = gsl::span<const double>()) = 0;
-
-    virtual ~ParameterUpdater() = default;
-};
-
-
-class ParameterUpdaterVanilla : public ParameterUpdater {
-public:
-    ParameterUpdaterVanilla() = default;
-    ParameterUpdaterVanilla(double learningRate);
-
-    void updateParameters(gsl::span<const double> gradient, gsl::span<double> parameters,
-                          gsl::span<const double> lowerBounds = gsl::span<const double>(),
-                          gsl::span<const double> upperBounds = gsl::span<const double>());
-
-    double learningRate = 0.1;
-};
-
-
-class ParameterUpdaterRmsProp : public ParameterUpdater {
-public:
-    ParameterUpdaterRmsProp() = default;
-    ParameterUpdaterRmsProp(double learningRate);
-
-    void updateParameters(gsl::span<const double> gradient, gsl::span<double> parameters,
-                          gsl::span<const double> lowerBounds = gsl::span<const double>(),
-                          gsl::span<const double> upperBounds = gsl::span<const double>());
-
-    int updates = 0;
-    double learningRate = 1.0;
-    double decayRate = 0.9;
-    double eps = 1e-4;
-    std::vector<double> gradientCache;
-};
 
 
 template<typename BATCH_ELEMENT>
@@ -184,9 +193,9 @@ public:
                 auto status = evaluate(f, parameters, batches[batchIdx], cost, gradient, batchLogger.get(), reporter);
 
                 std::stringstream ss;
-                ss<<": p: "<<parameters<<" Cost: "<<cost<<" Gradient:"<<gradient
-                 << " |g|2: "<<getVectorNorm(gradient)
-                 << " Batch: "<<batches[batchIdx]<<std::endl;
+                ss << ": Cost: " << cost
+                 << " |g|2: " << getVectorNorm(gradient)
+                 << " Batch: " << batches[batchIdx] << std::endl;
                 batchLogger->logmessage(LOGLVL_DEBUG, ss.str().c_str());
 
                 if(status == functionEvaluationFailure) {
@@ -198,7 +207,7 @@ public:
 
                 if(reporter) reporter->iterationFinished(parameters, cost, gradient);
 
-                parameterUpdater->updateParameters(gradient, parameters,
+                parameterUpdater->updateParameters(epoch, gradient, parameters,
                                                    lowerParameterBounds, upperParameterBounds);
             }
 
@@ -250,7 +259,7 @@ public:
     std::unique_ptr<ParameterUpdater> parameterUpdater = std::make_unique<ParameterUpdaterVanilla>();
 
     int batchSize = 1;
-    int maxEpochs = 10;
+    int maxEpochs = 3;
     double gradientNormThreshold = 0.0;
 };
 
