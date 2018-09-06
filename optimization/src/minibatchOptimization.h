@@ -24,6 +24,12 @@ enum class minibatchExitStatus {
     invalidNumber
 };
 
+enum class learningRateAdaption {
+    linear,
+    inverseLinear,
+    logarithmic
+};
+
 
 /**
  * Problem definition for minibatch optimization
@@ -76,16 +82,17 @@ public:
 class ParameterUpdaterVanilla : public ParameterUpdater {
 public:
     ParameterUpdaterVanilla() = default;
-    ParameterUpdaterVanilla(double startLearningRate, double endLearningRate);
+    ParameterUpdaterVanilla(learningRateAdaption learningRateAdaptionMode, double startLearningRate, double endLearningRate);
 
     void updateParameters(int iteration,
-			  gsl::span<const double> gradient, 
-			  gsl::span<double> parameters,
+                          gsl::span<const double> gradient, 
+                          gsl::span<double> parameters,
                           gsl::span<const double> lowerBounds = gsl::span<const double>(),
                           gsl::span<const double> upperBounds = gsl::span<const double>());
 
     double startLearningRate = 0.1;
     double endLearningRate = 0.001;
+	learningRateAdaption learningRateAdaptionMode = learningRateAdaption::linear;
 };
 
 

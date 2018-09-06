@@ -114,7 +114,7 @@ void ParameterUpdaterRmsProp::updateParameters(int iteration,
 		* start value of the learning rate
 		* end value of the learning rate
 */
-ParameterUpdaterVanilla::ParameterUpdaterVanilla(double startLearningRate, double endLearningRate) : startLearningRate(startLearningRate), endLearningRate(endLearningRate) {}
+ParameterUpdaterVanilla::ParameterUpdaterVanilla(learningRateAdaption learningRateAdaptionMode, double startLearningRate, double endLearningRate) : learningRateAdaptionMode(learningRateAdaptionMode), startLearningRate(startLearningRate), endLearningRate(endLearningRate) {}
 
 void ParameterUpdaterVanilla::updateParameters(int iteration,
                                                gsl::span<const double> gradient,
@@ -123,7 +123,18 @@ void ParameterUpdaterVanilla::updateParameters(int iteration,
                                                gsl::span<const double> upperBounds)
 {
     int numParameters = gradient.size();
-    double currentLearningRate = startLearningRate - (startLearningRate - endLearningRate) * ((double) iteration - 1.0)/9.0;
+	double currentLearningRate = 0;
+
+	if(learningRateAdaptionMode == learningRateAdaption::linear) {
+    	currentLearningRate = startLearningRate - (startLearningRate - endLearningRate) * ((double) iteration - 1.0)/9.0;
+	} else if(learningRateAdaptionMode == learningRateAdaption::inverseLinear) {
+		currentLearningRate = 1 / startLearningRate - (1 / startLearningRate - 1 / endLearningRate) * ((double) iteration - 1) / 9;
+		currentLearningRate = 1 / currentLearningRate;
+	} else if(learningRateAdaptionMode == learningRateAdaption::logarithmic) {
+		currentLearningRate = log(startLearningRate) - (log(startLearningRate) - log(endLearningRate)) * ((double) iteration - 1) / 9;
+		currentLearningRate = exp(currentLearningRate);
+	}
+
     for(int i = 0; i < numParameters; ++i) {
         // logmessage(LOGLVL_DEBUG, "p_%d: %f - %f = %f", i, parameters[i], learningRate * gradient[i], parameters[i] - learningRate * gradient[i]);
         parameters[i] -= currentLearningRate * gradient[i] / getVectorNorm(gradient);

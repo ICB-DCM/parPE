@@ -60,7 +60,7 @@ TEST(minibatchOptimization, updateParameters) {
     std::vector<double> parametersExp {1.5, 2.0};
     int epoch = 1;
 
-    parpe::ParameterUpdaterVanilla pu(0.5, 0.5);
+    parpe::ParameterUpdaterVanilla pu(parpe::learningRateAdaption::linear, 0.5, 0.5);
     pu.updateParameters(epoch, gradient, parameters);
     CHECK_TRUE(parametersExp == parameters);
 }
