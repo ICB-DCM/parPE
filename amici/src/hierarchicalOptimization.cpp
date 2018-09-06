@@ -561,6 +561,7 @@ HierarchicalOptimizationProblemWrapper::HierarchicalOptimizationProblemWrapper(
 
     auto model = dataProvider->getModel();
 
+    auto lock = hdf5MutexGetLock();
     costFun.reset(new HierarchicalOptimizationWrapper(
                       std::unique_ptr<AmiciSummedGradientFunction<int>>(
                           dynamic_cast<AmiciSummedGradientFunction<int>*>(wrappedFun->getWrappedFunction())),
