@@ -561,6 +561,7 @@ HierarchicalOptimizationProblemWrapper::HierarchicalOptimizationProblemWrapper(
 
     auto model = dataProvider->getModel();
 
+    auto lock = hdf5MutexGetLock();
     costFun.reset(new HierarchicalOptimizationWrapper(
                       std::unique_ptr<AmiciSummedGradientFunction<int>>(
                           dynamic_cast<AmiciSummedGradientFunction<int>*>(wrappedFun->getWrappedFunction())),
@@ -704,7 +705,7 @@ double computeAnalyticalScalings(int scalingIdx,
     }
 
     if(denominator == 0.0) {
-        throw ParPEException("In computeAnalyticalScalings: denominator is 0.");
+        throw ParPEException(std::string("In computeAnalyticalScalings: denominator is 0 for scaling parameter ") + std::to_string(scalingIdx));
     }
 
     return enumerator / denominator;
