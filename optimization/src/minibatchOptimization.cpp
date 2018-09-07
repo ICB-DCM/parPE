@@ -32,7 +32,13 @@ void setMinibatchOption(const std::pair<const std::string, const std::string> &p
             logmessage(LOGLVL_WARNING, "Ignoring unknown Minibatch parameterUpdater %s.", val.c_str());
         }
     } else if(key == "learningRateInterpMode") {
-		optimizer->learningRateUpdater = std::make_unique<LearningRateUpdater>(optimizer->maxEpochs, (parpe::learningRateInterp) std::stoi(val) );
+        if(val == "linear") {
+		    optimizer->learningRateUpdater = std::make_unique<LearningRateUpdater>(optimizer->maxEpochs, parpe::learningRateInterp::linear );
+        } else if(val == "inverseLinear") {
+            optimizer->learningRateUpdater = std::make_unique<LearningRateUpdater>(optimizer->maxEpochs, parpe::learningRateInterp::inverseLinear );
+        } else if(val == "logarithmic") {
+			optimizer->learningRateUpdater = std::make_unique<LearningRateUpdater>(optimizer->maxEpochs, parpe::learningRateInterp::logarithmic );
+        }
 	} else {
         logmessage(LOGLVL_WARNING, "Ignoring unknown optimization option %s.", key.c_str());
         return;
