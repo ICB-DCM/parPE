@@ -96,9 +96,12 @@ void OptimizationResultWriter::logObjectiveFunctionEvaluation(
 }
 
 
-void OptimizationResultWriter::logOptimizerIteration(int numIterations, gsl::span<const double> parameters,
-                                                          double objectiveFunctionValue, gsl::span<const double> gradient,
-                                                          double wallSeconds, double cpuSeconds)
+void OptimizationResultWriter::logOptimizerIteration(int numIterations,
+                                                     gsl::span<const double> parameters,
+                                                     double objectiveFunctionValue,
+                                                     gsl::span<const double> gradient,
+                                                     double wallSeconds,
+                                                     double cpuSeconds)
 {
     std::string const& pathStr = getRootPath();
     const char *fullGroupPath = pathStr.c_str();
@@ -117,10 +120,11 @@ void OptimizationResultWriter::logOptimizerIteration(int numIterations, gsl::spa
                                                   nanGradient.data(), nanGradient.size());
     }
 
-    if (!parameters.empty())
+    if (!parameters.empty()) {
         hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath,
                                                   "iterCostFunParameters",
                                                   parameters.data(), parameters.size());
+    }
 
     hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath,
                                               "iterCostFunWallSec",
