@@ -339,16 +339,16 @@ void OptimizationReporter::finished(double optimalCost, gsl::span<const double> 
 {
     double timeElapsed = wallTimer.getTotal();
 
-    if(cachedCost > optimalCost && parameters.empty()) {
+    if((optimalCost <= cachedCost || cachedParameters.empty()) && !parameters.empty()) {
+        cachedCost = optimalCost;
+        cachedParameters.assign(parameters.begin(), parameters.end());
+    } else if(cachedCost > optimalCost && parameters.empty()) {
         // the optimal value is not from the cached parameters and we did not get
         // the optimal parameters from the optimizer. since we don't know them, rather set to nan
         if(logger) logger->logmessage(LOGLVL_INFO, "cachedCost != optimalCost && parameters.empty()");
         cachedParameters.assign(cachedParameters.size(), NAN);
         cachedCost = optimalCost;
-    } else if(parameters.data()) {
-        cachedParameters.assign(parameters.begin(), parameters.end());
-    }
-
+    } // else: our cached parameters were better. use those
 
     if(logger)
         logger->logmessage(LOGLVL_INFO, "Optimizer status %d, final llh: %e, time: wall: %f cpu: %f.",
