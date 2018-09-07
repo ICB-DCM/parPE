@@ -244,9 +244,7 @@ public:
 
                 if(status == functionEvaluationFailure) {
                     // TODO: do something smarter
-                    batchLogger->logmessage(LOGLVL_ERROR, "Minibatch cost function evaluation failed.");
-                    if(reporter) reporter->finished(cost, parameters, (int)minibatchExitStatus::invalidNumber);
-                    return std::tuple<int, double, std::vector<double> >((int)minibatchExitStatus::invalidNumber, cost, parameters);
+                    return finish(cost, parameters, minibatchExitStatus::invalidNumber, reporter, batchLogger.get());
                 }
 
                 if(reporter) reporter->iterationFinished(parameters, cost, gradient);
@@ -257,13 +255,12 @@ public:
             }
 
             if(getVectorNorm(gradient) <= gradientNormThreshold) {
-                epochLogger->logmessage(LOGLVL_INFO, "Convergence: gradientNormThreshold reached.");
-                if(reporter) reporter->finished(cost, parameters, (int)minibatchExitStatus::gradientNormConvergence);
-                return std::tuple<int, double, std::vector<double> >((int)minibatchExitStatus::gradientNormConvergence, cost, parameters);
+                return finish(cost, parameters, minibatchExitStatus::gradientNormConvergence, reporter, epochLogger.get());
             }
         }
 
-        logger.logmessage(LOGLVL_INFO, "Number of epochs exceeded.");
+        return finish(cost, parameters, minibatchExitStatus::maxEpochsExceeded, reporter, &logger);
+
         if(reporter) reporter->finished(cost, parameters, (int)minibatchExitStatus::maxEpochsExceeded);
         return std::tuple<int, double, std::vector<double> >((int)minibatchExitStatus::maxEpochsExceeded, cost, parameters);
     }
@@ -299,6 +296,30 @@ public:
             g /= batchSize;
 
         return status;
+    }
+
+    std::tuple<int, double, std::vector<double> > finish(double cost,
+                std::vector<double> const& parameters,
+                minibatchExitStatus status,
+                OptimizationReporter *reporter,
+                Logger *logger)
+    {
+        if(logger) {
+            switch(status) {
+            case minibatchExitStatus::invalidNumber:
+                logger->logmessage(LOGLVL_ERROR, "Minibatch cost function evaluation failed.");
+                break;
+            case minibatchExitStatus::gradientNormConvergence:
+                logger->logmessage(LOGLVL_INFO, "Convergence: gradientNormThreshold reached.");
+                break;
+            case minibatchExitStatus::maxEpochsExceeded:
+                logger->logmessage(LOGLVL_INFO, "Number of epochs exceeded.");
+            }
+        }
+
+        if(reporter) reporter->finished(cost, parameters, (int)status);
+
+        return std::tuple<int, double, std::vector<double> >((int)status, cost, parameters);
     }
 
     std::unique_ptr<ParameterUpdater> parameterUpdater = std::make_unique<ParameterUpdaterVanilla>();
