@@ -242,12 +242,12 @@ public:
                  << " Batch: " << batches[batchIdx] << std::endl;
                 batchLogger->logmessage(LOGLVL_DEBUG, ss.str().c_str());
 
+                if(reporter) reporter->iterationFinished(parameters, cost, gradient);
+
                 if(status == functionEvaluationFailure) {
                     // TODO: do something smarter
                     return finish(cost, parameters, minibatchExitStatus::invalidNumber, reporter, batchLogger.get());
                 }
-
-                if(reporter) reporter->iterationFinished(parameters, cost, gradient);
 
 				learningRate = learningRateUpdater->getCurrentLearningRate();
                 parameterUpdater->updateParameters(learningRate, gradient, parameters,
@@ -260,9 +260,6 @@ public:
         }
 
         return finish(cost, parameters, minibatchExitStatus::maxEpochsExceeded, reporter, &logger);
-
-        if(reporter) reporter->finished(cost, parameters, (int)minibatchExitStatus::maxEpochsExceeded);
-        return std::tuple<int, double, std::vector<double> >((int)minibatchExitStatus::maxEpochsExceeded, cost, parameters);
     }
 
     FunctionEvaluationStatus evaluate(
