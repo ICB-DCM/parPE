@@ -31,20 +31,9 @@ void setMinibatchOption(const std::pair<const std::string, const std::string> &p
         } else {
             logmessage(LOGLVL_WARNING, "Ignoring unknown Minibatch parameterUpdater %s.", val.c_str());
         }
-    } else if(key == "RmsProp-learningRate") {
-        if(!dynamic_cast<ParameterUpdaterRmsProp*>(optimizer->parameterUpdater.get())) {
-            optimizer->parameterUpdater = std::make_unique<ParameterUpdaterRmsProp>();
-        }
-        auto updater = dynamic_cast<ParameterUpdaterRmsProp*>(optimizer->parameterUpdater.get());
-        RELEASE_ASSERT(updater, "");
-        updater->startLearningRate = std::stod(val);
-        updater->endLearningRate = std::stod(val);
-    } else if(key == "Vanilla-learningRate") {
-        if(auto updater = dynamic_cast<ParameterUpdaterVanilla*>(optimizer->parameterUpdater.get())) {
-            updater->startLearningRate = std::stod(val);
-            updater->endLearningRate = std::stod(val);
-        }
-    } else {
+    } else if(key == "learningRateInterpMode") {
+		optimizer->learningRateUpdater = std::make_unique<LearningRateUpdater>(optimizer->maxEpochs, (parpe::learningRateInterp) std::stoi(val) );
+	} else {
         logmessage(LOGLVL_WARNING, "Ignoring unknown optimization option %s.", key.c_str());
         return;
     }
@@ -77,15 +66,48 @@ std::tuple<int, double, std::vector<double> > runMinibatchOptimization(Minibatch
 
 
 
+
+/**
+ * LearningRateUpdater
+ * The LearningRateUpdater provides the possibility to reduce the learning rate per epoch
+ * and makes it possible to adapt the learning rate accroding to succes or failure of
+ * the ODE solver.
+ */
+void LearningRateUpdater::updateLearningRate(int currentEpoch) {
+
+	// Depending on the interpolation mode the current learning rate computed must be...
+	if(learningRateInterpMode == learningRateInterp::linear) {
+    	currentLearningRate = startLearningRate - (startLearningRate - endLearningRate) * ((double) currentEpoch - 1) / ((double) maxEpochs - 1);
+	} else if(learningRateInterpMode == learningRateInterp::inverseLinear) {
+		currentLearningRate = 1 / startLearningRate - (1 / startLearningRate - 1 / endLearningRate) * ((double) currentEpoch - 1) / ((double) maxEpochs - 1);
+		currentLearningRate = 1 / currentLearningRate;
+	} else if(learningRateInterpMode == learningRateInterp::logarithmic) {
+		currentLearningRate = log(startLearningRate) - (log(startLearningRate) - log(endLearningRate)) * ((double) currentEpoch - 1) / ((double) maxEpochs - 1);
+		currentLearningRate = exp(currentLearningRate);
+	}
+}
+
+double LearningRateUpdater::getCurrentLearningRate() {
+	return currentLearningRate * reductionFactor;
+}
+
+void LearningRateUpdater::reduceLearningRate() {
+	reductionFactor = reductionFactor / 5;
+}
+
+void LearningRateUpdater::increaseLearningRate() {
+	reductionFactor = std::min(reductionFactor * 1.3, 1.0);
+}
+
+
+
 /* 
 	Minibatch optimizer: RMSProp Updater
 	The RMSProp updater currently takes two inputs:
 		* start value of the learning rate
 		* end value of the learning rate
 */
-ParameterUpdaterRmsProp::ParameterUpdaterRmsProp(double startLearningRate, double endLearningRate) : startLearningRate(startLearningRate), endLearningRate(endLearningRate) {}
-
-void ParameterUpdaterRmsProp::updateParameters(int iteration,
+void ParameterUpdaterRmsProp::updateParameters(double learningRate,
 					                           gsl::span<double const> gradient,
                                                gsl::span<double> parameters,
                                                gsl::span<const double> lowerBounds,
@@ -94,13 +116,12 @@ void ParameterUpdaterRmsProp::updateParameters(int iteration,
 
     int numParameters = gradient.size();
     gradientNormCache.resize(numParameters);
-    double currentLearningRate = startLearningRate - (startLearningRate - endLearningRate) * ((double) iteration - 1.0)/9.0;
 
     for(int i = 0; i < numParameters; ++i) {
         gradientNormCache[i] = decayRate * gradientNormCache[i]
                 + (1 - decayRate) * gradient[i] * gradient[i];
 
-        parameters[i] += - currentLearningRate * gradient[i] / (std::sqrt(gradientNormCache[i]) + delta);
+        parameters[i] += - learningRate * gradient[i] / (std::sqrt(gradientNormCache[i]) + delta);
     }
 
     clipToBounds(lowerBounds, upperBounds, parameters);
@@ -114,30 +135,17 @@ void ParameterUpdaterRmsProp::updateParameters(int iteration,
 		* start value of the learning rate
 		* end value of the learning rate
 */
-ParameterUpdaterVanilla::ParameterUpdaterVanilla(learningRateAdaption learningRateAdaptionMode, double startLearningRate, double endLearningRate) : learningRateAdaptionMode(learningRateAdaptionMode), startLearningRate(startLearningRate), endLearningRate(endLearningRate) {}
-
-void ParameterUpdaterVanilla::updateParameters(int iteration,
+void ParameterUpdaterVanilla::updateParameters(double learningRate,
                                                gsl::span<const double> gradient,
                                                gsl::span<double> parameters,
                                                gsl::span<const double> lowerBounds,
                                                gsl::span<const double> upperBounds)
 {
     int numParameters = gradient.size();
-	double currentLearningRate = 0;
-
-	if(learningRateAdaptionMode == learningRateAdaption::linear) {
-    	currentLearningRate = startLearningRate - (startLearningRate - endLearningRate) * ((double) iteration - 1.0)/9.0;
-	} else if(learningRateAdaptionMode == learningRateAdaption::inverseLinear) {
-		currentLearningRate = 1 / startLearningRate - (1 / startLearningRate - 1 / endLearningRate) * ((double) iteration - 1) / 9;
-		currentLearningRate = 1 / currentLearningRate;
-	} else if(learningRateAdaptionMode == learningRateAdaption::logarithmic) {
-		currentLearningRate = log(startLearningRate) - (log(startLearningRate) - log(endLearningRate)) * ((double) iteration - 1) / 9;
-		currentLearningRate = exp(currentLearningRate);
-	}
 
     for(int i = 0; i < numParameters; ++i) {
         // logmessage(LOGLVL_DEBUG, "p_%d: %f - %f = %f", i, parameters[i], learningRate * gradient[i], parameters[i] - learningRate * gradient[i]);
-        parameters[i] -= currentLearningRate * gradient[i] / getVectorNorm(gradient);
+        parameters[i] -= learningRate * gradient[i] / getVectorNorm(gradient);
     }
 
     clipToBounds(lowerBounds, upperBounds, parameters);

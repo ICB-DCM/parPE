@@ -24,7 +24,7 @@ enum class minibatchExitStatus {
     invalidNumber
 };
 
-enum class learningRateAdaption {
+enum class learningRateInterp {
     linear,
     inverseLinear,
     logarithmic
@@ -60,6 +60,44 @@ public:
 
 
 /**
+ * @brief learning rate updaters for minibatch optimizers
+ */
+class LearningRateUpdater {
+public:
+    /**
+     * @brief Update the learning rate
+     * @param startLearningRate Learning rate the the beginning of optimization
+	 * @param endLearningRate Learning rate the the end of optimization
+     * @param LearningRateadaptionMode Type of interpolation between startLearningRate and endLearningRate 
+     */
+
+    LearningRateUpdater(int maxEpochs, learningRateInterp learningRateInterpMode){};
+    // LearningRateUpdater(int maxEpochs, learningRateInterp learningRateInterpMode, double startLearningRate, double endLearningRate);
+
+	// Update function, to be called in every epoch or optimization iteration
+    void updateLearningRate(int iteration);
+
+	// Update function, to be called if parameter update did not work well
+    void reduceLearningRate();
+
+	// Update function, to be called if parameter update worked well
+    void increaseLearningRate();
+
+	// Function to retrieve the learning rate
+	double getCurrentLearningRate();
+
+
+	double currentLearningRate = 0;
+	double reductionFactor = 1;
+    double startLearningRate = 0.1;
+    double endLearningRate = 0.001;
+	learningRateInterp learningRateInterpMode = learningRateInterp::linear;
+	int maxEpochs = 3;
+};
+
+
+
+/**
  * @brief Interface for parameter updaters for minibatch optimizers
  */
 class ParameterUpdater {
@@ -69,47 +107,43 @@ public:
      * @param gradient Cost function gradient at parameters
      * @param parameters In: Current parameters, Out: Updated parameters
      */
-    virtual void updateParameters(int iteration,
+    virtual void updateParameters(double learningRate,
                                   gsl::span<const double> gradient,
                                   gsl::span<double> parameters,
                                   gsl::span<const double> lowerBounds = gsl::span<const double>(),
                                   gsl::span<const double> upperBounds = gsl::span<const double>()) = 0;
 
     virtual ~ParameterUpdater() = default;
+
 };
 
 
 class ParameterUpdaterVanilla : public ParameterUpdater {
 public:
     ParameterUpdaterVanilla() = default;
-    ParameterUpdaterVanilla(learningRateAdaption learningRateAdaptionMode, double startLearningRate, double endLearningRate);
+//    ParameterUpdaterVanilla(learningRateAdaption learningRateAdaptionMode, double startLearningRate, double endLearningRate);
 
-    void updateParameters(int iteration,
+    void updateParameters(double learningRate,
                           gsl::span<const double> gradient, 
                           gsl::span<double> parameters,
                           gsl::span<const double> lowerBounds = gsl::span<const double>(),
                           gsl::span<const double> upperBounds = gsl::span<const double>());
 
-    double startLearningRate = 0.1;
-    double endLearningRate = 0.001;
-	learningRateAdaption learningRateAdaptionMode = learningRateAdaption::linear;
 };
 
 
 class ParameterUpdaterRmsProp : public ParameterUpdater {
 public:
     ParameterUpdaterRmsProp() = default;
-    ParameterUpdaterRmsProp(double startLearningRate, double endLearningRate);
+//    ParameterUpdaterRmsProp(learningRateAdaption learningRateAdaptionMode, double startLearningRate, double endLearningRate);
 
-    void updateParameters(int iteration,
+    void updateParameters(double learningRate,
                           gsl::span<const double> gradient, 
                           gsl::span<double> parameters,
                           gsl::span<const double> lowerBounds = gsl::span<const double>(),
                           gsl::span<const double> upperBounds = gsl::span<const double>());
 
     int updates = 0;
-    double startLearningRate = 0.1;
-    double endLearningRate = 0.001;
     double decayRate = 0.9;
     double delta = 1e-7;
     std::vector<double> gradientNormCache;
@@ -194,6 +228,9 @@ public:
             std::shuffle(shuffledData.begin(), shuffledData.end(), rng);
             auto batches = getBatches<BATCH_ELEMENT>(shuffledData, batchSize);
 
+			// Update learning rate according to epoch
+			learningRateUpdater->updateLearningRate(epoch);
+
             for(int batchIdx = 0; (unsigned) batchIdx < batches.size(); ++batchIdx) {
                 auto batchLogger = epochLogger->getChild(std::string("b") + std::to_string(batchIdx));
 
@@ -214,7 +251,8 @@ public:
 
                 if(reporter) reporter->iterationFinished(parameters, cost, gradient);
 
-                parameterUpdater->updateParameters(epoch, gradient, parameters,
+				learningRate = learningRateUpdater->getCurrentLearningRate();
+                parameterUpdater->updateParameters(learningRate, gradient, parameters,
                                                    lowerParameterBounds, upperParameterBounds);
             }
 
@@ -268,6 +306,10 @@ public:
     int batchSize = 1;
     int maxEpochs = 3;
     double gradientNormThreshold = 0.0;
+	double learningRate = 0.001;
+
+    std::unique_ptr<LearningRateUpdater> learningRateUpdater = 
+			std::make_unique<LearningRateUpdater>(maxEpochs, learningRateInterp::linear);
 };
 
 

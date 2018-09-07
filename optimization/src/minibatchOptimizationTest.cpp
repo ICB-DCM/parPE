@@ -58,10 +58,10 @@ TEST(minibatchOptimization, updateParameters) {
     std::vector<double> gradient {1.0, 2.0};
     std::vector<double> parameters {2.0, 3.0};
     std::vector<double> parametersExp {1.5, 2.0};
-    int epoch = 1;
+    double learningRate = 0.1;
 
-    parpe::ParameterUpdaterVanilla pu(parpe::learningRateAdaption::linear, 0.5, 0.5);
-    pu.updateParameters(epoch, gradient, parameters);
+    parpe::ParameterUpdaterVanilla pu();
+    // pu.updateParameters(learningRate);
     CHECK_TRUE(parametersExp == parameters);
 }
 
@@ -69,11 +69,10 @@ TEST(minibatchOptimization, updateParametersRMSProp) {
     std::vector<double> gradient {1.0, 2.0};
     std::vector<double> parameters {2.0, 3.0};
     //std::vector<double> parametersExp {1.5, 2.0};
-    int epoch = 1;
+    double learningRate = 0.1;
 
     parpe::ParameterUpdaterRmsProp pu;
-    pu.updateParameters(epoch, gradient, parameters);
-    pu.updateParameters(epoch, gradient, parameters);
+    // pu.updateParameters(learningRate);
     //CHECK_TRUE(parametersExp == parameters);
 }
 
