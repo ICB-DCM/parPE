@@ -129,6 +129,7 @@ public:
                           gsl::span<const double> lowerBounds = gsl::span<const double>(),
                           gsl::span<const double> upperBounds = gsl::span<const double>());
 
+    void undoLastStep(){};
 };
 
 
@@ -143,10 +144,13 @@ public:
                           gsl::span<const double> lowerBounds = gsl::span<const double>(),
                           gsl::span<const double> upperBounds = gsl::span<const double>());
 
+    void undoLastStep();
+
     int updates = 0;
     double decayRate = 0.9;
     double delta = 1e-7;
     std::vector<double> gradientNormCache;
+    std::vector<double> oldGradientNormCache;
 };
 
 
@@ -212,12 +216,16 @@ public:
 
         // We don't change the user inputs but work with copies
         std::vector<double> parameters(initialParameters.begin(), initialParameters.end());
+        std::vector<double> oldParameters(parameters.size(), NAN);
         std::vector<BATCH_ELEMENT> shuffledData(data.begin(), data.end());
 
         std::vector<double> gradient(parameters.size(), 0.0);
+        std::vector<double> oldGradient(parameters.size(), NAN);
         std::random_device rd;
         std::mt19937 rng(rd());
         double cost = NAN;
+		int subsequentFails = 0;
+		finalFail = false;
 
         if(reporter) reporter->starting(initialParameters);
 
@@ -245,9 +253,46 @@ public:
                 if(reporter) reporter->iterationFinished(parameters, cost, gradient);
 
                 if(status == functionEvaluationFailure) {
-                    // TODO: do something smarter
-                    return finish(cost, parameters, minibatchExitStatus::invalidNumber, reporter, batchLogger.get());
-                }
+
+					// Cost function evaluation failed: We need to intercept
+					while(status == functionEvaluationFailure) {
+                    	// If the objective function evaluation failed, we want to undo the step
+						subsequentFails++;
+						parameterUpdater->undoLastStep();
+						gradient = oldGradient;
+						parameters = oldParameters;
+
+						// Check if there are NaNs in the parameter vector now (e.g., fail at first iteration)						
+						for(ip = 0; ip < parameters.size(), ip++) {
+							if(std::isnan(parameters[ip])) {
+								finalFail = true;
+								break;
+							}
+						}
+
+						// If too many fails: cancel optimization 	
+						if(subsequentFails >= maxSubsequentFails || finalFail) 
+							return finish(cost, parameters, minibatchExitStatus::invalidNumber, reporter, batchLogger.get());
+
+						// If we did not fail too often, we reduce the step size and try to redo the step
+						learningRateUpdater->reduceLearningRate();
+						learningRate = learningRateUpdater->getCurrentLearningRate();
+                		parameterUpdater->updateParameters(learningRate, gradient, parameters,
+                    		                               lowerParameterBounds, upperParameterBounds);
+
+						// Re-evaluate the cost function and hope for the best
+						auto status = evaluate(f, parameters, batches[batchIdx], cost, gradient, batchLogger.get(), reporter);
+					}
+                } else {
+					// Cost function evaluation was succeful, so we can increse the step size
+					// (if was reduced at some earlier point)
+					subsequentFails = std::max(subsequentFails - 1, 0);
+					learningRateUpdater->increaseLearningRate();
+
+					// Overwrite old parameters and old gradient, since they won't be needed any more
+					oldGradient = gradient;
+					oldParameters = parameters;
+				}
 
 				learningRate = learningRateUpdater->getCurrentLearningRate();
                 parameterUpdater->updateParameters(learningRate, gradient, parameters,
