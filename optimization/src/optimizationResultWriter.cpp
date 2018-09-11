@@ -36,10 +36,11 @@ OptimizationResultWriter::OptimizationResultWriter(const std::string &filename,
 }
 
 OptimizationResultWriter::OptimizationResultWriter(const OptimizationResultWriter &other)
-    : file_id(H5Freopen(other.file_id)),
-      rootPath(other.rootPath)
+    : rootPath(other.rootPath)
 {
-    hdf5EnsureGroupExists(file_id, this->rootPath);
+    auto lock = hdf5MutexGetLock();
+    file_id = H5Freopen(other.file_id);
+    hdf5EnsureGroupExists(file_id, rootPath);
 }
 
 
@@ -96,9 +97,12 @@ void OptimizationResultWriter::logObjectiveFunctionEvaluation(
 }
 
 
-void OptimizationResultWriter::logOptimizerIteration(int numIterations, gsl::span<const double> parameters,
-                                                          double objectiveFunctionValue, gsl::span<const double> gradient,
-                                                          double wallSeconds, double cpuSeconds)
+void OptimizationResultWriter::logOptimizerIteration(int numIterations,
+                                                     gsl::span<const double> parameters,
+                                                     double objectiveFunctionValue,
+                                                     gsl::span<const double> gradient,
+                                                     double wallSeconds,
+                                                     double cpuSeconds)
 {
     std::string const& pathStr = getRootPath();
     const char *fullGroupPath = pathStr.c_str();
@@ -117,10 +121,11 @@ void OptimizationResultWriter::logOptimizerIteration(int numIterations, gsl::spa
                                                   nanGradient.data(), nanGradient.size());
     }
 
-    if (!parameters.empty())
+    if (!parameters.empty()) {
         hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath,
                                                   "iterCostFunParameters",
                                                   parameters.data(), parameters.size());
+    }
 
     hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath,
                                               "iterCostFunWallSec",

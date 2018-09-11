@@ -1035,7 +1035,11 @@ const std::vector<double> &HierarchicalOptimizationReporter::getFinalParameters(
     return cachedFullParameters;
 }
 
-bool HierarchicalOptimizationReporter::iterationFinished(gsl::span<const double> parameters, double objectiveFunctionValue, gsl::span<const double> objectiveFunctionGradient) const {
+bool HierarchicalOptimizationReporter::iterationFinished(
+        gsl::span<const double> parameters,
+        double objectiveFunctionValue,
+        gsl::span<const double> objectiveFunctionGradient) const
+{
     double wallTimeIter = wallTimer.getRound();
     double wallTimeOptim = wallTimer.getTotal();
 
@@ -1053,15 +1057,24 @@ bool HierarchicalOptimizationReporter::iterationFinished(gsl::span<const double>
         if(objectiveFunctionValue == cachedCost
                 && (parameters.empty()
                     || std::equal(parameters.begin(), parameters.end(), cachedParameters.begin()))) {
-            resultWriter->logOptimizerIteration(numIterations, cachedFullParameters,
-                                                     objectiveFunctionValue,
-                                                     cachedFullGradient, // This might be misleading, the gradient could evaluated at other parameters if there was a line search inbetween
-                                                     wallTimeIter, cpuTimeIterationSec);
+            resultWriter->logOptimizerIteration(numIterations,
+                                                cachedFullParameters,
+                                                objectiveFunctionValue,
+                                                cachedFullGradient, // This might be misleading, the gradient could evaluated at other parameters if there was a line search inbetween
+                                                wallTimeIter,
+                                                cpuTimeIterationSec);
         } else {
-            resultWriter->logOptimizerIteration(numIterations, parameters,
-                                                     objectiveFunctionValue,
-                                                     objectiveFunctionGradient, // This might be misleading, the gradient could evaluated at other parameters if there was a line search inbetween
-                                                     wallTimeIter, cpuTimeIterationSec);
+            // We don't have the full parameter vector, only the outer parameters
+            // so we can't append them due to different dimension
+            // TODO: save both, outer + combined? can easily save outer + inner separetly
+            std::vector<double> nanParameters(cachedFullParameters.size(), NAN);
+
+            resultWriter->logOptimizerIteration(numIterations,
+                                                nanParameters,
+                                                objectiveFunctionValue,
+                                                nanParameters,
+                                                wallTimeIter,
+                                                cpuTimeIterationSec);
         }
     }
     ++numIterations;
