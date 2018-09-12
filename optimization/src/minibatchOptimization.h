@@ -86,15 +86,18 @@ public:
 	// Function to retrieve the learning rate
 	double getCurrentLearningRate();
 
-	// Function to retrieve the learning rate
+	// Function to set the reduction factor directly
 	void setReductionFactor(double newReductionFactor);
 
+	// Function to set the new maximum epoch number
+	void setMaxEpochs(int newMaxEpochs);	
+	
+	int maxEpochs = 0;
 	double currentLearningRate = 0;
 	double reductionFactor = 1;
     double startLearningRate = 0.1;
     double endLearningRate = 0.001;
 	learningRateInterp learningRateInterpMode = learningRateInterp::linear;
-	int maxEpochs = 3;
 };
 
 
@@ -114,11 +117,11 @@ public:
                                   gsl::span<double> parameters,
                                   gsl::span<const double> lowerBounds = gsl::span<const double>(),
                                   gsl::span<const double> upperBounds = gsl::span<const double>()) = 0;
-
-	virtual void undoLastStep();
+    
+	virtual void undoLastStep() = 0;
 	
-	virtual void clearCache();
-
+	virtual void clearCache() = 0;
+	
     virtual ~ParameterUpdater() = default;
 
 };
@@ -135,9 +138,9 @@ public:
                           gsl::span<const double> lowerBounds = gsl::span<const double>(),
                           gsl::span<const double> upperBounds = gsl::span<const double>());
 
-    void undoLastStep(){};
+    void undoLastStep();
     
-	void clearCache(){};
+	void clearCache();
 };
 
 
@@ -238,6 +241,7 @@ public:
 		int maxSubsequentFails = 10;
 		bool finalFail = false;
 		bool coldRestartActive = false;
+		learningRateUpdater->setMaxEpochs(maxEpochs);
 
         if(reporter) reporter->starting(initialParameters);
 

@@ -111,6 +111,10 @@ void LearningRateUpdater::setReductionFactor(double newReductionFactor) {
 	reductionFactor = newReductionFactor;
 }
 
+void LearningRateUpdater::setMaxEpochs(int newMaxEpochs) {
+	maxEpochs = newMaxEpochs;
+}
+
 
 /* 
 	Minibatch optimizer: RMSProp Updater
@@ -147,7 +151,7 @@ void ParameterUpdaterRmsProp::undoLastStep()
 void ParameterUpdaterRmsProp::clearCache()
 {
 	// Reset all cached information
-    for(int ip = 0; ip < numParameters; ++ip) {
+    for(int ip = 0; ip < gradientNormCache.size(); ++ip) {
         gradientNormCache[ip] = 0.0;
         oldGradientNormCache[ip] = 0.0;
     }
@@ -175,5 +179,9 @@ void ParameterUpdaterVanilla::updateParameters(double learningRate,
 
     clipToBounds(lowerBounds, upperBounds, parameters);
 }
+
+void ParameterUpdaterVanilla::undoLastStep(){}
+
+void ParameterUpdaterVanilla::clearCache(){}
 
 }
