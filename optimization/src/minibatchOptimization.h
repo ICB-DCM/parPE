@@ -113,6 +113,8 @@ public:
                                   gsl::span<const double> lowerBounds = gsl::span<const double>(),
                                   gsl::span<const double> upperBounds = gsl::span<const double>()) = 0;
 
+	virtual void undoLastStep();
+
     virtual ~ParameterUpdater() = default;
 
 };
@@ -225,7 +227,8 @@ public:
         std::mt19937 rng(rd());
         double cost = NAN;
 		int subsequentFails = 0;
-		finalFail = false;
+		int maxSubsequentFails = 20;
+		bool finalFail = false;
 
         if(reporter) reporter->starting(initialParameters);
 
@@ -263,7 +266,7 @@ public:
 						parameters = oldParameters;
 
 						// Check if there are NaNs in the parameter vector now (e.g., fail at first iteration)						
-						for(ip = 0; ip < parameters.size(), ip++) {
+						for(int ip = 0; ip < parameters.size(); ip++) {
 							if(std::isnan(parameters[ip])) {
 								finalFail = true;
 								break;

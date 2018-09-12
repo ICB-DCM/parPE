@@ -133,6 +133,13 @@ void ParameterUpdaterRmsProp::updateParameters(double learningRate,
     clipToBounds(lowerBounds, upperBounds, parameters);
 }
 
+void ParameterUpdaterRmsProp::undoLastStep()
+{
+	// The cached gradient norm needs to be restored, since the new one is probably NaN
+    gradientNormCache = oldGradientNormCache;
+}
+
+
 
 
 /* 
