@@ -256,46 +256,51 @@ public:
                 if(reporter) reporter->iterationFinished(parameters, cost, gradient);
 
                 if(status == functionEvaluationFailure) {
-
-					// Cost function evaluation failed: We need to intercept
-					while(status == functionEvaluationFailure) {
-                    	// If the objective function evaluation failed, we want to undo the step
-						subsequentFails++;
-						parameterUpdater->undoLastStep();
-						gradient = oldGradient;
-						parameters = oldParameters;
-
-						// Check if there are NaNs in the parameter vector now (e.g., fail at first iteration)						
-						for(int ip = 0; ip < parameters.size(); ip++) {
-							if(std::isnan(parameters[ip])) {
-								finalFail = true;
-								break;
+                	// Check, if the interceptor should be used (should alwayss be the case, except for study purpose...
+                	if(interceptor > 0) {
+						// Cost function evaluation failed: We need to intercept
+						while(status == functionEvaluationFailure) {
+							// If the objective function evaluation failed, we want to undo the step
+							subsequentFails++;
+							parameterUpdater->undoLastStep();
+							gradient = oldGradient;
+							parameters = oldParameters;
+	
+							// Check if there are NaNs in the parameter vector now (e.g., fail at first iteration)						
+							for(int ip = 0; ip < parameters.size(); ip++) {
+								if(std::isnan(parameters[ip])) {
+									finalFail = true;
+									break;
+								}
 							}
+	
+							// If too many fails: cancel optimization 	
+							if(subsequentFails >= maxSubsequentFails || finalFail) 
+								return finish(cost, parameters, minibatchExitStatus::invalidNumber, reporter, batchLogger.get());
+	
+							// If we did not fail too often, we reduce the step size and try to redo the step
+							learningRateUpdater->reduceLearningRate();
+							learningRate = learningRateUpdater->getCurrentLearningRate();
+							parameterUpdater->updateParameters(learningRate, gradient, parameters,
+															   lowerParameterBounds, upperParameterBounds);
+	
+							// Re-evaluate the cost function and hope for the best
+							auto status = evaluate(f, parameters, batches[batchIdx], cost, gradient, batchLogger.get(), reporter);
 						}
-
-						// If too many fails: cancel optimization 	
-						if(subsequentFails >= maxSubsequentFails || finalFail) 
-							return finish(cost, parameters, minibatchExitStatus::invalidNumber, reporter, batchLogger.get());
-
-						// If we did not fail too often, we reduce the step size and try to redo the step
-						learningRateUpdater->reduceLearningRate();
-						learningRate = learningRateUpdater->getCurrentLearningRate();
-                		parameterUpdater->updateParameters(learningRate, gradient, parameters,
-                    		                               lowerParameterBounds, upperParameterBounds);
-
-						// Re-evaluate the cost function and hope for the best
-						auto status = evaluate(f, parameters, batches[batchIdx], cost, gradient, batchLogger.get(), reporter);
+					} else {
+						// Cost function evaluation was succeful, so we can increse the step size
+						// (if was reduced at some earlier point)
+						subsequentFails = std::max(subsequentFails - 1, 0);
+						learningRateUpdater->increaseLearningRate();
+	
+						// Overwrite old parameters and old gradient, since they won't be needed any more
+						oldGradient = gradient;
+						oldParameters = parameters;
 					}
                 } else {
-					// Cost function evaluation was succeful, so we can increse the step size
-					// (if was reduced at some earlier point)
-					subsequentFails = std::max(subsequentFails - 1, 0);
-					learningRateUpdater->increaseLearningRate();
-
-					// Overwrite old parameters and old gradient, since they won't be needed any more
-					oldGradient = gradient;
-					oldParameters = parameters;
-				}
+                	// Directly stop optimization
+                	return finish(cost, parameters, minibatchExitStatus::invalidNumber, reporter, batchLogger.get());
+                }
 
 				learningRate = learningRateUpdater->getCurrentLearningRate();
                 parameterUpdater->updateParameters(learningRate, gradient, parameters,
@@ -376,6 +381,8 @@ public:
 
     std::unique_ptr<ParameterUpdater> parameterUpdater = std::make_unique<ParameterUpdaterVanilla>();
 
+    // Set some default values
+    int interceptor = 2;
     int batchSize = 1;
     int maxEpochs = 3;
     double gradientNormThreshold = 0.0;

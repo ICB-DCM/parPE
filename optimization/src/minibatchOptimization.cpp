@@ -22,6 +22,8 @@ void setMinibatchOption(const std::pair<const std::string, const std::string> &p
         optimizer->batchSize = std::stoi(val);
     } else if(key == "gradientNormThreshold") {
         optimizer->gradientNormThreshold = std::stod(val);
+    } else if(key == "rescueInterceptor") {
+        optimizer->interceptor = std::stoi(val);
     } else if(key == "parameterUpdater") {
         if(val == "Vanilla") {
             // already default optimizer->parameterUpdater = std::make_unique<ParameterUpdaterVanilla>();
