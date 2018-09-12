@@ -107,6 +107,9 @@ void LearningRateUpdater::increaseLearningRate() {
 	reductionFactor = std::min(reductionFactor * 1.3, 1.0);
 }
 
+void LearningRateUpdater::setReductionFactor(double newReductionFactor) {
+	reductionFactor = newReductionFactor;
+}
 
 
 /* 
@@ -141,7 +144,14 @@ void ParameterUpdaterRmsProp::undoLastStep()
     gradientNormCache = oldGradientNormCache;
 }
 
-
+void ParameterUpdaterRmsProp::clearCache()
+{
+	// Reset all cached information
+    for(int ip = 0; ip < numParameters; ++ip) {
+        gradientNormCache[ip] = 0.0;
+        oldGradientNormCache[ip] = 0.0;
+    }
+}
 
 
 /* 

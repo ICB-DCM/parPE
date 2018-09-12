@@ -86,6 +86,8 @@ public:
 	// Function to retrieve the learning rate
 	double getCurrentLearningRate();
 
+	// Function to retrieve the learning rate
+	double setReductionFactor(double newReductionFactor);
 
 	double currentLearningRate = 0;
 	double reductionFactor = 1;
@@ -114,6 +116,8 @@ public:
                                   gsl::span<const double> upperBounds = gsl::span<const double>()) = 0;
 
 	virtual void undoLastStep();
+	
+	virtual void clearCache();
 
     virtual ~ParameterUpdater() = default;
 
@@ -132,6 +136,8 @@ public:
                           gsl::span<const double> upperBounds = gsl::span<const double>());
 
     void undoLastStep(){};
+    
+	void clearCache(){};
 };
 
 
@@ -147,6 +153,8 @@ public:
                           gsl::span<const double> upperBounds = gsl::span<const double>());
 
     void undoLastStep();
+    
+	void clearCache(){};
 
     int updates = 0;
     double decayRate = 0.9;
@@ -227,8 +235,9 @@ public:
         std::mt19937 rng(rd());
         double cost = NAN;
 		int subsequentFails = 0;
-		int maxSubsequentFails = 20;
+		int maxSubsequentFails = 10;
 		bool finalFail = false;
+		bool coldRestartActive = false;
 
         if(reporter) reporter->starting(initialParameters);
 
@@ -275,11 +284,24 @@ public:
 							}
 	
 							// If too many fails: cancel optimization 	
-							if(subsequentFails >= maxSubsequentFails || finalFail) 
-								return finish(cost, parameters, minibatchExitStatus::invalidNumber, reporter, batchLogger.get());
-	
-							// If we did not fail too often, we reduce the step size and try to redo the step
-							learningRateUpdater->reduceLearningRate();
+							if(subsequentFails >= maxSubsequentFails || finalFail) {
+								if(interceptor > 1 && !coldRestartActive) {
+									/* Reducing step size did not work. Yet, a small step in descent direction
+									 * should actually do the job. So clear all cached gradients and retry with 
+									 * a very small step size (e.g. 1e-5)
+									 */ 
+									subsequentFails = 0;
+									parameterUpdater->clearCache();
+									learningRateUpdater->setReductionFactor(1e-5);
+								} else {
+									// Really everything failed, there is no hope for this run any more
+									return finish(cost, parameters, minibatchExitStatus::invalidNumber, reporter, batchLogger.get());
+								}
+							} else {
+								// If we did not fail too often, we reduce the step size and try to redo the step
+								learningRateUpdater->reduceLearningRate();
+							}
+							// Do the next step
 							learningRate = learningRateUpdater->getCurrentLearningRate();
 							parameterUpdater->updateParameters(learningRate, gradient, parameters,
 															   lowerParameterBounds, upperParameterBounds);
