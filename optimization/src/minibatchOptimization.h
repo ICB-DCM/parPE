@@ -259,11 +259,14 @@ public:
                 auto batchLogger = epochLogger->getChild(std::string("b") + std::to_string(batchIdx));
 
                 auto status = evaluate(f, parameters, batches[batchIdx], cost, gradient, batchLogger.get(), reporter);
-
+                
+                // Give some output
+                learningRate = learningRateUpdater->getCurrentLearningRate();
                 std::stringstream ss;
                 ss << ": Cost: " << cost
                  << " |g|2: " << getVectorNorm(gradient)
-                 << " Batch: " << batches[batchIdx] << std::endl;
+                 << " Batch: " << batches[batchIdx]
+				 << " LearningRate: " << learningRate << std::endl;
                 batchLogger->logmessage(LOGLVL_DEBUG, ss.str().c_str());
 
                 if(reporter) reporter->iterationFinished(parameters, cost, gradient);
@@ -314,18 +317,18 @@ public:
 							auto status = evaluate(f, parameters, batches[batchIdx], cost, gradient, batchLogger.get(), reporter);
 						}
 					} else {
-						// Cost function evaluation was succeful, so we can increse the step size
-						// (if was reduced at some earlier point)
-						subsequentFails = std::max(subsequentFails - 1, 0);
-						learningRateUpdater->increaseLearningRate();
-	
-						// Overwrite old parameters and old gradient, since they won't be needed any more
-						oldGradient = gradient;
-						oldParameters = parameters;
+	                	// Directly stop optimization
+	                	return finish(cost, parameters, minibatchExitStatus::invalidNumber, reporter, batchLogger.get());
 					}
                 } else {
-                	// Directly stop optimization
-                	return finish(cost, parameters, minibatchExitStatus::invalidNumber, reporter, batchLogger.get());
+					// Cost function evaluation was succeful, so we can increse the step size
+					// (if was reduced at some earlier point)
+					subsequentFails = std::max(subsequentFails - 1, 0);
+					learningRateUpdater->increaseLearningRate();
+
+					// Overwrite old parameters and old gradient, since they won't be needed any more
+					oldGradient = gradient;
+					oldParameters = parameters;
                 }
 
 				learningRate = learningRateUpdater->getCurrentLearningRate();

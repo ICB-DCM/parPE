@@ -85,12 +85,12 @@ void LearningRateUpdater::updateLearningRate(int currentEpoch) {
 
 	// Depending on the interpolation mode the current learning rate computed must be...
 	if(learningRateInterpMode == learningRateInterp::linear) {
-    	currentLearningRate = startLearningRate - (startLearningRate - endLearningRate) * ((double) currentEpoch - 1) / ((double) maxEpochs - 1);
+    	currentLearningRate = startLearningRate - (startLearningRate - endLearningRate) * ((double) currentEpoch) / ((double) maxEpochs - 1);
 	} else if(learningRateInterpMode == learningRateInterp::inverseLinear) {
-		currentLearningRate = 1 / startLearningRate - (1 / startLearningRate - 1 / endLearningRate) * ((double) currentEpoch - 1) / ((double) maxEpochs - 1);
+		currentLearningRate = 1 / startLearningRate - (1 / startLearningRate - 1 / endLearningRate) * ((double) currentEpoch) / ((double) maxEpochs - 1);
 		currentLearningRate = 1 / currentLearningRate;
 	} else if(learningRateInterpMode == learningRateInterp::logarithmic) {
-		currentLearningRate = log(startLearningRate) - (log(startLearningRate) - log(endLearningRate)) * ((double) currentEpoch - 1) / ((double) maxEpochs - 1);
+		currentLearningRate = log(startLearningRate) - (log(startLearningRate) - log(endLearningRate)) * ((double) currentEpoch) / ((double) maxEpochs - 1);
 		currentLearningRate = exp(currentLearningRate);
 	}
 }
