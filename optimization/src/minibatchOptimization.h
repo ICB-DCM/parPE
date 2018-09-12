@@ -87,7 +87,7 @@ public:
 	double getCurrentLearningRate();
 
 	// Function to retrieve the learning rate
-	double setReductionFactor(double newReductionFactor);
+	void setReductionFactor(double newReductionFactor);
 
 	double currentLearningRate = 0;
 	double reductionFactor = 1;
@@ -154,7 +154,7 @@ public:
 
     void undoLastStep();
     
-	void clearCache(){};
+	void clearCache();
 
     int updates = 0;
     double decayRate = 0.9;
