@@ -30,6 +30,9 @@ void setMinibatchOption(const std::pair<const std::string, const std::string> &p
         } else if(val == "RmsProp" && !dynamic_cast<ParameterUpdaterRmsProp*>(optimizer->parameterUpdater.get())) {
             // this might have been set previously if there was an updater-specific option before
             optimizer->parameterUpdater = std::make_unique<ParameterUpdaterRmsProp>();
+        } else if(val == "Adam" && !dynamic_cast<ParameterUpdaterAdam*>(optimizer->parameterUpdater.get())) {
+            // this might have been set previously if there was an updater-specific option before
+            optimizer->parameterUpdater = std::make_unique<ParameterUpdaterAdam>();
         } else {
             logmessage(LOGLVL_WARNING, "Ignoring unknown Minibatch parameterUpdater %s.", val.c_str());
         }
@@ -123,6 +126,7 @@ void LearningRateUpdater::setMaxEpochs(int newMaxEpochs) {
 		* end value of the learning rate
 */
 void ParameterUpdaterRmsProp::updateParameters(double learningRate,
+											   int iteration,
 					                           gsl::span<double const> gradient,
                                                gsl::span<double> parameters,
                                                gsl::span<const double> lowerBounds,
@@ -130,8 +134,8 @@ void ParameterUpdaterRmsProp::updateParameters(double learningRate,
 {
 
     int numParameters = gradient.size();
-    gradientNormCache.resize(numParameters);
-
+    oldGradientNormCache = GradientNormCache;
+    
     for(int i = 0; i < numParameters; ++i) {
         gradientNormCache[i] = decayRate * gradientNormCache[i]
                 + (1 - decayRate) * gradient[i] * gradient[i];
@@ -158,6 +162,63 @@ void ParameterUpdaterRmsProp::clearCache()
 }
 
 
+
+/* 
+	Minibatch optimizer: Adam Updater
+	The Adam updater currently takes two inputs:
+		* start value of the learning rate
+		* end value of the learning rate
+*/
+void ParameterUpdaterAdam::updateParameters(double learningRate,
+											int iteration,
+					                        gsl::span<double const> gradient,
+                                            gsl::span<double> parameters,
+                                            gsl::span<const double> lowerBounds,
+                                            gsl::span<const double> upperBounds)
+{
+
+    int numParameters = gradient.size();
+    double tmpNumerator;
+    double tmpDenominator;
+    
+    oldGradientNormCache = GradientNormCache;
+    oldGradientCache = GradientCache;
+    
+    for(int i = 0; i < numParameters; ++i) {
+        gradientCache[i] = decayRateGradient * gradientCache[i]
+                + (1 - decayRateGradient) * gradient[i];
+        gradientNormCache[i] = decayRateGradientNorm * gradientNormCache[i]
+                + (1 - decayRateGradientNorm) * gradient[i] * gradient[i];
+
+        tmpNumerator = gradientCache / (1 - std::pow(decayRateGradient, (double) iteration));
+        tmpDenominator = std::sqrt(gradientNormCache / (1 - std::pow(decayRateGradientNorm, (double) iteration))) + delta;
+        
+        parameters[i] += - learningRate * tmpNumerator / tmpDenominator;
+    }
+
+    clipToBounds(lowerBounds, upperBounds, parameters);
+}
+
+void ParameterUpdaterAdam::undoLastStep()
+{
+	// The cached gradient norm needs to be restored, since the new one is probably NaN
+    gradientNormCache = oldGradientNormCache;
+    gradientCache = oldGradientCache;
+}
+
+void ParameterUpdaterAdam::clearCache()
+{
+	// Reset all cached information
+    for(int ip = 0; ip < gradientNormCache.size(); ++ip) {
+        gradientNormCache[ip] = 0.0;
+        oldGradientNormCache[ip] = 0.0;
+        gradientCache[ip] = 0.0;
+        oldGradientCache[ip] = 0.0;
+    }
+}
+
+
+
 /* 
 	Minibatch optimizer: Vanilla SGD Updater
 	The Vanilla SGD updater currently takes two inputs:
@@ -165,6 +226,7 @@ void ParameterUpdaterRmsProp::clearCache()
 		* end value of the learning rate
 */
 void ParameterUpdaterVanilla::updateParameters(double learningRate,
+											   int iteration,
                                                gsl::span<const double> gradient,
                                                gsl::span<double> parameters,
                                                gsl::span<const double> lowerBounds,

@@ -113,6 +113,7 @@ public:
      * @param parameters In: Current parameters, Out: Updated parameters
      */
     virtual void updateParameters(double learningRate,
+    							  int iteration,
                                   gsl::span<const double> gradient,
                                   gsl::span<double> parameters,
                                   gsl::span<const double> lowerBounds = gsl::span<const double>(),
@@ -130,9 +131,9 @@ public:
 class ParameterUpdaterVanilla : public ParameterUpdater {
 public:
     ParameterUpdaterVanilla() = default;
-//    ParameterUpdaterVanilla(learningRateAdaption learningRateAdaptionMode, double startLearningRate, double endLearningRate);
 
     void updateParameters(double learningRate,
+			              int iteration,
                           gsl::span<const double> gradient, 
                           gsl::span<double> parameters,
                           gsl::span<const double> lowerBounds = gsl::span<const double>(),
@@ -147,9 +148,9 @@ public:
 class ParameterUpdaterRmsProp : public ParameterUpdater {
 public:
     ParameterUpdaterRmsProp() = default;
-//    ParameterUpdaterRmsProp(learningRateAdaption learningRateAdaptionMode, double startLearningRate, double endLearningRate);
 
     void updateParameters(double learningRate,
+                          int iteration,
                           gsl::span<const double> gradient, 
                           gsl::span<double> parameters,
                           gsl::span<const double> lowerBounds = gsl::span<const double>(),
@@ -159,11 +160,35 @@ public:
     
 	void clearCache();
 
-    int updates = 0;
     double decayRate = 0.9;
     double delta = 1e-7;
     std::vector<double> gradientNormCache;
     std::vector<double> oldGradientNormCache;
+};
+
+
+class ParameterUpdaterAdam : public ParameterUpdater {
+public:
+    ParameterUpdaterAdam() = default;
+
+    void updateParameters(double learningRate,
+                          int iteration,
+                          gsl::span<const double> gradient, 
+                          gsl::span<double> parameters,
+                          gsl::span<const double> lowerBounds = gsl::span<const double>(),
+                          gsl::span<const double> upperBounds = gsl::span<const double>());
+
+    void undoLastStep();
+    
+	void clearCache();
+
+    double decayRateGradient = 0.9;
+    double decayRateGradientNorm = 0.9;
+    double delta = 1e-7;
+    std::vector<double> gradientNormCache;
+    std::vector<double> oldGradientNormCache;
+    std::vector<double> gradientCache;
+    std::vector<double> oldGradientCache;
 };
 
 
@@ -237,6 +262,7 @@ public:
         std::random_device rd;
         std::mt19937 rng(rd());
         double cost = NAN;
+        int iteration = 0;
 		int subsequentFails = 0;
 		int maxSubsequentFails = 10;
 		bool finalFail = false;
@@ -257,7 +283,8 @@ public:
 
             for(int batchIdx = 0; (unsigned) batchIdx < batches.size(); ++batchIdx) {
                 auto batchLogger = epochLogger->getChild(std::string("b") + std::to_string(batchIdx));
-
+                iteration++;
+                
                 auto status = evaluate(f, parameters, batches[batchIdx], cost, gradient, batchLogger.get(), reporter);
                 
                 // Give some output
@@ -310,7 +337,7 @@ public:
 							}
 							// Do the next step
 							learningRate = learningRateUpdater->getCurrentLearningRate();
-							parameterUpdater->updateParameters(learningRate, gradient, parameters,
+							parameterUpdater->updateParameters(learningRate, iteration, gradient, parameters,
 															   lowerParameterBounds, upperParameterBounds);
 	
 							// Re-evaluate the cost function and hope for the best
@@ -332,7 +359,7 @@ public:
                 }
 
 				learningRate = learningRateUpdater->getCurrentLearningRate();
-                parameterUpdater->updateParameters(learningRate, gradient, parameters,
+                parameterUpdater->updateParameters(learningRate, iteration, gradient, parameters,
                                                    lowerParameterBounds, upperParameterBounds);
             }
 
