@@ -125,6 +125,12 @@ void LearningRateUpdater::setMaxEpochs(int newMaxEpochs) {
 		* start value of the learning rate
 		* end value of the learning rate
 */
+void ParameterUpdaterRmsProp::initialize(unsigned int numParameters)
+{
+    gradientNormCache.resize(numParameters);
+    oldGradientNormCache.resize(numParameters);
+}
+
 void ParameterUpdaterRmsProp::updateParameters(double learningRate,
 											   int iteration,
 					                           gsl::span<double const> gradient,
@@ -134,7 +140,8 @@ void ParameterUpdaterRmsProp::updateParameters(double learningRate,
 {
 
     int numParameters = gradient.size();
-    oldGradientNormCache = GradientNormCache;
+    
+    oldGradientNormCache = gradientNormCache;
     
     for(int i = 0; i < numParameters; ++i) {
         gradientNormCache[i] = decayRate * gradientNormCache[i]
@@ -155,7 +162,8 @@ void ParameterUpdaterRmsProp::undoLastStep()
 void ParameterUpdaterRmsProp::clearCache()
 {
 	// Reset all cached information
-    for(int ip = 0; ip < gradientNormCache.size(); ++ip) {
+	int numParameters = gradientNormCache.size();
+    for(int ip = 0; ip < numParameters; ++ip) {
         gradientNormCache[ip] = 0.0;
         oldGradientNormCache[ip] = 0.0;
     }
@@ -169,6 +177,14 @@ void ParameterUpdaterRmsProp::clearCache()
 		* start value of the learning rate
 		* end value of the learning rate
 */
+void ParameterUpdaterAdam::initialize(unsigned int numParameters)
+{
+    gradientCache.resize(numParameters);
+    gradientNormCache.resize(numParameters);
+    oldGradientCache.resize(numParameters);
+    oldGradientNormCache.resize(numParameters);
+}
+
 void ParameterUpdaterAdam::updateParameters(double learningRate,
 											int iteration,
 					                        gsl::span<double const> gradient,
@@ -181,8 +197,8 @@ void ParameterUpdaterAdam::updateParameters(double learningRate,
     double tmpNumerator;
     double tmpDenominator;
     
-    oldGradientNormCache = GradientNormCache;
-    oldGradientCache = GradientCache;
+    oldGradientNormCache = gradientNormCache;
+    oldGradientCache = gradientCache;
     
     for(int i = 0; i < numParameters; ++i) {
         gradientCache[i] = decayRateGradient * gradientCache[i]
@@ -190,8 +206,8 @@ void ParameterUpdaterAdam::updateParameters(double learningRate,
         gradientNormCache[i] = decayRateGradientNorm * gradientNormCache[i]
                 + (1 - decayRateGradientNorm) * gradient[i] * gradient[i];
 
-        tmpNumerator = gradientCache / (1 - std::pow(decayRateGradient, (double) iteration));
-        tmpDenominator = std::sqrt(gradientNormCache / (1 - std::pow(decayRateGradientNorm, (double) iteration))) + delta;
+        tmpNumerator = gradientCache[i] / (1 - std::pow(decayRateGradient, (double)iteration));
+        tmpDenominator = std::sqrt(gradientNormCache[i] / (1 - std::pow(decayRateGradientNorm, (double)iteration))) + delta;
         
         parameters[i] += - learningRate * tmpNumerator / tmpDenominator;
     }
@@ -209,7 +225,8 @@ void ParameterUpdaterAdam::undoLastStep()
 void ParameterUpdaterAdam::clearCache()
 {
 	// Reset all cached information
-    for(int ip = 0; ip < gradientNormCache.size(); ++ip) {
+	int numParameters = gradientNormCache.size();
+    for(int ip = 0; ip < numParameters; ++ip) {
         gradientNormCache[ip] = 0.0;
         oldGradientNormCache[ip] = 0.0;
         gradientCache[ip] = 0.0;
@@ -241,9 +258,5 @@ void ParameterUpdaterVanilla::updateParameters(double learningRate,
 
     clipToBounds(lowerBounds, upperBounds, parameters);
 }
-
-void ParameterUpdaterVanilla::undoLastStep(){}
-
-void ParameterUpdaterVanilla::clearCache(){}
 
 }

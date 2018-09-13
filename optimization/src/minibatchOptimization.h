@@ -123,6 +123,8 @@ public:
 	
 	virtual void clearCache() = 0;
 	
+	virtual void initialize(unsigned int numParameters) = 0;
+	
     virtual ~ParameterUpdater() = default;
 
 };
@@ -139,9 +141,11 @@ public:
                           gsl::span<const double> lowerBounds = gsl::span<const double>(),
                           gsl::span<const double> upperBounds = gsl::span<const double>());
 
-    void undoLastStep();
+    void undoLastStep(){};
     
-	void clearCache();
+	void clearCache(){};
+	
+	void initialize(unsigned int numParameters){};
 };
 
 
@@ -159,6 +163,8 @@ public:
     void undoLastStep();
     
 	void clearCache();
+	
+	void initialize(unsigned int numParameters);
 
     double decayRate = 0.9;
     double delta = 1e-7;
@@ -181,6 +187,8 @@ public:
     void undoLastStep();
     
 	void clearCache();
+	
+	void initialize(unsigned int numParameters);
 
     double decayRateGradient = 0.9;
     double decayRateGradientNorm = 0.9;
@@ -268,6 +276,7 @@ public:
 		bool finalFail = false;
 		bool coldRestartActive = false;
 		learningRateUpdater->setMaxEpochs(maxEpochs);
+		parameterUpdater->initialize(initialParameters.size());
 
         if(reporter) reporter->starting(initialParameters);
 
@@ -310,7 +319,7 @@ public:
 							parameters = oldParameters;
 	
 							// Check if there are NaNs in the parameter vector now (e.g., fail at first iteration)						
-							for(int ip = 0; ip < parameters.size(); ip++) {
+							for(int ip = 0; ip < (int)parameters.size(); ip++) {
 								if(std::isnan(parameters[ip])) {
 									finalFail = true;
 									break;
