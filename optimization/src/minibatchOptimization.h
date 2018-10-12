@@ -307,8 +307,8 @@ public:
                 if(status == functionEvaluationFailure) {
                 	// Check, if the interceptor should be used (should alwayss be the case, except for study purpose...
                 	if(interceptor > 0)
-                		status = rescueInterceptor(parameters, oldParameters, gradient, oldGradient, cost,
-                								   subsequentFails, f, batches[batchIdx], batchLogger.get(), reporter);
+                		status = rescueInterceptor(parameters, oldParameters, gradient, oldGradient, lowerParameterBounds, upperParameterBounds, cost,
+                								   subsequentFails, iteration, f, batches[batchIdx], batchLogger.get(), reporter);
 
                 	// If we still have a failure, stop optimization
                 	if(status == functionEvaluationFailure)
@@ -400,6 +400,87 @@ public:
 
         return std::tuple<int, double, std::vector<double> >((int)status, cost, parameters);
     }
+    
+    
+    /**
+     * rescueInterceptor
+     * The rescueInterceptor is a function that adapts the step size,
+     * if cost function evaluation failure was observed.
+     * Its main goal is to make the minibatch optimizer more
+     * robust towards disadvantagous regions in parameter space.
+      */
+    FunctionEvaluationStatus rescueInterceptor(gsl::span<double> parameters,
+    										   gsl::span<double> oldParameters,
+    										   gsl::span<double> gradient,
+    										   gsl::span<double> oldGradient,
+									           gsl::span<const double> lowerParameterBounds,
+									           gsl::span<const double> upperParameterBounds,
+    										   double &cost,
+    										   int &subsequentFails,
+											   int iteration,
+    										   SummedGradientFunction<BATCH_ELEMENT> const& f,
+    										   std::vector<BATCH_ELEMENT> datasets,
+    										   Logger *logger,
+    										   OptimizationReporter *reporter)
+    {
+    	int maxSubsequentFails = 10;
+    	bool finalFail = false;
+    	bool coldRestartActive = false;
+    	cost = NAN;
+    	FunctionEvaluationStatus status = functionEvaluationFailure;
+
+    	if(reporter) {
+    	    reporter->beforeCostFunctionCall(parameters);
+    	    reporter->logger->setPrefix(logger->getPrefix());
+    	}
+    	
+    	// Cost function evaluation failed: We need to intercept
+    	while(status == functionEvaluationFailure) {
+    		// If the objective function evaluation failed, we want to undo the step
+    		(subsequentFails)++;
+    		parameterUpdater->undoLastStep();
+    		gradient = oldGradient;
+    		parameters = oldParameters;
+
+    		// Check if there are NaNs in the parameter vector now (e.g., fail at first iteration)
+    		for(int ip = 0; ip < (int)parameters.size(); ip++) {
+    			if(std::isnan(parameters[ip])) {
+    				finalFail = true;
+    				break;
+    			}
+    		}
+
+    		// If too many fails: cancel optimization
+    		if(subsequentFails >= maxSubsequentFails || finalFail) {
+    			if(interceptor > 1 && !coldRestartActive) {
+    				/* Reducing step size did not work. Yet, a small step in descent direction
+    				 * should actually do the job. So clear all cached gradients and retry with
+    				 * a very small step size (e.g. 1e-5)
+    				 */
+    				subsequentFails = 0;
+    				parameterUpdater->clearCache();
+    				learningRateUpdater->setReductionFactor(1e-5);
+    			} else {
+    				// Really everything failed, there is no hope for this run any more
+    				return functionEvaluationFailure;
+    			}
+    		} else {
+    			// If we did not fail too often, we reduce the step size and try to redo the step
+    			learningRateUpdater->reduceLearningRate();
+    		}
+    		// Do the next step
+    		learningRate = learningRateUpdater->getCurrentLearningRate();
+    		parameterUpdater->updateParameters(learningRate, iteration, gradient, parameters,
+    										   lowerParameterBounds, upperParameterBounds);
+
+    		// Re-evaluate the cost function and hope for the best
+    		auto status = evaluate(f, parameters, datasets, cost, gradient, logger, reporter);
+    	}
+
+    	// return
+    	return status;
+    }
+    
 
     std::unique_ptr<ParameterUpdater> parameterUpdater = std::make_unique<ParameterUpdaterVanilla>();
 
