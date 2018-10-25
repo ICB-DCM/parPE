@@ -1,9 +1,15 @@
 #include "optimizationApplication.h"
+
 #include "hdf5Misc.h"
 #include "logging.h"
 #include "misc.h"
 #include <optimizationOptions.h>
 #include <parpeVersion.h>
+
+#include <amiciMisc.h>
+#include <hdf5Misc.h>
+
+#include <mpi.h>
 
 #include <cstring>
 #include <ctime>
@@ -13,11 +19,6 @@
 #include <random>
 #include <csignal>
 #include <cstdlib>
-
-#include <amiciMisc.h>
-#include <hdf5Misc.h>
-
-#include <mpi.h>
 
 namespace parpe {
 

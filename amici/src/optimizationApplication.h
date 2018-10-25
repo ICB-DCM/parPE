@@ -1,9 +1,10 @@
 #ifndef OPTIMIZATIONAPPLICATION_H
 #define OPTIMIZATIONAPPLICATION_H
 
-#include "multiConditionProblem.h"
 #include <loadBalancerMaster.h>
 #include <loadBalancerWorker.h>
+
+#include "multiConditionProblem.h"
 #include "hierarchicalOptimization.h"
 
 #include <getopt.h>
