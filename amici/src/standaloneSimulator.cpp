@@ -50,24 +50,28 @@ int StandaloneSimulator::run(const std::string& resultFile,
 
     if(needComputeAnalyticalParameters) {
         // TODO: get rid of that. we want fun.evaluate(), independently of hierarchical or not
-        auto hierarchicalScalingReader = new AnalyticalParameterHdf5Reader (conditionFile,
-                                                                            conditionFilePath + "/scalingParameterIndices",
-                                                                            conditionFilePath + "/scalingParametersMapToObservables");
-        auto hierarchicalOffsetReader = new AnalyticalParameterHdf5Reader (conditionFile,
-                                                                           conditionFilePath + "/offsetParameterIndices",
-                                                                           conditionFilePath + "/offsetParametersMapToObservables");
-        auto hierarchicalSigmaReader = new AnalyticalParameterHdf5Reader (conditionFile,
-                                                                           conditionFilePath + "/sigmaParameterIndices",
-                                                                           conditionFilePath + "/sigmaParametersMapToObservables");
+        auto hierarchicalScalingReader = std::make_unique<AnalyticalParameterHdf5Reader>(
+                    conditionFile,
+                    conditionFilePath + "/scalingParameterIndices",
+                    conditionFilePath + "/scalingParametersMapToObservables");
+        auto hierarchicalOffsetReader = std::make_unique<AnalyticalParameterHdf5Reader>(
+                    conditionFile,
+                    conditionFilePath + "/offsetParameterIndices",
+                    conditionFilePath + "/offsetParametersMapToObservables");
+        auto hierarchicalSigmaReader = std::make_unique<AnalyticalParameterHdf5Reader>(
+                    conditionFile,
+                    conditionFilePath + "/sigmaParameterIndices",
+                    conditionFilePath + "/sigmaParametersMapToObservables");
         auto proportionalityFactorIndices = hierarchicalScalingReader->getOptimizationParameterIndices();
         auto offsetParameterIndices = hierarchicalOffsetReader->getOptimizationParameterIndices();
         auto sigmaParameterIndices = hierarchicalSigmaReader->getOptimizationParameterIndices();
+
         auto wrappedFun = std::make_unique<AmiciSummedGradientFunction<int>>(dataProvider, loadBalancer, nullptr);
 
         hierarchical = HierarchicalOptimizationWrapper(std::move(wrappedFun),
-                                                std::unique_ptr<AnalyticalParameterHdf5Reader>(hierarchicalScalingReader),
-                                                std::unique_ptr<AnalyticalParameterHdf5Reader>(hierarchicalOffsetReader),
-                                                std::unique_ptr<AnalyticalParameterHdf5Reader>(hierarchicalSigmaReader),
+                                                std::move(hierarchicalScalingReader),
+                                                std::move(hierarchicalOffsetReader),
+                                                std::move(hierarchicalSigmaReader),
                                                 dataProvider->getNumberOfConditions(), model->nytrue, model->nt(),
                                                 ErrorModel::normal);
         RELEASE_ASSERT(parameters.size() == (unsigned) hierarchical.numParameters(), "");
@@ -519,19 +523,19 @@ std::vector<double> getOuterParameters(const std::vector<double> &fullParameters
                                        const std::string &parameterPath)
 {
     //auto options = OptimizationOptions::fromHDF5(parameterFile.getId(), parameterPath + "/optimizationOptions");
-    auto hierarchicalScalingReader = new AnalyticalParameterHdf5Reader (parameterFile,
-                                                                        parameterPath + "/inputData/scalingParameterIndices",
-                                                                        parameterPath + "/inputData/scalingParametersMapToObservables");
-    auto hierarchicalOffsetReader = new AnalyticalParameterHdf5Reader (parameterFile,
-                                                                       parameterPath + "/inputData/offsetParameterIndices",
-                                                                       parameterPath + "/inputData/offsetParametersMapToObservables");
-    auto hierarchicalSigmaReader = new AnalyticalParameterHdf5Reader (parameterFile,
-                                                                      parameterPath + "/inputData/sigmaParameterIndices",
-                                                                      parameterPath + "/inputData/sigmaParametersMapToObservables");
+    AnalyticalParameterHdf5Reader hierarchicalScalingReader(parameterFile,
+                                                            parameterPath + "/inputData/scalingParameterIndices",
+                                                            parameterPath + "/inputData/scalingParametersMapToObservables");
+    AnalyticalParameterHdf5Reader hierarchicalOffsetReader(parameterFile,
+                                                           parameterPath + "/inputData/offsetParameterIndices",
+                                                           parameterPath + "/inputData/offsetParametersMapToObservables");
+    AnalyticalParameterHdf5Reader hierarchicalSigmaReader(parameterFile,
+                                                          parameterPath + "/inputData/sigmaParameterIndices",
+                                                          parameterPath + "/inputData/sigmaParametersMapToObservables");
 
-    auto proportionalityFactorIndices = hierarchicalScalingReader->getOptimizationParameterIndices();
-    auto offsetParameterIndices = hierarchicalOffsetReader->getOptimizationParameterIndices();
-    auto sigmaParameterIndices = hierarchicalSigmaReader->getOptimizationParameterIndices();
+    auto proportionalityFactorIndices = hierarchicalScalingReader.getOptimizationParameterIndices();
+    auto offsetParameterIndices = hierarchicalOffsetReader.getOptimizationParameterIndices();
+    auto sigmaParameterIndices = hierarchicalSigmaReader.getOptimizationParameterIndices();
 
     auto combinedIndices = proportionalityFactorIndices;
     combinedIndices.insert(combinedIndices.end(), offsetParameterIndices.begin(), offsetParameterIndices.end());
