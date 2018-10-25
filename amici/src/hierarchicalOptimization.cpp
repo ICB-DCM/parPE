@@ -744,7 +744,10 @@ double computeAnalyticalOffsets(int offsetIdx,
     }
 
     if(denominator == 0.0) {
-        throw ParPEException("In computeAnalyticalOffsets: denominator is 0.");
+        logmessage(LOGLVL_WARNING,
+                   "In computeAnalyticalOffsets: denominator is 0.0 for offset parameter "
+                   + std::to_string(offsetIdx)
+                   + ". This probably means that there exists no measurement using this parameter.");
     }
 
     return enumerator / denominator;
@@ -783,7 +786,10 @@ double computeAnalyticalSigmas(int sigmaIdx,
     }
 
     if(denominator == 0.0) {
-        throw ParPEException("In computeAnalyticalOffsets: denominator is 0.");
+        logmessage(LOGLVL_WARNING,
+                   "In computeAnalyticalSigmas: denominator is 0.0 for sigma parameter "
+                   + std::to_string(sigmaIdx)
+                   + ". This probably means that there exists no measurement using this parameter.");
     }
 
     double sigmaSquared = enumerator / denominator;
