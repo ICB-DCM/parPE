@@ -213,7 +213,7 @@ FunctionEvaluationStatus OptimizationReporter::evaluate(
         if (!haveCachedGradient || !std::equal(parameters.begin(), parameters.end(),
                                                cachedParameters.begin())) {
             // Have to compute anew
-            cachedStatus = gradFun->evaluate(parameters, cachedCost, cachedGradient, logger, &functionCpuSec);
+            cachedStatus = gradFun->evaluate(parameters, cachedCost, cachedGradient, logger?logger:this->logger.get(), &functionCpuSec);
             haveCachedCost = true;
             haveCachedGradient = true;
         }
@@ -224,7 +224,7 @@ FunctionEvaluationStatus OptimizationReporter::evaluate(
         if (!haveCachedCost || !std::equal(parameters.begin(), parameters.end(),
                                            cachedParameters.begin())) {
             // Have to compute anew
-            cachedStatus = gradFun->evaluate(parameters, cachedCost, gsl::span<double>(), logger, &functionCpuSec);
+            cachedStatus = gradFun->evaluate(parameters, cachedCost, gsl::span<double>(), logger?logger:this->logger.get(), &functionCpuSec);
             haveCachedCost = true;
             haveCachedGradient = false;
         }
