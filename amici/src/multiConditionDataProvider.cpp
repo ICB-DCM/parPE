@@ -100,11 +100,11 @@ void MultiConditionDataProviderHDF5::mapAndSetOptimizationToSimulationVariables(
     }
 }
 
-amici::AMICI_parameter_scaling MultiConditionDataProviderHDF5::getParameterScale(int optimizationParameterIndex) const
+amici::ParameterScaling MultiConditionDataProviderHDF5::getParameterScale(int optimizationParameterIndex) const
 {
     auto res = hdf5Read1DIntegerHyperslab(file, hdf5ParameterScalingPath,
                                           1, optimizationParameterIndex).at(0);
-    return static_cast<amici::AMICI_parameter_scaling>(res);
+    return static_cast<amici::ParameterScaling>(res);
 }
 
 /**
@@ -163,8 +163,8 @@ std::unique_ptr<amici::ExpData> MultiConditionDataProviderHDF5::getExperimentalD
     auto edata = std::make_unique<amici::ExpData>(*model);
     RELEASE_ASSERT(edata, "Failed getting experimental data. Check data file.");
 
-    edata->my = getMeasurementForConditionIndex(conditionIdx);
-    edata->sigmay = getSigmaForConditionIndex(conditionIdx);
+    edata->setObservedData(getMeasurementForConditionIndex(conditionIdx));
+    edata->setObservedDataStdDev(getSigmaForConditionIndex(conditionIdx));
     updateFixedSimulationParameters(conditionIdx, *edata);
 
     return edata;
@@ -369,7 +369,7 @@ void MultiConditionDataProviderDefault::mapAndSetOptimizationToSimulationVariabl
 
 }
 
-amici::AMICI_parameter_scaling MultiConditionDataProviderDefault::getParameterScale(int optimizationParameterIndex) const
+amici::ParameterScaling MultiConditionDataProviderDefault::getParameterScale(int optimizationParameterIndex) const
 {
     // TODO assumes no extra optimization parameters
     return model->getParameterScale()[optimizationParameterIndex];
@@ -391,7 +391,7 @@ std::vector<std::vector<double> > MultiConditionDataProviderDefault::getAllMeasu
 {
     std::vector<std::vector<double> > measurements;
     for(const auto& e: edata) {
-        measurements.push_back(e.my);
+        measurements.push_back(e.getObservedData());
     }
     return measurements;
 }
@@ -400,7 +400,7 @@ std::vector<std::vector<double> > MultiConditionDataProviderDefault::getAllSigma
 {
     std::vector<std::vector<double> > sigmas;
     for(const auto& e: edata) {
-        sigmas.push_back(e.sigmay);
+        sigmas.push_back(e.getObservedDataStdDev());
     }
     return sigmas;
 }

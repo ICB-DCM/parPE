@@ -616,7 +616,12 @@ class HDF5DataGenerator:
                 #observableName = p[len('observable_'):]
                 observableName = p
                 observables.append(observableName)
-        return observables
+        observablesUni = amiciHelper.unique(observables)
+        
+        if len(observables) != len(observablesUni):
+            print("!! %d redundant observable definitions in model" 
+                  % (len(observables) - len(observablesUni)))       
+        return observablesUni
 
     def writeMeasurements(self, dsetY, dsetSigmaY):
         """
@@ -648,11 +653,15 @@ class HDF5DataGenerator:
         Check if order of observables in SBML model match that of AMICI model (which is assumed here)
 
         Problem: order may have changed due to SBML which does not necessarily conserve ordering
-        Problem: formula matching is not straightforward, since they might have changed due to symbolic processing  
+        Problem: formula matching is not straightforward, since they might have changed due to symbolic processing
+        
+        TODO: require finished amici python module for data generation, get order from there instead of sbml model
+        This will get rid of the checks
         """
 
         # The least we can do is compare the number of observables
-        assert(len(y) == len(observables))
+        if len(y) != len(observables):
+            raise AssertionError('y: %d, obs: %d' % (len(y), len(observables)))
 
         for i in range(len(observables)):
             observableName = observables[i]
@@ -664,7 +673,7 @@ class HDF5DataGenerator:
             obsSpecies = observableName[(observableName.rfind('_') + 1):]
             if amiciObsFormula.find(obsSpecies) < 0:
                 print(colored('Warning: Not sure if SBML observable "%s" matches AMICI formula "%s"' % (
-                    obsSpecies, amiciObsFormula), 'yellow'))
+                    observableName, amiciObsFormula), 'yellow'))
 
     def generateHierarchicalOptimizationData(self):
         """

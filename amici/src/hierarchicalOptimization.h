@@ -447,9 +447,9 @@ void fillFilteredParams(std::vector<double> const& valuesToFilter,
                         const std::vector<int> &sortedIndicesToExclude,
                         gsl::span<double> result);
 
-double getDefaultScalingFactor(amici::AMICI_parameter_scaling scaling);
+double getDefaultScalingFactor(amici::ParameterScaling scaling);
 
-double getDefaultOffsetParameter(amici::AMICI_parameter_scaling scaling);
+double getDefaultOffsetParameter(amici::ParameterScaling scaling);
 
 /**
  * @brief Compute the proportionality factor for the given observable.
@@ -484,9 +484,9 @@ void applyOptimalScaling(int scalingIdx, double scalingLin,
                          AnalyticalParameterProvider const& scalingReader,
                          int numObservables, int numTimepoints);
 
-double getScaledParameter(double parameter, amici::AMICI_parameter_scaling scale);
+double getScaledParameter(double parameter, amici::ParameterScaling scale);
 
-double getUnscaledParameter(double parameter, amici::AMICI_parameter_scaling scale);
+double getUnscaledParameter(double parameter, amici::ParameterScaling scale);
 
 void applyOptimalOffset(int offsetIdx, double offsetLin,
                         std::vector<std::vector<double> > &modelOutputs,

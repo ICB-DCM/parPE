@@ -167,11 +167,11 @@ std::unique_ptr<OptimizationProblem> MultiConditionProblemMultiStartOptimization
 
 void printSimulationResult(Logger *logger, int jobId, amici::ReturnData const* rdata, double timeSeconds) {
     logger->logmessage(LOGLVL_DEBUG, "Result for %d: %g (%d) (%.4fs%c)",
-               jobId, rdata->llh, rdata->status, timeSeconds, rdata->sensi >= amici::AMICI_SENSI_ORDER_FIRST?'+':'-');
+               jobId, rdata->llh, rdata->status, timeSeconds, rdata->sensi >= amici::SensitivityOrder::first?'+':'-');
 
 
     // check for NaNs, only report first
-    if (rdata->sensi >= amici::AMICI_SENSI_ORDER_FIRST) {
+    if (rdata->sensi >= amici::SensitivityOrder::first) {
         for (int i = 0; i < rdata->np; ++i) {
             if (std::isnan(rdata->sllh[i])) {
                 logger->logmessage(LOGLVL_DEBUG, "Gradient contains NaN at %d", i);
@@ -315,7 +315,7 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
 
     printSimulationResult(logger, jobId, rdata.get(), timeSeconds);
 
-    if (resultWriter && (solver.getSensitivityOrder() > amici::AMICI_SENSI_ORDER_NONE || logLineSearch)) {
+    if (resultWriter && (solver.getSensitivityOrder() > amici::SensitivityOrder::none || logLineSearch)) {
         saveSimulation(resultWriter->getFileId(), resultWriter->getRootPath(),
                       model.getParameters(), rdata->llh, rdata->sllh,
                       timeSeconds, rdata->x, rdata->sx, rdata->y,
@@ -325,7 +325,7 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
     return AmiciSimulationRunner::AmiciResultPackageSimple {
         rdata->llh,
                 timeSeconds,
-                (solver.getSensitivityOrder() > amici::AMICI_SENSI_ORDER_NONE) ? rdata->sllh : std::vector<double>(),
+                (solver.getSensitivityOrder() > amici::SensitivityOrder::none) ? rdata->sllh : std::vector<double>(),
                 rdata->y,
                 rdata->status
     };

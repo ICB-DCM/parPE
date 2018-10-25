@@ -351,6 +351,7 @@ FunctionEvaluationStatus HierarchicalOptimizationWrapper::evaluateWithOptimalPar
         Logger *logger, double *cpuTime) const {
 
     if(!gradient.empty()) {
+        fval = NAN;
         // simulate with updated theta for sensitivities
         // simulate all datasets
         std::vector<int> dataIndices(numConditions);
@@ -650,27 +651,27 @@ void fillFilteredParams(std::vector<double> const& valuesToFilter,
     RELEASE_ASSERT(resultIdx == (unsigned) valuesToFilter.size() - sortedIndicesToExclude.size(), "");
 }
 
-double getDefaultScalingFactor(amici::AMICI_parameter_scaling scaling)
+double getDefaultScalingFactor(amici::ParameterScaling scaling)
 {
     switch (scaling) {
-    case amici::AMICI_SCALING_NONE:
+    case amici::ParameterScaling::none:
         return 1.0;
-    case amici::AMICI_SCALING_LOG10:
+    case amici::ParameterScaling::log10:
         return 0.0;
     default:
-        throw ParPEException("Parameter scaling must be AMICI_SCALING_LOG10 or AMICI_SCALING_NONE.");
+        throw ParPEException("Parameter scaling must be ParameterScaling::log10 or ParameterScaling::none.");
     }
 }
 
-double getDefaultOffsetParameter(amici::AMICI_parameter_scaling scaling)
+double getDefaultOffsetParameter(amici::ParameterScaling scaling)
 {
     switch (scaling) {
-    case amici::AMICI_SCALING_NONE:
+    case amici::ParameterScaling::none:
         return 0.0;
-    case amici::AMICI_SCALING_LOG10:
+    case amici::ParameterScaling::log10:
         return -std::numeric_limits<double>::infinity();
     default:
-        throw ParPEException("Parameter scaling must be AMICI_SCALING_LOG10 or AMICI_SCALING_NONE.");
+        throw ParPEException("Parameter scaling must be ParameterScaling::log10 or ParameterScaling::none.");
     }
 }
 
@@ -705,7 +706,9 @@ double computeAnalyticalScalings(int scalingIdx,
     }
 
     if(denominator == 0.0) {
-        throw ParPEException(std::string("In computeAnalyticalScalings: denominator is 0 for scaling parameter ") + std::to_string(scalingIdx));
+        logmessage(LOGLVL_WARNING,
+                   "In computeAnalyticalScalings: denominator is 0.0 for scaling parameter "
+                   + std::to_string(scalingIdx));
     }
 
     return enumerator / denominator;
@@ -808,27 +811,27 @@ void applyOptimalScaling(int scalingIdx, double scalingLin,
     }
 }
 
-double getScaledParameter(double parameter, amici::AMICI_parameter_scaling scale) {
+double getScaledParameter(double parameter, amici::ParameterScaling scale) {
     switch (scale) {
-    case amici::AMICI_SCALING_NONE:
+    case amici::ParameterScaling::none:
         return parameter;
-    case amici::AMICI_SCALING_LOG10:
+    case amici::ParameterScaling::log10:
         if(parameter < 0.0)
             throw(ParPEException("getScaledParameter: Can't take log of negative value."));
         return log10(parameter);
     default:
-        throw(ParPEException("Parameter scaling must be AMICI_SCALING_LOG10 or AMICI_SCALING_NONE."));
+        throw(ParPEException("Parameter scaling must be ParameterScaling::none or ParameterScaling::log10."));
     }
 }
 
-double getUnscaledParameter(double parameter, amici::AMICI_parameter_scaling scale) {
+double getUnscaledParameter(double parameter, amici::ParameterScaling scale) {
     switch (scale) {
-    case amici::AMICI_SCALING_NONE:
+    case amici::ParameterScaling::none:
         return parameter;
-    case amici::AMICI_SCALING_LOG10:
+    case amici::ParameterScaling::log10:
         return pow(10, parameter);
     default:
-        throw ParPEException("Parameter scaling must be AMICI_SCALING_LOG10 or AMICI_SCALING_NONE.");
+        throw(ParPEException("Parameter scaling must be ParameterScaling::none or ParameterScaling::log10."));
     }
 }
 

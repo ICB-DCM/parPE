@@ -37,7 +37,7 @@ class AmiciSimulationRunner {
     struct AmiciWorkPackageSimple {
         AmiciWorkPackageSimple() = default;
         std::vector<double> optimizationParameters;
-        amici::AMICI_sensi_order sensitivityOrder;
+        amici::SensitivityOrder sensitivityOrder;
         std::vector<int> conditionIndices;
         std::string logPrefix;
         // TODO bool sendY, ...
@@ -70,7 +70,7 @@ class AmiciSimulationRunner {
      */
 
     AmiciSimulationRunner(const std::vector<double> &optimizationParameters,
-                          amici::AMICI_sensi_order sensitivityOrder,
+                          amici::SensitivityOrder sensitivityOrder,
                           const std::vector<int> &conditionIndices,
                           callbackJobFinishedType callbackJobFinished = nullptr,
                           callbackAllFinishedType aggregate = nullptr,
@@ -101,11 +101,11 @@ private:
                          pthread_cond_t *jobDoneChangedCondition,
                          pthread_mutex_t *jobDoneChangedMutex,
                          int jobIdx, const std::vector<double> &optimizationParameters,
-                         amici::AMICI_sensi_order sensitivityOrder,
+                         amici::SensitivityOrder sensitivityOrder,
                          const std::vector<int> &conditionIndices);
 
     std::vector<double> const& optimizationParameters;
-    amici::AMICI_sensi_order sensitivityOrder;
+    amici::SensitivityOrder sensitivityOrder;
     std::vector<int> const& conditionIndices;
 
     callbackJobFinishedType callbackJobFinished = nullptr;

@@ -1,18 +1,16 @@
-#include <simulationResultWriter.h>
-#include <hdf5Misc.h>
-#include "testingMisc.h"
 #include "CppUTest/TestHarness.h"
 #include "CppUTestExt/MockSupport.h"
+
+#include "testingMisc.h"
+
+#include <simulationResultWriter.h>
+#include <hdf5Misc.h>
 #include <vector>
 #include <algorithm>
 #include <numeric>
 #include <amici/amici.h>
 #include <amici/solver_cvodes.h>
 
-#define NEW_OPTION_FILE "undefined"
-#define HDFFILE "undefined"
-#define HDFFILEWRITE "undefined"
-#include "../tests/cpputest/testfunctions.h" // for Modell_Test
 
 // clang-format off
 TEST_GROUP(simulationResultWriter){
@@ -27,10 +25,9 @@ TEST_GROUP(simulationResultWriter){
 
 
 TEST(simulationResultWriter, testResultWriter) {
-    // setup
+    // setup ResultWriter
     char tmpName[TMP_MAX];
     std::tmpnam(tmpName);
-
     parpe::SimulationResultWriter rw(tmpName, "/testResultWriter/");
 
     rw.saveLlh = true;
@@ -38,35 +35,30 @@ TEST(simulationResultWriter, testResultWriter) {
     rw.saveYMes = true;
     rw.saveYSim = true;
 
+    // setup data
     constexpr int numSimulations = 2;
+    constexpr int nx = 3;
+    constexpr int nytrue = 2;
+    const std::vector<double> timepoints {1.0, 2.0};
 
-    amici::Model_Test model( 3, 3, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0,
-                            amici::AMICI_O2MODE_NONE,std::vector<realtype>(),
-                            std::vector<realtype>(),std::vector<int>(),
-                            std::vector<realtype>(),std::vector<int>());
-
-    std::vector<double> timepoints {1.0, 2.0};
-    model.setTimepoints(timepoints);
-
-    amici::ExpData edata(model);
+    amici::ExpData edata(nytrue, 0, 0, timepoints);
     std::vector<double> measurements {1.1, 2.1, 3.1, 4.1};
-    CHECK_TRUE(measurements.size() == (unsigned) model.nytrue * model.nt());
-    edata.setObservedData(measurements.data());
+    CHECK_TRUE(measurements.size() == (unsigned) nytrue * timepoints.size());
+    edata.setObservedData(measurements);
 
-    amici::CVodeSolver solver;
-    amici::ReturnData rdata(solver, &model);
-    rdata.x.resize(model.nt() * model.nx);
+    amici::ReturnData rdata(timepoints, 0, 1, nx, nx, nytrue, nytrue, 0, 0,
+                            0, 0, 0, 0, timepoints.size(), 0,
+                            std::vector<amici::ParameterScaling>(), amici::SecondOrderMode::none,
+                            amici::SensitivityOrder::none, amici::SensitivityMethod::none);
     std::iota(rdata.x.begin(), rdata.x.end(), 0);
-
     rdata.llh = 1.2345;
     rdata.y.resize(measurements.size());
     std::iota(rdata.y.begin(), rdata.y.end(), 10);
 
-
     auto file = rw.reopenFile();
 
     // write
-    rw.createDatasets(model, numSimulations);
+    rw.createDatasets(nytrue, nx, timepoints.size(), numSimulations);
 
     CHECK_TRUE(parpe::hdf5GroupExists(file.getId(), "/testResultWriter/"));
     CHECK_TRUE(parpe::hdf5DatasetExists(file.getId(), rw.llhPath.c_str()));
@@ -77,15 +69,15 @@ TEST(simulationResultWriter, testResultWriter) {
     rw.saveSimulationResults(&edata, &rdata, 1);
 
     // verify
-    std::vector<double> xAct(rdata.x.size());
-    parpe::hdf5Read3DDoubleHyperslab(file.getId(), rw.xPath.c_str(),
-                                     1, model.nt(), model.nxtrue,
-                                     1, 0, 0, xAct.data());
+    auto xAct = parpe::hdf5Get3DDoubleHyperslab(
+                file.getId(), rw.xPath.c_str(),
+                1, timepoints.size(), nx,
+                1, 0, 0);
     parpe::checkEqualArray(rdata.x.data(), xAct.data(), xAct.size(), 1e-16, 1e-16);
 
-    std::vector<double> yMesAct(measurements.size());
-    parpe::hdf5Read3DDoubleHyperslab(file.getId(), rw.yMesPath.c_str(),
-                                     1, model.nt(), model.ny, 1, 0, 0, yMesAct.data());
+    auto yMesAct = parpe::hdf5Get3DDoubleHyperslab(
+                file.getId(), rw.yMesPath.c_str(),
+                1, timepoints.size(), nytrue, 1, 0, 0);
     parpe::checkEqualArray(measurements.data(), yMesAct.data(), yMesAct.size(), 1e-16, 1e-16);
 
 }

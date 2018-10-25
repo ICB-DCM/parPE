@@ -37,7 +37,7 @@ int StandaloneSimulator::run(const std::string& resultFile,
 
     auto model = dataProvider->getModel();
     auto solver = dataProvider->getSolver();
-    solver->setSensitivityOrder(amici::AMICI_SENSI_ORDER_NONE);
+    solver->setSensitivityOrder(amici::SensitivityOrder::none);
 
     std::vector<double> parameters = optimizationParameters;
     HierarchicalOptimizationWrapper hierarchical(nullptr, 0, 0, 0);
@@ -113,7 +113,7 @@ int StandaloneSimulator::run(const std::string& resultFile,
             errors += result.second.status;
             int conditionIdx = result.first;
             auto edata = dataProvider->getExperimentalDataForCondition(conditionIdx);
-            rw.saveMeasurements(edata->my, edata->nt, edata->nytrue, conditionIdx);
+            rw.saveMeasurements(edata->getObservedData(), edata->nt(), edata->nytrue, conditionIdx);
             rw.saveModelOutputs(result.second.modelOutput,  model->nt(), model->nytrue, conditionIdx);
             rw.saveLikelihood(result.second.llh, conditionIdx);
         }
@@ -161,7 +161,7 @@ int StandaloneSimulator::run(const std::string& resultFile,
                         modelOutputs[conditionIdx],
                         fullSigmaMatrices[conditionIdx]);
             auto edata = dataProvider->getExperimentalDataForCondition(conditionIdx);
-            rw.saveMeasurements(edata->my, edata->nt, edata->nytrue, conditionIdx);
+            rw.saveMeasurements(edata->getObservedData(), edata->nt(), edata->nytrue, conditionIdx);
             rw.saveModelOutputs(modelOutputs[conditionIdx],  model->nt(), model->nytrue, conditionIdx);
             rw.saveLikelihood(llh, conditionIdx);
         }
@@ -169,7 +169,7 @@ int StandaloneSimulator::run(const std::string& resultFile,
     };
 
     AmiciSimulationRunner simRunner(parameters,
-                                    amici::AMICI_SENSI_ORDER_NONE,
+                                    amici::SensitivityOrder::none,
                                     dataIndices,
                                     jobFinished,
                                     allFinished);
@@ -234,7 +234,7 @@ AmiciSimulationRunner::AmiciResultPackageSimple StandaloneSimulator::runSimulati
     return AmiciSimulationRunner::AmiciResultPackageSimple {
         rdata->llh,
                 NAN,
-                (solver.getSensitivityOrder() > amici::AMICI_SENSI_ORDER_NONE) ? rdata->sllh : std::vector<double>(),
+                (solver.getSensitivityOrder() > amici::SensitivityOrder::none) ? rdata->sllh : std::vector<double>(),
                 rdata->y,
                 rdata->status
     };
