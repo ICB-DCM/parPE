@@ -416,13 +416,13 @@ TEST(hierarchicalOptimization, applyOptimalOffset) {
 
 
 TEST(hierarchicalOptimization, testScaling) {
-    CHECK_EQUAL(42.0, parpe::getUnscaledParameter(42.0, amici::ParameterScaling::none));
+    CHECK_EQUAL(42.0, amici::getUnscaledParameter(42.0, amici::ParameterScaling::none));
     CHECK_EQUAL(42.0, parpe::getScaledParameter(42.0, amici::ParameterScaling::none));
 
     CHECK_EQUAL(2.0, parpe::getScaledParameter(100.0, amici::ParameterScaling::log10));
-    CHECK_EQUAL(100.0, parpe::getUnscaledParameter(2.0, amici::ParameterScaling::log10));
+    CHECK_EQUAL(100.0, amici::getUnscaledParameter(2.0, amici::ParameterScaling::log10));
 
-    CHECK_THROWS(parpe::ParPEException, parpe::getUnscaledParameter(42.0, amici::ParameterScaling::ln));
+    CHECK_THROWS(parpe::ParPEException, amici::getUnscaledParameter(42.0, amici::ParameterScaling::ln));
     CHECK_THROWS(parpe::ParPEException, parpe::getScaledParameter(42.0, amici::ParameterScaling::ln));
 
 }

@@ -830,17 +830,6 @@ double getScaledParameter(double parameter, amici::ParameterScaling scale) {
     }
 }
 
-double getUnscaledParameter(double parameter, amici::ParameterScaling scale) {
-    switch (scale) {
-    case amici::ParameterScaling::none:
-        return parameter;
-    case amici::ParameterScaling::log10:
-        return pow(10, parameter);
-    default:
-        throw(ParPEException("Parameter scaling must be ParameterScaling::none or ParameterScaling::log10."));
-    }
-}
-
 
 void applyOptimalOffset(int offsetIdx, double offsetLin,
                         std::vector<std::vector<double> > &modelOutputs,
