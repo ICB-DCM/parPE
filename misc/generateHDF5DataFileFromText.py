@@ -619,8 +619,8 @@ class HDF5DataGenerator:
         observablesUni = amiciHelper.unique(observables)
         
         if len(observables) != len(observablesUni):
-            print("!! %d redundant observable definitions in model" 
-                  % (len(observables) - len(observablesUni)))       
+            print("!! %d redundant observable definitions in model"
+                  % (len(observables) - len(observablesUni)))
         return observablesUni
 
     def writeMeasurements(self, dsetY, dsetSigmaY):
