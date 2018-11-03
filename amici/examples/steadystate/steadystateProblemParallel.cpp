@@ -105,12 +105,12 @@ int ExampleSteadystateGradientFunctionParallel::evaluateSerial(gsl::span<const d
     objFunVal = 0;
 
     if (objFunGrad.size()) {
-        solver->setSensitivityOrder(amici::AMICI_SENSI_ORDER_FIRST);
-        solver->setSensitivityMethod(amici::AMICI_SENSI_FSA);
+        solver->setSensitivityOrder(amici::SensitivityOrder::first);
+        solver->setSensitivityMethod(amici::SensitivityMethod::forward);
         std::fill_n(objFunGrad.begin(), objFunGrad.end(), 0.0);
     } else {
-        solver->setSensitivityOrder(amici::AMICI_SENSI_ORDER_NONE);
-        solver->setSensitivityMethod(amici::AMICI_SENSI_NONE);
+        solver->setSensitivityOrder(amici::SensitivityOrder::none);
+        solver->setSensitivityMethod(amici::SensitivityMethod::none);
     }
 
     for (int i = 0; i < numConditions; ++i) {
@@ -146,11 +146,11 @@ void ExampleSteadystateGradientFunctionParallel::messageHandler(std::vector<char
     auto edata = dataProvider->getExperimentalDataForCondition(conditionIdx);
 
     if (needGradient) {
-        solver->setSensitivityOrder(amici::AMICI_SENSI_ORDER_FIRST);
-        solver->setSensitivityMethod(amici::AMICI_SENSI_FSA);
+        solver->setSensitivityOrder(amici::SensitivityOrder::first);
+        solver->setSensitivityMethod(amici::SensitivityMethod::forward);
     } else {
-        solver->setSensitivityOrder(amici::AMICI_SENSI_ORDER_NONE);
-        solver->setSensitivityMethod(amici::AMICI_SENSI_NONE);
+        solver->setSensitivityOrder(amici::SensitivityOrder::none);
+        solver->setSensitivityMethod(amici::SensitivityMethod::none);
     }
 
     // run simulation

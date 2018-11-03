@@ -67,11 +67,11 @@ TEST(steadystateProblemTests, testSteadystate) {
 
     // verify likelihood for matching measurement / simulation
     amici::ExpData edata {*model};
-    edata.my = yExp;
-    edata.sigmay.assign(edata.my.size(), 1.0);
+    edata.setObservedData(yExp);
+    edata.setObservedDataStdDev(std::vector<double>(yExp.size(), 1.0));
     rdata = amici::runAmiciSimulation(*solver, &edata, *model);
     CHECK_EQUAL(rdata->status, AMICI_SUCCESS);
-    DOUBLES_EQUAL(parpe::getLogLikelihoodOffset(edata.my.size()), rdata->llh, 1e-5);
+    DOUBLES_EQUAL(parpe::getLogLikelihoodOffset(edata.nt() * edata.nytrue), rdata->llh, 1e-5);
 }
 
 TEST(steadystateProblemTests, testSteadystateMultiCond) {
@@ -86,14 +86,14 @@ TEST(steadystateProblemTests, testSteadystateMultiCond) {
 
     dp.edata.push_back(amici::ExpData(*modelNonOwning));
     dp.edata[0].fixedParameters = modelNonOwning->getFixedParameters();
-    dp.edata[0].my = yExp;
-    dp.edata[0].sigmay.assign(dp.edata[0].my.size(), 1.0);
+    dp.edata[0].setObservedData(yExp);
+    dp.edata[0].setObservedDataStdDev(std::vector<double>(yExp.size(), 1.0));
 
     //parpe::AmiciSummedGradientFunction<int>(&dp, nullptr);
     parpe::MultiConditionProblem problem(&dp);
     double cost;
     problem.costFun->evaluate(p, cost, gsl::span<double>());
-    DOUBLES_EQUAL(-parpe::getLogLikelihoodOffset(dp.edata[0].my.size()), cost, 1e-5);
+    DOUBLES_EQUAL(-parpe::getLogLikelihoodOffset(dp.edata[0].getObservedData().size()), cost, 1e-5);
 }
 
 
@@ -117,8 +117,8 @@ TEST(steadystateProblemTests, testSteadystateHierarchical) {
     // x0?
     dp.edata.push_back(amici::ExpData(*modelNonOwning));
     dp.edata[0].fixedParameters = modelNonOwning->getFixedParameters();
-    dp.edata[0].my = yScaledExp;
-    dp.edata[0].sigmay.assign(dp.edata[0].my.size(), 1.0);
+    dp.edata[0].setObservedData(yScaledExp);
+    dp.edata[0].setObservedDataStdDev(std::vector<double>(yExp.size(), 1.0));
 
     //parpe::MultiConditionProblem problem(&dp);
 
@@ -149,12 +149,12 @@ TEST(steadystateProblemTests, testSteadystateHierarchical) {
                                                parpe::ErrorModel::normal);
     double cost;
     hier.evaluate(pReduced, cost, gsl::span<double>(), nullptr, nullptr);
-    DOUBLES_EQUAL(-parpe::getLogLikelihoodOffset(dp.edata[0].my.size()), cost, 1e-5);
+    DOUBLES_EQUAL(-parpe::getLogLikelihoodOffset(dp.edata[0].getObservedData().size()), cost, 1e-5);
 
     const std::vector<double> pFull { 1.0, 0.5, 0.4, 2.0,
                                       0.1, scalingExp, offsetExp, 1.0 };
     hier.fun->evaluate(pFull, {0}, cost, gsl::span<double>(), nullptr, nullptr);
-    DOUBLES_EQUAL(-parpe::getLogLikelihoodOffset(dp.edata[0].my.size()), cost, 1e-5);
+    DOUBLES_EQUAL(-parpe::getLogLikelihoodOffset(dp.edata[0].getObservedData().size()), cost, 1e-5);
 }
 
 
@@ -171,7 +171,7 @@ TEST(steadystateProblemTests, testOptimizationHierarchical) {
     auto modelNonOwning = model.get();
 
     auto solver = model->getSolver();
-    solver->setSensitivityMethod(amici::AMICI_SENSI_ASA);
+    solver->setSensitivityMethod(amici::SensitivityMethod::adjoint);
 
     /* generate scaled data */
     const double scalingExp = 2.0; // scaling parameter
@@ -185,8 +185,8 @@ TEST(steadystateProblemTests, testOptimizationHierarchical) {
     // x0?
     dp.edata.push_back(amici::ExpData(*modelNonOwning));
     dp.edata[0].fixedParameters = modelNonOwning->getFixedParameters();
-    dp.edata[0].my = yScaledExp;
-    dp.edata[0].sigmay.assign(dp.edata[0].my.size(), 1.0);
+    dp.edata[0].setObservedData(yScaledExp);
+    dp.edata[0].setObservedDataStdDev(std::vector<double>(yScaledExp.size(), 1.0));
     //parpe::MultiConditionProblem problem(&dp);
 
     /* setup hierarchical optimization */
@@ -221,12 +221,12 @@ TEST(steadystateProblemTests, testOptimizationHierarchical) {
     // evaluate and ensure scaling factor is computed so that y_mes = y_sim
     double cost;
     hier->evaluate(pReduced, cost, gsl::span<double>(), nullptr, nullptr);
-    DOUBLES_EQUAL(-parpe::getLogLikelihoodOffset(dp.edata[0].my.size()), cost, 1e-5);
+    DOUBLES_EQUAL(-parpe::getLogLikelihoodOffset(dp.edata[0].getObservedData().size()), cost, 1e-5);
 
     const std::vector<double> pFull { 1.0, 0.5, 0.4, 2.0,
                                       0.1, scalingExp, offsetExp, 1.0 };
     hier->fun->evaluate(pFull, {0}, cost, gsl::span<double>(), nullptr, nullptr);
-    DOUBLES_EQUAL(-parpe::getLogLikelihoodOffset(dp.edata[0].my.size()), cost, 1e-5);
+    DOUBLES_EQUAL(-parpe::getLogLikelihoodOffset(dp.edata[0].getObservedData().size()), cost, 1e-5);
 
     parpe::OptimizationProblemImpl problem(std::move(hier), std::make_unique<parpe::Logger>());
     //    std::vector<double> startingPoint = pReduced;

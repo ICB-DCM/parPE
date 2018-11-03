@@ -521,6 +521,17 @@ int hdf5Read3DDoubleHyperslab(hid_t file_id,
     return 0;
 }
 
+
+std::vector<double> hdf5Get3DDoubleHyperslab(hid_t file_id, const char *path,
+                                             hsize_t size0, hsize_t size1, hsize_t size2,
+                                             hsize_t offset0, hsize_t offset1, hsize_t offset2)
+{
+    std::vector<double> buffer(size0 * size1 * size2);
+    hdf5Read3DDoubleHyperslab(file_id, path, size0, size1, size2, offset0, offset1, offset2, buffer.data());
+    return buffer;
+}
+
+
 bool hdf5AttributeExists(hid_t fileId,
                          const char *datasetPath,
                          const char *attributeName)

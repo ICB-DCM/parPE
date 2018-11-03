@@ -61,6 +61,9 @@ set(USE_MPI ON)
 if(${USE_MPI})
     find_package(MPI REQUIRED)
     add_definitions(-DUSE_MPI)
+    if(${MPI_INCLUDE_DIRS}) # may be undefined
+        include_directories(${MPI_INCLUDE_DIRS})
+    endif()
 endif(${USE_MPI})
 # </Build options>
 

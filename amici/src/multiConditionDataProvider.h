@@ -42,7 +42,7 @@ class MultiConditionDataProvider {
             int conditionIdx, gsl::span<double const> optimization, gsl::span<double> simulation) const = 0;
 
 
-    virtual amici::AMICI_parameter_scaling getParameterScale(int optimizationParameterIndex) const = 0;
+    virtual amici::ParameterScaling getParameterScale(int optimizationParameterIndex) const = 0;
 
 
     virtual void updateSimulationParameters(int conditionIndex, gsl::span<double const> optimizationParams,
@@ -96,7 +96,7 @@ class MultiConditionDataProviderDefault : public MultiConditionDataProvider {
             int conditionIdx, gsl::span<double const> optimization, gsl::span<double> simulation) const override;
 
 
-    virtual amici::AMICI_parameter_scaling getParameterScale(int optimizationParameterIndex) const override;
+    virtual amici::ParameterScaling getParameterScale(int optimizationParameterIndex) const override;
 
 
     virtual void updateSimulationParameters(int conditionIndex, gsl::span<const double> optimizationParams,
@@ -196,7 +196,7 @@ class MultiConditionDataProviderHDF5 : public MultiConditionDataProvider {
             int conditionIdx, gsl::span<double const> optimization, gsl::span<double> simulation) const override;
 
 
-    virtual amici::AMICI_parameter_scaling getParameterScale(int optimizationParameterIndex) const override;
+    virtual amici::ParameterScaling getParameterScale(int optimizationParameterIndex) const override;
 
     /**
      * @brief Check if the data in the HDF5 file has consistent dimensions.

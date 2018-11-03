@@ -1,9 +1,10 @@
 #ifndef OPTIMIZATIONAPPLICATION_H
 #define OPTIMIZATIONAPPLICATION_H
 
-#include "multiConditionProblem.h"
 #include <loadBalancerMaster.h>
 #include <loadBalancerWorker.h>
+
+#include "multiConditionProblem.h"
 #include "hierarchicalOptimization.h"
 
 #include <getopt.h>
@@ -101,7 +102,7 @@ private:
      */
     int init(int argc, char **argv);
 
-    void runMultiStarts(LoadBalancerMaster* lbm);
+    void runMultiStarts();
 
 protected:
     // command line option parsing

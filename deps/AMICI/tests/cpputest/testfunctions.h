@@ -26,11 +26,18 @@ class ExpData;
 #define TEST_ATOL 1e-10
 #define TEST_RTOL 1e-05
 
+/**
+ * @brief helper function to initialize default names/ids
+ * @param name name of variables
+ * @param length number of variables
+ * @return default names/ids
+ */
+std::vector<std::string> getVariableNames(const char* name, int length);
 
 /**
-     * @brief The Model_Test class is a model-unspecific implementation
-     of model designed for unit testing.
-     */
+ * @brief The Model_Test class is a model-unspecific implementation
+ of model designed for unit testing.
+ */
 class Model_Test : public Model {
 public:
 
@@ -62,14 +69,14 @@ public:
                const int ny, const int nytrue, const int nz, const int nztrue,
                const int ne, const int nJ, const int nw, const int ndwdx,
                const int ndwdp, const int nnz, const int ubw, const int lbw,
-               const AMICI_o2mode o2mode, const std::vector<realtype> p,
+               const SecondOrderMode o2mode, const std::vector<realtype> p,
                const std::vector<realtype> k, const std::vector<int> plist,
                const std::vector<realtype> idlist, const std::vector<int> z2event)
         : Model(nx,nxtrue,ny,nytrue,nz,nztrue,ne,nJ,nw,ndwdx,ndwdp,nnz,ubw,lbw,o2mode,p,k,plist,idlist,z2event) {}
 
     /** default constructor */
     Model_Test()
-        : Model(0,0,0,0,0,0,0,0,0,0,0,0,0,0,AMICI_O2MODE_NONE,std::vector<realtype>(),std::vector<realtype>(),std::vector<int>(),std::vector<realtype>(),std::vector<int>()) {}
+    : Model(0,0,0,0,0,0,0,0,0,0,0,0,0,0,SecondOrderMode::none,std::vector<realtype>(),std::vector<realtype>(),std::vector<int>(),std::vector<realtype>(),std::vector<int>()) {}
 
     virtual Model* clone() const override { return new Model_Test(*this); }
 
@@ -80,6 +87,9 @@ public:
         throw AmiException("not implemented");
     }
     virtual void fxdot(realtype t, AmiVector *x, AmiVector *dx, AmiVector *xdot) override {
+        throw AmiException("not implemented");
+    }
+    virtual void fsxdot(realtype t, AmiVector *x, AmiVector *dx, int ip, AmiVector *sx, AmiVector *sdx, AmiVector *sxdot) override {
         throw AmiException("not implemented");
     }
     virtual void fJ(realtype t, realtype cj, AmiVector *x, AmiVector *dx, AmiVector *xdot, DlsMat J) override {
@@ -100,16 +110,58 @@ public:
                      AmiVector *v, AmiVector *nJv, realtype cj) override {
         throw AmiException("not implemented");
     }
+
+    virtual std::vector<std::string> getParameterNames() const override
+    {
+        return getVariableNames("p", np());
+    }
+    
+    virtual std::vector<std::string> getStateNames() const override
+    {
+        return getVariableNames("x", nx);
+    }
+    
+    virtual std::vector<std::string> getFixedParameterNames() const override
+    {
+        return getVariableNames("k", nk());
+    }
+    
+    virtual std::vector<std::string> getObservableNames() const override
+    {
+        return getVariableNames("y", ny);
+    }
+    
+    virtual std::vector<std::string> getParameterIds() const override
+    {
+        return getVariableNames("p", np());
+    }
+    
+    virtual std::vector<std::string> getStateIds() const override
+    {
+        return getVariableNames("x", nx);
+    }
+    
+    virtual std::vector<std::string> getFixedParameterIds() const override
+    {
+        return getVariableNames("k", nk());
+    }
+    
+    virtual std::vector<std::string> getObservableIds() const override
+    {
+        return getVariableNames("y", ny);
+    }
+
+
 };
 
 void simulateWithDefaultOptions();
 
-void simulateVerifyWrite(const std::string path);
+void simulateVerifyWrite(const std::string& path);
 
 void simulateVerifyWrite(std::string path, double atol, double rtol);
 
-void simulateVerifyWrite(const std::string hdffileOptions, const std::string hdffileResults,
-                         const std::string hdffilewrite, std::string path,
+void simulateVerifyWrite(const std::string& hdffileOptions, const std::string& hdffileResults,
+                         const std::string& hdffilewrite, const std::string& path,
                          double atol, double rtol);
 
 std::unique_ptr<ExpData> getTestExpData(const Model &model);

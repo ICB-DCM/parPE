@@ -42,7 +42,9 @@ model_steadystate_scaled_sigmay.cpp
 model_steadystate_scaled_sxdot.cpp 
 model_steadystate_scaled_w.cpp 
 model_steadystate_scaled_x0.cpp 
+model_steadystate_scaled_x0_fixedParameters.cpp 
 model_steadystate_scaled_sx0.cpp 
+model_steadystate_scaled_sx0_fixedParameters.cpp 
 model_steadystate_scaled_xBdot.cpp 
 model_steadystate_scaled_xdot.cpp 
 model_steadystate_scaled_y.cpp 

@@ -29,6 +29,35 @@ class ReturnData {
   public:
     ReturnData();
 
+    /**
+     * @brief ReturnData
+     * @param ts see amici::Model::ts
+     * @param np see amici::Model::np
+     * @param nk see amici::Model::nk
+     * @param nx see amici::Model::nx
+     * @param nxtrue see amici::Model::nxtrue
+     * @param ny see amici::Model::ny
+     * @param nytrue see amici::Model::nytrue
+     * @param nz see amici::Model::nz
+     * @param nztrue see amici::Model::nztrue
+     * @param ne see amici::Model::ne
+     * @param nJ see amici::Model::nJ
+     * @param nplist see amici::Model::nplist
+     * @param nmaxevent see amici::Model::nmaxevent
+     * @param nt see amici::Model::nt
+     * @param newton_maxsteps see amici::Solver::newton_maxsteps
+     * @param pscale see amici::Model::pscale
+     * @param o2mode see amici::Model::o2mode
+     * @param sensi see amici::Solver::sensi
+     * @param sensi_meth see amici::Solver::sensi_meth
+     */
+    ReturnData(
+            std::vector<realtype> ts,
+            int np, int nk, int nx, int nxtrue, int ny, int nytrue,
+            int nz, int nztrue, int ne, int nJ, int nplist, int nmaxevent,
+            int nt, int newton_maxsteps, std::vector<ParameterScaling> pscale,
+            SecondOrderMode o2mode, SensitivityOrder sensi, SensitivityMethod sensi_meth);
+
     ReturnData(Solver const& solver, const Model *model);
 
     ~ReturnData() = default;
@@ -45,7 +74,7 @@ class ReturnData {
     applyChainRuleFactorToSimulationResults(const Model *model);
 
     /** timepoints (dimension: nt) */
-    std::vector<realtype> ts;
+    const std::vector<realtype> ts;
 
     /** time derivative (dimension: nx) */
     std::vector<realtype> xdot;
@@ -101,12 +130,16 @@ class ReturnData {
      * nplist x ny, row-major) */
     std::vector<realtype> ssigmay;
     
-    /** observable (dimension: nt x ny, row-major) */
+    /** observable (dimension: nt*ny, row-major) */
     std::vector<realtype> res;
 
-    /** parameter derivative of residual (dimension: nt x ny x nplist,
+    /** parameter derivative of residual (dimension: nt*ny x nplist,
      * row-major) */
     std::vector<realtype> sres;
+    
+    /** fisher information matrix (dimension: nplist x nplist,
+     * row-major) */
+    std::vector<realtype> FIM;
 
     /** number of integration steps forward problem (dimension: nt) */
     std::vector<int> numsteps;
@@ -141,13 +174,24 @@ class ReturnData {
     int newton_status = 0;
 
     /** computation time of the Newton solver [s] */
-    double newton_time = 0.0;
+    double newton_cpu_time = 0.0;
 
     /** number of Newton steps for steady state problem (length = 2) */
     std::vector<int> newton_numsteps;
 
     /** number of linear steps by Newton step for steady state problem (length = newton_maxsteps * 2) */
     std::vector<int> newton_numlinsteps;
+    
+    /** time at which steadystate was reached in the simulation based approach */
+    realtype t_steadystate = NAN;
+    
+    /** weighted root-mean-square of the rhs when steadystate
+     was reached*/
+    realtype wrms_steadystate = NAN;
+    
+    /** weighted root-mean-square of the rhs when steadystate
+     was reached*/
+    realtype wrms_sensi_steadystate = NAN;
 
     /** preequilibration steady state found be Newton solver (dimension: nx) */
     std::vector<realtype> x0;
@@ -171,7 +215,6 @@ class ReturnData {
     /** status code */
     int status = 0;
 
-  public:
     /** total number of model parameters */
     const int np;
     /** number of fixed parameters */
@@ -202,13 +245,13 @@ class ReturnData {
     /** maximal number of newton iterations for steady state calculation */
     const int newton_maxsteps;
     /** scaling of parameterization (lin,log,log10) */
-    std::vector<AMICI_parameter_scaling> pscale;
+    std::vector<ParameterScaling> pscale;
     /** flag indicating whether second order sensitivities were requested */
-    const AMICI_o2mode o2mode;
+    const SecondOrderMode o2mode;
     /** sensitivity order */
-    const AMICI_sensi_order sensi;
+    const SensitivityOrder sensi;
     /** sensitivity method */
-    const AMICI_sensi_meth sensi_meth;
+    const SensitivityMethod sensi_meth;
 
     /**
      * @brief Serialize ReturnData (see boost::serialization::serialize)

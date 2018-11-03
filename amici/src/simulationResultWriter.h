@@ -31,6 +31,8 @@ public:
      * @param numSimulations
      */
 
+    void createDatasets(hsize_t ny, hsize_t nx, hsize_t nt, hsize_t numSimulations);
+
     void createDatasets(const amici::Model &model,
                         int numberOfSimulations = 1);
 

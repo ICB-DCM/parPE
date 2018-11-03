@@ -160,7 +160,7 @@ public:
         modelOutput.resize(dataIndices.size());
         auto parameterVector = std::vector<double>(parameters.begin(), parameters.end());
         AmiciSimulationRunner simRunner(parameterVector,
-                                         amici::AMICI_SENSI_ORDER_NONE,
+                                         amici::SensitivityOrder::none,
                                          dataIndices,
                                          [&](JobData *job, int dataIdx) { // jobFinished
             // deserialize
@@ -261,7 +261,7 @@ public:
         buffer = amici::serializeToStdVec(results);
     }
 
-    virtual amici::AMICI_parameter_scaling getParameterScaling(int parameterIndex) const
+    virtual amici::ParameterScaling getParameterScaling(int parameterIndex) const
     {
         // parameterIndex is optimization parameter index, not necessarily model parameter index!
         return dataProvider->getParameterScale(parameterIndex);
@@ -292,7 +292,7 @@ protected:// for testing
         double simulationTimeSec = 0.0;
 
         AmiciSimulationRunner simRunner(parameterVector,
-                                        objectiveFunctionGradient.size()?amici::AMICI_SENSI_ORDER_FIRST:amici::AMICI_SENSI_ORDER_NONE,
+                                        objectiveFunctionGradient.size() ? amici::SensitivityOrder::first : amici::SensitivityOrder::none,
                                         dataIndices,
                                         [&](JobData *job, int /*jobIdx*/) {
             errors += aggregateLikelihood(*job,
@@ -374,8 +374,8 @@ protected:// for testing
             solver->setSensitivityOrder(solverOriginal->getSensitivityOrder());
             solver->setSensitivityMethod(solverOriginal->getSensitivityMethod());
         } else {
-            solver->setSensitivityOrder(amici::AMICI_SENSI_ORDER_NONE);
-            solver->setSensitivityMethod(amici::AMICI_SENSI_NONE);
+            solver->setSensitivityOrder(amici::SensitivityOrder::none);
+            solver->setSensitivityMethod(amici::SensitivityMethod::none);
         }
     }
 

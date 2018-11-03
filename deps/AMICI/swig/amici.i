@@ -1,8 +1,47 @@
 %module amici
 
-typedef double realtype;
+%include <exception.i>
+%exception {
+    try {
+        $action
+    } catch(std::exception const& ex) {
+        SWIG_exception_fail(SWIG_RuntimeError, ex.what());
+    } catch(...) {
+        SWIG_exception_fail(SWIG_RuntimeError, "Unknown exception occured");
+    }
+}
+
+%{
+#define SWIG_FILE_WITH_INIT
+#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+#include <numpy/arrayobject.h>
+#include <vector>
+#include <stdexcept>
+%}
+%init %{
+import_array();
+%}
 
 %include <stl.i>
+
+// Expose vectors
+%template(DoubleVector) std::vector<double>;
+%template(IntVector) std::vector<int>;
+%template(BoolVector) std::vector<bool>;
+%template(StringVector) std::vector<std::string>;
+
+%{
+static_assert (sizeof(double) == sizeof (npy_double), "Numpy double size mismatch");
+static_assert (sizeof(int) == sizeof (npy_int), "Numpy integer size mismatch");
+
+#include "../swig/stdvec2numpy.h"
+using namespace amici;
+%}
+%include "stdvec2numpy.h"
+
+typedef double realtype;
+
+
 
 %include std_unique_ptr.i
 wrap_unique_ptr(SolverPtr, amici::Solver)
@@ -10,9 +49,12 @@ wrap_unique_ptr(ReturnDataPtr, amici::ReturnData)
 wrap_unique_ptr(ModelPtr, amici::Model)
 wrap_unique_ptr(ExpDataPtr, amici::ExpData)
 
+%naturalvar amici::ExpData::fixedParameters;
+%naturalvar amici::ExpData::fixedParametersPreequilibration;
+%naturalvar amici::ExpData::fixedParametersPresimulation;
+
 // Include before any other header which uses enums defined there
 %include "amici/defines.h"
-
 
 %include edata.i
 %include rdata.i
@@ -38,7 +80,4 @@ using namespace amici;
 %include "amici/amici.h"
 
 // Expose vectors
-%template(DoubleVector) std::vector<realtype>;
-%template(IntVector) std::vector<int>;
-%template(ParameterScalingVector) std::vector<amici::AMICI_parameter_scaling>;
-%template(StringVector) std::vector<std::string>;
+%template(ScalingVector) std::vector<amici::ParameterScaling>;

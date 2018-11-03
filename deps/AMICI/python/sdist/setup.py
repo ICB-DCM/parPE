@@ -15,75 +15,39 @@ Requires:
 from setuptools import find_packages, setup, Extension
 from setuptools.command.build_ext import build_ext
 from setuptools.command.sdist import sdist
+from setuptools.command.install_lib import install_lib
+from setuptools.command.develop import develop
+
 import os
 import sys
 import glob
 import sysconfig
-import pkgconfig
 import subprocess
 from shutil import copyfile
-
+import numpy as np # for include directory
 import setup_clibs  # Must run from within containing directory
-import shutil
+
+from amici import __version__
+
+from amici.setuptools import (
+    getBlasConfig,
+    getHdf5Config,
+    addCoverageFlagsIfRequired,
+    addDebugFlagsIfRequired,
+    generateSwigInterfaceFiles,
+)
 
 # Extra compiler flags
 cxx_flags = []
 amici_module_linker_flags = []
 define_macros = []
 
-# Find cblas
-blaspkgcfg = {'include_dirs': [],
-              'library_dirs': [],
-              'libraries': [],
-              'define_macros': []
-              }
-if 'BLAS_INCDIR' in os.environ:
-    blaspkgcfg['include_dirs'].extend(os.environ['BLAS_INCDIR'].split(' '))
+blaspkgcfg = getBlasConfig()
+amici_module_linker_flags.extend('-l%s' % l for l in blaspkgcfg['libraries'])
 
-if 'BLAS_LIB' in os.environ:
-    amici_module_linker_flags.extend(os.environ['BLAS_LIB'].split(' '))
-else:
-    amici_module_linker_flags.append('-lcblas')
+h5pkgcfg = getHdf5Config()
 
-# Find HDF5 include dir and libs
-h5pkgcfg = pkgconfig.parse('hdf5')
-# NOTE: Cannot use pkgconfig.exists('hdf5f'), since this is true although
-# no libraries or include dirs are available
-hdf5found = 'include_dirs' in h5pkgcfg and h5pkgcfg['include_dirs']
-if not hdf5found:
-    h5pkgcfg = {'include_dirs': [],
-                'library_dirs': [],
-                'libraries': [],
-                'define_macros': []
-                }
-    # try for hdf5 in standard locations
-    hdf5_include_dir_hints = ['/usr/include/hdf5/serial', 
-                              '/usr/local/include', 
-                              '/usr/include', # travis ubuntu xenial
-                              '/usr/local/Cellar/hdf5/1.10.2_1/include'] # travis macOS
-    hdf5_library_dir_hints = ['/usr/lib/x86_64-linux-gnu/', # travis ubuntu xenial
-                              '/usr/lib/x86_64-linux-gnu/hdf5/serial', 
-                              '/usr/local/lib', 
-                              '/usr/local/Cellar/hdf5/1.10.2_1/lib'] # travis macOS
-
-    for hdf5_include_dir_hint in hdf5_include_dir_hints:
-        hdf5_include_dir_found = os.path.isfile(
-            os.path.join(hdf5_include_dir_hint, 'hdf5.h'))
-        if hdf5_include_dir_found:
-            print('hdf5.h found in %s' % hdf5_include_dir_hint)
-            h5pkgcfg['include_dirs'] = [hdf5_include_dir_hint]
-            break
-    
-    for hdf5_library_dir_hint in hdf5_library_dir_hints:
-        hdf5_library_dir_found = os.path.isfile(
-            os.path.join(hdf5_library_dir_hint, 'libhdf5.a'))
-        if hdf5_library_dir_found:
-            print('libhdf5.a found in %s' % hdf5_library_dir_hint)
-            h5pkgcfg['library_dirs'] = [hdf5_library_dir_hint]
-            break
-    hdf5found = hdf5_include_dir_found and hdf5_library_dir_found
-
-if hdf5found:
+if h5pkgcfg['found']:
     # Manually add linker flags. The libraries passed to Extension will
     # end up in front of the clibs in the linker line and not after, where
     # they are required.
@@ -99,10 +63,15 @@ else:
         'amici/amici_wrap_without_hdf5.cxx',  # swig interface
     ]
 
-# Enable coverage?
-if 'ENABLE_GCOV_COVERAGE' in os.environ and os.environ['ENABLE_GCOV_COVERAGE'] == 'TRUE':
-    cxx_flags.extend(['-g', '-O0',  '--coverage'])
-    amici_module_linker_flags.append('--coverage')
+addCoverageFlagsIfRequired(
+    cxx_flags,
+    amici_module_linker_flags,
+)
+
+addDebugFlagsIfRequired(
+    cxx_flags,
+    amici_module_linker_flags,
+)
 
 libamici = setup_clibs.getLibAmici(
     h5pkgcfg=h5pkgcfg, blaspkgcfg=blaspkgcfg, extra_compiler_flags=cxx_flags)
@@ -111,12 +80,14 @@ libsuitesparse = setup_clibs.getLibSuiteSparse(extra_compiler_flags=cxx_flags)
 
 # Build shared object
 amici_module = Extension(
-    name='amici/_amici',
+    name='amici._amici',
     sources=extension_sources,
     include_dirs=['amici/include',
                   *libsundials[1]['include_dirs'],
                   *libsuitesparse[1]['include_dirs'],
-                  *h5pkgcfg['include_dirs']
+                  *h5pkgcfg['include_dirs'],
+                  *blaspkgcfg['include_dirs'],
+                  np.get_include()
                   ],
     # Cannot use here, see above
     # libraries=[
@@ -125,11 +96,42 @@ amici_module = Extension(
     define_macros=define_macros,
     library_dirs=[
         *h5pkgcfg['library_dirs'],
-        'amici/libs/',  # clib target directory
+        *blaspkgcfg['library_dirs'],
+        'amici/libs',  # clib target directory
     ],
     extra_compile_args=['-std=c++11', *cxx_flags],
     extra_link_args=amici_module_linker_flags
 )
+
+
+class my_develop(develop):
+    """Custom develop to build clibs"""
+    def run(self):
+
+        generateSwigInterfaceFiles()
+
+        self.run_command('build')
+        develop.run(self)
+
+
+class my_install_lib(install_lib):
+    """Custom install to allow preserving of debug symbols"""
+    def run(self):
+        """strip debug symbols
+
+        Returns:
+
+        """
+        if 'ENABLE_AMICI_DEBUGGING' in os.environ and os.environ['ENABLE_AMICI_DEBUGGING'] == 'TRUE' and sys.platform == 'darwin':
+            search_dir = os.path.join(os.getcwd(),self.build_dir,'amici')
+            for file in os.listdir(search_dir):
+                if file.endswith('.so'):
+                    subprocess.run(['dsymutil',os.path.join(search_dir,file),
+                                    '-o',os.path.join(search_dir,file + '.dSYM')])
+
+
+        # Continue with the actual installation
+        install_lib.run(self)
 
 
 class my_build_ext(build_ext):
@@ -143,6 +145,8 @@ class my_build_ext(build_ext):
         """
 
         if not self.dry_run:  # --dry-run
+            libraries = []
+            build_clib = ''
             if self.distribution.has_c_libraries():
                 # get the previously built static libraries
                 build_clib = self.get_finalized_command('build_clib')
@@ -151,15 +155,22 @@ class my_build_ext(build_ext):
 
             # Module build directory where we want to copy the generated libs
             # to
-            target_dir = os.path.join(self.build_lib, 'amici/libs')
+            if self.inplace == 0:
+                build_dir = self.build_lib
+            else:
+                build_dir = os.getcwd()
+
+            target_dir = os.path.join(build_dir, 'amici', 'libs')
             self.mkpath(target_dir)
 
             # Copy the generated libs
             for lib in libraries:
-                libfilenames = glob.glob('%s%s*%s.*' %
-                                         (build_clib.build_clib, os.sep, lib))
+                libfilenames = glob.glob(
+                    '%s%s*%s.*' % (build_clib.build_clib, os.sep, lib)
+                )
                 assert len(
                     libfilenames) == 1, "Found unexpected number of files: " % libfilenames
+
                 copyfile(libfilenames[0],
                          os.path.join(target_dir, os.path.basename(libfilenames[0])))
 
@@ -193,37 +204,8 @@ class my_sdist(sdist):
 
         if not self.dry_run:  # --dry-run
             # We create two SWIG interfaces, one with HDF5 support, one without
-            swig_outdir = '%s/amici' % os.path.abspath(os.getcwd())
-            swig_cmd = self.findSwig()
-            sp = subprocess.run([swig_cmd,
-                                 '-c++',
-                                 '-python',
-                                 '-Iamici/swig', '-Iamici/include',
-                                 '-DAMICI_SWIG_WITHOUT_HDF5',
-                                 '-outdir', swig_outdir,
-                                 '-o', 'amici/amici_wrap_without_hdf5.cxx',
-                                 'amici/swig/amici.i'])
-            assert(sp.returncode == 0)
-            shutil.move(os.path.join(swig_outdir, 'amici.py'),
-                        os.path.join(swig_outdir, 'amici_without_hdf5.py'))
-            sp = subprocess.run([swig_cmd,
-                                 '-c++',
-                                 '-python',
-                                 '-Iamici/swig', '-Iamici/include',
-                                 '-outdir', swig_outdir,
-                                 '-o', 'amici/amici_wrap.cxx',
-                                 'amici/swig/amici.i'])
-            assert(sp.returncode == 0)
+            generateSwigInterfaceFiles()
 
-    def findSwig(self):
-        """Get name of SWIG executable
-
-        We need version 3.0.
-        Probably we should try some default paths and names, but this should do the trick for now. 
-        Debian/Ubuntu systems have swig3.0 ('swig' is older versions), OSX has swig 3.0 as 'swig'."""
-        if sys.platform != 'linux':
-            return 'swig'
-        return 'swig3.0'
 
     def saveGitVersion(self):
         """Create file with extended version string
@@ -234,11 +216,11 @@ class my_sdist(sdist):
         Returns:
 
         """
-        f = open("amici/version.txt", "w")
-        sp = subprocess.run(['git', 'describe',
-                             '--abbrev=4', '--dirty=-dirty',
-                             '--always', '--tags'],
-                            stdout=f)
+        with open("amici/git_version.txt", "w") as f:
+            sp = subprocess.run(['git', 'describe',
+                                 '--abbrev=4', '--dirty=-dirty',
+                                 '--always', '--tags'],
+                                 stdout=f)
         assert(sp.returncode == 0)
 
 
@@ -246,11 +228,6 @@ class my_sdist(sdist):
 # (https://pypi.org/project/amici/)
 with open("README.md", "r") as fh:
     long_description = fh.read()
-
-
-def getPackageVersion():
-    return '0.7.1a3'
-
 
 # Remove the "-Wstrict-prototypes" compiler option, which isn't valid for
 # C++ to fix warnings.
@@ -266,15 +243,17 @@ def main():
         name='amici',
         cmdclass={
             'sdist': my_sdist,
-            'build_ext': my_build_ext
+            'build_ext': my_build_ext,
+            'install_lib': my_install_lib,
+            'develop': my_develop,
         },
-        version=getPackageVersion(),
+        version=__version__,
         description='Advanced multi-language Interface to CVODES and IDAS (%s)',
         long_description=long_description,
         long_description_content_type="text/markdown",
         url='https://github.com/ICB-DCM/AMICI',
         author='Fabian Froehlich, Jan Hasenauer, Daniel Weindl and Paul Stapor',
-        author_email='fabian.froehlich@helmholtz-muenchen.de',
+        author_email='fabian_froehlich@hms.harvard.edu',
         license='BSD',
         libraries=[libamici, libsundials, libsuitesparse],
         ext_modules=[amici_module],
@@ -283,7 +262,7 @@ def main():
                     ],
         packages=find_packages(),
         package_dir={'amici': 'amici'},
-        install_requires=['symengine', 'python-libsbml', 'h5py', 'pkgconfig'],
+        install_requires=['symengine', 'python-libsbml', 'h5py', 'pandas'],
         python_requires='>=3',
         package_data={
             'amici': ['amici/include/amici/*',
@@ -312,7 +291,6 @@ def main():
             'Topic :: Scientific/Engineering :: Bio-Informatics',
         ],
     )
-
 
 if __name__ == '__main__':
     main()

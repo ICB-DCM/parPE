@@ -108,8 +108,8 @@ public:
         return parpe::functionEvaluationSuccess;
     }
 
-    amici::AMICI_parameter_scaling getParameterScaling(int parameterIndex) const override {
-        return amici::AMICI_SCALING_LOG10;
+    amici::ParameterScaling getParameterScaling(int parameterIndex) const override {
+        return amici::ParameterScaling::log10;
     }
 
     parpe::FunctionEvaluationStatus evaluate(
@@ -204,7 +204,7 @@ TEST(hierarchicalOptimization, hierarchicalOptimization) {
     auto s = parpe::getScaledParameter(parpe::computeAnalyticalScalings(0,
                                                                         outputs, fun->measurements,
                                                                         *scalingReader, fun->numObservables, fun->numTimepoints),
-                                       amici::AMICI_SCALING_LOG10);
+                                       amici::ParameterScaling::log10);
     CHECK_EQUAL(log10(2.0), s);
 
     applyOptimalScaling(0, 2.0, outputs, *scalingReader, fun->numObservables, fun->numTimepoints);
@@ -285,7 +285,7 @@ TEST(hierarchicalOptimization, testComputeAnalyticalScalings) {
     auto scaling = parpe::getScaledParameter(parpe::computeAnalyticalScalings(scalingIdx,
                                                     modelOutputsUnscaled, measurements,
                                                     scalingProvider, numObservables, numTimepoints),
-                                             amici::AMICI_SCALING_NONE);
+                                             amici::ParameterScaling::none);
     CHECK_EQUAL(10.0, scaling);
 
     // TEST LOG10
@@ -297,7 +297,7 @@ TEST(hierarchicalOptimization, testComputeAnalyticalScalings) {
     scaling = parpe::getScaledParameter(parpe::computeAnalyticalScalings(scalingIdx,
                                                modelOutputsUnscaled, measurements,
                                                scalingProvider, numObservables, numTimepoints),
-                                        amici::AMICI_SCALING_LOG10);
+                                        amici::ParameterScaling::log10);
     CHECK_EQUAL(1.0, scaling);
 
     // TEST LOG10 NAN
@@ -311,7 +311,7 @@ TEST(hierarchicalOptimization, testComputeAnalyticalScalings) {
     scaling = parpe::getScaledParameter(parpe::computeAnalyticalScalings(scalingIdx,
                                                modelOutputsUnscaled, measurements,
                                                scalingProvider, numObservables, numTimepoints),
-                                        amici::AMICI_SCALING_LOG10);
+                                        amici::ParameterScaling::log10);
     CHECK_EQUAL(1.0, scaling);
 
 }
@@ -344,7 +344,7 @@ TEST(hierarchicalOptimization, testComputeAnalyticalOffsets) {
     auto offset = parpe::getScaledParameter(parpe::computeAnalyticalOffsets(scalingIdx,
                                                   modelOutputsUnscaled, measurements,
                                                   scalingProvider, numObservables, numTimepoints),
-                                            amici::AMICI_SCALING_NONE);
+                                            amici::ParameterScaling::none);
     CHECK_EQUAL(10.0, offset);
 
     // TEST LOG10
@@ -356,7 +356,7 @@ TEST(hierarchicalOptimization, testComputeAnalyticalOffsets) {
     offset = parpe::getScaledParameter(parpe::computeAnalyticalOffsets(scalingIdx,
                                              modelOutputsUnscaled, measurements,
                                              scalingProvider, numObservables, numTimepoints),
-                                       amici::AMICI_SCALING_LOG10);
+                                       amici::ParameterScaling::log10);
     CHECK_EQUAL(1.0, offset);
 }
 
@@ -416,14 +416,14 @@ TEST(hierarchicalOptimization, applyOptimalOffset) {
 
 
 TEST(hierarchicalOptimization, testScaling) {
-    CHECK_EQUAL(42.0, parpe::getUnscaledParameter(42.0, amici::AMICI_SCALING_NONE));
-    CHECK_EQUAL(42.0, parpe::getScaledParameter(42.0, amici::AMICI_SCALING_NONE));
+    CHECK_EQUAL(42.0, amici::getUnscaledParameter(42.0, amici::ParameterScaling::none));
+    CHECK_EQUAL(42.0, parpe::getScaledParameter(42.0, amici::ParameterScaling::none));
 
-    CHECK_EQUAL(2.0, parpe::getScaledParameter(100.0, amici::AMICI_SCALING_LOG10));
-    CHECK_EQUAL(100.0, parpe::getUnscaledParameter(2.0, amici::AMICI_SCALING_LOG10));
+    CHECK_EQUAL(2.0, parpe::getScaledParameter(100.0, amici::ParameterScaling::log10));
+    CHECK_EQUAL(100.0, amici::getUnscaledParameter(2.0, amici::ParameterScaling::log10));
 
-    CHECK_THROWS(parpe::ParPEException, parpe::getUnscaledParameter(42.0, amici::AMICI_SCALING_LN));
-    CHECK_THROWS(parpe::ParPEException, parpe::getScaledParameter(42.0, amici::AMICI_SCALING_LN));
+    CHECK_THROWS(parpe::ParPEException, amici::getUnscaledParameter(42.0, amici::ParameterScaling::ln));
+    CHECK_THROWS(parpe::ParPEException, parpe::getScaledParameter(42.0, amici::ParameterScaling::ln));
 
 }
 

@@ -12,7 +12,7 @@
 namespace parpe {
 
 AmiciSimulationRunner::AmiciSimulationRunner(std::vector<double> const& optimizationParameters,
-        amici::AMICI_sensi_order sensitivityOrder,
+        amici::SensitivityOrder sensitivityOrder,
         std::vector<int> const& conditionIndices,
         AmiciSimulationRunner::callbackJobFinishedType callbackJobFinished,
         AmiciSimulationRunner::callbackAllFinishedType aggregate, const std::string &logPrefix)
@@ -116,7 +116,7 @@ void AmiciSimulationRunner::queueSimulation(LoadBalancerMaster *loadBalancer,
                                              JobData *d, int *jobDone,
                                              pthread_cond_t *jobDoneChangedCondition, pthread_mutex_t *jobDoneChangedMutex, int jobIdx,
                                              std::vector<double> const& optimizationParameters,
-                                             amici::AMICI_sensi_order sensitivityOrder,
+                                             amici::SensitivityOrder sensitivityOrder,
                                              std::vector<int> const& conditionIndices)
 {
     // TODO avoid copy optimizationParameters; reuse;; for const& in work package need to split into(de)serialize
