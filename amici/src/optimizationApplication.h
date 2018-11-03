@@ -102,7 +102,7 @@ private:
      */
     int init(int argc, char **argv);
 
-    void runMultiStarts(LoadBalancerMaster* lbm);
+    void runMultiStarts();
 
 protected:
     // command line option parsing

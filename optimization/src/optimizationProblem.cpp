@@ -103,9 +103,9 @@ void optimizationProblemGradientCheck(OptimizationProblem *problem,
         thetaTmp[curInd] = theta[curInd] - epsilon;
         problem->costFun->evaluate(gsl::span<double>(thetaTmp), fb, gsl::span<double>());
 
-        double fd_f = (ff - fc) / epsilon;
+        // double fd_f = (ff - fc) / epsilon;
 
-        double fd_b = (fc - fb) / epsilon;
+        // double fd_b = (fc - fb) / epsilon;
 
         double fd_c = (ff - fb) / (2 * epsilon);
 

@@ -59,13 +59,14 @@ int OptimizationApplication::init(int argc, char **argv) {
     logmessage(LOGLVL_DEBUG, "Seeding RNG with %u", seed);
     srand(seed); // TODO to CLI
 
+    // redirect AMICI output to parPE logging
     amici::errMsgIdAndTxt = printAmiciErrMsgIdAndTxt;
     amici::warnMsgIdAndTxt = printAmiciWarnMsgIdAndTxt;
 
     return status;
 }
 
-void OptimizationApplication::runMultiStarts(LoadBalancerMaster *lbm)
+void OptimizationApplication::runMultiStarts()
 {
     // TODO: use uniqe_ptr, not ref
     MultiStartOptimization optimizer(*multiStartOptimizationProblem, false);
@@ -158,9 +159,9 @@ void OptimizationApplication::initMPI(int *argc, char ***argv) {
 }
 
 int OptimizationApplication::run(int argc, char **argv) {
+    // start Timers
     WallTimer wallTimer;
     CpuTimer cpuTimer;
-
 
     int status = init(argc, argv);
     if(status)
@@ -213,7 +214,7 @@ void OptimizationApplication::runMaster() {
     }
     case OP_TYPE_PARAMETER_ESTIMATION:
     default:
-        runMultiStarts(&loadBalancer);
+        runMultiStarts();
     }
 }
 
@@ -249,7 +250,7 @@ void OptimizationApplication::runSingleMpiProcess() {
     case OP_TYPE_PARAMETER_ESTIMATION:
     default:
         if (problem->getOptimizationOptions().numStarts > 0) {
-            runMultiStarts(nullptr);
+            runMultiStarts();
         } else {
             getLocalOptimum(problem.get());
         }
