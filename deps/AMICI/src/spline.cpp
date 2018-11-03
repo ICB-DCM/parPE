@@ -197,7 +197,7 @@ double seval(int n, double u, double x[], double y[], double b[], double c[],
 
 { /* begin function seval() */
 
-    int i, j, k;
+    int i, j;
     double w;
 
     if (u <= x[0]) {
@@ -209,7 +209,7 @@ double seval(int n, double u, double x[], double y[], double b[], double c[],
             i = 0;
             j = n;
             do {
-                k = (i + j) / 2; /* split the domain to search */
+                int k = (i + j) / 2; /* split the domain to search */
                 if (u < x[k])
                     j = k; /* move the upper bound */
                 if (u >= x[k])
@@ -256,7 +256,7 @@ double seval(int n, double u, double x[], double y[], double b[], double c[],
 double sinteg(int n, double u, double x[], double y[], double b[], double c[],
               double d[]) { /* begin function sinteg() */
 
-    int i, j, k;
+    int i, j;
     double sum, dx;
 
     i = 0;
@@ -264,7 +264,7 @@ double sinteg(int n, double u, double x[], double y[], double b[], double c[],
     if ((x[i] > u) || (x[i + 1] < u)) { /* ---- perform a binary search ---- */
         j = n;
         do {
-            k = (i + j) / 2; /* split the domain to search */
+            int k = (i + j) / 2; /* split the domain to search */
             if (u < x[k])
                 j = k; /* move the upper bound */
             if (u >= x[k])

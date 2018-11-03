@@ -13,12 +13,16 @@ classdef amioption < matlab.mixin.CustomDisplay
         rtol = 1e-8;
         % maximum number of integration steps
         maxsteps = 1e4;
-        % absolute integration tolerace
+        % absolute quadrature tolerace
         quad_atol = 1e-12;
-        % relative integration tolerace
+        % relative quadrature tolerace
         quad_rtol = 1e-8;
         % maximum number of integration steps
         maxstepsB = 0;
+        % absolute steady state tolerace
+        ss_atol = 1e-16;
+        % relative steady state tolerace
+        ss_rtol = 1e-8;
         % index of parameters for which the sensitivities are computed
         sens_ind = double.empty();
         % starting time of the simulation
@@ -58,10 +62,11 @@ classdef amioption < matlab.mixin.CustomDisplay
         % mapping of event ouputs to events
         z2event = double.empty();
         % parameter scaling
+        % Single value or vector matching sens_ind.
         % Valid options are "log","log10" and "lin" for log, log10 or
-        % unscaled parameters p
-        % use "" for default as specified in the model (fallback: 'lin')
-        pscale = '';
+        % unscaled parameters p.
+        % Use [] for default as specified in the model (fallback: 'lin').
+        pscale = [];
     end
     
     methods
@@ -215,20 +220,12 @@ classdef amioption < matlab.mixin.CustomDisplay
         function this = set.pscale(this,value)
             if(~isempty(value))
                 if(isnumeric(value))
-                    assert(value == 0 || value == 1 || value == 2, ...
-                        'No valid parametrisation chosen! Valid integer options are 0 (lin), 1 (log), 2 (log10).');
+                    arrayfun(@(x) assert(x == 0 || x == 1 || x == 2, ...
+                        'No valid parametrisation chosen! Valid integer options are 0 (lin), 1 (log), 2 (log10).'), value);
+                elseif(ischar(value))
+                    value = getIntegerPScale(value);
                 else
-                    switch (value)
-                        case 'lin'
-                            value = 0;
-                        case 'log'
-                            value = 1;
-                        case 'log10'
-                            value = 2;
-                        otherwise
-                            assert(0, ...
-                                'No valid parametrisation chosen! Valid string options are "log", "log10" and "lin".')
-                    end          
+                    value = arrayfun(@(x) getIntegerPScale(x), value);
                 end
             end
             this.pscale = value;
@@ -256,5 +253,19 @@ classdef amioption < matlab.mixin.CustomDisplay
             end
             this.newton_preeq = value;
         end
+    end
+end
+
+function pscaleInt = getIntegerPScale(pscaleString)
+    switch (pscaleString)
+        case 'lin'
+            pscaleInt = 0;
+        case 'log'
+            pscaleInt = 1;
+        case 'log10'
+            pscaleInt = 2;
+        otherwise
+            assert(0, ...
+                'No valid parametrisation chosen! Valid string options are "log", "log10" and "lin".')
     end
 end

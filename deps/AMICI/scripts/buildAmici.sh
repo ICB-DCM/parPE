@@ -4,8 +4,8 @@
 #
 set -e
 
-AMICI_PATH="`dirname \"$BASH_SOURCE\"`"
-AMICI_PATH="`( cd \"$AMICI_PATH/..\" && pwd )`"
+SCRIPT_PATH=$(dirname $BASH_SOURCE)
+AMICI_PATH=$(cd $SCRIPT_PATH/.. && pwd)
 
 mkdir -p ${AMICI_PATH}/build
 cd ${AMICI_PATH}/build
@@ -21,5 +21,5 @@ make python-sdist
 set -x
 python3 -m venv ${AMICI_PATH}/build/venv --clear
 source ${AMICI_PATH}/build/venv/bin/activate
-pip3 install --upgrade pip setuptools pkgconfig wheel
-pip3 install --verbose `ls -t ${AMICI_PATH}/build/python/amici-*.tar.gz | head -1`
+pip3 install --upgrade pip setuptools pkgconfig wheel numpy scipy matplotlib
+pip3 install $(ls -t ${AMICI_PATH}/build/python/amici-*.tar.gz | head -1)

@@ -49,13 +49,13 @@ enum mexRhsArguments {
  * @return cblastrans CBlas readable CHAR indicating transposition and complex
  * conjugation
  */
-char amici_blasCBlasTransToBlasTrans(AMICI_BLAS_TRANSPOSE trans) {
+char amici_blasCBlasTransToBlasTrans(BLASTranspose trans) {
     switch (trans) {
-    case AMICI_BLAS_NoTrans:
+    case BLASTranspose::noTrans:
         return 'N';
-    case AMICI_BLAS_Trans:
+    case BLASTranspose::trans:
         return 'T';
-    case AMICI_BLAS_ConjTrans:
+    case BLASTranspose::conjTrans:
         return 'C';
     }
 }
@@ -79,16 +79,16 @@ char amici_blasCBlasTransToBlasTrans(AMICI_BLAS_TRANSPOSE trans) {
  * @param B         matrix B
  * @param ldb       leading dimension of B (k or n)
  * @param beta      coefficient beta
- * @param[in,out] C     matrix C
+ * @param C         matrix C
  * @param ldc       leading dimension of C (m or n)
  * @return void
  */
-void amici_dgemm(AMICI_BLAS_LAYOUT layout, AMICI_BLAS_TRANSPOSE TransA,
-                 AMICI_BLAS_TRANSPOSE TransB, const int M, const int N,
+void amici_dgemm(BLASLayout layout, BLASTranspose TransA,
+                 BLASTranspose TransB, const int M, const int N,
                  const int K, const double alpha, const double *A,
                  const int lda, const double *B, const int ldb,
                  const double beta, double *C, const int ldc) {
-    //assert(layout == AMICI_BLAS_RowMajor);
+    assert(layout == BLASLayout::rowMajor);
 
     const ptrdiff_t M_ = M;
     const ptrdiff_t N_ = N;
@@ -99,13 +99,9 @@ void amici_dgemm(AMICI_BLAS_LAYOUT layout, AMICI_BLAS_TRANSPOSE TransA,
     const char transA = amici_blasCBlasTransToBlasTrans(TransA);
     const char transB = amici_blasCBlasTransToBlasTrans(TransB);
 
-#if defined(_WIN32)
-    dgemm(&transA, &transB, &M_, &N_, &K_, &alpha, A, &lda_, B, &ldb_, &beta, C,
-          &ldc_);
-#else
-    dgemm_(&transA, &transB, &M_, &N_, &K_, &alpha, A, &lda_, B, &ldb_, &beta,
-           C, &ldc_);
-#endif
+    FORTRAN_WRAPPER(dgemm)(&transA, &transB,
+                           &M_, &N_, &K_,
+                           &alpha, A, &lda_, B, &ldb_, &beta, C, &ldc_);
 }
 
 /*!
@@ -124,15 +120,15 @@ void amici_dgemm(AMICI_BLAS_LAYOUT layout, AMICI_BLAS_TRANSPOSE TransA,
  * @param X         vector X
  * @param incX      increment for entries of X
  * @param beta      coefficient beta
- * @param[in,out] Y     vector Y
+ * @param Y         vector Y
  * @param incY      increment for entries of Y
  * @return void
  */
-void amici_dgemv(AMICI_BLAS_LAYOUT layout, AMICI_BLAS_TRANSPOSE TransA,
+void amici_dgemv(BLASLayout layout, BLASTranspose TransA,
                  const int M, const int N, const double alpha, const double *A,
                  const int lda, const double *X, const int incX,
                  const double beta, double *Y, const int incY) {
-    assert(layout == AMICI_BLAS_RowMajor);
+    assert(layout == BLASLayout::rowMajor);
 
     const ptrdiff_t M_ = M;
     const ptrdiff_t N_ = N;
@@ -141,11 +137,34 @@ void amici_dgemv(AMICI_BLAS_LAYOUT layout, AMICI_BLAS_TRANSPOSE TransA,
     const ptrdiff_t incY_ = incY;
     const char transA = amici_blasCBlasTransToBlasTrans(TransA);
 
-#if defined(_WIN32)
-    dgemv(&transA, &M_, &N_, &alpha, A, &lda_, X, &incX_, &beta, Y, &incY_);
-#else
-    dgemv_(&transA, &M_, &N_, &alpha, A, &lda_, X, &incX_, &beta, Y, &incY_);
-#endif
+    FORTRAN_WRAPPER(dgemv)(&transA, &M_, &N_, &alpha, A, &lda_, X, &incX_, &beta, Y, &incY_);
+}
+
+/**
+ * @brief Compute y = a*x + y
+ * @param n number of elements in y
+ * @param alpha scalar coefficient of x
+ * @param x vector of length n*incx
+ * @param incx x stride
+ * @param y vector of length n*incy
+ * @param incy y stride
+ */
+void amici_daxpy(int n, double alpha, const double *x, const int incx, double *y, int incy) {
+
+    const ptrdiff_t n_ = n;
+    const ptrdiff_t incx_ = incx;
+    const ptrdiff_t incy_ = incy;
+
+    FORTRAN_WRAPPER(daxpy)(&n_, &alpha, x, &incx_, y, &incy_);
+}
+
+/** conversion from mxArray to vector<realtype>
+  * @param array Matlab array to create vector from
+  * @param length Number of elements in array
+  * @return std::vector with data from array
+  */
+std::vector<realtype> mxArrayToVector(const mxArray *array, int length) {
+    return {mxGetPr(array), mxGetPr(array) + length};
 }
 
 /*!
@@ -157,32 +176,22 @@ void amici_dgemv(AMICI_BLAS_LAYOUT layout, AMICI_BLAS_TRANSPOSE TransA,
  * dimension checks
  * @return edata pointer to experimental data object
  */
-ExpData *expDataFromMatlabCall(const mxArray *prhs[],
+std::unique_ptr<ExpData> expDataFromMatlabCall(const mxArray *prhs[],
                                Model const &model) {
     if (!mxGetPr(prhs[RHS_DATA]))
         return nullptr;
 
-    int nt_my = 0, ny_my = 0, nt_sigmay = 0,
-        ny_sigmay = 0; /* integers with problem dimensionality */
-    int ne_mz = 0, nz_mz = 0, ne_sigmaz = 0,
-        nz_sigmaz = 0; /* integers with problem dimensionality */
-    ExpData *edata = new ExpData(model);
-    if (edata->my.empty() && edata->mz.empty()) {
-        // if my and mz are both empty, no (or empty) data was provided
-        // in that case we simply return a nullptr for easier checking.
-        delete(edata);
-        return nullptr;
-    }
-    
+    auto edata = std::unique_ptr<ExpData>(new ExpData(model));
+
     // Y
     if (mxArray *dataY = mxGetProperty(prhs[RHS_DATA], 0, "Y")) {
-        ny_my = (int)mxGetN(dataY);
+        auto ny_my = static_cast<int>(mxGetN(dataY));
         if (ny_my != model.nytrue) {
             throw AmiException("Number of observables in data matrix (%i) does "
                                "not match model ny (%i)",
                                ny_my, model.nytrue);
         }
-        nt_my = (int)mxGetM(dataY);
+        auto nt_my = static_cast<int>(mxGetM(dataY));
         if (nt_my != model.nt()) {
             throw AmiException("Number of time-points in data matrix does (%i) "
                                "not match provided time vector (%i)",
@@ -190,7 +199,8 @@ ExpData *expDataFromMatlabCall(const mxArray *prhs[],
         }
         mxArray *dataYT;
         mexCallMATLAB(1, &dataYT, 1, &dataY, "transpose");
-        edata->setObservedData(mxGetPr(dataYT));
+        auto observedData = mxArrayToVector(dataYT, ny_my * nt_my);
+        edata->setObservedData(observedData);
         
     } else {
         throw AmiException("Field Y not specified as field in data struct!");
@@ -198,13 +208,13 @@ ExpData *expDataFromMatlabCall(const mxArray *prhs[],
     
     // Sigma Y
     if (mxArray *dataSigmaY = mxGetProperty(prhs[RHS_DATA], 0, "Sigma_Y")) {
-        ny_sigmay = (int)mxGetN(dataSigmaY);
+        auto ny_sigmay = static_cast<int>(mxGetN(dataSigmaY));
         if (ny_sigmay != model.nytrue) {
             throw AmiException("Number of observables in data-sigma matrix (%i) "
                                "does not match model ny (%i)",
                                ny_sigmay, model.nytrue);
         }
-        nt_sigmay = (int)mxGetM(dataSigmaY);
+        auto nt_sigmay = static_cast<int>(mxGetM(dataSigmaY));
         if (nt_sigmay != model.nt()) {
             throw AmiException("Number of time-points in data-sigma matrix (%i) "
                                "does not match provided time vector (%i)",
@@ -213,20 +223,21 @@ ExpData *expDataFromMatlabCall(const mxArray *prhs[],
         
         mxArray *dataSigmaYT;
         mexCallMATLAB(1, &dataSigmaYT, 1, &dataSigmaY, "transpose");
-        edata->setObservedDataStdDev(mxGetPr(dataSigmaYT));
+        auto observedDataSigma = mxArrayToVector(dataSigmaYT, ny_sigmay * nt_sigmay);
+        edata->setObservedDataStdDev(observedDataSigma);
     } else {
         throw AmiException("Field Sigma_Y not specified as field in data struct!");
     }
     
     // Z
     if (mxArray *dataZ = mxGetProperty(prhs[RHS_DATA], 0, "Z")) {
-        nz_mz = (int)mxGetN(dataZ);
+        auto nz_mz = static_cast<int>(mxGetN(dataZ));
         if (nz_mz != model.nztrue) {
             throw AmiException("Number of events in event matrix (%i) does not "
                                "match provided nz (%i)",
                                nz_mz, model.nztrue);
         }
-        ne_mz = (int)mxGetM(dataZ);
+        auto ne_mz = static_cast<int>(mxGetM(dataZ));
         if (ne_mz != model.nMaxEvent()) {
             throw AmiException("Number of time-points in event matrix (%i) does "
                                "not match provided nmaxevent (%i)",
@@ -234,20 +245,21 @@ ExpData *expDataFromMatlabCall(const mxArray *prhs[],
         }
         mxArray *dataZT;
         mexCallMATLAB(1, &dataZT, 1, &dataZ, "transpose");
-        edata->setObservedEvents(mxGetPr(dataZT));
+        auto observedEvents = mxArrayToVector(dataZT, nz_mz * ne_mz);
+        edata->setObservedEvents(observedEvents);
     } else {
         throw AmiException("Field Z not specified as field in data struct!");
     }
     
     // Sigma Z
     if (mxArray *dataSigmaZ = mxGetProperty(prhs[RHS_DATA], 0, "Sigma_Z")) {
-        nz_sigmaz = (int)mxGetN(dataSigmaZ);
+        auto nz_sigmaz = static_cast<int>(mxGetN(dataSigmaZ));
         if (nz_sigmaz != model.nztrue) {
             throw AmiException("Number of events in event-sigma matrix (%i) does "
                                "not match provided nz (%i)",
                                nz_sigmaz, model.nztrue);
         }
-        ne_sigmaz = (int)mxGetM(dataSigmaZ);
+        auto ne_sigmaz = static_cast<int>(mxGetM(dataSigmaZ));
         if (ne_sigmaz != model.nMaxEvent()) {
             throw AmiException("Number of time-points in event-sigma matrix (%i) "
                                "does not match provided nmaxevent (%i)",
@@ -255,7 +267,8 @@ ExpData *expDataFromMatlabCall(const mxArray *prhs[],
         }
         mxArray *dataSigmaZT;
         mexCallMATLAB(1, &dataSigmaZT, 1, &dataSigmaZ, "transpose");
-        edata->setObservedEventsStdDev(mxGetPr(dataSigmaZT));
+        auto observedEventsSigma = mxArrayToVector(dataSigmaZT, nz_sigmaz * ne_sigmaz);
+        edata->setObservedEventsStdDev(observedEventsSigma);
     } else {
         throw AmiException("Field Sigma_Z not specified as field in data struct!");
         
@@ -307,6 +320,14 @@ void setSolverOptions(const mxArray *prhs[], int nrhs, Solver &solver)
             solver.setRelativeToleranceQuadratures(mxGetScalar(mxGetProperty(prhs[RHS_OPTIONS], 0, "quad_rtol")));
         }
 
+        if (mxGetProperty(prhs[RHS_OPTIONS], 0, "ss_atol")) {
+            solver.setAbsoluteToleranceQuadratures(mxGetScalar(mxGetProperty(prhs[RHS_OPTIONS], 0, "ss_atol")));
+        }
+        
+        if (mxGetProperty(prhs[RHS_OPTIONS], 0, "ss_rtol")) {
+            solver.setRelativeToleranceQuadratures(mxGetScalar(mxGetProperty(prhs[RHS_OPTIONS], 0, "ss_rtol")));
+        }
+        
         if (mxGetProperty(prhs[RHS_OPTIONS], 0, "maxsteps")) {
             solver.setMaxSteps(dbl2int(mxGetScalar(mxGetProperty(prhs[RHS_OPTIONS], 0, "maxsteps"))));
         }
@@ -332,7 +353,7 @@ void setSolverOptions(const mxArray *prhs[], int nrhs, Solver &solver)
         }
 
         if (mxGetProperty(prhs[RHS_OPTIONS], 0, "sensi")) {
-            solver.setSensitivityOrder(static_cast<AMICI_sensi_order>(dbl2int(mxGetScalar(mxGetProperty(prhs[RHS_OPTIONS], 0, "sensi")))));
+            solver.setSensitivityOrder(static_cast<SensitivityOrder>(dbl2int(mxGetScalar(mxGetProperty(prhs[RHS_OPTIONS], 0, "sensi")))));
         }
 
         if (mxGetProperty(prhs[RHS_OPTIONS], 0, "ism")) {
@@ -340,7 +361,7 @@ void setSolverOptions(const mxArray *prhs[], int nrhs, Solver &solver)
         }
 
         if (mxGetProperty(prhs[RHS_OPTIONS], 0, "sensi_meth")) {
-            solver.setSensitivityMethod(static_cast<AMICI_sensi_meth>(dbl2int(mxGetScalar(mxGetProperty(prhs[RHS_OPTIONS], 0, "sensi_meth")))));
+            solver.setSensitivityMethod(static_cast<SensitivityMethod>(dbl2int(mxGetScalar(mxGetProperty(prhs[RHS_OPTIONS], 0, "sensi_meth")))));
         }
 
         if (mxGetProperty(prhs[RHS_OPTIONS], 0, "ordering")) {
@@ -378,13 +399,13 @@ void setModelData(const mxArray *prhs[], int nrhs, Model &model)
 
         if (mxArray *a = mxGetProperty(prhs[RHS_OPTIONS], 0, "pscale")) {
             if(mxGetM(a) == 1 && mxGetN(a) == 1) {
-                model.setParameterScale(static_cast<AMICI_parameter_scaling>(dbl2int(mxGetScalar(a))));
+                model.setParameterScale(static_cast<ParameterScaling>(dbl2int(mxGetScalar(a))));
             } else if((mxGetM(a) == 1 && mxGetN(a) == model.np())
                       || (mxGetN(a) == 1 && mxGetM(a) == model.np())) {
                 auto pscaleArray = static_cast<double *>(mxGetData(a));
-                std::vector<AMICI_parameter_scaling> pscale(model.np());
+                std::vector<ParameterScaling> pscale(model.np());
                 for(int ip = 0; ip < model.np(); ++ip) {
-                    pscale[ip] = static_cast<AMICI_parameter_scaling>(dbl2int(pscaleArray[ip]));
+                    pscale[ip] = static_cast<ParameterScaling>(dbl2int(pscaleArray[ip]));
                 }
                 model.setParameterScale(pscale);
             } else {
@@ -520,12 +541,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     std::unique_ptr<amici::ExpData> edata;
     if (nrhs > amici::RHS_DATA && mxGetPr(prhs[amici::RHS_DATA])) {
         try {
-            edata.reset(amici::expDataFromMatlabCall(prhs, *model));
-        } catch (amici::AmiException& ex) {
+            edata = std::move(amici::expDataFromMatlabCall(prhs, *model));
+        } catch (amici::AmiException const& ex) {
             amici::errMsgIdAndTxt("AMICI:mex:setup","Failed to read experimental data:\n%s",ex.what());
         }
-    } else if (solver->getSensitivityOrder() >= amici::AMICI_SENSI_ORDER_FIRST &&
-               solver->getSensitivityMethod() == amici::AMICI_SENSI_ASA) {
+    } else if (solver->getSensitivityOrder() >= amici::SensitivityOrder::first &&
+               solver->getSensitivityMethod() == amici::SensitivityMethod::adjoint) {
         amici::errMsgIdAndTxt("AMICI:mex:setup","No data provided!");
     }
     
