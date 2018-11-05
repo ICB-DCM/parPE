@@ -3,22 +3,20 @@ language: c
 compiler: gcc
 
 build:
+    pre_ci:
+        # extract information from the IN image resource
+        - export IMG_TAG=$(shipctl get_resource_version_key parpe_dockerhub_ci_image "versionName")
+        - export IMG_NAME=$(shipctl get_resource_version_key parpe_dockerhub_ci_image "sourceName")
+
     pre_ci_boot:
-        image_name: ubuntu
-        image_tag: bionic
-        pull: true
-	
+        # Use custom image to boot up CI container
+        image_name: $IMG_NAME
+        image_tag: $IMG_TAG
+        pull: true	
+
     ci:
-        # install external deps
         - lsb_release -a
-        - sudo add-apt-repository ppa:deadsnakes/ppa # for python 3.6
-        - sudo apt-get update
-        # libceres-dev is too old and missing some options
-        - sudo apt-get install gfortran libmpich-dev libatlas-base-dev libceres-dev libboost-all-dev
-            libhdf5-dev cmake libceres-dev coinor-libipopt-dev libcpputest-dev gcovr valgrind swig3.0 python3.6 
         - export PARPE_BASE=`pwd`
-        # workaround for https://bugs.launchpad.net/ubuntu/+source/ceres-solver/+bug/1595692 :
-        - wget -O /usr/include/ceres/internal/config.h "https://raw.githubusercontent.com/ceres-solver/ceres-solver/master/config/ceres/internal/config.h"
 
         # install internal deps
         - AMICI_PATH=$PARPE_BASE/deps/AMICI/
@@ -43,3 +41,9 @@ build:
 
     on_failure:
         - ls -R ${PARPE_BASE}
+
+jobs:
+  - name: parpe_runCI
+    type: runCI
+    steps:
+      - IN: parpe_dockerhub_ci_image
