@@ -1,5 +1,4 @@
 /build/*
-/build
 CMakeLists.txt.user
 /data/*
 /ThirdParty/*
@@ -15,8 +14,9 @@ __pycache__/
 *.mexa64
 .ipynb_checkpoints/
 /amici/examples/steadystate/model_steadystate_scaled
-deleteme*
+*deleteme*
 .directory
+.idea/*
 
 # amici
 deps/AMICI/python/sdist/amici.egg-info/
