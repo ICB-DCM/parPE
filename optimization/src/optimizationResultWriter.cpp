@@ -61,8 +61,8 @@ void OptimizationResultWriter::logObjectiveFunctionEvaluation(
         gsl::span<const double> objectiveFunctionGradient,
         int numIterations, int numFunctionCalls,
         double timeElapsedInSeconds, 
-		bool logGradientEachFunctionEvaluation = true,
-		bool logParametersEachFunctionEvaluation = true)
+		bool logGradientEachFunctionEvaluation,
+		bool logParametersEachFunctionEvaluation)
 {
 
     std::string pathStr = getIterationPath(numIterations);
@@ -108,7 +108,7 @@ void OptimizationResultWriter::logOptimizerIteration(int numIterations,
                                                      gsl::span<const double> gradient,
                                                      double wallSeconds,
                                                      double cpuSeconds,
-													 bool logGradientEachIteration = true)
+													 bool logGradientEachIteration)
 {
     std::string const& pathStr = getRootPath();
     const char *fullGroupPath = pathStr.c_str();

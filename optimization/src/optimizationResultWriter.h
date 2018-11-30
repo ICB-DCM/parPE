@@ -62,8 +62,8 @@ public:
             int numIterations,
             int numFunctionCalls,
             double timeElapsedInSeconds, 
-			bool logGradientEachFunctionEvaluation = true,
-			bool logParametersEachFunctionEvaluation = true);
+			bool logGradientEachFunctionEvaluation,
+			bool logParametersEachFunctionEvaluation);
 
     /**
      * @brief Function to be called after each optimizer iteration. (For
@@ -89,7 +89,7 @@ public:
             double objectiveFunctionValue,
             gsl::span<const double> gradient,
             double wallSeconds, double cpuSeconds, 
-			bool logGradientEachIteration = true);
+			bool logGradientEachIteration);
     /*, int alg_mod, double inf_pr, double inf_du,
     double mu, double d_norm, double regularization_size, double alpha_du,
     double alpha_pr, int ls_trials*/

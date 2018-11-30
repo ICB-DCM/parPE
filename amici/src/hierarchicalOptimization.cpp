@@ -1062,7 +1062,8 @@ bool HierarchicalOptimizationReporter::iterationFinished(
                                                 objectiveFunctionValue,
                                                 cachedFullGradient, // This might be misleading, the gradient could evaluated at other parameters if there was a line search inbetween
                                                 wallTimeIter,
-                                                cpuTimeIterationSec);
+                                                cpuTimeIterationSec,
+												true);
         } else {
             // We don't have the full parameter vector, only the outer parameters
             // so we can't append them due to different dimension
@@ -1074,7 +1075,8 @@ bool HierarchicalOptimizationReporter::iterationFinished(
                                                 objectiveFunctionValue,
                                                 nanParameters,
                                                 wallTimeIter,
-                                                cpuTimeIterationSec);
+                                                cpuTimeIterationSec,
+												true);
         }
     }
     ++numIterations;
@@ -1099,7 +1101,7 @@ bool HierarchicalOptimizationReporter::afterCostFunctionCall(
 
     if(resultWriter) {
         resultWriter->logObjectiveFunctionEvaluation(cachedFullParameters, cachedCost,
-                                                                   objectiveFunctionGradient, numIterations, numFunctionCalls, wallTime);
+                                                                   objectiveFunctionGradient, numIterations, numFunctionCalls, wallTime, true, true);
     }
     return false;
 }
