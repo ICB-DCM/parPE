@@ -60,7 +60,9 @@ void OptimizationResultWriter::logObjectiveFunctionEvaluation(
         double objectiveFunctionValue,
         gsl::span<const double> objectiveFunctionGradient,
         int numIterations, int numFunctionCalls,
-        double timeElapsedInSeconds)
+        double timeElapsedInSeconds, 
+		bool logGradientEachFunctionEvaluation = true,
+		bool logParametersEachFunctionEvaluation = true)
 {
 
     std::string pathStr = getIterationPath(numIterations);
@@ -69,22 +71,25 @@ void OptimizationResultWriter::logObjectiveFunctionEvaluation(
     hdf5CreateOrExtendAndWriteToDouble2DArray(
                 file_id, fullGroupPath, "costFunCost", &objectiveFunctionValue, 1);
 
-    if (!objectiveFunctionGradient.empty()) {
-        hdf5CreateOrExtendAndWriteToDouble2DArray(
-                    file_id, fullGroupPath, "costFunGradient",
-                    objectiveFunctionGradient.data(), objectiveFunctionGradient.size());
-    } else if (!parameters.empty()) {
-        double dummyGradient[parameters.size()];
-        std::fill_n(dummyGradient, parameters.size(), NAN);
-        hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath,
-                                                  "costFunGradient",
-                                                  dummyGradient, parameters.size());
+    if (logGradientEachFunctionEvaluation) {
+		if (!objectiveFunctionGradient.empty()) {
+			hdf5CreateOrExtendAndWriteToDouble2DArray(
+						file_id, fullGroupPath, "costFunGradient",
+						objectiveFunctionGradient.data(), objectiveFunctionGradient.size());
+		} else if (!parameters.empty()) {
+			double dummyGradient[parameters.size()];
+			std::fill_n(dummyGradient, parameters.size(), NAN);
+			hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath,
+													  "costFunGradient",
+													  dummyGradient, parameters.size());
+		}
     }
 
-    if (!parameters.empty())
-        hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath,
-                                                  "costFunParameters",
-                                                  parameters.data(), parameters.size());
+    if (logParametersEachFunctionEvaluation)
+    	if (!parameters.empty())
+    		hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath,
+                                                  	  "costFunParameters",
+													  parameters.data(), parameters.size());
 
     hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath,
                                               "costFunWallTimeInSec",
@@ -102,7 +107,8 @@ void OptimizationResultWriter::logOptimizerIteration(int numIterations,
                                                      double objectiveFunctionValue,
                                                      gsl::span<const double> gradient,
                                                      double wallSeconds,
-                                                     double cpuSeconds)
+                                                     double cpuSeconds,
+													 bool logGradientEachIteration = true)
 {
     std::string const& pathStr = getRootPath();
     const char *fullGroupPath = pathStr.c_str();
@@ -110,15 +116,17 @@ void OptimizationResultWriter::logOptimizerIteration(int numIterations,
     hdf5CreateOrExtendAndWriteToDouble2DArray(
                 file_id, fullGroupPath, "iterCostFunCost", &objectiveFunctionValue, 1);
 
-    if (!gradient.empty()) {
-        hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath,
-                                                  "iterCostFunGradient",
-                                                  gradient.data(), gradient.size());
-    } else if(!parameters.empty()) {
-        std::vector<double> nanGradient(parameters.size(), NAN);
-        hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath,
-                                                  "iterCostFunGradient",
-                                                  nanGradient.data(), nanGradient.size());
+    if (logGradientEachIteration) {
+		if (!gradient.empty()) {
+			hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath,
+													  "iterCostFunGradient",
+													  gradient.data(), gradient.size());
+		} else if(!parameters.empty()) {
+			std::vector<double> nanGradient(parameters.size(), NAN);
+			hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath,
+													  "iterCostFunGradient",
+													  nanGradient.data(), nanGradient.size());
+		}
     }
 
     if (!parameters.empty()) {

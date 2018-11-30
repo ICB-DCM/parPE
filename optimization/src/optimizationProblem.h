@@ -132,6 +132,10 @@ public:
 
     void setGradientFunction(GradientFunction *gradFun) const;
 
+    void setLoggingEachIteration(bool logGradient) const;
+    
+    void setLoggingEachFunctionEvaluation(bool logGradient, bool logParameters) const;
+    
     std::unique_ptr<OptimizationResultWriter> resultWriter;
 
     mutable double cpuTimeTotalSec = 0.0;
@@ -156,6 +160,10 @@ protected:
     mutable int numParameters_ = 0;
 
     mutable bool started = false;
+    
+    mutable bool logGradientEachIteration = true;
+    mutable bool logGradientEachFunctionEvaluation = true;
+    mutable bool logParametersEachFunctionEvaluation = true;
 
     // non-owning
     mutable GradientFunction *gradFun = nullptr;

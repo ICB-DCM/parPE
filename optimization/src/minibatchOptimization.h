@@ -302,8 +302,6 @@ public:
 				 << " LearningRate: " << learningRate << std::endl;
                 batchLogger->logmessage(LOGLVL_DEBUG, ss.str().c_str());
 
-                if(reporter) reporter->iterationFinished(parameters, cost, gradient);
-
                 if(status == functionEvaluationFailure) {
                 	// Check, if the interceptor should be used (should alwayss be the case, except for study purpose...
                 	if(interceptor > 0)
@@ -328,6 +326,9 @@ public:
                 parameterUpdater->updateParameters(learningRate, iteration, gradient, parameters,
                                                    lowerParameterBounds, upperParameterBounds);
             }
+            
+            // epoch finished, write the values in hdf5-file
+            if(reporter) reporter->iterationFinished(parameters, cost, gradient);
 
             if(getVectorNorm(gradient) <= gradientNormThreshold) {
                 // evaluate on full data set

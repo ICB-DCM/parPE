@@ -295,7 +295,7 @@ bool OptimizationReporter::iterationFinished(gsl::span<const double> parameters,
                     parameters.empty() ? cachedParameters : parameters,
                     objectiveFunctionValue,
                     objectiveFunctionGradient.empty() ? cachedGradient : objectiveFunctionGradient, // This might be misleading, the gradient could evaluated at other parameters if there was a line search inbetween
-                    wallTimeIter, cpuTimeIterationSec);
+                    wallTimeIter, cpuTimeIterationSec, logGradientEachIteration);
     ++numIterations;
 
     logger->setPrefix(defaultLoggerPrefix + "i" + std::to_string(numIterations));
@@ -326,11 +326,13 @@ bool OptimizationReporter::afterCostFunctionCall(gsl::span<const double> paramet
 
     if(resultWriter) {
         resultWriter->logObjectiveFunctionEvaluation(parameters,
-                                                                   objectiveFunctionValue,
-                                                                   objectiveFunctionGradient,
-                                                                   numIterations,
-                                                                   numFunctionCalls,
-                                                                   wallTime);
+                                                     objectiveFunctionValue,
+                                                     objectiveFunctionGradient,
+                                                     numIterations,
+                                                     numFunctionCalls,
+                                                     wallTime,
+													 logGradientEachFunctionEvaluation,
+													 logParametersEachFunctionEvaluation);
     }
     return false;
 }
@@ -358,6 +360,17 @@ void OptimizationReporter::finished(double optimalCost, gsl::span<const double> 
     if(resultWriter)
         resultWriter->saveOptimizerResults(cachedCost, cachedParameters,
                                            timeElapsed, cpuTimeTotalSec, exitStatus);
+}
+
+void OptimizationReporter::setLoggingEachIteration(bool logGradient) const
+{
+	logGradientEachIteration = logGradient;
+}
+
+void OptimizationReporter::setLoggingEachFunctionEvaluation(bool logGradient, bool logParameters) const
+{
+    logGradientEachFunctionEvaluation = logGradient;
+    logParametersEachFunctionEvaluation = logParameters;
 }
 
 double OptimizationReporter::getFinalCost() const
