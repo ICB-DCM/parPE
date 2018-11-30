@@ -51,7 +51,9 @@ set(USE_MPI ON)
 if(${USE_MPI})
     find_package(MPI REQUIRED)
     add_definitions(-DUSE_MPI)
-    if(${MPI_INCLUDE_DIRS}) # may be undefined
+    if(IS_DIRECTORY ${MPI_INCLUDE_DIRS})
+        # may be undefined. will be provided by MPI compiler wrapped.
+        # this is only added for convenient IDE integration
         include_directories(${MPI_INCLUDE_DIRS})
     endif()
 endif(${USE_MPI})
