@@ -11,9 +11,13 @@
 namespace parpe {
 
 
-MultiStartOptimization::MultiStartOptimization(MultiStartOptimizationProblem &problem, bool runParallel)
-    : msProblem(problem), numberOfStarts(problem.getNumberOfStarts()),
-      restartOnFailure(problem.restartOnFailure()), runParallel(runParallel)
+MultiStartOptimization::MultiStartOptimization(
+        MultiStartOptimizationProblem &problem,
+        bool runParallel)
+    : msProblem(problem),
+      numberOfStarts(problem.getNumberOfStarts()),
+      restartOnFailure(problem.restartOnFailure()),
+      runParallel(runParallel)
 {
 
 }

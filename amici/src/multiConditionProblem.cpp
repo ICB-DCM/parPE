@@ -191,7 +191,7 @@ void saveSimulation(hid_t file_id, std::string const& pathStr, std::vector<doubl
                    double llh, gsl::span<double const> gradient, double timeElapsedInSeconds,
                    gsl::span<double const> states, gsl::span<double const> stateSensi,
                    gsl::span<double const> outputs, int jobId,
-                   int status, std::string label)
+                   int status, std::string const& label)
 {
     // TODO replace by SimulationResultWriter
     const char *fullGroupPath = pathStr.c_str();

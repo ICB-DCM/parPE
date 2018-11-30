@@ -488,7 +488,7 @@ private:
 
 void saveSimulation(hid_t file_id, const std::string &pathStr, const std::vector<double> &parameters, double llh,
                    gsl::span<const double> gradient, double timeElapsedInSeconds, gsl::span<const double> states,
-                   gsl::span<const double> stateSensi, gsl::span<const double> outputs, int jobId, int status, std::string label);
+                   gsl::span<const double> stateSensi, gsl::span<const double> outputs, int jobId, int status, const std::string &label);
 
 
 } // namespace parpe

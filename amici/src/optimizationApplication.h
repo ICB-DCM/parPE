@@ -61,16 +61,29 @@ class OptimizationApplication {
   protected:
 
     /**
-     * @brief Writes the total programm runtime
+     * @brief Receives and writes the total programm runtime
      * @param begin
      */
     virtual void finalizeTiming(double wallTimeSeconds, double cpuTimeSeconds);
 
+    /**
+     * @brief processResultFilenameCommandLineArgument
+     * @param commandLineArg
+     * @return Result file name
+     */
     std::string
     processResultFilenameCommandLineArgument(const char *commandLineArg);
 
+    /**
+     * @brief Are we running with MPI and are we master process?
+     * @return
+     */
     bool isMaster();
 
+    /**
+     * @brief Are we running with MPI and are we a worker?
+     * @return
+     */
     bool isWorker();
 
     /**
@@ -90,6 +103,10 @@ class OptimizationApplication {
      */
     virtual int parseOptions(int argc, char **argv);
 
+    /**
+     * @brief Print CLI usage
+     * @param argZero
+     */
     virtual void printUsage(char* const argZero);
 
     virtual void logParPEVersion(hid_t file_id) const;
@@ -116,10 +133,10 @@ protected:
         {"outfile-prefix", required_argument, NULL, 'o'},
         {NULL, 0, NULL, 0}};
 
-    typedef enum operationType_tag {
-        OP_TYPE_PARAMETER_ESTIMATION,
-        OP_TYPE_GRADIENT_CHECK
-    } operationTypeEnum;
+    enum class OperationType {
+        parameterEstimation,
+        gradientCheck
+    };
 
     std::string dataFileName;
     std::string resultFileName;
@@ -128,7 +145,7 @@ protected:
     std::unique_ptr<MultiStartOptimizationProblem> multiStartOptimizationProblem;
     std::unique_ptr<OptimizationProblem> problem;
     hid_t file_id;
-    operationTypeEnum opType = OP_TYPE_PARAMETER_ESTIMATION;
+    OperationType operationType = OperationType::parameterEstimation;
     LoadBalancerMaster loadBalancer;
 };
 

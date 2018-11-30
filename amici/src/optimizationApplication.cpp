@@ -96,7 +96,7 @@ int OptimizationApplication::parseOptions(int argc, char **argv) {
             break;
         case 't':
             if (strcmp(optarg, "gradient_check") == 0)
-                opType = OP_TYPE_GRADIENT_CHECK;
+                operationType = OperationType::gradientCheck;
             break;
         case 'o':
             resultFileName = processResultFilenameCommandLineArgument(optarg);
@@ -203,8 +203,8 @@ int OptimizationApplication::run(int argc, char **argv) {
 }
 
 void OptimizationApplication::runMaster() {
-    switch (opType) {
-    case OP_TYPE_GRADIENT_CHECK: {
+    switch (operationType) {
+    case OperationType::gradientCheck: {
         const int numParameterIndicesToCheck = 50;
         const double epsilon = 1e-8;
         optimizationProblemGradientCheck(problem.get(),
@@ -212,7 +212,7 @@ void OptimizationApplication::runMaster() {
                                          epsilon);
         break;
     }
-    case OP_TYPE_PARAMETER_ESTIMATION:
+    case OperationType::parameterEstimation:
     default:
         runMultiStarts();
     }
@@ -238,8 +238,8 @@ void OptimizationApplication::runWorker() {
 
 void OptimizationApplication::runSingleMpiProcess() {
     // run serially
-    switch (opType) {
-    case OP_TYPE_GRADIENT_CHECK: {
+    switch (operationType) {
+    case OperationType::gradientCheck: {
         const int numParameterIndicesToCheck = 50;
         const double epsilon = 1e-8;
         optimizationProblemGradientCheck(problem.get(),
@@ -247,7 +247,7 @@ void OptimizationApplication::runSingleMpiProcess() {
                                          epsilon);
         break;
     }
-    case OP_TYPE_PARAMETER_ESTIMATION:
+    case OperationType::parameterEstimation:
     default:
         if (problem->getOptimizationOptions().numStarts > 0) {
             runMultiStarts();

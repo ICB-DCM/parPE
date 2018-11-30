@@ -60,14 +60,11 @@ void *getLocalOptimumThreadWrapper(void *optimizationProblemVp) {
     return result;
 }
 
-//void runOptimizationsParallel(OptimizationProblem **problems,
-//                              int numProblems) {
-//    runInParallelAndWaitForFinish(getLocalOptimumThreadWrapper,
-//                                  reinterpret_cast<void **>(problems), numProblems);
-//}
 
 void optimizationProblemGradientCheck(OptimizationProblem *problem,
-                                      int numParameterIndicesToCheck, double epsilon) {
+                                      int numParameterIndicesToCheck,
+                                      double epsilon)
+{
     int numParameters = problem->costFun->numParameters();
     numParameterIndicesToCheck = std::min(numParameterIndicesToCheck, numParameters);
     // choose random parameters to check
@@ -143,7 +140,9 @@ void optimizationProblemGradientCheck(OptimizationProblem *problem,
 }
 
 
-OptimizationProblem::OptimizationProblem(std::unique_ptr<GradientFunction> costFun, std::unique_ptr<Logger> logger)
+OptimizationProblem::OptimizationProblem(
+        std::unique_ptr<GradientFunction> costFun,
+        std::unique_ptr<Logger> logger)
     : costFun(std::move(costFun)),
       logger(std::move(logger))
 {
