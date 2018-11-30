@@ -4,26 +4,16 @@ project(parpe)
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/CMakeModules/)
 
 # Ensure CMAKE_BUILD_TYPE is always set
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
+
 include(BuildType)
+include(BuildOptimized)
 
 set(CMAKE_DEBUG_POSTFIX "-dbg")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -Wall -Wno-unused-function -fopenmp -D_GNU_SOURCE") # -D_GNU_SOURCE for pthread recursive mutex issues
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wno-unused-function -fopenmp -D_GNU_SOURCE") # -D_GNU_SOURCE for pthread recursive mutex issues
 
-# <build optimized>
-if(CMAKE_BUILD_TYPE MATCHES Release OR CMAKE_BUILD_TYPE MATCHES RelWithDebInfo)
-    include(CheckCXXCompilerFlag)
-    CHECK_CXX_COMPILER_FLAG(-xHOST COMPILER_SUPPORTS_XHOST)
-    CHECK_CXX_COMPILER_FLAG(-march=native COMPILER_SUPPORTS_MARCHNATIVE)
-
-    if(COMPILER_SUPPORTS_XHOST)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -xHOST")
-    endif()
-    if(COMPILER_SUPPORTS_MARCHNATIVE)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
-    endif()
-endif()
-# </build optimized>
 
 # <versioning>
 # Version number from git
