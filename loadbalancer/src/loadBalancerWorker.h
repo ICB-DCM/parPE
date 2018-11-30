@@ -28,7 +28,7 @@ class LoadBalancerWorker {
      * @brief waitForAndHandleJobs
      * @return true: received termination signal
      */
-    bool waitForAndHandleJobs(messageHandlerFunc messageHandler);
+    bool waitForAndHandleJobs(const messageHandlerFunc& messageHandler);
 };
 
 } // namespace parpe

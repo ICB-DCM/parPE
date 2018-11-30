@@ -74,7 +74,7 @@ class AmiciSimulationRunner {
                           const std::vector<int> &conditionIndices,
                           callbackJobFinishedType callbackJobFinished = nullptr,
                           callbackAllFinishedType aggregate = nullptr,
-                          std::string const& logPrefix = "");
+                          std::string logPrefix = "");
 
     AmiciSimulationRunner(AmiciSimulationRunner const& other) = delete;
 

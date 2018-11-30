@@ -23,7 +23,7 @@ void LoadBalancerWorker::run(messageHandlerFunc messageHandler) {
     }
 }
 
-bool LoadBalancerWorker::waitForAndHandleJobs(messageHandlerFunc messageHandler) {
+bool LoadBalancerWorker::waitForAndHandleJobs(const messageHandlerFunc& messageHandler) {
     int rank, err;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 #ifdef LOADBALANCERWORKER_REPORT_WAITING_TIME

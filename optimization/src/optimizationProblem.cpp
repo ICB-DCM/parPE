@@ -93,8 +93,7 @@ void optimizationProblemGradientCheck(OptimizationProblem *problem,
 
     // printf("Index\tGradient\tfd_f\t\t(delta)\t\tfd_c\t\t(delta)\t\tfd_b\t\t(delta)\n");
 
-    for (int i = 0; i < parameterIndices.size(); ++i) {
-        int curInd = parameterIndices[i];
+    for (int curInd : parameterIndices) {
         double fb = 0, ff = 0; // f(theta + eps) , f(theta - eps)
 
         thetaTmp[curInd] = theta[curInd] + epsilon;

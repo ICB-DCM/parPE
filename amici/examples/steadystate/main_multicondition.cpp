@@ -35,9 +35,9 @@ class SteadystateApplication : public parpe::OptimizationApplication {
   public:
     using OptimizationApplication::OptimizationApplication;
 
-    virtual ~SteadystateApplication() override = default;
+    ~SteadystateApplication() override = default;
 
-    virtual void initProblem(std::string inFileArgument,
+    void initProblem(std::string inFileArgument,
                              std::string outFileArgument) override {
 
         // The same file should only be opened/created once, an then only be reopened

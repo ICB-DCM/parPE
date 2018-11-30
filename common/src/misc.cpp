@@ -32,7 +32,7 @@
 namespace parpe {
 
 bool fileExists(const char *name) {
-    struct stat buffer;
+    struct stat buffer{};
     return (stat(name, &buffer) == 0);
 }
 

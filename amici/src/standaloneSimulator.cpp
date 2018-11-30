@@ -191,7 +191,7 @@ int StandaloneSimulator::run(const std::string& resultFile,
 }
 
 
-void StandaloneSimulator::messageHandler(std::vector<char> &buffer, int jobId)
+void StandaloneSimulator::messageHandler(std::vector<char> &buffer, int  /*jobId*/)
 {
     // TODO: pretty redundant with messageHandler in multiconditionproblem
     // unpack simulation job data

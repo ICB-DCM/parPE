@@ -15,13 +15,13 @@ AmiciSimulationRunner::AmiciSimulationRunner(std::vector<double> const& optimiza
         amici::SensitivityOrder sensitivityOrder,
         std::vector<int> const& conditionIndices,
         AmiciSimulationRunner::callbackJobFinishedType callbackJobFinished,
-        AmiciSimulationRunner::callbackAllFinishedType aggregate, const std::string &logPrefix)
+        AmiciSimulationRunner::callbackAllFinishedType aggregate, std::string logPrefix)
     : optimizationParameters(optimizationParameters),
     sensitivityOrder(sensitivityOrder),
     conditionIndices(conditionIndices),
     callbackJobFinished(std::move(std::move(callbackJobFinished))),
     aggregate(std::move(std::move(aggregate))),
-    logPrefix(logPrefix)
+    logPrefix(std::move(logPrefix))
 {
 
 }
