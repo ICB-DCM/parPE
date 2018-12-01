@@ -73,6 +73,12 @@ addDebugFlagsIfRequired(
     amici_module_linker_flags,
 )
 
+# compiler and linker flags for libamici
+if 'AMICI_CXXFLAGS' in os.environ:
+    cxx_flags.extend(os.environ['AMICI_CXXFLAGS'].split(' '))
+if 'AMICI_LDFLAGS' in os.environ:
+    amici_module_linker_flags.extend(os.environ['AMICI_LDFLAGS'].split(' '))
+
 libamici = setup_clibs.getLibAmici(
     h5pkgcfg=h5pkgcfg, blaspkgcfg=blaspkgcfg, extra_compiler_flags=cxx_flags)
 libsundials = setup_clibs.getLibSundials(extra_compiler_flags=cxx_flags)
@@ -262,7 +268,7 @@ def main():
                     ],
         packages=find_packages(),
         package_dir={'amici': 'amici'},
-        install_requires=['symengine', 'python-libsbml', 'h5py', 'pandas'],
+        install_requires=['sympy', 'python-libsbml', 'h5py', 'pandas'],
         python_requires='>=3',
         package_data={
             'amici': ['amici/include/amici/*',
