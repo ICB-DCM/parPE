@@ -18,7 +18,9 @@ namespace parpe {
 StandaloneSimulator::StandaloneSimulator(MultiConditionDataProvider *dp)
     : dataProvider(dp)
 {
-
+    if(auto env = std::getenv("PARPE_MAX_SIMULATIONS_PER_PACKAGE")) {
+        maxSimulationsPerPackage = std::stoi(env);
+    }
 }
 
 int StandaloneSimulator::run(const std::string& resultFile,

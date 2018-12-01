@@ -47,7 +47,8 @@ private:
 
     MultiConditionDataProvider *dataProvider = nullptr;
 
-    const int maxSimulationsPerPackage = 8;
+    /** Number of simulations to be sent to workers within one package (when running with MPI). */
+    int maxSimulationsPerPackage = 8;
 };
 
 
