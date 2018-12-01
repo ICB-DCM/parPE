@@ -7,9 +7,8 @@ build:
         # extract information from the IN image resource
         - export IMG_TAG=$(shipctl get_resource_version_key parpe_dockerhub_ci_image "versionName")
         - export IMG_NAME=$(shipctl get_resource_version_key parpe_dockerhub_ci_image "sourceName")
-        - echo "$IMG_NAME ; $IMG_TAG"
-        - export IMG_TAG=892883
-        - export IMG_NAME="dweindl/parpeci"
+        - echo "Will be using image $IMG_NAME:$IMG_TAG"
+
     pre_ci_boot:
         # Use custom image to boot up CI container
         image_name: $IMG_NAME
@@ -17,8 +16,6 @@ build:
         pull: true	
 
     ci:
-        - echo `shipctl get_resource_version_key parpe_dockerhub_ci_image "versionName"`
-        - echo `shipctl get_resource_version_key parpe_dockerhub_ci_image "sourceName"`
         - lsb_release -a
         - export PARPE_BASE=`pwd`
 
@@ -27,7 +24,7 @@ build:
         - cd $AMICI_PATH && scripts/buildSuiteSparse.sh && scripts/buildSundials.sh && scripts/buildCpputest.sh #&& scripts/buildAmici.sh
         - mkdir -p ${AMICI_PATH}/build && cd ${AMICI_PATH}/build
         - CPPUTEST_BUILD_DIR=${AMICI_PATH}/ThirdParty/cpputest-master/build/ 
-        - cmake -DCMAKE_BUILD_TYPE=Debug -DENABLE_PYTHON=OFF -DBUILD_TESTS=OFF -DCppUTest_DIR=${CPPUTEST_BUILD_DIR} .. && make -j12
+        - cmake -DCMAKE_BUILD_TYPE=Debug -DENABLE_PYTHON=OFF -DBUILD_TESTS=OFF -DCppUTest_ROOT=${CPPUTEST_BUILD_DIR} .. && make -j12
         #- cd $PARPE_BASE/ThirdParty && ./downloadPackages.sh
         # Download AMICI from github - cd $PARPE_BASE/ThirdParty && ./installAMICI.sh
         #- cd $PARPE_BASE/ThirdParty && ./installCeres.sh
@@ -37,8 +34,10 @@ build:
 
         # run tests
         - cd $PARPE_BASE/build && CTEST_OUTPUT_ON_FAILURE=1 make test
+
         # valgrind
         - CTEST_OUTPUT_ON_FAILURE=1 make ExperimentalMemCheck; cat Testing/Temporary/MemoryChecker.*.log
+
         # coverage report
         - cd $PARPE_BASE/build && make parpe_coverage_cobertura
         - mkdir -p $PARPE_BASE/shippable/codecoverage && cp $PARPE_BASE/build/parpe_coverage_cobertura.xml $PARPE_BASE/shippable/codecoverage
