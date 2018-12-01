@@ -17,8 +17,8 @@ build:
         pull: true	
 
     ci:
-        - shipctl get_resource_version_key parpe_dockerhub_ci_image "versionName"
-        - shipctl get_resource_version_key parpe_dockerhub_ci_image "sourceName"
+        - echo `shipctl get_resource_version_key parpe_dockerhub_ci_image "versionName"`
+        - echo `shipctl get_resource_version_key parpe_dockerhub_ci_image "sourceName"`
         - lsb_release -a
         - export PARPE_BASE=`pwd`
 
