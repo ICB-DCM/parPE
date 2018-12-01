@@ -148,10 +148,6 @@ protected:
 
     mutable WallTimer wallTimer;
 
-//    clock_t timeOptimizationBegin;
-//    clock_t timeIterationBegin;
-//    clock_t timeCostEvaluationBegin;
-
     mutable int numFunctionCalls = 0;
     mutable int numIterations = 0;
     mutable int numParameters_ = 0;

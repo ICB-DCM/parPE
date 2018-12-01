@@ -263,9 +263,6 @@ bool OptimizationReporter::starting(gsl::span<const double> initialParameters) c
         return false;
 
     wallTimer.reset();
-//    timeOptimizationBegin = clock();
-//    timeIterationBegin = timeOptimizationBegin;
-//    timeCostEvaluationBegin = timeOptimizationBegin;
 
     if(resultWriter)
         resultWriter->starting(initialParameters);
@@ -281,8 +278,8 @@ bool OptimizationReporter::iterationFinished(gsl::span<const double> parameters,
                                              double objectiveFunctionValue,
                                              gsl::span<double const> objectiveFunctionGradient) const
 {
-    double wallTimeIter = wallTimer.getRound(); //(double)(clock() - timeIterationBegin) / CLOCKS_PER_SEC;
-    double wallTimeOptim = wallTimer.getTotal(); //double)(clock() - timeOptimizationBegin) / CLOCKS_PER_SEC;
+    double wallTimeIter = wallTimer.getRound();
+    double wallTimeOptim = wallTimer.getTotal();
 
     if(logger)
         logger->logmessage(LOGLVL_INFO, "iter: %d cost: %g time_iter: wall: %gs cpu: %gs time_optim: wall: %gs cpu: %gs",
@@ -294,7 +291,8 @@ bool OptimizationReporter::iterationFinished(gsl::span<const double> parameters,
                     numIterations,
                     parameters.empty() ? cachedParameters : parameters,
                     objectiveFunctionValue,
-                    objectiveFunctionGradient.empty() ? cachedGradient : objectiveFunctionGradient, // This might be misleading, the gradient could evaluated at other parameters if there was a line search inbetween
+                    // This might be misleading, the gradient could evaluated at other parameters if there was a line search inbetween
+                    objectiveFunctionGradient.empty() ? cachedGradient : objectiveFunctionGradient,
                     wallTimeIter, cpuTimeIterationSec);
     ++numIterations;
 
@@ -317,9 +315,7 @@ bool OptimizationReporter::afterCostFunctionCall(gsl::span<const double> paramet
                                                  double objectiveFunctionValue,
                                                  gsl::span<const double> objectiveFunctionGradient) const
 {
-    //clock_t timeCostEvaluationEnd = clock();
-
-    double wallTime = wallTimer.getTotal();//(double)(timeCostEvaluationEnd - timeCostEvaluationBegin) / CLOCKS_PER_SEC;
+    double wallTime = wallTimer.getTotal();
 
     if(!std::isfinite(objectiveFunctionValue))
         printObjectiveFunctionFailureMessage();
