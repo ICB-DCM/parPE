@@ -25,13 +25,27 @@ namespace parpe {
 
 class MultiConditionDataProvider;
 
-AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(amici::Solver &solver,
+/**
+ * @brief Run AMICI simulation for the given condition, save and return results
+ * @param solver
+ * @param model
+ * @param conditionIdx
+ * @param jobId
+ * @param dataProvider
+ * @param resultWriter
+ * @param logLineSearch
+ * @param logger
+ * @return Simulation results
+ */
+AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
+        amici::Solver &solver,
         amici::Model &model,
         int conditionIdx,
         int jobId,
         MultiConditionDataProvider *dataProvider,
         OptimizationResultWriter *resultWriter,
-        bool logLineSearch, Logger *logger);
+        bool logLineSearch,
+        Logger *logger);
 
 
 /**
@@ -49,9 +63,10 @@ public:
      * @param loadBalancer LoadBalancerMaster for shared memory parallelism, or nullptr
      * @param resultWriter
      */
-    AmiciSummedGradientFunction(MultiConditionDataProvider *dataProvider,
-                                LoadBalancerMaster *loadBalancer,
-                                OptimizationResultWriter *resultWriter)
+    AmiciSummedGradientFunction(
+            MultiConditionDataProvider *dataProvider,
+            LoadBalancerMaster *loadBalancer,
+            OptimizationResultWriter *resultWriter)
         : dataProvider(dataProvider),
           loadBalancer(loadBalancer),
           model(dataProvider->getModel()),
@@ -151,7 +166,6 @@ public:
             double *cpuTime) const
     {
         int errors = 0;
-        //    JobIdentifier path; // TODO = this->path;
 
         std::vector<int> dataIndices(dataProvider->getNumberOfConditions());
         std::iota(dataIndices.begin(), dataIndices.end(), 0);
@@ -159,10 +173,7 @@ public:
         setSensitivityOptions(false);
         modelOutput.resize(dataIndices.size());
         auto parameterVector = std::vector<double>(parameters.begin(), parameters.end());
-        AmiciSimulationRunner simRunner(parameterVector,
-                                         amici::SensitivityOrder::none,
-                                         dataIndices,
-                                         [&](JobData *job, int dataIdx) { // jobFinished
+        auto jobFinished = [&](JobData *job, int dataIdx) { // jobFinished
             // deserialize
             auto results =
                     amici::deserializeFromChar<
@@ -174,9 +185,13 @@ public:
                 errors += result.second.status;
                 modelOutput[result.first] = result.second.modelOutput;
             }
-        },
-        nullptr /* aggregate */,
-                logger?logger->getPrefix():"");
+        };
+        AmiciSimulationRunner simRunner(parameterVector,
+                                        amici::SensitivityOrder::none,
+                                        dataIndices,
+                                        jobFinished,
+                                        nullptr /* aggregate */,
+                                        logger?logger->getPrefix():"");
 
 
         if (loadBalancer && loadBalancer->isRunning()) {
@@ -300,9 +315,11 @@ protected:// for testing
                                           objectiveFunctionGradient,
                                           simulationTimeSec);
         }, nullptr,  logger?logger->getPrefix():"");
+
         if (loadBalancer && loadBalancer->isRunning()) {
             // When running simulations (without gradient), send more simulations to each worker
             // to reduce communication overhead
+
             errors += simRunner.runDistributedMemory(loadBalancer,
                                                      objectiveFunctionGradient.size() ? maxGradientSimulationsPerPackage : maxSimulationsPerPackage);
         } else {
@@ -397,7 +414,7 @@ private:
 
 /**
  * @brief The MultiConditionProblem class represents an optimization problem based
- * on an MultiConditionGradientFunction (AMICI ODE model)
+ * on an MultiConditionGradientFunction (AMICI ODE model) and MultiConditionDataProvider
  */
 
 class MultiConditionProblem

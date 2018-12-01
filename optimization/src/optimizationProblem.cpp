@@ -78,7 +78,9 @@ void optimizationProblemGradientCheck(OptimizationProblem *problem,
 }
 
 void optimizationProblemGradientCheck(OptimizationProblem *problem,
-                                      gsl::span<const int> parameterIndices, double epsilon) {
+                                      gsl::span<const int> parameterIndices,
+                                      double epsilon)
+{
     double fc = 0; // f(theta)
     std::vector<double> theta(problem->costFun->numParameters());
     problem->fillInitialParameters(theta);

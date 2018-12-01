@@ -248,9 +248,14 @@ void saveSimulation(hid_t file_id, std::string const& pathStr, std::vector<doubl
 }
 
 AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
-        amici::Solver &solver, amici::Model &model, int conditionIdx, int jobId,
-        MultiConditionDataProvider *dataProvider, OptimizationResultWriter *resultWriter,
-        bool logLineSearch, Logger* logger)
+        amici::Solver &solver,
+        amici::Model &model,
+        int conditionIdx,
+        int jobId,
+        MultiConditionDataProvider *dataProvider,
+        OptimizationResultWriter *resultWriter,
+        bool logLineSearch,
+        Logger* logger)
 {
     /* wall time  on worker for current simulation */
     double startTime = MPI_Wtime();

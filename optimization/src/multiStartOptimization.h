@@ -58,9 +58,16 @@ class MultiStartOptimization {
 
     std::vector<OptimizationProblem *> createLocalOptimizationProblems();
 
+    /** Optimization problem to be solved */
     MultiStartOptimizationProblem& msProblem;
+
+    /** Number of optimization runs to perform*/
     int numberOfStarts = 1;
+
+    /** Try a new starting point if a previous one fails */
     bool restartOnFailure = false;
+
+    /** Run multiple optimizations in parallel */
     bool runParallel = true;
 };
 

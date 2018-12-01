@@ -8,7 +8,7 @@
 
 #include <gsl/gsl-lite.hpp>
 
-/** @file Interfaces for cost functions */
+/** @file Interfaces for cost functions. */
 
 namespace parpe {
 
@@ -51,6 +51,7 @@ public:
 
     virtual ~GradientFunction() = default;
 };
+
 
 /**
  * @brief The SummedGradientFunction class is an interface for cost functions
@@ -99,8 +100,9 @@ public:
     virtual ~SummedGradientFunction() = default;
 };
 
+
 /**
- * Adapter / wrapper for SummedGradientFunction to GradientFunction..
+ * @brief Adapter / wrapper for SummedGradientFunction to GradientFunction.
  *
  * Simply evaluates SummedGradientFunction on all datasets.
  */
@@ -165,5 +167,6 @@ private:
     std::unique_ptr<SummedGradientFunction<T>> gradFun;
     std::vector<T> datasets;
 };
+
 }
 #endif

@@ -58,11 +58,12 @@ class OptimizationReporter;
 
 /**
  * @brief The OptimizationReporter class is called from the optimizer and takes care of
- * calling the objective function and things like of keeping track of iterations, logging intermediate results, timing
- * and can tell the optimizer to exit.
+ * calling the actual objective function, thereby keeping track of iterations, computation time,
+ * logging intermediate results, timing and can tell the optimizer to exit.
  *
  * This extra level of abstraction is added to avoid reimplementing timing, and other things for
- * each supported optimizer.
+ * each supported optimizer. The indirection of cost function evaluation is added to allow caching
+ * previous cost function values.
  */
 
 class OptimizationReporter : public GradientFunction {
