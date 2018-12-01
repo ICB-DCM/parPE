@@ -422,7 +422,7 @@ TEST(hierarchicalOptimization, testScaling) {
     CHECK_EQUAL(2.0, parpe::getScaledParameter(100.0, amici::ParameterScaling::log10));
     CHECK_EQUAL(100.0, amici::getUnscaledParameter(2.0, amici::ParameterScaling::log10));
 
-    CHECK_THROWS(parpe::ParPEException, amici::getUnscaledParameter(42.0, amici::ParameterScaling::ln));
+    // Not implemented
     CHECK_THROWS(parpe::ParPEException, parpe::getScaledParameter(42.0, amici::ParameterScaling::ln));
 
 }
