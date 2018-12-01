@@ -47,7 +47,7 @@ build:
         - ls -R ${PARPE_BASE}
 
 jobs:
-  - name: parpe_runCI
+  - name: parPE_runCI
     type: runCI
     steps:
       - IN: parpe_dockerhub_ci_image
