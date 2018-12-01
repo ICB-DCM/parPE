@@ -244,7 +244,7 @@ std::vector<double> HierarchicalOptimizationWrapper::computeAnalyticalScalings(
                                                                       modelOutputsUnscaled, measurements,
                                                                       *scalingReader, numObservables, numTimepoints);
         auto scale = fun->getParameterScaling(proportionalityFactorIndices[scalingIdx]);
-        proportionalityFactors[scalingIdx] = getScaledParameter(proportionalityFactor, scale);
+        proportionalityFactors[scalingIdx] = parpe::getScaledParameter(proportionalityFactor, scale);
     }
 
     return proportionalityFactors;
@@ -275,7 +275,7 @@ std::vector<double> HierarchicalOptimizationWrapper::computeAnalyticalOffsets(st
                                                                modelOutputsUnscaled, measurements,
                                                                *offsetReader, numObservables, numTimepoints);
         auto scale = fun->getParameterScaling(offsetParameterIndices[i]);
-        offsetParameters[i] = getScaledParameter(offsetParameter, scale);
+        offsetParameters[i] = parpe::getScaledParameter(offsetParameter, scale);
     }
 
     return offsetParameters;
@@ -296,7 +296,7 @@ std::vector<double> HierarchicalOptimizationWrapper::computeAnalyticalSigmas(
                     modelOutputsScaled, measurements,
                     *sigmaReader, numObservables, numTimepoints);
         auto scale = fun->getParameterScaling(sigmaParameterIndices[i]);
-        sigmas[i] = getScaledParameter(sigma, scale);
+        sigmas[i] = parpe::getScaledParameter(sigma, scale);
     }
     return sigmas;
 }

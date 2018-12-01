@@ -96,8 +96,8 @@ void SimulationResultWriter::saveSimulationResults(
         const amici::ReturnData *rdata,
         int simulationIdx)
 {
-    saveMeasurements(edata->getObservedData(), edata->nt(), edata->nytrue, simulationIdx);
-    saveModelOutputs(rdata->y,  edata->nt(), edata->nytrue, simulationIdx);
+    saveMeasurements(edata->getObservedData(), edata->nt(), edata->nytrue(), simulationIdx);
+    saveModelOutputs(rdata->y,  edata->nt(), edata->nytrue(), simulationIdx);
     saveStates(rdata->x, rdata->nt, rdata->nx, simulationIdx);
     saveLikelihood(rdata->llh, simulationIdx);
 

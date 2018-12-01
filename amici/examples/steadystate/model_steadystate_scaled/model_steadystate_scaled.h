@@ -23,13 +23,13 @@ extern void JSparseB_model_steadystate_scaled(SlsMat JSparseB, const realtype t,
 extern void Jv_model_steadystate_scaled(realtype *Jv, const realtype t, const realtype *x, const realtype *p, const realtype *k, const realtype *h, const realtype *v, const realtype *w, const realtype *dwdx);
 extern void JvB_model_steadystate_scaled(realtype *JvB, const realtype t, const realtype *x, const realtype *p, const realtype *k, const realtype *h, const realtype *xB, const realtype *vB, const realtype *w, const realtype *dwdx);
 extern void Jy_model_steadystate_scaled(double *nllh, const int iy, const realtype *p, const realtype *k, const double *y, const double *sigmay, const double *my);
-extern void dJydsigma_model_steadystate_scaled(double *dJydsigma, const int iy, const realtype *p, const realtype *k, const double *y, const double *sigmay, const double *my);
+extern void dJydsigmay_model_steadystate_scaled(double *dJydsigmay, const int iy, const realtype *p, const realtype *k, const double *y, const double *sigmay, const double *my);
 extern void dJydy_model_steadystate_scaled(double *dJydy, const int iy, const realtype *p, const realtype *k, const double *y, const double *sigmay, const double *my);
 extern void dwdp_model_steadystate_scaled(realtype *dwdp, const realtype t, const realtype *x, const realtype *p, const realtype *k, const realtype *h, const realtype *w);
 extern void dwdx_model_steadystate_scaled(realtype *dwdx, const realtype t, const realtype *x, const realtype *p, const realtype *k, const realtype *h, const realtype *w);
 extern void dxdotdp_model_steadystate_scaled(realtype *dxdotdp, const realtype t, const realtype *x, const realtype *p, const realtype *k, const realtype *h, const int ip, const realtype *w, const realtype *dwdp);
-extern void dydx_model_steadystate_scaled(double *dydx, const realtype t, const realtype *x, const realtype *p, const realtype *k, const realtype *h);
-extern void dydp_model_steadystate_scaled(double *dydp, const realtype t, const realtype *x, const realtype *p, const realtype *k, const realtype *h, const int ip);
+extern void dydx_model_steadystate_scaled(double *dydx, const realtype t, const realtype *x, const realtype *p, const realtype *k, const realtype *h, const realtype *w, const realtype *dwdx);
+extern void dydp_model_steadystate_scaled(double *dydp, const realtype t, const realtype *x, const realtype *p, const realtype *k, const realtype *h, const int ip, const realtype *w, const realtype *dwp);
 extern void dsigmaydp_model_steadystate_scaled(double *dsigmaydp, const realtype t, const realtype *p, const realtype *k, const int ip);
 extern void qBdot_model_steadystate_scaled(realtype *qBdot, const int ip, const realtype t, const realtype *x, const realtype *p, const realtype *k, const realtype *h, const realtype *xB, const realtype *w, const realtype *dwdp);
 extern void sigmay_model_steadystate_scaled(double *sigmay, const realtype t, const realtype *p, const realtype *k);
@@ -38,9 +38,10 @@ extern void w_model_steadystate_scaled(realtype *w, const realtype t, const real
 extern void x0_model_steadystate_scaled(realtype *x0, const realtype t, const realtype *p, const realtype *k);
 extern void x0_fixedParameters_model_steadystate_scaled(realtype *x0, const realtype t, const realtype *p, const realtype *k);
 extern void sx0_model_steadystate_scaled(realtype *sx0, const realtype t,const realtype *x0, const realtype *p, const realtype *k, const int ip);
+extern void sx0_fixedParameters_model_steadystate_scaled(realtype *sx0, const realtype t,const realtype *x0, const realtype *p, const realtype *k, const int ip);
 extern void xBdot_model_steadystate_scaled(realtype *xBdot, const realtype t, const realtype *x, const realtype *p, const realtype *k, const realtype *h, const realtype *xB, const realtype *w, const realtype *dwdx);
 extern void xdot_model_steadystate_scaled(realtype *xdot, const realtype t, const realtype *x, const realtype *p, const realtype *k, const realtype *h, const realtype *w);
-extern void y_model_steadystate_scaled(double *y, const realtype t, const realtype *x, const realtype *p, const realtype *k, const realtype *h);
+extern void y_model_steadystate_scaled(double *y, const realtype t, const realtype *x, const realtype *p, const realtype *k, const realtype *h, const realtype *w);
 
 /**
  * @brief AMICI-generated model subclass.
@@ -254,7 +255,7 @@ public:
      * @param my measurement at timepoint
      **/
     virtual void fdJydsigma(double *dJydsigma, const int iy, const realtype *p, const realtype *k, const double *y, const double *sigmay, const double *my) override {
-        dJydsigma_model_steadystate_scaled(dJydsigma, iy, p, k, y, sigmay, my);
+        dJydsigmay_model_steadystate_scaled(dJydsigma, iy, p, k, y, sigmay, my);
     }
     
     /** model specific implementation of fdJydy
@@ -454,8 +455,8 @@ public:
      * @param k constant vector
      * @param h heavyside vector
      **/
-    virtual void fdydx(double *dydx, const realtype t, const realtype *x, const realtype *p, const realtype *k, const realtype *h) override {
-        dydx_model_steadystate_scaled(dydx, t, x, p, k, h);
+    virtual void fdydx(double *dydx, const realtype t, const realtype *x, const realtype *p, const realtype *k, const realtype *h, const realtype *w, const realtype *dwdx) override {
+        dydx_model_steadystate_scaled(dydx, t, x, p, k, h, w, dwdx);
     }
     
     /** model specific implementation of fdydp
@@ -467,8 +468,8 @@ public:
      * @param h heavyside vector
      * @param ip parameter index w.r.t. which the derivative is requested
      **/
-    virtual void fdydp(double *dydp, const realtype t, const realtype *x, const realtype *p, const realtype *k, const realtype *h, const int ip) override {
-        dydp_model_steadystate_scaled(dydp, t, x, p, k, h, ip);
+    virtual void fdydp(double *dydp, const realtype t, const realtype *x, const realtype *p, const realtype *k, const realtype *h, const int ip, const realtype *w, const realtype *dwdp) override {
+        dydp_model_steadystate_scaled(dydp, t, x, p, k, h, ip, w, dwdp);
     }
     
     /** model specific implementation of fdzdp
@@ -594,6 +595,18 @@ public:
         sx0_model_steadystate_scaled(sx0, t, x0, p, k, ip);
     }
     
+    /** model specific implementation of fsx0_fixedParameters
+     * @param sx0 initial state sensitivities
+     * @param t initial time
+     * @param x0 initial state
+     * @param p parameter vector
+     * @param k constant vector
+     * @param ip sensitivity index
+     **/
+    virtual void fsx0_fixedParameters(realtype *sx0, const realtype t,const realtype *x0, const realtype *p, const realtype *k, const int ip) override {
+        sx0_fixedParameters_model_steadystate_scaled(sx0, t, x0, p, k, ip);
+    }
+    
     /** model specific implementation of fsxdot
      * @param sxdot sensitivity rhs
      * @param t timepoint
@@ -694,8 +707,8 @@ public:
      * @param k constant vector
      * @param h heavyside vector
      **/
-    virtual void fy(double *y, const realtype t, const realtype *x, const realtype *p, const realtype *k, const realtype *h) override {
-        y_model_steadystate_scaled(y, t, x, p, k, h);
+    virtual void fy(double *y, const realtype t, const realtype *x, const realtype *p, const realtype *k, const realtype *h, const realtype *w) override {
+        y_model_steadystate_scaled(y, t, x, p, k, h, w);
     }
     
     /** model specific implementation of fz

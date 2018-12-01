@@ -1,6 +1,0 @@
-#define w0 w[0]
-#define w1 w[1]
-#define w2 w[2]
-#define w3 w[3]
-#define w4 w[4]
-#define w5 w[5]

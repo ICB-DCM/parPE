@@ -80,11 +80,11 @@ void ExampleSteadystateGradientFunction::readFixedParameters(int conditionIdx) c
 void ExampleSteadystateGradientFunction::readMeasurement(int conditionIdx) const {
     edata->setObservedData(
                 parpe::hdf5Get3DDoubleHyperslab(fileId, "/measurements/y",
-                                                1, edata->nt(), edata->nytrue,
+                                                1, edata->nt(), edata->nytrue(),
                                                 conditionIdx, 0, 0));
     edata->setObservedDataStdDev(
                 parpe::hdf5Get3DDoubleHyperslab(fileId, "/measurements/ysigma",
-                                                1, edata->nt(), edata->nytrue,
+                                                1, edata->nt(), edata->nytrue(),
                                                 conditionIdx, 0, 0));
 }
 

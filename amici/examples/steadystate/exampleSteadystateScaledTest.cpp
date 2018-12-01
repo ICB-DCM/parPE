@@ -71,7 +71,7 @@ TEST(steadystateProblemTests, testSteadystate) {
     edata.setObservedDataStdDev(std::vector<double>(yExp.size(), 1.0));
     rdata = amici::runAmiciSimulation(*solver, &edata, *model);
     CHECK_EQUAL(rdata->status, AMICI_SUCCESS);
-    DOUBLES_EQUAL(parpe::getLogLikelihoodOffset(edata.nt() * edata.nytrue), rdata->llh, 1e-5);
+    DOUBLES_EQUAL(parpe::getLogLikelihoodOffset(edata.nt() * edata.nytrue()), rdata->llh, 1e-5);
 }
 
 TEST(steadystateProblemTests, testSteadystateMultiCond) {

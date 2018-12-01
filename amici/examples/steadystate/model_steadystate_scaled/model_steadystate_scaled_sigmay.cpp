@@ -1,11 +1,11 @@
 #include "amici/symbolic_functions.h"
 #include "amici/defines.h" //realtype definition
 using amici::realtype;
-#include <cmath> 
+#include <cmath>
 
 
-#include "parameter.h"
-#include "fixed_parameter.h"
+#include "p.h"
+#include "k.h"
 
 void sigmay_model_steadystate_scaled(double *sigmay, const realtype t, const realtype *p, const realtype *k){
     sigmay[0] = 1.0;

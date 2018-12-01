@@ -117,7 +117,7 @@ int StandaloneSimulator::run(const std::string& resultFile,
             errors += result.second.status;
             int conditionIdx = result.first;
             auto edata = dataProvider->getExperimentalDataForCondition(conditionIdx);
-            rw.saveMeasurements(edata->getObservedData(), edata->nt(), edata->nytrue, conditionIdx);
+            rw.saveMeasurements(edata->getObservedData(), edata->nt(), edata->nytrue(), conditionIdx);
             rw.saveModelOutputs(result.second.modelOutput,  model->nt(), model->nytrue, conditionIdx);
             rw.saveLikelihood(result.second.llh, conditionIdx);
         }
@@ -165,7 +165,7 @@ int StandaloneSimulator::run(const std::string& resultFile,
                         modelOutputs[conditionIdx],
                         fullSigmaMatrices[conditionIdx]);
             auto edata = dataProvider->getExperimentalDataForCondition(conditionIdx);
-            rw.saveMeasurements(edata->getObservedData(), edata->nt(), edata->nytrue, conditionIdx);
+            rw.saveMeasurements(edata->getObservedData(), edata->nt(), edata->nytrue(), conditionIdx);
             rw.saveModelOutputs(modelOutputs[conditionIdx],  model->nt(), model->nytrue, conditionIdx);
             rw.saveLikelihood(llh, conditionIdx);
         }

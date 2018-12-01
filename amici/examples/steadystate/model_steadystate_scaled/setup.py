@@ -48,7 +48,7 @@ if hdf5_enabled:
     libraries.extend(['hdf5_hl_cpp', 'hdf5_hl', 'hdf5_cpp', 'hdf5'])
 
 sources = ['swig/model_steadystate_scaled.i', *getModelSources()]
-    
+
 
 # Remove the "-Wstrict-prototypes" compiler option, which isn't valid for
 # C++ to fix warnings.
@@ -57,12 +57,17 @@ for key, value in cfg_vars.items():
     if isinstance(value, str):
         cfg_vars[key] = value.replace("-Wstrict-prototypes", "")
 
+# compiler and linker flags for libamici
+if 'AMICI_CXXFLAGS' in os.environ:
+    cxx_flags.extend(os.environ['AMICI_CXXFLAGS'].split(' '))
+if 'AMICI_LDFLAGS' in os.environ:
+    linker_flags.extend(os.environ['AMICI_LDFLAGS'].split(' '))
 
 # Build shared object
 model_module = Extension('model_steadystate_scaled._model_steadystate_scaled',
                          sources=sources,
                          include_dirs=[os.getcwd(),
-                                       os.path.join(amici_path, 'include'), 
+                                       os.path.join(amici_path, 'include'),
                                        os.path.join(amici_path, 'ThirdParty/sundials/include'),
                                        os.path.join(amici_path, 'ThirdParty/SuiteSparse/include'),
                                        *h5pkgcfg['include_dirs'],
