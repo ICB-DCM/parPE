@@ -62,7 +62,7 @@ if(${ENABLE_DLIB})
 endif(${ENABLE_DLIB})
 
 # write config header
-configure_file(${CMAKE_CURRENT_LIST_DIR}/common/src/parpeConfig.h.in ${CMAKE_CURRENT_LIST_DIR}/common/src/parpeConfig.h @ONLY)
+configure_file(${CMAKE_CURRENT_LIST_DIR}/common/src/parpeConfig.h.in ${CMAKE_CURRENT_BINARY_DIR}/common/src/parpeConfig.h @ONLY)
 
 # PThreads
 set(THREADS_PREFER_PTHREAD_FLAG ON)
