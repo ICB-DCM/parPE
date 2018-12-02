@@ -1,6 +1,6 @@
-#ifdef PARPE_ENABLE_MPI
-
 #include "loadBalancerMaster.h"
+
+#ifdef PARPE_ENABLE_MPI
 
 #include <cassert>
 #include <climits>
