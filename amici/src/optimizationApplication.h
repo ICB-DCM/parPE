@@ -1,8 +1,12 @@
 #ifndef OPTIMIZATIONAPPLICATION_H
 #define OPTIMIZATIONAPPLICATION_H
 
+#include "parpeConfig.h"
+
+#ifdef PARPE_ENABLE_MPI
 #include <loadBalancerMaster.h>
 #include <loadBalancerWorker.h>
+#endif
 
 #include "multiConditionProblem.h"
 #include "hierarchicalOptimization.h"
@@ -11,6 +15,12 @@
 #include <string>
 
 namespace parpe {
+
+#ifndef PARPE_ENABLE_MPI
+// Workaround to allow building without MPI. Should be cleaned up.
+using LoadBalancerMaster = int;
+using LoadBalancerWorker = int;
+#endif
 
 /**
  * @brief The OptimizationApplication class parses command line arguments,
@@ -47,16 +57,18 @@ class OptimizationApplication {
      */
     virtual void runMaster();
 
+#ifdef PARPE_ENABLE_MPI
     /**
      * @brief Code to be run on worker processes. Waits for jobs to be sent to
      * messageHandler()
      */
     virtual void runWorker();
+#endif
 
     /**
      * @brief Code to be run if the application is running on only 1 process
      */
-    virtual void runSingleMpiProcess();
+    virtual void runSingleProcess();
 
   protected:
 

@@ -1,6 +1,4 @@
 #include "optimizationProblem.h"
-#include "localOptimizationCeres.h"
-#include "localOptimizationIpopt.h"
 #include "logging.h"
 #include "misc.h"
 #include "optimizationOptions.h"

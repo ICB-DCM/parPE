@@ -1,9 +1,12 @@
-#include "testingMisc.h"
 #include "CppUTest/TestHarness.h"
 #include "CppUTestExt/MockSupport.h"
 
+#include <parpeConfig.h>
 #include <misc.h>
 #include <multiConditionProblem.h>
+#include "testingMisc.h"
+
+#ifdef PARPE_ENABLE_IPOPT
 #include <localOptimizationIpopt.h>
 #include <hierarchicalOptimization.h>
 
@@ -249,3 +252,4 @@ TEST(steadystateProblemTests, testOptimizationHierarchical) {
 
     // TODO: make identifiable
 }
+#endif

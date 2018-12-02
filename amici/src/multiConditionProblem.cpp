@@ -14,6 +14,10 @@
 #include <numeric>
 #include <utility>
 
+#ifndef PARPE_ENABLE_MPI
+// Workaround to allow building without MPI. Should be cleaned up.
+using LoadBalancerMaster = int;
+#endif
 
 namespace parpe {
 
@@ -258,7 +262,7 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
         Logger* logger)
 {
     /* wall time  on worker for current simulation */
-    double startTime = MPI_Wtime();
+    WallTimer simulationTimer;
 
     // run simulation
 
@@ -315,8 +319,7 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
     solver.setRelativeTolerance(relTolOrig);
     solver.setRelativeToleranceQuadratures(relTolQuadOrig);
 
-    double endTime = MPI_Wtime();
-    double timeSeconds = (endTime - startTime);
+    double timeSeconds = simulationTimer.getTotal();
 
     printSimulationResult(logger, jobId, rdata.get(), timeSeconds);
 

@@ -1,6 +1,7 @@
 #include <CppUTest/TestHarness.h>
 #include <CppUTestExt/MockSupport.h>
 
+#include "parpeConfig.h"
 #include <minibatchOptimization.h>
 #include <model.h>
 #include <optimizationOptions.h>
@@ -197,6 +198,7 @@ TEST(minibatchOptimizationLinearModel, linearModelCheckCostGradient) {
     // TODO: check results automatically
 }
 
+#ifdef PARPE_ENABLE_IPOPT
 //#include <localOptimizationFsqp.h>
 #include <localOptimizationIpopt.h>
 TEST(minibatchOptimizationLinearModel, linearModelTestBatchOptimizerSucceeds) {
@@ -215,7 +217,7 @@ TEST(minibatchOptimizationLinearModel, linearModelTestBatchOptimizerSucceeds) {
         DOUBLES_EQUAL(trueParameters[i], std::get<2>(resultBatchOpt)[i], 1e-6);
     // -> is identifiable and gradient okay
 }
-
+#endif
 
 TEST(minibatchOptimizationLinearModel, linearModel) {
     // optimization/tests/unittests_optimization -sg minibatchOptimizationLinearModel -sn linearModel

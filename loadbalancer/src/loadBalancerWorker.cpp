@@ -1,3 +1,5 @@
+#ifdef PARPE_ENABLE_MPI
+
 #include "loadBalancerWorker.h"
 
 #include <alloca.h>
@@ -73,3 +75,5 @@ bool LoadBalancerWorker::waitForAndHandleJobs(const messageHandlerFunc& messageH
 }
 
 } // namespace parpe
+
+#endif

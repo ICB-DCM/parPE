@@ -1,6 +1,8 @@
 #ifndef CPP_MISC_H
 #define CPP_MISC_H
 
+#include "parpeConfig.h"
+
 #include <stdlib.h>
 #include <memory>
 #include <cstdio>

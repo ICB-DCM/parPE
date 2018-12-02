@@ -9,7 +9,9 @@
 #include <amiciMisc.h>
 #include <hdf5Misc.h>
 
+#ifdef PARPE_ENABLE_MPI
 #include <mpi.h>
+#endif
 
 #include <cstring>
 #include <ctime>
@@ -144,6 +146,8 @@ void OptimizationApplication::logParPEVersion(hid_t file_id) const
 }
 
 void OptimizationApplication::initMPI(int *argc, char ***argv) {
+#ifdef PARPE_ENABLE_MPI
+
     int mpiErr = MPI_Init(argc, argv);
     if (mpiErr != MPI_SUCCESS) {
         logmessage(LOGLVL_CRITICAL, "Problem initializing MPI. Exiting.");
@@ -156,6 +160,7 @@ void OptimizationApplication::initMPI(int *argc, char ***argv) {
         int commSize = getMpiCommSize();
         logmessage(LOGLVL_INFO, "Running with %d MPI processes.", commSize);
     }
+#endif
 }
 
 int OptimizationApplication::run(int argc, char **argv) {
@@ -177,6 +182,7 @@ int OptimizationApplication::run(int argc, char **argv) {
 
     initProblem(dataFileName, resultFileName);
 
+#ifdef PARPE_ENABLE_MPI
     int commSize = getMpiCommSize();
 
     if (commSize > 1) {
@@ -194,11 +200,13 @@ int OptimizationApplication::run(int argc, char **argv) {
             finalizeTiming(wallTimer.getTotal(), cpuTimer.getTotal());
         }
     } else {
-        runSingleMpiProcess();
+#endif
+        runSingleProcess();
 
         finalizeTiming(wallTimer.getTotal(), cpuTimer.getTotal());
+#ifdef PARPE_ENABLE_MPI
     }
-
+#endif
     return status;
 }
 
@@ -218,6 +226,7 @@ void OptimizationApplication::runMaster() {
     }
 }
 
+#ifdef PARPE_ENABLE_MPI
 void OptimizationApplication::runWorker() {
     // TODO: Move out of here
     LoadBalancerWorker lbw;
@@ -235,8 +244,9 @@ void OptimizationApplication::runWorker() {
         }
     });
 }
+#endif
 
-void OptimizationApplication::runSingleMpiProcess() {
+void OptimizationApplication::runSingleProcess() {
     // run serially
     switch (operationType) {
     case OperationType::gradientCheck: {
@@ -258,17 +268,17 @@ void OptimizationApplication::runSingleMpiProcess() {
 }
 
 void OptimizationApplication::finalizeTiming(double wallTimeSeconds, double cpuTimeSeconds) {
+#ifdef PARPE_ENABLE_MPI
     // wall-time for current MPI process
-
     // total run-time
     double totalCpuTimeInSeconds = 0;
+
     if(getMpiActive()) {
         MPI_Reduce(&cpuTimeSeconds, &totalCpuTimeInSeconds, 1, MPI_DOUBLE, MPI_SUM, 0,
                    MPI_COMM_WORLD);
     } else {
         totalCpuTimeInSeconds = cpuTimeSeconds;
     }
-
     int mpiRank = getMpiRank();
 
     if (mpiRank < 1) {
@@ -276,6 +286,11 @@ void OptimizationApplication::finalizeTiming(double wallTimeSeconds, double cpuT
                    wallTimeSeconds, totalCpuTimeInSeconds);
         saveTotalCpuTime(file_id, totalCpuTimeInSeconds);
     }
+#else
+    logmessage(LOGLVL_INFO, "Total walltime: %fs, CPU time: %fs",
+               wallTimeSeconds, cpuTimeSeconds);
+    saveTotalCpuTime(file_id, cpuTimeSeconds);
+#endif
 }
 
 std::string OptimizationApplication::processResultFilenameCommandLineArgument(
@@ -319,8 +334,10 @@ OptimizationApplication::~OptimizationApplication() {
     // and Hdf5 mutex is destroyed
     closeHDF5File(file_id);
     problem.reset(nullptr);
+#ifdef PARPE_ENABLE_MPI
     if(getMpiActive())
         MPI_Finalize();
+#endif
 }
 
 void saveTotalCpuTime(hid_t file_id, const double timeInSeconds)

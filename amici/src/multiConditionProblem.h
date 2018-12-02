@@ -1,16 +1,21 @@
 #ifndef PARPE_AMICI_MULTI_CONDITION_PROBLEM_H
 #define PARPE_AMICI_MULTI_CONDITION_PROBLEM_H
 
+#include "parpeConfig.h"
+
 #include <amici/serialization.h>
 #include <boost/serialization/map.hpp>
 
 #include "multiConditionDataProvider.h"
 #include <multiStartOptimization.h>
 #include <optimizationProblem.h>
-#include <loadBalancerMaster.h>
-#include <loadBalancerWorker.h>
 #include "amiciSimulationRunner.h"
 #include <minibatchOptimization.h>
+
+#ifdef PARPE_ENABLE_MPI
+#include <loadBalancerWorker.h>
+#endif
+#include <loadBalancerMaster.h>
 
 #include <amici/amici.h>
 
@@ -194,15 +199,18 @@ public:
                                         logger?logger->getPrefix():"");
 
 
+#ifdef PARPE_ENABLE_MPI
         if (loadBalancer && loadBalancer->isRunning()) {
             errors += simRunner.runDistributedMemory(loadBalancer, maxSimulationsPerPackage);
         } else {
+#endif
             errors += simRunner.runSharedMemory(
                         [&](std::vector<char> &buffer, int jobId) {
                     messageHandler(buffer, jobId);
         }, true);
+#ifdef PARPE_ENABLE_MPI
         }
-
+#endif
         return errors == 0 ? functionEvaluationSuccess : functionEvaluationFailure;
     }
 
@@ -316,6 +324,7 @@ protected:// for testing
                                           simulationTimeSec);
         }, nullptr,  logger?logger->getPrefix():"");
 
+#ifdef PARPE_ENABLE_MPI
         if (loadBalancer && loadBalancer->isRunning()) {
             // When running simulations (without gradient), send more simulations to each worker
             // to reduce communication overhead
@@ -323,11 +332,14 @@ protected:// for testing
             errors += simRunner.runDistributedMemory(loadBalancer,
                                                      objectiveFunctionGradient.size() ? maxGradientSimulationsPerPackage : maxSimulationsPerPackage);
         } else {
+#endif
             errors += simRunner.runSharedMemory(
                         [&](std::vector<char> &buffer, int jobId) {
                     messageHandler(buffer, jobId);
         }, true);
+#ifdef PARPE_ENABLE_MPI
         }
+#endif
         if(cpuTime)
             *cpuTime = simulationTimeSec;
 

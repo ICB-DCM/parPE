@@ -1,3 +1,5 @@
+#ifdef PARPE_ENABLE_MPI
+
 #include "loadBalancerMaster.h"
 
 #include <cassert>
@@ -302,3 +304,5 @@ bool LoadBalancerMaster::isRunning() const
 }
 
 } // namespace parpe
+
+#endif

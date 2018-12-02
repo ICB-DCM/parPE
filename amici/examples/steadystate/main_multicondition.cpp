@@ -1,8 +1,13 @@
 #include "steadyStateMultiConditionDataprovider.h"
 #include "wrapfunctions.h"
 
+#include <parpeConfig.h>
 #include <optimizationOptions.h>
+
+#ifdef PARPE_ENABLE_MPI
 #include <loadBalancerWorker.h>
+#endif
+
 #include <hdf5Misc.h>
 #include <logging.h>
 #include <optimizationApplication.h>

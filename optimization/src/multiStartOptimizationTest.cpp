@@ -1,9 +1,13 @@
 #include "CppUTest/TestHarness.h"
 #include "CppUTestExt/MockSupport.h"
-#include "localOptimizationIpopt.h"
+
+#include "parpeConfig.h"
 #include "multiStartOptimization.h"
 #include "quadraticTestProblem.h"
 #include "testingMisc.h"
+
+#ifdef PARPE_ENABLE_IPOPT
+#include "localOptimizationIpopt.h"
 
 // clang-format off
 TEST_GROUP(multiStartOptimization){
@@ -35,3 +39,4 @@ TEST(multiStartOptimization, testMultiStartOptimization) {
 }
 
 // TODO: test retry on error
+#endif

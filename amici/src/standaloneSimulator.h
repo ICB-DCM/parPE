@@ -1,6 +1,7 @@
 #ifndef STANDALONESIMULATOR_H
 #define STANDALONESIMULATOR_H
 
+#include "parpeConfig.h"
 #include "multiConditionProblem.h"
 
 #include <amici/amici.h>

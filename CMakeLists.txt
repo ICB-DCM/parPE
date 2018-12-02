@@ -33,7 +33,7 @@ set(BUILD_EXAMPLES TRUE CACHE BOOL "Build examples?")
 set(BUILD_DOCS FALSE CACHE BOOL "Generate documentation?")
 set(BLAS "CBLAS" CACHE STRING "BLAS library to use")
 set_property(CACHE BLAS PROPERTY STRINGS "CBLAS" "MKL")
-#set(USE_MPI TRUE CACHE BOOL "Use MPI?")
+set(PARPE_ENABLE_MPI TRUE CACHE BOOL "Use MPI?")
 set(IPOPT_DIR "" CACHE PATH "IpOpt root directory")
 set(IPOPT_INCLUDE_DIRS "${IPOPT_DIR}/include/coin/"  CACHE PATH "IpOpt include directory")
 set(IPOPT_LIBRARIES ${IPOPT_DIR}/lib/libipopt.a ${IPOPT_DIR}/lib/libcoinhsl.a gfortran CACHE STRINGS "IpOpt library")
@@ -45,9 +45,8 @@ set(PARPE_ENABLE_DLIB FALSE CACHE BOOL "Enable dlib optimizers?")
 set(PARPE_ENABLE_TOMS611 FALSE CACHE BOOL "Enable toms611 optimizers?")
 set(PARPE_ENABLE_FSQP FALSE CACHE BOOL "Enable FSQP optimizers?")
 
-# Enable MPI? Currently mandatory.
-set(USE_MPI ON)
-if(${USE_MPI})
+# Enable MPI?
+if(${PARPE_ENABLE_MPI})
     find_package(MPI REQUIRED)
     add_definitions(-DUSE_MPI)
     if(IS_DIRECTORY ${MPI_INCLUDE_DIRS})
@@ -55,7 +54,7 @@ if(${USE_MPI})
         # this is only added for convenient IDE integration
         include_directories(${MPI_INCLUDE_DIRS})
     endif()
-endif(${USE_MPI})
+endif(${PARPE_ENABLE_MPI})
 # </Build options>
 
 if(${ENABLE_DLIB})
@@ -162,7 +161,9 @@ add_custom_target(cloc
 
 add_subdirectory(common)
 add_subdirectory(optimization)
+#if(${PARPE_ENABLE_MPI})
 add_subdirectory(loadbalancer)
+#endif(${PARPE_ENABLE_MPI})
 add_subdirectory(amici)
 
 # create single library

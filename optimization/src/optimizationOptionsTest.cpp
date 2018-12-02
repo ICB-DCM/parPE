@@ -3,20 +3,25 @@
 
 #include <iostream>
 
+#include "parpeConfig.h"
 #include "optimizationOptions.h"
 #include "testingMisc.h"
 #include <hdf5Misc.h>
+
+#ifdef PARPE_ENABLE_IPOPT
 #include "localOptimizationIpopt.h"
 #include "localOptimizationIpoptTNLP.h"
-#include "localOptimizationCeres.h"
+#endif
 
+#ifdef PARPE_ENABLE_CERES
+#include "localOptimizationCeres.h"
 #include <ceres/gradient_problem_solver.h>
 
 // need prototype here, otherwise mess with headers (including ceres.h causes some errors with EIGEN)
 namespace parpe {
 void setCeresOption(const std::pair<const std::string, const std::string> &pair, ceres::GradientProblemSolver::Options* options);
 } // namespace parpe
-
+#endif
 
 // clang-format off
 TEST_GROUP(optimizationOptions){
@@ -69,6 +74,7 @@ TEST(optimizationOptions, getNonExistingOption) {
     CHECK_THROWS(std::invalid_argument, o.getIntOption("missingKey"));
 }
 
+#ifdef PARPE_ENABLE_IPOPT
 TEST(optimizationOptions, setIpOptOptions) {
     std::string key = "max_iter";
     int expVal = 10;
@@ -84,7 +90,9 @@ TEST(optimizationOptions, setIpOptOptions) {
     CHECK_EQUAL(true, options->GetIntegerValue(key, actVal, ""));
     CHECK_EQUAL(expVal, actVal);
 }
+#endif
 
+#ifdef PARPE_ENABLE_CERES
 TEST(optimizationOptions, setCeresOptions) {
     std::string key = "max_num_iterations";
     int expVal = 10;
@@ -100,6 +108,7 @@ TEST(optimizationOptions, setCeresOptions) {
     // NOTE: disabled for ceres 1.11 compatibility CHECK_TRUE(options.IsValid(nullptr));
     CHECK_EQUAL(expVal, actVal);
 }
+#endif
 
 TEST(optimizationOptions, fromHDF5) {
     char tmpName[TMP_MAX];

@@ -1,6 +1,7 @@
 #ifndef LOGGING_H
 #define LOGGING_H
 
+#include "parpeConfig.h"
 #include <misc.h> // make_unique
 
 #include <string>

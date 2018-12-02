@@ -3,7 +3,9 @@
 #include "amiciSimulationRunner.h"
 #include "simulationResultWriter.h"
 #include <loadBalancerMaster.h>
+#ifdef PARPE_ENABLE_MPI
 #include <loadBalancerWorker.h>
+#endif
 #include <optimizationOptions.h>
 #include <misc.h>
 #include <hierarchicalOptimization.h>
@@ -180,14 +182,18 @@ int StandaloneSimulator::run(const std::string& resultFile,
                                     jobFinished,
                                     allFinished);
 
+#ifdef PARPE_ENABLE_MPI
     if (loadBalancer && loadBalancer->isRunning()) {
         errors += simRunner.runDistributedMemory(loadBalancer, maxSimulationsPerPackage);
     } else {
+#endif
         errors += simRunner.runSharedMemory(
                     [&](std::vector<char> &buffer, int jobId) {
                 messageHandler(buffer, jobId);
     });
+#ifdef PARPE_ENABLE_MPI
     }
+#endif
 
     return errors;
 }
@@ -492,8 +498,9 @@ int runSimulator(MultiConditionDataProvider &dp,
 {
     parpe::StandaloneSimulator sim(&dp);
     int status = 0;
-    int commSize = parpe::getMpiCommSize();
 
+#ifdef PARPE_ENABLE_MPI
+    int commSize = parpe::getMpiCommSize();
     if (commSize > 1) {
         if (parpe::getMpiRank() == 0) {
             parpe::LoadBalancerMaster loadBalancer;
@@ -511,11 +518,14 @@ int runSimulator(MultiConditionDataProvider &dp,
             });
         }
     } else {
+#endif
         status = runSimulationTasks(sim, simulationMode,
                                     conditionFileName, conditionFilePath,
                                     parameterFileName, parameterFilePath,
                                     resultFileName, resultPath, nullptr);
+#ifdef PARPE_ENABLE_MPI
     }
+#endif
 
     return status;
 }
