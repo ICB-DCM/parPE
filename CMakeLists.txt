@@ -18,7 +18,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wno-unused-function -f
 # Version number from git
 add_custom_target(get_version ALL
     COMMAND ${CMAKE_COMMAND} -DINFILE=${PROJECT_SOURCE_DIR}/common/src/parpeVersion.h.in
-    -DOUTFILE=${PROJECT_SOURCE_DIR}/common/src/parpeVersion.h
+    -DOUTFILE=${PROJECT_BINARY_DIR}/common/src/parpeVersion.h
     -P ${PROJECT_SOURCE_DIR}/CMakeModules/ConfigureVersion.cmake)
 
 include("getVersion")
@@ -60,9 +60,6 @@ endif(${PARPE_ENABLE_MPI})
 if(${ENABLE_DLIB})
     set(DLIB_DIR "${CMAKE_CURRENT_LIST_DIR}/ThirdParty/dlib-19.7" CACHE FILEPATH "DLIB base directory")
 endif(${ENABLE_DLIB})
-
-# write config header
-configure_file(${CMAKE_CURRENT_LIST_DIR}/common/src/parpeConfig.h.in ${CMAKE_CURRENT_BINARY_DIR}/common/src/parpeConfig.h @ONLY)
 
 # PThreads
 set(THREADS_PREFER_PTHREAD_FLAG ON)
