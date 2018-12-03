@@ -531,9 +531,13 @@ class HDF5DataGenerator:
 
     def handleFixedParameter(self, parameterIndex, parameterName, dset):
         """
-        Extract parameter values from data table and set to dset
+        Extract parameter values from data table or model and set to dset
 
-        NOTE: parameters which are not provided in fixedParametersDf are set to 0.0
+        Lookup order is condition table > model parameter > model species
+
+        condition table is expected to have "globalized names", i.e. reactionId_localParameterId
+
+        NOTE: parameters which are not provided in fixedParametersDf or model are set to 0.0
 
         Arguments:
         parameterIndex: Index of the current fixed parameter
@@ -542,17 +546,45 @@ class HDF5DataGenerator:
         """
 
         if parameterName in self.fixedParametersDf.index:
-            #print(parameterName, ' ' , parameterIndex)
-            #print(self.fixedParametersDf.loc[parameterName, self.conditions].values)
+            # Parameter in condition table
             dset[parameterIndex, :] = self.fixedParametersDf.loc[parameterName,
                                                                  self.conditions].values
         else:
-            # initial states
-            #         s = self.sbmlModel.getSpecies(parameterName)
-            print(
-                "Warning: Fixed parameter not found in ExpTable, setting to 0.0: ", parameterName)
-            # TODO: use default values from model
-            dset[parameterIndex, :] = 0.0
+            sbml_parameter = self.sbmlModel.getParameter(parameterName)
+            if sbml_parameter:
+                # Parameter value from model
+                dset[parameterIndex, :] = sbml_parameter.getValue()
+            else:
+                sbml_species = self.sbmlModel.getSpecies(parameterName)
+                if sbml_species:
+                    # A constant species might have been turned in to a model parameter
+                    dset[parameterIndex, :] = sbml_species.getInitialConcentration()
+                else:
+                    # We need to check for "globalized" parameter names too (reactionId_localParameterId)
+                    # model has localParameterId, data file has globalized name
+                    global_name = self.getGlobalNameForLocalParameter(parameterName)
+                    if global_name:
+                        sbml_parameter = self.sbmlModel.getParameter(global_name)
+                        if sbml_parameter:
+                            # Use model parameter value
+                            dset[parameterIndex, :] = sbml_parameter.getValue()
+                        else:
+                            print("Warning: Fixed parameter not found in ExpTable, setting to 0.0: ", parameterName)
+                            dset[parameterIndex, :] = 0.0
+                    else:
+                        print("Warning: Fixed parameter not found in ExpTable, setting to 0.0: ", parameterName)
+                        dset[parameterIndex, :] = 0.0
+
+    def getGlobalNameForLocalParameter(self, needle_parameter_id):
+        sbml_model = self.sbmlModel
+        for reaction in sbml_model.getListOfReactions():
+            kl = reaction.getKineticLaw()
+            for p in kl.getListOfParameters():
+                parameter_id = p.getId()
+                if parameter_id.endswith(needle_parameter_id):
+                        return f'{reaction.getId()}_{parameter_id}'
+        return None
+
 
     def generateMeasurementMatrix(self):
         """
