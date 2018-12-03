@@ -39,7 +39,7 @@ def runTest(testId, logfile):
         mod = importlib.import_module(wrapper.modelName)
 
         model = mod.getModel()
-        model.setTimepoints(mod.amici.DoubleVector(ts))
+        model.setTimepoints(ts)
         solver = model.getSolver()
         solver.setMaxSteps(int(1e6))
         solver.setRelativeTolerance(rtol / 1000.0)
@@ -47,20 +47,19 @@ def runTest(testId, logfile):
         rdata = amici.runAmiciSimulation(model, solver)
         amountSpecies = settings['amount'].replace(' ', '').replace('\n', '').split(',')
         simulated_x = rdata['x']
-        test_x = results[1:, [1+ wrapper.speciesIndex[variable]  for variable in settings['variables'].replace(' ', '').replace('\n', '').split(',') if variable in wrapper.speciesIndex.keys() ] ]
+        test_x = results[1:, [1+ wrapper.speciesIndex[variable] for variable in settings['variables'].replace(' ', '').replace('\n', '').split(',') if variable in wrapper.speciesIndex.keys() ] ]
 
         for species in amountSpecies:
             if not species == '':
                 volume = wrapper.speciesCompartment[wrapper.speciesIndex[species]].subs(wrapper.compartmentSymbols,
                                                                                         wrapper.compartmentVolume)
                 simulated_x[:, wrapper.speciesIndex[species]] = simulated_x[:, wrapper.speciesIndex[species]] * volume
-            pass
 
         adev = abs(simulated_x - test_x)
         adev[np.isnan(adev)] = True
         rdev = abs((simulated_x - test_x) / test_x)
         rdev[np.isnan(rdev)] = True
-        if (not np.all(np.logical_or(adev < atol, rdev < rtol))):
+        if not np.all(np.logical_or(adev < atol, rdev < rtol)):
             if (not np.all(adev < atol)):
                 raise Exception('Absolute tolerance violated')
 
@@ -69,7 +68,6 @@ def runTest(testId, logfile):
 
     except amici.SBMLException as err:
         print("Did not run test " + testId + ": {0}".format(err))
-        pass
 
     except Exception as err:
         str = "Failed test " + testId + ": {0}".format(err)
@@ -109,8 +107,11 @@ def getTestStr(testId):
     return testStr
 
 def main():
-    for testId in range(1,1781):
-        with open("test.txt", "w") as logfile:
+    outfile = "testSuite.txt"
+    if os.path.isfile(outfile):
+        os.remove(outfile)
+    for testId in range(1, 1781):
+        with open(outfile, "a") as logfile:
             runTest(getTestStr(testId), logfile)
 
 if __name__ == '__main__':

@@ -1,9 +1,10 @@
 #include "amiciSimulationRunner.h"
+
 #include <loadBalancerMaster.h>
 
+#if defined(_OPENMP)
 #include <omp.h>
-
-#include <utility>
+#endif
 
 #include <utility>
 
@@ -12,21 +13,21 @@
 namespace parpe {
 
 AmiciSimulationRunner::AmiciSimulationRunner(std::vector<double> const& optimizationParameters,
-        amici::AMICI_sensi_order sensitivityOrder,
+        amici::SensitivityOrder sensitivityOrder,
         std::vector<int> const& conditionIndices,
         AmiciSimulationRunner::callbackJobFinishedType callbackJobFinished,
-        AmiciSimulationRunner::callbackAllFinishedType aggregate, const std::string &logPrefix)
+        AmiciSimulationRunner::callbackAllFinishedType aggregate, std::string logPrefix)
     : optimizationParameters(optimizationParameters),
     sensitivityOrder(sensitivityOrder),
     conditionIndices(conditionIndices),
     callbackJobFinished(std::move(std::move(callbackJobFinished))),
     aggregate(std::move(std::move(aggregate))),
-    logPrefix(logPrefix)
+    logPrefix(std::move(logPrefix))
 {
 
 }
 
-
+#ifdef PARPE_ENABLE_MPI
 int AmiciSimulationRunner::runDistributedMemory(LoadBalancerMaster *loadBalancer, const int maxSimulationsPerPackage)
 {
 #ifdef PARPE_SIMULATION_RUNNER_DEBUG
@@ -78,8 +79,9 @@ int AmiciSimulationRunner::runDistributedMemory(LoadBalancerMaster *loadBalancer
 
     return errors;
 }
+#endif
 
-int AmiciSimulationRunner::runSharedMemory(const LoadBalancerWorker::messageHandlerFunc& messageHandler, bool sequential)
+int AmiciSimulationRunner::runSharedMemory(const messageHandlerFunc& messageHandler, bool sequential)
 {
 #ifdef PARPE_SIMULATION_RUNNER_DEBUG
     printf("runSharedMemory\n");
@@ -87,10 +89,12 @@ int AmiciSimulationRunner::runSharedMemory(const LoadBalancerWorker::messageHand
 
     std::vector<JobData> jobs {static_cast<unsigned int>(conditionIndices.size())};
 
+#if defined(_OPENMP)
     if(sequential)
         omp_set_num_threads(1);
 
     #pragma omp parallel for
+#endif
     for (int simulationIdx = 0; simulationIdx < (signed)conditionIndices.size(); ++simulationIdx) {
         // to resuse the parallel code and for debugging we still serialze the job data here
         auto curConditionIndices = std::vector<int> {simulationIdx};
@@ -112,11 +116,12 @@ int AmiciSimulationRunner::runSharedMemory(const LoadBalancerWorker::messageHand
 
 }
 
+#ifdef PARPE_ENABLE_MPI
 void AmiciSimulationRunner::queueSimulation(LoadBalancerMaster *loadBalancer,
                                              JobData *d, int *jobDone,
                                              pthread_cond_t *jobDoneChangedCondition, pthread_mutex_t *jobDoneChangedMutex, int jobIdx,
                                              std::vector<double> const& optimizationParameters,
-                                             amici::AMICI_sensi_order sensitivityOrder,
+                                             amici::SensitivityOrder sensitivityOrder,
                                              std::vector<int> const& conditionIndices)
 {
     // TODO avoid copy optimizationParameters; reuse;; for const& in work package need to split into(de)serialize
@@ -132,6 +137,7 @@ void AmiciSimulationRunner::queueSimulation(LoadBalancerMaster *loadBalancer,
     loadBalancer->queueJob(d);
 
 }
+#endif
 
 void swap(AmiciSimulationRunner::AmiciResultPackageSimple &first, AmiciSimulationRunner::AmiciResultPackageSimple &second) {
     using std::swap;

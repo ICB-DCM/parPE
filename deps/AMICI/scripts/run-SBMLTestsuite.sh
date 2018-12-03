@@ -1,10 +1,4 @@
 #!/bin/bash
-# Check test suite with valgrind
-# Note: CppuTest memcheck should be disabled
-# Note: Consider using ctest -T memcheck instead
-
-AMICI_PATH="`dirname \"$0\"`"
-AMICI_PATH="`( cd \"$AMICI_PATH/..\" && pwd )`"
 
 set -e
 
@@ -14,7 +8,7 @@ if [ ! -d "tests/sbml-test-suite" ]; then
 	mv -f ./sbml-test-suite ./tests/sbml-test-suite
 fi
 
-python3 ./tests/testSBMLSuite.py
+source build/venv/bin/activate
+python ./tests/testSBMLSuite.py
 
-cat ./test.txt
-rm ./test.txt
+cat ./testSuite.txt

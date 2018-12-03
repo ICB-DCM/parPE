@@ -1,8 +1,13 @@
 #include "steadyStateMultiConditionDataprovider.h"
 #include "wrapfunctions.h"
 
+#include <parpeConfig.h>
 #include <optimizationOptions.h>
+
+#ifdef PARPE_ENABLE_MPI
 #include <loadBalancerWorker.h>
+#endif
+
 #include <hdf5Misc.h>
 #include <logging.h>
 #include <optimizationApplication.h>
@@ -35,10 +40,11 @@ class SteadystateApplication : public parpe::OptimizationApplication {
   public:
     using OptimizationApplication::OptimizationApplication;
 
-    virtual ~SteadystateApplication() override = default;
+    ~SteadystateApplication() override = default;
 
-    virtual void initProblem(std::string inFileArgument,
-                             std::string outFileArgument) override {
+    void initProblem(std::string inFileArgument,
+                     std::string outFileArgument) override
+    {
 
         // The same file should only be opened/created once, an then only be reopened
         file_id = parpe::hdf5CreateFile(outFileArgument.c_str(), true);
@@ -52,7 +58,8 @@ class SteadystateApplication : public parpe::OptimizationApplication {
 
         // Create one instance for the problem, one for the application for clear ownership
         auto multiCondProb = new parpe::MultiConditionProblem(
-                    dataProvider.get(), &loadBalancer,
+                    dataProvider.get(),
+                    &loadBalancer,
                     std::make_unique<parpe::Logger>(),
                     // TODO remove this resultwriter
                     std::make_unique<parpe::OptimizationResultWriter>(
@@ -60,7 +67,7 @@ class SteadystateApplication : public parpe::OptimizationApplication {
                         std::string("/multistarts/"))
                     );
 
-        // hierarchical optimization?
+        // If hierarchical optimization was requested, wrap the original problem
         if(optimizationOptions->hierarchicalOptimization) {
             problem.reset(new parpe::HierarchicalOptimizationProblemWrapper(
                               std::unique_ptr<parpe::MultiConditionProblem>(multiCondProb),
@@ -76,6 +83,7 @@ class SteadystateApplication : public parpe::OptimizationApplication {
         if(parpe::getMpiRank() < 1)
             dataProvider->copyInputData(file_id);
 
+        // TODO: we can set the correct start?
         auto ms = new parpe::MultiConditionProblemMultiStartOptimizationProblem(
                     dataProvider.get(),
                     problem->getOptimizationOptions(),

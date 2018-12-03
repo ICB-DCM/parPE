@@ -1,5 +1,7 @@
 #include "loadBalancerWorker.h"
 
+#ifdef PARPE_ENABLE_MPI
+
 #include <alloca.h>
 #include <cassert>
 #include <cstdlib>
@@ -23,7 +25,7 @@ void LoadBalancerWorker::run(messageHandlerFunc messageHandler) {
     }
 }
 
-bool LoadBalancerWorker::waitForAndHandleJobs(messageHandlerFunc messageHandler) {
+bool LoadBalancerWorker::waitForAndHandleJobs(const messageHandlerFunc& messageHandler) {
     int rank, err;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 #ifdef LOADBALANCERWORKER_REPORT_WAITING_TIME
@@ -73,3 +75,5 @@ bool LoadBalancerWorker::waitForAndHandleJobs(messageHandlerFunc messageHandler)
 }
 
 } // namespace parpe
+
+#endif

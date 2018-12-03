@@ -127,7 +127,7 @@ class MyIterationCallback : public ceres::IterationCallback {
     // Non-owning
     explicit MyIterationCallback(OptimizationReporter *reporter) : reporter(reporter) {}
 
-    virtual ceres::CallbackReturnType
+    ceres::CallbackReturnType
     operator()(const ceres::IterationSummary &summary) override {
 
         // TODO: print here

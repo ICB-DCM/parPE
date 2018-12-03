@@ -32,12 +32,17 @@ enum class learningRateInterp {
 
 
 /**
- * Problem definition for minibatch optimization
+ * @brief Problem definition for mini-batch optimization.
+ *
+ * This class provides cost function and training data for a mini-batch optimizer.
+ * Data maybe be the actual data or just an index list referencing the data, the
+ * cost function will operate on.
  */
 template<typename T>
 class MinibatchOptimizationProblem : public OptimizationProblem {
 public:
     MinibatchOptimizationProblem() = default;
+
     MinibatchOptimizationProblem(std::unique_ptr<SummedGradientFunction<T>> costFun,
                                  std::unique_ptr<Logger> logger)
         : OptimizationProblem(costFun, logger)

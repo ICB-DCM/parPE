@@ -7,11 +7,11 @@ Generate HDF5 file for parPE with fixed parameters and measurements for an AMICI
 Usage: __file__ hdf5File sbmlModelFile symsModelFile cost_func exp_table
 
 hdf5File:      Name of the generated HDF5 file
-sbmlModelFile: The SBML model for which the data is generated (not used anymore, possibly in future to access annotations) 
+sbmlModelFile: The SBML model for which the data is generated (not used anymore, possibly in future to access annotations)
 symsModelFile: The AMICI syms file
 cost_func:     The cost function file (PyBios) listing the experimental conditions to use
-exp_table:     Data table for fixed parameters for all conditions listed in cost_func 
-               (tsv: fixedParameters x conditions, row names according to model parameters, column names according to cost function) 
+exp_table:     Data table for fixed parameters for all conditions listed in cost_func
+               (tsv: fixedParameters x conditions, row names according to model parameters, column names according to cost function)
 """
 
 import amiciHelper
@@ -54,15 +54,15 @@ class AmiciPyModelParser:
 
     def readParameterNames(self):
         """Read list of parameter names"""
-        return self.parseHeader(os.path.join(self.modelDir, 'parameter.h'))
+        return self.parseHeader(os.path.join(self.modelDir, 'p.h'))
 
     def readFixedParameterNames(self):
         """Read list of fixed parameter names"""
-        return self.parseHeader(os.path.join(self.modelDir, 'fixed_parameter.h'))
+        return self.parseHeader(os.path.join(self.modelDir, 'k.h'))
 
     def readObservableNames(self):
         """Read list of observable names"""
-        return self.parseHeader(os.path.join(self.modelDir, 'observable.h'))
+        return self.parseHeader(os.path.join(self.modelDir, 'y.h'))
 
     def readObservableFormula(self):
         """Read list of observable formula"""
@@ -85,8 +85,8 @@ class AmiciPyModelParser:
 
 
 class HDF5DataGenerator:
-    """    
-    Generate HDF5 file with fixed parameters and measurements for an AMICI-imported SBML model 
+    """
+    Generate HDF5 file with fixed parameters and measurements for an AMICI-imported SBML model
     based on SBML model, AMICI syms file or model folder, measurement file and fixed parameter file.
     """
 
@@ -95,7 +95,7 @@ class HDF5DataGenerator:
         fileNameSBML: filename of model SBML file
         fileNameSyms: filename of AMICI model syms file or the model folder of a python-amici generated model
         fileMeasurements: filename of measurement file (TODO: specify format)
-        fileFixedParameters: filename with AMICI fixed parameter vectors for all conditions refered to in the measurement file 
+        fileFixedParameters: filename with AMICI fixed parameter vectors for all conditions refered to in the measurement file
         """
 
         # read symbols from compiled model to ensure correct ordering (might
@@ -219,8 +219,8 @@ class HDF5DataGenerator:
         self.writeOptimizationOptions()
 
     def generateParameterList(self):
-        """ 
-        Optimization to simulation parameter mapping. Write parameter names. 
+        """
+        Optimization to simulation parameter mapping. Write parameter names.
         """
 
         # simulation parameters from model
@@ -259,7 +259,7 @@ class HDF5DataGenerator:
 
     def replaceScalingParameterNames(self, parameterNames):
         """
-        Remove the "generic" names of the scaling parameter in the model and replace with the instances for the respective experiments 
+        Remove the "generic" names of the scaling parameter in the model and replace with the instances for the respective experiments
         """
 
         conditionSpecificScalingsUsed = self.getUsedScalingParameters()
@@ -277,7 +277,7 @@ class HDF5DataGenerator:
     def getUsedScalingParameters(self):
         """
         Get unique list of scaling parameters mentioned in measurement file
-        with optimization parameter names (*not* as in sbml/amici model) 
+        with optimization parameter names (*not* as in sbml/amici model)
         """
 
         # List of condition-specific parameter names
@@ -429,7 +429,7 @@ class HDF5DataGenerator:
 
     def generateFixedParameterMatrix(self):
         """
-        Write fixed parameters dataset (nFixedParameters x nConditions). 
+        Write fixed parameters dataset (nFixedParameters x nConditions).
         """
 
         k = self.amiciSyms.readFixedParameterNames()
@@ -478,7 +478,7 @@ class HDF5DataGenerator:
         """
         Write index map for reference conditions to be used for pre-equilibration
 
-        Parse conditionRef column, and write to hdf5 dataset. If conditionRef is empty, set to -1, otherwise to condition index       
+        Parse conditionRef column, and write to hdf5 dataset. If conditionRef is empty, set to -1, otherwise to condition index
         """
 
         # TODO: self.measurementDf.conditionRef: this should go to exp table to avoid potential redundancy/ambiguity in measurement file
@@ -531,28 +531,60 @@ class HDF5DataGenerator:
 
     def handleFixedParameter(self, parameterIndex, parameterName, dset):
         """
-        Extract parameter values from data table and set to dset
+        Extract parameter values from data table or model and set to dset
 
-        NOTE: parameters which are not provided in fixedParametersDf are set to 0.0
+        Lookup order is condition table > model parameter > model species
+
+        condition table is expected to have "globalized names", i.e. reactionId_localParameterId
+
+        NOTE: parameters which are not provided in fixedParametersDf or model are set to 0.0
 
         Arguments:
         parameterIndex: Index of the current fixed parameter
-        parameterName: Name of the current parameter 
+        parameterName: Name of the current parameter
         dset: 2D array-like (nFixedParameters x nConditions) where the parameter value is to be set
         """
 
         if parameterName in self.fixedParametersDf.index:
-            #print(parameterName, ' ' , parameterIndex)
-            #print(self.fixedParametersDf.loc[parameterName, self.conditions].values)
+            # Parameter in condition table
             dset[parameterIndex, :] = self.fixedParametersDf.loc[parameterName,
                                                                  self.conditions].values
         else:
-            # initial states
-            #         s = self.sbmlModel.getSpecies(parameterName)
-            print(
-                "Warning: Fixed parameter not found in ExpTable, setting to 0.0: ", parameterName)
-            # TODO: use default values from model
-            dset[parameterIndex, :] = 0.0
+            sbml_parameter = self.sbmlModel.getParameter(parameterName)
+            if sbml_parameter:
+                # Parameter value from model
+                dset[parameterIndex, :] = sbml_parameter.getValue()
+            else:
+                sbml_species = self.sbmlModel.getSpecies(parameterName)
+                if sbml_species:
+                    # A constant species might have been turned in to a model parameter
+                    dset[parameterIndex, :] = sbml_species.getInitialConcentration()
+                else:
+                    # We need to check for "globalized" parameter names too (reactionId_localParameterId)
+                    # model has localParameterId, data file has globalized name
+                    global_name = self.getGlobalNameForLocalParameter(parameterName)
+                    if global_name:
+                        sbml_parameter = self.sbmlModel.getParameter(global_name)
+                        if sbml_parameter:
+                            # Use model parameter value
+                            dset[parameterIndex, :] = sbml_parameter.getValue()
+                        else:
+                            print("Warning: Fixed parameter not found in ExpTable, setting to 0.0: ", parameterName)
+                            dset[parameterIndex, :] = 0.0
+                    else:
+                        print("Warning: Fixed parameter not found in ExpTable, setting to 0.0: ", parameterName)
+                        dset[parameterIndex, :] = 0.0
+
+    def getGlobalNameForLocalParameter(self, needle_parameter_id):
+        sbml_model = self.sbmlModel
+        for reaction in sbml_model.getListOfReactions():
+            kl = reaction.getKineticLaw()
+            for p in kl.getListOfParameters():
+                parameter_id = p.getId()
+                if parameter_id.endswith(needle_parameter_id):
+                        return f'{reaction.getId()}_{parameter_id}'
+        return None
+
 
     def generateMeasurementMatrix(self):
         """
@@ -602,7 +634,7 @@ class HDF5DataGenerator:
         """
         Get array with names of observables from SBML model.
 
-        NOTE: Observables are not accounted for in the SBML standard. 
+        NOTE: Observables are not accounted for in the SBML standard.
         We implement them as parameters and assignment rules.
         The respective parameters start with "observable_",
         but do not end in "_sigma", which is reserved for encoding the error model.
@@ -616,7 +648,12 @@ class HDF5DataGenerator:
                 #observableName = p[len('observable_'):]
                 observableName = p
                 observables.append(observableName)
-        return observables
+        observablesUni = amiciHelper.unique(observables)
+
+        if len(observables) != len(observablesUni):
+            print("!! %d redundant observable definitions in model"
+                  % (len(observables) - len(observablesUni)))
+        return observablesUni
 
     def writeMeasurements(self, dsetY, dsetSigmaY):
         """
@@ -648,11 +685,15 @@ class HDF5DataGenerator:
         Check if order of observables in SBML model match that of AMICI model (which is assumed here)
 
         Problem: order may have changed due to SBML which does not necessarily conserve ordering
-        Problem: formula matching is not straightforward, since they might have changed due to symbolic processing  
+        Problem: formula matching is not straightforward, since they might have changed due to symbolic processing
+
+        TODO: require finished amici python module for data generation, get order from there instead of sbml model
+        This will get rid of the checks
         """
 
         # The least we can do is compare the number of observables
-        assert(len(y) == len(observables))
+        if len(y) != len(observables):
+            raise AssertionError('y: %d, obs: %d' % (len(y), len(observables)))
 
         for i in range(len(observables)):
             observableName = observables[i]
@@ -664,7 +705,7 @@ class HDF5DataGenerator:
             obsSpecies = observableName[(observableName.rfind('_') + 1):]
             if amiciObsFormula.find(obsSpecies) < 0:
                 print(colored('Warning: Not sure if SBML observable "%s" matches AMICI formula "%s"' % (
-                    obsSpecies, amiciObsFormula), 'yellow'))
+                    observableName, amiciObsFormula), 'yellow'))
 
     def generateHierarchicalOptimizationData(self):
         """
@@ -683,8 +724,8 @@ class HDF5DataGenerator:
 
     def ensureNonOverlappingParameterForHierarchicalOptimization(self):
         """
-        Current parPE implementation of hierarchical optimization assumes that only one single  
-        offset or proportionality parameter is to be calculated per condition x observable. 
+        Current parPE implementation of hierarchical optimization assumes that only one single
+        offset or proportionality parameter is to be calculated per condition x observable.
         Will fail silently if there are more. Thus we need to check here.
         Also check that there is at most one sigma per condition x observable
         """
@@ -788,7 +829,7 @@ class HDF5DataGenerator:
     def ensureOffsetIsOffsetWithPositiveSign(self, scaling):
         """
         Current parPE implementation of hierarchical optimization assumes that offset parameters have positive sign.
-        Will fail silently if this is not true, therefore check here that it is in indeed an offset parameter and 
+        Will fail silently if this is not true, therefore check here that it is in indeed an offset parameter and
         that it has positive sign.
         """
 
@@ -812,8 +853,8 @@ class HDF5DataGenerator:
 
     def getNameAndFormulasForConditionSpecificParameter(self, parameterName):
         """
-        Get formula for the (first) observable associated with the provided condition-specific parameter 
-        (name provided as in measurement list, not as in model) 
+        Get formula for the (first) observable associated with the provided condition-specific parameter
+        (name provided as in measurement list, not as in model)
         """
         # get model parameter name
         name = self.getGenericParameterName(parameterName)
@@ -1040,7 +1081,7 @@ class HDF5DataGenerator:
         """
         Parameter bounds for optimizer
 
-        Offset parameters are allowed to be negative 
+        Offset parameters are allowed to be negative
         """
         numParams = self.f['/parameters/parameterNames'].shape[0]
         lower = self.f.require_dataset(
@@ -1059,7 +1100,7 @@ class HDF5DataGenerator:
 
     def writeStartingPoints(self):
         """
-        Write a list of random starting points uniformly sampled from the parameter bounds. 
+        Write a list of random starting points uniformly sampled from the parameter bounds.
         Parameter bounds need to be written beforehand.
         """
         numParams = self.f['/parameters/parameterNames'].shape[0]

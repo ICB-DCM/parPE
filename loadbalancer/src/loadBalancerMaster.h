@@ -1,12 +1,16 @@
 #ifndef LOADBALANCERMASTER_H
 #define LOADBALANCERMASTER_H
 
-#include <mpi.h>
+#include "parpeConfig.h"
 
 #include <pthread.h>
 #include <queue>
 #include <semaphore.h>
 #include <functional>
+
+#ifdef PARPE_ENABLE_MPI
+#include <mpi.h>
+#endif
 
 namespace parpe {
 
@@ -42,6 +46,9 @@ struct JobData {
     /** callback when job is finished */
     std::function<void(JobData*)> callbackJobFinished = nullptr;
 };
+
+
+#ifdef PARPE_ENABLE_MPI
 
 class LoadBalancerMaster {
   public:
@@ -130,6 +137,8 @@ class LoadBalancerMaster {
 
     pthread_t queueThread = 0;
 };
+
+#endif
 
 } // namespace parpe
 

@@ -3,7 +3,9 @@
 #include "amiciSimulationRunner.h"
 #include "simulationResultWriter.h"
 #include <loadBalancerMaster.h>
+#ifdef PARPE_ENABLE_MPI
 #include <loadBalancerWorker.h>
+#endif
 #include <optimizationOptions.h>
 #include <misc.h>
 #include <hierarchicalOptimization.h>
@@ -18,7 +20,9 @@ namespace parpe {
 StandaloneSimulator::StandaloneSimulator(MultiConditionDataProvider *dp)
     : dataProvider(dp)
 {
-
+    if(auto env = std::getenv("PARPE_MAX_SIMULATIONS_PER_PACKAGE")) {
+        maxSimulationsPerPackage = std::stoi(env);
+    }
 }
 
 int StandaloneSimulator::run(const std::string& resultFile,
@@ -37,7 +41,7 @@ int StandaloneSimulator::run(const std::string& resultFile,
 
     auto model = dataProvider->getModel();
     auto solver = dataProvider->getSolver();
-    solver->setSensitivityOrder(amici::AMICI_SENSI_ORDER_NONE);
+    solver->setSensitivityOrder(amici::SensitivityOrder::none);
 
     std::vector<double> parameters = optimizationParameters;
     HierarchicalOptimizationWrapper hierarchical(nullptr, 0, 0, 0);
@@ -50,24 +54,28 @@ int StandaloneSimulator::run(const std::string& resultFile,
 
     if(needComputeAnalyticalParameters) {
         // TODO: get rid of that. we want fun.evaluate(), independently of hierarchical or not
-        auto hierarchicalScalingReader = new AnalyticalParameterHdf5Reader (conditionFile,
-                                                                            conditionFilePath + "/scalingParameterIndices",
-                                                                            conditionFilePath + "/scalingParametersMapToObservables");
-        auto hierarchicalOffsetReader = new AnalyticalParameterHdf5Reader (conditionFile,
-                                                                           conditionFilePath + "/offsetParameterIndices",
-                                                                           conditionFilePath + "/offsetParametersMapToObservables");
-        auto hierarchicalSigmaReader = new AnalyticalParameterHdf5Reader (conditionFile,
-                                                                           conditionFilePath + "/sigmaParameterIndices",
-                                                                           conditionFilePath + "/sigmaParametersMapToObservables");
+        auto hierarchicalScalingReader = std::make_unique<AnalyticalParameterHdf5Reader>(
+                    conditionFile,
+                    conditionFilePath + "/scalingParameterIndices",
+                    conditionFilePath + "/scalingParametersMapToObservables");
+        auto hierarchicalOffsetReader = std::make_unique<AnalyticalParameterHdf5Reader>(
+                    conditionFile,
+                    conditionFilePath + "/offsetParameterIndices",
+                    conditionFilePath + "/offsetParametersMapToObservables");
+        auto hierarchicalSigmaReader = std::make_unique<AnalyticalParameterHdf5Reader>(
+                    conditionFile,
+                    conditionFilePath + "/sigmaParameterIndices",
+                    conditionFilePath + "/sigmaParametersMapToObservables");
         auto proportionalityFactorIndices = hierarchicalScalingReader->getOptimizationParameterIndices();
         auto offsetParameterIndices = hierarchicalOffsetReader->getOptimizationParameterIndices();
         auto sigmaParameterIndices = hierarchicalSigmaReader->getOptimizationParameterIndices();
+
         auto wrappedFun = std::make_unique<AmiciSummedGradientFunction<int>>(dataProvider, loadBalancer, nullptr);
 
         hierarchical = HierarchicalOptimizationWrapper(std::move(wrappedFun),
-                                                std::unique_ptr<AnalyticalParameterHdf5Reader>(hierarchicalScalingReader),
-                                                std::unique_ptr<AnalyticalParameterHdf5Reader>(hierarchicalOffsetReader),
-                                                std::unique_ptr<AnalyticalParameterHdf5Reader>(hierarchicalSigmaReader),
+                                                std::move(hierarchicalScalingReader),
+                                                std::move(hierarchicalOffsetReader),
+                                                std::move(hierarchicalSigmaReader),
                                                 dataProvider->getNumberOfConditions(), model->nytrue, model->nt(),
                                                 ErrorModel::normal);
         RELEASE_ASSERT(parameters.size() == (unsigned) hierarchical.numParameters(), "");
@@ -113,7 +121,7 @@ int StandaloneSimulator::run(const std::string& resultFile,
             errors += result.second.status;
             int conditionIdx = result.first;
             auto edata = dataProvider->getExperimentalDataForCondition(conditionIdx);
-            rw.saveMeasurements(edata->my, edata->nt, edata->nytrue, conditionIdx);
+            rw.saveMeasurements(edata->getObservedData(), edata->nt(), edata->nytrue(), conditionIdx);
             rw.saveModelOutputs(result.second.modelOutput,  model->nt(), model->nytrue, conditionIdx);
             rw.saveLikelihood(result.second.llh, conditionIdx);
         }
@@ -161,7 +169,7 @@ int StandaloneSimulator::run(const std::string& resultFile,
                         modelOutputs[conditionIdx],
                         fullSigmaMatrices[conditionIdx]);
             auto edata = dataProvider->getExperimentalDataForCondition(conditionIdx);
-            rw.saveMeasurements(edata->my, edata->nt, edata->nytrue, conditionIdx);
+            rw.saveMeasurements(edata->getObservedData(), edata->nt(), edata->nytrue(), conditionIdx);
             rw.saveModelOutputs(modelOutputs[conditionIdx],  model->nt(), model->nytrue, conditionIdx);
             rw.saveLikelihood(llh, conditionIdx);
         }
@@ -169,25 +177,29 @@ int StandaloneSimulator::run(const std::string& resultFile,
     };
 
     AmiciSimulationRunner simRunner(parameters,
-                                    amici::AMICI_SENSI_ORDER_NONE,
+                                    amici::SensitivityOrder::none,
                                     dataIndices,
                                     jobFinished,
                                     allFinished);
 
+#ifdef PARPE_ENABLE_MPI
     if (loadBalancer && loadBalancer->isRunning()) {
         errors += simRunner.runDistributedMemory(loadBalancer, maxSimulationsPerPackage);
     } else {
+#endif
         errors += simRunner.runSharedMemory(
                     [&](std::vector<char> &buffer, int jobId) {
                 messageHandler(buffer, jobId);
     });
+#ifdef PARPE_ENABLE_MPI
     }
+#endif
 
     return errors;
 }
 
 
-void StandaloneSimulator::messageHandler(std::vector<char> &buffer, int jobId)
+void StandaloneSimulator::messageHandler(std::vector<char> &buffer, int  /*jobId*/)
 {
     // TODO: pretty redundant with messageHandler in multiconditionproblem
     // unpack simulation job data
@@ -234,7 +246,7 @@ AmiciSimulationRunner::AmiciResultPackageSimple StandaloneSimulator::runSimulati
     return AmiciSimulationRunner::AmiciResultPackageSimple {
         rdata->llh,
                 NAN,
-                (solver.getSensitivityOrder() > amici::AMICI_SENSI_ORDER_NONE) ? rdata->sllh : std::vector<double>(),
+                (solver.getSensitivityOrder() > amici::SensitivityOrder::none) ? rdata->sllh : std::vector<double>(),
                 rdata->y,
                 rdata->status
     };
@@ -486,8 +498,9 @@ int runSimulator(MultiConditionDataProvider &dp,
 {
     parpe::StandaloneSimulator sim(&dp);
     int status = 0;
-    int commSize = parpe::getMpiCommSize();
 
+#ifdef PARPE_ENABLE_MPI
+    int commSize = parpe::getMpiCommSize();
     if (commSize > 1) {
         if (parpe::getMpiRank() == 0) {
             parpe::LoadBalancerMaster loadBalancer;
@@ -505,11 +518,14 @@ int runSimulator(MultiConditionDataProvider &dp,
             });
         }
     } else {
+#endif
         status = runSimulationTasks(sim, simulationMode,
                                     conditionFileName, conditionFilePath,
                                     parameterFileName, parameterFilePath,
                                     resultFileName, resultPath, nullptr);
+#ifdef PARPE_ENABLE_MPI
     }
+#endif
 
     return status;
 }
@@ -519,19 +535,19 @@ std::vector<double> getOuterParameters(const std::vector<double> &fullParameters
                                        const std::string &parameterPath)
 {
     //auto options = OptimizationOptions::fromHDF5(parameterFile.getId(), parameterPath + "/optimizationOptions");
-    auto hierarchicalScalingReader = new AnalyticalParameterHdf5Reader (parameterFile,
-                                                                        parameterPath + "/inputData/scalingParameterIndices",
-                                                                        parameterPath + "/inputData/scalingParametersMapToObservables");
-    auto hierarchicalOffsetReader = new AnalyticalParameterHdf5Reader (parameterFile,
-                                                                       parameterPath + "/inputData/offsetParameterIndices",
-                                                                       parameterPath + "/inputData/offsetParametersMapToObservables");
-    auto hierarchicalSigmaReader = new AnalyticalParameterHdf5Reader (parameterFile,
-                                                                      parameterPath + "/inputData/sigmaParameterIndices",
-                                                                      parameterPath + "/inputData/sigmaParametersMapToObservables");
+    AnalyticalParameterHdf5Reader hierarchicalScalingReader(parameterFile,
+                                                            parameterPath + "/inputData/scalingParameterIndices",
+                                                            parameterPath + "/inputData/scalingParametersMapToObservables");
+    AnalyticalParameterHdf5Reader hierarchicalOffsetReader(parameterFile,
+                                                           parameterPath + "/inputData/offsetParameterIndices",
+                                                           parameterPath + "/inputData/offsetParametersMapToObservables");
+    AnalyticalParameterHdf5Reader hierarchicalSigmaReader(parameterFile,
+                                                          parameterPath + "/inputData/sigmaParameterIndices",
+                                                          parameterPath + "/inputData/sigmaParametersMapToObservables");
 
-    auto proportionalityFactorIndices = hierarchicalScalingReader->getOptimizationParameterIndices();
-    auto offsetParameterIndices = hierarchicalOffsetReader->getOptimizationParameterIndices();
-    auto sigmaParameterIndices = hierarchicalSigmaReader->getOptimizationParameterIndices();
+    auto proportionalityFactorIndices = hierarchicalScalingReader.getOptimizationParameterIndices();
+    auto offsetParameterIndices = hierarchicalOffsetReader.getOptimizationParameterIndices();
+    auto sigmaParameterIndices = hierarchicalSigmaReader.getOptimizationParameterIndices();
 
     auto combinedIndices = proportionalityFactorIndices;
     combinedIndices.insert(combinedIndices.end(), offsetParameterIndices.begin(), offsetParameterIndices.end());

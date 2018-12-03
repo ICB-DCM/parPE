@@ -1,9 +1,17 @@
 #include "optimizationApplication.h"
+
 #include "hdf5Misc.h"
 #include "logging.h"
 #include "misc.h"
 #include <optimizationOptions.h>
 #include <parpeVersion.h>
+
+#include <amiciMisc.h>
+#include <hdf5Misc.h>
+
+#ifdef PARPE_ENABLE_MPI
+#include <mpi.h>
+#endif
 
 #include <cstring>
 #include <ctime>
@@ -13,11 +21,6 @@
 #include <random>
 #include <csignal>
 #include <cstdlib>
-
-#include <amiciMisc.h>
-#include <hdf5Misc.h>
-
-#include <mpi.h>
 
 namespace parpe {
 
@@ -58,13 +61,14 @@ int OptimizationApplication::init(int argc, char **argv) {
     logmessage(LOGLVL_DEBUG, "Seeding RNG with %u", seed);
     srand(seed); // TODO to CLI
 
+    // redirect AMICI output to parPE logging
     amici::errMsgIdAndTxt = printAmiciErrMsgIdAndTxt;
     amici::warnMsgIdAndTxt = printAmiciWarnMsgIdAndTxt;
 
     return status;
 }
 
-void OptimizationApplication::runMultiStarts(LoadBalancerMaster *lbm)
+void OptimizationApplication::runMultiStarts()
 {
     // TODO: use uniqe_ptr, not ref
     MultiStartOptimization optimizer(*multiStartOptimizationProblem, false);
@@ -94,7 +98,7 @@ int OptimizationApplication::parseOptions(int argc, char **argv) {
             break;
         case 't':
             if (strcmp(optarg, "gradient_check") == 0)
-                opType = OP_TYPE_GRADIENT_CHECK;
+                operationType = OperationType::gradientCheck;
             break;
         case 'o':
             resultFileName = processResultFilenameCommandLineArgument(optarg);
@@ -142,6 +146,8 @@ void OptimizationApplication::logParPEVersion(hid_t file_id) const
 }
 
 void OptimizationApplication::initMPI(int *argc, char ***argv) {
+#ifdef PARPE_ENABLE_MPI
+
     int mpiErr = MPI_Init(argc, argv);
     if (mpiErr != MPI_SUCCESS) {
         logmessage(LOGLVL_CRITICAL, "Problem initializing MPI. Exiting.");
@@ -154,12 +160,13 @@ void OptimizationApplication::initMPI(int *argc, char ***argv) {
         int commSize = getMpiCommSize();
         logmessage(LOGLVL_INFO, "Running with %d MPI processes.", commSize);
     }
+#endif
 }
 
 int OptimizationApplication::run(int argc, char **argv) {
+    // start Timers
     WallTimer wallTimer;
     CpuTimer cpuTimer;
-
 
     int status = init(argc, argv);
     if(status)
@@ -175,6 +182,7 @@ int OptimizationApplication::run(int argc, char **argv) {
 
     initProblem(dataFileName, resultFileName);
 
+#ifdef PARPE_ENABLE_MPI
     int commSize = getMpiCommSize();
 
     if (commSize > 1) {
@@ -192,17 +200,19 @@ int OptimizationApplication::run(int argc, char **argv) {
             finalizeTiming(wallTimer.getTotal(), cpuTimer.getTotal());
         }
     } else {
-        runSingleMpiProcess();
+#endif
+        runSingleProcess();
 
         finalizeTiming(wallTimer.getTotal(), cpuTimer.getTotal());
+#ifdef PARPE_ENABLE_MPI
     }
-
+#endif
     return status;
 }
 
 void OptimizationApplication::runMaster() {
-    switch (opType) {
-    case OP_TYPE_GRADIENT_CHECK: {
+    switch (operationType) {
+    case OperationType::gradientCheck: {
         const int numParameterIndicesToCheck = 50;
         const double epsilon = 1e-8;
         optimizationProblemGradientCheck(problem.get(),
@@ -210,12 +220,13 @@ void OptimizationApplication::runMaster() {
                                          epsilon);
         break;
     }
-    case OP_TYPE_PARAMETER_ESTIMATION:
+    case OperationType::parameterEstimation:
     default:
-        runMultiStarts(&loadBalancer);
+        runMultiStarts();
     }
 }
 
+#ifdef PARPE_ENABLE_MPI
 void OptimizationApplication::runWorker() {
     // TODO: Move out of here
     LoadBalancerWorker lbw;
@@ -233,11 +244,12 @@ void OptimizationApplication::runWorker() {
         }
     });
 }
+#endif
 
-void OptimizationApplication::runSingleMpiProcess() {
+void OptimizationApplication::runSingleProcess() {
     // run serially
-    switch (opType) {
-    case OP_TYPE_GRADIENT_CHECK: {
+    switch (operationType) {
+    case OperationType::gradientCheck: {
         const int numParameterIndicesToCheck = 50;
         const double epsilon = 1e-8;
         optimizationProblemGradientCheck(problem.get(),
@@ -245,10 +257,10 @@ void OptimizationApplication::runSingleMpiProcess() {
                                          epsilon);
         break;
     }
-    case OP_TYPE_PARAMETER_ESTIMATION:
+    case OperationType::parameterEstimation:
     default:
         if (problem->getOptimizationOptions().numStarts > 0) {
-            runMultiStarts(nullptr);
+            runMultiStarts();
         } else {
             getLocalOptimum(problem.get());
         }
@@ -256,17 +268,17 @@ void OptimizationApplication::runSingleMpiProcess() {
 }
 
 void OptimizationApplication::finalizeTiming(double wallTimeSeconds, double cpuTimeSeconds) {
+#ifdef PARPE_ENABLE_MPI
     // wall-time for current MPI process
-
     // total run-time
     double totalCpuTimeInSeconds = 0;
+
     if(getMpiActive()) {
         MPI_Reduce(&cpuTimeSeconds, &totalCpuTimeInSeconds, 1, MPI_DOUBLE, MPI_SUM, 0,
                    MPI_COMM_WORLD);
     } else {
         totalCpuTimeInSeconds = cpuTimeSeconds;
     }
-
     int mpiRank = getMpiRank();
 
     if (mpiRank < 1) {
@@ -274,6 +286,11 @@ void OptimizationApplication::finalizeTiming(double wallTimeSeconds, double cpuT
                    wallTimeSeconds, totalCpuTimeInSeconds);
         saveTotalCpuTime(file_id, totalCpuTimeInSeconds);
     }
+#else
+    logmessage(LOGLVL_INFO, "Total walltime: %fs, CPU time: %fs",
+               wallTimeSeconds, cpuTimeSeconds);
+    saveTotalCpuTime(file_id, cpuTimeSeconds);
+#endif
 }
 
 std::string OptimizationApplication::processResultFilenameCommandLineArgument(
@@ -317,8 +334,10 @@ OptimizationApplication::~OptimizationApplication() {
     // and Hdf5 mutex is destroyed
     closeHDF5File(file_id);
     problem.reset(nullptr);
+#ifdef PARPE_ENABLE_MPI
     if(getMpiActive())
         MPI_Finalize();
+#endif
 }
 
 void saveTotalCpuTime(hid_t file_id, const double timeInSeconds)

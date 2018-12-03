@@ -46,6 +46,19 @@ to compile the sbml as python module, the user has to call the method `amici.sbm
                             constantParameters=constantParameters,
                             sigmas=sigma)
 
+Note: To build AMICI with OpenMP support, which allows to parallelize model simulations of multiple
+experimental conditions, set the environment variables `AMICI_CXXFLAGS` and `AMICI_LDFLAGS` to the
+correct OpenMP flags of your compiler and linker, respectively. This has to be done for both AMICI
+package installation *and* model compilation. When using `gcc` on Linux, use:
+
+    # on your shell:
+    AMICI_CXXFLAGS=-fopenmp AMICI_LDFLAGS=-fopenmp pip3 install amici
+
+    # in python, before model compilation:
+    import os
+    os.environ['AMICI_CXXFLAGS'] = '-fopenmp'
+    os.environ['AMICI_LDFLAGS'] = '-fopenmp'
+
 ## Model Simulation 
 
 currently the model folder has to be manually added to the python path
@@ -61,9 +74,9 @@ to obtain a model instance call the `getModel()` method. This model instance wil
 
     model = modelModule.getModel()
 
-then pass the simulation timepoints as `amici.DoubleVector` to `amici.Model.setTimepoints`
+then pass the simulation timepoints to `amici.Model.setTimepoints`
 
-    model.setTimepoints(amici.DoubleVector(np.linspace(0, 60, 60))) 
+    model.setTimepoints(np.linspace(0, 60, 60)) 
     
 for simulation we need to generate a solver instance 
 

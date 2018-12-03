@@ -35,36 +35,40 @@ target_link_libraries(${PROJECT_NAME}
 #######################
 # IPOPT
 #######################
-project(unittests_optimization_ipopt)
-add_executable(${PROJECT_NAME}
-    main.cpp
-    ../src/localOptimizationIpoptTest.cpp
-    quadraticTestProblem.cpp
-)
-target_link_libraries(${PROJECT_NAME}
-    parpeoptimization
-    parpecommon
-    ${CppUTest_LIBRARIES}
-    ${GCOV_LIBRARY}
-)
-add_test (NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME} -c)
+if(${PARPE_ENABLE_IPOPT})
+    project(unittests_optimization_ipopt)
+    add_executable(${PROJECT_NAME}
+        main.cpp
+        ../src/localOptimizationIpoptTest.cpp
+        quadraticTestProblem.cpp
+        )
+    target_link_libraries(${PROJECT_NAME}
+        parpeoptimization
+        parpecommon
+        ${CppUTest_LIBRARIES}
+        ${GCOV_LIBRARY}
+        )
+    add_test (NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME} -c)
+endif(${PARPE_ENABLE_IPOPT})
 
 #######################
 # CERES
 #######################
-project(unittests_optimization_ceres)
-add_executable(${PROJECT_NAME}
-    main.cpp
-    ../src/localOptimizationCeresTest.cpp
-    quadraticTestProblem.cpp
-)
-target_link_libraries(${PROJECT_NAME}
-    parpeoptimization
-    parpecommon
-    ${CppUTest_LIBRARIES}
-    ${GCOV_LIBRARY}
-)
-add_test (NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME} -c)
+if(${PARPE_ENABLE_CERES})
+    project(unittests_optimization_ceres)
+    add_executable(${PROJECT_NAME}
+        main.cpp
+        ../src/localOptimizationCeresTest.cpp
+        quadraticTestProblem.cpp
+        )
+    target_link_libraries(${PROJECT_NAME}
+        parpeoptimization
+        parpecommon
+        ${CppUTest_LIBRARIES}
+        ${GCOV_LIBRARY}
+        )
+    add_test (NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME} -c)
+endif(${PARPE_ENABLE_CERES})
 
 #######################
 # TOMS611

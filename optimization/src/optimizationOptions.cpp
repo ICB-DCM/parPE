@@ -1,10 +1,13 @@
 #include "parpeConfig.h"
+
 #include "optimizationOptions.h"
+
 #ifdef PARPE_ENABLE_CERES
 #include "localOptimizationCeres.h"
 #endif
+#ifdef PARPE_ENABLE_IPOPT
 #include "localOptimizationIpopt.h"
-#include "parpeConfig.h"
+#endif
 #ifdef PARPE_ENABLE_DLIB
 #include "localOptimizationDlib.h"
 #endif
@@ -253,7 +256,11 @@ Optimizer* optimizerFactory(optimizerName optimizer)
 {
     switch (optimizer) {
     case optimizerName::OPTIMIZER_IPOPT:
+#ifdef PARPE_ENABLE_IPOPT
         return new OptimizerIpOpt();
+#else
+        return nullptr;
+#endif
     case optimizerName::OPTIMIZER_CERES:
 #ifdef PARPE_ENABLE_CERES
         return new OptimizerCeres();

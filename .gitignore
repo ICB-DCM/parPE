@@ -1,26 +1,23 @@
-/build/*
-/build
+*/build/*
 CMakeLists.txt.user
 /data/*
 /ThirdParty/*
 /doc/Doxyfile
 /doc/doxy/*
-/common/src/parpeVersion.h
-/common/src/parpeConfig.h
 .project
 .pydevproject
+.idea/*
 .settings/
 __pycache__/
 *.pyc
 *.mexa64
 .ipynb_checkpoints/
-/amici/examples/steadystate/model_steadystate_scaled
-deleteme*
+*deleteme*
 .directory
 */swig/*_wrap.cpp
-
-/amici/examples/lucarelli/lucarelli_12/build/
+/amici/examples/steadystate/model_steadystate_scaled
 /amici/examples/lucarelli/lucarelli_12/lucarelli_12/
+
 
 # amici
 deps/AMICI/python/sdist/amici.egg-info/

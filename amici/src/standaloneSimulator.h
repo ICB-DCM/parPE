@@ -1,6 +1,7 @@
 #ifndef STANDALONESIMULATOR_H
 #define STANDALONESIMULATOR_H
 
+#include "parpeConfig.h"
 #include "multiConditionProblem.h"
 
 #include <amici/amici.h>
@@ -47,7 +48,8 @@ private:
 
     MultiConditionDataProvider *dataProvider = nullptr;
 
-    const int maxSimulationsPerPackage = 8;
+    /** Number of simulations to be sent to workers within one package (when running with MPI). */
+    int maxSimulationsPerPackage = 8;
 };
 
 

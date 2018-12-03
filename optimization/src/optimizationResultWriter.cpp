@@ -15,7 +15,7 @@
 namespace parpe {
 
 OptimizationResultWriter::OptimizationResultWriter(hid_t file_id, std::string rootPath)
-    : rootPath(rootPath)
+    : rootPath(std::move(rootPath))
 {
     auto lock = hdf5MutexGetLock();
     this->file_id = H5Freopen(file_id);

@@ -23,28 +23,29 @@ target_link_libraries(${PROJECT_NAME}
 # /example_steadystate executable
 
 # example_steadystate_parallel executable
-project(example_steadystate_parallel)
+if(${PARPE_ENABLE_MPI})
+    project(example_steadystate_parallel)
 
-set(SRC_LIST_EXE_PARALLEL
-    main_parallel.cpp
-    steadystateProblem.cpp
-    steadystateProblemParallel.cpp
-    steadyStateMultiConditionDataprovider.cpp
-)
+    set(SRC_LIST_EXE_PARALLEL
+        main_parallel.cpp
+        steadystateProblem.cpp
+        steadystateProblemParallel.cpp
+        steadyStateMultiConditionDataprovider.cpp
+        )
 
-add_executable(${PROJECT_NAME} ${SRC_LIST_EXE_PARALLEL})
+    add_executable(${PROJECT_NAME} ${SRC_LIST_EXE_PARALLEL})
 
-target_link_libraries(${PROJECT_NAME}
-    ${MODEL_LIBRARIES}
-    parpeoptimization
-    parpeloadbalancer
-    parpeamici
-)
+    target_link_libraries(${PROJECT_NAME}
+        ${MODEL_LIBRARIES}
+        parpeoptimization
+        parpeloadbalancer
+        parpeamici
+        )
+endif()
 # /example_steadystate_parallel executable
 
 
 # example_steadystate_multi executable
-
 project(example_steadystate_multi)
 
 set(SRC_LIST_EXE_PARALLEL
@@ -67,7 +68,7 @@ install(TARGETS ${PROJECT_NAME} EXPORT ParPETargets
     INCLUDES DESTINATION include
     )
 
-if(${BUILD_TESTS})
+if(${BUILD_TESTS} AND ${PARPE_ENABLE_MPI})
     add_test (NAME ${PROJECT_NAME}
         COMMAND ${TESTS_MPIEXEC_COMMAND} ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME} -o ${PROJECT_NAME}-testresults ${CMAKE_CURRENT_LIST_DIR}/example_data.h5
         )
