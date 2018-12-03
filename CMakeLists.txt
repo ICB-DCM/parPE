@@ -48,7 +48,6 @@ set(PARPE_ENABLE_FSQP FALSE CACHE BOOL "Enable FSQP optimizers?")
 # Enable MPI?
 if(${PARPE_ENABLE_MPI})
     find_package(MPI REQUIRED)
-    add_definitions(-DUSE_MPI)
     if(IS_DIRECTORY ${MPI_INCLUDE_DIRS})
         # may be undefined. will be provided by MPI compiler wrapped.
         # this is only added for convenient IDE integration

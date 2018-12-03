@@ -3,7 +3,6 @@
 
 #include "steadyStateMultiConditionDataprovider.h"
 #include <loadBalancerMaster.h>
-#include <loadBalancerWorker.h>
 #include <memory>
 
 #include <gsl/gsl-lite.hpp>

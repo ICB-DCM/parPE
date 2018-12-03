@@ -1,26 +1,28 @@
-#include <bits/stl_tree.h>
-
 #include "CppUTest/TestHarness.h"
 #include "CppUTestExt/MockSupport.h"
 
-#include <cstdio>
-#include <mpi.h>
-#include <unistd.h>
+#include <loadBalancerMaster.h>
 #include <misc.h>
+
+#include <mpi.h>
+
+#include <cstdio>
+#include <unistd.h>
 
 #define QUEUE_MASTER_TEST
 
+// clang-format off
 TEST_GROUP(queuemaster){
-
-    void setup(){
-
+    void setup() {
     }
 
-    void teardown(){mock().checkExpectations();
-mock().clear();
-}
-}
-;
+    void teardown() {
+        mock().checkExpectations();
+        mock().clear();
+    }
+};
+// clang-format on
+
 
 // mock
 static void assertMPIInitialized() {}
