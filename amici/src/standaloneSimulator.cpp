@@ -405,7 +405,7 @@ int runFinalParameters(StandaloneSimulator &sim,
 
             auto lock = hdf5MutexGetLock();
             H5::H5File conditionFile = hdf5OpenForReading(conditionFileName);
-            lock.release();
+            lock.unlock();
 
             errors += sim.run(resultFileName, curResultPath, outerParameters, loadBalancer,
                               conditionFile, conditionFilePath);
