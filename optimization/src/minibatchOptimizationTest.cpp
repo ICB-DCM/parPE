@@ -56,14 +56,31 @@ TEST(minibatchOptimization, getBatches) {
 
 
 TEST(minibatchOptimization, updateParameters) {
-    std::vector<double> gradient {1.0, 2.0};
+	// Test whether the most simple parameter updater works reliably
+    std::vector<double> gradient {3.0, 4.0};
     std::vector<double> parameters {2.0, 3.0};
-    std::vector<double> parametersExp {1.5, 2.0};
-    double learningRate = 0.1;
+	std::vector<double> lowerBounds {-5.0, -5.0};
+	std::vector<double> upperBounds {5.0, 5.0};
+    std::vector<double> parametersExp {1.7, 2.6};
+    
+    double learningRate = 0.5;
+	int iteration = 1;
+	double toleratedError = 0.0001;
+	int numParameters = parameters.size();
+	bool errored = false;
 
-    parpe::ParameterUpdaterVanilla pu();
-    // pu.updateParameters(learningRate);
-    CHECK_TRUE(parametersExp == parameters);
+    parpe::ParameterUpdaterVanilla pu;
+    pu.initialize(2);
+    pu.updateParameters(learningRate, iteration, gradient, parameters, lowerBounds, upperBounds);
+    
+    std::transform(parametersExp.begin( ), parametersExp.end( ), parameters.begin( ), parametersExp.begin( ), std::minus<double>( ));
+    
+    for (int i = 0; i < numParameters; i++)
+    	if (!errored)
+    		if (parametersExp[i] > toleratedError or parametersExp[i] < -toleratedError)
+    			errored = true;
+    	
+    CHECK_TRUE(!errored);
 }
 
 TEST(minibatchOptimization, updateParametersRMSProp) {

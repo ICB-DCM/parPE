@@ -249,10 +249,11 @@ void ParameterUpdaterVanilla::updateParameters(double learningRate,
                                                gsl::span<const double> upperBounds)
 {
     int numParameters = gradient.size();
+    double delta = 1e-8;
 
     for(int i = 0; i < numParameters; ++i) {
         // logmessage(LOGLVL_DEBUG, "p_%d: %f - %f = %f", i, parameters[i], learningRate * gradient[i], parameters[i] - learningRate * gradient[i]);
-        parameters[i] -= learningRate * gradient[i] / getVectorNorm(gradient);
+        parameters[i] -= learningRate * gradient[i] / (getVectorNorm(gradient) + delta);
     }
 
     clipToBounds(lowerBounds, upperBounds, parameters);
