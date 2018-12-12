@@ -33,10 +33,6 @@ typedef std::recursive_mutex mutexHdfType;
 
 void initHDF5Mutex();
 
-void hdf5LockMutex();
-
-void hdf5UnlockMutex();
-
 std::unique_lock<mutexHdfType> hdf5MutexGetLock();
 
 #define H5_SAVE_ERROR_HANDLER                                                  \
