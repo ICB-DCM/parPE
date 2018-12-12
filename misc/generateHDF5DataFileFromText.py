@@ -558,7 +558,9 @@ class HDF5DataGenerator:
                 sbml_species = self.sbmlModel.getSpecies(parameterName)
                 if sbml_species:
                     # A constant species might have been turned in to a model parameter
-                    dset[parameterIndex, :] = sbml_species.getInitialConcentration()
+                    # TODO: we dont do any conversion here, although we would want to have concentration
+                    # currently there is only 1.0
+                    dset[parameterIndex, :] = sbml_species.getInitialConcentration() if sbml_species.isSetInitialConcentration() else sbml_species.getInitialAmount()
                 else:
                     # We need to check for "globalized" parameter names too (reactionId_localParameterId)
                     # model has localParameterId, data file has globalized name
@@ -925,7 +927,7 @@ class HDF5DataGenerator:
         Write data for dealing with sigma parameters in hierarchical optimization
         """
         sigmasForHierarchical = [x for x in self.getUsedScalingParameters(
-        ) if self.getGenericParameterName(x).endswith("_sigma")]
+        ) if self.getGenericParameterName(x).endswith("_sigma") or self.getGenericParameterName(x).startswith("sigma_")]
         if not len(sigmasForHierarchical):
             return
 
