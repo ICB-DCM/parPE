@@ -174,7 +174,7 @@ std::vector<double> OptimizationOptions::getStartingPoint(hid_t fileId, int inde
 
     const char *path = "/optimizationOptions/randomStarts";
 
-    hdf5LockMutex();
+    auto lock = hdf5MutexGetLock();
     H5_SAVE_ERROR_HANDLER;
 
     hid_t dataset;
@@ -208,7 +208,6 @@ freturn:
     }
 
     H5_RESTORE_ERROR_HANDLER;
-    hdf5UnlockMutex();
 
     return startingPoint;
 }
