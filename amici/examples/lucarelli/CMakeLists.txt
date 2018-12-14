@@ -19,15 +19,19 @@ ExternalProject_Add(${MODEL_NAME}
 # Rebuild if amici files are updated
 ExternalProject_Add_StepDependencies(${MODEL_NAME} build parpeamici)
 
+ExternalProject_Get_property(${MODEL_NAME} SOURCE_DIR)
+ExternalProject_Get_property(${MODEL_NAME} BINARY_DIR)
+message("Generating Lucarelli example model and data in ${SOURCE_DIR}")
+
 # Import external library
 set(MODEL_LIBRARIES "model_${MODEL_NAME}")
 add_library(${MODEL_LIBRARIES} STATIC IMPORTED)
 set_target_properties(model_${MODEL_NAME}
     PROPERTIES
     INTERFACE_INCLUDE_DIRECTORIES
-    "${CMAKE_CURRENT_BINARY_DIR}/${MODEL_NAME}-prefix/src/${MODEL_NAME}"
+    "${SOURCE_DIR}"
     IMPORTED_LOCATION
-    "${CMAKE_CURRENT_BINARY_DIR}/${MODEL_NAME}-prefix/src/${MODEL_NAME}-build/${CMAKE_STATIC_LIBRARY_PREFIX}${MODEL_NAME}${CMAKE_STATIC_LIBRARY_SUFFIX}"
+    "${BINARY_DIR}/${CMAKE_STATIC_LIBRARY_PREFIX}${MODEL_NAME}${CMAKE_STATIC_LIBRARY_SUFFIX}"
     )
 
 
