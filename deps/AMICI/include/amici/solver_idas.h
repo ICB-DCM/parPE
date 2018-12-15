@@ -11,6 +11,7 @@ namespace amici {
 class IDASolver : public Solver {
   public:
     IDASolver() = default;
+    ~IDASolver() override = default;
 
     /**
      * @brief Clone this instance
@@ -18,133 +19,150 @@ class IDASolver : public Solver {
      */
     virtual Solver* clone() const override;
 
-    void *AMICreate(int lmm, int iter) override;
+    void reInit(realtype t0, AmiVector *yy0, AmiVector *yp0) override;
 
-    void AMISStolerances(double rtol, double atol) override;
+    void sensReInit(AmiVectorArray *yS0, AmiVectorArray *ypS0) override;
 
-    void AMISensSStolerances(double rtol, double *atol) override;
-
-    void AMISetSensErrCon(bool error_corr) override;
-
-    void AMISetQuadErrConB(int which, bool flag) override;
-
-    void AMIGetRootInfo(int *rootsfound) override;
-
-    void AMISetErrHandlerFn() override;
-
-    void AMISetUserData(Model *model) override;
-
-    void AMISetUserDataB(int which, Model *model) override;
-
-    void AMISetMaxNumSteps(long int mxsteps) override;
-
-    void AMISetStabLimDet(int stldet) override;
-
-    void AMISetStabLimDetB(int which, int stldet) override;
-
-    void AMISetId(Model *model) override;
-
-    void AMISetSuppressAlg(bool flag) override;
-
-    void AMIReInit(realtype t0, AmiVector *yy0, AmiVector *yp0) override;
-
-    void AMISensReInit(int ism, AmiVectorArray *yS0, AmiVectorArray *ypS0) override;
-
-    void AMISetSensParams(realtype *p, realtype *pbar, int *plist) override;
-
-    void AMIGetDky(realtype t, int k, AmiVector *dky) override;
-
-    void AMIGetSens(realtype *tret, AmiVectorArray *yySout) override;
-
-    void AMIFree() override;
-
-    void AMIAdjInit(long int steps, int interp) override;
-
-    void AMICreateB(int lmm, int iter, int *which) override;
-
-    void AMIReInitB(int which, realtype tB0, AmiVector *yyB0,
+    void reInitB(int which, realtype tB0, AmiVector *yyB0,
                    AmiVector *ypB0) override;
 
-    void AMISStolerancesB(int which, realtype relTolB,
-                         realtype absTolB) override;
+    void quadReInitB(int which, AmiVector *yQB0) override;
 
-    void AMIQuadReInitB(int which, AmiVector *yQB0) override;
-
-    void AMIQuadSStolerancesB(int which, realtype reltolQB,
+    void quadSStolerancesB(int which, realtype reltolQB,
                              realtype abstolQB) override;
 
-    int AMISolve(realtype tout, AmiVector *yret, AmiVector *ypret, realtype *tret,
+    int solve(realtype tout, AmiVector *yret, AmiVector *ypret, realtype *tret,
                  int itask) override;
 
-    int AMISolveF(realtype tout, AmiVector *yret, AmiVector *ypret, realtype *tret,
+    int solveF(realtype tout, AmiVector *yret, AmiVector *ypret, realtype *tret,
                   int itask, int *ncheckPtr) override;
 
-    void AMISolveB(realtype tBout, int itaskB) override;
+    void solveB(realtype tBout, int itaskB) override;
+    
+    void getRootInfo(int *rootsfound) const override;
+    
+    void getDky(realtype t, int k, AmiVector *dky) const override;
+    
+    void getSens(realtype *tret, AmiVectorArray *yySout) const override;
 
-    void AMISetMaxNumStepsB(int which, long int mxstepsB) override;
+    void getB(int which, realtype *tret, AmiVector *yy, AmiVector *yp) const override;
 
-    void AMIGetB(int which, realtype *tret, AmiVector *yy, AmiVector *yp) override;
-
-    void AMIGetQuadB(int which, realtype *tret, AmiVector *qB) override;
-
-    void AMIDense(int nx) override;
-
-    void AMIDenseB(int which, int nx) override;
-
-    void AMIBand(int nx, int ubw, int lbw) override;
-
-    void AMIBandB(int which, int nx, int ubw, int lbw) override;
-
-    void AMIDiag() override;
-
-    void AMIDiagB(int which) override;
-
-    void AMISpgmr(int prectype, int maxl) override;
-
-    void AMISpgmrB(int which, int prectype, int maxl) override;
-
-    void AMISpbcg(int prectype, int maxl) override;
-
-    void AMISpbcgB(int which, int prectype, int maxl) override;
-
-    void AMISptfqmr(int prectype, int maxl) override;
-
-    void AMISptfqmrB(int which, int prectype, int maxl) override;
-
-    void AMIKLU(int nx, int nnz, int sparsetype) override;
-
-    void AMIKLUSetOrdering(int ordering) override;
-
-    void AMIKLUSetOrderingB(int which, int ordering) override;
-
-    void AMIKLUB(int which, int nx, int nnz, int sparsetype) override;
-
-    void AMIGetNumSteps(void *ami_mem, long int *numsteps) override;
-
-    void AMIGetNumRhsEvals(void *ami_mem, long int *numrhsevals) override;
-
-    void AMIGetNumErrTestFails(void *ami_mem,
-                              long int *numerrtestfails) override;
-
-    void AMIGetNumNonlinSolvConvFails(void *ami_mem,
-                                     long int *numnonlinsolvconvfails) override;
-
-    void AMIGetLastOrder(void *ami_mem, int *order) override;
-
-    void *AMIGetAdjBmem(void *ami_mem, int which) override;
-
-    void AMICalcIC(realtype tout1, AmiVector *x, AmiVector *dx) override;
-
-    void AMICalcICB(int which, realtype tout1, AmiVector *xB,
-                   AmiVector *dxB) override;
-
-    void AMISetStopTime(realtype tstop) override;
-
+    void getQuadB(int which, realtype *tret, AmiVector *qB) const override;
+    
+    void calcIC(realtype tout1, AmiVector *x, AmiVector *dx) override;
+    
+    void calcICB(int which, realtype tout1, AmiVector *xB,
+                 AmiVector *dxB) override;
+    
+    void setStopTime(realtype tstop) override;
+    
     void turnOffRootFinding() override;
-
-    ~IDASolver();
+    
+    int nplist() const override;
+    
+    int nx() const override;
+    
+    const Model *getModel() const override;
+    
+    bool getMallocDone() const override;
+    
+    bool getAdjMallocDone() const override;
+    
+    static int fxdot(realtype t, N_Vector x, N_Vector dx, N_Vector xdot,
+                     void *user_data);
+    
+    static int fJ(long int N, realtype t, realtype cj, N_Vector x, N_Vector dx,
+                  N_Vector xdot, DlsMat J, void *user_data, N_Vector tmp1,
+                  N_Vector tmp2, N_Vector tmp3);
+    
+    static int fJSparse(realtype t, realtype cj, N_Vector x, N_Vector dx, N_Vector xdot, SlsMat J,
+                        void *user_data, N_Vector tmp1, N_Vector tmp2,
+                        N_Vector tmp3);
 
   protected:
+    
+    void allocateSolver() override;
+    
+    void setSStolerances(double rtol, double atol) override;
+    
+    void setSensSStolerances(double rtol, double *atol) override;
+    
+    void setSensErrCon(bool error_corr) override;
+    
+    void setQuadErrConB(int which, bool flag) override;
+    
+    void setErrHandlerFn() override;
+    
+    void setUserData(Model *model) override;
+    
+    void setUserDataB(int which, Model *model) override;
+    
+    void setMaxNumSteps(long int mxsteps) override;
+    
+    void setStabLimDet(int stldet) override;
+    
+    void setStabLimDetB(int which, int stldet) override;
+    
+    void setId(Model *model) override;
+    
+    void setSuppressAlg(bool flag) override;
+    
+    void setSensParams(realtype *p, realtype *pbar, int *plist) override;
+    
+    void adjInit() override;
+    
+    void allocateSolverB(int *which) override;
+    
+    void setMaxNumStepsB(int which, long int mxstepsB) override;
+    
+    void setSStolerancesB(int which, realtype relTolB,
+                          realtype absTolB) override;
+    
+    void dense(int nx) override;
+    
+    void denseB(int which, int nx) override;
+    
+    void band(int nx, int ubw, int lbw) override;
+    
+    void bandB(int which, int nx, int ubw, int lbw) override;
+    
+    void diag() override;
+    
+    void diagB(int which) override;
+    
+    void spgmr(int prectype, int maxl) override;
+    
+    void spgmrB(int which, int prectype, int maxl) override;
+    
+    void spbcg(int prectype, int maxl) override;
+    
+    void spbcgB(int which, int prectype, int maxl) override;
+    
+    void sptfqmr(int prectype, int maxl) override;
+    
+    void sptfqmrB(int which, int prectype, int maxl) override;
+    
+    void klu(int nx, int nnz, int sparsetype) override;
+    
+    void kluSetOrdering(int ordering) override;
+    
+    void kluSetOrderingB(int which, int ordering) override;
+    
+    void kluB(int which, int nx, int nnz, int sparsetype) override;
+    
+    void getNumSteps(void *ami_mem, long int *numsteps) const override;
+    
+    void getNumRhsEvals(void *ami_mem, long int *numrhsevals) const override;
+    
+    void getNumErrTestFails(void *ami_mem,
+                            long int *numerrtestfails) const override;
+    
+    void getNumNonlinSolvConvFails(void *ami_mem,
+                                   long int *numnonlinsolvconvfails) const override;
+    
+    void getLastOrder(void *ami_mem, int *order) const override;
+    
+    void *getAdjBmem(void *ami_mem, int which) override;
     
     void init(AmiVector *x, AmiVector *dx, realtype t) override;
 
@@ -172,17 +190,9 @@ class IDASolver : public Solver {
 
     void setJacTimesVecFnB(int which) override;
     
-    static int fJ(long int N, realtype t, realtype cj, N_Vector x, N_Vector dx,
-                  N_Vector xdot, DlsMat J, void *user_data, N_Vector tmp1,
-                  N_Vector tmp2, N_Vector tmp3);
-    
     static int fJB(long int NeqBdot, realtype t, realtype cj, N_Vector x, N_Vector dx, N_Vector xB, N_Vector dxB,
                    N_Vector xBdot, DlsMat JB, void *user_data, N_Vector tmp1B,
                    N_Vector tmp2B, N_Vector tmp3B);
-    
-    static int fJSparse(realtype t, realtype cj, N_Vector x, N_Vector dx, N_Vector xdot, SlsMat J,
-                        void *user_data, N_Vector tmp1, N_Vector tmp2,
-                        N_Vector tmp3);
     
     static int fJSparseB(realtype t, realtype cj, N_Vector x, N_Vector dx, N_Vector xB, N_Vector dxB, N_Vector xBdot,
                          SlsMat JB, void *user_data, N_Vector tmp1B,
@@ -207,9 +217,6 @@ class IDASolver : public Solver {
                     N_Vector tmpB1, N_Vector tmpB2);
     
     static int froot(realtype t, N_Vector x, N_Vector dx, realtype *root,
-                     void *user_data);
-    
-    static int fxdot(realtype t, N_Vector x, N_Vector dx, N_Vector xdot,
                      void *user_data);
     
     static int fxBdot(realtype t, N_Vector x, N_Vector dx, N_Vector xB,

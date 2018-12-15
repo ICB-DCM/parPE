@@ -1,7 +1,6 @@
-#include <parpeConfig.h>
+#include "parpeConfig.h"
+
 #include "optimizationOptions.h"
-#include "logging.h"
-#include "misc.h"
 
 #ifdef PARPE_ENABLE_CERES
 #include "localOptimizationCeres.h"
@@ -83,16 +82,7 @@ Optimizer *OptimizationOptions::createOptimizer() const {
 }
 
 std::unique_ptr<OptimizationOptions> OptimizationOptions::fromHDF5(const char *fileName) {
-    H5::H5File file;
-    try {
-        auto lock = hdf5MutexGetLock();
-        file = H5::H5File(fileName, H5F_ACC_RDONLY);
-    } catch (...) {
-        throw HDF5Exception(
-                    "OptimizationOptions::fromHDF5 failed to open HDF5 file '%s'.",
-                    fileName);
-    }
-
+    auto file = hdf5OpenForReading(fileName);
     return fromHDF5(file.getId());
 }
 
@@ -101,6 +91,7 @@ std::unique_ptr<OptimizationOptions> OptimizationOptions::fromHDF5(hid_t fileId,
 
     const char *hdf5path = path.c_str();
 
+    auto lock = hdf5MutexGetLock();
 
     if (hdf5AttributeExists(fileId, hdf5path, "optimizer")) {
         int buffer;
@@ -141,6 +132,9 @@ std::unique_ptr<OptimizationOptions> OptimizationOptions::fromHDF5(hid_t fileId,
     case optimizerName::OPTIMIZER_TOMS611:
         optimizerPath = std::string(hdf5path) + "/toms611";
         break;
+    case optimizerName::OPTIMIZER_MINIBATCH_1:
+        optimizerPath = std::string(hdf5path) + "/minibatch";
+        break;
     case optimizerName::OPTIMIZER_IPOPT:
     default:
         optimizerPath = std::string(hdf5path) + "/ipopt";
@@ -176,7 +170,7 @@ std::vector<double> OptimizationOptions::getStartingPoint(hid_t fileId, int inde
 
     const char *path = "/optimizationOptions/randomStarts";
 
-    hdf5LockMutex();
+    auto lock = hdf5MutexGetLock();
     H5_SAVE_ERROR_HANDLER;
 
     hid_t dataset;
@@ -210,7 +204,6 @@ freturn:
     }
 
     H5_RESTORE_ERROR_HANDLER;
-    hdf5UnlockMutex();
 
     return startingPoint;
 }
@@ -266,7 +259,11 @@ Optimizer* optimizerFactory(optimizerName optimizer)
 {
     switch (optimizer) {
     case optimizerName::OPTIMIZER_IPOPT:
+#ifdef PARPE_ENABLE_IPOPT
         return new OptimizerIpOpt();
+#else
+        return nullptr;
+#endif
     case optimizerName::OPTIMIZER_CERES:
 #ifdef PARPE_ENABLE_CERES
         return new OptimizerCeres();

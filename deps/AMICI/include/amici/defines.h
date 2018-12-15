@@ -25,6 +25,7 @@ constexpr double pi = 3.14159265358979323846;
 #define AMICI_CONV_FAILURE              -4
 #define AMICI_ILL_INPUT                -22
 #define AMICI_ERROR                    -99
+#define AMICI_NOT_IMPLEMENTED         -999
 #define AMICI_SUCCESS                    0
 #define AMICI_DATA_RETURN                1
 #define AMICI_ROOT_RETURN                2
@@ -50,98 +51,112 @@ constexpr double pi = 3.14159265358979323846;
 typedef double realtype;
 
 /** BLAS Matrix Layout, affects dgemm and gemv calls */
-typedef enum {
-    AMICI_BLAS_RowMajor = 101,
-    AMICI_BLAS_ColMajor = 102
-} AMICI_BLAS_LAYOUT;
+enum class BLASLayout{
+    rowMajor = 101,
+    colMajor = 102
+};
 
 /** BLAS Matrix Transposition, affects dgemm and gemv calls */
-typedef enum {
-    AMICI_BLAS_NoTrans = 111,
-    AMICI_BLAS_Trans = 112,
-    AMICI_BLAS_ConjTrans = 113
-} AMICI_BLAS_TRANSPOSE;
+enum class BLASTranspose {
+    noTrans = 111,
+    trans = 112,
+    conjTrans = 113
+};
 
 /** modes for parameter transformations */
-typedef enum AMICI_parameter_scaling_TAG {
-    AMICI_SCALING_NONE,
-    AMICI_SCALING_LN,
-    AMICI_SCALING_LOG10
-} AMICI_parameter_scaling;
+enum class ParameterScaling {
+    none,
+    ln,
+    log10
+};
 
 /** modes for second order sensitivity analysis */
-typedef enum AMICI_o2mode_TAG {
-    AMICI_O2MODE_NONE,
-    AMICI_O2MODE_FULL,
-    AMICI_O2MODE_DIR
-} AMICI_o2mode;
+enum class SecondOrderMode {
+    none,
+    full,
+    directional
+};
 
 /** orders of sensitivity analysis */
-typedef enum AMICI_sensi_order_TAG {
-    AMICI_SENSI_ORDER_NONE,
-    AMICI_SENSI_ORDER_FIRST,
-    AMICI_SENSI_ORDER_SECOND
-} AMICI_sensi_order;
+enum class SensitivityOrder {
+    none,
+    first,
+    second
+};
 
 /** methods for sensitivity computation */
-typedef enum AMICI_sensi_meth_TAG {
-    AMICI_SENSI_NONE,
-    AMICI_SENSI_FSA,
-    AMICI_SENSI_ASA
-} AMICI_sensi_meth;
+enum class SensitivityMethod {
+    none,
+    forward,
+    adjoint
+};
 
 /** linear solvers for CVODES/IDAS */
-enum LinearSolver {
-    AMICI_DENSE       = 1,
-    AMICI_BAND        = 2,
-    AMICI_LAPACKDENSE = 3,
-    AMICI_LAPACKBAND  = 4,
-    AMICI_DIAG        = 5,
-    AMICI_SPGMR       = 6,
-    AMICI_SPBCG       = 7,
-    AMICI_SPTFQMR     = 8,
-    AMICI_KLU         = 9
+enum class LinearSolver {
+    dense       = 1,
+    band        = 2,
+    LAPACKDense = 3,
+    LAPACKBand  = 4,
+    diag        = 5,
+    SPGMR       = 6,
+    SPBCG       = 7,
+    SPTFQMR     = 8,
+    KLU         = 9
 };
 
 /** CVODES/IDAS forward sensitivity computation method */
-enum InternalSensitivityMethod {
-    SIMULTANEOUS = 1,
-    STAGGERED = 2,
-    STAGGERED1 = 3
+enum class InternalSensitivityMethod {
+    simultaneous = 1,
+    staggered = 2,
+    staggered1 = 3
 };
 
 /** CVODES/IDAS state interpolation for adjoint sensitivity analysis */
-enum InterpolationType {
-    HERMITE = 1,
-    POLYNOMIAL = 2
+enum class InterpolationType {
+    hermite = 1,
+    polynomial = 2
 };
 
 /** CVODES/IDAS linear multistep method */
-enum LinearMultistepMethod {
-    ADAMS = 1,
+enum class LinearMultistepMethod {
+    adams = 1,
     BDF = 2
 };
 
 /** CVODES/IDAS Nonlinear Iteration method */
-enum NonlinearSolverIteration {
-    FUNCTIONAL = 1,
-    NEWTON = 2
+enum class NonlinearSolverIteration {
+    functional = 1,
+    newton = 2
 };
 
 /** KLU state reordering */
-enum StateOrdering {
+enum class StateOrdering {
     AMD,
     COLAMD,
     natural
 };
+  
+/** Sensitivity computation mode in steadyStateProblem */
+enum class SteadyStateSensitivityMode {
+    newtonOnly,
+    simulationFSA
+};
+
+/** State in which the steady state computionat finished */
+enum class NewtonStatus {
+    failed=-1,
+    newt=1,
+    newt_sim=2,
+    newt_sim_newt=3,
+};
     
-    /**
-     * @brief msgIdAndTxtFp
-     * @param identifier string with error message identifier
-     * @param format string with error message printf-style format
-     * @param ... arguments to be formatted
-     */
-    typedef void (*msgIdAndTxtFp)(const char *identifier, const char *format, ...);
+/**
+ * @brief msgIdAndTxtFp
+ * @param identifier string with error message identifier
+ * @param format string with error message printf-style format
+ * @param ... arguments to be formatted
+ */
+typedef void (*msgIdAndTxtFp)(const char *identifier, const char *format, ...);
 
 // clang-format on
 

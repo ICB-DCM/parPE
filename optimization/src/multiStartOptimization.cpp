@@ -1,5 +1,7 @@
 #include "multiStartOptimization.h"
 #include "logging.h"
+#include "parpeException.h"
+
 #include <cstdlib>
 #include <cstring>
 #include <pthread.h>
@@ -9,21 +11,25 @@
 namespace parpe {
 
 
-MultiStartOptimization::MultiStartOptimization(MultiStartOptimizationProblem &problem, bool runParallel)
-    : msProblem(problem), numberOfStarts(problem.getNumberOfStarts()),
-      restartOnFailure(problem.restartOnFailure()), runParallel(runParallel)
+MultiStartOptimization::MultiStartOptimization(
+        MultiStartOptimizationProblem &problem,
+        bool runParallel)
+    : msProblem(problem),
+      numberOfStarts(problem.getNumberOfStarts()),
+      restartOnFailure(problem.restartOnFailure()),
+      runParallel(runParallel)
 {
 
 }
 
-int MultiStartOptimization::run() {
+void MultiStartOptimization::run() {
     if (runParallel)
-        return runMultiThreaded();
-
-    return runSingleThreaded();
+        runMultiThreaded();
+    else
+        runSingleThreaded();
 }
 
-int MultiStartOptimization::runMultiThreaded()
+void MultiStartOptimization::runMultiThreaded()
 {
     logmessage(LOGLVL_DEBUG,
                "Starting runParallelMultiStartOptimization with %d starts",
@@ -33,7 +39,10 @@ int MultiStartOptimization::runMultiThreaded()
 
     std::vector<OptimizationProblem *> localProblems =
             createLocalOptimizationProblems();
-    assert(localProblems.size() == (unsigned)numberOfStarts);
+
+    if(localProblems.size() != static_cast<std::vector<OptimizationProblem *>::size_type>(numberOfStarts)) {
+        throw ParPEException("Number of problems does not match number of specific starts.");
+    }
 
     pthread_attr_t threadAttr;
     pthread_attr_init(&threadAttr);
@@ -113,11 +122,9 @@ int MultiStartOptimization::runMultiThreaded()
     logmessage(LOGLVL_DEBUG, "runParallelMultiStartOptimization finished");
 
     pthread_attr_destroy(&threadAttr);
-
-    return 0;
 }
 
-int MultiStartOptimization::runSingleThreaded()
+void MultiStartOptimization::runSingleThreaded()
 {
     logmessage(LOGLVL_DEBUG,
                "Starting runParallelMultiStartOptimization with %d starts sequentially",
@@ -147,9 +154,6 @@ int MultiStartOptimization::runSingleThreaded()
     }
 
     logmessage(LOGLVL_DEBUG, "runParallelMultiStartOptimization finished");
-
-    return 0;
-
 }
 
 void MultiStartOptimization::setRunParallel(bool runParallel)

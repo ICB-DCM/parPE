@@ -1,6 +1,7 @@
 #ifndef STANDALONESIMULATOR_H
 #define STANDALONESIMULATOR_H
 
+#include "parpeConfig.h"
 #include "multiConditionProblem.h"
 
 #include <amici/amici.h>
@@ -34,23 +35,28 @@ public:
             const std::string &resultPath,
             std::vector<double> const& optimizationParameters,
             LoadBalancerMaster *loadBalancer,
-            const H5::H5File &inputFile);
+            const H5::H5File &conditionFile, const std::string &conditionFilePath);
 
     void messageHandler(std::vector<char> &buffer, int jobId);
 
 private:
 
-    SimulationRunnerSimple::AmiciResultPackageSimple runSimulation(JobIdentifier path, amici::Solver &solver, amici::Model &model);
+    AmiciSimulationRunner::AmiciResultPackageSimple runSimulation(
+            int conditionIdx,
+            amici::Solver &solver,
+            amici::Model &model);
 
     MultiConditionDataProvider *dataProvider = nullptr;
 
-    const int maxSimulationsPerPackage = 8;
+    /** Number of simulations to be sent to workers within one package (when running with MPI). */
+    int maxSimulationsPerPackage = 8;
 };
 
 
 // enum class SimulatorOpType {finalParameters};
 
 std::pair<int, double> getFunctionEvaluationWithMinimalCost(std::string const& datasetPath, H5::H5File const& file);
+
 
 /**
  * @brief Read the final parameter set from parPE result file for the given local optimization index
@@ -60,39 +66,53 @@ std::pair<int, double> getFunctionEvaluationWithMinimalCost(std::string const& d
  */
 std::vector<double> getFinalParameters(const std::string &startIndex, const H5::H5File &file);
 
+
 std::vector<std::vector<double>> getParameterTrajectory(const std::string &startIndex, H5::H5File const& file);
+
 
 int getNumStarts(const H5::H5File &file, const std::string &rootPath = "/");
 
+
 int runFinalParameters(parpe::StandaloneSimulator &sim,
-                       const std::string &inFileName,
+                       const std::string &conditionFileName,
+                       const std::string &,
+                       const std::string &parameterFileName,
+                       const std::string &parameterFilePath,
                        const std::string &resultFileName,
                        const std::string &resultPath,
-        parpe::LoadBalancerMaster *loadBalancer);
+                       parpe::LoadBalancerMaster *loadBalancer);
+
 
 int runAlongTrajectory(parpe::StandaloneSimulator &sim,
-                       std::string const& inFileName,
+                       const std::string &conditionFileName,
+                       const std::string &conditionFilePath,
+                       const std::string &parameterFileName,
+                       const std::string &parameterFilePath,
                        std::string const& resultFileName,
                        std::string const& resultPath,
                        parpe::LoadBalancerMaster *loadBalancer);
 
 
-int runSimulator(parpe::StandaloneSimulator &sim,
-                 std::string const& simulationMode,
-                 std::string const& inFileName,
-                 std::string const& dataFilePath,
-                 std::string const& resultFileName,
-                 std::string const& resultPath,
-                 parpe::LoadBalancerMaster *loadBalancer);
-
 int runSimulator(MultiConditionDataProvider &dp,
                  std::string const& simulationMode,
-                 std::string const& inFileName,
-                 std::string const& dataFilePath,
+                 const std::string &conditionFileName,
+                 const std::string &conditionFilePath,
+                 const std::string &parameterFileName,
+                 const std::string &parameterFilePath,
                  std::string const& resultFileName,
                  std::string const& resultPath);
 
-
+/**
+ * @brief From the given parameter vector, extract outer optimization parameters, as defined in
+ * the file HDF5 file parameterFile
+ * @param fullParameters
+ * @param parameterFile
+ * @param parameterPath
+ * @return
+ */
+std::vector<double> getOuterParameters(std::vector<double> const& fullParameters,
+                                      H5::H5File const& parameterFile,
+                                      std::string const& parameterPath);
 } // namespace parpe
 
 #endif // STANDALONESIMULATOR_H

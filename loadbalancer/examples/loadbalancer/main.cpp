@@ -2,7 +2,7 @@
 #include "loadBalancerWorker.h"
 #include <cstdlib>
 #include <mpi.h>
-#include <stdio.h>
+#include <cstdio>
 #include <unistd.h>
 
 #define NUM_JOBS 1000
@@ -51,7 +51,7 @@ int master() {
     // check results
     int errors = 0;
     for (int i = 0; i < numJobs; ++i) {
-        double *buffer = (double *)(jobdata[i].recvBuffer.data());
+        auto buffer = (double *)(jobdata[i].recvBuffer.data());
 
         if (*buffer != 2 * i)
             printf("ERROR: %d was %f\n", i, *buffer);
@@ -68,7 +68,7 @@ int master() {
  * @param buffer
  * @param jobId
  */
-void duplicatingMessageHandler(std::vector<char> &buffer, int jobId) {
+void duplicatingMessageHandler(std::vector<char> &buffer, int  /*jobId*/) {
     // read message
     double value = *reinterpret_cast<double *>(buffer.data());
     //    printf("Received %f\n", value);

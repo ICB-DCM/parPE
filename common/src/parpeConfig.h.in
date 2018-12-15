@@ -1,6 +1,7 @@
 #ifndef PARPE_CONFIG_H
 #define PARPE_CONFIG_H
 
+#cmakedefine PARPE_ENABLE_MPI
 #cmakedefine PARPE_ENABLE_IPOPT
 #cmakedefine PARPE_ENABLE_CERES
 #cmakedefine PARPE_ENABLE_FSQP

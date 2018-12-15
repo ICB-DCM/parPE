@@ -18,7 +18,9 @@
 #include <sstream>
 #include <cstdlib> // getenv
 
+#ifdef PARPE_ENABLE_MPI
 #include <mpi.h>
+#endif
 
 // void printMatlabArray(const double *buffer, int len)
 //{
@@ -32,7 +34,7 @@
 namespace parpe {
 
 bool fileExists(const char *name) {
-    struct stat buffer;
+    struct stat buffer{};
     return (stat(name, &buffer) == 0);
 }
 
@@ -171,26 +173,29 @@ void fillArrayRandomDoubleSameInterval(double min, double max, int length,
 
 int getMpiRank() {
     int mpiRank = -1;
-
+#ifdef PARPE_ENABLE_MPI
     if (getMpiActive()) {
         MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
     }
-
+#endif
     return mpiRank;
 }
 
 int getMpiCommSize() {
     int mpiCommSize = -1;
 
+#ifdef PARPE_ENABLE_MPI
     if (getMpiActive()) {
         MPI_Comm_size(MPI_COMM_WORLD, &mpiCommSize);
     }
+#endif
 
     return mpiCommSize;
 }
 
 int getMpiActive()
 {
+#ifdef PARPE_ENABLE_MPI
     int result = 0;
 
     MPI_Initialized(&result);
@@ -199,6 +204,9 @@ int getMpiActive()
 
     MPI_Finalized(&result);
     return !result;
+#else
+    return false;
+#endif
 }
 
 void CpuTimer::reset()
@@ -256,15 +264,18 @@ bool launchedWithMpi()
 
 void initMpiIfNeeded(int *argc, char ***argv)
 {
+#ifdef PARPE_ENABLE_MPI
     if(parpe::launchedWithMpi())
         MPI_Init(argc, argv);
+#endif
 }
 
 void finalizeMpiIfNeeded()
 {
+#ifdef PARPE_ENABLE_MPI
     if(parpe::launchedWithMpi())
         MPI_Finalize();
-
+#endif
 }
 
 

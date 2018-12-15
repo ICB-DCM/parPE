@@ -1,5 +1,7 @@
 #include "loadBalancerWorker.h"
 
+#ifdef PARPE_ENABLE_MPI
+
 #include <alloca.h>
 #include <cassert>
 #include <cstdlib>
@@ -9,7 +11,10 @@
 #define QUEUE_WORKER_H_VERBOSE 0
 #define LOADBALANCERWORKER_REPORT_WAITING_TIME 1
 
+#ifdef LOADBALANCERWORKER_REPORT_WAITING_TIME
 #include <logging.h>
+#endif
+
 namespace parpe {
 
 void LoadBalancerWorker::run(messageHandlerFunc messageHandler) {
@@ -20,7 +25,7 @@ void LoadBalancerWorker::run(messageHandlerFunc messageHandler) {
     }
 }
 
-bool LoadBalancerWorker::waitForAndHandleJobs(messageHandlerFunc messageHandler) {
+bool LoadBalancerWorker::waitForAndHandleJobs(const messageHandlerFunc& messageHandler) {
     int rank, err;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 #ifdef LOADBALANCERWORKER_REPORT_WAITING_TIME
@@ -56,7 +61,7 @@ bool LoadBalancerWorker::waitForAndHandleJobs(messageHandlerFunc messageHandler)
 #ifdef LOADBALANCERWORKER_REPORT_WAITING_TIME
     double endTime = MPI_Wtime();
     double waitedSeconds = (endTime - startTime);
-    printf("[%d] Message received after waiting %fs.\n", rank, waitedSeconds);
+    logmessage(LOGLVL_DEBUG, "Message received after waiting %fs.", rank, waitedSeconds);
 #endif
 
     messageHandler(buffer, mpiStatus.MPI_TAG);
@@ -70,3 +75,5 @@ bool LoadBalancerWorker::waitForAndHandleJobs(messageHandlerFunc messageHandler)
 }
 
 } // namespace parpe
+
+#endif

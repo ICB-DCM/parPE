@@ -29,7 +29,7 @@ model_steadystate_scaled_JSparseB.cpp
 model_steadystate_scaled_Jv.cpp 
 model_steadystate_scaled_JvB.cpp 
 model_steadystate_scaled_Jy.cpp 
-model_steadystate_scaled_dJydsigma.cpp 
+model_steadystate_scaled_dJydsigmay.cpp 
 model_steadystate_scaled_dJydy.cpp 
 model_steadystate_scaled_dwdp.cpp 
 model_steadystate_scaled_dwdx.cpp 
@@ -42,7 +42,9 @@ model_steadystate_scaled_sigmay.cpp
 model_steadystate_scaled_sxdot.cpp 
 model_steadystate_scaled_w.cpp 
 model_steadystate_scaled_x0.cpp 
+model_steadystate_scaled_x0_fixedParameters.cpp 
 model_steadystate_scaled_sx0.cpp 
+model_steadystate_scaled_sx0_fixedParameters.cpp 
 model_steadystate_scaled_xBdot.cpp 
 model_steadystate_scaled_xdot.cpp 
 model_steadystate_scaled_y.cpp 

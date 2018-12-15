@@ -1,14 +1,16 @@
 #include "amici/symbolic_functions.h"
 #include "amici/defines.h" //realtype definition
 using amici::realtype;
-#include <cmath> 
+#include <cmath>
 
 
-#include "species.h"
-#include "parameter.h"
-#include "fixed_parameter.h"
+#include "w.h"
+#include "x.h"
+#include "p.h"
+#include "k.h"
+#include "dwdp.h"
 
-void dydp_model_steadystate_scaled(double *dydp, const realtype t, const realtype *x, const realtype *p, const realtype *k, const realtype *h, const int ip){
+void dydp_model_steadystate_scaled(double *dydp, const realtype t, const realtype *x, const realtype *p, const realtype *k, const realtype *h, const int ip, const realtype *w, const realtype *dwdp){
     switch(ip) {
         case 0:
             break;

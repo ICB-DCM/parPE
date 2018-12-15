@@ -5,6 +5,7 @@
 #include <optimizationOptions.h>
 #include <misc.h>
 #include <functions.h>
+#include <logging.h>
 
 #include <cstdlib>
 #include <vector>
@@ -19,61 +20,68 @@ namespace parpe {
 class OptimizationResultWriter;
 class OptimizationReporter;
 
-/**
- * TODO: will we use this for minibatch?
- */
-template<typename T>
-class SummedGradientProblem {
+///**
+// * TODO: will we use this for minibatch?
+// */
+//template<typename T>
+//class SummedGradientProblem {
 
-public:
-    SummedGradientProblem() = default;
-    SummedGradientProblem(std::unique_ptr<SummedGradientFunction<T>> costFun);
+//public:
+//    SummedGradientProblem() = default;
+//    SummedGradientProblem(std::unique_ptr<SummedGradientFunction<T>> costFun);
 
-    virtual ~SummedGradientProblem() = default;
+//    virtual ~SummedGradientProblem() = default;
 
-    /** Default implementation: random starting points are drawn from [parametersMin, parametersMax] */
-    virtual void fillInitialParameters(double *buffer) const;
+//    /** Default implementation: random starting points are drawn from [parametersMin, parametersMax] */
+//    virtual void fillInitialParameters(double *buffer) const;
 
-    /** lower bound of parameter values */
-    virtual void fillParametersMin(double *buffer) const = 0;
+//    /** lower bound of parameter values */
+//    virtual void fillParametersMin(double *buffer) const = 0;
 
-    /** upper bound of parameter values */
-    // TODO:     template <class RandomAccessIterator>
-    virtual void fillParametersMax(double *buffer) const = 0;
+//    /** upper bound of parameter values */
+//    // TODO:     template <class RandomAccessIterator>
+//    virtual void fillParametersMax(double *buffer) const = 0;
 
-    OptimizationOptions const& getOptimizationOptions() const;
+//    OptimizationOptions const& getOptimizationOptions() const;
 
-    void setOptimizationOptions(OptimizationOptions const& options);
+//    void setOptimizationOptions(OptimizationOptions const& options);
 
-    // const?
-    std::unique_ptr<SummedGradientFunction<T>> costFun;
+//    // const?
+//    std::unique_ptr<SummedGradientFunction<T>> costFun;
 
-    virtual std::unique_ptr<OptimizationReporter> getReporter() const;
+//    virtual std::unique_ptr<OptimizationReporter> getReporter() const;
 
-private:
-    OptimizationOptions optimizationOptions;
-};
+//private:
+//    OptimizationOptions optimizationOptions;
+//};
 
 
 /**
  * @brief The OptimizationReporter class is called from the optimizer and takes care of
- * calling the objective function and things like of keeping track of iterations, logging intermediate results, timing
- * and can tell the optimizer to exit.
+ * calling the actual objective function, thereby keeping track of iterations, computation time,
+ * logging intermediate results, timing and can tell the optimizer to exit.
  *
  * This extra level of abstraction is added to avoid reimplementing timing, and other things for
- * each supported optimizer.
+ * each supported optimizer. The indirection of cost function evaluation is added to allow caching
+ * previous cost function values.
  */
 
 class OptimizationReporter : public GradientFunction {
 public:
-    OptimizationReporter(GradientFunction *gradFun);
+    OptimizationReporter(GradientFunction *gradFun, std::unique_ptr<Logger> logger);
 
-    OptimizationReporter(GradientFunction *gradFun, std::unique_ptr<OptimizationResultWriter> rw);
+    OptimizationReporter(GradientFunction *gradFun,
+                         std::unique_ptr<OptimizationResultWriter> rw,
+                         std::unique_ptr<Logger> logger);
+
+    virtual ~OptimizationReporter() override = default;
 
     FunctionEvaluationStatus evaluate(
             gsl::span<double const> parameters,
             double &fval,
-            gsl::span<double> gradient) const override;
+            gsl::span<double> gradient,
+            Logger *logger = nullptr,
+            double *cpuTime = nullptr) const override;
 
     int numParameters() const override;
 
@@ -125,16 +133,20 @@ public:
 
     void setGradientFunction(GradientFunction *gradFun) const;
 
-    mutable std::unique_ptr<OptimizationResultWriter> resultWriter;
+    std::unique_ptr<OptimizationResultWriter> resultWriter;
+
+    mutable double cpuTimeTotalSec = 0.0;
+    mutable double cpuTimeIterationSec = 0.0;
+    std::unique_ptr<Logger> logger;
 
 protected:
+    void printObjectiveFunctionFailureMessage() const;
+
+
     // data members are mutable, because we inherit from GradientFunction,
     // and evaluate() is const there. This could probably be solved better....
 
     mutable WallTimer wallTimer;
-//    clock_t timeOptimizationBegin;
-//    clock_t timeIterationBegin;
-//    clock_t timeCostEvaluationBegin;
 
     mutable int numFunctionCalls = 0;
     mutable int numIterations = 0;
@@ -156,6 +168,10 @@ protected:
 
     // keeps the most recent parameters, assuming they are the final ones
     mutable std::vector<double> cachedParameters;
+
+    std::string defaultLoggerPrefix;
+private:
+
 };
 
 
@@ -169,14 +185,15 @@ protected:
  * Additional constraints are currently not supported.
  *
  * TODO: rename GradientProblem? Turn into interface
- * should not have state; so cannot track iterations in there
  */
 
 class OptimizationProblem {
 
 public:
     OptimizationProblem() = default;
-    OptimizationProblem(std::unique_ptr<GradientFunction> costFun);
+    OptimizationProblem(std::unique_ptr<GradientFunction> costFun,
+                        std::unique_ptr<Logger> logger);
+    OptimizationProblem(OptimizationProblem const& other) = delete;
 
     virtual ~OptimizationProblem() = default;
 
@@ -194,10 +211,12 @@ public:
 
     virtual void setOptimizationOptions(OptimizationOptions const& options);
 
+    virtual std::unique_ptr<OptimizationReporter> getReporter() const;
+
     // const?
     std::unique_ptr<GradientFunction> costFun;
 
-    virtual std::unique_ptr<OptimizationReporter> getReporter() const;
+    std::unique_ptr<Logger> logger;
 
 private:
     OptimizationOptions optimizationOptions;
@@ -255,8 +274,8 @@ int getLocalOptimum(OptimizationProblem *problem);
 
 void *getLocalOptimumThreadWrapper(void *optimizationProblemVp);
 
-void runOptimizationsParallel(OptimizationProblem **problems,
-                              int numProblems);
+//void runOptimizationsParallel(OptimizationProblem **problems,
+//                              int numProblems);
 
 void optimizationProblemGradientCheck(OptimizationProblem *problem,
                                       int numParameterIndicesToCheck, double epsilon);

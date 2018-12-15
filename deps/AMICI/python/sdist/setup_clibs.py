@@ -124,12 +124,14 @@ def getAmiciBaseSources(withHDF5=True):
     return amiciBaseSources
 
 
-def getLibSundials(extra_compiler_flags=[]):
+def getLibSundials(extra_compiler_flags=None):
     """Get sundials library build info for setuptools
 
     Arguments:
         extra_compiler_flags: Extra compiler flags
     """
+    if extra_compiler_flags is None:
+        extra_compiler_flags = []
 
     libsundials = ('sundials', {
         'sources': getSundialsSources(),
@@ -139,19 +141,21 @@ def getLibSundials(extra_compiler_flags=[]):
                          'amici/ThirdParty/SuiteSparse/AMD/Include/',
                          'amici/ThirdParty/SuiteSparse/COLAMD/Include/',
                          'amici/ThirdParty/SuiteSparse/BTF/Include/',
-                         'amici/ThirdParty/SuiteSparse/SuiteSparse_config/Include/',
+                         'amici/ThirdParty/SuiteSparse/SuiteSparse_config',
                          'amici/ThirdParty/SuiteSparse/include'],
         'cflags': ['-Wno-misleading-indentation', *extra_compiler_flags]
     })
     return libsundials
 
 
-def getLibSuiteSparse(extra_compiler_flags=[]):
+def getLibSuiteSparse(extra_compiler_flags=None):
     """Get SuiteSparse library build info for setuptools
 
     Arguments:
         extra_compiler_flags: Extra compiler flags
     """
+    if extra_compiler_flags is None:
+        extra_compiler_flags = []
 
     libsuitesparse = ('suitesparse', {
         'sources': getSuiteSparseSources(),
@@ -159,7 +163,7 @@ def getLibSuiteSparse(extra_compiler_flags=[]):
                          'amici/ThirdParty/SuiteSparse/AMD/Include/',
                          'amici/ThirdParty/SuiteSparse/COLAMD/Include/',
                          'amici/ThirdParty/SuiteSparse/BTF/Include/',
-                         'amici/ThirdParty/SuiteSparse/SuiteSparse_config/Include/',
+                         'amici/ThirdParty/SuiteSparse/SuiteSparse_config',
                          'amici/ThirdParty/SuiteSparse/include'
                          ],
         'cflags': ['-Wno-unused-but-set-variable', *extra_compiler_flags]
@@ -168,7 +172,7 @@ def getLibSuiteSparse(extra_compiler_flags=[]):
     return libsuitesparse
 
 
-def getLibAmici(extra_compiler_flags=[], h5pkgcfg=None, blaspkgcfg=None):
+def getLibAmici(extra_compiler_flags=None, h5pkgcfg=None, blaspkgcfg=None):
     """Get AMICI core library build info for setuptools
 
     Arguments:
@@ -176,6 +180,9 @@ def getLibAmici(extra_compiler_flags=[], h5pkgcfg=None, blaspkgcfg=None):
         h5pkgcfg:  hdf5 package info
         blaspkgcfg: blas package info
     """
+
+    if extra_compiler_flags is None:
+        extra_compiler_flags = []
 
     libamici = ('amici', {
         'sources': getAmiciBaseSources(
@@ -186,7 +193,7 @@ def getLibAmici(extra_compiler_flags=[], h5pkgcfg=None, blaspkgcfg=None):
                          'amici/ThirdParty/SuiteSparse/AMD/Include/',
                          'amici/ThirdParty/SuiteSparse/COLAMD/Include/',
                          'amici/ThirdParty/SuiteSparse/BTF/Include/',
-                         'amici/ThirdParty/SuiteSparse/SuiteSparse_config/Include/',
+                         'amici/ThirdParty/SuiteSparse/SuiteSparse_config/',
                          'amici/ThirdParty/SuiteSparse/include',
                          'amici/ThirdParty/sundials/include',
                          'amici/ThirdParty/sundials/src'
@@ -199,5 +206,8 @@ def getLibAmici(extra_compiler_flags=[], h5pkgcfg=None, blaspkgcfg=None):
 
     if blaspkgcfg and 'include_dirs' in blaspkgcfg:
         libamici[1]['include_dirs'].extend(blaspkgcfg['include_dirs'])
+
+    if blaspkgcfg and 'extra_compile_args' in blaspkgcfg:
+        libamici[1]['cflags'].extend(blaspkgcfg['extra_compile_args'])
 
     return libamici

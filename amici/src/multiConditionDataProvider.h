@@ -16,30 +16,6 @@
 
 namespace parpe {
 
-/** Struct to tell simulation workers which dataset they are operating on.
-  */
-struct JobIdentifier {
-    /** current multistart batch (e.g. for crossvalidation) */
-    int idxMultiStart = 0;
-
-    /** current start index in multistart run */
-    int idxLocalOptimization = 0;
-
-    /** iteration of local solver or epoch for minibatch */
-    int idxLocalOptimizationIteration = 0;
-
-    // TODO int idxMiniBatch           /** current minibatch index */
-
-    /** condition index (current data record) */
-    // TODO Only this one is used for the moment
-    int idxConditions = 0;
-
-    void print() const;
-
-    void sprint(char *buffer) const;
-};
-
-
 /**
  * @brief The MultiConditionDataProvider interface
  */
@@ -66,7 +42,7 @@ class MultiConditionDataProvider {
             int conditionIdx, gsl::span<double const> optimization, gsl::span<double> simulation) const = 0;
 
 
-    virtual amici::AMICI_parameter_scaling getParameterScale(int optimizationParameterIndex) const = 0;
+    virtual amici::ParameterScaling getParameterScale(int optimizationParameterIndex) const = 0;
 
 
     virtual void updateSimulationParameters(int conditionIndex, gsl::span<double const> optimizationParams,
@@ -120,7 +96,7 @@ class MultiConditionDataProviderDefault : public MultiConditionDataProvider {
             int conditionIdx, gsl::span<double const> optimization, gsl::span<double> simulation) const override;
 
 
-    virtual amici::AMICI_parameter_scaling getParameterScale(int optimizationParameterIndex) const override;
+    virtual amici::ParameterScaling getParameterScale(int optimizationParameterIndex) const override;
 
 
     virtual void updateSimulationParameters(int conditionIndex, gsl::span<const double> optimizationParams,
@@ -196,6 +172,8 @@ class MultiConditionDataProviderHDF5 : public MultiConditionDataProvider {
                                    std::string const& hdf5Filename,
                                    std::string const& rootPath);
 
+    MultiConditionDataProviderHDF5(MultiConditionDataProviderHDF5 const&) = delete;
+
     virtual ~MultiConditionDataProviderHDF5() override = default;
 
     void openHdf5File(const std::string &hdf5Filename);
@@ -218,7 +196,7 @@ class MultiConditionDataProviderHDF5 : public MultiConditionDataProvider {
             int conditionIdx, gsl::span<double const> optimization, gsl::span<double> simulation) const override;
 
 
-    virtual amici::AMICI_parameter_scaling getParameterScale(int optimizationParameterIndex) const override;
+    virtual amici::ParameterScaling getParameterScale(int optimizationParameterIndex) const override;
 
     /**
      * @brief Check if the data in the HDF5 file has consistent dimensions.
@@ -318,28 +296,10 @@ protected:
      * @brief HDF5 file handles for C++ and C API
      */
     H5::H5File file;
-    hid_t fileId = 0;
 
     std::unique_ptr<OptimizationOptions> optimizationOptions;
 };
 
 } // namespace parpe
-
-
-
-namespace boost {
-namespace serialization {
-
-template <class Archive>
-void serialize(Archive &ar, parpe::JobIdentifier &d, const unsigned int version) {
-    ar & d.idxMultiStart;
-    ar & d.idxLocalOptimization;
-    ar & d.idxLocalOptimizationIteration;
-    ar & d.idxConditions;
-}
-
-
-} // namespace serialization
-} // namespace boost
 
 #endif // MULTICONDITIONDATAPROVIDER_H

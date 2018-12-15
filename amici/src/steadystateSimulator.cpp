@@ -7,8 +7,6 @@
 #include <cmath>
 #include <cstring>
 
-#include <mpi.h>
-
 namespace parpe {
 
 #define XDOT_REL_TOLERANCE 1e-6

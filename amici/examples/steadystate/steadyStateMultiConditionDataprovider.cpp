@@ -2,9 +2,11 @@
 #include <optimizationOptions.h>
 #include <cstdio>
 #include <misc.h>
-#include <multiConditionProblemResultWriter.h>
 
-SteadyStateMultiConditionDataProvider::SteadyStateMultiConditionDataProvider(std::unique_ptr<amici::Model> model, std::string const& hdf5Filename, std::string const& rootPath)
+SteadyStateMultiConditionDataProvider::SteadyStateMultiConditionDataProvider(
+        std::unique_ptr<amici::Model> model,
+        std::string const& hdf5Filename,
+        std::string const& rootPath)
     : MultiConditionDataProviderHDF5(std::move(model), hdf5Filename, rootPath),
       solver(this->model->getSolver())
 {
@@ -32,9 +34,9 @@ void SteadyStateMultiConditionDataProvider::setupModelAndSolver(amici::Model &mo
     model.requireSensitivitiesForAllParameters();
     //model.setParameterScale(amici::AMICI_SCALING_LOG10);
 
-    solver.setSensitivityOrder(amici::AMICI_SENSI_ORDER_FIRST);
+    solver.setSensitivityOrder(amici::SensitivityOrder::first);
     //solver.setSensitivityMethod(amici::AMICI_SENSI_FSA);
-    solver.setSensitivityMethod(amici::AMICI_SENSI_ASA);
+    solver.setSensitivityMethod(amici::SensitivityMethod::adjoint);
     solver.setMaxSteps(1e4);
     solver.setNewtonMaxLinearSteps(100);
     solver.setNewtonMaxSteps(40);

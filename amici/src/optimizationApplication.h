@@ -1,16 +1,26 @@
 #ifndef OPTIMIZATIONAPPLICATION_H
 #define OPTIMIZATIONAPPLICATION_H
 
-#include "multiConditionProblem.h"
-#include "multiConditionProblemResultWriter.h"
+#include "parpeConfig.h"
+
+#ifdef PARPE_ENABLE_MPI
 #include <loadBalancerMaster.h>
 #include <loadBalancerWorker.h>
+#endif
+
+#include "multiConditionProblem.h"
 #include "hierarchicalOptimization.h"
 
 #include <getopt.h>
 #include <string>
 
 namespace parpe {
+
+#ifndef PARPE_ENABLE_MPI
+// Workaround to allow building without MPI. Should be cleaned up.
+using LoadBalancerMaster = int;
+using LoadBalancerWorker = int;
+#endif
 
 /**
  * @brief The OptimizationApplication class parses command line arguments,
@@ -45,33 +55,48 @@ class OptimizationApplication {
      * processes.
      * @return
      */
-    virtual int runMaster();
+    virtual void runMaster();
 
+#ifdef PARPE_ENABLE_MPI
     /**
      * @brief Code to be run on worker processes. Waits for jobs to be sent to
      * messageHandler()
      */
-    virtual int runWorker();
+    virtual void runWorker();
+#endif
 
     /**
      * @brief Code to be run if the application is running on only 1 process
      */
-    virtual int runSingleMpiProcess();
+    virtual void runSingleProcess();
+
+  protected:
 
     /**
-     * @brief Writes the total programm runtime
+     * @brief Receives and writes the total programm runtime
      * @param begin
      */
     virtual void finalizeTiming(double wallTimeSeconds, double cpuTimeSeconds);
 
+    /**
+     * @brief processResultFilenameCommandLineArgument
+     * @param commandLineArg
+     * @return Result file name
+     */
     std::string
     processResultFilenameCommandLineArgument(const char *commandLineArg);
 
+    /**
+     * @brief Are we running with MPI and are we master process?
+     * @return
+     */
     bool isMaster();
 
+    /**
+     * @brief Are we running with MPI and are we a worker?
+     * @return
+     */
     bool isWorker();
-
-  protected:
 
     /**
      * @brief Initialize MPI
@@ -90,7 +115,13 @@ class OptimizationApplication {
      */
     virtual int parseOptions(int argc, char **argv);
 
-    void printUsage(char* const argZero);
+    /**
+     * @brief Print CLI usage
+     * @param argZero
+     */
+    virtual void printUsage(char* const argZero);
+
+    virtual void logParPEVersion(hid_t file_id) const;
 
 private:
     /**
@@ -100,7 +131,7 @@ private:
      */
     int init(int argc, char **argv);
 
-    int runMultiStarts(LoadBalancerMaster* lbm);
+    void runMultiStarts();
 
 protected:
     // command line option parsing
@@ -114,10 +145,10 @@ protected:
         {"outfile-prefix", required_argument, NULL, 'o'},
         {NULL, 0, NULL, 0}};
 
-    typedef enum operationType_tag {
-        OP_TYPE_PARAMETER_ESTIMATION,
-        OP_TYPE_GRADIENT_CHECK
-    } operationTypeEnum;
+    enum class OperationType {
+        parameterEstimation,
+        gradientCheck
+    };
 
     std::string dataFileName;
     std::string resultFileName;
@@ -125,9 +156,8 @@ protected:
     // the need to be filled in by sub
     std::unique_ptr<MultiStartOptimizationProblem> multiStartOptimizationProblem;
     std::unique_ptr<OptimizationProblem> problem;
-    std::unique_ptr<MultiConditionProblemResultWriter> resultWriter;
-
-    operationTypeEnum opType = OP_TYPE_PARAMETER_ESTIMATION;
+    hid_t file_id;
+    OperationType operationType = OperationType::parameterEstimation;
     LoadBalancerMaster loadBalancer;
 };
 

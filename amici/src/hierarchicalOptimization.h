@@ -1,5 +1,5 @@
-#ifndef HIERACHICALOPTIMIZATION_H
-#define HIERACHICALOPTIMIZATION_H
+#ifndef HIERARCHICALOPTIMIZATION_H
+#define HIERARCHICALOPTIMIZATION_H
 
 #include <optimizationProblem.h>
 #include "multiConditionProblem.h"
@@ -22,18 +22,18 @@ enum class ErrorModel { normal }; // TODO logNormal, laplace
 
 class AnalyticalParameterProvider;
 class AnalyticalParameterHdf5Reader;
-class HierachicalOptimizationProblemWrapper;
-class HierachicalOptimizationWrapper;
+class HierarchicalOptimizationProblemWrapper;
+class HierarchicalOptimizationWrapper;
 
 /**
- * @brief The HierachicalOptimizationWrapper class is a wrapper for hierarchical optimization of
+ * @brief The HierarchicalOptimizationWrapper class is a wrapper for hierarchical optimization of
  * scaling parameters.
  *
  * Parameters with the given indices are hidden by the wrapper and computed analytically internally.
  *
  * Computes the negative log likelihood for normally distributed measurement (others to be added).
  */
-class HierachicalOptimizationWrapper : public GradientFunction
+class HierarchicalOptimizationWrapper : public GradientFunction
 {
 public:
     /**
@@ -43,7 +43,7 @@ public:
      * @param numObservables
      * @param numTimepoints
      */
-    HierachicalOptimizationWrapper(std::unique_ptr<AmiciSummedGradientFunction<int>> fun,
+    HierarchicalOptimizationWrapper(std::unique_ptr<AmiciSummedGradientFunction<int>> fun,
                                    int numConditions = 0,
                                    int numObservables = 0,
                                    int numTimepoints = 0);
@@ -58,7 +58,7 @@ public:
      * @param numTimepoints
      * @param errorModel
      */
-    HierachicalOptimizationWrapper(std::unique_ptr<AmiciSummedGradientFunction<int>> fun,
+    HierarchicalOptimizationWrapper(std::unique_ptr<AmiciSummedGradientFunction<int>> fun,
                                    const H5::H5File &file,
                                    const std::string &hdf5RootPath,
                                    int numConditions,
@@ -76,7 +76,7 @@ public:
      * @param numTimepoints
      * @param errorModel
      */
-    HierachicalOptimizationWrapper(std::unique_ptr<AmiciSummedGradientFunction<int>> fun,
+    HierarchicalOptimizationWrapper(std::unique_ptr<AmiciSummedGradientFunction<int>> fun,
                                    std::unique_ptr<AnalyticalParameterProvider> scalingReader,
                                    std::unique_ptr<AnalyticalParameterProvider> offsetReader,
                                    std::unique_ptr<AnalyticalParameterProvider> sigmaReader,
@@ -95,14 +95,18 @@ public:
     FunctionEvaluationStatus evaluate(
             gsl::span<double const> parameters,
             double &fval,
-            gsl::span<double> gradient) const override;
+            gsl::span<double> gradient,
+            Logger *logger,
+            double *cpuTime) const override;
 
     FunctionEvaluationStatus evaluate(
             gsl::span<double const> reducedParameters,
             double &fval,
             gsl::span<double> gradient,
             std::vector<double> &fullParameters,
-            std::vector<double> &fullGradient) const;
+            std::vector<double> &fullGradient,
+            Logger *logger,
+            double *cpuTime) const;
 
     /**
      * @brief Get parameters for initial function evaluation
@@ -123,7 +127,7 @@ public:
      * @param reducedParameters parameter vector for `fun` without scaling parameters
      * @return Vector of double vectors containing AMICI ReturnData::y (nt x ny, column-major)
      */
-    std::vector <std::vector<double>> getUnscaledModelOutputs(const gsl::span<double const> reducedParameters) const;
+    std::vector <std::vector<double>> getUnscaledModelOutputs(const gsl::span<double const> reducedParameters, Logger *logger, double *cpuTime) const;
 
 
     /**
@@ -177,7 +181,8 @@ public:
             std::vector<std::vector<double>> const& measurements,
             std::vector<std::vector<double>> const& modelOutputsScaled,
             double &fval,
-            const gsl::span<double> gradient, std::vector<double> &fullGradient) const;
+            const gsl::span<double> gradient, std::vector<double> &fullGradient,
+            Logger *logger, double *cpuTime) const;
 
     /**
      * @brief Get number of parameters the function expects
@@ -301,6 +306,8 @@ public:
                                   const std::string &analyticalParameterIndicesPath,
                                   const std::string &mapPath);
 
+    AnalyticalParameterHdf5Reader(AnalyticalParameterHdf5Reader const&) = delete;
+
     /**
      * @brief Get vector of condition indices for which the parameter with the given index is used.
      * @param parameterIndex referring to the index in the analytical parameter list in the hdf5 file
@@ -345,21 +352,24 @@ private:
 
 
 /**
- * @brief The HierachicalOptimizationProblemWrapper class wraps an OptimizationProblem
+ * @brief The HierarchicalOptimizationProblemWrapper class wraps an OptimizationProblem
  * and hides the analytically optimizated parameters (from starting point, parameter bounds, ...)
  *
  */
-class HierachicalOptimizationProblemWrapper : public OptimizationProblem {
+class HierarchicalOptimizationProblemWrapper : public OptimizationProblem {
 public:
-    HierachicalOptimizationProblemWrapper() = default;
+    HierarchicalOptimizationProblemWrapper() = default;
 
-    HierachicalOptimizationProblemWrapper(std::unique_ptr<OptimizationProblem> problemToWrap,
+    HierarchicalOptimizationProblemWrapper(std::unique_ptr<OptimizationProblem> problemToWrap,
                                           const MultiConditionDataProviderHDF5 *dataProvider);
 
-    HierachicalOptimizationProblemWrapper(std::unique_ptr<OptimizationProblem> problemToWrap,
-                                          std::unique_ptr<HierachicalOptimizationWrapper> costFun);
+    HierarchicalOptimizationProblemWrapper(std::unique_ptr<OptimizationProblem> problemToWrap,
+                                          std::unique_ptr<HierarchicalOptimizationWrapper> costFun,
+                                          std::unique_ptr<Logger> logger);
 
-    virtual ~HierachicalOptimizationProblemWrapper();
+    HierarchicalOptimizationProblemWrapper(HierarchicalOptimizationProblemWrapper const& other) = delete;
+
+    virtual ~HierarchicalOptimizationProblemWrapper() override;
 
     virtual void fillInitialParameters(gsl::span<double> buffer) const override;
 
@@ -387,14 +397,15 @@ private:
  */
 class HierarchicalOptimizationReporter : public OptimizationReporter {
 public:
-    HierarchicalOptimizationReporter(HierachicalOptimizationWrapper *gradFun,
-                         std::unique_ptr<OptimizationResultWriter> rw);
-
-
+    HierarchicalOptimizationReporter(HierarchicalOptimizationWrapper *gradFun,
+                                     std::unique_ptr<OptimizationResultWriter> rw,
+                                     std::unique_ptr<Logger> logger);
 
     FunctionEvaluationStatus evaluate(
             gsl::span<const double> parameters, double &fval,
-            gsl::span<double> gradient) const override;
+            gsl::span<double> gradient,
+            Logger *logger = nullptr,
+            double *cpuTime = nullptr) const override;
 
     // bool starting(gsl::span<const double> initialParameters) const override;
 
@@ -413,7 +424,7 @@ public:
 
     std::vector<double> const& getFinalParameters() const override;
 
-    HierachicalOptimizationWrapper *hierarchicalWrapper = nullptr;
+    HierarchicalOptimizationWrapper *hierarchicalWrapper = nullptr;
 
     /* In addition to the vectors for the outer optimization problem,
      * we also keep the complete ones.
@@ -436,9 +447,9 @@ void fillFilteredParams(std::vector<double> const& valuesToFilter,
                         const std::vector<int> &sortedIndicesToExclude,
                         gsl::span<double> result);
 
-double getDefaultScalingFactor(amici::AMICI_parameter_scaling scaling);
+double getDefaultScalingFactor(amici::ParameterScaling scaling);
 
-double getDefaultOffsetParameter(amici::AMICI_parameter_scaling scaling);
+double getDefaultOffsetParameter(amici::ParameterScaling scaling);
 
 /**
  * @brief Compute the proportionality factor for the given observable.
@@ -473,9 +484,7 @@ void applyOptimalScaling(int scalingIdx, double scalingLin,
                          AnalyticalParameterProvider const& scalingReader,
                          int numObservables, int numTimepoints);
 
-double getScaledParameter(double parameter, amici::AMICI_parameter_scaling scale);
-
-double getUnscaledParameter(double parameter, amici::AMICI_parameter_scaling scale);
+double getScaledParameter(double parameter, amici::ParameterScaling scale);
 
 void applyOptimalOffset(int offsetIdx, double offsetLin,
                         std::vector<std::vector<double> > &modelOutputs,
@@ -519,4 +528,4 @@ void checkGradientForAnalyticalParameters(std::vector<double> const& gradient,
 
 } //namespace parpe
 
-#endif // HIERACHICALOPTIMIZATION_H
+#endif // HIERARCHICALOPTIMIZATION_H

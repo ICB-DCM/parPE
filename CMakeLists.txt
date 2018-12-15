@@ -3,8 +3,11 @@ project(parpe)
 
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/CMakeModules/)
 
-# Ensure CMAKE_BUILD_TYPE is always set
-include(BuildType)
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
+
+include(BuildType) # Ensure CMAKE_BUILD_TYPE is always set
+include(BuildOptimized)
 
 set(CMAKE_DEBUG_POSTFIX "-dbg")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -Wall -Wno-unused-function -fopenmp -D_GNU_SOURCE") # -D_GNU_SOURCE for pthread recursive mutex issues
@@ -15,26 +18,12 @@ if(BUILD_PYTHON_MODULE)
     set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 endif()
 
-# <build optimized>
-if(CMAKE_BUILD_TYPE MATCHES Release OR CMAKE_BUILD_TYPE MATCHES RelWithDebInfo)
-    include(CheckCXXCompilerFlag)
-    CHECK_CXX_COMPILER_FLAG(-xHOST COMPILER_SUPPORTS_XHOST)
-    CHECK_CXX_COMPILER_FLAG(-march=native COMPILER_SUPPORTS_MARCHNATIVE)
-
-    if(COMPILER_SUPPORTS_XHOST)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -xHOST")
-    endif()
-    if(COMPILER_SUPPORTS_MARCHNATIVE)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
-    endif()
-endif()
-# </build optimized>
 
 # <versioning>
 # Version number from git
 add_custom_target(get_version ALL
     COMMAND ${CMAKE_COMMAND} -DINFILE=${PROJECT_SOURCE_DIR}/common/src/parpeVersion.h.in
-    -DOUTFILE=${PROJECT_SOURCE_DIR}/common/src/parpeVersion.h
+    -DOUTFILE=${PROJECT_BINARY_DIR}/common/src/parpeVersion.h
     -P ${PROJECT_SOURCE_DIR}/CMakeModules/ConfigureVersion.cmake)
 
 include("getVersion")
@@ -50,7 +39,7 @@ set(BUILD_DOCS FALSE CACHE BOOL "Generate documentation?")
 set(BUILD_PYTHON_MODULE FALSE CACHE BOOL "Build Python module?")
 set(BLAS "CBLAS" CACHE STRING "BLAS library to use")
 set_property(CACHE BLAS PROPERTY STRINGS "CBLAS" "MKL")
-#set(USE_MPI TRUE CACHE BOOL "Use MPI?")
+set(PARPE_ENABLE_MPI TRUE CACHE BOOL "Use MPI?")
 set(IPOPT_DIR "" CACHE PATH "IpOpt root directory")
 set(IPOPT_INCLUDE_DIRS "${IPOPT_DIR}/include/coin/"  CACHE PATH "IpOpt include directory")
 set(IPOPT_LIBRARIES ${IPOPT_DIR}/lib/libipopt.a ${IPOPT_DIR}/lib/libcoinhsl.a gfortran CACHE STRINGS "IpOpt library")
@@ -62,21 +51,20 @@ set(PARPE_ENABLE_DLIB FALSE CACHE BOOL "Enable dlib optimizers?")
 set(PARPE_ENABLE_TOMS611 FALSE CACHE BOOL "Enable toms611 optimizers?")
 set(PARPE_ENABLE_FSQP FALSE CACHE BOOL "Enable FSQP optimizers?")
 
-# Enable MPI? Currently mandatory.
-set(USE_MPI ON)
-if(${USE_MPI})
+# Enable MPI?
+if(${PARPE_ENABLE_MPI})
     find_package(MPI REQUIRED)
-    add_definitions(-DUSE_MPI)
-    include_directories(/usr/lib/x86_64-linux-gnu/openmpi/include)
-endif(${USE_MPI})
+    if(IS_DIRECTORY ${MPI_INCLUDE_DIRS})
+        # may be undefined. will be provided by MPI compiler wrapped.
+        # this is only added for convenient IDE integration
+        include_directories(${MPI_INCLUDE_DIRS})
+    endif()
+endif(${PARPE_ENABLE_MPI})
 # </Build options>
 
 if(${ENABLE_DLIB})
     set(DLIB_DIR "${CMAKE_CURRENT_LIST_DIR}/ThirdParty/dlib-19.7" CACHE FILEPATH "DLIB base directory")
 endif(${ENABLE_DLIB})
-
-# write config header
-configure_file(${CMAKE_CURRENT_LIST_DIR}/common/src/parpeConfig.h.in ${CMAKE_CURRENT_LIST_DIR}/common/src/parpeConfig.h @ONLY)
 
 # PThreads
 set(THREADS_PREFER_PTHREAD_FLAG ON)
@@ -86,8 +74,9 @@ find_package(Threads REQUIRED)
 # HDF5
 #set(HDF5_PREFER_PARALLEL TRUE)
 find_package(HDF5 COMPONENTS CXX C HL REQUIRED)
-
 set(HDF5_LIBRARIES ${HDF5_HL_LIBRARIES} ${HDF5_C_LIBRARIES} ${HDF5_CXX_LIBRARIES})
+
+# Guidelines Support Library (GSL-lite) directory
 set(GSL_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/ThirdParty/gsl)
 
 # Build tests?
@@ -175,7 +164,9 @@ add_custom_target(cloc
 
 add_subdirectory(common)
 add_subdirectory(optimization)
+#if(${PARPE_ENABLE_MPI})
 add_subdirectory(loadbalancer)
+#endif(${PARPE_ENABLE_MPI})
 add_subdirectory(amici)
 
 if(BUILD_PYTHON_MODULE AND CMAKE_BUILD_TYPE MATCHES Debug)

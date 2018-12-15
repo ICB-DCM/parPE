@@ -1,5 +1,11 @@
 project(parpecommon)
 
+# write config header
+configure_file(
+    ${CMAKE_CURRENT_LIST_DIR}/parpeConfig.h.in
+    ${CMAKE_CURRENT_BINARY_DIR}/parpeConfig.h
+    @ONLY)
+
 set(SRC_LIST
     misc.cpp
     logging.cpp
@@ -13,6 +19,7 @@ set(SRC_LIST
 add_library(${PROJECT_NAME} ${SRC_LIST})
 
 target_include_directories(${PROJECT_NAME}
+    PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
     PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
     PUBLIC ${HDF5_INCLUDE_DIRS}
     PUBLIC ${GSL_INCLUDE_DIRS}

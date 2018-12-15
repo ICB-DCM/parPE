@@ -8,7 +8,9 @@
 #include <unistd.h>
 #include <sstream>
 
+#ifdef PARPE_ENABLE_MPI
 #include <mpi.h>
+#endif
 
 namespace parpe {
 
@@ -39,6 +41,7 @@ void logProcessStats()
 }
 
 void printMPIInfo() {
+#ifdef PARPE_ENABLE_MPI
     int mpiInitialized = 0;
     MPI_Initialized(&mpiInitialized);
 
@@ -55,6 +58,9 @@ void printMPIInfo() {
     } else {
         logmessage(LOGLVL_DEBUG, "MPI not initialized.");
     }
+#else
+    logmessage(LOGLVL_DEBUG, "MPI support disabled.");
+#endif
 }
 
 
@@ -90,8 +96,6 @@ void logmessage(loglevel lvl, const char *format, va_list argptr)
     if(minimumLogLevel < lvl)
         return;
 
-    int mpiInitialized = 0;
-    MPI_Initialized(&mpiInitialized);
 
     // TODO: fileLogLevel, consoleLogLevel
     // Coloring
@@ -126,17 +130,23 @@ void logmessage(loglevel lvl, const char *format, va_list argptr)
 
     // MPI info
     int mpiCommSize = 1, mpiRank = -1;
-    if(mpiInitialized) {
+#ifdef PARPE_ENABLE_MPI
+    auto mpiActive = getMpiActive();
+
+    if(mpiActive) {
         MPI_Comm_size(MPI_COMM_WORLD, &mpiCommSize);
         MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
     }
 
     char procName[MPI_MAX_PROCESSOR_NAME];
     procName[0] = '\0';
-    if(mpiInitialized) {
+    if(mpiActive) {
         int procNameLen;
         MPI_Get_processor_name(procName, &procNameLen);
     }
+#else
+    auto procName = "";
+#endif
     printf("[%*d/%s] ", 1 + static_cast<int>(log10(mpiCommSize)), mpiRank, procName);
 
     // Message
@@ -151,6 +161,38 @@ void logmessage(loglevel lvl, const char *format, va_list argptr)
         break;
     }
 
+}
+
+Logger::Logger(std::string prefix) : prefix(std::move(prefix)) {}
+
+std::unique_ptr<Logger> Logger::getChild(const std::string &appendedPrefix) const {
+    return std::make_unique<Logger>(prefix + appendedPrefix);
+}
+
+void Logger::logmessage(loglevel lvl, const std::string &msg) const {
+    parpe::logmessage(lvl, "[" + prefix + "] " + msg);
+}
+
+void Logger::logmessage(loglevel lvl, const char *format, ...) const {
+    std::string str = "[" + prefix + "] " + format;
+
+    va_list argptr;
+    va_start(argptr,format);
+    parpe::logmessage(lvl, str.c_str(), argptr);
+    va_end(argptr);
+}
+
+void Logger::logmessage(loglevel lvl, const char *format, va_list argptr) const {
+    std::string str = "[" + prefix + "] " + format;
+    parpe::logmessage(lvl, str.c_str(), argptr);
+}
+
+void Logger::setPrefix(const std::string &pre) {
+    prefix = pre;
+}
+
+const std::string &Logger::getPrefix() const {
+    return prefix;
 }
 
 } // namespace parpe

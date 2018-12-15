@@ -1,9 +1,9 @@
 add_subdirectory(src/)
 
-if(${BUILD_TESTS})
+if(${BUILD_TESTS} AND ${PARPE_ENABLE_MPI})
     add_subdirectory(tests)
-endif(${BUILD_TESTS})
+endif()
 
-if(${BUILD_EXAMPLES})
+if(${BUILD_EXAMPLES} AND ${PARPE_ENABLE_MPI})
     add_subdirectory(examples/loadbalancer)
-endif(${BUILD_EXAMPLES})
+endif()

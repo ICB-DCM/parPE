@@ -18,7 +18,8 @@ enum class optimizerName {
     OPTIMIZER_CERES,
     OPTIMIZER_DLIB,
     OPTIMIZER_TOMS611,
-    OPTIMIZER_FSQP
+    OPTIMIZER_FSQP,
+    OPTIMIZER_MINIBATCH_1 = 10
 };
 
 
@@ -76,8 +77,8 @@ class OptimizationOptions {
     template <typename T>
     void for_each(std::function< void (const std::pair<const std::string, const std::string>, T)> f, T arg) const
     {
-        std::for_each(options.begin(), options.end(),
-                      std::bind2nd(f, arg));
+        std::for_each(options.cbegin(), options.cend(),
+                      std::bind(f, std::placeholders::_1, arg));
     }
 
 private:

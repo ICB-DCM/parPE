@@ -29,30 +29,45 @@ public:
 class MultiStartOptimization {
 
   public:
-    MultiStartOptimization(MultiStartOptimizationProblem& problem, bool runParallel = true);
+    MultiStartOptimization(MultiStartOptimizationProblem& problem,
+                           bool runParallel = true);
 
     ~MultiStartOptimization() = default;
 
     /**
      * @brief Start multi-start optimization
-     * @return always returns 0
      */
+    void run();
 
-    int run();
+    /**
+     * @brief Run all optimizations in parallel, each in a dedicated thread
+     */
+    void runMultiThreaded();
 
-    int runMultiThreaded();
+    /**
+     * @brief Run optimizations sequentially
+     */
+    void runSingleThreaded();
 
-    int runSingleThreaded();
-
+    /**
+     * @brief Set parallel or sequential mode
+     */
     void setRunParallel(bool runParallel);
 
   private:
 
     std::vector<OptimizationProblem *> createLocalOptimizationProblems();
 
+    /** Optimization problem to be solved */
     MultiStartOptimizationProblem& msProblem;
+
+    /** Number of optimization runs to perform*/
     int numberOfStarts = 1;
+
+    /** Try a new starting point if a previous one fails */
     bool restartOnFailure = false;
+
+    /** Run multiple optimizations in parallel */
     bool runParallel = true;
 };
 

@@ -1,4 +1,4 @@
-#include "simulationRunner.h"
+#include "amiciSimulationRunner.h"
 #include "misc.h"
 #include "testingMisc.h"
 

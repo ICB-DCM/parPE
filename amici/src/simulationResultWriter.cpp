@@ -24,7 +24,7 @@ SimulationResultWriter::SimulationResultWriter(const std::string &hdf5FileName, 
 
     try {
         file = H5::H5File(hdf5FileName, H5F_ACC_RDWR);
-    } catch (H5::FileIException) {
+    } catch (H5::FileIException const&) {
         // create if doesn't exist
         file = H5::H5File(hdf5FileName, H5F_ACC_EXCL);
     }
@@ -33,14 +33,8 @@ SimulationResultWriter::SimulationResultWriter(const std::string &hdf5FileName, 
     updatePaths();
 }
 
-
-void SimulationResultWriter::createDatasets(const amici::Model &model,
-                                            int numberOfSimulations)
+void SimulationResultWriter::createDatasets(hsize_t ny, hsize_t nx, hsize_t nt, hsize_t numSimulations)
 {
-    auto numSimulations = static_cast<hsize_t>(numberOfSimulations);
-    auto ny = static_cast<hsize_t>(model.nytrue);
-    auto nx = static_cast<hsize_t>(model.nxtrue);
-    auto nt = static_cast<hsize_t>(model.nt());
 
     auto lock = parpe::hdf5MutexGetLock();
 
@@ -51,7 +45,7 @@ void SimulationResultWriter::createDatasets(const amici::Model &model,
 
     parpe::hdf5EnsureGroupExists(file.getId(), rootPath.c_str());
 
-    if((saveYMes || saveYSim) && model.nt() > 0 && model.nytrue > 0) {
+    if((saveYMes || saveYSim) && nt > 0 && ny > 0) {
         // observables
         constexpr int rank = 3;
         hsize_t dims[rank] = {numSimulations, nt, ny};
@@ -86,13 +80,24 @@ void SimulationResultWriter::createDatasets(const amici::Model &model,
 }
 
 
+void SimulationResultWriter::createDatasets(const amici::Model &model,
+                                            int numberOfSimulations)
+{
+    createDatasets(static_cast<hsize_t>(model.nytrue),
+                   static_cast<hsize_t>(model.nxtrue),
+                   static_cast<hsize_t>(model.nt()),
+                   static_cast<hsize_t>(numberOfSimulations)
+                   );
+}
+
+
 void SimulationResultWriter::saveSimulationResults(
         const amici::ExpData *edata,
         const amici::ReturnData *rdata,
         int simulationIdx)
 {
-    saveMeasurements(edata->my, edata->nt, edata->nytrue, simulationIdx);
-    saveModelOutputs(rdata->y,  edata->nt, edata->nytrue, simulationIdx);
+    saveMeasurements(edata->getObservedData(), edata->nt(), edata->nytrue(), simulationIdx);
+    saveModelOutputs(rdata->y,  edata->nt(), edata->nytrue(), simulationIdx);
     saveStates(rdata->x, rdata->nt, rdata->nx, simulationIdx);
     saveLikelihood(rdata->llh, simulationIdx);
 

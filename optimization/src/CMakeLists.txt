@@ -10,10 +10,7 @@ set(SRC_LIST
 )
 
 if(${PARPE_ENABLE_IPOPT})
-    list(APPEND SRC_LIST
-        localOptimizationIpopt.cpp
-        localOptimizationIpoptTNLP.cpp
-        )
+    list(APPEND SRC_LIST localOptimizationIpopt.cpp localOptimizationIpoptTNLP.cpp)
 endif(${PARPE_ENABLE_IPOPT})
 
 if(${PARPE_ENABLE_CERES})
@@ -36,10 +33,17 @@ add_library(${PROJECT_NAME} ${SRC_LIST})
 
 target_include_directories(${PROJECT_NAME}
     PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
-    PUBLIC ${IPOPT_INCLUDE_DIRS}
-    PUBLIC ${CERES_INCLUDE_DIRS}
     PUBLIC ${HDF5_INCLUDE_DIRS}
 )
+
+if(${PARPE_ENABLE_IPOPT})
+    target_include_directories(${PROJECT_NAME} PUBLIC ${IPOPT_INCLUDE_DIRS})
+endif(${PARPE_ENABLE_IPOPT})
+
+if(${PARPE_ENABLE_CERES})
+    target_include_directories(${PROJECT_NAME} PUBLIC ${CERES_INCLUDE_DIRS})
+endif(${PARPE_ENABLE_CERES})
+
 
 set(PARPE_CERES_MINIGLOG_REDIRECT FALSE CACHE BOOL "Custom treatment of Ceres output? Requires miniglog headers in ceres directory.")
 if(${PARPE_CERES_MINIGLOG_REDIRECT})
@@ -70,13 +74,13 @@ target_link_libraries(${PROJECT_NAME}
     ${CMAKE_THREAD_LIBS_INIT}
 )
 
-if(${PARPE_ENABLE_CERES})
-    target_link_libraries(${PROJECT_NAME} ${CERES_LIBRARIES})
-endif(${PARPE_ENABLE_CERES})
-
 if(${PARPE_ENABLE_IPOPT})
     target_link_libraries(${PROJECT_NAME} ${IPOPT_LIBRARIES})
 endif(${PARPE_ENABLE_IPOPT})
+
+if(${PARPE_ENABLE_CERES})
+    target_link_libraries(${PROJECT_NAME} ${CERES_LIBRARIES})
+endif(${PARPE_ENABLE_CERES})
 
 if(${PARPE_ENABLE_DLIB})
     target_link_libraries(${PROJECT_NAME} ${dlib_LIBRARIES})

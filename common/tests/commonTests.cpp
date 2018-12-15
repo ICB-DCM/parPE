@@ -1,15 +1,20 @@
 #include "CppUTest/TestHarness.h"
 #include "CppUTestExt/MockSupport.h"
 
+#include "parpeConfig.h"
 #include <misc.h>
 #include <logging.h>
 #include <parpeException.h>
 #include <hdf5Misc.h>
 #include <testingMisc.h>
-#include <mpi.h>
+
 #include <cmath>
 #include <vector>
 #include <cstring> // strlen
+
+#ifdef PARPE_ENABLE_MPI
+#include <mpi.h>
+#endif
 
 using namespace parpe;
 
@@ -153,6 +158,7 @@ TEST(commonMisc, testFillArrayRandomDoubleIndividualInterval) {
 }
 
 
+#ifdef PARPE_ENABLE_MPI
 TEST(commonMisc, testMpi) {
 #if IGNORE_ALL_LEAKS_IN_TEST
     IGNORE_ALL_LEAKS_IN_TEST()
@@ -171,8 +177,8 @@ TEST(commonMisc, testMpi) {
     // Should not make invalid calls after mpi_finalize
     CHECK_EQUAL(-1, parpe::getMpiRank());
     CHECK_EQUAL(-1, parpe::getMpiCommSize());
-
 }
+#endif
 
 
 TEST(commonMisc, runInParallelAndWaitForFinish) {
@@ -363,9 +369,4 @@ TEST(costFunction, linearModel3) {
 
     lm.evaluate(parameters, features, outputsAct, gradAct);
     CHECK_TRUE(gradExp == gradAct);
-
 }
-
-
-
-

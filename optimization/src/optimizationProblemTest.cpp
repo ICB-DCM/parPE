@@ -1,10 +1,14 @@
 #include <CppUTest/TestHarness.h>
 #include <CppUTestExt/MockSupport.h>
 
+#include "parpeConfig.h"
 #include "optimizationProblem.h"
 #include "quadraticTestProblem.h"
 #include <misc.h>
+
+#ifdef PARPE_ENABLE_IPOPT
 #include "localOptimizationIpopt.h"
+#endif
 
 #include <cmath>
 
@@ -34,7 +38,7 @@ public:
             gsl::span<double const> parameters,
             double dataset,
             double &fval,
-            gsl::span<double> gradient) const override
+            gsl::span<double> gradient, parpe::Logger* logger, double *cpuTime) const override
     {
         fval = parameters[0] * dataset + parameters[1];
 
@@ -59,7 +63,8 @@ public:
             gsl::span<double const> parameters,
             std::vector<double> datasets,
             double &fval,
-            gsl::span<double> gradient) const override
+            gsl::span<double> gradient,
+            parpe::Logger* logger, double* cpuTime) const override
     {
         fval = 0;
         if(!gradient.empty())
@@ -69,7 +74,7 @@ public:
         std::vector<double> tmpGradient(parameters.size());
 
         for(auto& d : datasets) {
-            auto status = evaluate(parameters, d, tmpFVal, tmpGradient);
+            auto status = evaluate(parameters, d, tmpFVal, tmpGradient, nullptr, nullptr);
             if(status != parpe::functionEvaluationSuccess)
                 return status;
 
@@ -126,13 +131,13 @@ TEST(optimizationProblem, linearModel) {
     double fval = NAN;
     std::vector<double> gradient(model.numParameters(), NAN);
 
-    model.evaluate(parameters, 1.0, fval, gradient);
+    model.evaluate(parameters, 1.0, fval, gradient, nullptr, nullptr);
     CHECK_EQUAL(3.0, fval);
     CHECK_EQUAL(1.0, gradient[0]);
     CHECK_EQUAL(0.0, gradient[1]);
 
     std::vector<double> dataset {2.0, 3.0};
-    model.evaluate(parameters, dataset, fval, gradient);
+    model.evaluate(parameters, dataset, fval, gradient, nullptr, nullptr);
     CHECK_EQUAL(9.0, fval);
     CHECK_EQUAL(5.0, gradient[0]);
     CHECK_EQUAL(0.0, gradient[1]);
@@ -156,7 +161,7 @@ TEST(optimizationProblem, linearModelToGradientFun) {
 }
 
 
-
+#ifdef PARPE_ENABLE_IPOPT
 TEST(optimizationProblem, linearModelToGradientFunOptimization) {
     // create optimization problem for the linear model
     // does not do anything meaningful yet
@@ -165,7 +170,7 @@ TEST(optimizationProblem, linearModelToGradientFunOptimization) {
     auto gradFun = std::unique_ptr<parpe::GradientFunction>(
                 new parpe::SummedGradientFunctionGradientFunctionAdapter<double>(
                     std::move(model), dataset));
-    parpe::OptimizationProblemImpl problem {std::move(gradFun)};
+    parpe::OptimizationProblemImpl problem {std::move(gradFun), std::make_unique<parpe::Logger>()};
 
     std::vector<double> parametersMin {-100, -100};
     std::vector<double> parametersMax {100, 100};
@@ -176,3 +181,4 @@ TEST(optimizationProblem, linearModelToGradientFunOptimization) {
     parpe::OptimizerIpOpt opt;
     opt.optimize(&problem);
 }
+#endif

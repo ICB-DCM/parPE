@@ -1,5 +1,7 @@
 #include "loadBalancerMaster.h"
 
+#ifdef PARPE_ENABLE_MPI
+
 #include <cassert>
 #include <climits>
 #include <sched.h>
@@ -34,7 +36,7 @@ void LoadBalancerMaster::run() {
     /* Create semaphore to limit queue length
      * and avoid huge memory allocation for all send and receive buffers.
      */
-    unsigned int queueMaxLength = 4 * mpiCommSize;
+    unsigned int queueMaxLength = mpiCommSize;
 #ifdef SEM_VALUE_MAX
     if(SEM_VALUE_MAX < queueMaxLength)
         throw ParPEException("SEM_VALUE_MAX too small to work with the given MPI_Comm_size.");
@@ -302,3 +304,5 @@ bool LoadBalancerMaster::isRunning() const
 }
 
 } // namespace parpe
+
+#endif

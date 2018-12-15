@@ -20,21 +20,21 @@ TEST_GROUP(optimizationResultWriter){
 TEST(optimizationResultWriter, testResultWriter) {
     const char* tmpFilename = "deleteme.h5";
 
-    parpe::OptimizationResultWriter w(tmpFilename, true);
+    parpe::OptimizationResultWriter w(tmpFilename, true, "/bla/");
 
     H5::H5File file(tmpFilename, H5F_ACC_RDONLY);
 
-    w.setRootPath("/bla/");
-
     CHECK_TRUE(parpe::hdf5GroupExists(file.getId(), "/bla"));
 
-    w.logLocalOptimizerIteration(1, gsl::span<double>(), 0.0, gsl::span<double>(), 1.0);
+    w.setRootPath("/bla2");
+
+    w.logOptimizerIteration(1, gsl::span<double>(), 0.0, gsl::span<double>(), 1.0, 2.0);
     // should it be possible to have the same iteration twice?
-    w.logLocalOptimizerIteration(1, gsl::span<double>(), 0.0, gsl::span<double>(), 1.0);
+    w.logOptimizerIteration(1, gsl::span<double>(), 0.0, gsl::span<double>(), 1.0, 2.0);
 
-    w.logLocalOptimizerObjectiveFunctionEvaluation(gsl::span<double>(), 1.0, gsl::span<double>(), 1, 2, 3.0);
+    w.logObjectiveFunctionEvaluation(gsl::span<double>(), 1.0, gsl::span<double>(), 1, 2, 3.0);
 
-    w.saveLocalOptimizerResults(1.0, gsl::span<double>(), 12, 0);
+    w.saveOptimizerResults(1.0, gsl::span<double>(), 12.0, 17.0, 0);
 
     // TODO: check output
 

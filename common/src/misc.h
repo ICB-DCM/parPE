@@ -1,15 +1,27 @@
 #ifndef CPP_MISC_H
 #define CPP_MISC_H
 
+#include "parpeConfig.h"
+
 #include <stdlib.h>
 #include <memory>
 #include <cstdio>
 #include <chrono>
 #include <vector>
 #include <ostream>
+#include <gsl/gsl-lite.hpp>
 
 template<typename T>
 std::ostream& operator <<(std::ostream& o, std::vector<T> const& v) {
+    o << "[ ";
+    for(auto const& e: v)
+        o << e << " ";
+    o << "]";
+    return o;
+}
+
+template<typename T>
+std::ostream& operator <<(std::ostream& o, gsl::span<T> const& v) {
     o << "[ ";
     for(auto const& e: v)
         o << e << " ";
@@ -29,8 +41,8 @@ public:
 
     double getTotal();
 
-    std::chrono::time_point<std::chrono::high_resolution_clock> start;
-    std::chrono::time_point<std::chrono::high_resolution_clock> roundStart;
+    std::chrono::time_point<std::chrono::system_clock> start;
+    std::chrono::time_point<std::chrono::system_clock> roundStart;
 
 };
 
@@ -51,7 +63,7 @@ public:
 #define RELEASE_ASSERT(expr, msg) \
     if(!(expr)) { \
         printf("CRITICAL: Assertion %s in %s:%d failed (%s)\n", \
-                          (#expr), __FILE__, __LINE__, msg); \
+                          (#expr), __FILE__, __LINE__, msg); /* NOLINT(cppcoreguidelines-pro-bounds-array-to-pointer-decay) */ \
         abort(); \
     }
 

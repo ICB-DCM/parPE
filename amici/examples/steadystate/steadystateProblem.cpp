@@ -44,11 +44,11 @@ void ExampleSteadystateProblem::fillParametersMax(gsl::span<double> buffer) cons
 void ExampleSteadystateGradientFunction::requireSensitivities(
     bool sensitivitiesRequired) const {
     if (sensitivitiesRequired) {
-        solver->setSensitivityOrder(amici::AMICI_SENSI_ORDER_FIRST);
-        solver->setSensitivityMethod(amici::AMICI_SENSI_FSA);
+        solver->setSensitivityOrder(amici::SensitivityOrder::first);
+        solver->setSensitivityMethod(amici::SensitivityMethod::forward);
     } else {
-        solver->setSensitivityOrder(amici::AMICI_SENSI_ORDER_NONE);
-        solver->setSensitivityMethod(amici::AMICI_SENSI_NONE);
+        solver->setSensitivityOrder(amici::SensitivityOrder::none);
+        solver->setSensitivityMethod(amici::SensitivityMethod::none);
     }
 }
 
@@ -59,7 +59,7 @@ void ExampleSteadystateGradientFunction::setupUserData(int conditionIdx) {
     // set model constants
     readFixedParameters(conditionIdx);
 
-    model->setParameterScale(amici::AMICI_SCALING_LOG10);
+    model->setParameterScale(amici::ParameterScaling::log10);
     requireSensitivities(true);
     model->requireSensitivitiesForAllParameters();
     solver->setMaxSteps(10000);
@@ -78,15 +78,14 @@ void ExampleSteadystateGradientFunction::readFixedParameters(int conditionIdx) c
 }
 
 void ExampleSteadystateGradientFunction::readMeasurement(int conditionIdx) const {
-    parpe::hdf5Read3DDoubleHyperslab(fileId, "/measurements/y",
-                                     1, edata->nt, edata->nytrue,
-                                     conditionIdx, 0, 0,
-                                     edata->my.data());
-
-    parpe::hdf5Read3DDoubleHyperslab(fileId, "/measurements/ysigma",
-                                     1, edata->nt, edata->nytrue,
-                                     conditionIdx, 0, 0,
-                                     edata->sigmay.data());
+    edata->setObservedData(
+                parpe::hdf5Get3DDoubleHyperslab(fileId, "/measurements/y",
+                                                1, edata->nt(), edata->nytrue(),
+                                                conditionIdx, 0, 0));
+    edata->setObservedDataStdDev(
+                parpe::hdf5Get3DDoubleHyperslab(fileId, "/measurements/ysigma",
+                                                1, edata->nt(), edata->nytrue(),
+                                                conditionIdx, 0, 0));
 }
 
 ExampleSteadystateGradientFunction::ExampleSteadystateGradientFunction(hid_t fileId)
@@ -96,7 +95,7 @@ ExampleSteadystateGradientFunction::ExampleSteadystateGradientFunction(hid_t fil
     setupExpData(0);
 }
 
-parpe::FunctionEvaluationStatus ExampleSteadystateGradientFunction::evaluate(gsl::span<const double> parameters, double &fval, gsl::span<double> gradient) const
+parpe::FunctionEvaluationStatus ExampleSteadystateGradientFunction::evaluate(gsl::span<const double> parameters, double &fval, gsl::span<double> gradient, parpe::Logger *logger, double *cpuTime) const
 {
 
     model->setParameters(std::vector<double>(parameters.begin(), parameters.end()));

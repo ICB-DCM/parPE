@@ -1,10 +1,12 @@
 #ifndef LOADBALANCERWORKER_H
 #define LOADBALANCERWORKER_H
 
-#define MPI_TAG_EXIT_SIGNAL 0
+#include "parpeConfig.h"
 
 #include <vector>
 #include <functional>
+
+#define MPI_TAG_EXIT_SIGNAL 0
 
 namespace parpe {
 
@@ -28,7 +30,7 @@ class LoadBalancerWorker {
      * @brief waitForAndHandleJobs
      * @return true: received termination signal
      */
-    bool waitForAndHandleJobs(messageHandlerFunc messageHandler);
+    bool waitForAndHandleJobs(const messageHandlerFunc& messageHandler);
 };
 
 } // namespace parpe
