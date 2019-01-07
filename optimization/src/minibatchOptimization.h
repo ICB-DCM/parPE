@@ -330,7 +330,7 @@ public:
             if (getVectorNorm(gradient) <= gradientNormThreshold) {
                 // evaluate on full data set
                 auto dataSpan = std::vector < BATCH_ELEMENT > (data.cbegin(), data.cend());
-                auto status = evaluate(f, parameters, dataSpan, cost, gradient, epochLogger.get(), reporter);
+                evaluate(f, parameters, dataSpan, cost, gradient, epochLogger.get(), reporter);
                 return finish(cost, parameters, minibatchExitStatus::gradientNormConvergence, reporter,
                               epochLogger.get());
             }
@@ -338,7 +338,7 @@ public:
 
         // evaluate on full data set
         auto dataSpan = std::vector < BATCH_ELEMENT > (data.cbegin(), data.cend());
-        auto status = evaluate(f, parameters, dataSpan, cost, gradient, &logger, reporter);
+        evaluate(f, parameters, dataSpan, cost, gradient, &logger, reporter);
 
         return finish(cost, parameters, minibatchExitStatus::maxEpochsExceeded, reporter, &logger);
     }
@@ -468,7 +468,7 @@ public:
                                                upperParameterBounds);
 
             // Re-evaluate the cost function and hope for the best
-            auto status = evaluate(f, parameters, datasets, cost, gradient, logger, reporter);
+            status = evaluate(f, parameters, datasets, cost, gradient, logger, reporter);
         }
 
         // return

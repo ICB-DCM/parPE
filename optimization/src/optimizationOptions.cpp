@@ -285,7 +285,10 @@ Optimizer* optimizerFactory(optimizerName optimizer)
 #else
         return nullptr;
 #endif
-
+    default:
+        /* Currently, this case should never happen. 
+         * It's just here to fix a compiler warning */
+        return nullptr;
     }
 
     return nullptr;

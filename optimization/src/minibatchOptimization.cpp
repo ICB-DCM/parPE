@@ -159,7 +159,6 @@ void ParameterUpdaterRmsProp::undoLastStep() {
 
 void ParameterUpdaterRmsProp::clearCache() {
     // Reset all cached information
-    int numParameters = gradientNormCache.size();
     std::fill(gradientNormCache.begin(), gradientNormCache.end(), 0.0);
     std::fill(oldGradientNormCache.begin(), oldGradientNormCache.end(), 0.0);
 }
@@ -214,13 +213,10 @@ void ParameterUpdaterAdam::undoLastStep() {
 
 void ParameterUpdaterAdam::clearCache() {
     // Reset all cached information
-    int numParameters = gradientNormCache.size();
-    for (int ip = 0; ip < numParameters; ++ip) {
-        gradientNormCache[ip] = 0.0;
-        oldGradientNormCache[ip] = 0.0;
-        gradientCache[ip] = 0.0;
-        oldGradientCache[ip] = 0.0;
-    }
+    std::fill(gradientNormCache.begin(), gradientNormCache.end(), 0.0);
+    std::fill(oldGradientNormCache.begin(), oldGradientNormCache.end(), 0.0);
+    std::fill(gradientCache.begin(), gradientCache.end(), 0.0);
+    std::fill(oldGradientCache.begin(), oldGradientCache.end(), 0.0);
 }
 
 /* 

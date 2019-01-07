@@ -82,17 +82,6 @@ TEST(minibatchOptimization, updateParameters) {
     CHECK_TRUE(!errored);
 }
 
-TEST(minibatchOptimization, updateParametersRMSProp) {
-    std::vector<double> gradient {1.0, 2.0};
-    std::vector<double> parameters {2.0, 3.0};
-    //std::vector<double> parametersExp {1.5, 2.0};
-    double learningRate = 0.1;
-
-    parpe::ParameterUpdaterRmsProp pu;
-    // pu.updateParameters(learningRate);
-    //CHECK_TRUE(parametersExp == parameters);
-}
-
 // clang-format off
 TEST_GROUP(minibatchOptimizationLinearModel) {
     void setup() {
