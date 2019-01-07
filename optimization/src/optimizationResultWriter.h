@@ -13,7 +13,7 @@ namespace parpe {
  * optimizer run. A new instance is to be created for each run.
  *
  * TODO: change into interface; add OptimizationResultWriterHDF5
-*/
+ */
 
 class OptimizationResultWriter {
 public:
@@ -27,7 +27,8 @@ public:
      * @param problem
      * @param file_id
      */
-    OptimizationResultWriter(hid_t file_id, std::string rootPath);
+    OptimizationResultWriter(hid_t file_id,
+                             std::string rootPath);
 
     /**
      * @brief Open HDF5 file and write there
@@ -40,7 +41,6 @@ public:
                              std::string rootPath);
 
     OptimizationResultWriter(OptimizationResultWriter const& other);
-
 
     virtual ~OptimizationResultWriter();
 
@@ -55,15 +55,14 @@ public:
      * @param timeElapsedInSeconds CPU time for the last objective function
      * evaluation (wall time)
      */
-    virtual void logObjectiveFunctionEvaluation(
-            gsl::span<const double> parameters,
-            double objectiveFunctionValue,
-            gsl::span<const double> objectiveFunctionGradient,
-            int numIterations,
-            int numFunctionCalls,
-            double timeElapsedInSeconds, 
-			bool logGradientEachFunctionEvaluation,
-			bool logParametersEachFunctionEvaluation);
+    virtual void logObjectiveFunctionEvaluation(gsl::span<const double> parameters,
+                                                double objectiveFunctionValue,
+                                                gsl::span<const double> objectiveFunctionGradient,
+                                                int numIterations,
+                                                int numFunctionCalls,
+                                                double timeElapsedInSeconds,
+                                                bool logGradientEachFunctionEvaluation,
+                                                bool logParametersEachFunctionEvaluation);
 
     /**
      * @brief Function to be called after each optimizer iteration. (For
@@ -83,19 +82,18 @@ public:
      * @param alpha_pr
      * @param ls_trials
      */
-    virtual void logOptimizerIteration(
-            int numIterations,
-            gsl::span<const double> parameters,
-            double objectiveFunctionValue,
-            gsl::span<const double> gradient,
-            double wallSeconds, double cpuSeconds, 
-			bool logGradientEachIteration);
+    virtual void logOptimizerIteration(int numIterations,
+                                       gsl::span<const double> parameters,
+                                       double objectiveFunctionValue,
+                                       gsl::span<const double> gradient,
+                                       double wallSeconds,
+                                       double cpuSeconds,
+                                       bool logGradientEachIteration);
     /*, int alg_mod, double inf_pr, double inf_du,
-    double mu, double d_norm, double regularization_size, double alpha_du,
-    double alpha_pr, int ls_trials*/
+     double mu, double d_norm, double regularization_size, double alpha_du,
+     double alpha_pr, int ls_trials*/
 
     virtual void starting(gsl::span<const double> initialParameters);
-
 
     /**
      * @brief Function to be called when local optimization is finished.
@@ -105,9 +103,10 @@ public:
      * @param exitStatus Exit status (cause of optimizer termination)
      */
     virtual void saveOptimizerResults(double finalNegLogLikelihood,
-                                           gsl::span<const double> optimalParameters,
-                                      double wallSec, double cpuSec,
-                                           int exitStatus) const;
+                                      gsl::span<const double> optimalParameters,
+                                      double wallSec,
+                                      double cpuSec,
+                                      int exitStatus) const;
 
     hid_t getFileId() const;
 
@@ -120,7 +119,6 @@ protected:
      * @brief Write buffered output to file
      */
     virtual void flushResultWriter() const;
-
 
 private:
     virtual std::string getIterationPath(int iterationIdx) const;

@@ -19,17 +19,12 @@ namespace parpe {
  * @brief Return status for minibatch optimizer
  */
 enum class minibatchExitStatus {
-    gradientNormConvergence,
-    maxEpochsExceeded,
-    invalidNumber
+    gradientNormConvergence, maxEpochsExceeded, invalidNumber
 };
 
 enum class learningRateInterp {
-    linear,
-    inverseLinear,
-    logarithmic
+    linear, inverseLinear, logarithmic
 };
-
 
 /**
  * @brief Problem definition for mini-batch optimization.
@@ -39,14 +34,13 @@ enum class learningRateInterp {
  * cost function will operate on.
  */
 template<typename T>
-class MinibatchOptimizationProblem : public OptimizationProblem {
+class MinibatchOptimizationProblem: public OptimizationProblem {
 public:
     MinibatchOptimizationProblem() = default;
 
     MinibatchOptimizationProblem(std::unique_ptr<SummedGradientFunction<T>> costFun,
-                                 std::unique_ptr<Logger> logger)
-        : OptimizationProblem(costFun, logger)
-    {
+                                 std::unique_ptr<Logger> logger) :
+            OptimizationProblem(costFun, logger) {
     }
 
     MinibatchOptimizationProblem(MinibatchOptimizationProblem const& other) = delete;
@@ -62,8 +56,6 @@ public:
     }
 };
 
-
-
 /**
  * @brief learning rate updaters for minibatch optimizers
  */
@@ -72,40 +64,40 @@ public:
     /**
      * @brief Update the learning rate
      * @param startLearningRate Learning rate the the beginning of optimization
-	 * @param endLearningRate Learning rate the the end of optimization
+     * @param endLearningRate Learning rate the the end of optimization
      * @param LearningRateadaptionMode Type of interpolation between startLearningRate and endLearningRate 
      */
 
-    LearningRateUpdater(int maxEpochs, learningRateInterp learningRateInterpMode){};
-    // LearningRateUpdater(int maxEpochs, learningRateInterp learningRateInterpMode, double startLearningRate, double endLearningRate);
+    LearningRateUpdater(int maxEpochs,
+                        learningRateInterp learningRateInterpMode) {
+    }
+    ;
 
-	// Update function, to be called in every epoch or optimization iteration
+    // Update function, to be called in every epoch or optimization iteration
     void updateLearningRate(int iteration);
 
-	// Update function, to be called if parameter update did not work well
+    // Update function, to be called if parameter update did not work well
     void reduceLearningRate();
 
-	// Update function, to be called if parameter update worked well
+    // Update function, to be called if parameter update worked well
     void increaseLearningRate();
 
-	// Function to retrieve the learning rate
-	double getCurrentLearningRate();
+    // Function to retrieve the learning rate
+    double getCurrentLearningRate();
 
-	// Function to set the reduction factor directly
-	void setReductionFactor(double newReductionFactor);
+    // Function to set the reduction factor directly
+    void setReductionFactor(double newReductionFactor);
 
-	// Function to set the new maximum epoch number
-	void setMaxEpochs(int newMaxEpochs);	
-	
-	int maxEpochs = 0;
-	double currentLearningRate = 0;
-	double reductionFactor = 1;
+    // Function to set the new maximum epoch number
+    void setMaxEpochs(int newMaxEpochs);
+
+    int maxEpochs = 0;
+    double currentLearningRate = 0;
+    double reductionFactor = 1;
     double startLearningRate = 0.1;
     double endLearningRate = 0.001;
-	learningRateInterp learningRateInterpMode = learningRateInterp::linear;
+    learningRateInterp learningRateInterpMode = learningRateInterp::linear;
 };
-
-
 
 /**
  * @brief Interface for parameter updaters for minibatch optimizers
@@ -118,58 +110,62 @@ public:
      * @param parameters In: Current parameters, Out: Updated parameters
      */
     virtual void updateParameters(double learningRate,
-    							  int iteration,
+                                  int iteration,
                                   gsl::span<const double> gradient,
                                   gsl::span<double> parameters,
                                   gsl::span<const double> lowerBounds = gsl::span<const double>(),
                                   gsl::span<const double> upperBounds = gsl::span<const double>()) = 0;
-    
-	virtual void undoLastStep() = 0;
-	
-	virtual void clearCache() = 0;
-	
-	virtual void initialize(unsigned int numParameters) = 0;
-	
+
+    virtual void undoLastStep() = 0;
+
+    virtual void clearCache() = 0;
+
+    virtual void initialize(unsigned int numParameters) = 0;
+
     virtual ~ParameterUpdater() = default;
 
 };
 
-
-class ParameterUpdaterVanilla : public ParameterUpdater {
+class ParameterUpdaterVanilla: public ParameterUpdater {
 public:
     ParameterUpdaterVanilla() = default;
 
     void updateParameters(double learningRate,
-			              int iteration,
-                          gsl::span<const double> gradient, 
+                          int iteration,
+                          gsl::span<const double> gradient,
                           gsl::span<double> parameters,
                           gsl::span<const double> lowerBounds = gsl::span<const double>(),
                           gsl::span<const double> upperBounds = gsl::span<const double>());
 
-    void undoLastStep(){};
-    
-	void clearCache(){};
-	
-	void initialize(unsigned int numParameters){};
+    void undoLastStep() {
+    }
+    ;
+
+    void clearCache() {
+    }
+    ;
+
+    void initialize(unsigned int numParameters) {
+    }
+    ;
 };
 
-
-class ParameterUpdaterRmsProp : public ParameterUpdater {
+class ParameterUpdaterRmsProp: public ParameterUpdater {
 public:
     ParameterUpdaterRmsProp() = default;
 
     void updateParameters(double learningRate,
                           int iteration,
-                          gsl::span<const double> gradient, 
+                          gsl::span<const double> gradient,
                           gsl::span<double> parameters,
                           gsl::span<const double> lowerBounds = gsl::span<const double>(),
                           gsl::span<const double> upperBounds = gsl::span<const double>());
 
     void undoLastStep();
-    
-	void clearCache();
-	
-	void initialize(unsigned int numParameters);
+
+    void clearCache();
+
+    void initialize(unsigned int numParameters);
 
     double decayRate = 0.9;
     double delta = 1e-7;
@@ -177,23 +173,22 @@ public:
     std::vector<double> oldGradientNormCache;
 };
 
-
-class ParameterUpdaterAdam : public ParameterUpdater {
+class ParameterUpdaterAdam: public ParameterUpdater {
 public:
     ParameterUpdaterAdam() = default;
 
     void updateParameters(double learningRate,
                           int iteration,
-                          gsl::span<const double> gradient, 
+                          gsl::span<const double> gradient,
                           gsl::span<double> parameters,
                           gsl::span<const double> lowerBounds = gsl::span<const double>(),
                           gsl::span<const double> upperBounds = gsl::span<const double>());
 
     void undoLastStep();
-    
-	void clearCache();
-	
-	void initialize(unsigned int numParameters);
+
+    void clearCache();
+
+    void initialize(unsigned int numParameters);
 
     double decayRateGradient = 0.9;
     double decayRateGradientNorm = 0.9;
@@ -203,7 +198,6 @@ public:
     std::vector<double> gradientCache;
     std::vector<double> oldGradientCache;
 };
-
 
 /**
  * @brief Split a vector into batches of the given size.
@@ -215,12 +209,13 @@ public:
  * @return Vector batches of data elements
  */
 template<typename T>
-std::vector<std::vector<T>> getBatches(gsl::span<const T> data, int batchSize) {
+std::vector<std::vector<T>> getBatches(gsl::span<const T> data,
+                                       int batchSize) {
     int numBatches = ceil(static_cast<double>(data.size()) / batchSize);
 
-    std::vector<std::vector<T>> batches(numBatches, std::vector<T>());
-    for(int i = 0, batchIdx = -1; static_cast<typename decltype (data)::index_type>(i) < data.size(); ++i) {
-        if(i % batchSize == 0) {
+    std::vector < std::vector < T >> batches(numBatches, std::vector<T>());
+    for (int i = 0, batchIdx = -1; static_cast<typename decltype (data)::index_type>(i) < data.size(); ++i) {
+        if (i % batchSize == 0) {
             ++batchIdx;
             int remaining = data.size() - i;
             batches[batchIdx].resize(std::min(batchSize, remaining));
@@ -231,14 +226,12 @@ std::vector<std::vector<T>> getBatches(gsl::span<const T> data, int batchSize) {
     return batches;
 }
 
-
 /**
  * @brief Get Euclidean (l2) norm of vector.
  * @param v
  * @return the norm
  */
 double getVectorNorm(gsl::span<const double> v);
-
 
 template<typename BATCH_ELEMENT>
 class MinibatchOptimizer {
@@ -253,15 +246,13 @@ public:
      * @param logger Logger instance for status messages
      * @return Tuple (exit code, final cost, final parameters)
      */
-    std::tuple<int, double, std::vector<double> > optimize(
-            SummedGradientFunction<BATCH_ELEMENT> const& f,
-            gsl::span<const BATCH_ELEMENT> data,
-            gsl::span<const double> initialParameters,
-            gsl::span<const double> lowerParameterBounds,
-            gsl::span<const double> upperParameterBounds,
-            OptimizationReporter *reporter,
-            Logger *logger_)
-    {
+    std::tuple<int, double, std::vector<double> > optimize(SummedGradientFunction<BATCH_ELEMENT> const& f,
+                                                           gsl::span<const BATCH_ELEMENT> data,
+                                                           gsl::span<const double> initialParameters,
+                                                           gsl::span<const double> lowerParameterBounds,
+                                                           gsl::span<const double> upperParameterBounds,
+                                                           OptimizationReporter *reporter,
+                                                           Logger *logger_) {
         RELEASE_ASSERT((unsigned) f.numParameters() == initialParameters.size(), "");
         Logger logger = logger_ ? *logger_ : Logger();
 
@@ -276,91 +267,90 @@ public:
         std::mt19937 rng(rd());
         double cost = NAN;
         int iteration = 0;
-		int subsequentFails = 0;
-		learningRateUpdater->setMaxEpochs(maxEpochs);
-		parameterUpdater->initialize(initialParameters.size());
+        int subsequentFails = 0;
+        learningRateUpdater->setMaxEpochs(maxEpochs);
+        parameterUpdater->initialize(initialParameters.size());
 
-        if(reporter) reporter->starting(initialParameters);
+        if (reporter)
+            reporter->starting(initialParameters);
 
-        for(int epoch = 0; epoch < maxEpochs; ++epoch) {
+        for (int epoch = 0; epoch < maxEpochs; ++epoch) {
             auto epochLogger = logger.getChild(std::string("e") + std::to_string(epoch));
 
             // Create randomized batches
             std::shuffle(shuffledData.begin(), shuffledData.end(), rng);
             auto batches = getBatches<BATCH_ELEMENT>(shuffledData, batchSize);
 
-			// Update learning rate according to epoch
-			learningRateUpdater->updateLearningRate(epoch);
+            // Update learning rate according to epoch
+            learningRateUpdater->updateLearningRate(epoch);
 
-            for(int batchIdx = 0; (unsigned) batchIdx < batches.size(); ++batchIdx) {
+            for (int batchIdx = 0; (unsigned) batchIdx < batches.size(); ++batchIdx) {
                 auto batchLogger = epochLogger->getChild(std::string("b") + std::to_string(batchIdx));
                 iteration++;
-                
+
                 auto status = evaluate(f, parameters, batches[batchIdx], cost, gradient, batchLogger.get(), reporter);
-                
+
                 // Give some output
                 learningRate = learningRateUpdater->getCurrentLearningRate();
                 std::stringstream ss;
-                ss << ": Cost: " << cost
-                 << " |g|2: " << getVectorNorm(gradient)
-                 << " Batch: " << batches[batchIdx]
-				 << " LearningRate: " << learningRate << std::endl;
+                ss << ": Cost: " << cost << " |g|2: " << getVectorNorm(gradient) << " Batch: " << batches[batchIdx]
+                        << " LearningRate: " << learningRate << std::endl;
                 batchLogger->logmessage(LOGLVL_DEBUG, ss.str().c_str());
 
-                if(status == functionEvaluationFailure) {
-                	// Check, if the interceptor should be used (should alwayss be the case, except for study purpose...
-                	if(interceptor > 0)
-                		status = rescueInterceptor(parameters, oldParameters, gradient, oldGradient, lowerParameterBounds, upperParameterBounds, cost,
-                								   subsequentFails, iteration, f, batches[batchIdx], batchLogger.get(), reporter);
+                if (status == functionEvaluationFailure) {
+                    // Check, if the interceptor should be used (should alwayss be the case, except for study purpose...
+                    if (interceptor > 0)
+                        status = rescueInterceptor(parameters, oldParameters, gradient, oldGradient,
+                                                   lowerParameterBounds, upperParameterBounds, cost, subsequentFails,
+                                                   iteration, f, batches[batchIdx], batchLogger.get(), reporter);
 
-                	// If we still have a failure, stop optimization
-                	if(status == functionEvaluationFailure)
-                		return finish(cost, parameters, minibatchExitStatus::invalidNumber, reporter, batchLogger.get());
+                    // If we still have a failure, stop optimization
+                    if (status == functionEvaluationFailure)
+                        return finish(cost, parameters, minibatchExitStatus::invalidNumber, reporter, batchLogger.get());
 
                 } else {
-					// Cost function evaluation was succeful, so we can increase the step size
-					subsequentFails = std::max(subsequentFails - 1, 0);
-					learningRateUpdater->increaseLearningRate();
+                    // Cost function evaluation was succeful, so we can increase the step size
+                    subsequentFails = std::max(subsequentFails - 1, 0);
+                    learningRateUpdater->increaseLearningRate();
 
-					// Overwrite old parameters and old gradient, since they won't be needed any more
-					oldGradient = gradient;
-					oldParameters = parameters;
+                    // Overwrite old parameters and old gradient, since they won't be needed any more
+                    oldGradient = gradient;
+                    oldParameters = parameters;
                 }
 
-				learningRate = learningRateUpdater->getCurrentLearningRate();
-                parameterUpdater->updateParameters(learningRate, iteration, gradient, parameters,
-                                                   lowerParameterBounds, upperParameterBounds);
+                learningRate = learningRateUpdater->getCurrentLearningRate();
+                parameterUpdater->updateParameters(learningRate, iteration, gradient, parameters, lowerParameterBounds,
+                                                   upperParameterBounds);
             }
-            
-            // epoch finished, write the values in hdf5-file
-            if(reporter) reporter->iterationFinished(parameters, cost, gradient);
 
-            if(getVectorNorm(gradient) <= gradientNormThreshold) {
+            // epoch finished, write the values in hdf5-file
+            if (reporter)
+                reporter->iterationFinished(parameters, cost, gradient);
+
+            if (getVectorNorm(gradient) <= gradientNormThreshold) {
                 // evaluate on full data set
-                auto dataSpan = std::vector<BATCH_ELEMENT>(data.cbegin(), data.cend());
+                auto dataSpan = std::vector < BATCH_ELEMENT > (data.cbegin(), data.cend());
                 auto status = evaluate(f, parameters, dataSpan, cost, gradient, epochLogger.get(), reporter);
-                return finish(cost, parameters, minibatchExitStatus::gradientNormConvergence, reporter, epochLogger.get());
+                return finish(cost, parameters, minibatchExitStatus::gradientNormConvergence, reporter,
+                              epochLogger.get());
             }
         }
 
         // evaluate on full data set
-        auto dataSpan = std::vector<BATCH_ELEMENT>(data.cbegin(), data.cend());
+        auto dataSpan = std::vector < BATCH_ELEMENT > (data.cbegin(), data.cend());
         auto status = evaluate(f, parameters, dataSpan, cost, gradient, &logger, reporter);
 
         return finish(cost, parameters, minibatchExitStatus::maxEpochsExceeded, reporter, &logger);
     }
 
-    FunctionEvaluationStatus evaluate(
-            SummedGradientFunction<BATCH_ELEMENT> const& f,
-            gsl::span<const double> parameters,
-            std::vector<BATCH_ELEMENT> datasets,
-            double &cost,
-            gsl::span<double> gradient,
-            Logger *logger,
-            OptimizationReporter *reporter
-            ) const
-    {
-        if(reporter) {
+    FunctionEvaluationStatus evaluate(SummedGradientFunction<BATCH_ELEMENT> const& f,
+                                      gsl::span<const double> parameters,
+                                      std::vector<BATCH_ELEMENT> datasets,
+                                      double &cost,
+                                      gsl::span<double> gradient,
+                                      Logger *logger,
+                                      OptimizationReporter *reporter) const {
+        if (reporter) {
             reporter->beforeCostFunctionCall(parameters);
             reporter->logger->setPrefix(logger->getPrefix());
         }
@@ -368,7 +358,7 @@ public:
         double cpuTime = 0.0;
         auto status = f.evaluate(parameters, datasets, cost, gradient, logger, &cpuTime);
 
-        if(reporter) {
+        if (reporter) {
             reporter->cpuTimeIterationSec += cpuTime;
             reporter->cpuTimeTotalSec += cpuTime;
             reporter->afterCostFunctionCall(parameters, cost, gradient);
@@ -377,20 +367,19 @@ public:
         // Normalize to batch size
         double batchSize = datasets.size();
         cost /= batchSize;
-        for(auto &g: gradient)
+        for (auto &g : gradient)
             g /= batchSize;
 
         return status;
     }
 
     std::tuple<int, double, std::vector<double> > finish(double cost,
-                std::vector<double> const& parameters,
-                minibatchExitStatus status,
-                OptimizationReporter *reporter,
-                Logger *logger)
-    {
-        if(logger) {
-            switch(status) {
+                                                         std::vector<double> const& parameters,
+                                                         minibatchExitStatus status,
+                                                         OptimizationReporter *reporter,
+                                                         Logger *logger) {
+        if (logger) {
+            switch (status) {
             case minibatchExitStatus::invalidNumber:
                 logger->logmessage(LOGLVL_ERROR, "Minibatch cost function evaluation failed.");
                 break;
@@ -402,91 +391,89 @@ public:
             }
         }
 
-        if(reporter) reporter->finished(cost, parameters, (int)status);
+        if (reporter)
+            reporter->finished(cost, parameters, (int) status);
 
-        return std::tuple<int, double, std::vector<double> >((int)status, cost, parameters);
+        return std::tuple<int, double, std::vector<double> >((int) status, cost, parameters);
     }
-    
-    
+
     /**
      * rescueInterceptor
      * The rescueInterceptor is a function that adapts the step size,
      * if cost function evaluation failure was observed.
      * Its main goal is to make the minibatch optimizer more
      * robust towards disadvantagous regions in parameter space.
-      */
+     */
     FunctionEvaluationStatus rescueInterceptor(gsl::span<double> parameters,
-    										   gsl::span<double> oldParameters,
-    										   gsl::span<double> gradient,
-    										   gsl::span<double> oldGradient,
-									           gsl::span<const double> lowerParameterBounds,
-									           gsl::span<const double> upperParameterBounds,
-    										   double &cost,
-    										   int &subsequentFails,
-											   int iteration,
-    										   SummedGradientFunction<BATCH_ELEMENT> const& f,
-    										   std::vector<BATCH_ELEMENT> datasets,
-    										   Logger *logger,
-    										   OptimizationReporter *reporter)
-    {
-    	int maxSubsequentFails = 10;
-    	bool finalFail = false;
-    	bool coldRestartActive = false;
-    	cost = NAN;
-    	FunctionEvaluationStatus status = functionEvaluationFailure;
+                                               gsl::span<double> oldParameters,
+                                               gsl::span<double> gradient,
+                                               gsl::span<double> oldGradient,
+                                               gsl::span<const double> lowerParameterBounds,
+                                               gsl::span<const double> upperParameterBounds,
+                                               double &cost,
+                                               int &subsequentFails,
+                                               int iteration,
+                                               SummedGradientFunction<BATCH_ELEMENT> const& f,
+                                               std::vector<BATCH_ELEMENT> datasets,
+                                               Logger *logger,
+                                               OptimizationReporter *reporter) {
+        int maxSubsequentFails = 10;
+        bool finalFail = false;
+        bool coldRestartActive = false;
+        cost = NAN;
+        FunctionEvaluationStatus status = functionEvaluationFailure;
 
-    	if(reporter) {
-    	    reporter->beforeCostFunctionCall(parameters);
-    	    reporter->logger->setPrefix(logger->getPrefix());
-    	}
-    	
-    	// Cost function evaluation failed: We need to intercept
-    	while(status == functionEvaluationFailure) {
-    		// If the objective function evaluation failed, we want to undo the step
-    		(subsequentFails)++;
-    		parameterUpdater->undoLastStep();
-    		gradient = oldGradient;
-    		parameters = oldParameters;
+        if (reporter) {
+            reporter->beforeCostFunctionCall(parameters);
+            reporter->logger->setPrefix(logger->getPrefix());
+        }
 
-    		// Check if there are NaNs in the parameter vector now (e.g., fail at first iteration)
-    		for(int ip = 0; ip < (int)parameters.size(); ip++) {
-    			if(std::isnan(parameters[ip])) {
-    				finalFail = true;
-    				break;
-    			}
-    		}
+        // Cost function evaluation failed: We need to intercept
+        while (status == functionEvaluationFailure) {
+            // If the objective function evaluation failed, we want to undo the step
+            ++subsequentFails;
+            parameterUpdater->undoLastStep();
+            gradient = oldGradient;
+            parameters = oldParameters;
 
-    		// If too many fails: cancel optimization
-    		if(subsequentFails >= maxSubsequentFails || finalFail) {
-    			if(interceptor > 1 && !coldRestartActive) {
-    				/* Reducing step size did not work. Yet, a small step in descent direction
-    				 * should actually do the job. So clear all cached gradients and retry with
-    				 * a very small step size (e.g. 1e-5)
-    				 */
-    				subsequentFails = 0;
-    				parameterUpdater->clearCache();
-    				learningRateUpdater->setReductionFactor(1e-5);
-    			} else {
-    				// Really everything failed, there is no hope for this run any more
-    				return functionEvaluationFailure;
-    			}
-    		} else {
-    			// If we did not fail too often, we reduce the step size and try to redo the step
-    			learningRateUpdater->reduceLearningRate();
-    		}
-    		// Do the next step
-    		learningRate = learningRateUpdater->getCurrentLearningRate();
-    		parameterUpdater->updateParameters(learningRate, iteration, gradient, parameters,
-    										   lowerParameterBounds, upperParameterBounds);
+            // Check if there are NaNs in the parameter vector now (e.g., fail at first iteration)
+            for (int ip = 0; ip < (int) parameters.size(); ip++) {
+                if (std::isnan(parameters[ip])) {
+                    finalFail = true;
+                    break;
+                }
+            }
 
-    		// Re-evaluate the cost function and hope for the best
-    		auto status = evaluate(f, parameters, datasets, cost, gradient, logger, reporter);
-    	}
+            // If too many fails: cancel optimization
+            if (subsequentFails >= maxSubsequentFails || finalFail) {
+                if (interceptor > 1 && !coldRestartActive) {
+                    /* Reducing step size did not work. Yet, a small step in descent direction
+                     * should actually do the job. So clear all cached gradients and retry with
+                     * a very small step size (e.g. 1e-5)
+                     */
+                    subsequentFails = 0;
+                    parameterUpdater->clearCache();
+                    learningRateUpdater->setReductionFactor(1e-5);
+                } else {
+                    // Really everything failed, there is no hope for this run any more
+                    return functionEvaluationFailure;
+                }
+            } else {
+                // If we did not fail too often, we reduce the step size and try to redo the step
+                learningRateUpdater->reduceLearningRate();
+            }
+            // Do the next step
+            learningRate = learningRateUpdater->getCurrentLearningRate();
+            parameterUpdater->updateParameters(learningRate, iteration, gradient, parameters, lowerParameterBounds,
+                                               upperParameterBounds);
 
-    	// return
-    	return status;
+            // Re-evaluate the cost function and hope for the best
+            auto status = evaluate(f, parameters, datasets, cost, gradient, logger, reporter);
+        }
+
+        // return
+        return status;
     }
-    
 
     std::unique_ptr<ParameterUpdater> parameterUpdater = std::make_unique<ParameterUpdaterVanilla>();
 
@@ -495,12 +482,11 @@ public:
     int batchSize = 1;
     int maxEpochs = 3;
     double gradientNormThreshold = 0.0;
-	double learningRate = 0.001;
+    double learningRate = 0.001;
 
-    std::unique_ptr<LearningRateUpdater> learningRateUpdater = 
-			std::make_unique<LearningRateUpdater>(maxEpochs, learningRateInterp::linear);
+    std::unique_ptr<LearningRateUpdater> learningRateUpdater = std::make_unique < LearningRateUpdater
+            > (maxEpochs, learningRateInterp::linear);
 };
-
 
 /**
  * @brief Apply the given key,value option to optimizer
@@ -510,15 +496,13 @@ public:
 void setMinibatchOption(const std::pair<const std::string, const std::string> &pair,
                         MinibatchOptimizer<int>* optimizer);
 
-
 /**
  * @brief Create and setup a minibatch optimizer according to the given options
  * @param options
  * @return
  */
 template<typename BATCH_ELEMENT>
-std::unique_ptr<MinibatchOptimizer<BATCH_ELEMENT>> getMinibatchOptimizer(OptimizationOptions const& options)
-{
+std::unique_ptr<MinibatchOptimizer<BATCH_ELEMENT>> getMinibatchOptimizer(OptimizationOptions const& options) {
     auto optim = std::make_unique<MinibatchOptimizer<BATCH_ELEMENT>>();
 
     options.for_each<MinibatchOptimizer<BATCH_ELEMENT>*>(setMinibatchOption, optim.get());
@@ -537,14 +521,16 @@ std::tuple<int, double, std::vector<double> > runMinibatchOptimization(Minibatch
  * @param x
  */
 template<typename T>
-void clipToBounds(gsl::span<const T> lowerBounds, gsl::span<const T> upperBounds, gsl::span<T> x) {
-    if(lowerBounds.empty() && upperBounds.empty())
+void clipToBounds(gsl::span<const T> lowerBounds,
+                  gsl::span<const T> upperBounds,
+                  gsl::span<T> x) {
+    if (lowerBounds.empty() && upperBounds.empty())
         return;
 
     RELEASE_ASSERT(lowerBounds.size() == upperBounds.size(), "");
     RELEASE_ASSERT(lowerBounds.size() == x.size(), "");
 
-    for(int i = 0; static_cast<typename gsl::span<const T>::index_type>(i) < x.size(); ++i)
+    for (int i = 0; static_cast<typename gsl::span<const T>::index_type>(i) < x.size(); ++i)
         x[i] = std::min(std::max(lowerBounds[i], x[i]), upperBounds[i]);
 }
 

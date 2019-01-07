@@ -14,7 +14,7 @@
 #include <algorithm>
 
 // clang-format off
-TEST_GROUP(minibatchOptimization){
+TEST_GROUP(minibatchOptimization) {
 
     void setup() {
         mock().clear();
@@ -54,32 +54,31 @@ TEST(minibatchOptimization, getBatches) {
     CHECK_TRUE(std::vector<int>(input.begin() + batchSize, input.end()) == batchesAct[1]);
 }
 
-
 TEST(minibatchOptimization, updateParameters) {
-	// Test whether the most simple parameter updater works reliably
+    // Test whether the most simple parameter updater works reliably
     std::vector<double> gradient {3.0, 4.0};
     std::vector<double> parameters {2.0, 3.0};
-	std::vector<double> lowerBounds {-5.0, -5.0};
-	std::vector<double> upperBounds {5.0, 5.0};
+    std::vector<double> lowerBounds {-5.0, -5.0};
+    std::vector<double> upperBounds {5.0, 5.0};
     std::vector<double> parametersExp {1.7, 2.6};
-    
+
     double learningRate = 0.5;
-	int iteration = 1;
-	double toleratedError = 0.0001;
-	int numParameters = parameters.size();
-	bool errored = false;
+    int iteration = 1;
+    double toleratedError = 0.0001;
+    int numParameters = parameters.size();
+    bool errored = false;
 
     parpe::ParameterUpdaterVanilla pu;
     pu.initialize(2);
     pu.updateParameters(learningRate, iteration, gradient, parameters, lowerBounds, upperBounds);
-    
+
     std::transform(parametersExp.begin( ), parametersExp.end( ), parameters.begin( ), parametersExp.begin( ), std::minus<double>( ));
-    
+
     for (int i = 0; i < numParameters; i++)
-    	if (!errored)
-    		if (parametersExp[i] > toleratedError or parametersExp[i] < -toleratedError)
-    			errored = true;
-    	
+        if (!errored)
+            if (parametersExp[i] > toleratedError or parametersExp[i] < -toleratedError)
+                errored = true;
+
     CHECK_TRUE(!errored);
 }
 
@@ -94,11 +93,8 @@ TEST(minibatchOptimization, updateParametersRMSProp) {
     //CHECK_TRUE(parametersExp == parameters);
 }
 
-
-
-
 // clang-format off
-TEST_GROUP(minibatchOptimizationLinearModel){
+TEST_GROUP(minibatchOptimizationLinearModel) {
     void setup() {
         mock().clear();
 
@@ -114,12 +110,11 @@ TEST_GROUP(minibatchOptimizationLinearModel){
 
     void generateRandomFeatures() {
         // generate data or feature vector
-        std::uniform_real_distribution<double> unif(0,10);
+        std::uniform_real_distribution<double> unif(0, 10);
         std::mt19937 rng(rd());
-        data.assign(numDatasets,
-                    std::vector<double>(trueParameters.size() - 1));
-        for(int i = 0; i < numDatasets; ++i) {
-            std::generate(data[i].begin(), data[i].end(), [&unif, &rng](){ return unif(rng); });
+        data.assign(numDatasets, std::vector<double>(trueParameters.size() - 1));
+        for (int i = 0; i < numDatasets; ++i) {
+            std::generate(data[i].begin(), data[i].end(), [&unif, &rng]() {return unif(rng);});
             //std::cout<<data[i];
         }
 
@@ -127,7 +122,7 @@ TEST_GROUP(minibatchOptimizationLinearModel){
 
     std::unique_ptr<parpe::LinearModelMSE> getLinearModelMSE() {
         // prepare model for optimization
-        auto lm2 = std::make_unique<parpe::LinearModelMSE>(trueParameters.size());
+        auto lm2 = std::make_unique < parpe::LinearModelMSE > (trueParameters.size());
         lm2->datasets = data;
         lm2->labels = labels;
         return lm2;
@@ -136,9 +131,8 @@ TEST_GROUP(minibatchOptimizationLinearModel){
     std::unique_ptr<parpe::OptimizationProblemImpl> getOptimizationProblem() {
         auto lm2 = getLinearModelMSE();
 
-        auto sgf = std::make_unique<
-                parpe::SummedGradientFunctionGradientFunctionAdapter<int>
-                >(std::move(lm2), dataIndices);
+        auto sgf = std::make_unique < parpe::SummedGradientFunctionGradientFunctionAdapter<int>
+                > (std::move(lm2), dataIndices);
         auto p = std::make_unique<parpe::OptimizationProblemImpl>();
         p->costFun = std::move(sgf);
         p->setParametersMin(std::vector<double>(trueParameters.size(), 0.0));
@@ -164,12 +158,8 @@ TEST_GROUP(minibatchOptimizationLinearModel){
 
     std::vector<int> dataIndices;
 
-
 };
 // clang-format on
-
-
-
 
 TEST(minibatchOptimizationLinearModel, testCostWithTrueParametersIsZeroIndivdually) {
     // verify cost gradient with true parameters is 0
@@ -199,7 +189,7 @@ TEST(minibatchOptimizationLinearModel, testMinibatchSucceedFromOptimum) {
     parpe::MinibatchOptimizer<int> mb;
     mb.maxEpochs = 20;
     mb.batchSize = 2;
-    std::vector<double> startingPoint = { 3.0, 2.0 };
+    std::vector<double> startingPoint = {3.0, 2.0};
     auto result = mb.optimize(*lm2, dataIndices, startingPoint, gsl::span<const double>(), gsl::span<const double>(), nullptr, nullptr);
     CHECK_EQUAL((int)parpe::minibatchExitStatus::gradientNormConvergence, std::get<0>(result));
     CHECK_EQUAL(0.0, std::get<1>(result));
@@ -211,7 +201,7 @@ TEST(minibatchOptimizationLinearModel, linearModelCheckCostGradient) {
     auto p = getOptimizationProblem();
 
     for(int i = 0; i < 10; ++i)
-        parpe::optimizationProblemGradientCheck(p.get(), 10, 1e-1);
+    parpe::optimizationProblemGradientCheck(p.get(), 10, 1e-1);
 
     // TODO: check results automatically
 }
@@ -232,7 +222,7 @@ TEST(minibatchOptimizationLinearModel, linearModelTestBatchOptimizerSucceeds) {
     auto resultBatchOpt = o.optimize(p.get());
     DOUBLES_EQUAL(0.0, std::get<1>(resultBatchOpt), 1e-8);
     for(int i = 0; (unsigned) i < trueParameters.size(); ++i)
-        DOUBLES_EQUAL(trueParameters[i], std::get<2>(resultBatchOpt)[i], 1e-6);
+    DOUBLES_EQUAL(trueParameters[i], std::get<2>(resultBatchOpt)[i], 1e-6);
     // -> is identifiable and gradient okay
 }
 #endif
@@ -256,9 +246,8 @@ TEST(minibatchOptimizationLinearModel, linearModel) {
     mb.parameterUpdater = std::make_unique<parpe::ParameterUpdaterRmsProp>();
     mb.batchSize = batchSize;
     auto result = mb.optimize(*lm3, dataIndices, startingPoint,
-                              gsl::span<const double>(), gsl::span<const double>(),
-                              nullptr, nullptr);
-
+            gsl::span<const double>(), gsl::span<const double>(),
+            nullptr, nullptr);
 
     // TODO add some gaussian noise
     // std::normal_distribution<double> norm(0.0, 1.0);

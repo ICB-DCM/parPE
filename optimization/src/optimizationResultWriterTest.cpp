@@ -6,7 +6,7 @@
 #include <H5Cpp.h>
 
 // clang-format off
-TEST_GROUP(optimizationResultWriter){
+TEST_GROUP(optimizationResultWriter) {
     void setup() {
         parpe::initHDF5Mutex();
     }
@@ -15,7 +15,6 @@ TEST_GROUP(optimizationResultWriter){
     }
 };
 // clang-format on
-
 
 TEST(optimizationResultWriter, testResultWriter) {
     const char* tmpFilename = "deleteme.h5";
