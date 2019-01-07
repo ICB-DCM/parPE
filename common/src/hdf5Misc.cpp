@@ -19,10 +19,6 @@ void initHDF5Mutex() {
     H5dont_atexit();
 }
 
-void hdf5LockMutex() { mutexHdf.lock(); }
-
-void hdf5UnlockMutex() { mutexHdf.unlock(); }
-
 std::unique_lock<mutexHdfType> hdf5MutexGetLock()
 {
     return std::unique_lock<mutexHdfType>(mutexHdf);

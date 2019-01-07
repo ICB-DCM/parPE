@@ -5,26 +5,34 @@
 #ifdef PARPE_ENABLE_CERES
 #include "localOptimizationCeres.h"
 #endif
+
 #ifdef PARPE_ENABLE_IPOPT
 #include "localOptimizationIpopt.h"
 #endif
+
 #ifdef PARPE_ENABLE_DLIB
 #include "localOptimizationDlib.h"
 #endif
+
 #ifdef PARPE_ENABLE_TOMS611
 #include "localOptimizationToms611.h"
 #endif
+
 #ifdef PARPE_ENABLE_FSQP
 #include "localOptimizationFsqp.h"
 #endif
+
 #include "logging.h"
 #include "misc.h"
+#include "parpeException.h"
+
 #include <cassert>
 #include <iostream>
 #include <iomanip>
 #include <sstream>
 #include <limits>
 #include <utility>
+
 #include <hdf5.h>
 #include <H5Cpp.h>
 
@@ -166,7 +174,7 @@ std::vector<double> OptimizationOptions::getStartingPoint(hid_t fileId, int inde
 
     const char *path = "/optimizationOptions/randomStarts";
 
-    hdf5LockMutex();
+    auto lock = hdf5MutexGetLock();
     H5_SAVE_ERROR_HANDLER;
 
     hid_t dataset;
@@ -200,7 +208,6 @@ freturn:
     }
 
     H5_RESTORE_ERROR_HANDLER;
-    hdf5UnlockMutex();
 
     return startingPoint;
 }
@@ -285,10 +292,8 @@ Optimizer* optimizerFactory(optimizerName optimizer)
 #else
         return nullptr;
 #endif
-    default:
-        /* Currently, this case should never happen. 
-         * It's just here to fix a compiler warning */
-        return nullptr;
+    case optimizerName::OPTIMIZER_MINIBATCH_1:
+        throw ParPEException("optimizerFactory() cannot be used with minibatch optimizer.");
     }
 
     return nullptr;

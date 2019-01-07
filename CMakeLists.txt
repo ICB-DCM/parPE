@@ -48,7 +48,6 @@ set(PARPE_ENABLE_FSQP FALSE CACHE BOOL "Enable FSQP optimizers?")
 # Enable MPI?
 if(${PARPE_ENABLE_MPI})
     find_package(MPI REQUIRED)
-    add_definitions(-DUSE_MPI)
     if(IS_DIRECTORY ${MPI_INCLUDE_DIRS})
         # may be undefined. will be provided by MPI compiler wrapped.
         # this is only added for convenient IDE integration
@@ -69,8 +68,9 @@ find_package(Threads REQUIRED)
 # HDF5
 #set(HDF5_PREFER_PARALLEL TRUE)
 find_package(HDF5 COMPONENTS CXX C HL REQUIRED)
-
 set(HDF5_LIBRARIES ${HDF5_HL_LIBRARIES} ${HDF5_C_LIBRARIES} ${HDF5_CXX_LIBRARIES})
+
+# Guidelines Support Library (GSL-lite) directory
 set(GSL_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/ThirdParty/gsl)
 
 # Build tests?
