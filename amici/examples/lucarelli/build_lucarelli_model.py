@@ -64,14 +64,6 @@ def main():
     SBMLreader = libsbml.SBMLReader()
     sbml_doc = SBMLreader.readSBML(sbml_file)
     sbml_model = sbml_doc.getModel()
-    for reaction in sbml_model.getListOfReactions():
-        reactants = ' + '.join(['%s %s' % (
-            int(r.getStoichiometry()) if r.getStoichiometry() > 1 else '',
-            r.getSpecies()) for r in reaction.getListOfReactants()])
-        products = ' + '.join(['%s %s' % (
-            int(r.getStoichiometry()) if r.getStoichiometry() > 1 else '',
-            r.getSpecies()) for r in reaction.getListOfProducts()])
-        reversible = '<' if reaction.getReversible() else ''
 
     # set observables and constants
     observables_list = ['observable_Ski', 'observable_Skil',
@@ -86,7 +78,6 @@ def main():
 
     # wrap the model
     sbmlImporter = amici.SbmlImporter(sbml_file, check_validity=False)
-    sbml = sbmlImporter.sbml
 
     observables = amici.assignmentRules2observables( \
         sbmlImporter.sbml,  # the libsbml model object
@@ -104,7 +95,6 @@ def main():
     model = modelModule.getModel()
     solver = model.getSolver()
     rdata = amici.runAmiciSimulation(model, solver)
-    default_parameters = np.array(model.getParameters())
 
     expectedLlh = 0.0
     sigma_default = 0.1  # parameters are lin
