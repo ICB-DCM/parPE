@@ -48,6 +48,10 @@ void setMinibatchOption(const std::pair<const std::string, const std::string> &p
             optimizer->learningRateUpdater = std::make_unique < LearningRateUpdater
                     > (optimizer->maxEpochs, parpe::learningRateInterp::logarithmic);
         }
+    } else if (key == "endLearningRate") {
+            optimizer->learningRateUpdater->startLearningRate = std::stoi(val);
+    } else if (key == "endLearningRate") {
+            optimizer->learningRateUpdater->endLearningRate = std::stoi(val);
     } else {
         logmessage(LOGLVL_WARNING, "Ignoring unknown optimization option %s.", key.c_str());
         return;

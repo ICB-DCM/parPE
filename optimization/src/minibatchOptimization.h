@@ -66,15 +66,11 @@ public:
     /**
      * @brief Update the learning rate
      * @param maxEpochs Maximum number of epochs in optimization
-     * @param startLearningRate Learning rate the the beginning of optimization
-     * @param endLearningRate Learning rate the the end of optimization
      * @param LearningRateadaptionMode Type of interpolation between startLearningRate and endLearningRate 
      */
 
     LearningRateUpdater(int maxEpochs,
-                        learningRateInterp learningRateInterpMode,
-                        double startLearningRate,
-                        double endLearningRate) {
+                        learningRateInterp learningRateInterpMode) {
     }
     ;
 
