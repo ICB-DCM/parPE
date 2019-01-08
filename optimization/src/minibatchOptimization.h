@@ -47,8 +47,10 @@ public:
 
     virtual ~MinibatchOptimizationProblem() override = default;
 
+    /* vector of training data */
     virtual std::vector<T> getTrainingData() const = 0;
 
+    /* mini batch cost function */
     SummedGradientFunction<T>* getGradientFunction() const {
         auto summedGradientFunction = dynamic_cast<SummedGradientFunction<T>*>(costFun.get());
         RELEASE_ASSERT(summedGradientFunction, "");
@@ -63,39 +65,53 @@ class LearningRateUpdater {
 public:
     /**
      * @brief Update the learning rate
+     * @param maxEpochs Maximum number of epochs in optimization
      * @param startLearningRate Learning rate the the beginning of optimization
      * @param endLearningRate Learning rate the the end of optimization
      * @param LearningRateadaptionMode Type of interpolation between startLearningRate and endLearningRate 
      */
 
     LearningRateUpdater(int maxEpochs,
-                        learningRateInterp learningRateInterpMode) {
+                        learningRateInterp learningRateInterpMode,
+                        double startLearningRate,
+                        double endLearningRate) {
     }
     ;
 
-    // Update function, to be called in every epoch or optimization iteration
+    /* Update function, to be called in every epoch or optimization iteration */
     void updateLearningRate(int iteration);
 
-    // Update function, to be called if parameter update did not work well
+    /* Update function, to be called if parameter update did not work well */
     void reduceLearningRate();
 
-    // Update function, to be called if parameter update worked well
+    /* Update function, to be called if parameter update worked well */
     void increaseLearningRate();
 
-    // Function to retrieve the learning rate
+    /* Function to retrieve the learning rate */
     double getCurrentLearningRate();
 
     // Function to set the reduction factor directly
     void setReductionFactor(double newReductionFactor);
 
-    // Function to set the new maximum epoch number
+    /* Function to set the new maximum epoch number */
     void setMaxEpochs(int newMaxEpochs);
 
+    /* Maximum number of epochs, will be set after creation of problem instance */
     int maxEpochs = 0;
+    
+    /* Learning rate, i.e. step size, at the moment of optimization */
     double currentLearningRate = 0;
-    double reductionFactor = 1;
+    
+    /* If an optimization step is not succesful, the learning rate, i.e., step size, will be reduced by this factor */
+    double reductionFactor = 4;
+    
+    /* Learning rate, i.e. step size, at the beginning of optimization */
     double startLearningRate = 0.1;
+    
+    /* Learning rate, i.e. step size, at the end of optimization */
     double endLearningRate = 0.001;
+    
+    /* Mode of interpolation between the beginning and the end of optimization */
     learningRateInterp learningRateInterpMode = learningRateInterp::linear;
 };
 
@@ -106,6 +122,8 @@ class ParameterUpdater {
 public:
     /**
      * @brief Update parameter vector
+     * @param learningRate Current learning rate, i.e., step-size
+     * @param iteration Current iteration, i.e., epoch
      * @param gradient Cost function gradient at parameters
      * @param parameters In: Current parameters, Out: Updated parameters
      */
@@ -116,10 +134,13 @@ public:
                                   gsl::span<const double> lowerBounds = gsl::span<const double>(),
                                   gsl::span<const double> upperBounds = gsl::span<const double>()) = 0;
 
+    /* If ODE becomes non-integrable, the last step must be undone using this method */
     virtual void undoLastStep() = 0;
 
+    /* If the ODE is repeatedly non-integrable, a cold restart is performed using this method */
     virtual void clearCache() = 0;
 
+    /* Intialize the parameter updater */
     virtual void initialize(unsigned int numParameters) = 0;
 
     virtual ~ParameterUpdater() = default;
@@ -167,9 +188,16 @@ public:
 
     void initialize(unsigned int numParameters);
 
+    /* Rate for memorizing gradient norms (between 0 and 1, high rates mean long memory) */
     double decayRate = 0.9;
+    
+    /* Stabilization factor for gradient normalization (avoid deviding by 0) */
     double delta = 1e-7;
+    
+    /* Memorized gradient norms (decaying average) from last steps */
     std::vector<double> gradientNormCache;
+    
+    /* Memorized gradient norms (decaying average), one step back (if one step must be undone) */
     std::vector<double> oldGradientNormCache;
 };
 
@@ -190,12 +218,25 @@ public:
 
     void initialize(unsigned int numParameters);
 
+    /* Rate for memorizing gradients (between 0 and 1, high rates mean long memory) */
     double decayRateGradient = 0.9;
+    
+    /* Rate for memorizing gradient norms (between 0 and 1, high rates mean long memory) */
     double decayRateGradientNorm = 0.9;
+    
+    /* Stabilization factor for gradient normalization (avoid deviding by 0) */
     double delta = 1e-7;
+    
+    /* Memorized gradient norms (decaying average) from last steps */
     std::vector<double> gradientNormCache;
+    
+    /* Memorized gradient norms (decaying average), one step back (if one step must be undone) */
     std::vector<double> oldGradientNormCache;
+    
+    /* Memorized gradients (decaying average) from last steps */
     std::vector<double> gradientCache;
+    
+    /* Memorized gradients (decaying average), one step back (if one step must be undone) */
     std::vector<double> oldGradientCache;
 };
 
@@ -398,11 +439,19 @@ public:
     }
 
     /**
-     * rescueInterceptor
-     * The rescueInterceptor is a function that adapts the step size,
-     * if cost function evaluation failure was observed.
-     * Its main goal is to make the minibatch optimizer more
-     * robust towards disadvantagous regions in parameter space.
+     * @brief Try to rescue optimization run at cost function failure
+     *
+     * @param parameters current parameter vector
+     * @param oldParameters parameter vector before last step
+     * @param gradient current cost function gradient
+     * @param oldGradient cost function gradient before last step
+     * @param cost new cost function value after interception
+     * @param subsequentFails number of iterations during rescue interceptor
+     * @param f Function to minize
+     * @param data Full data set on which f will be evaluated
+     * @param logger Logger instance for status messages
+     * @param reporter OptimizationReporter instance for tracking progress
+     * @return FunctionEvaluationStatus 
      */
     FunctionEvaluationStatus rescueInterceptor(gsl::span<double> parameters,
                                                gsl::span<double> oldParameters,
@@ -480,7 +529,7 @@ public:
     // Set some default values
     int interceptor = 2;
     int batchSize = 1;
-    int maxEpochs = 3;
+    int maxEpochs = 1;
     double gradientNormThreshold = 0.0;
     double learningRate = 0.001;
 
