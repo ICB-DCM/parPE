@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 import sys
 import argparse
+import h5py
 
 
 def parse_cli_args():
@@ -48,8 +49,8 @@ def create_module(sbml_model_file, model_name, model_output_dir):
 
     fixed_parameters = ['k0']
 
-    print(observables)
-    print(fixed_parameters)
+    print('Observables:', observables)
+    print('Fixed parameters', fixed_parameters)
 
     sbml_importer.sbml2amici(model_name,
                             output_dir=model_output_dir,
@@ -239,9 +240,43 @@ def create_data(modelModule, fixed_parameters, observables,
     print(out.stdout.decode("utf-8"))
     assert out.returncode == 0
 
+    with h5py.File(hdf5File, 'r+') as f:
+        f.require_dataset(
+            '/parameters/true_parameters',
+            shape=(len(true_parameters),), dtype="f8", data=true_parameters)
+        f.require_dataset(
+            '/parameters/true_llh',
+            shape=(1,), dtype="f8", data=expectedLlh)
+
+
     hdf5FileMinibatch = 'example_data_minibatch.h5'
     from shutil import copyfile
     copyfile(hdf5File, hdf5FileMinibatch)
+
+
+
+
+    # write true parameters as first starting point, an perturbed additional points
+    # two times the same point to check for reproducibility
+    with h5py.File(hdf5File, 'r+') as f:
+        pscale = f['/parameters/pscale'][:]
+        true_parameters_scaled = true_parameters.copy()
+        for i, p in enumerate(pscale):
+            if p == 2:
+                true_parameters_scaled[i] = np.log10(true_parameters[i])
+
+        for i in range(10):
+            parameters = true_parameters_scaled
+            parameters = parameters + np.random.normal(0.0, 0.2 + i * 0.1,
+                                                       true_parameters.shape)
+            # parameters = np.random.uniform(-3, 5, true_parameters.shape)
+
+            # print(parameters)
+            f['/optimizationOptions/randomStarts'][:, 2 * i] = parameters
+            f['/optimizationOptions/randomStarts'][:, 2 * i + 1] = parameters
+
+    copyfile(hdf5File, hdf5FileMinibatch)
+
 
 
 def createConditionDataframe(fixed_parameters, conditions):
@@ -306,13 +341,15 @@ def main():
     print(cmd)
     out = subprocess.check_output(cmd, shell=True)
     print(out.decode('utf-8'))
+    print()
 
     print_model_info(sbml_file)
+    print()
 
     observables = []
 
     fixed_parameters, observables = create_module(sbml_file, model_name, model_output_dir)
-
+    print()
 
     # load model
     sys.path.insert(0, model_output_dir)
@@ -322,6 +359,7 @@ def main():
     print("--- Creating data ---")
     create_data(modelModule, fixed_parameters, observables, sbml_file,
                           model_output_dir)
+
 
 if __name__ == '__main__':
     main()

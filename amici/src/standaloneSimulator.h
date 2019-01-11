@@ -35,7 +35,7 @@ public:
             const std::string &resultPath,
             std::vector<double> const& optimizationParameters,
             LoadBalancerMaster *loadBalancer,
-            const H5::H5File &conditionFile, const std::string &conditionFilePath);
+            const H5::H5File &conditionFile, std::string conditionFilePath);
 
     void messageHandler(std::vector<char> &buffer, int jobId);
 

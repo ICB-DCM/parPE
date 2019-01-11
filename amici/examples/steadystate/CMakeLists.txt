@@ -6,14 +6,16 @@ find_package(PythonInterp 3.6)
 # Generate model code and data; build model
 include(ExternalProject)
 set(MODEL_NAME steadystate_scaled)
-ExternalProject_Add(${MODEL_NAME}
-    DOWNLOAD_DIR        "${CMAKE_CURRENT_BINARY_DIR}/${MODEL_NAME}-prefix/src/${MODEL_NAME}"
-    DOWNLOAD_COMMAND  ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/create_steadystate_amici_model.py"
+ExternalProject_Add(
+    ${MODEL_NAME}
+    DOWNLOAD_DIR    "${CMAKE_CURRENT_BINARY_DIR}/${MODEL_NAME}-prefix/src/${MODEL_NAME}"
+    DOWNLOAD_COMMAND ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/create_steadystate_amici_model.py"
+    SOURCE_SUBDIR    model_steadystate_scaled
     # Don't install anything
-    INSTALL_COMMAND   ""
-    TEST_COMMAND      ""
-    #BUILD_ALWAYS      1
-    DEPENDS parpeamici
+    INSTALL_COMMAND  ""
+    TEST_COMMAND     ""
+    #BUILD_ALWAYS    1
+    DEPENDS          parpeamici
 )
 
 # Rebuild if amici files are updated
@@ -28,10 +30,12 @@ message("Generating ${MODEL_NAME} example model and data in ${SOURCE_DIR} (${BIN
 # Import external library
 set(MODEL_LIBRARIES "model_${MODEL_NAME}")
 add_library(${MODEL_LIBRARIES} STATIC IMPORTED)
+# Work-around for 'Imported target includes non-existent path'
+file(MAKE_DIRECTORY "${SOURCE_DIR}/model_steadystate_scaled")
 set_target_properties(model_${MODEL_NAME}
     PROPERTIES
     INTERFACE_INCLUDE_DIRECTORIES
-    "${SOURCE_DIR}"
+    "${SOURCE_DIR}/model_steadystate_scaled"
     IMPORTED_LOCATION
     "${BINARY_DIR}/${CMAKE_STATIC_LIBRARY_PREFIX}${MODEL_LIBRARIES}${CMAKE_STATIC_LIBRARY_SUFFIX}"
 )
