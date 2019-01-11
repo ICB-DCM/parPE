@@ -184,7 +184,6 @@ def main():
                           fixed_parameter_file], stdout=subprocess.PIPE,
                          stderr=subprocess.STDOUT)
     print(out.stdout.decode("utf-8"))
-    assert 0 == out.returncode, "Returned " + str(out.returncode)
 
 
 if __name__ == '__main__':
