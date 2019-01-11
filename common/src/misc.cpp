@@ -39,7 +39,7 @@ bool fileExists(const char *name) {
 }
 
 void createDirectoryIfNotExists(char *dirName) {
-    struct stat st = {0};
+    struct stat st = {};
 
     if (stat(dirName, &st) == -1) {
         mkdir(dirName, 0700);
