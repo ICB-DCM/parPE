@@ -25,11 +25,11 @@ void setMinibatchOption(const std::pair<const std::string, const std::string> &p
         optimizer->gradientNormThreshold = std::stod(val);
     } else if (key == "rescueInterceptor") {
         if (val == "none" or val == "0") {
-            optimizer->interceptor = parpe::rescueIntercept::none
+            optimizer->interceptor = parpe::interceptType::none;
         } else if (val == "reduceStep" or val == "1") {
-            optimizer->interceptor = parpe::rescueIntercept::reduceStep
+            optimizer->interceptor = parpe::interceptType::reduceStep;
         } else if (val == "reduceStepAndRestart" or val == "2") {
-            optimizer->interceptor = parpe::rescueIntercept::reduceStepAndRestart
+            optimizer->interceptor = parpe::interceptType::reduceStepAndRestart;
         }
     } else if (key == "parameterUpdater") {
         if (val == "Vanilla") {
@@ -82,8 +82,12 @@ std::tuple<int, double, std::vector<double> > runMinibatchOptimization(Minibatch
 
     auto data = problem->getTrainingData();
 
+    auto reporter = problem->getReporter().get();
+    reporter->resultWriter->setLoggingEachFunctionEvaluation(false, false);
+    reporter->resultWriter->setLoggingEachIteration(false);
+
     return minibatchOptimizer->optimize(*costFun, data, initialParameters, lowerParameterBounds, upperParameterBounds,
-                                        problem->getReporter().get(), problem->logger.get());
+                                        reporter, problem->logger.get());
 }
 
 /**

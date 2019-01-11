@@ -41,7 +41,7 @@ public:
                              std::string rootPath);
 
     OptimizationResultWriter(OptimizationResultWriter const& other);
-
+    
     virtual ~OptimizationResultWriter();
 
     /**
@@ -60,9 +60,7 @@ public:
                                                 gsl::span<const double> objectiveFunctionGradient,
                                                 int numIterations,
                                                 int numFunctionCalls,
-                                                double timeElapsedInSeconds,
-                                                bool logGradientEachFunctionEvaluation,
-                                                bool logParametersEachFunctionEvaluation);
+                                                double timeElapsedInSeconds);
 
     /**
      * @brief Function to be called after each optimizer iteration. (For
@@ -87,8 +85,13 @@ public:
                                        double objectiveFunctionValue,
                                        gsl::span<const double> gradient,
                                        double wallSeconds,
-                                       double cpuSeconds,
-                                       bool logGradientEachIteration);
+                                       double cpuSeconds);
+    
+    void setLoggingEachIteration(bool logGradient);
+
+    void setLoggingEachFunctionEvaluation(bool logGradient,
+                                          bool logParameters);
+    
     /*, int alg_mod, double inf_pr, double inf_du,
      double mu, double d_norm, double regularization_size, double alpha_du,
      double alpha_pr, int ls_trials*/
@@ -111,7 +114,13 @@ public:
     hid_t getFileId() const;
 
     virtual std::string const& getRootPath() const;
+    
+    bool logParametersEachFunctionEvaluation = true;
+    
+    bool logGradientEachFunctionEvaluation = true;
 
+    bool logGradientEachIteration = true;
+    
     void setRootPath(std::string const& path);
 
 protected:

@@ -22,11 +22,17 @@ enum class minibatchExitStatus {
     gradientNormConvergence, maxEpochsExceeded, invalidNumber
 };
 
+/**
+ * @brief Shape of learning rate interpolation
+ */
 enum class learningRateInterp {
     linear, inverseLinear, logarithmic
 };
 
-enum class rescueIntercept {
+/**
+ * @brief Reaction upon ODE solver crashes
+ */
+enum class interceptType {
     none, reduceStep, reduceStepAndRestart
 };
 
@@ -340,7 +346,7 @@ public:
 
                 if (status == functionEvaluationFailure) {
                     // Check, if the interceptor should be used (should alwayss be the case, except for study purpose...
-                    if (interceptor > 0)
+                    if (interceptor > interceptType::none)
                         status = rescueInterceptor(parameters, oldParameters, gradient, oldGradient,
                                                    lowerParameterBounds, upperParameterBounds, cost, subsequentFails,
                                                    iteration, f, batches[batchIdx], batchLogger.get(), reporter);
@@ -468,7 +474,6 @@ public:
                                                OptimizationReporter *reporter) {
         int maxSubsequentFails = 10;
         bool finalFail = false;
-        bool coldRestartActive = false;
         cost = NAN;
         FunctionEvaluationStatus status = functionEvaluationFailure;
 
@@ -495,7 +500,7 @@ public:
 
             // If too many fails: cancel optimization
             if (subsequentFails >= maxSubsequentFails || finalFail) {
-                if (interceptor > 1 && !coldRestartActive) {
+                if (interceptor == interceptType::reduceStepAndRestart) {
                     /* Reducing step size did not work. Yet, a small step in descent direction
                      * should actually do the job. So clear all cached gradients and retry with
                      * a very small step size (e.g. 1e-5)
@@ -527,7 +532,7 @@ public:
     std::unique_ptr<ParameterUpdater> parameterUpdater = std::make_unique<ParameterUpdaterVanilla>();
 
     // Set some default values
-    int interceptor = rescueIntercept::reduceStepAndRestart;
+    interceptType interceptor = interceptType::reduceStepAndRestart;
     int batchSize = 1;
     int maxEpochs = 1;
     double gradientNormThreshold = 0.0;

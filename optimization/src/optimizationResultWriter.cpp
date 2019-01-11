@@ -56,9 +56,7 @@ void OptimizationResultWriter::logObjectiveFunctionEvaluation(gsl::span<const do
                                                               gsl::span<const double> objectiveFunctionGradient,
                                                               int numIterations,
                                                               int numFunctionCalls,
-                                                              double timeElapsedInSeconds,
-                                                              bool logGradientEachFunctionEvaluation,
-                                                              bool logParametersEachFunctionEvaluation) {
+                                                              double timeElapsedInSeconds) {
 
     std::string pathStr = getIterationPath(numIterations);
     const char *fullGroupPath = pathStr.c_str();
@@ -95,8 +93,7 @@ void OptimizationResultWriter::logOptimizerIteration(int numIterations,
                                                      double objectiveFunctionValue,
                                                      gsl::span<const double> gradient,
                                                      double wallSeconds,
-                                                     double cpuSeconds,
-                                                     bool logGradientEachIteration) {
+                                                     double cpuSeconds) {
     std::string const& pathStr = getRootPath();
     const char *fullGroupPath = pathStr.c_str();
 
@@ -146,6 +143,18 @@ void OptimizationResultWriter::logOptimizerIteration(int numIterations,
      */
     flushResultWriter();
 }
+
+
+void OptimizationResultWriter::setLoggingEachIteration(bool logGradient) {
+    logGradientEachIteration = logGradient;
+}
+
+void OptimizationResultWriter::setLoggingEachFunctionEvaluation(bool logGradient,
+                                                                bool logParameters) {
+    logGradientEachFunctionEvaluation = logGradient;
+    logParametersEachFunctionEvaluation = logParameters;
+}
+
 
 void OptimizationResultWriter::starting(gsl::span<double const> initialParameters) {
     if (!initialParameters.empty()) {
