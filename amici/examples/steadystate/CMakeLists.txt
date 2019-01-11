@@ -6,14 +6,16 @@ find_package(PythonInterp 3.6)
 # Generate model code and data; build model
 include(ExternalProject)
 set(MODEL_NAME steadystate_scaled)
-ExternalProject_Add(${MODEL_NAME}
-    DOWNLOAD_DIR        "${CMAKE_CURRENT_BINARY_DIR}/${MODEL_NAME}-prefix/src/${MODEL_NAME}"
-    DOWNLOAD_COMMAND  ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/create_steadystate_amici_model.py"
+ExternalProject_Add(
+    ${MODEL_NAME}
+    DOWNLOAD_DIR    "${CMAKE_CURRENT_BINARY_DIR}/${MODEL_NAME}-prefix/src/${MODEL_NAME}"
+    DOWNLOAD_COMMAND ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/create_steadystate_amici_model.py"
+    SOURCE_SUBDIR    model_steadystate_scaled
     # Don't install anything
-    INSTALL_COMMAND   ""
-    TEST_COMMAND      ""
-    #BUILD_ALWAYS      1
-    DEPENDS parpeamici
+    INSTALL_COMMAND  ""
+    TEST_COMMAND     ""
+    #BUILD_ALWAYS    1
+    DEPENDS          parpeamici
 )
 
 # Rebuild if amici files are updated
