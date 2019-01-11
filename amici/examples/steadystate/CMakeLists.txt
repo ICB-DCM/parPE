@@ -30,6 +30,8 @@ message("Generating ${MODEL_NAME} example model and data in ${SOURCE_DIR} (${BIN
 # Import external library
 set(MODEL_LIBRARIES "model_${MODEL_NAME}")
 add_library(${MODEL_LIBRARIES} STATIC IMPORTED)
+# Work-around for 'Imported target includes non-existent path'
+file(MAKE_DIRECTORY "${SOURCE_DIR}/model_steadystate_scaled")
 set_target_properties(model_${MODEL_NAME}
     PROPERTIES
     INTERFACE_INCLUDE_DIRECTORIES
