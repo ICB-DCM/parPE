@@ -2,8 +2,9 @@
 #include <logging.h>
 
 #include <exception>
+#include <cmath>
 
-#ifdef __INTEL_COMPILER
+#ifndef __cpp_constexpr
 // constexpr did not work on icc (ICC) 16.0.4 20160811
 #define constexpr
 #endif
@@ -902,7 +903,6 @@ double computeNegLogLikelihood(std::vector<double> const& measurements,
                                std::vector<double> const& modelOutputsScaled,
                                std::vector<double> const& sigmas) {
     double nllh = 0.0;
-    constexpr double pi = atan(1)*4.0;
 
     RELEASE_ASSERT(measurements.size() == modelOutputsScaled.size(), "measurement/simulation output dimension mismatch");
 
@@ -926,7 +926,7 @@ double computeNegLogLikelihood(std::vector<double> const& measurements,
 
             double diff = mes - sim;
             diff *= diff;
-            nllh += log(2.0 * pi * sigmaSquared) + diff / sigmaSquared;
+            nllh += log(2.0 * M_PI * sigmaSquared) + diff / sigmaSquared;
         }
     }
 
