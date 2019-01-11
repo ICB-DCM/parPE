@@ -1,10 +1,14 @@
 #include <CppUTest/TestHarness.h>
 #include <CppUTestExt/MockSupport.h>
 
+#include "parpeConfig.h"
 #include "optimizationProblem.h"
 #include "quadraticTestProblem.h"
 #include <misc.h>
+
+#ifdef PARPE_ENABLE_IPOPT
 #include "localOptimizationIpopt.h"
+#endif
 
 #include <cmath>
 
@@ -157,7 +161,7 @@ TEST(optimizationProblem, linearModelToGradientFun) {
 }
 
 
-
+#ifdef PARPE_ENABLE_IPOPT
 TEST(optimizationProblem, linearModelToGradientFunOptimization) {
     // create optimization problem for the linear model
     // does not do anything meaningful yet
@@ -177,3 +181,4 @@ TEST(optimizationProblem, linearModelToGradientFunOptimization) {
     parpe::OptimizerIpOpt opt;
     opt.optimize(&problem);
 }
+#endif

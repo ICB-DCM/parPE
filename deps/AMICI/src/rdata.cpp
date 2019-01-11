@@ -16,17 +16,17 @@ ReturnData::ReturnData()
      */
     : np(0), nk(0), nx(0), nxtrue(0), ny(0), nytrue(0), nz(0), nztrue(0), ne(0),
       nJ(0), nplist(0), nmaxevent(0), nt(0), newton_maxsteps(0),
-      pscale(std::vector<AMICI_parameter_scaling>(0, AMICI_SCALING_NONE)), o2mode(AMICI_O2MODE_NONE),
-      sensi(AMICI_SENSI_ORDER_NONE), sensi_meth(AMICI_SENSI_NONE) {}
+    pscale(std::vector<ParameterScaling>(0, ParameterScaling::none)), o2mode(SecondOrderMode::none),
+      sensi(SensitivityOrder::none), sensi_meth(SensitivityMethod::none) {}
 
 ReturnData::ReturnData(Solver const& solver, const Model *model)
-    : np(model->np()), nk(model->nk()), nx(model->nx), nxtrue(model->nxtrue),
-      ny(model->ny), nytrue(model->nytrue), nz(model->nz),
-      nztrue(model->nztrue), ne(model->ne), nJ(model->nJ),
-      nplist(model->nplist()), nmaxevent(model->nMaxEvent()), nt(model->nt()),
-      newton_maxsteps(solver.getNewtonMaxSteps()), pscale(model->getParameterScale()),
-      o2mode(model->o2mode), sensi(solver.getSensitivityOrder()),
-      sensi_meth(static_cast<AMICI_sensi_meth>(solver.getSensitivityMethod())) {
+    : ReturnData(model->getTimepoints(), model->np(), model->nk(),
+                 model->nx, model->nxtrue, model->ny, model->nytrue,
+                 model->nz, model->nztrue, model->ne, model->nJ,
+                 model->nplist(), model->nMaxEvent(), model->nt(),
+                 solver.getNewtonMaxSteps(), model->getParameterScale(),
+                 model->o2mode, solver.getSensitivityOrder(),
+                 static_cast<SensitivityMethod>(solver.getSensitivityMethod())) {
     /**
      * @brief constructor that uses information from model and solver to
      * appropriately initialize fields
@@ -34,9 +34,23 @@ ReturnData::ReturnData(Solver const& solver, const Model *model)
      * @param model pointer to model specification object
      * bool
      */
+}
 
-    ts = model->getTimepoints();
 
+ReturnData::ReturnData(
+        std::vector<realtype> ts,
+        int np, int nk, int nx, int nxtrue, int ny, int nytrue,
+        int nz, int nztrue, int ne, int nJ, int nplist, int nmaxevent,
+        int nt, int newton_maxsteps, std::vector<ParameterScaling> pscale,
+        SecondOrderMode o2mode, SensitivityOrder sensi, SensitivityMethod sensi_meth)
+    : ts(std::move(ts)), np(np), nk(nk), nx(nx), nxtrue(nxtrue),
+      ny(ny), nytrue(nytrue), nz(nz),
+      nztrue(nztrue), ne(ne), nJ(nJ),
+      nplist(nplist), nmaxevent(nmaxevent), nt(nt),
+      newton_maxsteps(newton_maxsteps), pscale(std::move(pscale)),
+      o2mode(o2mode), sensi(sensi),
+      sensi_meth(sensi_meth)
+    {
     xdot.resize(nx, getNaN());
 
     J.resize(nx * nx, getNaN());
@@ -47,10 +61,8 @@ ReturnData::ReturnData(Solver const& solver, const Model *model)
 
     rz.resize(nmaxevent * nz, 0.0);
     x.resize(nt * nx, 0.0);
-    y.resize(nt * model->ny, 0.0);
-    sigmay.resize(nt * model->ny, 0.0);
-    res.clear();
-    sres.clear();
+    y.resize(nt * ny, 0.0);
+    sigmay.resize(nt * ny, 0.0);
 
     newton_numsteps.resize(2, 0);
     newton_numlinsteps.resize(newton_maxsteps*2, 0);
@@ -62,7 +74,7 @@ ReturnData::ReturnData(Solver const& solver, const Model *model)
         numnonlinsolvconvfails.resize(nt, 0);
         order.resize(nt, 0);
         
-        if (sensi_meth == AMICI_SENSI_ASA && sensi >= AMICI_SENSI_ORDER_FIRST) {
+        if (sensi_meth == SensitivityMethod::adjoint && sensi >= SensitivityOrder::first) {
             numstepsB.resize(nt, 0);
             numrhsevalsB.resize(nt, 0);
             numerrtestfailsB.resize(nt, 0);
@@ -71,26 +83,31 @@ ReturnData::ReturnData(Solver const& solver, const Model *model)
     }
 
     x0.resize(nx, getNaN());
+    
+    res.resize(nt * nytrue, 0.0);
 
     llh = getNaN();
     chi2 = getNaN();
-    if (sensi >= AMICI_SENSI_ORDER_FIRST){
+    if (sensi >= SensitivityOrder::first){
         sllh.resize(nplist, getNaN());
         sx0.resize(nx * nplist, getNaN());
         
-        if (sensi_meth == AMICI_SENSI_FSA || sensi >= AMICI_SENSI_ORDER_SECOND){
+        if (sensi_meth == SensitivityMethod::forward || sensi >= SensitivityOrder::second){
             // for second order we can fill in from the augmented states
             sx.resize(nt * nx * nplist, 0.0);
             sy.resize(nt * ny * nplist, 0.0);
             sz.resize(nmaxevent * nz * nplist, 0.0);
             srz.resize(nmaxevent * nz * nplist, 0.0);
+            
+            FIM.resize(nplist * nplist, 0.0);
+            sres.resize(nt * nytrue * nplist, 0.0);
         }
         
-        ssigmay.resize(nt * model->ny * nplist, 0.0);
+        ssigmay.resize(nt * ny * nplist, 0.0);
         ssigmaz.resize(nmaxevent * nz * nplist, 0.0);
-        if (sensi >= AMICI_SENSI_ORDER_SECOND) {
-            s2llh.resize(nplist * (model->nJ - 1), getNaN());
-            if (sensi_meth == AMICI_SENSI_FSA)
+        if (sensi >= SensitivityOrder::second) {
+            s2llh.resize(nplist * (nJ - 1), getNaN());
+            if (sensi_meth == SensitivityMethod::forward)
                 s2rz.resize(nmaxevent * nztrue * nplist * nplist, 0.0);
         }
     }
@@ -118,7 +135,7 @@ void ReturnData::invalidate(const realtype t) {
             y.at(iy + ny * it) = getNaN();
     }
 
-    if (sx.size()) {
+    if (!sx.empty()) {
         for (int it = it_start; it < nt; it++){
             for (int ip = 0; ip < nplist; ip++) {
                 for (int ix = 0; ix < nx; ix++)
@@ -126,7 +143,7 @@ void ReturnData::invalidate(const realtype t) {
             }
         }
     }
-    if(sy.size()) {
+    if(!sy.empty()) {
         for (int it = it_start; it < nt; it++){
             for (int ip = 0; ip < nplist; ip++) {
                 for (int iy = 0; iy < ny; iy++)
@@ -157,22 +174,23 @@ void ReturnData::applyChainRuleFactorToSimulationResults(const Model *model) {
 
     // chain-rule factor: multiplier for am_p
     std::vector<realtype> coefficient(nplist, 1.0);
-
     std::vector<realtype> pcoefficient(nplist, 1.0);
-    std::vector<realtype> unscaledParameters(np);
-    model->unscaleParameters(unscaledParameters.data());
+
+    std::vector<realtype> unscaledParameters = model->getParameters();
+    unscaleParameters(unscaledParameters, model->getParameterScale(), unscaledParameters);
+
     std::vector<realtype> augcoefficient(np, 1.0);
     
-    if (sensi == AMICI_SENSI_ORDER_SECOND && o2mode == AMICI_O2MODE_FULL) {
+    if (sensi == SensitivityOrder::second && o2mode == SecondOrderMode::full) {
         for (int ip = 0; ip < np; ++ip) {
             switch (pscale[ip]) {
-            case AMICI_SCALING_LOG10:
+            case ParameterScaling::log10:
                 augcoefficient.at(ip) = unscaledParameters.at(ip) * log(10);
                 break;
-            case AMICI_SCALING_LN:
+            case ParameterScaling::ln:
                 augcoefficient.at(ip) = unscaledParameters.at(ip);
                 break;
-            case AMICI_SCALING_NONE:
+            case ParameterScaling::none:
                 break;
             }
         }
@@ -180,23 +198,23 @@ void ReturnData::applyChainRuleFactorToSimulationResults(const Model *model) {
 
     for (int ip = 0; ip < nplist; ++ip) {
         switch (pscale[model->plist(ip)]) {
-        case AMICI_SCALING_LOG10:
+        case ParameterScaling::log10:
             coefficient.at(ip) = log(10.0);
             pcoefficient.at(ip) = unscaledParameters.at(model->plist(ip)) * log(10);
             break;
-        case AMICI_SCALING_LN:
+        case ParameterScaling::ln:
             pcoefficient.at(ip) = unscaledParameters.at(model->plist(ip));
             break;
-        case AMICI_SCALING_NONE:
+        case ParameterScaling::none:
             break;
         }
     }
 
-    if (sensi >= AMICI_SENSI_ORDER_FIRST) {
+    if (sensi >= SensitivityOrder::first) {
         // recover first order sensitivies from states for adjoint sensitivity
         // analysis
-        if (sensi == AMICI_SENSI_ORDER_SECOND && o2mode == AMICI_O2MODE_FULL) {
-            if (sensi_meth == AMICI_SENSI_ASA) {
+        if (sensi == SensitivityOrder::second && o2mode == SecondOrderMode::full) {
+            if (sensi_meth == SensitivityMethod::adjoint) {
                 for (int ip = 0; ip < nplist; ++ip)
                     for (int ix = 0; ix < nxtrue; ++ix)
                         for (int it = 0; it < nt; ++it)
@@ -219,9 +237,19 @@ void ReturnData::applyChainRuleFactorToSimulationResults(const Model *model) {
 
         for (int ip = 0; ip < nplist; ++ip)
             sllh.at(ip) *= pcoefficient.at(ip);
+        
+        if(!sres.empty())
+            for (int iyt = 0; iyt < nytrue*nt; ++iyt)
+                for (int ip = 0; ip < nplist; ++ip)
+                    sres.at((iyt * nplist + ip)) *= pcoefficient.at(ip);
+        
+        if(!FIM.empty())
+            for (int ip = 0; ip < nplist; ++ip)
+                for (int jp = 0; jp < nplist; ++jp)
+                    FIM.at(jp + ip * nplist) *= pcoefficient.at(ip)*pcoefficient.at(jp);
 
 #define chainRule(QUANT, IND1, N1T, N1, IND2, N2)                               \
-    if (s##QUANT.size())                                                        \
+    if (!s##QUANT.empty())                                                        \
         for (int IND1 = 0; IND1 < N1T; ++IND1)                                  \
             for (int ip = 0; ip < nplist; ++ip)                                 \
                 for (int IND2 = 0; IND2 < N2; ++IND2) {                         \
@@ -238,8 +266,8 @@ void ReturnData::applyChainRuleFactorToSimulationResults(const Model *model) {
         chainRule(x0, ix, nxtrue, nx, it, 1);
     }
 
-    if (o2mode == AMICI_O2MODE_FULL) { // full
-        if (s2llh.size() && sllh.size()) {
+    if (o2mode == SecondOrderMode::full) { // full
+        if (!s2llh.empty() && !sllh.empty()) {
             for (int ip = 0; ip < nplist; ++ip) {
                 for (int iJ = 1; iJ < nJ; ++iJ) {
                     s2llh[ip * nplist + (iJ - 1)] *=
@@ -252,7 +280,7 @@ void ReturnData::applyChainRuleFactorToSimulationResults(const Model *model) {
         }
 
 #define s2ChainRule(QUANT, IND1, N1T, N1, IND2, N2)                            \
-    if (s##QUANT.size())                                                       \
+    if (!s##QUANT.empty())                                                       \
         for (int ip = 0; ip < nplist; ++ip)                                    \
             for (int iJ = 1; iJ < nJ; ++iJ)                                    \
                 for (int IND1 = 0; IND1 < N1T; ++IND1)                         \
@@ -274,7 +302,7 @@ void ReturnData::applyChainRuleFactorToSimulationResults(const Model *model) {
         s2ChainRule(rz, iz, nztrue, nz, ie, nmaxevent);
     }
 
-    if (o2mode == AMICI_O2MODE_DIR) { // directional
+    if (o2mode == SecondOrderMode::directional) { // directional
             for (int ip = 0; ip < nplist; ++ip) {
                 s2llh.at(ip) *= pcoefficient.at(ip);
                 s2llh.at(ip) += model->k()[nk - nplist + ip] * sllh.at(ip) /
@@ -282,7 +310,7 @@ void ReturnData::applyChainRuleFactorToSimulationResults(const Model *model) {
         }
 
 #define s2vecChainRule(QUANT, IND1, N1T, N1, IND2, N2)                          \
-    if (s##QUANT.size())                                                        \
+    if (!s##QUANT.empty())                                                        \
         for (int ip = 0; ip < nplist; ++ip)                                     \
             for (int IND1 = 0; IND1 < N1T; ++IND1)                              \
                 for (int IND2 = 0; IND2 < N2; ++IND2) {                         \
@@ -301,7 +329,6 @@ void ReturnData::applyChainRuleFactorToSimulationResults(const Model *model) {
         s2vecChainRule(sigmaz, iz, nztrue, nz, ie, nmaxevent);
         s2vecChainRule(rz, iz, nztrue, nz, ie, nmaxevent);
     }
-    return;
 }
 
 void ReturnData::initializeObjectiveFunction()

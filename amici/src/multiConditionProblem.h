@@ -1,15 +1,21 @@
 #ifndef PARPE_AMICI_MULTI_CONDITION_PROBLEM_H
 #define PARPE_AMICI_MULTI_CONDITION_PROBLEM_H
 
+#include "parpeConfig.h"
+
 #include <amici/serialization.h>
 #include <boost/serialization/map.hpp>
 
 #include "multiConditionDataProvider.h"
 #include <multiStartOptimization.h>
 #include <optimizationProblem.h>
-#include <loadBalancerMaster.h>
-#include <loadBalancerWorker.h>
 #include "amiciSimulationRunner.h"
+#include <minibatchOptimization.h>
+
+#ifdef PARPE_ENABLE_MPI
+#include <loadBalancerWorker.h>
+#endif
+#include <loadBalancerMaster.h>
 
 #include <amici/amici.h>
 
@@ -24,13 +30,27 @@ namespace parpe {
 
 class MultiConditionDataProvider;
 
-AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(amici::Solver &solver,
+/**
+ * @brief Run AMICI simulation for the given condition, save and return results
+ * @param solver
+ * @param model
+ * @param conditionIdx
+ * @param jobId
+ * @param dataProvider
+ * @param resultWriter
+ * @param logLineSearch
+ * @param logger
+ * @return Simulation results
+ */
+AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
+        amici::Solver &solver,
         amici::Model &model,
         int conditionIdx,
         int jobId,
         MultiConditionDataProvider *dataProvider,
         OptimizationResultWriter *resultWriter,
-        bool logLineSearch, Logger *logger);
+        bool logLineSearch,
+        Logger *logger);
 
 
 /**
@@ -48,9 +68,10 @@ public:
      * @param loadBalancer LoadBalancerMaster for shared memory parallelism, or nullptr
      * @param resultWriter
      */
-    AmiciSummedGradientFunction(MultiConditionDataProvider *dataProvider,
-                                LoadBalancerMaster *loadBalancer,
-                                OptimizationResultWriter *resultWriter)
+    AmiciSummedGradientFunction(
+            MultiConditionDataProvider *dataProvider,
+            LoadBalancerMaster *loadBalancer,
+            OptimizationResultWriter *resultWriter)
         : dataProvider(dataProvider),
           loadBalancer(loadBalancer),
           model(dataProvider->getModel()),
@@ -62,6 +83,13 @@ public:
             logLineSearch = env[0] == '1';
         }
 
+        if(auto env = std::getenv("PARPE_MAX_SIMULATIONS_PER_PACKAGE")) {
+            maxSimulationsPerPackage = std::stoi(env);
+        }
+
+        if(auto env = std::getenv("PARPE_MAX_GRADIENT_SIMULATIONS_PER_PACKAGE")) {
+            maxGradientSimulationsPerPackage = std::stoi(env);
+        }
     }
 
     virtual ~AmiciSummedGradientFunction() = default;
@@ -143,7 +171,6 @@ public:
             double *cpuTime) const
     {
         int errors = 0;
-        //    JobIdentifier path; // TODO = this->path;
 
         std::vector<int> dataIndices(dataProvider->getNumberOfConditions());
         std::iota(dataIndices.begin(), dataIndices.end(), 0);
@@ -151,10 +178,7 @@ public:
         setSensitivityOptions(false);
         modelOutput.resize(dataIndices.size());
         auto parameterVector = std::vector<double>(parameters.begin(), parameters.end());
-        AmiciSimulationRunner simRunner(parameterVector,
-                                         amici::AMICI_SENSI_ORDER_NONE,
-                                         dataIndices,
-                                         [&](JobData *job, int dataIdx) { // jobFinished
+        auto jobFinished = [&](JobData *job, int dataIdx) { // jobFinished
             // deserialize
             auto results =
                     amici::deserializeFromChar<
@@ -166,20 +190,27 @@ public:
                 errors += result.second.status;
                 modelOutput[result.first] = result.second.modelOutput;
             }
-        },
-        nullptr /* aggregate */,
-                logger?logger->getPrefix():"");
+        };
+        AmiciSimulationRunner simRunner(parameterVector,
+                                        amici::SensitivityOrder::none,
+                                        dataIndices,
+                                        jobFinished,
+                                        nullptr /* aggregate */,
+                                        logger?logger->getPrefix():"");
 
 
+#ifdef PARPE_ENABLE_MPI
         if (loadBalancer && loadBalancer->isRunning()) {
             errors += simRunner.runDistributedMemory(loadBalancer, maxSimulationsPerPackage);
         } else {
+#endif
             errors += simRunner.runSharedMemory(
                         [&](std::vector<char> &buffer, int jobId) {
                     messageHandler(buffer, jobId);
         }, true);
+#ifdef PARPE_ENABLE_MPI
         }
-
+#endif
         return errors == 0 ? functionEvaluationSuccess : functionEvaluationFailure;
     }
 
@@ -253,7 +284,7 @@ public:
         buffer = amici::serializeToStdVec(results);
     }
 
-    virtual amici::AMICI_parameter_scaling getParameterScaling(int parameterIndex) const
+    virtual amici::ParameterScaling getParameterScaling(int parameterIndex) const
     {
         // parameterIndex is optimization parameter index, not necessarily model parameter index!
         return dataProvider->getParameterScale(parameterIndex);
@@ -284,7 +315,7 @@ protected:// for testing
         double simulationTimeSec = 0.0;
 
         AmiciSimulationRunner simRunner(parameterVector,
-                                        objectiveFunctionGradient.size()?amici::AMICI_SENSI_ORDER_FIRST:amici::AMICI_SENSI_ORDER_NONE,
+                                        objectiveFunctionGradient.size() ? amici::SensitivityOrder::first : amici::SensitivityOrder::none,
                                         dataIndices,
                                         [&](JobData *job, int /*jobIdx*/) {
             errors += aggregateLikelihood(*job,
@@ -292,17 +323,23 @@ protected:// for testing
                                           objectiveFunctionGradient,
                                           simulationTimeSec);
         }, nullptr,  logger?logger->getPrefix():"");
+
+#ifdef PARPE_ENABLE_MPI
         if (loadBalancer && loadBalancer->isRunning()) {
             // When running simulations (without gradient), send more simulations to each worker
             // to reduce communication overhead
+
             errors += simRunner.runDistributedMemory(loadBalancer,
                                                      objectiveFunctionGradient.size() ? maxGradientSimulationsPerPackage : maxSimulationsPerPackage);
         } else {
+#endif
             errors += simRunner.runSharedMemory(
                         [&](std::vector<char> &buffer, int jobId) {
                     messageHandler(buffer, jobId);
         }, true);
+#ifdef PARPE_ENABLE_MPI
         }
+#endif
         if(cpuTime)
             *cpuTime = simulationTimeSec;
 
@@ -366,8 +403,8 @@ protected:// for testing
             solver->setSensitivityOrder(solverOriginal->getSensitivityOrder());
             solver->setSensitivityMethod(solverOriginal->getSensitivityMethod());
         } else {
-            solver->setSensitivityOrder(amici::AMICI_SENSI_ORDER_NONE);
-            solver->setSensitivityMethod(amici::AMICI_SENSI_NONE);
+            solver->setSensitivityOrder(amici::SensitivityOrder::none);
+            solver->setSensitivityMethod(amici::SensitivityMethod::none);
         }
     }
 
@@ -381,18 +418,20 @@ private:
     std::unique_ptr<amici::Solver> solverOriginal; // for saving sensitivity options which are changed depending on whether gradient is needed
     OptimizationResultWriter *resultWriter = nullptr; // TODO: owning?
     bool logLineSearch = false;
-    const int maxSimulationsPerPackage = 8;
-    const int maxGradientSimulationsPerPackage = 1;
+    int maxSimulationsPerPackage = 8;
+    int maxGradientSimulationsPerPackage = 1;
 };
 
 
 
 /**
  * @brief The MultiConditionProblem class represents an optimization problem based
- * on an MultiConditionGradientFunction (AMICI ODE model)
+ * on an MultiConditionGradientFunction (AMICI ODE model) and MultiConditionDataProvider
  */
 
-class MultiConditionProblem : public OptimizationProblem {
+class MultiConditionProblem
+        : public MinibatchOptimizationProblem<int>
+{
 
   public:
     MultiConditionProblem() = default;
@@ -427,7 +466,9 @@ class MultiConditionProblem : public OptimizationProblem {
 
     std::unique_ptr<OptimizationReporter> getReporter() const override;
 
-  protected:
+    std::vector<int> getTrainingData() const override;
+
+protected:
     //TODO std::unique_ptr<OptimizationProblem> validationProblem;
 
     MultiConditionDataProvider *dataProvider = nullptr;
@@ -476,7 +517,7 @@ private:
 
 void saveSimulation(hid_t file_id, const std::string &pathStr, const std::vector<double> &parameters, double llh,
                    gsl::span<const double> gradient, double timeElapsedInSeconds, gsl::span<const double> states,
-                   gsl::span<const double> stateSensi, gsl::span<const double> outputs, int jobId, int status, std::string label);
+                   gsl::span<const double> stateSensi, gsl::span<const double> outputs, int jobId, int status, const std::string &label);
 
 
 } // namespace parpe

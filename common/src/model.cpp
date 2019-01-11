@@ -46,7 +46,7 @@ FunctionEvaluationStatus LinearModelMSE::evaluate(gsl::span<const double> parame
         std::vector<int> dataIndices,
         double &fval,
         gsl::span<double> gradient,
-        Logger *logger, double *cpuTime) const
+        Logger * /*logger*/, double * /*cpuTime*/) const
 {
     int numDatasets = dataIndices.size();
 

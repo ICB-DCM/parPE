@@ -23,12 +23,15 @@ public:
 
     SimulationResultWriter(std::string const& hdf5FileName, std::string  rootPath);
 
+    SimulationResultWriter(SimulationResultWriter const&) = delete;
     /**
      * @brief Create results datasets. Condition index is first dimension.
      * @param udata
      * @param edata
      * @param numSimulations
      */
+
+    void createDatasets(hsize_t ny, hsize_t nx, hsize_t nt, hsize_t numSimulations);
 
     void createDatasets(const amici::Model &model,
                         int numberOfSimulations = 1);

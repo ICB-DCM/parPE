@@ -1,6 +1,0 @@
-#define sigmaobservable_x1 sigmay[0]
-#define sigmaobservable_x2 sigmay[1]
-#define sigmaobservable_x3 sigmay[2]
-#define sigmaobservable_x1_scaled sigmay[3]
-#define sigmaobservable_x2_offsetted sigmay[4]
-#define sigmaobservable_x1withsigma sigmay[5]

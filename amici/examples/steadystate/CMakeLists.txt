@@ -1,7 +1,42 @@
-set(MODEL_LIBRARIES "model_steadystate_scaled")
+# Steady-state model example
 
-# AMICI-generated model files
-add_subdirectory(model_steadystate_scaled)
+# This requires python to generate the model code from SBML
+find_package(PythonInterp 3.6)
+
+# Generate model code and data; build model
+include(ExternalProject)
+set(MODEL_NAME steadystate_scaled)
+ExternalProject_Add(${MODEL_NAME}
+    DOWNLOAD_DIR        "${CMAKE_CURRENT_BINARY_DIR}/${MODEL_NAME}-prefix/src/${MODEL_NAME}"
+    DOWNLOAD_COMMAND  ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/create_steadystate_amici_model.py"
+    # Don't install anything
+    INSTALL_COMMAND   ""
+    TEST_COMMAND      ""
+    #BUILD_ALWAYS      1
+    DEPENDS parpeamici
+)
+
+# Rebuild if amici files are updated
+ExternalProject_Add_StepDependencies(${MODEL_NAME} download createSteadystateExampleSBML.py)
+ExternalProject_Add_StepDependencies(${MODEL_NAME} download create_steadystate_amici_model.py)
+ExternalProject_Add_StepDependencies(${MODEL_NAME} build parpeamici)
+
+ExternalProject_Get_property(${MODEL_NAME} SOURCE_DIR)
+ExternalProject_Get_property(${MODEL_NAME} BINARY_DIR)
+message("Generating ${MODEL_NAME} example model and data in ${SOURCE_DIR} (${BINARY_DIR})")
+
+# Import external library
+set(MODEL_LIBRARIES "model_${MODEL_NAME}")
+add_library(${MODEL_LIBRARIES} STATIC IMPORTED)
+set_target_properties(model_${MODEL_NAME}
+    PROPERTIES
+    INTERFACE_INCLUDE_DIRECTORIES
+    "${SOURCE_DIR}"
+    IMPORTED_LOCATION
+    "${BINARY_DIR}/${CMAKE_STATIC_LIBRARY_PREFIX}${MODEL_LIBRARIES}${CMAKE_STATIC_LIBRARY_SUFFIX}"
+)
+message("Imported lib ${MODEL_LIBRARIES}")
+
 
 # example_steadystate executable
 project(example_steadystate)
@@ -12,7 +47,7 @@ set(SRC_LIST_EXE
 )
 
 add_executable(${PROJECT_NAME} ${SRC_LIST_EXE})
-
+add_dependencies(${PROJECT_NAME} ${MODEL_NAME})
 target_link_libraries(${PROJECT_NAME}
     ${MODEL_LIBRARIES}
     Upstream::amici
@@ -23,28 +58,29 @@ target_link_libraries(${PROJECT_NAME}
 # /example_steadystate executable
 
 # example_steadystate_parallel executable
-project(example_steadystate_parallel)
+if(${PARPE_ENABLE_MPI})
+    project(example_steadystate_parallel)
 
-set(SRC_LIST_EXE_PARALLEL
-    main_parallel.cpp
-    steadystateProblem.cpp
-    steadystateProblemParallel.cpp
-    steadyStateMultiConditionDataprovider.cpp
-)
+    set(SRC_LIST_EXE_PARALLEL
+        main_parallel.cpp
+        steadystateProblem.cpp
+        steadystateProblemParallel.cpp
+        steadyStateMultiConditionDataprovider.cpp
+        )
 
-add_executable(${PROJECT_NAME} ${SRC_LIST_EXE_PARALLEL})
-
-target_link_libraries(${PROJECT_NAME}
-    ${MODEL_LIBRARIES}
-    parpeoptimization
-    parpeloadbalancer
-    parpeamici
-)
+    add_executable(${PROJECT_NAME} ${SRC_LIST_EXE_PARALLEL})
+    add_dependencies(${PROJECT_NAME} ${MODEL_NAME})
+    target_link_libraries(${PROJECT_NAME}
+        ${MODEL_LIBRARIES}
+        parpeoptimization
+        parpeloadbalancer
+        parpeamici
+        )
+endif()
 # /example_steadystate_parallel executable
 
 
 # example_steadystate_multi executable
-
 project(example_steadystate_multi)
 
 set(SRC_LIST_EXE_PARALLEL
@@ -53,7 +89,7 @@ set(SRC_LIST_EXE_PARALLEL
 )
 
 add_executable(${PROJECT_NAME} ${SRC_LIST_EXE_PARALLEL})
-
+add_dependencies(${PROJECT_NAME} ${MODEL_NAME})
 target_link_libraries(${PROJECT_NAME}
     ${MODEL_LIBRARIES}
     parpeamici
@@ -67,12 +103,12 @@ install(TARGETS ${PROJECT_NAME} EXPORT ParPETargets
     INCLUDES DESTINATION include
     )
 
-if(${BUILD_TESTS})
+if(${BUILD_TESTS} AND ${PARPE_ENABLE_MPI})
     add_test (NAME ${PROJECT_NAME}
-        COMMAND ${TESTS_MPIEXEC_COMMAND} ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME} -o ${PROJECT_NAME}-testresults ${CMAKE_CURRENT_LIST_DIR}/example_data.h5
+        COMMAND ${TESTS_MPIEXEC_COMMAND} ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME} -o ${PROJECT_NAME}-testresults ${SOURCE_DIR}/example_data.h5
         )
     add_test (NAME ${PROJECT_NAME}_gradient_check
-        COMMAND ${TESTS_MPIEXEC_COMMAND} ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME} -t gradient_check -o ${PROJECT_NAME}-testresults ${CMAKE_CURRENT_LIST_DIR}/example_data.h5
+        COMMAND ${TESTS_MPIEXEC_COMMAND} ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME} -t gradient_check -o ${PROJECT_NAME}-testresults ${SOURCE_DIR}/example_data.h5
         )
 endif()
 # /example_steadystate_multi executable
@@ -88,7 +124,7 @@ set(SRC_LIST_EXE_PARALLEL
 )
 
 add_executable(${PROJECT_NAME} ${SRC_LIST_EXE_PARALLEL})
-
+add_dependencies(${PROJECT_NAME} ${MODEL_NAME})
 target_link_libraries(${PROJECT_NAME}
     ${MODEL_LIBRARIES}
     parpeamici
@@ -117,11 +153,10 @@ if(${BUILD_TESTS})
     )
 
     add_executable(${PROJECT_NAME} ${SRC_LIST_CPP})
-
+    add_dependencies(${PROJECT_NAME} ${MODEL_NAME})
     target_link_libraries(${PROJECT_NAME}
         parpeamici
-        model_steadystate_scaled
-        #${MODEL_LIBRARIES}
+        ${MODEL_LIBRARIES}
         ${CppUTest_LIBRARIES}
         ${GCOV_LIBRARY}
     )

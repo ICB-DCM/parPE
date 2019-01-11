@@ -8,13 +8,14 @@ import importlib
 import os
 import re
 import numpy as np
+import copy
 
 class TestAmiciPregeneratedModel(unittest.TestCase):
     '''
     TestCase class for tests that were pregenerated using the the matlab code generation routines and cmake
     build routines
     
-    NOTE: requires having run scripts/buildTests.sh before to build the python modules for the test models
+    NOTE: requires having run `make python-tests` in /build/ before to build the python modules for the test models
     '''
 
     expectedResultsFile = os.path.join(os.path.dirname(__file__), 'cpputest','expectedResults.h5')
@@ -35,7 +36,7 @@ class TestAmiciPregeneratedModel(unittest.TestCase):
 
                 with self.subTest(modelName=modelName, caseName=case):
                     print('running subTest modelName = ' + modelName + ', caseName = ' + case)
-                    modelSwigFolder = os.path.join(os.path.dirname(__file__), '..', 'build', 'tests', 
+                    modelSwigFolder = os.path.join(os.path.dirname(__file__), '..', 'build', 'tests',
                                                    'cpputest', 'external_' + modelName + '-prefix', 
                                                    'src', 'external_' + modelName + '-build', 'swig')
                     sys.path.insert(0, modelSwigFolder)
@@ -55,18 +56,49 @@ class TestAmiciPregeneratedModel(unittest.TestCase):
                                                             "/" + subTest + "/" + case + "/data",
                                                             self.model.get())
                     rdata = amici.runAmiciSimulation(self.model, self.solver, edata)
+
+                    # todo: set higher tolerances in testcase options and
+                    # regenerate results
+                    if modelName == 'model_jakstat_adjoint_o2':
+                        self.solver.setRelativeTolerance(1e-10)
+                        self.solver.setAbsoluteTolerance(1e-10)
+
+                    if modelName in [
+                        'model_jakstat_adjoint', 'model_nested_events',
+                        'model_steadystate'
+                    ]:
+                        self.solver.setRelativeTolerance(1e-12)
+                        self.solver.setAbsoluteTolerance(1e-12)
                     
-                    if edata and self.solver.getSensitivityMethod() and self.solver.getSensitivityOrder():
-                        if not modelName.startswith('model_neuron'):
-                            checkGradient(self.model, self.solver, edata)
+                    if edata \
+                            and self.solver.getSensitivityMethod() \
+                            and self.solver.getSensitivityOrder() \
+                            and len(self.model.getParameterList()) \
+                            and not modelName.startswith('model_neuron') \
+                            and not case.endswith('byhandpreeq'):
+                        checkDerivatives(self.model, self.solver, edata)
 
                     if modelName == 'model_neuron_o2':
-                        verifySimulationResults(rdata, expectedResults[subTest][case]['results'],rtol=1e-3)
+                        self.solver.setRelativeTolerance(1e-12)
+                        verifySimulationResults(rdata, expectedResults[subTest][case]['results'],atol=1e-6,rtol=1e-2)
                     else:
                         verifySimulationResults(rdata, expectedResults[subTest][case]['results'])
-                        
 
-def checkGradient(model, solver, edata):
+                    if edata and modelName != 'model_neuron_o2':
+                        # Test runAmiciSimulations: ensure running twice with same ExpData yields same results
+                        edatas = [edata.get(), edata.get()]
+                        rdatas = amici.runAmiciSimulations(self.model, self.solver, edatas, num_threads=2)
+                        verifySimulationResults(rdatas[0], expectedResults[subTest][case]['results'])
+                        verifySimulationResults(rdatas[1], expectedResults[subTest][case]['results'])
+
+                    self.assertRaises(
+                        RuntimeError,
+                        self.model.getParameterByName,
+                        'thisParameterDoesNotExist'
+                    )
+
+
+def checkDerivatives(model, solver, edata, atol=1e-4, rtol=1e-4, epsilon=1e-5):
     """Finite differences check for likelihood gradient
     
     Arguments:
@@ -76,86 +108,124 @@ def checkGradient(model, solver, edata):
     """
     from scipy.optimize import check_grad
 
-    def func(x0, symbol='llh', x0full=None, plist=[], verbose=False):
+    def func(x0, symbol='llh', x0full=None, plist=None, verbose=False):
         """Function of which the gradient is to be checked"""
-        p = x0
+        if plist is None:
+            plist = []
+        p = copy.deepcopy(x0)
         if len(plist):
-            p = x0full[:]
-            p[plist] = x0
+            p = copy.deepcopy(x0full)
+            p[plist] = copy.deepcopy(x0)
         verbose and print('f: p=%s' % p)
         
         old_sensitivity_order = solver.getSensitivityOrder()
         old_parameters = model.getParameters()
         
-        solver.setSensitivityOrder(amici.AMICI_SENSI_ORDER_NONE)
-        model.setParameters(amici.DoubleVector(p))
+        solver.setSensitivityOrder(amici.SensitivityOrder_none)
+        model.setParameters(p)
         rdata = amici.runAmiciSimulation(model, solver, edata)
         
         solver.setSensitivityOrder(old_sensitivity_order)
         model.setParameters(old_parameters)
-        
+
         res = np.sum(rdata[symbol])
         return res
     
-    def grad(x0, symbol='llh', x0full=None, plist=[], verbose=False):
+    def grad(x0, symbol='llh', x0full=None, plist=None, verbose=False):
         """Gradient which is to be checked"""
+        if plist is None:
+            plist = []
         old_parameters = model.getParameters()
         old_plist = model.getParameterList()
         
-        p = x0
+        p = copy.deepcopy(x0)
         if len(plist):
-            model.setParameterList(amici.IntVector(plist))
-            p = x0full[:]
-            p[plist] = x0
+            model.setParameterList(plist)
+            p = copy.deepcopy(x0full)
+            p[plist] = copy.deepcopy(x0)
         else:
             model.requireSensitivitiesForAllParameters()
         verbose and print('g: p=%s' % p)
         
-        model.setParameters(amici.DoubleVector(p))
+        model.setParameters(p)
+
         rdata = amici.runAmiciSimulation(model, solver, edata)
-        
+
         model.setParameters(old_parameters)
         model.setParameterList(old_plist)
 
         res = rdata['s%s' % symbol]
         if not isinstance(res, float):
+            if len(res.shape) == 2:
+                res = np.sum(res, axis=(0,))
             if len(res.shape) == 3:
                 res = np.sum(res, axis=(0, 2))
         return res
     
     p = np.array(model.getParameters())
+
+    rdata = amici.runAmiciSimulation(model, solver, edata)
       
     for ip in range(model.np()):
         plist = [ip]
-        err_norm = check_grad(func, grad, p[plist], 'llh', p, [ip])
-        print('sllh: p[%d]: |error|_2: %f' % (ip, err_norm))
-    
-    '''
-    print()
-    for ip in range(model.np()):
-        plist = [ip]
-        err_norm = check_grad(func, grad, p[plist], 'y', p, [ip])
-        print('sy: p[%d]: |error|_2: %f' % (ip, err_norm))
-    
-    print()
-    for ip in range(model.np()):
-        plist = [ip]
-        err_norm = check_grad(func, grad, p[plist], 'x', p, [ip])
-        print('sx: p[%d]: |error|_2: %f' % (ip, err_norm))
-    
-    '''
-    
+        err_norm = check_grad(func, grad, copy.deepcopy(p[plist]), 'llh',
+                              copy.deepcopy(p), [ip], epsilon=epsilon)
+        print(f'sllh: p[{ip}]: |error|_2: {err_norm}')
+        assert err_norm <= rtol * abs(rdata["sllh"][ip]) \
+            or err_norm <= atol
+
+
+
+    leastsquares_applicable = solver.getSensitivityMethod() == amici.SensitivityMethod_forward
+
+    if 'ssigmay' in rdata.keys():
+        if rdata['ssigmay'] is not None:
+            if rdata['ssigmay'].any():
+                leastsquares_applicable = False
+
+    if leastsquares_applicable:
+        for ip in range(model.np()):
+            plist = [ip]
+            err_norm = check_grad(func, grad, copy.deepcopy(p[plist]), 'res',
+                                  copy.deepcopy(p), [ip], epsilon=epsilon)
+            print('sres: p[%d]: |error|_2: %f' % (ip, err_norm))
+            assert err_norm < atol \
+                or err_norm < rtol * abs(rdata['sres'][:,ip].sum())
+
+        checkResults(rdata, 'FIM', np.dot(rdata['sres'].transpose(),rdata['sres']), 1e-8, 1e-4)
+        checkResults(rdata, 'sllh', -np.dot(rdata['res'].transpose(),rdata['sres']), 1e-8, 1e-4)
+
+
+        print()
+        for ip in range(model.np()):
+            plist = [ip]
+            err_norm = check_grad(func, grad, copy.deepcopy(p[plist]), 'y',
+                                  copy.deepcopy(p), [ip], epsilon=epsilon)
+            print('sy: p[%d]: |error|_2: %f' % (ip, err_norm))
+            assert err_norm < atol \
+                or err_norm < rtol * abs(rdata['sy'][:,ip].sum())
+
+        print()
+        for ip in range(model.np()):
+            plist = [ip]
+            err_norm = check_grad(func, grad, copy.deepcopy(p[plist]), 'x',
+                                  copy.deepcopy(p), [ip], epsilon=epsilon)
+            print('sx: p[%d]: |error|_2: %f' % (ip, err_norm))
+            assert err_norm < atol \
+                or err_norm < rtol * abs(rdata['sx'][:,ip].sum())
+
+
 def verifySimulationResults(rdata, expectedResults, atol=1e-8, rtol=1e-4):
-    '''
+    """
     compares all fields of the simulation results in rdata against the expectedResults using the provided
     tolerances
     
     Arguments:
         rdata: simulation results as returned by amici.runAmiciSimulation
-        expectedResults: stored test results 
+        expectedResults: stored test results
         atol: absolute tolerance
         rtol: relative tolerance
-    '''
+    """
 
     if expectedResults.attrs['status'][0] != 0:
         assert rdata['status'] == expectedResults.attrs['status'][0]
@@ -163,7 +233,7 @@ def verifySimulationResults(rdata, expectedResults, atol=1e-8, rtol=1e-4):
 
     for field in expectedResults.keys():
         if field == 'diagnosis':
-           for subfield in expectedResults[field].keys():
+           for subfield in ['J', 'xdot']:
                checkResults(rdata, subfield, expectedResults[field][subfield][()], 0, 2)
         else:
             if field == 's2llh':
@@ -188,8 +258,15 @@ def checkResults(rdata, field, expected, atol, rtol):
     '''
 
     result = rdata[field]
-    adev = abs(result-expected)
-    rdev = abs((result-expected))/(abs(expected)+rtol)
+    if type(result) is float:
+        result = np.array(result)
+
+    #if field == 'sres':
+    #    result = result.transpose()
+
+
+    adev = abs(result - expected)
+    rdev = abs((result - expected)) / (abs(expected) + rtol)
 
     if np.any(np.isnan(expected)):
         if len(expected) > 1 :
@@ -207,12 +284,17 @@ def checkResults(rdata, field, expected, atol, rtol):
         adev = adev[~np.isinf(expected)]
         rdev = rdev[~np.isinf(expected)]
 
-    assert np.all(np.logical_or(rdev <= rtol, adev <= atol))
-
+    if not np.all(np.logical_or(rdev <= rtol, adev <= atol)):
+        print('Failed to meet tolerances in ' + field + ':')
+        print('adev:')
+        print(adev[np.logical_and(rdev > rtol, adev > atol)])
+        print('rdev:')
+        print(rdev[np.logical_and(rdev > rtol, adev > atol)])
+        assert np.all(np.logical_or(rdev <= rtol, adev <= atol))
 
 
 if __name__ == '__main__':
     suite = unittest.TestSuite()
     suite.addTest(TestAmiciPregeneratedModel())
     unittest.main()
-    
+

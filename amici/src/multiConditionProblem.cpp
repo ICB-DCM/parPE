@@ -14,6 +14,10 @@
 #include <numeric>
 #include <utility>
 
+#ifndef PARPE_ENABLE_MPI
+// Workaround to allow building without MPI. Should be cleaned up.
+using LoadBalancerMaster = int;
+#endif
 
 namespace parpe {
 
@@ -114,10 +118,15 @@ std::unique_ptr<OptimizationReporter> MultiConditionProblem::getReporter() const
     return std::make_unique<OptimizationReporter>(
                 costFun.get(),
                 std::make_unique<OptimizationResultWriter>(*resultWriter),
-                                                  std::make_unique<Logger>(*logger));
+                std::make_unique<Logger>(*logger));
 }
 
-
+std::vector<int> MultiConditionProblem::getTrainingData() const
+{
+    std::vector<int> dataIndices(dataProvider->getNumberOfConditions());
+    std::iota(dataIndices.begin(), dataIndices.end(), 0);
+    return dataIndices;
+}
 
 MultiConditionDataProvider *MultiConditionProblem::getDataProvider() {
     return dataProvider;
@@ -155,26 +164,26 @@ std::unique_ptr<OptimizationProblem> MultiConditionProblemMultiStartOptimization
 
     if(options.hierarchicalOptimization)
         return std::unique_ptr<OptimizationProblem>(
-                    new parpe::HierachicalOptimizationProblemWrapper(std::move(problem), dp));
+                    new parpe::HierarchicalOptimizationProblemWrapper(std::move(problem), dp));
 
     return std::move(problem);
 }
 
 void printSimulationResult(Logger *logger, int jobId, amici::ReturnData const* rdata, double timeSeconds) {
     logger->logmessage(LOGLVL_DEBUG, "Result for %d: %g (%d) (%.4fs%c)",
-               jobId, rdata->llh, rdata->status, timeSeconds, rdata->sensi >= amici::AMICI_SENSI_ORDER_FIRST?'+':'-');
+               jobId, rdata->llh, rdata->status, timeSeconds, rdata->sensi >= amici::SensitivityOrder::first?'+':'-');
 
 
     // check for NaNs, only report first
-    if (rdata->sensi >= amici::AMICI_SENSI_ORDER_FIRST) {
+    if (rdata->sensi >= amici::SensitivityOrder::first) {
         for (int i = 0; i < rdata->np; ++i) {
             if (std::isnan(rdata->sllh[i])) {
-                logmessage(LOGLVL_DEBUG, "Gradient contains NaN at %d", i);
+                logger->logmessage(LOGLVL_DEBUG, "Gradient contains NaN at %d", i);
                 break;
             }
 
             if (std::isinf(rdata->sllh[i])) {
-                logmessage(LOGLVL_DEBUG, "Gradient contains Inf at %d", i);
+                logger->logmessage(LOGLVL_DEBUG, "Gradient contains Inf at %d", i);
                 break;
             }
         }
@@ -186,10 +195,12 @@ void saveSimulation(hid_t file_id, std::string const& pathStr, std::vector<doubl
                    double llh, gsl::span<double const> gradient, double timeElapsedInSeconds,
                    gsl::span<double const> states, gsl::span<double const> stateSensi,
                    gsl::span<double const> outputs, int jobId,
-                   int status, std::string label)
+                   int status, std::string const& label)
 {
     // TODO replace by SimulationResultWriter
     const char *fullGroupPath = pathStr.c_str();
+
+    auto lock = hdf5MutexGetLock();
 
     hdf5CreateOrExtendAndWriteToDouble2DArray(
         file_id, fullGroupPath, "simulationLogLikelihood", &llh, 1);
@@ -241,12 +252,17 @@ void saveSimulation(hid_t file_id, std::string const& pathStr, std::vector<doubl
 }
 
 AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
-        amici::Solver &solver, amici::Model &model, int conditionIdx, int jobId,
-        MultiConditionDataProvider *dataProvider, OptimizationResultWriter *resultWriter,
-        bool logLineSearch, Logger* logger)
+        amici::Solver &solver,
+        amici::Model &model,
+        int conditionIdx,
+        int jobId,
+        MultiConditionDataProvider *dataProvider,
+        OptimizationResultWriter *resultWriter,
+        bool logLineSearch,
+        Logger* logger)
 {
     /* wall time  on worker for current simulation */
-    double startTime = MPI_Wtime();
+    WallTimer simulationTimer;
 
     // run simulation
 
@@ -303,12 +319,11 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
     solver.setRelativeTolerance(relTolOrig);
     solver.setRelativeToleranceQuadratures(relTolQuadOrig);
 
-    double endTime = MPI_Wtime();
-    double timeSeconds = (endTime - startTime);
+    double timeSeconds = simulationTimer.getTotal();
 
     printSimulationResult(logger, jobId, rdata.get(), timeSeconds);
 
-    if (resultWriter && (solver.getSensitivityOrder() > amici::AMICI_SENSI_ORDER_NONE || logLineSearch)) {
+    if (resultWriter && (solver.getSensitivityOrder() > amici::SensitivityOrder::none || logLineSearch)) {
         saveSimulation(resultWriter->getFileId(), resultWriter->getRootPath(),
                       model.getParameters(), rdata->llh, rdata->sllh,
                       timeSeconds, rdata->x, rdata->sx, rdata->y,
@@ -318,7 +333,7 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
     return AmiciSimulationRunner::AmiciResultPackageSimple {
         rdata->llh,
                 timeSeconds,
-                (solver.getSensitivityOrder() > amici::AMICI_SENSI_ORDER_NONE) ? rdata->sllh : std::vector<double>(),
+                (solver.getSensitivityOrder() > amici::SensitivityOrder::none) ? rdata->sllh : std::vector<double>(),
                 rdata->y,
                 rdata->status
     };

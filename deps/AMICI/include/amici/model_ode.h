@@ -53,18 +53,11 @@ namespace amici {
                   const int ny, const int nytrue, const int nz, const int nztrue,
                   const int ne, const int nJ, const int nw, const int ndwdx,
                   const int ndwdp, const int nnz, const int ubw, const int lbw,
-                  const AMICI_o2mode o2mode, const std::vector<realtype> p,
+                  const SecondOrderMode o2mode, const std::vector<realtype> p,
                   const std::vector<realtype> k, const std::vector<int> plist,
                   const std::vector<realtype> idlist, const std::vector<int> z2event)
         : Model(nx,nxtrue,ny,nytrue,nz,nztrue,ne,nJ,nw,ndwdx,ndwdp,nnz,ubw,lbw,o2mode,p,k,plist,idlist,z2event){}
         
-
-        /**
-         * @brief Copy constructor
-         * @param other
-         */
-        Model_ODE(Model_ODE const& other)
-            :Model(other) {}
 
         virtual void fJ(realtype t, realtype cj, AmiVector *x, AmiVector *dx,
                         AmiVector *xdot, DlsMat J) override;
@@ -105,6 +98,8 @@ namespace amici {
             fdxdotdp(t,x->getNVector());
         }
         
+        void fsxdot(realtype t, AmiVector *x, AmiVector *dx, int ip,
+                    AmiVector *sx, AmiVector *sdx, AmiVector *sxdot) override;
         void fsxdot(realtype t, N_Vector x, int ip, N_Vector sx, N_Vector sxdot);
         
         virtual std::unique_ptr<Solver> getSolver() override;

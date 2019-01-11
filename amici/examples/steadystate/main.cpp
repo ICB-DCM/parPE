@@ -20,7 +20,7 @@ int main(int argc, char **argv) {
         return EXIT_FAILURE;
     }
 
-    std::string dataFileName = argv[1];
+    std::string dataFileName = argv[1]; // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     ExampleSteadystateProblem problem(dataFileName);
     parpe::OptimizationOptions options = problem.getOptimizationOptions();
 

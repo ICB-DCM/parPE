@@ -1,8 +1,8 @@
 #!/bin/bash
 # generate code documentation via doxygen
 
-AMICI_PATH="`dirname \"$0\"`"
-AMICI_PATH="`( cd \"$AMICI_PATH/..\" && pwd )`"
+SCRIPT_PATH=$(dirname $BASH_SOURCE)
+AMICI_PATH=$(cd $SCRIPT_PATH/.. && pwd)
 
 # build mtocpp
 cd ${AMICI_PATH}/ThirdParty
@@ -69,6 +69,10 @@ cp ./refman.pdf ${AMICI_PATH}/AMICI_guide.pdf
 
 # suppress doxygen warnings about status badges
 grep -v "warning: Unexpected html tag <img> found within <a href=...> context" ${DOXY_WARNING_FILE} > ${DOXY_WARNING_FILE}_tmp
+mv ${DOXY_WARNING_FILE}_tmp ${DOXY_WARNING_FILE}
+
+# suppress doxygen warnings about multiple param sections
+grep -v "iple @param documentation sections" ${DOXY_WARNING_FILE} > ${DOXY_WARNING_FILE}_tmp
 mv ${DOXY_WARNING_FILE}_tmp ${DOXY_WARNING_FILE}
 
 # check if warnings log was created

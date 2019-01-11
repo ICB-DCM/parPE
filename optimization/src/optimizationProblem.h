@@ -58,11 +58,12 @@ class OptimizationReporter;
 
 /**
  * @brief The OptimizationReporter class is called from the optimizer and takes care of
- * calling the objective function and things like of keeping track of iterations, logging intermediate results, timing
- * and can tell the optimizer to exit.
+ * calling the actual objective function, thereby keeping track of iterations, computation time,
+ * logging intermediate results, timing and can tell the optimizer to exit.
  *
  * This extra level of abstraction is added to avoid reimplementing timing, and other things for
- * each supported optimizer.
+ * each supported optimizer. The indirection of cost function evaluation is added to allow caching
+ * previous cost function values.
  */
 
 class OptimizationReporter : public GradientFunction {
@@ -134,6 +135,10 @@ public:
 
     std::unique_ptr<OptimizationResultWriter> resultWriter;
 
+    mutable double cpuTimeTotalSec = 0.0;
+    mutable double cpuTimeIterationSec = 0.0;
+    std::unique_ptr<Logger> logger;
+
 protected:
     void printObjectiveFunctionFailureMessage() const;
 
@@ -142,12 +147,6 @@ protected:
     // and evaluate() is const there. This could probably be solved better....
 
     mutable WallTimer wallTimer;
-    mutable double cpuTimeTotalSec = 0.0;
-    mutable double cpuTimeIterationSec = 0.0;
-
-//    clock_t timeOptimizationBegin;
-//    clock_t timeIterationBegin;
-//    clock_t timeCostEvaluationBegin;
 
     mutable int numFunctionCalls = 0;
     mutable int numIterations = 0;
@@ -170,7 +169,6 @@ protected:
     // keeps the most recent parameters, assuming they are the final ones
     mutable std::vector<double> cachedParameters;
 
-    std::unique_ptr<Logger> logger;
     std::string defaultLoggerPrefix;
 private:
 
