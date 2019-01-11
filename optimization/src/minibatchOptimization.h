@@ -26,6 +26,10 @@ enum class learningRateInterp {
     linear, inverseLinear, logarithmic
 };
 
+enum class rescueIntercept {
+    none, reduceStep, reduceStepAndRestart
+};
+
 /**
  * @brief Problem definition for mini-batch optimization.
  *
@@ -523,7 +527,7 @@ public:
     std::unique_ptr<ParameterUpdater> parameterUpdater = std::make_unique<ParameterUpdaterVanilla>();
 
     // Set some default values
-    int interceptor = 2;
+    int interceptor = rescueIntercept::reduceStepAndRestart;
     int batchSize = 1;
     int maxEpochs = 1;
     double gradientNormThreshold = 0.0;

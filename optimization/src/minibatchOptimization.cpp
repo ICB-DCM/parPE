@@ -24,7 +24,13 @@ void setMinibatchOption(const std::pair<const std::string, const std::string> &p
     } else if (key == "gradientNormThreshold") {
         optimizer->gradientNormThreshold = std::stod(val);
     } else if (key == "rescueInterceptor") {
-        optimizer->interceptor = std::stoi(val);
+        if (val == "none" or val == "0") {
+            optimizer->interceptor = parpe::rescueIntercept::none
+        } else if (val == "reduceStep" or val == "1") {
+            optimizer->interceptor = parpe::rescueIntercept::reduceStep
+        } else if (val == "reduceStepAndRestart" or val == "2") {
+            optimizer->interceptor = parpe::rescueIntercept::reduceStepAndRestart
+        }
     } else if (key == "parameterUpdater") {
         if (val == "Vanilla") {
             // already default optimizer->parameterUpdater = std::make_unique<ParameterUpdaterVanilla>();
