@@ -30,7 +30,7 @@ int StandaloneSimulator::run(const std::string& resultFile,
                              std::vector<double> const& optimizationParameters,
                              LoadBalancerMaster *loadBalancer,
                              H5::H5File const& conditionFile,
-                             std::string const& conditionFilePath)
+                             std::string conditionFilePath)
 {
     // std::cout<<"file: "<<resultFile<<" path: "<<resultPath<<" lbm:"<<loadBalancer<<std::endl;
 
@@ -53,6 +53,9 @@ int StandaloneSimulator::run(const std::string& resultFile,
     bool needComputeAnalyticalParameters = (parameters.size() != (unsigned)dataProvider->getNumOptimizationParameters());
 
     if(needComputeAnalyticalParameters) {
+        if(hdf5GroupExists(conditionFile.getId(), "inputData"))
+            // TODO: might not be the best place to have that here
+            conditionFilePath += "/inputData";
         // TODO: get rid of that. we want fun.evaluate(), independently of hierarchical or not
         auto hierarchicalScalingReader = std::make_unique<AnalyticalParameterHdf5Reader>(
                     conditionFile,

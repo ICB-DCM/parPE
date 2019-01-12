@@ -2,6 +2,7 @@
 #define OPTIMIZATIONOPTIONS_H
 
 #include <hdf5Misc.h>
+
 #include <map>
 #include <string>
 #include <functional>
