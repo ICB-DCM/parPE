@@ -10,7 +10,7 @@ TODO test
 def getCostTrajectories(filename, starts = None):
     """
     Read cost trajectory from HDF5 result file.
-    
+
     Arguments:
     filename: result file name
     starts: list with indices or None meaning all starts
@@ -27,57 +27,47 @@ def getCostTrajectories(filename, starts = None):
                 trajectory = np.transpose(f['/multistarts/%s/iterCostFunCost'%mspath][:])
                 trajectories = concatenateStarts(trajectories, trajectory)
                 print(trajectory.shape, trajectories.shape)
-        
-        return trajectories    
-    
+
+        return trajectories
+
+
 def concatenateStarts(a, b):
-    """Concatenate two optimization trajectory matrices (numIteration x numStarts). 
+    """Concatenate two optimization trajectory matrices (numIteration x numStarts).
     Dimensions can be different for a and b.
     """
     if not a:
         return b
-    
+
     if not b:
         return a
-    
+
     maxIter = max(a.shape[0], b.shape[0])
     a = np.pad(a, pad_width=[(0, maxIter - a.shape[0]), (0, 0)], mode='constant', constant_values=np.nan)
     b = np.pad(b, pad_width=[(0, maxIter - b.shape[0]), (0, 0)], mode='constant', constant_values=np.nan)
     concat = np.concatenate((a, b), axis=1)
-        
+
     return concat
 
 
 def readSimulationsFromFile(filename):
     """
     Read result from simulations at final point from data file for all starts
-    Returns: 
+    Returns:
     (measure, simulated)[startString][nCondition, nTimepoints, nObservables]
     """
-    
+
     sim = {}
     mes = {}
     llh = {}
-    
+
     with h5py.File(filename, 'r') as f:
         for ms in f['/multistarts']:
             mes[ms] = f['/multistarts/%s/yMes'%ms][:]
             sim[ms] = f['/multistarts/%s/ySim'%ms][:]
             llh[ms] = f['/multistarts/%s/llh'%ms][:]
-        
+
     return mes, sim, llh
 
-def myCorrcoef(a, b):
-    assert(a.shape == b.shape)
-    a = a.flatten()
-    b = b.flatten()
-    mask = np.isfinite(a + b)
-    a = a[mask]
-    b = b[mask]
-    if not a.size or not b.size:
-        return np.nan
-    
-    return np.corrcoef(a, b)[0,1]
 
 def getConditionNames(filename):
     with h5py.File(filename, 'r') as f:
@@ -85,6 +75,5 @@ def getConditionNames(filename):
             conditionNames = f['/inputData/fixedParameters/conditionNames'][:]
         else:
             conditionNames = f['/fixedParameters/conditionNames'][:]
-        
+
     return conditionNames
- 

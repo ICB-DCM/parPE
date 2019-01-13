@@ -4,6 +4,7 @@ import numpy as np
 def plotCostTrajectory(costTrajectory,
                        color=None,
                        scaleToIteration=1,
+                       legend=True,
                        legend_loc='upper right',
                        ax=None, log=True):
     """Plot the provided cost trajectory
@@ -33,8 +34,8 @@ def plotCostTrajectory(costTrajectory,
     maxCost = np.nanmax(costTrajectory[scaleToIteration:,:])
     ax.set_ylim(bottom=(1 - np.sign(minCost) * 0.02) * minCost,
                 top=(1 + np.sign(maxCost) * 0.02) * maxCost)
-
-    ax.legend(['start %d'%i for i in range(costTrajectory.shape[1]) ], loc=legend_loc)
+    if legend:
+        ax.legend(['start %d'%i for i in range(costTrajectory.shape[1]) ], loc=legend_loc)
     ax.set_xlabel('Iteration')
     ax.set_ylabel('Cost')
 
@@ -85,6 +86,28 @@ def plotCorrelations(ymes, ysim):
                         title='Observable %d' % iy)
 
 
+def square_plot_equal_ranges(ax, lim=None):
+    """Square plot with equal range"""
+
+    #ax.set_aspect('equal', adjustable='box')
+
+    ax.axis('square')
+
+    if lim is None:
+        xlim = ax.get_xlim()
+        ylim = ax.get_ylim()
+        lim = [np.min([xlim[0], ylim[0]]),
+               np.min([xlim[1], ylim[1]])]
+
+    ax.set_xlim(lim)
+    ax.set_ylim(lim)
+
+    # Same tick mark on x and y
+    ax.yaxis.set_major_locator(ax.xaxis.get_major_locator())
+
+    return ax
+
+
 def plotCorrelation(ymes, ysim, title=None):
     """
     Plot correlation of measured and simulated data
@@ -106,15 +129,7 @@ def plotCorrelation(ymes, ysim, title=None):
     ax.set_xlabel('measurement (AU)')
     ax.set_ylabel('simulation (AU)')
 
-    # Square plot with equal range
-    ax.axis('square')
-    # ax.set_aspect('equal', adjustable='box')
-    xlim = ax.get_xlim()
-    ylim = ax.get_ylim()
-    lim = [np.min([xlim[0], ylim[0]]),
-           np.min([xlim[1], ylim[1]])]
-    ax.set_xlim(lim)
-    ax.set_ylim(lim)
+    square_plot_equal_ranges(ax)
 
     if title:
         plt.title(title)
@@ -165,8 +180,8 @@ def plotTrajectoryFit(ymes, ysim, timepoints, title=None):
     plt.legend()
 
 
-def correlation_coefficient(a, b):
-    """Get correlation coefficient for flattened a and b"""
+def flatten_filter_nan(a, b):
+    """Flatten arrays a and b removing entries for which either a or b is NaN"""
 
     assert (a.shape == b.shape)
 
@@ -177,7 +192,72 @@ def correlation_coefficient(a, b):
     a = a[mask]
     b = b[mask]
 
+    return a, b
+
+
+def correlation_coefficient(a, b):
+    """Get correlation coefficient for flattened a and b"""
+
     if not a.size or not b.size:
         return np.nan
 
+    a, b = flatten_filter_nan(a, b)
+
     return np.corrcoef(a, b)[0, 1]
+
+
+def plotCorrelationDensity(ymes, ysim, title=None,
+                           title_append_corr=True,
+                           normalize_percentile=100,
+                           nbins=50,
+                           contour=True):
+    """
+    Plot correlation of measured and simulated data
+
+    Arguments:
+    ----------
+    ymes: @type numpy.ndarray
+        measured values n_condition x nt
+    ysim: @type numpy.ndarray
+        simulated values n_condition x nt
+    """
+    assert (ymes.shape == ysim.shape)
+    from scipy.stats import kde
+
+    x, y = flatten_filter_nan(ymes, ysim)
+
+    fig, ax = plt.subplots()
+
+    # set viewport
+    ymin = np.nanmin([x, y])
+    ymax = np.nanmax([x, y])
+    title = str([ymin, ymax])
+
+    #ax.hexbin(x, y, gridsize=nbins, cmap=plt.cm.BuGn_r)
+
+    # normalize colors
+    vmax = np.percentile([x, y], normalize_percentile)
+
+    # get kernel density estimate
+    k = kde.gaussian_kde([x, y])
+    xi, yi = np.mgrid[ymin:ymax:nbins * 1j, ymin:ymax:nbins * 1j]
+    zi = k(np.vstack([xi.flatten(), yi.flatten()]))
+    ax.pcolormesh(xi, yi, zi.reshape(xi.shape), shading='gouraud',
+                  cmap=None, vmax=vmax)  # plt.cm.BuGn_r
+
+    if contour:
+        ax.contour(xi, yi, zi.reshape(xi.shape))
+
+    square_plot_equal_ranges(ax, lim=[ymin, ymax])
+
+    ax.set_xlabel('measurement (AU)')
+    ax.set_ylabel('simulation (AU)')
+
+    r = correlation_coefficient(x, y)
+    if title is None:
+        title = 'r=%.3f' % (r)
+    elif title_append_corr:
+        title += ' (r=%.3f)' % (r)
+    ax.set_title(title)
+
+    return ax
