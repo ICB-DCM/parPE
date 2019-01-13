@@ -23,3 +23,5 @@ deps/AMICI/python/sdist/amici/amici_without_hdf5.py
 deps/AMICI/python/sdist/amici/amici_wrap.cxx
 deps/AMICI/python/sdist/amici/amici_wrap_without_hdf5.cxx
 deps/AMICI/python/sdist/amici/version.txt
+
+python/test_*.png
