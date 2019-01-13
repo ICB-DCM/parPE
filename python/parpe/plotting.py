@@ -86,6 +86,35 @@ def plotCorrelations(ymes, ysim):
                         title='Observable %d' % iy)
 
 
+def plotCorrelation(ymes, ysim, title=None, alpha=1.0):
+    """
+    Plot correlation of measured and simulated data
+
+    Arguments:
+    ----------
+    ymes: @type numpy.ndarray
+        measured values n_condition x nt
+    ysim: @type numpy.ndarray
+        simulated values n_condition x nt
+    """
+    fig, ax = plt.subplots()
+    for icondition in range(ysim.shape[0]):
+        x = ymes[icondition, :]
+        y = ysim[icondition, :]
+        r = correlation_coefficient(x, y)
+        ax.scatter(x, y, label='Condition %d, r=%.3f' % (icondition, r), alpha=alpha)
+
+    ax.set_xlabel('measurement (AU)')
+    ax.set_ylabel('simulation (AU)')
+
+    square_plot_equal_ranges(ax)
+
+    if title:
+        plt.title(title)
+
+    plt.legend()
+
+
 def square_plot_equal_ranges(ax, lim=None):
     """Square plot with equal range"""
 
@@ -106,35 +135,6 @@ def square_plot_equal_ranges(ax, lim=None):
     ax.yaxis.set_major_locator(ax.xaxis.get_major_locator())
 
     return ax
-
-
-def plotCorrelation(ymes, ysim, title=None):
-    """
-    Plot correlation of measured and simulated data
-
-    Arguments:
-    ----------
-    ymes: @type numpy.ndarray
-        measured values n_condition x nt
-    ysim: @type numpy.ndarray
-        simulated values n_condition x nt
-    """
-    fig, ax = plt.subplots()
-    for icondition in range(ysim.shape[0]):
-        x = ymes[icondition, :]
-        y = ysim[icondition, :]
-        r = correlation_coefficient(x, y)
-        ax.scatter(x, y, label='Condition %d, r=%.3f' % (icondition, r))
-
-    ax.set_xlabel('measurement (AU)')
-    ax.set_ylabel('simulation (AU)')
-
-    square_plot_equal_ranges(ax)
-
-    if title:
-        plt.title(title)
-
-    plt.legend()
 
 
 def plotTrajectoryFits(ymes, ysim, timepoints):
@@ -231,7 +231,6 @@ def plotCorrelationDensity(ymes, ysim, title=None,
     # set viewport
     ymin = np.nanmin([x, y])
     ymax = np.nanmax([x, y])
-    title = str([ymin, ymax])
 
     #ax.hexbin(x, y, gridsize=nbins, cmap=plt.cm.BuGn_r)
 
@@ -259,5 +258,117 @@ def plotCorrelationDensity(ymes, ysim, title=None,
     elif title_append_corr:
         title += ' (r=%.3f)' % (r)
     ax.set_title(title)
+
+    return ax
+
+
+def plotCorrelationsByObsDensity(ymes, ysim):
+    """
+    Plot correlation of measured and simulated data
+
+    Arguments:
+    ----------
+    ymes: @type numpy.ndarray
+        measured values n_condition x nt x ny
+    ysim: @type numpy.ndarray
+        simulated values n_condition x nt x ny
+    """
+    for iy in range(ysim.shape[2]):
+        plotCorrelationDensity(ymes[:, :, iy], ysim[:, :, iy],
+                        title='Observable %d' % iy)
+
+
+def plotWaterfall(finalCost):
+    """Plot "waterfall plot"
+
+    Sorted scatter plot of optimization results.
+
+    Arguments:
+    finalCost: ndarray(numStarts) of final cost
+
+    Returns:
+
+    """
+
+    # x axis should have integer labels
+    from matplotlib.ticker import MaxNLocator
+    ax = plt.figure().gca()
+    ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+
+    order = np.argsort(finalCost)
+    plt.scatter(range(finalCost.size), finalCost[:, order])
+
+    plt.xlabel('Sorted start index')
+    plt.ylabel('Final cost')
+
+
+def plotCorrelationBox(data):
+    """Create boxplot of correlation by observable
+
+    Arguments:
+        data: Correlations as obtained from getCorrTable
+    """
+
+    mask = ~np.isnan(data)
+    filtered_data = [d[m] for d, m in zip(data.T, mask.T)]
+
+    plt.figure(figsize=(15, 4))
+    plt.boxplot(filtered_data)
+
+
+def plotCorrelationBoxMulti(datasets, labels,
+                            legend_loc='lower center'):
+    """
+    Plot correlation boxplots of multi-start results for multiple datasets side by side
+
+    data1: nstarts x ny
+    """
+    for x in datasets:
+        assert (datasets[0].shape[1] == x.shape[1])
+
+    num_groups = len(datasets)
+    num_observations = datasets[0].shape[1]
+
+    filtered_data = []
+    for x in datasets:
+        mask = ~np.isnan(x)
+        filtered = [d[m] for d, m in zip(x.T, mask.T)]
+        filtered_data.append(filtered)
+
+    def set_box_color(bp, color):
+        '''
+        plt.setp(bp['boxes'], color=color)
+        plt.setp(bp['whiskers'], color=color)
+        plt.setp(bp['caps'], color=color)
+        plt.setp(bp['medians'], color=color)
+        '''
+        plt.setp(bp['medians'], color='b')
+        for patch in bp['boxes']:
+            patch.set_facecolor(color)
+
+    fig = plt.figure(figsize=(24, 8))
+    ax = fig.gca()
+
+    for j, x in enumerate(filtered_data):
+        bp = ax.boxplot(x,
+                        positions=[i * num_groups + j - (num_groups / 2 - 0.5)
+                                   for i in range(num_observations)],
+                        patch_artist=True)
+        col = 'C' + str(j)
+        set_box_color(bp, col)
+        ax.plot([], c=col, label=labels[j])
+
+    ax.set_xlabel('Model output index')
+    ax.set_ylabel('Correlation coefficient')
+
+    ax.legend(loc=legend_loc)
+
+    ticks = ['%d' % i for i in range(num_observations)]
+    ax.set_xticks(range(0, len(ticks) * num_groups, num_groups))
+    ax.set_xticklabels(ticks)
+    ax.set_xlim(-2, num_observations * num_groups - 2)
+
+    # from matplotlib.ticker import MaxNLocator
+    # ax.xaxis.set_major_locator(MaxNLocator(integer=True))
 
     return ax
