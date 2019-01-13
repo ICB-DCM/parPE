@@ -25,11 +25,9 @@ def getCostTrajectories(filename, starts = None):
                 trajectory = np.transpose(f['/multistarts/%s/iterCostFunCost'%ms][:])
                 trajectories = concatenateStarts(trajectories, trajectory)
         else:
-            ms = 0
             for mspath in f['/multistarts/']:
                 trajectory = np.transpose(f['/multistarts/%s/iterCostFunCost'%mspath][:])
                 trajectories = concatenateStarts(trajectories, trajectory)
-                print(trajectory.shape, trajectories.shape)
 
         return trajectories
 
@@ -90,10 +88,10 @@ def concatenateStarts(a, b):
     """Concatenate two optimization trajectory matrices (numIteration x numStarts).
     Dimensions can be different for a and b.
     """
-    if a.size:
+    if a is None or not a.size:
         return b
 
-    if b.size:
+    if b is None or not b.size:
         return a
 
     maxIter = max(a.shape[0], b.shape[0])

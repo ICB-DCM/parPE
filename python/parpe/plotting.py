@@ -153,6 +153,7 @@ def plotTrajectoryFits(ymes, ysim, timepoints):
                           ysim[icondition].T,
                           timepoints,
                           title='Condition %d' % icondition)
+        plt.show()
 
 
 def plotTrajectoryFit(ymes, ysim, timepoints, title=None):
@@ -178,6 +179,8 @@ def plotTrajectoryFit(ymes, ysim, timepoints, title=None):
     if title:
         plt.title(title)
     plt.legend()
+
+    return ax
 
 
 def flatten_filter_nan(a, b):
