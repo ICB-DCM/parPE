@@ -63,7 +63,6 @@ def main():
     # Show SBML model info
     SBMLreader = libsbml.SBMLReader()
     sbml_doc = SBMLreader.readSBML(sbml_file)
-    sbml_model = sbml_doc.getModel()
 
     # set observables and constants
     observables_list = ['observable_Ski', 'observable_Skil',
@@ -77,7 +76,7 @@ def main():
     fixed_parameters = ['init_TGFb', 'init_S2', 'init_S3', 'init_S4']
 
     # wrap the model
-    sbmlImporter = amici.SbmlImporter(sbml_file, check_validity=False)
+    sbmlImporter = amici.SbmlImporter(sbml_file)
 
     observables = amici.assignmentRules2observables( \
         sbmlImporter.sbml,  # the libsbml model object
