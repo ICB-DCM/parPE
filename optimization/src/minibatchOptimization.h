@@ -57,10 +57,10 @@ public:
 
     virtual ~MinibatchOptimizationProblem() override = default;
 
-    /* vector of training data */
+    /** vector of training data */
     virtual std::vector<T> getTrainingData() const = 0;
 
-    /* mini batch cost function */
+    /** mini batch cost function */
     SummedGradientFunction<T>* getGradientFunction() const {
         auto summedGradientFunction = dynamic_cast<SummedGradientFunction<T>*>(costFun.get());
         RELEASE_ASSERT(summedGradientFunction, "");
@@ -70,6 +70,10 @@ public:
 
 /**
  * @brief learning rate updaters for minibatch optimizers
+ *
+ * The LearningRateUpdater provides the possibility to reduce the learning rate per epoch
+ * and makes it possible to adapt the learning rate according to success or failure of
+ * the ODE solver.
  */
 class LearningRateUpdater {
 public:
@@ -78,48 +82,53 @@ public:
      * @param maxEpochs Maximum number of epochs in optimization
      * @param LearningRateadaptionMode Type of interpolation between startLearningRate and endLearningRate 
      */
-
     LearningRateUpdater(int maxEpochs,
-                        learningRateInterp learningRateInterpMode) {
-    }
-    ;
+                        learningRateInterp learningRateInterpMode);
 
-    /* Update function, to be called in every epoch or optimization iteration */
+    /** Update function, to be called in every epoch or optimization iteration */
     void updateLearningRate(int iteration);
 
-    /* Update function, to be called if parameter update did not work well */
+    /** Update function, to be called if parameter update did not work well */
     void reduceLearningRate();
 
-    /* Update function, to be called if parameter update worked well */
+    /** Update function, to be called if parameter update worked well */
     void increaseLearningRate();
 
-    /* Function to retrieve the learning rate */
+    /** Function to retrieve the learning rate */
     double getCurrentLearningRate();
 
-    // Function to set the reduction factor directly
+    /** Function to set the reduction factor directly */
     void setReductionFactor(double newReductionFactor);
 
-    /* Function to set the new maximum epoch number */
+    /** Function to set the new maximum epoch number */
     void setMaxEpochs(int newMaxEpochs);
 
-    /* Maximum number of epochs, will be set after creation of problem instance */
+    /** Function to set start learning rate */
+    void setStartLearningRate(double learningRate);
+
+    /** Function to set end learning rate */
+    void setEndLearningRate(double learningRate);
+
+private:
+    /** Maximum number of epochs, will be set after creation of problem instance */
     int maxEpochs = 0;
     
-    /* Learning rate, i.e. step size, at the moment of optimization */
-    double currentLearningRate = 0;
+    /** Learning rate, i.e. step size, at the moment of optimization */
+    double currentLearningRate = 0.0;
     
-    /* If an optimization step is not succesful, the learning rate, i.e., step size, will be reduced by this factor */
-    double reductionFactor = 4;
+    /** If an optimization step is not succesful, the learning rate, i.e., step size, will be reduced by this factor */
+    double reductionFactor = 4.0;
     
-    /* Learning rate, i.e. step size, at the beginning of optimization */
+    /** Learning rate, i.e. step size, at the beginning of optimization */
     double startLearningRate = 0.1;
     
-    /* Learning rate, i.e. step size, at the end of optimization */
+    /** Learning rate, i.e. step size, at the end of optimization */
     double endLearningRate = 0.001;
     
-    /* Mode of interpolation between the beginning and the end of optimization */
+    /** Mode of interpolation between the beginning and the end of optimization */
     learningRateInterp learningRateInterpMode = learningRateInterp::linear;
 };
+
 
 /**
  * @brief Interface for parameter updaters for minibatch optimizers
@@ -140,19 +149,25 @@ public:
                                   gsl::span<const double> lowerBounds = gsl::span<const double>(),
                                   gsl::span<const double> upperBounds = gsl::span<const double>()) = 0;
 
-    /* If ODE becomes non-integrable, the last step must be undone using this method */
+    /** If ODE becomes non-integrable, the last step must be undone using this method */
     virtual void undoLastStep() = 0;
 
-    /* If the ODE is repeatedly non-integrable, a cold restart is performed using this method */
+    /** If the ODE is repeatedly non-integrable, a cold restart is performed using this method */
     virtual void clearCache() = 0;
 
-    /* Intialize the parameter updater */
+    /** Intialize the parameter updater */
     virtual void initialize(unsigned int numParameters) = 0;
 
     virtual ~ParameterUpdater() = default;
 
 };
 
+
+/** Minibatch optimizer: Vanilla SGD Updater
+  * The Vanilla SGD updater currently takes two inputs:
+  * start value of the learning rate
+  * end value of the learning rate
+  */
 class ParameterUpdaterVanilla: public ParameterUpdater {
 public:
     ParameterUpdaterVanilla() = default;
@@ -162,21 +177,21 @@ public:
                           gsl::span<const double> gradient,
                           gsl::span<double> parameters,
                           gsl::span<const double> lowerBounds = gsl::span<const double>(),
-                          gsl::span<const double> upperBounds = gsl::span<const double>());
+                          gsl::span<const double> upperBounds = gsl::span<const double>()) override;
 
-    void undoLastStep() {
-    }
-    ;
+    void undoLastStep() override {};
 
-    void clearCache() {
-    }
-    ;
+    void clearCache() override {};
 
-    void initialize(unsigned int numParameters) {
-    }
-    ;
+    void initialize(unsigned int numParameters) override {};
 };
 
+/** Minibatch optimizer: RMSProp Updater
+  *
+  * The RMSProp updater currently takes two inputs:
+  * start value of the learning rate
+  * end value of the learning rate
+  */
 class ParameterUpdaterRmsProp: public ParameterUpdater {
 public:
     ParameterUpdaterRmsProp() = default;
@@ -186,26 +201,35 @@ public:
                           gsl::span<const double> gradient,
                           gsl::span<double> parameters,
                           gsl::span<const double> lowerBounds = gsl::span<const double>(),
-                          gsl::span<const double> upperBounds = gsl::span<const double>());
+                          gsl::span<const double> upperBounds = gsl::span<const double>()) override;
 
-    void undoLastStep();
+    void undoLastStep() override;
 
-    void clearCache();
+    void clearCache() override;
 
-    void initialize(unsigned int numParameters);
+    void initialize(unsigned int numParameters) override;
 
-    /* Rate for memorizing gradient norms (between 0 and 1, high rates mean long memory) */
+private:
+
+    /** Rate for memorizing gradient norms (between 0 and 1, high rates mean long memory) */
     double decayRate = 0.9;
     
-    /* Stabilization factor for gradient normalization (avoid deviding by 0) */
+    /** Stabilization factor for gradient normalization (avoid deviding by 0) */
     double delta = 1e-7;
     
-    /* Memorized gradient norms (decaying average) from last steps */
+    /** Memorized gradient norms (decaying average) from last steps */
     std::vector<double> gradientNormCache;
     
-    /* Memorized gradient norms (decaying average), one step back (if one step must be undone) */
+    /** Memorized gradient norms (decaying average), one step back (if one step must be undone) */
     std::vector<double> oldGradientNormCache;
 };
+
+
+/** Minibatch optimizer: Adam Updater
+  * The Adam updater currently takes two inputs:
+  * start value of the learning rate
+  * end value of the learning rate
+  */
 
 class ParameterUpdaterAdam: public ParameterUpdater {
 public:
@@ -216,33 +240,35 @@ public:
                           gsl::span<const double> gradient,
                           gsl::span<double> parameters,
                           gsl::span<const double> lowerBounds = gsl::span<const double>(),
-                          gsl::span<const double> upperBounds = gsl::span<const double>());
+                          gsl::span<const double> upperBounds = gsl::span<const double>()) override;
 
-    void undoLastStep();
+    void undoLastStep() override;
 
-    void clearCache();
+    void clearCache() override;
 
-    void initialize(unsigned int numParameters);
+    void initialize(unsigned int numParameters) override;
 
-    /* Rate for memorizing gradients (between 0 and 1, high rates mean long memory) */
+private:
+
+    /** Rate for memorizing gradients (between 0 and 1, high rates mean long memory) */
     double decayRateGradient = 0.9;
     
-    /* Rate for memorizing gradient norms (between 0 and 1, high rates mean long memory) */
+    /** Rate for memorizing gradient norms (between 0 and 1, high rates mean long memory) */
     double decayRateGradientNorm = 0.9;
     
-    /* Stabilization factor for gradient normalization (avoid deviding by 0) */
+    /** Stabilization factor for gradient normalization (avoid deviding by 0) */
     double delta = 1e-7;
     
-    /* Memorized gradient norms (decaying average) from last steps */
+    /** Memorized gradient norms (decaying average) from last steps */
     std::vector<double> gradientNormCache;
     
-    /* Memorized gradient norms (decaying average), one step back (if one step must be undone) */
+    /** Memorized gradient norms (decaying average), one step back (if one step must be undone) */
     std::vector<double> oldGradientNormCache;
     
-    /* Memorized gradients (decaying average) from last steps */
+    /** Memorized gradients (decaying average) from last steps */
     std::vector<double> gradientCache;
     
-    /* Memorized gradients (decaying average), one step back (if one step must be undone) */
+    /** Memorized gradients (decaying average), one step back (if one step must be undone) */
     std::vector<double> oldGradientCache;
 };
 
@@ -491,12 +517,8 @@ public:
             parameters = oldParameters;
 
             // Check if there are NaNs in the parameter vector now (e.g., fail at first iteration)
-            for (int ip = 0; ip < (int) parameters.size(); ip++) {
-                if (std::isnan(parameters[ip])) {
-                    finalFail = true;
-                    break;
-                }
-            }
+            if(std::any_of(parameters.begin(), parameters.end(), [](double d) { return std::isnan(d); }))
+                finalFail = true;
 
             // If too many fails: cancel optimization
             if (subsequentFails >= maxSubsequentFails || finalFail) {
@@ -525,7 +547,6 @@ public:
             status = evaluate(f, parameters, datasets, cost, gradient, logger, reporter);
         }
 
-        // return
         return status;
     }
 
@@ -566,8 +587,6 @@ std::unique_ptr<MinibatchOptimizer<BATCH_ELEMENT>> getMinibatchOptimizer(Optimiz
 
 std::tuple<int, double, std::vector<double> > runMinibatchOptimization(MinibatchOptimizationProblem<int> *problem);
 
-} // namespace parpe
-
 /**
  * @brief Clip values to given element-wise bounds.
  * @param lowerBounds
@@ -587,5 +606,7 @@ void clipToBounds(gsl::span<const T> lowerBounds,
     for (int i = 0; static_cast<typename gsl::span<const T>::index_type>(i) < x.size(); ++i)
         x[i] = std::min(std::max(lowerBounds[i], x[i]), upperBounds[i]);
 }
+
+} // namespace parpe
 
 #endif

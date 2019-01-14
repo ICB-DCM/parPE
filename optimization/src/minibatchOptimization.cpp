@@ -54,10 +54,10 @@ void setMinibatchOption(const std::pair<const std::string, const std::string> &p
             optimizer->learningRateUpdater = std::make_unique < LearningRateUpdater
                     > (optimizer->maxEpochs, parpe::learningRateInterp::logarithmic);
         }
+    } else if (key == "startLearningRate") {
+            optimizer->learningRateUpdater->setStartLearningRate(std::stod(val));
     } else if (key == "endLearningRate") {
-            optimizer->learningRateUpdater->startLearningRate = std::stoi(val);
-    } else if (key == "endLearningRate") {
-            optimizer->learningRateUpdater->endLearningRate = std::stoi(val);
+            optimizer->learningRateUpdater->setEndLearningRate(std::stod(val));
     } else {
         logmessage(LOGLVL_WARNING, "Ignoring unknown optimization option %s.", key.c_str());
         return;
@@ -90,12 +90,13 @@ std::tuple<int, double, std::vector<double> > runMinibatchOptimization(Minibatch
                                         reporter, problem->logger.get());
 }
 
-/**
- * LearningRateUpdater
- * The LearningRateUpdater provides the possibility to reduce the learning rate per epoch
- * and makes it possible to adapt the learning rate according to success or failure of
- * the ODE solver.
- */
+
+LearningRateUpdater::LearningRateUpdater(int maxEpochs, learningRateInterp learningRateInterpMode)
+    :maxEpochs(maxEpochs),
+      learningRateInterpMode(learningRateInterpMode)
+{
+}
+
 void LearningRateUpdater::updateLearningRate(int currentEpoch) {
 
     // Depending on the interpolation mode the current learning rate computed must be...
@@ -135,19 +136,23 @@ void LearningRateUpdater::setMaxEpochs(int newMaxEpochs) {
     maxEpochs = newMaxEpochs;
 }
 
-/* 
- Minibatch optimizer: RMSProp Updater
- The RMSProp updater currently takes two inputs:
- * start value of the learning rate
- * end value of the learning rate
- */
+void LearningRateUpdater::setStartLearningRate(double learningRate)
+{
+    startLearningRate = learningRate;
+}
+
+void LearningRateUpdater::setEndLearningRate(double learningRate)
+{
+    endLearningRate = learningRate;
+}
+
 void ParameterUpdaterRmsProp::initialize(unsigned int numParameters) {
     gradientNormCache.resize(numParameters);
     oldGradientNormCache.resize(numParameters);
 }
 
 void ParameterUpdaterRmsProp::updateParameters(double learningRate,
-                                               int iteration,
+                                               int  /*iteration*/,
                                                gsl::span<double const> gradient,
                                                gsl::span<double> parameters,
                                                gsl::span<const double> lowerBounds,
@@ -177,12 +182,6 @@ void ParameterUpdaterRmsProp::clearCache() {
     std::fill(oldGradientNormCache.begin(), oldGradientNormCache.end(), 0.0);
 }
 
-/* 
- Minibatch optimizer: Adam Updater
- The Adam updater currently takes two inputs:
- * start value of the learning rate
- * end value of the learning rate
- */
 void ParameterUpdaterAdam::initialize(unsigned int numParameters) {
     gradientCache.resize(numParameters);
     gradientNormCache.resize(numParameters);
@@ -233,14 +232,8 @@ void ParameterUpdaterAdam::clearCache() {
     std::fill(oldGradientCache.begin(), oldGradientCache.end(), 0.0);
 }
 
-/* 
- Minibatch optimizer: Vanilla SGD Updater
- The Vanilla SGD updater currently takes two inputs:
- * start value of the learning rate
- * end value of the learning rate
- */
 void ParameterUpdaterVanilla::updateParameters(double learningRate,
-                                               int iteration,
+                                               int  /*iteration*/,
                                                gsl::span<const double> gradient,
                                                gsl::span<double> parameters,
                                                gsl::span<const double> lowerBounds,
