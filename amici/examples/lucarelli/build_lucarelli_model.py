@@ -60,10 +60,6 @@ def main():
     print("Importing model from", sbml_file)
     print("Generating files in", model_output_dir)
 
-    # Show SBML model info
-    SBMLreader = libsbml.SBMLReader()
-    sbml_doc = SBMLreader.readSBML(sbml_file)
-
     # set observables and constants
     observables_list = ['observable_Ski', 'observable_Skil',
                         'observable_Dnmt3a',
