@@ -758,7 +758,8 @@ double computeAnalyticalSigmas(int sigmaIdx,
                                const std::vector<std::vector<double> > &modelOutputsScaled,
                                const std::vector<std::vector<double> > &measurements,
                                AnalyticalParameterProvider const& sigmaReader,
-                               int numObservables, int numTimepoints)
+                               int numObservables, int numTimepoints,
+                               double epsilon)
 {
     auto dependentConditions = sigmaReader.getConditionsForParameter(sigmaIdx);
 
@@ -777,7 +778,10 @@ double computeAnalyticalSigmas(int sigmaIdx,
                 if(!std::isnan(mes)) {
                     double scaledSim = modelOutputsScaled[conditionIdx][observableIdx + timeIdx * numObservables];
                     if(std::isnan(scaledSim)) {
-                        logmessage(LOGLVL_WARNING, "In computeAnalyticalSigmas: Simulation is NaN for condition %d observable %d timepoint %d", conditionIdx, observableIdx, timeIdx);
+                        logmessage(LOGLVL_WARNING,
+                                   "In computeAnalyticalSigmas %d: "
+                                   "Simulation is NaN for condition %d observable %d timepoint %d",
+                                   sigmaIdx, conditionIdx, observableIdx, timeIdx);
                     }
                     enumerator += (mes - scaledSim) * (mes - scaledSim);
                     denominator += 1.0;
@@ -788,13 +792,21 @@ double computeAnalyticalSigmas(int sigmaIdx,
 
     if(denominator == 0.0) {
         logmessage(LOGLVL_WARNING,
-                   "In computeAnalyticalSigmas: denominator is 0.0 for sigma parameter "
+                   "In computeAnalyticalSigmas: Denominator is 0.0 for sigma parameter "
                    + std::to_string(sigmaIdx)
                    + ". This probably means that there exists no measurement using this parameter.");
     }
 
-    double sigmaSquared = enumerator / denominator;
-    return std::sqrt(sigmaSquared);
+    double sigma = std::sqrt(enumerator / denominator);
+
+    if(sigma < epsilon) {
+        // Must not return sigma = 0.0
+        logmessage(LOGLVL_WARNING, "In computeAnalyticalSigmas %d: Computed sigma < epsilon. "
+                   "Setting to " + std::to_string(epsilon));
+        return epsilon;
+    }
+
+    return sigma;
 }
 
 
