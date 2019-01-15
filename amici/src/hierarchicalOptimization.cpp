@@ -697,7 +697,7 @@ double computeAnalyticalScalings(int scalingIdx,
                     // NOTE: this must be in sync with data ordering in AMICI (assumes row-major)
                     double sim = modelOutputsUnscaled[conditionIdx][observableIdx + timeIdx * numObservables];
                     if(std::isnan(sim)) {
-                        logmessage(LOGLVL_WARNING, "In computeAnalyticalScalings: Simulation is NaN for condition %d observable %d timepoint %d", conditionIdx, observableIdx, timeIdx);
+                        logmessage(LOGLVL_WARNING, "In computeAnalyticalScalings %d: Simulation is NaN for condition %d observable %d timepoint %d", scalingIdx, conditionIdx, observableIdx, timeIdx);
                     }
                     enumerator += sim * mes;
                     denominator += sim * sim;
@@ -709,7 +709,8 @@ double computeAnalyticalScalings(int scalingIdx,
     if(denominator == 0.0) {
         logmessage(LOGLVL_WARNING,
                    "In computeAnalyticalScalings: denominator is 0.0 for scaling parameter "
-                   + std::to_string(scalingIdx));
+                   + std::to_string(scalingIdx) + ". Setting to scaling parameter to 1.0");
+        return 1.0;
     }
 
     return enumerator / denominator;
@@ -735,7 +736,7 @@ double computeAnalyticalOffsets(int offsetIdx,
                 if(!std::isnan(mes)) {
                     double sim = modelOutputsUnscaled[conditionIdx][observableIdx + timeIdx * numObservables];
                     if(std::isnan(sim)) {
-                        logmessage(LOGLVL_WARNING, "In computeAnalyticalOffsets: Simulation is NaN for condition %d observable %d timepoint %d", conditionIdx, observableIdx, timeIdx);
+                        logmessage(LOGLVL_WARNING, "In computeAnalyticalOffsets %d: Simulation is NaN for condition %d observable %d timepoint %d", offsetIdx, conditionIdx, observableIdx, timeIdx);
                     }
                     enumerator += mes - sim;
                     denominator += 1.0;
