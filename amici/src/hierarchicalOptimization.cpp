@@ -749,7 +749,9 @@ double computeAnalyticalOffsets(int offsetIdx,
         logmessage(LOGLVL_WARNING,
                    "In computeAnalyticalOffsets: denominator is 0.0 for offset parameter "
                    + std::to_string(offsetIdx)
-                   + ". This probably means that there exists no measurement using this parameter.");
+                   + ". This probably means that there exists no measurement using this parameter. "
+                   "Setting offset to 0.0");
+        return 0.0;
     }
 
     return enumerator / denominator;
