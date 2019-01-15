@@ -5,26 +5,34 @@
 #ifdef PARPE_ENABLE_CERES
 #include "localOptimizationCeres.h"
 #endif
+
 #ifdef PARPE_ENABLE_IPOPT
 #include "localOptimizationIpopt.h"
 #endif
+
 #ifdef PARPE_ENABLE_DLIB
 #include "localOptimizationDlib.h"
 #endif
+
 #ifdef PARPE_ENABLE_TOMS611
 #include "localOptimizationToms611.h"
 #endif
+
 #ifdef PARPE_ENABLE_FSQP
 #include "localOptimizationFsqp.h"
 #endif
+
 #include "logging.h"
 #include "misc.h"
+#include "parpeException.h"
+
 #include <cassert>
 #include <iostream>
 #include <iomanip>
 #include <sstream>
 #include <limits>
 #include <utility>
+
 #include <hdf5.h>
 #include <H5Cpp.h>
 
@@ -284,7 +292,8 @@ Optimizer* optimizerFactory(optimizerName optimizer)
 #else
         return nullptr;
 #endif
-
+    case optimizerName::OPTIMIZER_MINIBATCH_1:
+        throw ParPEException("optimizerFactory() cannot be used with minibatch optimizer.");
     }
 
     return nullptr;
