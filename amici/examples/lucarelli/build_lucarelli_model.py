@@ -3,11 +3,9 @@
 import subprocess
 import os
 import sys
-
 import amici
 import numpy as np
 import pandas as pd
-import libsbml
 
 
 def createConditionDataframe(indices, conditions, parameters):
