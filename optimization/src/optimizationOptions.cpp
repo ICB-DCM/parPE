@@ -22,6 +22,10 @@
 #include "localOptimizationFsqp.h"
 #endif
 
+#include "logging.h"
+#include "misc.h"
+#include "parpeException.h"
+
 #include <cassert>
 #include <iostream>
 #include <iomanip>
@@ -288,7 +292,8 @@ Optimizer* optimizerFactory(optimizerName optimizer)
 #else
         return nullptr;
 #endif
-
+    case optimizerName::OPTIMIZER_MINIBATCH_1:
+        throw ParPEException("optimizerFactory() cannot be used with minibatch optimizer.");
     }
 
     return nullptr;

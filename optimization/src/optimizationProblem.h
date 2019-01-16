@@ -55,7 +55,6 @@ class OptimizationReporter;
 //    OptimizationOptions optimizationOptions;
 //};
 
-
 /**
  * @brief The OptimizationReporter class is called from the optimizer and takes care of
  * calling the actual objective function, thereby keeping track of iterations, computation time,
@@ -66,9 +65,10 @@ class OptimizationReporter;
  * previous cost function values.
  */
 
-class OptimizationReporter : public GradientFunction {
+class OptimizationReporter: public GradientFunction {
 public:
-    OptimizationReporter(GradientFunction *gradFun, std::unique_ptr<Logger> logger);
+    OptimizationReporter(GradientFunction *gradFun,
+                         std::unique_ptr<Logger> logger);
 
     OptimizationReporter(GradientFunction *gradFun,
                          std::unique_ptr<OptimizationResultWriter> rw,
@@ -76,12 +76,11 @@ public:
 
     virtual ~OptimizationReporter() override = default;
 
-    FunctionEvaluationStatus evaluate(
-            gsl::span<double const> parameters,
-            double &fval,
-            gsl::span<double> gradient,
-            Logger *logger = nullptr,
-            double *cpuTime = nullptr) const override;
+    FunctionEvaluationStatus evaluate(gsl::span<double const> parameters,
+                                      double &fval,
+                                      gsl::span<double> gradient,
+                                      Logger *logger = nullptr,
+                                      double *cpuTime = nullptr) const override;
 
     int numParameters() const override;
 
@@ -92,7 +91,6 @@ public:
      * @return Quit optimization?
      */
     virtual bool starting(gsl::span<const double> initialParameters) const;
-
 
     /**
      * @brief Is called after each iteration except for the last one
@@ -115,8 +113,8 @@ public:
      * @brief Is called after optimization finished
      */
     virtual void finished(double optimalCost,
-                          gsl::span<const double> parameters, int exitStatus) const;
-
+                          gsl::span<const double> parameters,
+                          int exitStatus) const;
 
     // TODO how to pass optimizer-specific info? pass OptimizerStatus class ?
 
@@ -141,7 +139,6 @@ public:
 
 protected:
     void printObjectiveFunctionFailureMessage() const;
-
 
     // data members are mutable, because we inherit from GradientFunction,
     // and evaluate() is const there. This could probably be solved better....
@@ -173,8 +170,6 @@ protected:
 private:
 
 };
-
-
 
 /**
  * @brief The OptimizationProblem class describes an optimization problem.
@@ -222,11 +217,10 @@ private:
     OptimizationOptions optimizationOptions;
 };
 
-
 /**
  * @brief Mixin class for handling parameter bounds
  */
-class OptimizationProblemImpl : public OptimizationProblem {
+class OptimizationProblemImpl: public OptimizationProblem {
 
 public:
     using OptimizationProblem::OptimizationProblem;
@@ -254,7 +248,7 @@ public:
     }
 
     void fillInitialParameters(gsl::span<double> buffer) const override {
-        if(parametersStart.size()) {
+        if (parametersStart.size()) {
             std::copy(parametersStart.begin(), parametersStart.end(), buffer.begin());
         } else {
             OptimizationProblem::fillInitialParameters(buffer);
@@ -268,8 +262,6 @@ private:
 
 };
 
-
-
 int getLocalOptimum(OptimizationProblem *problem);
 
 void *getLocalOptimumThreadWrapper(void *optimizationProblemVp);
@@ -278,7 +270,8 @@ void *getLocalOptimumThreadWrapper(void *optimizationProblemVp);
 //                              int numProblems);
 
 void optimizationProblemGradientCheck(OptimizationProblem *problem,
-                                      int numParameterIndicesToCheck, double epsilon);
+                                      int numParameterIndicesToCheck,
+                                      double epsilon);
 
 void optimizationProblemGradientCheck(OptimizationProblem *problem,
                                       gsl::span<const int> parameterIndices,
