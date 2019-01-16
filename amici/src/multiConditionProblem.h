@@ -207,7 +207,7 @@ public:
             errors += simRunner.runSharedMemory(
                         [&](std::vector<char> &buffer, int jobId) {
                     messageHandler(buffer, jobId);
-        }, true);
+        });
 #ifdef PARPE_ENABLE_MPI
         }
 #endif
@@ -328,15 +328,18 @@ protected:// for testing
         if (loadBalancer && loadBalancer->isRunning()) {
             // When running simulations (without gradient), send more simulations to each worker
             // to reduce communication overhead
-
             errors += simRunner.runDistributedMemory(loadBalancer,
                                                      objectiveFunctionGradient.size() ? maxGradientSimulationsPerPackage : maxSimulationsPerPackage);
         } else {
 #endif
+            // Adjoint sensitivity analysis in Sundials 2.6.2 is not thread-safe, so run sequentially
+            bool noMultiThreadingWithAdjoints =
+                    (solver->getSensitivityMethod() == amici::SensitivityMethod::adjoint)
+                    && !objectiveFunctionGradient.empty();
             errors += simRunner.runSharedMemory(
                         [&](std::vector<char> &buffer, int jobId) {
                     messageHandler(buffer, jobId);
-        }, true);
+        }, noMultiThreadingWithAdjoints);
 #ifdef PARPE_ENABLE_MPI
         }
 #endif

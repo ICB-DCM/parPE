@@ -697,7 +697,7 @@ double computeAnalyticalScalings(int scalingIdx,
                     // NOTE: this must be in sync with data ordering in AMICI (assumes row-major)
                     double sim = modelOutputsUnscaled[conditionIdx][observableIdx + timeIdx * numObservables];
                     if(std::isnan(sim)) {
-                        logmessage(LOGLVL_WARNING, "In computeAnalyticalScalings: Simulation is NaN for condition %d observable %d timepoint %d", conditionIdx, observableIdx, timeIdx);
+                        logmessage(LOGLVL_WARNING, "In computeAnalyticalScalings %d: Simulation is NaN for condition %d observable %d timepoint %d", scalingIdx, conditionIdx, observableIdx, timeIdx);
                     }
                     enumerator += sim * mes;
                     denominator += sim * sim;
@@ -709,7 +709,8 @@ double computeAnalyticalScalings(int scalingIdx,
     if(denominator == 0.0) {
         logmessage(LOGLVL_WARNING,
                    "In computeAnalyticalScalings: denominator is 0.0 for scaling parameter "
-                   + std::to_string(scalingIdx));
+                   + std::to_string(scalingIdx) + ". Setting scaling parameter to 1.0");
+        return 1.0;
     }
 
     return enumerator / denominator;
@@ -735,7 +736,7 @@ double computeAnalyticalOffsets(int offsetIdx,
                 if(!std::isnan(mes)) {
                     double sim = modelOutputsUnscaled[conditionIdx][observableIdx + timeIdx * numObservables];
                     if(std::isnan(sim)) {
-                        logmessage(LOGLVL_WARNING, "In computeAnalyticalOffsets: Simulation is NaN for condition %d observable %d timepoint %d", conditionIdx, observableIdx, timeIdx);
+                        logmessage(LOGLVL_WARNING, "In computeAnalyticalOffsets %d: Simulation is NaN for condition %d observable %d timepoint %d", offsetIdx, conditionIdx, observableIdx, timeIdx);
                     }
                     enumerator += mes - sim;
                     denominator += 1.0;
@@ -748,7 +749,9 @@ double computeAnalyticalOffsets(int offsetIdx,
         logmessage(LOGLVL_WARNING,
                    "In computeAnalyticalOffsets: denominator is 0.0 for offset parameter "
                    + std::to_string(offsetIdx)
-                   + ". This probably means that there exists no measurement using this parameter.");
+                   + ". This probably means that there exists no measurement using this parameter. "
+                   "Setting offset to 0.0");
+        return 0.0;
     }
 
     return enumerator / denominator;
@@ -758,12 +761,15 @@ double computeAnalyticalSigmas(int sigmaIdx,
                                const std::vector<std::vector<double> > &modelOutputsScaled,
                                const std::vector<std::vector<double> > &measurements,
                                AnalyticalParameterProvider const& sigmaReader,
-                               int numObservables, int numTimepoints)
+                               int numObservables, int numTimepoints,
+                               double epsilonAbs, double epsilonRel)
 {
     auto dependentConditions = sigmaReader.getConditionsForParameter(sigmaIdx);
 
     double enumerator = 0.0;
     double denominator = 0.0;
+
+    double maxAbsMeasurement = 0.0;
 
     for (auto const conditionIdx: dependentConditions) {
         auto dependentObservables = sigmaReader.getObservablesForParameter(sigmaIdx, conditionIdx);
@@ -777,10 +783,15 @@ double computeAnalyticalSigmas(int sigmaIdx,
                 if(!std::isnan(mes)) {
                     double scaledSim = modelOutputsScaled[conditionIdx][observableIdx + timeIdx * numObservables];
                     if(std::isnan(scaledSim)) {
-                        logmessage(LOGLVL_WARNING, "In computeAnalyticalSigmas: Simulation is NaN for condition %d observable %d timepoint %d", conditionIdx, observableIdx, timeIdx);
+                        logmessage(LOGLVL_WARNING,
+                                   "In computeAnalyticalSigmas %d: "
+                                   "Simulation is NaN for condition %d observable %d timepoint %d",
+                                   sigmaIdx, conditionIdx, observableIdx, timeIdx);
                     }
                     enumerator += (mes - scaledSim) * (mes - scaledSim);
                     denominator += 1.0;
+
+                    maxAbsMeasurement = std::max(maxAbsMeasurement, std::abs(mes));
                 }
             }
         }
@@ -788,13 +799,23 @@ double computeAnalyticalSigmas(int sigmaIdx,
 
     if(denominator == 0.0) {
         logmessage(LOGLVL_WARNING,
-                   "In computeAnalyticalSigmas: denominator is 0.0 for sigma parameter "
+                   "In computeAnalyticalSigmas: Denominator is 0.0 for sigma parameter "
                    + std::to_string(sigmaIdx)
                    + ". This probably means that there exists no measurement using this parameter.");
     }
 
-    double sigmaSquared = enumerator / denominator;
-    return std::sqrt(sigmaSquared);
+    double sigma = std::sqrt(enumerator / denominator);
+
+    epsilonAbs = std::max(epsilonRel * maxAbsMeasurement, epsilonAbs);
+
+    if(sigma < epsilonAbs) {
+        // Must not return sigma = 0.0
+        logmessage(LOGLVL_WARNING, "In computeAnalyticalSigmas " + std::to_string(sigmaIdx)
+                   + ": Computed sigma < epsilon. Setting to " + std::to_string(epsilonAbs));
+        return epsilonAbs;
+    }
+
+    return sigma;
 }
 
 
