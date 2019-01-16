@@ -478,7 +478,7 @@ double computeAnalyticalSigmas(int sigmaIdx,
                                const std::vector<std::vector<double> > &measurements,
                                const AnalyticalParameterProvider &sigmaReader,
                                int numObservables, int numTimepoints,
-                               double epsilon = 1e-12);
+                               double epsilonAbs = 1e-12, double epsilonRel = 0.01);
 
 void applyOptimalScaling(int scalingIdx, double scalingLin,
                          std::vector<std::vector<double> > &modelOutputs,

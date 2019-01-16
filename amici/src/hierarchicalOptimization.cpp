@@ -709,7 +709,7 @@ double computeAnalyticalScalings(int scalingIdx,
     if(denominator == 0.0) {
         logmessage(LOGLVL_WARNING,
                    "In computeAnalyticalScalings: denominator is 0.0 for scaling parameter "
-                   + std::to_string(scalingIdx) + ". Setting to scaling parameter to 1.0");
+                   + std::to_string(scalingIdx) + ". Setting scaling parameter to 1.0");
         return 1.0;
     }
 
@@ -762,12 +762,14 @@ double computeAnalyticalSigmas(int sigmaIdx,
                                const std::vector<std::vector<double> > &measurements,
                                AnalyticalParameterProvider const& sigmaReader,
                                int numObservables, int numTimepoints,
-                               double epsilon)
+                               double epsilonAbs, double epsilonRel)
 {
     auto dependentConditions = sigmaReader.getConditionsForParameter(sigmaIdx);
 
     double enumerator = 0.0;
     double denominator = 0.0;
+
+    double maxAbsMeasurement = 0.0;
 
     for (auto const conditionIdx: dependentConditions) {
         auto dependentObservables = sigmaReader.getObservablesForParameter(sigmaIdx, conditionIdx);
@@ -788,6 +790,8 @@ double computeAnalyticalSigmas(int sigmaIdx,
                     }
                     enumerator += (mes - scaledSim) * (mes - scaledSim);
                     denominator += 1.0;
+
+                    maxAbsMeasurement = std::max(maxAbsMeasurement, std::abs(mes));
                 }
             }
         }
@@ -802,11 +806,13 @@ double computeAnalyticalSigmas(int sigmaIdx,
 
     double sigma = std::sqrt(enumerator / denominator);
 
-    if(sigma < epsilon) {
+    epsilonAbs = std::max(epsilonRel * maxAbsMeasurement, epsilonAbs);
+
+    if(sigma < epsilonAbs) {
         // Must not return sigma = 0.0
-        logmessage(LOGLVL_WARNING, "In computeAnalyticalSigmas %d: Computed sigma < epsilon. "
-                   "Setting to " + std::to_string(epsilon));
-        return epsilon;
+        logmessage(LOGLVL_WARNING, "In computeAnalyticalSigmas " + std::to_string(sigmaIdx)
+                   + ": Computed sigma < epsilon. Setting to " + std::to_string(epsilonAbs));
+        return epsilonAbs;
     }
 
     return sigma;
