@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-"""Create AMICI model and data for steadystate example"""
+"""Create AMICI model and synthetic data for steadystate example"""
 
 import amici
 import os
@@ -10,7 +10,9 @@ import pandas as pd
 import sys
 import argparse
 import h5py
-
+import petab
+import libsbml
+import importlib
 
 def parse_cli_args():
     """Parse command line arguments"""
@@ -21,42 +23,58 @@ def parse_cli_args():
     parser.add_argument('-s', '--sbml', dest='sbml_file_name',
                         default='model_steadystate_scaled.sbml',
                         help='SBML model filename')
+
     parser.add_argument('-o', '--model-output-dir', dest='model_output_dir',
                         default='model_steadystate_scaled',
-                        help='SBML model filename')
-    '''
+                        help='Name of the model directory to be created')
+
     parser.add_argument('-m', '--measurements', dest='measurement_file_name',
-                        help='Measurement table', required=True)
+                        default='example_data.tsv',
+                        help='Name of measurement table to be generated')
+
     parser.add_argument('-c', '--conditions', dest='condition_file_name',
-                        help='Conditions table', required=True)
-    parser.add_argument('-p', dest='parameter_file_name',
-                        help='Parameter table', required=True)
-    '''
+                        default='example_data_fixed.tsv',
+                        help='Name of conditions table to generate')
+
+    parser.add_argument('-f', dest='hdf5_file_name',
+                        default='example_data.h5',
+                        help='Name of HDF5 file to generate')
+
+    #parser.add_argument('-p', dest='parameter_file_name',
+    #                    help='Parameter table', required=True)
+
     args = parser.parse_args()
 
     return args
 
 
 def create_module(sbml_model_file, model_name, model_output_dir):
-    """Create Python module from SBML model"""
+    """Create Python module from SBML model
+
+    Arguments:
+        sbml_model_file: SBML file
+        model_name: Name of the model
+        model_output_dir: Directory for model code
+
+    Returns:
+        list of parameters,
+        dictionary with observables (id: formula)
+    """
 
     sbml_importer = amici.SbmlImporter(sbml_model_file)
-    sbml = sbml_importer.sbml
-    observables = amici.assignmentRules2observables(
-        sbml,
-        filter_function=lambda variableId:
-        variableId.getId().startswith('observable_') and not variableId.getId().endswith('_sigma'))
+    sbml_model = sbml_importer.sbml
 
+    observables = petab.get_observables(sbml_model, remove=True)
+    sigmas = petab.get_sigmas(sbml_model, remove=True)
     fixed_parameters = ['k0']
 
-    print('Observables:', observables)
-    print('Fixed parameters', fixed_parameters)
-
-    sbml_importer.sbml2amici(model_name,
-                            output_dir=model_output_dir,
-                            observables=observables,
-                            constantParameters=fixed_parameters,
-                            sigmas={'observable_x1withsigma': 'observable_x1withsigma_sigma'})
+    sbml_importer.sbml2amici(
+        modelName=model_name,
+        output_dir=model_output_dir,
+        observables=observables,
+        constantParameters=fixed_parameters,
+        sigmas=sigmas
+    )
 
     return fixed_parameters, observables
 
@@ -64,7 +82,6 @@ def create_module(sbml_model_file, model_name, model_output_dir):
 def print_model_info(sbml_file):
     """Show model info"""
 
-    import libsbml
     sbml_reader = libsbml.SBMLReader()
     sbml_doc = sbml_reader.readSBML(sbml_file)
     sbml_model = sbml_doc.getModel()
@@ -77,32 +94,39 @@ def print_model_info(sbml_file):
 
     print('\nReactions:')
     for reaction in sbml_model.getListOfReactions():
-        reactants = ' + '.join(['%s %s' % (
-        int(r.getStoichiometry()) if r.getStoichiometry() > 1 else '',
-        r.getSpecies()) for r in reaction.getListOfReactants()])
-        products = ' + '.join(['%s %s' % (
-        int(r.getStoichiometry()) if r.getStoichiometry() > 1 else '',
-        r.getSpecies()) for r in reaction.getListOfProducts()])
+        reactants = ' + '.join(
+            ['%s %s' % (int(r.getStoichiometry())
+                        if r.getStoichiometry() > 1
+                        else '',
+                        r.getSpecies()) for r in reaction.getListOfReactants()]
+        )
+        products = ' + '.join(
+            ['%s %s' % (int(r.getStoichiometry())
+                        if r.getStoichiometry() > 1
+                        else '',
+                        r.getSpecies()) for r in reaction.getListOfProducts()]
+        )
         reversible = '<' if reaction.getReversible() else ''
-        print('%3s: %10s %1s->%10s\t\t[%s]' % (reaction.getId(),
-                                               reactants,
-                                               reversible,
-                                               products,
-                                               libsbml.formulaToL3String(
-                                                   reaction.getKineticLaw().getMath())))
+        print('%3s: %10s %1s->%10s\t\t[%s]' %
+              (reaction.getId(),
+               reactants,
+               reversible,
+               products,
+               libsbml.formulaToL3String(reaction.getKineticLaw().getMath())))
 
 
-def create_data(modelModule, fixed_parameters, observables,
-                sbml_file,
-                model_output_dir
-                ):
-    """Create in silico experimental data for parameter estimation
+def create_data_tables(model, fixed_parameters,
+        measurement_file, fixed_parameter_file):
+    """Create synthetic data for parameter estimation
 
     - Simulate time-course for four different conditions
     - Add gaussian noise according to selected sigma parameter
-    - Mimic 2 experimental batches: odd-numbered condition indices and even-numbered conditions have different offset parameter
-    """
+    - Mimic 2 experimental batches: odd-numbered condition indices
+    and even-numbered conditions have different offset parameter
 
+    Arguments:
+
+    """
     sigma_default = 0.1  # parameters are lin
     sigma_parameter = 0.2
     offset_batch_1 = 3.0
@@ -113,156 +137,199 @@ def create_data(modelModule, fixed_parameters, observables,
     sigma_parameter_idx = 7
     timepoints = np.logspace(-5, 1, 20)
 
-    model = modelModule.getModel()
+    # set true parameters
     default_parameters = np.array(model.getParameters())
     default_parameters[sigma_parameter_idx] = sigma_parameter
+    print('Default model parameters:\t%s' % default_parameters)
     true_parameters = default_parameters.copy()
+    # extend to optimization parameter vector: add second offset parameter
     true_parameters = np.append(true_parameters,
-                                offset_batch_2)  # add second offset parameter
-    print('true_parameters:\t%s' % true_parameters)
+                                offset_batch_2)
+    print('True parameters:\t%s' % true_parameters)
 
-    expectedLlh = 0.0
+    # setup model
+    model.setTimepoints(timepoints)
+    model.setParameters(default_parameters)
 
-    # setup model & solver
-    model = modelModule.getModel()
-    model.setTimepoints(amici.DoubleVector(timepoints))
-    model.setParameters(amici.DoubleVector(default_parameters))
-    print('Default parameters:\t%s' % default_parameters)
-
+    # setup solver
     solver = model.getSolver()
     solver.setMaxSteps(10000)
 
-    # generate conditon-vectors
-    conditions = [np.array(model.getFixedParameters())]
-    conditions.append(conditions[0] * 1.1)
-    conditions.append(conditions[0] * 1.2)
-    conditions.append(conditions[0] * 1.3)
+    # generate four condition-vectors
+    condition_df = petab.create_condition_df(fixed_parameters)
+    condition_df.loc['condition-0'] = model.getFixedParameters()
+    condition_df.loc['condition-1'] = np.array(model.getFixedParameters()) * 1.1
+    condition_df.loc['condition-2'] = np.array(model.getFixedParameters()) * 1.2
+    condition_df.loc['condition-3'] = np.array(model.getFixedParameters()) * 1.3
 
-    conditionDf = createConditionDataframe(fixed_parameters, conditions)
-
-    df = pd.DataFrame(data={
-        'observable': [],
-        'condition': [],
-        'conditionRef': [],
-        'scalingParameter': [],
-        'time': [],
-        'measurement': [],
-        'sigma': []
-    })
+    print(condition_df)
+    measurement_df = petab.create_measurement_df()
 
     print()
 
-    for icondition, condition in enumerate(conditions):
-        print('Condition %d: %s' % (icondition, condition))
+    # set sigmas
+    sigmay = np.ones(shape=(model.nt(), model.nytrue)) * sigma_default
+    # observable with sigma parameter
+    sigmay[:, sigma_parameter_observable_idx] = np.nan
+
+    # llh for noisy simulated data with true parameters
+    expected_llh = 0.0
+
+    for condition_idx, condition_id in enumerate(condition_df.index.values):
+        print(condition_idx, condition_id, condition_df.index)
+        condition_parameters = condition_df.loc[condition_id, :]
+        print(f'Condition {condition_id}:  {condition_parameters}')
 
         # different offset for two "batches"
-        batch_id = icondition % 2
+        batch_id = condition_idx % 2
+        model_parameters = default_parameters
         if batch_id == 0:
-            simulationParameters = default_parameters
-            simulationParameters[
+            model_parameters[
                 model_offset_parameter_idx] = offset_batch_1
         else:
-            simulationParameters = default_parameters
-            simulationParameters[
+            model_parameters[
                 model_offset_parameter_idx] = offset_batch_2
 
-        sigmay = np.ones(shape=(model.nt(), model.nytrue)) * sigma_default
-        sigmay[:,
-        sigma_parameter_observable_idx] = np.nan  # observable with sigma parameter
-
         # simulate condition
-        rdata = getReturnDataForCondition(model, solver, condition,
-                                          simulationParameters, sigmay,
-                                          sigma_parameter_observable_idx,
-                                          sigma_parameter_idx
-                                          )
+        rdata = getReturnDataForCondition(
+            model, solver, condition_parameters,
+            model_parameters, sigmay,
+            sigma_parameter_observable_idx,
+            sigma_parameter_idx
+        )
 
         print('\tllh: ', rdata['llh'])
         print('\tsllh', rdata['sllh'])
 
-        expectedLlh += rdata['llh']
+        expected_llh += rdata['llh']
 
-        conditionName = 'condition-%d' % icondition
-
-        # Append data
-        for iy, observableName in enumerate(observables.keys()):
-            scalingParameter = ['']
-            sigma = sigmay[:, iy]
-
-            if observableName == 'observable_x1_scaled':
-                # scalingParameter = ['scaling_x1_%s' % conditionName]
-                scalingParameter = ['scaling_x1_common']
-            elif observableName == 'observable_x2_offsetted':
-                # scalingParameter = ['offset_x2_%s' % conditionName]
-                # scalingParameter = ['offset_x2_common']
-                scalingParameter = ['offset_x2_batch-%d' % batch_id]
-            elif observableName == 'observable_x1withsigma':
-                # scalingParameter = ['observable_x1withsigma_sigma_%s' % conditionName]
-                scalingParameter = ['observable_x1withsigma_sigma_common']
-
-            df = df.append(pd.DataFrame(
-                {'observable': [observableName] * model.nt(),
-                 'condition': [conditionName] * model.nt(),
-                 'conditionRef': [''] * model.nt(),
-                 'scalingParameter': scalingParameter * model.nt(),
-                 'time': np.array(model.getTimepoints()),
-                 'measurement': rdata['y'][:, iy],
-                 'sigma': sigma
-                 }), ignore_index=True)
+        append_measurements_for_condition(
+            model, measurement_df, sigmay, condition_id, batch_id, rdata)
         print()
 
-    print('Expected llh: ', expectedLlh)
-
+    print('Expected llh: ', expected_llh)
 
     # write data frames to file
-    measurement_file = 'example_data.tsv'
-    fixed_parameter_file = 'example_data_fixed.tsv'
-    hdf5File = 'example_data.h5'
+    measurement_df.to_csv(measurement_file, sep='\t', index=False)
+    condition_df.to_csv(fixed_parameter_file, sep='\t', index=False)
 
-    df.to_csv(measurement_file, sep='\t', index=False)
-    conditionDf.to_csv(fixed_parameter_file, sep='\t', index=False)
+    return true_parameters, expected_llh
 
-    cmd = "bash -c 'if [[ -f example_data.h5 ]]; then cp example_data.h5 example_data.h5.bak; fi'"
+
+def getReturnDataForCondition(model, solver, fixed_parameters,
+                              dynamic_parameters, sigmay,
+                              sigma_parameter_observable_idx,
+                              sigma_parameter_idx):
+
+    model.setParameters(amici.DoubleVector(dynamic_parameters))
+
+    # simulate without measurements
+    edata = amici.ExpData(model.get())
+    edata.fixedParameters = fixed_parameters
+    edata.my = np.full(shape=model.nt() * model.nytrue, fill_value=np.nan)
+    rdata = amici.runAmiciSimulation(model, solver, edata)
+    # fixedParametersPreequilibration =
+
+    # model_outputs = rdata['y']
+    model_outputs = np.random.normal(loc=rdata['y'], scale=sigmay)
+    print("\tSigma mean per observable:", sigmay.mean(axis=0))
+
+    # set apply correct sigma parameter
+    model_outputs[:, sigma_parameter_observable_idx] = np.random.normal(
+        loc=rdata['y'][:, sigma_parameter_observable_idx],
+        scale=dynamic_parameters[sigma_parameter_idx])
+
+    print("\tMean abs. relative measurement error per observable:")
+    print("\t",
+          np.mean(np.abs((model_outputs - rdata['y']) / rdata['y']), axis=0))
+
+    # set synthetic data
+    edata.my = model_outputs.flatten()
+    edata.sigmay = sigmay.flatten()
+    solver.setSensitivityMethod(amici.SensitivityMethod_forward)
+    solver.setSensitivityOrder(amici.SensitivityOrder_first)
+    model.requireSensitivitiesForAllParameters()
+    rdata = amici.runAmiciSimulation(model, solver, edata)
+
+    # TODO: confirm gradient is 0 for real measurements and save expected llh
+
+    # return generated noisy measurements
+    rdata['y'] = model_outputs
+
+    return rdata
+
+
+def append_measurements_for_condition(
+        model, measurement_df, sigmay, condition_id, batch_id, rdata):
+    # Append data to measurement table
+    for iy, observable_id in enumerate(model.getObservableIds()):
+        scaling_parameter = ['']
+        sigma = sigmay[:, iy]
+
+        if observable_id == 'observable_x1_scaled':
+            # scalingParameter = ['scaling_x1_%s' % conditionName]
+            scaling_parameter = ['scaling_x1_common']
+        elif observable_id == 'observable_x2_offsetted':
+            # scalingParameter = ['offset_x2_%s' % conditionName]
+            # scalingParameter = ['offset_x2_common']
+            scaling_parameter = ['offset_x2_batch-%d' % batch_id]
+        elif observable_id == 'observable_x1withsigma':
+            # scalingParameter = ['observable_x1withsigma_sigma_%s' % conditionName]
+            scaling_parameter = ['observable_x1withsigma_sigma_common']
+
+        measurement_df = measurement_df.append(pd.DataFrame(
+            {'observableId': [observable_id] * model.nt(),
+             'simulationConditionId': [condition_id] * model.nt(),
+             'time': np.array(model.getTimepoints()),
+             'measurement': rdata['y'][:, iy],
+             'observableParameters': scaling_parameter * model.nt(),
+             'noiseParameters': sigma
+             }), ignore_index=True, sort=False)
+
+
+def generate_hdf5_file(sbml_file_name, model_output_dir, measurement_file_name,
+                       condition_file_name, hdf5_file_name):
+
+    cmd = f"bash -c 'if [[ -f {hdf5_file_name} ]]; then "\
+        f"cp {hdf5_file_name} {hdf5_file_name}.bak; fi'"
     out = subprocess.check_output(cmd, shell=True)
     print(out.decode('utf-8'))
 
     # convert to HDF5
-    cmd = ['%s/generateHDF5DataFileFromText.py' % os.path.join(
-        os.path.split(os.path.abspath(__file__))[0], '..', '..', '..', 'misc'),
-                          hdf5File,
-                          sbml_file,
-                          model_output_dir,
-                          measurement_file,
-                          fixed_parameter_file]
+    script_file = os.path.join(os.path.split(os.path.abspath(__file__))[0],
+                               '..', '..', '..', 'misc',
+                               'generateHDF5DataFileFromText.py')
+    cmd = [script_file,
+           hdf5_file_name,
+           sbml_file_name,
+           model_output_dir,
+           measurement_file_name,
+           condition_file_name]
     print("Running: ", ' '.join(cmd))
     out = subprocess.run(cmd, stdout=subprocess.PIPE,
                          stderr=subprocess.STDOUT)
     print(out.stdout.decode("utf-8"))
     assert out.returncode == 0
 
-    with h5py.File(hdf5File, 'r+') as f:
+
+def save_expected_results(hdf5_file_name, true_parameters, expected_llh):
+    # write true parameters
+    with h5py.File(hdf5_file_name, 'r+') as f:
         f.require_dataset(
             '/parameters/true_parameters',
             shape=(len(true_parameters),), dtype="f8", data=true_parameters)
         f.require_dataset(
             '/parameters/true_llh',
-            shape=(1,), dtype="f8", data=expectedLlh)
+            shape=(1,), dtype="f8", data=expected_llh)
 
-
-    hdf5FileMinibatch = 'example_data_minibatch.h5'
-    from shutil import copyfile
-    copyfile(hdf5File, hdf5FileMinibatch)
-
-
-
-
+def write_starting_ppints(hdf5_file_name, true_parameters):
     # write true parameters as first starting point, an perturbed additional points
     # two times the same point to check for reproducibility
-    with h5py.File(hdf5File, 'r+') as f:
+    with h5py.File(hdf5_file_name, 'r+') as f:
         pscale = f['/parameters/pscale'][:]
         true_parameters_scaled = true_parameters.copy()
         for i, p in enumerate(pscale):
-            if p == 2:
+            if p == amici.ParameterScaling_log10:
                 true_parameters_scaled[i] = np.log10(true_parameters[i])
 
         for i in range(10):
@@ -275,90 +342,62 @@ def create_data(modelModule, fixed_parameters, observables,
             f['/optimizationOptions/randomStarts'][:, 2 * i] = parameters
             f['/optimizationOptions/randomStarts'][:, 2 * i + 1] = parameters
 
-    copyfile(hdf5File, hdf5FileMinibatch)
-
-
-
-def createConditionDataframe(fixed_parameters, conditions):
-    """Create dataframe with fixed-parameters for each condition to simulate"""
-    conditionDf = pd.DataFrame(index=fixed_parameters)
-    conditionDf['ID'] = conditionDf.index
-    for icondition, condition in enumerate(conditions):
-        conditionDf['condition-%d' % icondition] = condition
-
-    return conditionDf
-
-
-def getReturnDataForCondition(model, solver, condition,
-                              simulationParameters, sigmay,
-                              sigma_parameter_observable_idx,
-                              sigma_parameter_idx):
-    model.setParameters(amici.DoubleVector(simulationParameters))
-
-    # simulate without measurements
-    edata = amici.ExpData(model.get())
-    edata.fixedParameters = amici.DoubleVector(condition)
-    edata.my = amici.DoubleVector(
-        np.full(shape=model.nt() * model.nytrue, fill_value=np.nan))
-    rdata = amici.runAmiciSimulation(model, solver, edata)
-    # fixedParametersPreequilibration =
-
-    # confirm gradient is 0 for real measurements and save expected llh
-    measurement = rdata['y']
-    measurement = np.random.normal(loc=rdata['y'], scale=sigmay)
-    print("\tSigma mean per observable:", sigmay.mean(axis=0))
-    measurement[:, sigma_parameter_observable_idx] = np.random.normal(
-        loc=rdata['y'][:, sigma_parameter_observable_idx],
-        scale=simulationParameters[sigma_parameter_idx])
-    print("\tMean abs. relative measurement error per observable:")
-    print("\t",
-          np.mean(np.abs((measurement - rdata['y']) / rdata['y']), axis=0))
-
-    edata.my = amici.DoubleVector(measurement.flatten())
-    edata.sigmay = amici.DoubleVector(sigmay.flatten())
-    solver.setSensitivityMethod(amici.SensitivityMethod_forward)
-    solver.setSensitivityOrder(amici.SensitivityOrder_first)
-    model.requireSensitivitiesForAllParameters()
-    rdata = amici.runAmiciSimulation(model, solver, edata)
-    # return generated noisy measurents
-    rdata['y'] = measurement
-    return rdata
-
 
 def main():
     args = parse_cli_args()
 
-    sbml_file = args.sbml_file_name
-    model_output_dir = args.model_output_dir
     script_path = os.path.split(os.path.abspath(__file__))[0]
     model_name = 'model_steadystate_scaled'
 
-    print(f'{__file__ } running in {os.getcwd()}')
-    print(f'Creating model {sbml_file}')
+    print(f'{__file__} running in {os.getcwd()}')
+    print(f'Processing model {args.sbml_file_name}')
 
     # Create sbml model from scratch
-    cmd = f'bash -c "{script_path}/createSteadystateExampleSBML.py > {sbml_file}"'
+    cmd = f'bash -c "{script_path}/createSteadystateExampleSBML.py > {args.sbml_file_name}"'
     print(cmd)
     out = subprocess.check_output(cmd, shell=True)
     print(out.decode('utf-8'))
     print()
 
-    print_model_info(sbml_file)
+    print_model_info(args.sbml_file_name)
     print()
 
-    observables = []
+    fixed_parameters, observables = create_module(
+        args.sbml_file_name, model_name, args.model_output_dir)
 
-    fixed_parameters, observables = create_module(sbml_file, model_name, model_output_dir)
+    print('Observables:', observables)
+    print('Fixed parameters', fixed_parameters)
     print()
 
     # load model
-    sys.path.insert(0, model_output_dir)
-    import model_steadystate_scaled as modelModule
+    sys.path.insert(0, args.model_output_dir)
+    model_module = importlib.import_module(model_name)
 
     print()
     print("--- Creating data ---")
-    create_data(modelModule, fixed_parameters, observables, sbml_file,
-                          model_output_dir)
+    true_parameters, expected_llh = create_data_tables(
+        model=model_module.getModel(),
+        measurement_file=args.measurement_file_name,
+        fixed_parameter_file=args.condition_file_name,
+        fixed_parameters=fixed_parameters
+    )
+
+    generate_hdf5_file(
+        sbml_file_name=args.sbml_file_name,
+        model_output_dir=args.model_output_dir,
+        measurement_file_name=args.measurement_file_name,
+        condition_file_name=args.condition_file_name,
+        hdf5_file_name=args.hdf5_file_name
+    )
+
+    save_expected_results(args.hdf5_file_name, true_parameters, expected_llh)
+
+    write_starting_ppints(args.hdf5_file_name, true_parameters)
+
+    #hdf5FileMinibatch = 'example_data_minibatch.h5'
+    #from shutil import copyfile
+    #copyfile(hdf5_file_name, hdf5FileMinibatch)
+
 
 
 if __name__ == '__main__':
