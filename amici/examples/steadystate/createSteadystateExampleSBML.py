@@ -170,23 +170,30 @@ def create_model():
         rule = create_assigment_rule(model, observable, 'x%d' % i)
 
     # Scaled x1
-    p = create_parameter(model, 'scaling_x1', True, 2.0, 'dimensionless')
+    p = create_parameter(model, 'observableParameter1_x1_scaled', True, 2.0, 'dimensionless')
     p = create_parameter(model, 'observable_x1_scaled', False, 1.0, 'mole_per_litre')
-    rule = create_assigment_rule(model, 'observable_x1_scaled', 'scaling_x1 * x1')
+    rule = create_assigment_rule(model, 'observable_x1_scaled', 'observableParameter1_x1_scaled * x1')
 
     # x2 with offset
-    p = create_parameter(model, 'offset_x2', True, 3.0, 'mole_per_litre')
+    p = create_parameter(model, 'observableParameter1_x2_offsetted', True, 3.0, 'mole_per_litre')
     p = create_parameter(model, 'observable_x2_offsetted', False, 1.0, 'mole_per_litre')
-    rule = create_assigment_rule(model, 'observable_x2_offsetted', 'offset_x2 + x2')
+    rule = create_assigment_rule(model, 'observable_x2_offsetted', 'observableParameter1_x2_offsetted + x2')
 
     # Fully observed with sigma parameter
-    p = create_parameter(model, 'observable_x1withsigma_sigma', True, 0.2, 'dimensionless')
-    p = create_parameter(model, 'observable_x1withsigma', False, 1.0, 'mole_per_litre')
-    p = create_parameter(model, 'sigma_x1withsigma', False, 1.0, 'mole_per_litre')
+    # observable
+    p = create_parameter(model, 'observable_x1withsigma', False, 1.0,
+                         'mole_per_litre')
     rule = create_assigment_rule(model, 'observable_x1withsigma', 'x1')
-    rule = create_assigment_rule(model, 'sigma_x1withsigma', 'observable_x1withsigma_sigma')
+    # corresponding sigma
+    p = create_parameter(model, 'sigma_x1withsigma', False, 1.0,
+                         'mole_per_litre')
+    p = create_parameter(model, 'noiseParameter1_x1withsigma', True, 0.2,
+                         'mole_per_litre')
+    rule = create_assigment_rule(model, 'sigma_x1withsigma',
+                                 'noiseParameter1_x1withsigma')
 
     return writeSBMLToString(document)
+
 
 if __name__ == '__main__':
     print(create_model())

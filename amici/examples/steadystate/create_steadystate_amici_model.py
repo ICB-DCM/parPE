@@ -140,7 +140,10 @@ def create_data_tables(model, fixed_parameters,
     # set true parameters
     default_parameters = np.array(model.getParameters())
     default_parameters[sigma_parameter_idx] = sigma_parameter
-    print('Default model parameters:\t%s' % default_parameters)
+    print('Default model parameters:')
+    for p, val in zip(model.getParameterIds(), model.getParameters()):
+        print(f'\t{p}: {val}')
+    print()
     true_parameters = default_parameters.copy()
     # extend to optimization parameter vector: add second offset parameter
     true_parameters = np.append(true_parameters,
@@ -176,7 +179,6 @@ def create_data_tables(model, fixed_parameters,
     expected_llh = 0.0
 
     for condition_idx, condition_id in enumerate(condition_df.index.values):
-        print(condition_idx, condition_id, condition_df.index)
         condition_parameters = condition_df.loc[condition_id, :]
         print(f'Condition {condition_id}:  {condition_parameters}')
 
@@ -203,7 +205,7 @@ def create_data_tables(model, fixed_parameters,
 
         expected_llh += rdata['llh']
 
-        append_measurements_for_condition(
+        measurement_df = append_measurements_for_condition(
             model, measurement_df, sigmay, condition_id, batch_id, rdata)
         print()
 
@@ -211,7 +213,7 @@ def create_data_tables(model, fixed_parameters,
 
     # write data frames to file
     measurement_df.to_csv(measurement_file, sep='\t', index=False)
-    condition_df.to_csv(fixed_parameter_file, sep='\t', index=False)
+    condition_df.to_csv(fixed_parameter_file, sep='\t', index=True)
 
     return true_parameters, expected_llh
 
@@ -223,28 +225,29 @@ def getReturnDataForCondition(model, solver, fixed_parameters,
 
     model.setParameters(amici.DoubleVector(dynamic_parameters))
 
-    # simulate without measurements
+    # Simulate without measurements for noise-free trajectories
     edata = amici.ExpData(model.get())
     edata.fixedParameters = fixed_parameters
     edata.my = np.full(shape=model.nt() * model.nytrue, fill_value=np.nan)
     rdata = amici.runAmiciSimulation(model, solver, edata)
     # fixedParametersPreequilibration =
 
-    # model_outputs = rdata['y']
-    model_outputs = np.random.normal(loc=rdata['y'], scale=sigmay)
-    print("\tSigma mean per observable:", sigmay.mean(axis=0))
+    # synthetic_data = rdata['y'] # noise-free
 
-    # set apply correct sigma parameter
-    model_outputs[:, sigma_parameter_observable_idx] = np.random.normal(
-        loc=rdata['y'][:, sigma_parameter_observable_idx],
-        scale=dynamic_parameters[sigma_parameter_idx])
+    # Add noise to simulation
+    synthetic_data = np.random.normal(loc=rdata['y'], scale=sigmay)
+    print("\tSigma mean per observable:", sigmay.mean(axis=0))
+    # Apply correct sigma parameter
+    synthetic_data[:, sigma_parameter_observable_idx] = \
+        np.random.normal(loc=rdata['y'][:, sigma_parameter_observable_idx],
+                         scale=dynamic_parameters[sigma_parameter_idx])
 
     print("\tMean abs. relative measurement error per observable:")
     print("\t",
-          np.mean(np.abs((model_outputs - rdata['y']) / rdata['y']), axis=0))
+          np.mean(np.abs((synthetic_data - rdata['y']) / rdata['y']), axis=0))
 
-    # set synthetic data
-    edata.my = model_outputs.flatten()
+    # Use synthetic data to get expected llh
+    edata.my = synthetic_data.flatten()
     edata.sigmay = sigmay.flatten()
     solver.setSensitivityMethod(amici.SensitivityMethod_forward)
     solver.setSensitivityOrder(amici.SensitivityOrder_first)
@@ -254,7 +257,7 @@ def getReturnDataForCondition(model, solver, fixed_parameters,
     # TODO: confirm gradient is 0 for real measurements and save expected llh
 
     # return generated noisy measurements
-    rdata['y'] = model_outputs
+    rdata['y'] = synthetic_data
 
     return rdata
 
@@ -264,18 +267,14 @@ def append_measurements_for_condition(
     # Append data to measurement table
     for iy, observable_id in enumerate(model.getObservableIds()):
         scaling_parameter = ['']
-        sigma = sigmay[:, iy]
+        noise_parameter = sigmay[:, iy]
 
         if observable_id == 'observable_x1_scaled':
-            # scalingParameter = ['scaling_x1_%s' % conditionName]
             scaling_parameter = ['scaling_x1_common']
         elif observable_id == 'observable_x2_offsetted':
-            # scalingParameter = ['offset_x2_%s' % conditionName]
-            # scalingParameter = ['offset_x2_common']
             scaling_parameter = ['offset_x2_batch-%d' % batch_id]
         elif observable_id == 'observable_x1withsigma':
-            # scalingParameter = ['observable_x1withsigma_sigma_%s' % conditionName]
-            scaling_parameter = ['observable_x1withsigma_sigma_common']
+            noise_parameter = ['x1withsigma_sigma'] * model.nt()
 
         measurement_df = measurement_df.append(pd.DataFrame(
             {'observableId': [observable_id] * model.nt(),
@@ -283,8 +282,9 @@ def append_measurements_for_condition(
              'time': np.array(model.getTimepoints()),
              'measurement': rdata['y'][:, iy],
              'observableParameters': scaling_parameter * model.nt(),
-             'noiseParameters': sigma
+             'noiseParameters': noise_parameter
              }), ignore_index=True, sort=False)
+    return measurement_df
 
 
 def generate_hdf5_file(sbml_file_name, model_output_dir, measurement_file_name,
@@ -321,6 +321,7 @@ def save_expected_results(hdf5_file_name, true_parameters, expected_llh):
         f.require_dataset(
             '/parameters/true_llh',
             shape=(1,), dtype="f8", data=expected_llh)
+
 
 def write_starting_ppints(hdf5_file_name, true_parameters):
     # write true parameters as first starting point, an perturbed additional points
