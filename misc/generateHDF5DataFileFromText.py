@@ -1,17 +1,27 @@
 #!/usr/bin/env python3
 """
-Generate HDF5 file for parPE with fixed parameters and measurements for an AMICI-imported SBML model based on tables with fixed parameters and training data
+Generate HDF5 file for parPE with fixed parameters and measurements for an
+AMICI-imported SBML model based on tables with fixed parameters and training
+data
 
-2018 Daniel Weindl <daniel.weindl@helmholtz-muenchen.de>, Leonard Schmiester <leonard.schmiester@helmholtz-muenchen.de>
+2018 Daniel Weindl <daniel.weindl@helmholtz-muenchen.de>
+     Leonard Schmiester <leonard.schmiester@helmholtz-muenchen.de>
 
 Usage: __file__ hdf5File sbmlModelFile symsModelFile cost_func exp_table
 
-hdf5File:      Name of the generated HDF5 file
-sbmlModelFile: The SBML model for which the data is generated (not used anymore, possibly in future to access annotations)
-symsModelFile: The AMICI syms file
-cost_func:     The cost function file (PyBios) listing the experimental conditions to use
-exp_table:     Data table for fixed parameters for all conditions listed in cost_func
-               (tsv: fixedParameters x conditions, row names according to model parameters, column names according to cost function)
+hdf5File:
+    Name of the generated HDF5 file
+sbmlModelFile:
+    The SBML model for which the data is generated
+    (not used anymore, possibly in future to access annotations)
+symsModelFile:
+    The AMICI syms file
+cost_func:
+    The cost function file (PyBios) listing the experimental conditions to use
+exp_table:
+    Data table for fixed parameters for all conditions listed in cost_func
+    (tsv: fixedParameters x conditions, row names according to model
+    parameters, column names according to cost function)
 """
 
 import amiciHelper
