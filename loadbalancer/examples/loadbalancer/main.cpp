@@ -77,7 +77,7 @@ void duplicatingMessageHandler(std::vector<char> &buffer, int  /*jobId*/) {
 
     // prepare result
     buffer.resize(sizeof(double));
-    double *result = reinterpret_cast<double *>(buffer.data());
+    auto result = reinterpret_cast<double *>(buffer.data());
     *result = value * 2;
     //    printf("Sending %f\n", *result);
 }

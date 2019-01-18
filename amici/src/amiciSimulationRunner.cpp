@@ -54,7 +54,7 @@ int AmiciSimulationRunner::runDistributedMemory(LoadBalancerMaster *loadBalancer
 
         auto currentConditions = std::vector<int>(
                     &conditionIndices[static_cast<std::vector<int>::size_type>(numConditionsSent)],
-                         &conditionIndices[static_cast<std::vector<int>::size_type>(numConditionsSent + simulationsCurrentPackage)]);
+                         &conditionIndices[numConditionsSent + simulationsCurrentPackage]);
         queueSimulation(loadBalancer, &jobs[jobIdx],
                         &numJobsFinished, &simulationsCond, &simulationsMutex,
                         jobIdx, optimizationParameters, sensitivityOrder, currentConditions);
