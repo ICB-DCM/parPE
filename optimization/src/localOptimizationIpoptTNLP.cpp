@@ -59,8 +59,8 @@ bool LocalOptimizationIpoptTNLP::get_starting_point(Index n, bool init_x,
         std::copy(initialParameters.begin(), initialParameters.end(), x);
     }
 
-    assert(init_z == false);
-    assert(init_lambda == false);
+    RELEASE_ASSERT(init_z == false, "");
+    RELEASE_ASSERT(init_lambda == false, "");
 
     return true;
 }

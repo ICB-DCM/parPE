@@ -17,7 +17,7 @@
 
 namespace parpe {
 
-void LoadBalancerWorker::run(messageHandlerFunc messageHandler) {
+void LoadBalancerWorker::run(messageHandlerFunc const& messageHandler) {
     bool terminate = false;
 
     while (!terminate) {

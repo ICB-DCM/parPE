@@ -2,13 +2,14 @@
 #include "logging.h"
 #include "misc.h"
 #include <parpeException.h>
-#include <amici/amici.h>
 
+#include <amici/amici.h>
 #include <amici/hdf5.h>
 
 #include <cassert>
 #include <cstring>
 #include <cmath>
+#include <numeric>
 
 
 namespace parpe {
