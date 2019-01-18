@@ -46,7 +46,7 @@ TEST(simulationResultWriter, testResultWriter) {
     CHECK_TRUE(measurements.size() == (unsigned) nytrue * timepoints.size());
     edata.setObservedData(measurements);
 
-    amici::ReturnData rdata(timepoints, 0, 1, nx, nx, nytrue, nytrue, 0, 0,
+    amici::ReturnData rdata(timepoints, 0, 1, nx, nx, nx, nytrue, nytrue, 0, 0,
                             0, 0, 0, 0, timepoints.size(), 0,
                             std::vector<amici::ParameterScaling>(), amici::SecondOrderMode::none,
                             amici::SensitivityOrder::none, amici::SensitivityMethod::none);

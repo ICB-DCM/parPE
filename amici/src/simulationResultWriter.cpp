@@ -84,7 +84,7 @@ void SimulationResultWriter::createDatasets(const amici::Model &model,
                                             int numberOfSimulations)
 {
     createDatasets(static_cast<hsize_t>(model.nytrue),
-                   static_cast<hsize_t>(model.nxtrue),
+                   static_cast<hsize_t>(model.nxtrue_rdata),
                    static_cast<hsize_t>(model.nt()),
                    static_cast<hsize_t>(numberOfSimulations)
                    );
