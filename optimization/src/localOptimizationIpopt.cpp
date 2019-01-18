@@ -408,7 +408,7 @@ std::tuple<int, double, std::vector<double> > OptimizerIpOpt::optimize(Optimizat
             // app->Jnlst()->AddJournal();
 
             status = app->Initialize();
-            assert(status == Solve_Succeeded);
+            RELEASE_ASSERT(status == Solve_Succeeded, "");
             status = app->OptimizeTNLP(mynlp);
 
             if(status == Invalid_Number_Detected) {

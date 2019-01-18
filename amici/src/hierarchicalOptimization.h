@@ -303,8 +303,8 @@ public:
      * @param mapPath path of to the dataset with the parameter-oberservable-condition mapping
      */
     AnalyticalParameterHdf5Reader(const H5::H5File &file,
-                                  const std::string &analyticalParameterIndicesPath,
-                                  const std::string &mapPath);
+                                  std::string analyticalParameterIndicesPath,
+                                  std::string mapPath);
 
     AnalyticalParameterHdf5Reader(AnalyticalParameterHdf5Reader const&) = delete;
 

@@ -400,10 +400,10 @@ const std::vector<int> &HierarchicalOptimizationWrapper::getProportionalityFacto
 
 
 AnalyticalParameterHdf5Reader::AnalyticalParameterHdf5Reader(H5::H5File const& file,
-                                                             std::string const& analyticalParameterIndicesPath,
-                                                             std::string const& mapPath)
-    : mapPath(mapPath),
-      analyticalParameterIndicesPath(analyticalParameterIndicesPath)
+                                                             std::string analyticalParameterIndicesPath,
+                                                             std::string mapPath)
+    : mapPath(std::move(mapPath)),
+      analyticalParameterIndicesPath(std::move(analyticalParameterIndicesPath))
 {
     auto lock = hdf5MutexGetLock();
     this->file = file; // copy while mutex is locked!
@@ -471,7 +471,7 @@ std::vector<int> AnalyticalParameterHdf5Reader::getOptimizationParameterIndices(
 
         analyticalParameterIndices.resize(numScalings);
         dataset.read(analyticalParameterIndices.data(), H5::PredType::NATIVE_INT);
-    } catch (H5::FileIException) {
+    } catch (H5::FileIException&) {
         // we just return an empty list
     }
     H5_RESTORE_ERROR_HANDLER;
@@ -492,7 +492,7 @@ int AnalyticalParameterHdf5Reader::getNumAnalyticalParameters() const
         if(ndims != 1)
             throw ParPEException("Invalid dimension in getOptimizationParameterIndices.");
         dataspace.getSimpleExtentDims(&numAnalyticalParameters);
-    } catch (H5::FileIException) {
+    } catch (H5::FileIException&) {
         // 0
     }
     H5_RESTORE_ERROR_HANDLER;
@@ -525,7 +525,7 @@ void AnalyticalParameterHdf5Reader::readParameterConditionObservableMappingFromF
             int observableIdx = rawMap[i * nCols + observableCol];
             mapping[scalingIdx][conditionIdx].push_back(observableIdx);
         }
-    } catch (H5::FileIException) {
+    } catch (H5::FileIException&) {
         return;
     }
     H5_RESTORE_ERROR_HANDLER;

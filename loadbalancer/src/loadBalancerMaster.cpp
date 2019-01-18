@@ -200,7 +200,7 @@ void LoadBalancerMaster::sendToWorker(int workerIdx, JobData *data) {
 }
 
 void LoadBalancerMaster::queueJob(JobData *data) {
-    assert(isRunning_);
+    RELEASE_ASSERT(isRunning_, "Can't queue job while not running.");
 
     sem_wait(&semQueue);
 
