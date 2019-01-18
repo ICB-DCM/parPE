@@ -14,6 +14,7 @@ import petab
 import libsbml
 import importlib
 
+
 def parse_cli_args():
     """Parse command line arguments"""
 
@@ -40,8 +41,9 @@ def parse_cli_args():
                         default='example_data.h5',
                         help='Name of HDF5 file to generate')
 
-    #parser.add_argument('-p', dest='parameter_file_name',
-    #                    help='Parameter table', required=True)
+    parser.add_argument('-p', dest='parameter_file_name',
+                        default='example_data_parameter.tsv',
+                        help='Name of parameter table to be created')
 
     args = parser.parse_args()
 
@@ -277,7 +279,7 @@ def append_measurements_for_condition(
             noise_parameter = ['x1withsigma_sigma'] * model.nt()
 
         measurement_df = measurement_df.append(pd.DataFrame(
-            {'observableId': [observable_id] * model.nt(),
+            {'observableId': [observable_id[len('observable_'):]] * model.nt(),
              'simulationConditionId': [condition_id] * model.nt(),
              'time': np.array(model.getTimepoints()),
              'measurement': rdata['y'][:, iy],
@@ -296,6 +298,7 @@ def generate_hdf5_file(sbml_file_name, model_output_dir, measurement_file_name,
     print(out.decode('utf-8'))
 
     # convert to HDF5
+    # TODO new format; parameter_file
     script_file = os.path.join(os.path.split(os.path.abspath(__file__))[0],
                                '..', '..', '..', 'misc',
                                'generateHDF5DataFileFromText.py')
@@ -323,7 +326,7 @@ def save_expected_results(hdf5_file_name, true_parameters, expected_llh):
             shape=(1,), dtype="f8", data=expected_llh)
 
 
-def write_starting_ppints(hdf5_file_name, true_parameters):
+def write_starting_points(hdf5_file_name, true_parameters):
     # write true parameters as first starting point, an perturbed additional points
     # two times the same point to check for reproducibility
     with h5py.File(hdf5_file_name, 'r+') as f:
@@ -342,6 +345,17 @@ def write_starting_ppints(hdf5_file_name, true_parameters):
             # print(parameters)
             f['/optimizationOptions/randomStarts'][:, 2 * i] = parameters
             f['/optimizationOptions/randomStarts'][:, 2 * i + 1] = parameters
+
+
+def create_parameter_table(sbml_file, condition_file, measurement_file,
+                           parameter_file):
+    """Create PEtab parameter table"""
+
+    problem = petab.Problem(sbml_file, condition_file, measurement_file)
+    df = problem.create_parameter_df(lower_bound=-3,
+                                     upper_bound=5)
+
+    df.to_csv(parameter_file, sep="\t", index=True)
 
 
 def main():
@@ -383,6 +397,19 @@ def main():
         fixed_parameters=fixed_parameters
     )
 
+    create_parameter_table(args.sbml_file_name,
+                           args.condition_file_name,
+                           args.measurement_file_name,
+                           args.parameter_file_name,
+                           )
+
+    # check for valid PEtab
+    pp = petab.Problem(args.sbml_file_name,
+                       args.condition_file_name,
+                       args.measurement_file_name,
+                       args.parameter_file_name)
+    petab.lint_problem(pp)
+
     generate_hdf5_file(
         sbml_file_name=args.sbml_file_name,
         model_output_dir=args.model_output_dir,
@@ -393,12 +420,12 @@ def main():
 
     save_expected_results(args.hdf5_file_name, true_parameters, expected_llh)
 
-    write_starting_ppints(args.hdf5_file_name, true_parameters)
+    write_starting_points(args.hdf5_file_name, true_parameters)
 
+    # TODO
     #hdf5FileMinibatch = 'example_data_minibatch.h5'
     #from shutil import copyfile
     #copyfile(hdf5_file_name, hdf5FileMinibatch)
-
 
 
 if __name__ == '__main__':
