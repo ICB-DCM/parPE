@@ -42,8 +42,7 @@ class MultiConditionDataProvider;
  * @param logger
  * @return Simulation results
  */
-AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
-        amici::Solver &solver,
+AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(const amici::Solver &solverTemplate,
         amici::Model &model,
         int conditionIdx,
         int jobId,
