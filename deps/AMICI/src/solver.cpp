@@ -16,17 +16,41 @@ namespace amici {
 
 extern msgIdAndTxtFp warnMsgIdAndTxt;
 
-/**
- * @brief Initialises the ami memory object and applies specified options
- * @param x state vector
- * @param dx state derivative vector (DAE only)
- * @param sx state sensitivity vector
- * @param sdx state derivative sensitivity vector (DAE only)
- * @param model pointer to the model object
- */
+
+Solver::Solver(const Solver &other) : Solver()
+{
+    sensi = other.sensi;
+    atol = other.atol;
+    rtol = other.rtol;
+    atol_fsa = other.atol_fsa;
+    rtol_fsa = other.rtol_fsa;
+    atol_asa = other.atol_asa;
+    rtol_asa = other.rtol_asa;
+    quad_atol = other.quad_atol;
+    quad_rtol = other.quad_rtol;
+    ss_atol = other.ss_atol;
+    ss_rtol = other.ss_rtol;
+    ss_atol_sensi = other.ss_atol_sensi;
+    ss_rtol_sensi = other.ss_rtol_sensi;
+    maxsteps = other.maxsteps;
+    maxstepsB = other.maxstepsB;
+    newton_maxsteps = other.newton_maxsteps;
+    newton_maxlinsteps = other.newton_maxlinsteps;
+    newton_preeq = other.newton_preeq;
+    ism = other.ism;
+    sensi_meth = other.sensi_meth;
+    linsol = other.linsol;
+    interpType = other.interpType;
+    lmm = other.lmm;
+    iter = other.iter;
+    stldet = other.stldet;
+    ordering = other.ordering;
+}
+
 void Solver::setup(AmiVector *x, AmiVector *dx, AmiVectorArray *sx, AmiVectorArray *sdx, Model *model) {
-    
-    model->initialize(x, dx);
+    bool computeSensitivities = sensi >= SensitivityOrder::first
+            && model->nx_solver > 0;
+    model->initialize(x, dx, sx, sdx, computeSensitivities);
 
     /* Create solver memory object */
     allocateSolver();
@@ -51,23 +75,7 @@ void Solver::setup(AmiVector *x, AmiVector *dx, AmiVectorArray *sx, AmiVectorArr
     
     initializeLinearSolver(model);
 
-    if (sensi >= SensitivityOrder::first && model->nx > 0) {
-        /* initialise sensitivities, this can either be user provided or
-         * come from the model definition */
-        auto sx0 = model->getInitialStateSensitivities();
-        if (sx0.empty()) {
-            model->fsx0(sx, x);
-        } else {
-            for (int ip = 0; ip < model->nplist(); ip++) {
-                for (int ix = 0; ix < model->nx; ix++) {
-                    sx->at(ix,ip) =
-                            (realtype)sx0.at(ix + model->nx * ip);
-                }
-            }
-        }
-
-        model->fsdx0();
-
+    if (computeSensitivities) {
         auto plist = model->getParameterList();
 
         if (sensi_meth == SensitivityMethod::forward && !plist.empty()) {
@@ -92,11 +100,6 @@ void Solver::setup(AmiVector *x, AmiVector *dx, AmiVectorArray *sx, AmiVectorArr
         calcIC(model->t(1), x, dx);
 }
 
-/**
- * setupAMIB initialises the AMI memory object for the backwards problem
- * @param bwd pointer to backward problem
- * @param model pointer to the model object
- */
 void Solver::setupAMIB(BackwardProblem *bwd, Model *model) {
     if (!solverMemory)
         throw AmiException("Solver for the forward problem must be setup first");
@@ -105,10 +108,10 @@ void Solver::setupAMIB(BackwardProblem *bwd, Model *model) {
     std::vector<realtype> dJydx = bwd->getdJydx();
     AmiVector *xB = bwd->getxBptr();
     xB->reset();
-    for (int ix = 0; ix < model->nxtrue; ++ix)
+    for (int ix = 0; ix < model->nxtrue_solver; ++ix)
         for (int iJ = 0; iJ < model->nJ; ++iJ)
-            xB->at(ix + iJ * model->nxtrue) +=
-                dJydx.at(iJ + ( ix + (model->nt() - 1)  * model->nx ) * model->nJ);
+            xB->at(ix + iJ * model->nxtrue_solver) +=
+                dJydx.at(iJ + ( ix + (model->nt() - 1)  * model->nx_solver ) * model->nJ);
     bwd->getdxBptr()->reset();
     bwd->getxQBptr()->reset();
 
@@ -135,17 +138,6 @@ void Solver::setupAMIB(BackwardProblem *bwd, Model *model) {
     setStabLimDetB(bwd->getwhich(), stldet);
 }
 
-/**
- * ErrHandlerFn extracts diagnosis information from solver memory block and
- * writes them into the return data object for the backward problem
- *
- * @param error_code error identifier
- * @param module name of the module in which the error occured
- * @param function name of the function in which the error occured @type
- * char
- * @param msg error message
- * @param eh_data unused input
- */
 void Solver::wrapErrHandlerFn(int error_code, const char *module,
                               const char *function, char *msg, void * /*eh_data*/) {
     char buffer[250];
@@ -232,18 +224,18 @@ void Solver::initializeLinearSolver(const Model *model) {
             /* DIRECT SOLVERS */
             
         case LinearSolver::dense:
-            dense(model->nx);
+            dense(model->nx_solver);
             setDenseJacFn();
             break;
             
         case LinearSolver::band:
-            band(model->nx, model->ubw, model->lbw);
+            band(model->nx_solver, model->ubw, model->lbw);
             setBandJacFn();
             break;
             
         case LinearSolver::LAPACKDense:
             throw AmiException("Solver currently not supported!");
-            /* status = CVLapackDense(ami_mem, nx);
+            /* status = CVLapackDense(ami_mem, nx_solver);
              if (status != AMICI_SUCCESS) return;
              
              status = SetDenseJacFn(ami_mem);
@@ -252,7 +244,7 @@ void Solver::initializeLinearSolver(const Model *model) {
             
         case LinearSolver::LAPACKBand:
             throw AmiException("Solver currently not supported!");
-            /* status = CVLapackBand(ami_mem, nx);
+            /* status = CVLapackBand(ami_mem, nx_solver);
              if (status != AMICI_SUCCESS) return;
              
              status = SetBandJacFn(ami_mem);
@@ -284,7 +276,7 @@ void Solver::initializeLinearSolver(const Model *model) {
             /* SPARSE SOLVERS */
             
         case LinearSolver::KLU:
-            klu(model->nx, model->nnz, CSC_MAT);
+            klu(model->nx_solver, model->nnz, CSC_MAT);
             setSparseJacFn();
             kluSetOrdering((int) getStateOrdering());
             break;
@@ -294,32 +286,26 @@ void Solver::initializeLinearSolver(const Model *model) {
             
     }
 }
-    
-    /**
-     * Sets the linear solver for the backward problem
-     *
-     * @param model pointer to the model object
-     * @param which index of the backward problem
-     */
+
 void Solver::initializeLinearSolverB(const Model *model, const int which) {
     switch (linsol) {
             
             /* DIRECT SOLVERS */
             
         case LinearSolver::dense:
-            denseB(which, model->nx);
+            denseB(which, model->nx_solver);
             setDenseJacFnB(which);
             break;
             
         case LinearSolver::band:
-            bandB(which, model->nx, model->ubw, model->lbw);
+            bandB(which, model->nx_solver, model->ubw, model->lbw);
             setBandJacFnB(which);
             break;
             
         case LinearSolver::LAPACKDense:
             
             /* #if SUNDIALS_BLAS_LAPACK
-             status = CVLapackDenseB(ami_mem, bwd->getwhich(), nx);
+             status = CVLapackDenseB(ami_mem, bwd->getwhich(), nx_solver);
              if (status != AMICI_SUCCESS) return;
              
              status = SetDenseJacFnB(ami_mem, bwd->getwhich());
@@ -331,7 +317,7 @@ void Solver::initializeLinearSolverB(const Model *model, const int which) {
         case LinearSolver::LAPACKBand:
             
             /* #if SUNDIALS_BLAS_LAPACK
-             status = CVLapackBandB(ami_mem, bwd->getwhich(), nx, ubw, lbw);
+             status = CVLapackBandB(ami_mem, bwd->getwhich(), nx_solver, ubw, lbw);
              if (status != AMICI_SUCCESS) return;
              
              status = SetBandJacFnB(ami_mem, bwd->getwhich());
@@ -365,7 +351,7 @@ void Solver::initializeLinearSolverB(const Model *model, const int which) {
             /* SPARSE SOLVERS */
             
         case LinearSolver::KLU:
-            kluB(which, model->nx, model->nnz, CSC_MAT);
+            kluB(which, model->nx_solver, model->nnz, CSC_MAT);
             setSparseJacFnB(which);
             kluSetOrderingB(which, (int) getStateOrdering());
             break;
@@ -380,8 +366,7 @@ bool operator ==(const Solver &a, const Solver &b)
     if (typeid(a) != typeid(b))
             return false;
 
-    return (a.sensi_meth == b.sensi_meth)
-            && (a.interpType == b.interpType)
+    return (a.interpType == b.interpType)
             && (a.lmm == b.lmm)
             && (a.iter == b.iter)
             && (a.stldet == b.stldet)
@@ -394,13 +379,21 @@ bool operator ==(const Solver &a, const Solver &b)
             && (a.atol == b.atol)
             && (a.rtol == b.rtol)
             && (a.maxsteps == b.maxsteps)
+            && (a.maxstepsB == b.maxstepsB)
             && (a.quad_atol == b.quad_atol)
             && (a.quad_rtol == b.quad_rtol)
-            && (a.getAbsoluteToleranceSteadyState() == b.getAbsoluteToleranceSteadyState())
-            && (a.getRelativeToleranceSteadyState() == b.getRelativeToleranceSteadyState())
-            && (a.getAbsoluteToleranceSteadyStateSensi() == b.getAbsoluteToleranceSteadyStateSensi())
-            && (a.getRelativeToleranceSteadyStateSensi() == b.getRelativeToleranceSteadyStateSensi())
-            && (a.maxstepsB == b.maxstepsB)
+            && (a.getAbsoluteToleranceSteadyState() ==
+                b.getAbsoluteToleranceSteadyState())
+            && (a.getRelativeToleranceSteadyState() ==
+                b.getRelativeToleranceSteadyState())
+            && (a.getAbsoluteToleranceSteadyStateSensi() ==
+                b.getAbsoluteToleranceSteadyStateSensi())
+            && (a.getRelativeToleranceSteadyStateSensi() ==
+                b.getRelativeToleranceSteadyStateSensi())
+            && (a.rtol_fsa == b.rtol_fsa || (isNaN(a.rtol_fsa) && isNaN(b.rtol_fsa)))
+            && (a.atol_fsa == b.atol_fsa || (isNaN(a.atol_fsa) && isNaN(b.atol_fsa)))
+            && (a.rtol_asa == b.rtol_asa || (isNaN(a.rtol_asa) && isNaN(b.rtol_asa)))
+            && (a.atol_asa == b.atol_asa || (isNaN(a.atol_asa) && isNaN(b.atol_asa)))
             && (a.sensi == b.sensi)
             && (a.sensi_meth == b.sensi_meth);
 }
@@ -420,8 +413,8 @@ void Solver::applyTolerancesFSA() {
         return;
     
     if(nplist()) {
-        std::vector<realtype> atols(nplist(), getAbsoluteToleranceSensi());
-        setSensSStolerances(getRelativeToleranceSensi(), atols.data());
+        std::vector<realtype> atols(nplist(), getAbsoluteToleranceFSA());
+        setSensSStolerances(getRelativeToleranceFSA(), atols.data());
         setSensErrCon(true);
     }
 }
@@ -434,7 +427,7 @@ void Solver::applyTolerancesASA(int which) {
         return;
     
     /* specify integration tolerances for backward problem */
-    setSStolerancesB(which, RCONST(rtol), RCONST(atol));
+    setSStolerancesB(which, RCONST(getRelativeToleranceASA()), RCONST(getAbsoluteToleranceASA()));
 }
     
 void Solver::applyQuadTolerancesASA(int which) {
@@ -547,31 +540,65 @@ void Solver::setAbsoluteTolerance(double atol) {
     }
 }
     
-double Solver::getRelativeToleranceSensi() const {
-    return isNaN(rtol_sensi) ? rtol : rtol_sensi;
+double Solver::getRelativeToleranceFSA() const {
+    return isNaN(rtol_fsa) ? rtol : rtol_fsa;
 }
 
-void Solver::setRelativeToleranceSensi(double rtol) {
+void Solver::setRelativeToleranceFSA(double rtol) {
     if(rtol < 0)
         throw AmiException("rtol must be a non-negative number");
     
-    rtol_sensi = rtol;
+    rtol_fsa = rtol;
     
     if(getMallocDone()) {
         applySensitivityTolerances();
     }
 }
 
-double Solver::getAbsoluteToleranceSensi() const {
-    return isNaN(atol_sensi) ? atol : atol_sensi;
+double Solver::getAbsoluteToleranceFSA() const {
+    return isNaN(atol_fsa) ? atol : atol_fsa;
 }
 
-void Solver::setAbsoluteToleranceSensi(double atol) {
+void Solver::setAbsoluteToleranceFSA(double atol) {
     if(atol < 0)
         throw AmiException("atol must be a non-negative number");
     
-    atol_sensi = atol;
+    atol_fsa = atol;
     
+    if(getMallocDone()) {
+        applySensitivityTolerances();
+    }
+}
+
+double Solver::getRelativeToleranceASA() const
+{
+    return isNaN(rtol_asa) ? rtol : rtol_asa;
+}
+
+void Solver::setRelativeToleranceASA(double rtol)
+{
+    if(rtol < 0)
+        throw AmiException("rtol must be a non-negative number");
+
+    rtol_asa = rtol;
+
+    if(getMallocDone()) {
+        applySensitivityTolerances();
+    }
+}
+
+double Solver::getAbsoluteToleranceASA() const
+{
+    return isNaN(atol_asa) ? atol : atol_asa;
+}
+
+void Solver::setAbsoluteToleranceASA(double atol)
+{
+    if(atol < 0)
+        throw AmiException("atol must be a non-negative number");
+
+    atol_asa = atol;
+
     if(getMallocDone()) {
         applySensitivityTolerances();
     }

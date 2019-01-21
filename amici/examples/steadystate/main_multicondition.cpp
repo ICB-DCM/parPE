@@ -1,7 +1,7 @@
+#include <parpeConfig.h>
 #include "steadyStateMultiConditionDataprovider.h"
 #include "wrapfunctions.h"
 
-#include <parpeConfig.h>
 #include <optimizationOptions.h>
 
 #ifdef PARPE_ENABLE_MPI

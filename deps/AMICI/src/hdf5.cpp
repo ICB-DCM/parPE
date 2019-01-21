@@ -466,8 +466,53 @@ void readSolverSettingsFromHDF5(H5::H5File const& file, Solver &solver, const st
         solver.setRelativeTolerance(getDoubleScalarAttribute(file, datasetPath, "rtol"));
     }
 
+    if(attributeExists(file, datasetPath, "atol_fsa")) {
+        solver.setAbsoluteToleranceFSA(getDoubleScalarAttribute(file, datasetPath, "atol_fsa"));
+    }
+
+    if(attributeExists(file, datasetPath, "rtol_fsa")) {
+        solver.setRelativeToleranceFSA(getDoubleScalarAttribute(file, datasetPath, "rtol_fsa"));
+    }
+
+
+    if(attributeExists(file, datasetPath, "atol_asa")) {
+        solver.setAbsoluteToleranceASA(getDoubleScalarAttribute(file, datasetPath, "atol_asa"));
+    }
+
+    if(attributeExists(file, datasetPath, "rtol_asa")) {
+        solver.setRelativeToleranceASA(getDoubleScalarAttribute(file, datasetPath, "rtol_asa"));
+    }
+
+    if(attributeExists(file, datasetPath, "quad_atol")) {
+        solver.setAbsoluteToleranceQuadratures(getDoubleScalarAttribute(file, datasetPath, "quad_atol"));
+    }
+
+    if(attributeExists(file, datasetPath, "quad_rtol")) {
+        solver.setRelativeToleranceQuadratures(getDoubleScalarAttribute(file, datasetPath, "quad_rtol"));
+    }
+
+    if(attributeExists(file, datasetPath, "ss_atol")) {
+        solver.setAbsoluteToleranceSteadyState(getDoubleScalarAttribute(file, datasetPath, "ss_atol"));
+    }
+
+    if(attributeExists(file, datasetPath, "ss_rtol")) {
+        solver.setRelativeToleranceSteadyState(getDoubleScalarAttribute(file, datasetPath, "ss_rtol"));
+    }
+
+    if(attributeExists(file, datasetPath, "ss_atol_sensi")) {
+        solver.setAbsoluteToleranceSteadyStateSensi(getDoubleScalarAttribute(file, datasetPath, "ss_atol_sensi"));
+    }
+
+    if(attributeExists(file, datasetPath, "ss_rtol_sensi")) {
+        solver.setRelativeToleranceSteadyStateSensi(getDoubleScalarAttribute(file, datasetPath, "ss_rtol_sensi"));
+    }
+
     if(attributeExists(file, datasetPath, "maxsteps")) {
         solver.setMaxSteps(getIntScalarAttribute(file, datasetPath, "maxsteps"));
+    }
+
+    if(attributeExists(file, datasetPath, "maxstepsB")) {
+        solver.setMaxStepsBackwardProblem(getIntScalarAttribute(file, datasetPath, "maxstepsB"));
     }
 
     if(attributeExists(file, datasetPath, "lmm")) {
@@ -588,10 +633,10 @@ void readModelDataFromHDF5(const H5::H5File &file, Model &model, const std::stri
         hsize_t length1 = 0;
         auto sx0 = getDoubleDataset2D(file, datasetPath + "/sx0", length0, length1);
         if(!sx0.empty()) {
-            if (length0 != (unsigned) model.nplist() && length1 != (unsigned) model.nx)
+            if (length0 != (unsigned) model.nplist() && length1 != (unsigned) model.nx_rdata)
                 throw(AmiException("Dimension mismatch when reading sx0. Expected %dx%d, got %llu, %llu.",
-                                   model.nx, model.nplist(), length0, length1));
-            model.setInitialStateSensitivities(sx0);
+                                   model.nx_rdata, model.nplist(), length0, length1));
+            model.setUnscaledInitialStateSensitivities(sx0);
         }
     }
 

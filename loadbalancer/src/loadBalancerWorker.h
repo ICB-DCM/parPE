@@ -23,7 +23,7 @@ class LoadBalancerWorker {
      */
     using messageHandlerFunc = std::function<void (std::vector<char> &buffer, int jobId)>;
 
-    void run(messageHandlerFunc messageHandler);
+    void run(const messageHandlerFunc &messageHandler);
 
   private:
     /**

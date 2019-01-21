@@ -5,8 +5,8 @@
 ;
 [subrepo]
 	remote = git@github.com:ICB-DCM/AMICI.git
-	branch = fix_declaration
-	commit = dce9bbcf97b9bbbe08757de63180de93f8d8496c
-	parent = e025ad9d4a7b9952f2cdd72b5c2ae17b24a695b9
+	branch = feature_547_tol_asa
+	commit = f9a90fa6efb62eaec27e8fb9b13a41329167aabd
+	parent = 770115c6974e1db94f512ce58ab9cd046c60688b
 	cmdver = 0.4.0
 	method = merge
