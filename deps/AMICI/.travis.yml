@@ -5,7 +5,6 @@ branches:
   only:
     - master
     - develop
-    - /^v\d+\.\d+(\.\d+)?(-\S*)?$/
 
 matrix:
   fast_finish: true
