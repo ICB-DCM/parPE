@@ -273,8 +273,8 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
     auto edata = dataProvider->getExperimentalDataForCondition(conditionIdx);
 
     /* In case of simulation failure, try rerunning with higher error tolerance */
-    constexpr int maxNumTrials = 10; // on failure, rerun simulation
-    constexpr double errorRelaxation = 1e3;
+    constexpr int maxNumTrials = 15; // on failure, rerun simulation
+    constexpr double errorRelaxation = 1e2;
     std::unique_ptr<amici::ReturnData> rdata;
     for(int trial = 1; trial <= maxNumTrials; ++trial) {
         // It is currently not safe to reuse solver if an exception has occured
@@ -299,24 +299,23 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
             // relax respective tolerances
             if(forwardFailed) {
                 solver->setAbsoluteTolerance(
-                            std::pow(errorRelaxation, trial)
+                            std::pow(errorRelaxation, trial - 1)
                             * solver->getAbsoluteTolerance());
                 solver->setRelativeTolerance(
-                            std::pow(errorRelaxation, trial)
+                            std::pow(errorRelaxation, trial - 1)
                             * solver->getRelativeTolerance());
             } else if (backwardFailed) {
                 solver->setAbsoluteToleranceQuadratures(
-                            std::pow(errorRelaxation, trial)
+                            std::pow(errorRelaxation, trial - 1)
                             * solver->getAbsoluteToleranceQuadratures());
                 solver->setRelativeToleranceQuadratures(
-                            std::pow(errorRelaxation, trial)
+                            std::pow(errorRelaxation, trial - 1)
                             * solver->getRelativeToleranceQuadratures());
-
                 solver->setAbsoluteToleranceB(
-                            std::pow(errorRelaxation, trial)
+                            std::pow(errorRelaxation, trial - 1)
                             * solver->getAbsoluteToleranceB());
                 solver->setRelativeToleranceB(
-                            std::pow(errorRelaxation, trial)
+                            std::pow(errorRelaxation, trial - 1)
                             * solver->getRelativeToleranceB());
             }
 
