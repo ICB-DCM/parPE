@@ -5,8 +5,8 @@
 ;
 [subrepo]
 	remote = git@github.com:ICB-DCM/AMICI.git
-	branch = fix_543_hdf5tol
-	commit = ec4e2e0c0148bd770470d09b02d80ec8d7d86bf7
-	parent = 314544f5172d6680990b3e05619fdf76fc2a4871
+	branch = develop
+	commit = 2f33f4f89b8a8da478d06b91affac05b7db99813
+	parent = 8222efd33c5d8ea1ab2acd05a4ffa793804a3756
 	cmdver = 0.4.0
 	method = merge
