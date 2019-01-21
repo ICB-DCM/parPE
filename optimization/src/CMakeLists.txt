@@ -11,8 +11,6 @@ set(SRC_LIST
 
 if(${PARPE_ENABLE_IPOPT})
     list(APPEND SRC_LIST localOptimizationIpopt.cpp localOptimizationIpoptTNLP.cpp)
-    # long static string arrays take forever to optimize with intel compiler
-    set_source_files_properties(localOptimizationIpopt.cpp PROPERTIES COMPILE_FLAGS -O0)
 endif(${PARPE_ENABLE_IPOPT})
 
 if(${PARPE_ENABLE_CERES})
