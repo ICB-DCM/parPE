@@ -16,16 +16,21 @@ namespace amici {
 
 extern msgIdAndTxtFp warnMsgIdAndTxt;
 
-
+/**
+ * @brief Initialises the ami memory object and applies specified options
+ * @param x state vector
+ * @param dx state derivative vector (DAE only)
+ * @param sx state sensitivity vector
+ * @param sdx state derivative sensitivity vector (DAE only)
+ * @param model pointer to the model object
+ */
 Solver::Solver(const Solver &other) : Solver()
 {
     sensi = other.sensi;
     atol = other.atol;
     rtol = other.rtol;
-    atol_fsa = other.atol_fsa;
-    rtol_fsa = other.rtol_fsa;
-    atol_asa = other.atol_asa;
-    rtol_asa = other.rtol_asa;
+    atol_sensi = other.atol_sensi;
+    rtol_sensi = other.rtol_sensi;
     quad_atol = other.quad_atol;
     quad_rtol = other.quad_rtol;
     ss_atol = other.ss_atol;
@@ -48,6 +53,8 @@ Solver::Solver(const Solver &other) : Solver()
 }
 
 void Solver::setup(AmiVector *x, AmiVector *dx, AmiVectorArray *sx, AmiVectorArray *sdx, Model *model) {
+    
+    
     bool computeSensitivities = sensi >= SensitivityOrder::first
             && model->nx_solver > 0;
     model->initialize(x, dx, sx, sdx, computeSensitivities);
@@ -100,6 +107,11 @@ void Solver::setup(AmiVector *x, AmiVector *dx, AmiVectorArray *sx, AmiVectorArr
         calcIC(model->t(1), x, dx);
 }
 
+/**
+ * setupAMIB initialises the AMI memory object for the backwards problem
+ * @param bwd pointer to backward problem
+ * @param model pointer to the model object
+ */
 void Solver::setupAMIB(BackwardProblem *bwd, Model *model) {
     if (!solverMemory)
         throw AmiException("Solver for the forward problem must be setup first");
@@ -138,6 +150,17 @@ void Solver::setupAMIB(BackwardProblem *bwd, Model *model) {
     setStabLimDetB(bwd->getwhich(), stldet);
 }
 
+/**
+ * ErrHandlerFn extracts diagnosis information from solver memory block and
+ * writes them into the return data object for the backward problem
+ *
+ * @param error_code error identifier
+ * @param module name of the module in which the error occured
+ * @param function name of the function in which the error occured @type
+ * char
+ * @param msg error message
+ * @param eh_data unused input
+ */
 void Solver::wrapErrHandlerFn(int error_code, const char *module,
                               const char *function, char *msg, void * /*eh_data*/) {
     char buffer[250];
@@ -286,7 +309,13 @@ void Solver::initializeLinearSolver(const Model *model) {
             
     }
 }
-
+    
+    /**
+     * Sets the linear solver for the backward problem
+     *
+     * @param model pointer to the model object
+     * @param which index of the backward problem
+     */
 void Solver::initializeLinearSolverB(const Model *model, const int which) {
     switch (linsol) {
             
@@ -390,10 +419,6 @@ bool operator ==(const Solver &a, const Solver &b)
                 b.getAbsoluteToleranceSteadyStateSensi())
             && (a.getRelativeToleranceSteadyStateSensi() ==
                 b.getRelativeToleranceSteadyStateSensi())
-            && (a.rtol_fsa == b.rtol_fsa || (isNaN(a.rtol_fsa) && isNaN(b.rtol_fsa)))
-            && (a.atol_fsa == b.atol_fsa || (isNaN(a.atol_fsa) && isNaN(b.atol_fsa)))
-            && (a.rtol_asa == b.rtol_asa || (isNaN(a.rtol_asa) && isNaN(b.rtol_asa)))
-            && (a.atol_asa == b.atol_asa || (isNaN(a.atol_asa) && isNaN(b.atol_asa)))
             && (a.sensi == b.sensi)
             && (a.sensi_meth == b.sensi_meth);
 }
@@ -413,8 +438,8 @@ void Solver::applyTolerancesFSA() {
         return;
     
     if(nplist()) {
-        std::vector<realtype> atols(nplist(), getAbsoluteToleranceFSA());
-        setSensSStolerances(getRelativeToleranceFSA(), atols.data());
+        std::vector<realtype> atols(nplist(), getAbsoluteToleranceSensi());
+        setSensSStolerances(getRelativeToleranceSensi(), atols.data());
         setSensErrCon(true);
     }
 }
@@ -427,7 +452,7 @@ void Solver::applyTolerancesASA(int which) {
         return;
     
     /* specify integration tolerances for backward problem */
-    setSStolerancesB(which, RCONST(getRelativeToleranceASA()), RCONST(getAbsoluteToleranceASA()));
+    setSStolerancesB(which, RCONST(rtol), RCONST(atol));
 }
     
 void Solver::applyQuadTolerancesASA(int which) {
@@ -540,65 +565,31 @@ void Solver::setAbsoluteTolerance(double atol) {
     }
 }
     
-double Solver::getRelativeToleranceFSA() const {
-    return isNaN(rtol_fsa) ? rtol : rtol_fsa;
+double Solver::getRelativeToleranceSensi() const {
+    return isNaN(rtol_sensi) ? rtol : rtol_sensi;
 }
 
-void Solver::setRelativeToleranceFSA(double rtol) {
+void Solver::setRelativeToleranceSensi(double rtol) {
     if(rtol < 0)
         throw AmiException("rtol must be a non-negative number");
     
-    rtol_fsa = rtol;
+    rtol_sensi = rtol;
     
     if(getMallocDone()) {
         applySensitivityTolerances();
     }
 }
 
-double Solver::getAbsoluteToleranceFSA() const {
-    return isNaN(atol_fsa) ? atol : atol_fsa;
+double Solver::getAbsoluteToleranceSensi() const {
+    return isNaN(atol_sensi) ? atol : atol_sensi;
 }
 
-void Solver::setAbsoluteToleranceFSA(double atol) {
+void Solver::setAbsoluteToleranceSensi(double atol) {
     if(atol < 0)
         throw AmiException("atol must be a non-negative number");
     
-    atol_fsa = atol;
+    atol_sensi = atol;
     
-    if(getMallocDone()) {
-        applySensitivityTolerances();
-    }
-}
-
-double Solver::getRelativeToleranceASA() const
-{
-    return isNaN(rtol_asa) ? rtol : rtol_asa;
-}
-
-void Solver::setRelativeToleranceASA(double rtol)
-{
-    if(rtol < 0)
-        throw AmiException("rtol must be a non-negative number");
-
-    rtol_asa = rtol;
-
-    if(getMallocDone()) {
-        applySensitivityTolerances();
-    }
-}
-
-double Solver::getAbsoluteToleranceASA() const
-{
-    return isNaN(atol_asa) ? atol : atol_asa;
-}
-
-void Solver::setAbsoluteToleranceASA(double atol)
-{
-    if(atol < 0)
-        throw AmiException("atol must be a non-negative number");
-
-    atol_asa = atol;
-
     if(getMallocDone()) {
         applySensitivityTolerances();
     }
