@@ -293,10 +293,10 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
             break;
 
         if(trial < maxNumTrials) {
-            solver->setAbsoluteTolerance(std::pow(errorRelaxation, trial) * solver->getAbsoluteTolerance());
-            solver->setAbsoluteToleranceQuadratures(std::pow(errorRelaxation, trial) * solver->getAbsoluteToleranceQuadratures());
-            solver->setRelativeTolerance(std::pow(errorRelaxation, trial) * solver->getRelativeTolerance());
-            solver->setRelativeToleranceQuadratures(std::pow(errorRelaxation, trial) * solver->getRelativeToleranceQuadratures());
+            solver->setAbsoluteTolerance(errorRelaxation * solver->getAbsoluteTolerance());
+            solver->setAbsoluteToleranceQuadratures(errorRelaxation * solver->getAbsoluteToleranceQuadratures());
+            solver->setRelativeTolerance(errorRelaxation * solver->getRelativeTolerance());
+            solver->setRelativeToleranceQuadratures(errorRelaxation * solver->getRelativeToleranceQuadratures());
 
             logger->logmessage(LOGLVL_WARNING, "Error during simulation (try %d/%d), "
                                                "retrying with relaxed error tolerances (*= %g): "
