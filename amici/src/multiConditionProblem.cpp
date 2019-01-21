@@ -280,24 +280,23 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
         // It is currently not safe to reuse solver if an exception has occured
         // so clone every time
         auto solver = std::unique_ptr<amici::Solver>(solverTemplate.clone());
-        try {
-            rdata = amici::runAmiciSimulation(*solver, edata.get(), model);
-        } catch (std::exception const& e) {
-            logger->logmessage(LOGLVL_WARNING, "Error during simulation: %s (%d)", e.what(), rdata->status);
-            if(rdata->status == AMICI_SUCCESS)
-                rdata->status = AMICI_ERROR;
-            rdata->invalidateLLH();
+
+        if(trial == maxNumTrials) {
+            logger->logmessage(LOGLVL_ERROR, "Simulation trial %d/%d failed. Giving up.", trial, maxNumTrials);
+            break;
         }
 
-        if(rdata->status == AMICI_SUCCESS)
+        if(rdata && rdata->status == AMICI_SUCCESS)
             break;
 
-        if(trial < maxNumTrials) {
+        if(rdata) {
+            // something went wrong in the previous simulation
             // until we have better exception handling, we check those fields to deduce where
             // the error occurred
             bool forwardFailed = std::isnan(rdata->x[rdata->x.size() - 1]);
             bool backwardFailed = std::isnan(rdata->llh);
 
+            // relax respective tolerances
             if(forwardFailed) {
                 solver->setAbsoluteTolerance(
                             std::pow(errorRelaxation, trial)
@@ -312,26 +311,37 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
                 solver->setRelativeToleranceQuadratures(
                             std::pow(errorRelaxation, trial)
                             * solver->getRelativeToleranceQuadratures());
-                solver->setAbsoluteToleranceASA(
+
+                solver->setAbsoluteToleranceB(
                             std::pow(errorRelaxation, trial)
-                            * solver->getAbsoluteToleranceASA());
-                solver->setRelativeToleranceASA(
-                            std::pow(errorRelaxation, trial) *
-                            solver->getRelativeToleranceASA());
+                            * solver->getAbsoluteToleranceB());
+                solver->setRelativeToleranceB(
+                            std::pow(errorRelaxation, trial)
+                            * solver->getRelativeToleranceB());
             }
 
-            logger->logmessage(LOGLVL_WARNING, "Error during simulation (try %d/%d), "
-                                               "retrying with relaxed error tolerances (*= %g): "
-                                               "abs: %g rel: %g quadAbs: %g quadRel: %g abs_asa: %g, rel_asa: %g",
+            logger->logmessage(LOGLVL_WARNING,
+                               "Error during simulation (try %d/%d), "
+                               "retrying with relaxed error tolerances (*= %g): "
+                               "abs: %g rel: %g quadAbs: %g quadRel: %g abs_asa: %g, rel_asa: %g",
                                trial, maxNumTrials, errorRelaxation,
                                solver->getAbsoluteTolerance(), solver->getRelativeTolerance(),
                                solver->getAbsoluteToleranceQuadratures(),
                                solver->getRelativeToleranceQuadratures(),
-                               solver->getAbsoluteToleranceASA(),
-                               solver->getRelativeToleranceASA());
-        } else {
-            logger->logmessage(LOGLVL_ERROR, "Simulation trial %d/%d failed. Giving up.", trial, maxNumTrials);
+                               solver->getAbsoluteToleranceB(),
+                               solver->getRelativeToleranceB());
+
         }
+
+        try {
+            rdata = amici::runAmiciSimulation(*solver, edata.get(), model);
+        } catch (std::exception const& e) {
+            logger->logmessage(LOGLVL_WARNING, "Error during simulation: %s (%d)", e.what(), rdata->status);
+            if(rdata->status == AMICI_SUCCESS)
+                rdata->status = AMICI_ERROR;
+            rdata->invalidateLLH();
+        }
+
     }
 
     double timeSeconds = simulationTimer.getTotal();
