@@ -273,8 +273,8 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
     auto edata = dataProvider->getExperimentalDataForCondition(conditionIdx);
 
     /* In case of simulation failure, try rerunning with higher error tolerance */
-    constexpr int maxNumTrials = 4; // on failure, rerun simulation
-    constexpr double errorRelaxation = 1e2;
+    constexpr int maxNumTrials = 10; // on failure, rerun simulation
+    constexpr double errorRelaxation = 1e3;
     std::unique_ptr<amici::ReturnData> rdata;
     for(int trial = 1; trial <= maxNumTrials; ++trial) {
         // It is currently not safe to reuse solver if an exception has occured
@@ -293,18 +293,42 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
             break;
 
         if(trial < maxNumTrials) {
-            solver->setAbsoluteTolerance(std::pow(errorRelaxation, trial) * solver->getAbsoluteTolerance());
-            solver->setAbsoluteToleranceQuadratures(std::pow(errorRelaxation, trial) * solver->getAbsoluteToleranceQuadratures());
-            solver->setRelativeTolerance(std::pow(errorRelaxation, trial) * solver->getRelativeTolerance());
-            solver->setRelativeToleranceQuadratures(std::pow(errorRelaxation, trial) * solver->getRelativeToleranceQuadratures());
+            // until we have better exception handling, we check those fields to deduce where
+            // the error occurred
+            bool forwardFailed = std::isnan(rdata->x[rdata->x.size() - 1]);
+            bool backwardFailed = std::isnan(rdata->llh);
+
+            if(forwardFailed) {
+                solver->setAbsoluteTolerance(
+                            std::pow(errorRelaxation, trial)
+                            * solver->getAbsoluteTolerance());
+                solver->setRelativeTolerance(
+                            std::pow(errorRelaxation, trial)
+                            * solver->getRelativeTolerance());
+            } else if (backwardFailed) {
+                solver->setAbsoluteToleranceQuadratures(
+                            std::pow(errorRelaxation, trial)
+                            * solver->getAbsoluteToleranceQuadratures());
+                solver->setRelativeToleranceQuadratures(
+                            std::pow(errorRelaxation, trial)
+                            * solver->getRelativeToleranceQuadratures());
+                solver->setAbsoluteToleranceASA(
+                            std::pow(errorRelaxation, trial)
+                            * solver->getAbsoluteToleranceASA());
+                solver->setRelativeToleranceASA(
+                            std::pow(errorRelaxation, trial) *
+                            solver->getRelativeToleranceASA());
+            }
 
             logger->logmessage(LOGLVL_WARNING, "Error during simulation (try %d/%d), "
                                                "retrying with relaxed error tolerances (*= %g): "
-                                               "abs: %g rel: %g quadAbs: %g quadRel: %g ",
+                                               "abs: %g rel: %g quadAbs: %g quadRel: %g abs_asa: %g, rel_asa: %g",
                                trial, maxNumTrials, errorRelaxation,
                                solver->getAbsoluteTolerance(), solver->getRelativeTolerance(),
                                solver->getAbsoluteToleranceQuadratures(),
-                               solver->getRelativeToleranceQuadratures());
+                               solver->getRelativeToleranceQuadratures(),
+                               solver->getAbsoluteToleranceASA(),
+                               solver->getRelativeToleranceASA());
         } else {
             logger->logmessage(LOGLVL_ERROR, "Simulation trial %d/%d failed. Giving up.", trial, maxNumTrials);
         }
