@@ -82,12 +82,8 @@ std::tuple<int, double, std::vector<double> > runMinibatchOptimization(Minibatch
 
     auto data = problem->getTrainingData();
 
-    auto reporter = problem->getReporter().get();
-    reporter->resultWriter->setLoggingEachFunctionEvaluation(false, false);
-    reporter->resultWriter->setLoggingEachIteration(false);
-
     return minibatchOptimizer->optimize(*costFun, data, initialParameters, lowerParameterBounds, upperParameterBounds,
-                                        reporter, problem->logger.get());
+                                        problem->getReporter().get(), problem->logger.get());
 }
 
 
