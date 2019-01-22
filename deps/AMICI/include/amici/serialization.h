@@ -42,10 +42,6 @@ void serialize(Archive &ar, amici::Solver &u, const unsigned int version) {
     ar &u.sensi;
     ar &u.atol;
     ar &u.rtol;
-    ar &u.atol_asa;
-    ar &u.rtol_asa;
-    ar &u.atol_fsa;
-    ar &u.rtol_fsa;
     ar &u.quad_atol;
     ar &u.quad_rtol;
     ar &u.ss_atol;

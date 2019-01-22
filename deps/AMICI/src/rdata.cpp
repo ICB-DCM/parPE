@@ -83,8 +83,6 @@ ReturnData::ReturnData(
     }
 
     x0.resize(nx, getNaN());
-        
-    x_ss.resize(nx, getNaN());
     
     res.resize(nt * nytrue, 0.0);
 
@@ -93,7 +91,6 @@ ReturnData::ReturnData(
     if (sensi >= SensitivityOrder::first){
         sllh.resize(nplist, getNaN());
         sx0.resize(nx * nplist, getNaN());
-        sx_ss.resize(nx * nplist, getNaN());
         
         if (sensi_meth == SensitivityMethod::forward || sensi >= SensitivityOrder::second){
             // for second order we can fill in from the augmented states
