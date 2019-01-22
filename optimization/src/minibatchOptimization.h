@@ -344,9 +344,12 @@ public:
         learningRateUpdater->setMaxEpochs(maxEpochs);
         parameterUpdater->initialize(initialParameters.size());
 
-        if (reporter)
+        if (reporter) {
             reporter->starting(initialParameters);
-
+            reporter->resultWriter->setLoggingEachFunctionEvaluation(false, false);
+            reporter->resultWriter->setLoggingEachIteration(false);
+        }
+        
         for (int epoch = 0; epoch < maxEpochs; ++epoch) {
             auto epochLogger = logger.getChild(std::string("e") + std::to_string(epoch));
 
