@@ -1,0 +1,533 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sbml xmlns="http://www.sbml.org/sbml/level2/version4" level="2" version="4">
+  <model metaid="arFramework3" id="il13_jak2_stat5">
+    <listOfUnitDefinitions>
+      <unitDefinition id="time" name="time">
+        <listOfUnits>
+          <unit kind="second" exponent="1" scale="0" multiplier="60"/>
+        </listOfUnits>
+      </unitDefinition>
+    </listOfUnitDefinitions>
+    <listOfCompartments>
+      <compartment id="cyt" spatialDimensions="3" size="100" constant="true"/>
+      <compartment id="nuc" spatialDimensions="3" size="10" constant="true"/>
+    </listOfCompartments>
+    <listOfSpecies>
+      <species id="Rec" name="Rec" compartment="cyt" initialConcentration="1.3" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
+      <species id="Rec_i" name="Rec_i" compartment="cyt" initialConcentration="1" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
+      <species id="IL13_Rec" name="IL13_Rec" compartment="cyt" initialConcentration="0" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
+      <species id="p_IL13_Rec" name="p_IL13_Rec" compartment="cyt" initialConcentration="0" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
+      <species id="p_IL13_Rec_i" name="p_IL13_Rec_i" compartment="cyt" initialConcentration="0" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
+      <species id="JAK2" name="JAK2" compartment="cyt" initialConcentration="2.8" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
+      <species id="pJAK2" name="pJAK2" compartment="cyt" initialConcentration="0" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
+      <species id="STAT5" name="STAT5" compartment="cyt" initialConcentration="165" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
+      <species id="pSTAT5" name="pSTAT5" compartment="cyt" initialConcentration="0" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
+      <species id="SOCS3mRNA" name="SOCS3mRNA" compartment="nuc" initialConcentration="0" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
+      <species id="DecoyR" name="DecoyR" compartment="cyt" initialConcentration="0.34" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
+      <species id="IL13_DecoyR" name="IL13_DecoyR" compartment="cyt" initialConcentration="0" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
+      <species id="SOCS3" name="SOCS3" compartment="cyt" initialConcentration="0" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
+      <species id="CD274mRNA" name="CD274mRNA" compartment="nuc" initialConcentration="0" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
+    </listOfSpecies>
+    <listOfParameters>
+      <parameter id="CD274mRNA_production" value="0.0212147662359417" constant="true"/>
+      <parameter id="DecoyR_binding" value="0.00385131628576674" constant="true"/>
+      <parameter id="JAK2_p_inhibition" value="0.0781525077338162" constant="true"/>
+      <parameter id="JAK2_phosphorylation" value="1.01746467089712" constant="true"/>
+      <parameter id="Kon_IL13Rec" value="0.00227786060666076" constant="true"/>
+      <parameter id="Rec_intern" value="0.34406435794877" constant="true"/>
+      <parameter id="Rec_phosphorylation" value="999.999392430661" constant="true"/>
+      <parameter id="Rec_recycle" value="0.00209816322890055" constant="true"/>
+      <parameter id="SOCS3_accumulation" value="451.596818983405" constant="true"/>
+      <parameter id="SOCS3_degradation" value="0.0433887549297662" constant="true"/>
+      <parameter id="SOCS3_translation" value="15.7244261244746" constant="true"/>
+      <parameter id="SOCS3mRNA_production" value="0.14327812349295" constant="true"/>
+      <parameter id="STAT5_phosphorylation" value="0.0194768335754619" constant="true"/>
+      <parameter id="init_Rec_i" value="234.959456370893" constant="true"/>
+      <parameter id="pJAK2_dephosphorylation" value="0.000175821249579369" constant="true"/>
+      <parameter id="pRec_degradation" value="0.209532118970476" constant="true"/>
+      <parameter id="pRec_intern" value="0.585096263629737" constant="true"/>
+      <parameter id="pSTAT5_dephosphorylation" value="0.000274790322592677" constant="true"/>
+      <parameter id="sd_CD274mRNA_abs" value="0.0244761059130156" constant="true"/>
+      <parameter id="sd_IL13_cell_abs" value="0.27515057296293" constant="true"/>
+      <parameter id="sd_RecSurf_abs" value="1.01215560921577e-05" constant="true"/>
+      <parameter id="sd_SOCS3_abs" value="15.169413720827" constant="true"/>
+      <parameter id="sd_SOCS3mRNA_abs" value="9.18854996116373" constant="true"/>
+      <parameter id="sd_pIL4Ra_abs" value="0.615883167883187" constant="true"/>
+      <parameter id="sd_pJAK2_abs" value="0.324394935431755" constant="true"/>
+      <parameter id="sd_pSTAT5_abs" value="1.40183018698345" constant="true"/>
+      <parameter id="observable_RecSurf" value="1" constant="false"/>
+      <parameter id="observable_IL13_cell" value="1" constant="false"/>
+      <parameter id="observable_pIL4Ra" value="1" constant="false"/>
+      <parameter id="observable_pJAK2" value="1" constant="false"/>
+      <parameter id="observable_SOCS3mRNA" value="1" constant="false"/>
+      <parameter id="observable_CD274mRNA" value="1" constant="false"/>
+      <parameter id="observable_SOCS3" value="1" constant="false"/>
+      <parameter id="observable_pSTAT5" value="1" constant="false"/>
+      <parameter id="il13_level" value="20" constant="true"/>
+    </listOfParameters>
+    <listOfInitialAssignments>
+      <initialAssignment symbol="Rec_i">
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <ci> init_Rec_i </ci>
+        </math>
+      </initialAssignment>
+      <initialAssignment symbol="IL13_Rec">
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <ci> il13_level </ci>
+        </math>
+      </initialAssignment>
+    </listOfInitialAssignments>
+    <listOfRules>
+      <assignmentRule variable="observable_RecSurf">
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <apply>
+            <log/>
+            <logbase>
+              <cn type="integer"> 10 </cn>
+            </logbase>
+            <apply>
+              <plus/>
+              <ci> IL13_Rec </ci>
+              <ci> Rec </ci>
+              <ci> p_IL13_Rec </ci>
+            </apply>
+          </apply>
+        </math>
+      </assignmentRule>
+      <assignmentRule variable="observable_IL13_cell">
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <apply>
+            <log/>
+            <logbase>
+              <cn type="integer"> 10 </cn>
+            </logbase>
+            <apply>
+              <plus/>
+              <ci> IL13_Rec </ci>
+              <ci> IL13_DecoyR </ci>
+              <ci> p_IL13_Rec </ci>
+              <ci> p_IL13_Rec_i </ci>
+            </apply>
+          </apply>
+        </math>
+      </assignmentRule>
+      <assignmentRule variable="observable_pIL4Ra">
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <apply>
+            <log/>
+            <logbase>
+              <cn type="integer"> 10 </cn>
+            </logbase>
+            <apply>
+              <plus/>
+              <ci> p_IL13_Rec </ci>
+              <ci> p_IL13_Rec_i </ci>
+            </apply>
+          </apply>
+        </math>
+      </assignmentRule>
+      <assignmentRule variable="observable_pJAK2">
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <apply>
+            <log/>
+            <logbase>
+              <cn type="integer"> 10 </cn>
+            </logbase>
+            <ci> pJAK2 </ci>
+          </apply>
+        </math>
+      </assignmentRule>
+      <assignmentRule variable="observable_SOCS3mRNA">
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <apply>
+            <log/>
+            <logbase>
+              <cn type="integer"> 10 </cn>
+            </logbase>
+            <ci> SOCS3mRNA </ci>
+          </apply>
+        </math>
+      </assignmentRule>
+      <assignmentRule variable="observable_CD274mRNA">
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <apply>
+            <log/>
+            <logbase>
+              <cn type="integer"> 10 </cn>
+            </logbase>
+            <ci> CD274mRNA </ci>
+          </apply>
+        </math>
+      </assignmentRule>
+      <assignmentRule variable="observable_SOCS3">
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <apply>
+            <log/>
+            <logbase>
+              <cn type="integer"> 10 </cn>
+            </logbase>
+            <ci> SOCS3 </ci>
+          </apply>
+        </math>
+      </assignmentRule>
+      <assignmentRule variable="observable_pSTAT5">
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <apply>
+            <log/>
+            <logbase>
+              <cn type="integer"> 10 </cn>
+            </logbase>
+            <ci> pSTAT5 </ci>
+          </apply>
+        </math>
+      </assignmentRule>
+    </listOfRules>
+    <listOfReactions>
+      <reaction id="v1_v_0" name="v_0" reversible="false">
+        <listOfReactants>
+          <speciesReference species="Rec" stoichiometry="1"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="IL13_Rec" stoichiometry="1"/>
+        </listOfProducts>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <times/>
+              <ci> cyt </ci>
+              <cn> 181.2 </cn>
+              <ci> Kon_IL13Rec </ci>
+              <ci> Rec </ci>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="v2_v_1" name="v_1" reversible="false">
+        <listOfReactants>
+          <speciesReference species="Rec" stoichiometry="1"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="Rec_i" stoichiometry="1"/>
+        </listOfProducts>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <times/>
+              <ci> cyt </ci>
+              <ci> Rec </ci>
+              <ci> Rec_intern </ci>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="v3_v_2" name="v_2" reversible="false">
+        <listOfReactants>
+          <speciesReference species="Rec_i" stoichiometry="1"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="Rec" stoichiometry="1"/>
+        </listOfProducts>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <times/>
+              <ci> cyt </ci>
+              <ci> Rec_i </ci>
+              <ci> Rec_recycle </ci>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="v4_v_3" name="v_3" reversible="false">
+        <listOfReactants>
+          <speciesReference species="IL13_Rec" stoichiometry="1"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="p_IL13_Rec" stoichiometry="1"/>
+        </listOfProducts>
+        <listOfModifiers>
+          <modifierSpeciesReference species="pJAK2"/>
+        </listOfModifiers>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <times/>
+              <ci> cyt </ci>
+              <ci> IL13_Rec </ci>
+              <ci> Rec_phosphorylation </ci>
+              <ci> pJAK2 </ci>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="v5_v_4" name="v_4" reversible="false">
+        <listOfReactants>
+          <speciesReference species="JAK2" stoichiometry="1"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="pJAK2" stoichiometry="1"/>
+        </listOfProducts>
+        <listOfModifiers>
+          <modifierSpeciesReference species="IL13_Rec"/>
+          <modifierSpeciesReference species="SOCS3"/>
+        </listOfModifiers>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <times/>
+              <ci> cyt </ci>
+              <apply>
+                <divide/>
+                <apply>
+                  <times/>
+                  <ci> IL13_Rec </ci>
+                  <ci> JAK2 </ci>
+                  <ci> JAK2_phosphorylation </ci>
+                </apply>
+                <apply>
+                  <plus/>
+                  <apply>
+                    <times/>
+                    <ci> JAK2_p_inhibition </ci>
+                    <ci> SOCS3 </ci>
+                  </apply>
+                  <cn type="integer"> 1 </cn>
+                </apply>
+              </apply>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="v6_v_5" name="v_5" reversible="false">
+        <listOfReactants>
+          <speciesReference species="JAK2" stoichiometry="1"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="pJAK2" stoichiometry="1"/>
+        </listOfProducts>
+        <listOfModifiers>
+          <modifierSpeciesReference species="SOCS3"/>
+          <modifierSpeciesReference species="p_IL13_Rec"/>
+        </listOfModifiers>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <times/>
+              <ci> cyt </ci>
+              <apply>
+                <divide/>
+                <apply>
+                  <times/>
+                  <ci> JAK2 </ci>
+                  <ci> JAK2_phosphorylation </ci>
+                  <ci> p_IL13_Rec </ci>
+                </apply>
+                <apply>
+                  <plus/>
+                  <apply>
+                    <times/>
+                    <ci> JAK2_p_inhibition </ci>
+                    <ci> SOCS3 </ci>
+                  </apply>
+                  <cn type="integer"> 1 </cn>
+                </apply>
+              </apply>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="v7_v_6" name="v_6" reversible="false">
+        <listOfReactants>
+          <speciesReference species="p_IL13_Rec" stoichiometry="1"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="p_IL13_Rec_i" stoichiometry="1"/>
+        </listOfProducts>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <times/>
+              <ci> cyt </ci>
+              <ci> pRec_intern </ci>
+              <ci> p_IL13_Rec </ci>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="v8_v_7" name="v_7" reversible="false">
+        <listOfReactants>
+          <speciesReference species="p_IL13_Rec_i" stoichiometry="1"/>
+        </listOfReactants>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <times/>
+              <ci> cyt </ci>
+              <ci> pRec_degradation </ci>
+              <ci> p_IL13_Rec_i </ci>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="v9_v_8" name="v_8" reversible="false">
+        <listOfReactants>
+          <speciesReference species="pJAK2" stoichiometry="1"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="JAK2" stoichiometry="1"/>
+        </listOfProducts>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <times/>
+              <ci> cyt </ci>
+              <cn type="integer"> 91 </cn>
+              <ci> pJAK2 </ci>
+              <ci> pJAK2_dephosphorylation </ci>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="v10_v_9" name="v_9" reversible="false">
+        <listOfReactants>
+          <speciesReference species="STAT5" stoichiometry="1"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="pSTAT5" stoichiometry="1"/>
+        </listOfProducts>
+        <listOfModifiers>
+          <modifierSpeciesReference species="pJAK2"/>
+        </listOfModifiers>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <times/>
+              <ci> cyt </ci>
+              <ci> STAT5 </ci>
+              <ci> STAT5_phosphorylation </ci>
+              <ci> pJAK2 </ci>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="v11_v_10" name="v_10" reversible="false">
+        <listOfReactants>
+          <speciesReference species="pSTAT5" stoichiometry="1"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="STAT5" stoichiometry="1"/>
+        </listOfProducts>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <times/>
+              <ci> cyt </ci>
+              <cn type="integer"> 91 </cn>
+              <ci> pSTAT5 </ci>
+              <ci> pSTAT5_dephosphorylation </ci>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="v12_v_11" name="v_11" reversible="false">
+        <listOfReactants>
+          <speciesReference species="DecoyR" stoichiometry="1"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="IL13_DecoyR" stoichiometry="1"/>
+        </listOfProducts>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <times/>
+              <ci> cyt </ci>
+              <cn> 181.2 </cn>
+              <ci> DecoyR </ci>
+              <ci> DecoyR_binding </ci>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="v13_v_12" name="v_12" reversible="false">
+        <listOfProducts>
+          <speciesReference species="SOCS3mRNA" stoichiometry="1"/>
+        </listOfProducts>
+        <listOfModifiers>
+          <modifierSpeciesReference species="pSTAT5"/>
+        </listOfModifiers>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <times/>
+              <ci> nuc </ci>
+              <ci> SOCS3mRNA_production </ci>
+              <ci> pSTAT5 </ci>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="v14_v_13" name="v_13" reversible="false">
+        <listOfProducts>
+          <speciesReference species="SOCS3" stoichiometry="1"/>
+        </listOfProducts>
+        <listOfModifiers>
+          <modifierSpeciesReference species="SOCS3mRNA"/>
+        </listOfModifiers>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <times/>
+              <ci> cyt </ci>
+              <apply>
+                <divide/>
+                <apply>
+                  <times/>
+                  <ci> SOCS3mRNA </ci>
+                  <ci> SOCS3_translation </ci>
+                </apply>
+                <apply>
+                  <plus/>
+                  <ci> SOCS3mRNA </ci>
+                  <ci> SOCS3_accumulation </ci>
+                </apply>
+              </apply>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="v15_v_14" name="v_14" reversible="false">
+        <listOfReactants>
+          <speciesReference species="SOCS3" stoichiometry="1"/>
+        </listOfReactants>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <times/>
+              <ci> cyt </ci>
+              <ci> SOCS3 </ci>
+              <ci> SOCS3_degradation </ci>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="v16_v_15" name="v_15" reversible="false">
+        <listOfProducts>
+          <speciesReference species="CD274mRNA" stoichiometry="1"/>
+        </listOfProducts>
+        <listOfModifiers>
+          <modifierSpeciesReference species="pSTAT5"/>
+        </listOfModifiers>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <times/>
+              <ci> nuc </ci>
+              <ci> CD274mRNA_production </ci>
+              <ci> pSTAT5 </ci>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+    </listOfReactions>
+  </model>
+</sbml>
