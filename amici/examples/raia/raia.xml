@@ -90,6 +90,7 @@
               <ci> IL13_Rec </ci>
               <ci> Rec </ci>
               <ci> p_IL13_Rec </ci>
+              <cn type="real"> 0.001 </cn>
             </apply>
           </apply>
         </math>
@@ -107,6 +108,7 @@
               <ci> IL13_DecoyR </ci>
               <ci> p_IL13_Rec </ci>
               <ci> p_IL13_Rec_i </ci>
+              <cn type="real"> 0.001 </cn>
             </apply>
           </apply>
         </math>
@@ -122,6 +124,7 @@
               <plus/>
               <ci> p_IL13_Rec </ci>
               <ci> p_IL13_Rec_i </ci>
+              <cn type="real"> 0.001 </cn>
             </apply>
           </apply>
         </math>
@@ -133,7 +136,11 @@
             <logbase>
               <cn type="integer"> 10 </cn>
             </logbase>
-            <ci> pJAK2 </ci>
+            <apply>
+              <plus/>
+              <ci> pJAK2 </ci>
+              <cn type="real"> 0.001 </cn>
+            </apply>
           </apply>
         </math>
       </assignmentRule>
@@ -144,7 +151,11 @@
             <logbase>
               <cn type="integer"> 10 </cn>
             </logbase>
-            <ci> SOCS3mRNA </ci>
+            <apply>
+              <plus/>
+              <ci> SOCS3mRNA </ci>
+              <cn type="real"> 0.001 </cn>
+            </apply>
           </apply>
         </math>
       </assignmentRule>
@@ -155,7 +166,11 @@
             <logbase>
               <cn type="integer"> 10 </cn>
             </logbase>
-            <ci> CD274mRNA </ci>
+            <apply>
+              <plus/>
+              <ci> CD274mRNA </ci>
+              <cn type="real"> 0.001 </cn>
+            </apply>
           </apply>
         </math>
       </assignmentRule>
@@ -166,7 +181,11 @@
             <logbase>
               <cn type="integer"> 10 </cn>
             </logbase>
-            <ci> SOCS3 </ci>
+            <apply>
+              <plus/>
+              <ci> SOCS3 </ci>
+              <cn type="real"> 0.001 </cn>
+            </apply>
           </apply>
         </math>
       </assignmentRule>
@@ -177,7 +196,11 @@
             <logbase>
               <cn type="integer"> 10 </cn>
             </logbase>
-            <ci> pSTAT5 </ci>
+            <apply>
+              <plus/>
+              <ci> pSTAT5 </ci>
+              <cn type="real"> 0.001 </cn>
+            </apply>
           </apply>
         </math>
       </assignmentRule>
