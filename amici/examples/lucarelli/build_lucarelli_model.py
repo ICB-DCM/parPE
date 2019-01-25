@@ -184,8 +184,7 @@ def main():
     amici_options = f_hdf5['amiciOptions']
     amici_options.attrs['atol'] = 1.0e-8
     amici_options.attrs['rtol'] = 1.0e-6
-    amici_options.attrs['quad_atol'] = 1.0e-7
-    amici_options.attrs['quad_rtol'] = 1.0e-5
+    amici_options.attrs['sensi_meth'] = 1
 
 if __name__ == '__main__':
     main()
