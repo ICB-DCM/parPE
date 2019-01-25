@@ -6,6 +6,7 @@ import sys
 import amici
 import numpy as np
 import pandas as pd
+import h5py
 
 
 def createConditionDataframe(indices, conditions, parameters):
@@ -178,6 +179,13 @@ def main():
                          stderr=subprocess.STDOUT)
     print(out.stdout.decode("utf-8"))
 
+    # changes some solver options in the hdf5 file
+    f_hdf5 =  h5py.File(hdf5File, 'r+')
+    amici_options = f_hdf5['amiciOptions']
+    amici_options.attrs['atol'] = 1.0e-8
+    amici_options.attrs['rtol'] = 1.0e-6
+    amici_options.attrs['quad_atol'] = 1.0e-7
+    amici_options.attrs['quad_rtol'] = 1.0e-5
 
 if __name__ == '__main__':
     main()

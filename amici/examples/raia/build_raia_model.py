@@ -6,6 +6,7 @@ import sys
 import amici
 import numpy as np
 import pandas as pd
+import h5py
 
 
 def createConditionDataframe(indices, conditions, parameters):
@@ -101,8 +102,6 @@ def main():
     solver.setMaxSteps(10000)
 
     # generate condition-vectors
-    sigma = 0.2
-    mu = 1.5
     nConditions = 10
     init_conditions = [np.array([0.])]
     for i_cond in range(1, nConditions):
@@ -160,7 +159,6 @@ def main():
     conditionDf.to_csv(fixed_parameter_file, sep='\t', index=False)
 
     # convert to HDF5
-
     subprocess.call(["/bin/bash", "-c",
                      "if [[ -f example_data.h5 ]]; then cp example_data.h5 example_data.h5.bak; fi"])
 
@@ -173,6 +171,12 @@ def main():
                          stderr=subprocess.STDOUT)
     print(out.stdout.decode("utf-8"))
 
+    # changes some solver options in the hdf5 file
+    f_hdf5 =  h5py.File(hdf5File, 'r+')
+    amici_options = f_hdf5['amiciOptions']
+    amici_options.attrs['atol'] = 1.0e-8
+    amici_options.attrs['rtol'] = 1.0e-6
+    amici_options.attrs['sensi_meth'] = 1 
 
 if __name__ == '__main__':
     main()
