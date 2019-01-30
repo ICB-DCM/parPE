@@ -252,7 +252,7 @@ void saveSimulation(hid_t file_id, std::string const& pathStr, std::vector<doubl
 }
 
 AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
-        amici::Solver const& solverTemplate,
+        amici::Solver &solver,
         amici::Model &model,
         int conditionIdx,
         int jobId,
@@ -272,8 +272,14 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
 
     auto edata = dataProvider->getExperimentalDataForCondition(conditionIdx);
 
+    // save tolerances to restore later
+    auto absTolOrig = solver.getAbsoluteTolerance();
+    auto absTolQuadOrig = solver.getAbsoluteToleranceQuadratures();
+    auto relTolOrig = solver.getRelativeTolerance();
+    auto relTolQuadOrig = solver.getRelativeToleranceQuadratures();
+
     /* In case of simulation failure, try rerunning with higher error tolerance */
-    constexpr int maxNumTrials = 15; // on failure, rerun simulation
+    constexpr int maxNumTrials = 4; // on failure, rerun simulation
     constexpr double errorRelaxation = 1e2;
     std::unique_ptr<amici::ReturnData> rdata;
     for(int trial = 1; trial <= maxNumTrials; ++trial) {
@@ -333,7 +339,7 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
         }
 
         try {
-            rdata = amici::runAmiciSimulation(*solver, edata.get(), model);
+            rdata = amici::runAmiciSimulation(solver, edata.get(), model);
         } catch (std::exception const& e) {
             logger->logmessage(LOGLVL_WARNING, "Error during simulation: %s (%d)", e.what(), rdata->status);
             if(rdata->status == AMICI_SUCCESS)
@@ -341,13 +347,14 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
             rdata->invalidateLLH();
         }
 
+        if(rdata->status == AMICI_SUCCESS)
+            break;
     }
-
     double timeSeconds = simulationTimer.getTotal();
 
     printSimulationResult(logger, jobId, rdata.get(), timeSeconds);
 
-    if (resultWriter && (solverTemplate.getSensitivityOrder() > amici::SensitivityOrder::none || logLineSearch)) {
+    if (resultWriter && (solver.getSensitivityOrder() > amici::SensitivityOrder::none || logLineSearch)) {
         saveSimulation(resultWriter->getFileId(), resultWriter->getRootPath(),
                       model.getParameters(), rdata->llh, rdata->sllh,
                       timeSeconds, rdata->x, rdata->sx, rdata->y,
@@ -357,7 +364,7 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
     return AmiciSimulationRunner::AmiciResultPackageSimple {
         rdata->llh,
                 timeSeconds,
-                (solverTemplate.getSensitivityOrder() > amici::SensitivityOrder::none) ? rdata->sllh : std::vector<double>(),
+                (solver.getSensitivityOrder() > amici::SensitivityOrder::none) ? rdata->sllh : std::vector<double>(),
                 rdata->y,
                 rdata->status
     };

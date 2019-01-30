@@ -196,18 +196,11 @@ class ReturnData {
      was reached*/
     realtype wrms_sensi_steadystate = NAN;
 
-    
-    /** initial state (dimension: nx) */
+    /** preequilibration steady state found be Newton solver (dimension: nx) */
     std::vector<realtype> x0;
-    
-    /** preequilibration steady state found by Newton solver (dimension: nx) */
-    std::vector<realtype> x_ss;
 
-    /** initial sensitivities (dimension: nplist x nx, row-major) */
+    /** preequilibration sensitivities found be Newton solver (dimension: nplist x nx, row-major) */
     std::vector<realtype> sx0;
-    
-    /** preequilibration sensitivities found by Newton solver (dimension: nplist x nx, row-major) */
-    std::vector<realtype> sx_ss;
 
     /** loglikelihood value */
     realtype llh = 0.0;
