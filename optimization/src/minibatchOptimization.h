@@ -112,23 +112,22 @@ public:
 private:
     /** Maximum number of epochs, will be set after creation of problem instance */
     int maxEpochs = 0;
-    
+
     /** Learning rate, i.e. step size, at the moment of optimization */
     double currentLearningRate = 0.0;
-    
+
     /** If an optimization step is not succesful, the learning rate, i.e., step size, will be reduced by this factor */
     double reductionFactor = 4.0;
-    
+
     /** Learning rate, i.e. step size, at the beginning of optimization */
     double startLearningRate = 0.1;
-    
+
     /** Learning rate, i.e. step size, at the end of optimization */
     double endLearningRate = 0.001;
-    
+
     /** Mode of interpolation between the beginning and the end of optimization */
     learningRateInterp learningRateInterpMode = learningRateInterp::linear;
 };
-
 
 /**
  * @brief Interface for parameter updaters for minibatch optimizers
@@ -162,12 +161,11 @@ public:
 
 };
 
-
 /** Minibatch optimizer: Vanilla SGD Updater
-  * The Vanilla SGD updater currently takes two inputs:
-  * start value of the learning rate
-  * end value of the learning rate
-  */
+ * The Vanilla SGD updater currently takes two inputs:
+ * start value of the learning rate
+ * end value of the learning rate
+ */
 class ParameterUpdaterVanilla: public ParameterUpdater {
 public:
     ParameterUpdaterVanilla() = default;
@@ -179,19 +177,25 @@ public:
                           gsl::span<const double> lowerBounds = gsl::span<const double>(),
                           gsl::span<const double> upperBounds = gsl::span<const double>()) override;
 
-    void undoLastStep() override {};
+    void undoLastStep() override {
+    }
+    ;
 
-    void clearCache() override {};
+    void clearCache() override {
+    }
+    ;
 
-    void initialize(unsigned int numParameters) override {};
+    void initialize(unsigned int numParameters) override {
+    }
+    ;
 };
 
 /** Minibatch optimizer: RMSProp Updater
-  *
-  * The RMSProp updater currently takes two inputs:
-  * start value of the learning rate
-  * end value of the learning rate
-  */
+ *
+ * The RMSProp updater currently takes two inputs:
+ * start value of the learning rate
+ * end value of the learning rate
+ */
 class ParameterUpdaterRmsProp: public ParameterUpdater {
 public:
     ParameterUpdaterRmsProp() = default;
@@ -213,23 +217,22 @@ private:
 
     /** Rate for memorizing gradient norms (between 0 and 1, high rates mean long memory) */
     double decayRate = 0.9;
-    
+
     /** Stabilization factor for gradient normalization (avoid deviding by 0) */
     double delta = 1e-7;
-    
+
     /** Memorized gradient norms (decaying average) from last steps */
     std::vector<double> gradientNormCache;
-    
+
     /** Memorized gradient norms (decaying average), one step back (if one step must be undone) */
     std::vector<double> oldGradientNormCache;
 };
 
-
 /** Minibatch optimizer: Adam Updater
-  * The Adam updater currently takes two inputs:
-  * start value of the learning rate
-  * end value of the learning rate
-  */
+ * The Adam updater currently takes two inputs:
+ * start value of the learning rate
+ * end value of the learning rate
+ */
 
 class ParameterUpdaterAdam: public ParameterUpdater {
 public:
@@ -252,22 +255,22 @@ private:
 
     /** Rate for memorizing gradients (between 0 and 1, high rates mean long memory) */
     double decayRateGradient = 0.9;
-    
+
     /** Rate for memorizing gradient norms (between 0 and 1, high rates mean long memory) */
     double decayRateGradientNorm = 0.9;
-    
+
     /** Stabilization factor for gradient normalization (avoid deviding by 0) */
     double delta = 1e-7;
-    
+
     /** Memorized gradient norms (decaying average) from last steps */
     std::vector<double> gradientNormCache;
-    
+
     /** Memorized gradient norms (decaying average), one step back (if one step must be undone) */
     std::vector<double> oldGradientNormCache;
-    
+
     /** Memorized gradients (decaying average) from last steps */
     std::vector<double> gradientCache;
-    
+
     /** Memorized gradients (decaying average), one step back (if one step must be undone) */
     std::vector<double> oldGradientCache;
 };
@@ -298,6 +301,15 @@ std::vector<std::vector<T>> getBatches(gsl::span<const T> data,
 
     return batches;
 }
+
+/**
+ * @brief Get scalar product of two vectors.
+ * @param v
+ * @param w
+ * @return the scalar product
+ */
+double getScalarProduct(gsl::span<const double> v,
+                        gsl::span<const double> w);
 
 /**
  * @brief Get Euclidean (l2) norm of vector.
@@ -349,7 +361,7 @@ public:
             reporter->resultWriter->setLoggingEachFunctionEvaluation(false, false);
             reporter->resultWriter->setLoggingEachIteration(false);
         }
-        
+
         for (int epoch = 0; epoch < maxEpochs; ++epoch) {
             auto epochLogger = logger.getChild(std::string("e") + std::to_string(epoch));
 
@@ -394,9 +406,10 @@ public:
                     oldParameters = parameters;
                 }
 
-                learningRate = learningRateUpdater->getCurrentLearningRate();
-                parameterUpdater->updateParameters(learningRate, iteration, gradient, parameters, lowerParameterBounds,
-                                                   upperParameterBounds);
+                // Update parameters after successful gradient evaluation
+                parameterUpdater->updateParameters(learningRateUpdater->getCurrentLearningRate(), iteration, gradient,
+                                                   parameters, lowerParameterBounds, upperParameterBounds);
+
             }
 
             // epoch finished, write the values in hdf5-file
@@ -520,27 +533,27 @@ public:
             parameters = oldParameters;
 
             // Check if there are NaNs in the parameter vector now (e.g., fail at first iteration)
-            if(std::any_of(parameters.begin(), parameters.end(), [](double d) { return std::isnan(d); }))
+            if (std::any_of(parameters.begin(), parameters.end(), [](double d) {return std::isnan(d);}))
+                finalFail = true;
+            if (subsequentFails >= maxSubsequentFails)
                 finalFail = true;
 
-            // If too many fails: cancel optimization
-            if (subsequentFails >= maxSubsequentFails || finalFail) {
-                if (interceptor == interceptType::reduceStepAndRestart) {
-                    /* Reducing step size did not work. Yet, a small step in descent direction
-                     * should actually do the job. So clear all cached gradients and retry with
-                     * a very small step size (e.g. 1e-5)
-                     */
-                    subsequentFails = 0;
-                    parameterUpdater->clearCache();
-                    learningRateUpdater->setReductionFactor(1e-5);
-                } else {
-                    // Really everything failed, there is no hope for this run any more
-                    return functionEvaluationFailure;
-                }
+            // If nothing helps and no cold restart wanted: cancel optimization
+            if (finalFail and interceptor != interceptType::reduceStepAndRestart)
+                return functionEvaluationFailure;
+            
+            if (finalFail) {
+                /* Reducing step size did not work. 
+                 * Do a cold restart and take a very small step.
+                 */
+                subsequentFails = 0;
+                parameterUpdater->clearCache();
+                learningRateUpdater->setReductionFactor(1e-5);
             } else {
-                // If we did not fail too often, we reduce the step size and try to redo the step
-                learningRateUpdater->reduceLearningRate();
+                /* We did not fail too often: we reduce the step size */
+                 learningRateUpdater->reduceLearningRate();
             }
+            
             // Do the next step
             learningRate = learningRateUpdater->getCurrentLearningRate();
             parameterUpdater->updateParameters(learningRate, iteration, gradient, parameters, lowerParameterBounds,
@@ -553,10 +566,146 @@ public:
         return status;
     }
 
+    /**
+     * @brief Try to determine a good step length in descent direction
+     *
+     * @param parameters current parameter vector
+     * @param oldParameters parameter vector before last step
+     * @param gradient current cost function gradient
+     * @param oldGradient cost function gradient before last step
+     * @param cost new cost function value after interception
+     * @param subsequentFails number of iterations during rescue interceptor
+     * @param f Function to minize
+     * @param data Full data set on which f will be evaluated
+     * @param logger Logger instance for status messages
+     * @param reporter OptimizationReporter instance for tracking progress
+     * @return FunctionEvaluationStatus 
+     */
+    void handleStep(gsl::span<double> parameters,
+                    gsl::span<double> oldParameters,
+                    gsl::span<double> gradient,
+                    gsl::span<const double> lowerParameterBounds,
+                    gsl::span<const double> upperParameterBounds,
+                    double &cost,
+                    int &subsequentFails,
+                    int iteration,
+                    SummedGradientFunction<BATCH_ELEMENT> const& f,
+                    std::vector<BATCH_ELEMENT> datasets,
+                    Logger *logger,
+                    OptimizationReporter *reporter) {
+
+        /* Retrieve step length and try a full step */
+        stepLength = learningRateUpdater->getCurrentLearningRate();
+        parameterUpdater->updateParameters(stepLength, iteration, gradient, parameters, 
+                                           lowerParameterBounds, upperParameterBounds);
+
+        /* If no line search desired: that's it! */
+        if (lineSearchSteps == 0) return;
+        
+        /* Do we check for a decreasing cost function? */
+        double cost1 = NAN;
+        double cost2 = NAN;
+        double newStepLength = NAN;
+        FunctionEvaluationStatus status = evaluate(f, parameters, datasets, cost1, 
+                                                   gsl::span<double>(), logger, reporter);
+
+        /* Return on improvement */
+        if (cost1 <= cost) return;
+        
+        /* No improvement: retrieve update direction */
+        std::vector<double> direction(parameters.size(), NAN);
+        for (int i = 0; i < gradient.size(); ++i)
+            direction[i] = parameters[i] - oldParameters[i];
+        double dirNorm = getVectorNorm(direction);
+        for (int i = 0; i < gradient.size(); ++i)
+            direction[i] /= dirNorm;
+        
+        /* Is the step direction a descent direction? */
+        dirGradient = getScalarProduct(direction, gradient);
+        if (dirGradient > 0) {
+            /* No descent direction, no hope for improvement:
+             * Try to do something smart anyway */
+            
+            /* Fit a parabola to decide whether a smaller or 
+             * a bigger step seems more promising */
+            if (cost1 < cost + 2.0 * dirNorm * dirGradient) {
+                newStepLength = stepLength * 2.0;
+            } else {
+                newStepLength = stepLength / 2.0;
+            }
+            
+            /* re-evaluate cost function */
+            parameters = oldParameters;
+            parameterUpdater->updateParameters(newStepLength, iteration, gradient, parameters, 
+                                               lowerParameterBounds, upperParameterBounds);
+            double cost2 = NAN;
+            status = evaluate(f, parameters, datasets, cost2, 
+                              gsl::span<double>(), logger, reporter);
+            
+            if (cost2 > cost1) {
+                /* The parabola idea didn't work. Just admit the step, as it is */
+                parameters = oldParameters;
+                parameterUpdater->updateParameters(stepLength, iteration, gradient, parameters, 
+                                                   lowerParameterBounds, upperParameterBounds);
+                status = evaluate(f, parameters, datasets, cost2, 
+                                  gsl::span<double>(), logger, reporter);
+            }
+            /* We tried all we could */
+            return;
+        }
+        
+        /* Original step was too big, but we're facing a descent direction 
+         * Propose a new step based on a parabolic interpolation */
+        newStepLength = 0.5 * dirGradient * std::pow(stepLength, 2.0) /
+                (cost1 - cost - dirGradient * stepLength)
+        parameters = oldParameters;
+        parameterUpdater->updateParameters(newStepLength, iteration, gradient, parameters, 
+                                           lowerParameterBounds, upperParameterBounds);
+        status = evaluate(f, parameters, datasets, cost2, 
+                          gsl::span<double>(), logger, reporter);
+        
+        /* If we did improve, return, otherwise iterate */
+        if (cost2 < cost) return;
+        
+        if (lineSearchSteps < 2) {
+            /* No more iteration wanted, but 2nd try was better than 1st */
+            if (cost2 <= cost1) return;
+            
+            /* 1st try was better than 2nd, use it */
+            parameters = oldParameters;
+            parameterUpdater->updateParameters(stepLength, iteration, gradient, parameters, 
+                                               lowerParameterBounds, upperParameterBounds);
+        } else {
+            /* No descent found and line search option is set: iterate! */
+            performLineSearch();
+        }
+    }
+
+    /**
+     * @brief Perform line search according to interpolation algo by [Dennis and Schnabel, 
+     * Numerical Methods for Unconstrained Optimization and Non-linear Equations, 1993].
+     *
+     * @param parameters current parameter vector
+     */
+    void performLineSearch() {
+
+        /* First, try to interpolate quadratically */
+        double cost0 = cost;
+        double cost1 = newCost;
+        
+        /* The initial guess for the step size failed, 
+         * let's try half of the intended step size first */
+        double cost2 = NAN;
+        FunctionEvaluationStatus status = evaluate(f, parameters, datasets, cost2, gsl::span<double>(), logger, reporter)
+        
+    }
+        
+    
     std::unique_ptr<ParameterUpdater> parameterUpdater = std::make_unique<ParameterUpdaterVanilla>();
 
     // Set some default values
     interceptType interceptor = interceptType::reduceStepAndRestart;
+    int lineSearchSteps = 0;
     int batchSize = 1;
     int maxEpochs = 1;
     double gradientNormThreshold = 0.0;

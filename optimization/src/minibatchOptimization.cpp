@@ -4,13 +4,18 @@
 
 namespace parpe {
 
-double getVectorNorm(gsl::span<const double> v) {
-    double norm = 0.0;
-    for (auto e : v)
-        norm += std::pow(e, 2.0);
-    norm = std::sqrt(norm);
-    return norm;
+double getScalarProduct(gsl::span<const double> v,
+                        gsl::span<const double> w) {
+    double scalarProduct = 0.0;
+    for (int i = 0; i < gradient.size(); ++i)
+        scalarProduct += v[i] * w[i];
+    return scalarProduct;
 }
+
+double getVectorNorm(gsl::span<const double> v) {
+    return std::sqrt(getScalarProduct(v, v));
+}
+
 
 void setMinibatchOption(const std::pair<const std::string, const std::string> &pair,
                         MinibatchOptimizer<int> *optimizer) {
@@ -23,6 +28,8 @@ void setMinibatchOption(const std::pair<const std::string, const std::string> &p
         optimizer->batchSize = std::stoi(val);
     } else if (key == "gradientNormThreshold") {
         optimizer->gradientNormThreshold = std::stod(val);
+    } else if (key == "lineSearchSteps") {
+        optimizer->lineSearchSteps = (std::stoi(val) < 10) ? std::stoi(val) : 10;
     } else if (key == "rescueInterceptor") {
         if (val == "none" or val == "0") {
             optimizer->interceptor = parpe::interceptType::none;
