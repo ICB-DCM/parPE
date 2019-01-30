@@ -323,7 +323,7 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
                                "Error during simulation (try %d/%d), "
                                "retrying with relaxed error tolerances (*= %g): "
                                "abs: %g rel: %g quadAbs: %g quadRel: %g abs_asa: %g, rel_asa: %g",
-                               trial, maxNumTrials, errorRelaxation,
+                               trial - 1, maxNumTrials, errorRelaxation,
                                solver->getAbsoluteTolerance(), solver->getRelativeTolerance(),
                                solver->getAbsoluteToleranceQuadratures(),
                                solver->getRelativeToleranceQuadratures(),
