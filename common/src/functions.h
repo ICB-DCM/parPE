@@ -30,8 +30,8 @@ public:
      * @param parameters Point x at which to evaluate f(x). Must be of length
      * numParameters().
      * @param fval (output) Will be set to the function value f(x)
-     * @param gradient (output) If not nullptr, will contain the gradient of
-     * f(x) at x. Must be of length numParameters().
+     * @param gradient (output) If not gsl::span<double>(), will contain the
+     * gradient of f(x) at x. Must be of length numParameters().
      * @return functionEvaluationSuccess on success, functionEvaluationFailure
      * otherwise
      */
@@ -65,11 +65,15 @@ class SummedGradientFunction
 public:
     /**
      * @brief Evaluate on single data point
-     * @param parameters
-     * @param dataset
-     * @param fval
-     * @param gradient
-     * @return
+     * @param parameters Parameter vector where the function is to be evaluated
+     * @param dataset The dataset on which to evaluate the function
+     * @param fval Output argument for f(x)
+     * @param gradient Preallocated space for the gradient of size
+     * dim(parameters). Or gsl::span<double>() for evaluation without gradient.
+     * @param logger Optional Logger instance used for output
+     * @param cputime Optional output argument to reoprt cpuTime consumed by the
+     * the function
+     * @return Evaluation status
      */
     virtual FunctionEvaluationStatus evaluate(
             gsl::span<const double> parameters,
@@ -81,11 +85,15 @@ public:
 
     /**
      * @brief Evaluate on vector of data points
-     * @param parameters
-     * @param datasets
-     * @param fval
-     * @param gradient
-     * @return
+     * @param parameters Parameter vector where the function is to be evaluated
+     * @param datasets The datasets on which to evaluate the function
+     * @param fval Output argument for f(x)
+     * @param gradient Preallocated space for the gradient of size
+     * dim(parameters). Or gsl::span<double>() for evaluation without gradient.
+     * @param logger Optional Logger instance used for output
+     * @param cputime Optional output argument to reoprt cpuTime consumed by the
+     * the function
+     * @return Evaluation status
      */
     virtual FunctionEvaluationStatus evaluate(
             gsl::span<const double> parameters,
@@ -95,6 +103,10 @@ public:
             Logger* logger,
             double* cpuTime) const = 0;
 
+    /**
+     * @brief Get dimension of function parameter vector
+     * @return Number of parameters
+     */
     virtual int numParameters() const = 0;
 
     virtual ~SummedGradientFunction() = default;
@@ -158,13 +170,20 @@ public:
 
     int numParameters() const override { return gradFun->numParameters(); }
 
+    /**
+     * @brief Return pointer to the wrapped function (non-owning).
+     * @return Pointer to wrapped function
+     */
     SummedGradientFunction<T>* getWrappedFunction() const
     {
         return gradFun.get();
     }
 
 private:
+    /** Wrapped function */
     std::unique_ptr<SummedGradientFunction<T>> gradFun;
+
+    /** Datasets to evaluate function on */
     std::vector<T> datasets;
 };
 

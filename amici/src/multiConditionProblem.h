@@ -62,10 +62,15 @@ template <typename T>
 class AmiciSummedGradientFunction : public SummedGradientFunction<T> {
 
 public:
+    using WorkPackage = AmiciSimulationRunner::AmiciWorkPackageSimple;
+    using ResultPackage = AmiciSimulationRunner::AmiciResultPackageSimple;
+    using ResultMap = std::map<int, ResultPackage>;
+
     /**
      * @brief AmiciSummedGradientFunction
      * @param dataProvider Provides data and settings for AMICI simulations
-     * @param loadBalancer LoadBalancerMaster for shared memory parallelism, or nullptr
+     * @param loadBalancer LoadBalancerMaster for shared memory parallelism, or
+     * nullptr
      * @param resultWriter
      */
     AmiciSummedGradientFunction(
@@ -87,21 +92,14 @@ public:
             maxSimulationsPerPackage = std::stoi(env);
         }
 
-        if(auto env = std::getenv("PARPE_MAX_GRADIENT_SIMULATIONS_PER_PACKAGE")) {
+        if(auto env =
+                std::getenv("PARPE_MAX_GRADIENT_SIMULATIONS_PER_PACKAGE")) {
             maxGradientSimulationsPerPackage = std::stoi(env);
         }
     }
 
     virtual ~AmiciSummedGradientFunction() = default;
 
-    /**
-     * @brief Evaluate cost function on a single condition
-     * @param parameters
-     * @param dataset
-     * @param fval
-     * @param gradient
-     * @return
-     */
     virtual FunctionEvaluationStatus evaluate(
             gsl::span<const double> parameters,
             T dataset,
@@ -115,7 +113,6 @@ public:
         return evaluate(parameters, datasets, fval, gradient, logger, cpuTime);
     }
 
-
     virtual FunctionEvaluationStatus evaluate(
             gsl::span<const double> parameters,
             std::vector<T> datasets,
@@ -126,7 +123,9 @@ public:
     {
 #ifdef NO_OBJ_FUN_EVAL
         if (objectiveFunctionGradient)
-            std::fill(objectiveFunctionGradient, objectiveFunctionGradient + numOptimizationParameters_, 0);
+            std::fill(objectiveFunctionGradient,
+                      objectiveFunctionGradient + numOptimizationParameters_,
+                      0);
         *objectiveFunctionValue = 1;
         return 0;
 #endif
@@ -136,7 +135,8 @@ public:
         if (gradient.size())
             std::fill(gradient.begin(), gradient.end(), 0.0);
 
-        int errors = runSimulations(parameters, fval, gradient, datasets, logger, cpuTime);
+        int errors = runSimulations(parameters, fval, gradient, datasets,
+                                    logger, cpuTime);
 
         if (errors || !std::isfinite(fval)) {
             fval = std::numeric_limits<double>::infinity();
@@ -158,10 +158,12 @@ public:
 
 
     /**
-     * @brief Run simulations (no gradient) with given parameters and collect model outputs
+     * @brief Run simulations (no gradient) with given parameters and collect
+     * model outputs
      * @param parameters Model parameters for simulation
      * @param modelOutput in: some vector reference, will be resized.
-     * output: Vector of double vectors containing AMICI ReturnData::y (nt x ny, column-major)
+     * output: Vector of double vectors containing AMICI ReturnData::y
+     * (nt x ny, column-major)
      * @return Simulation status
      */
     virtual FunctionEvaluationStatus getModelOutputs(
@@ -177,12 +179,12 @@ public:
 
         setSensitivityOptions(false);
         modelOutput.resize(dataIndices.size());
-        auto parameterVector = std::vector<double>(parameters.begin(), parameters.end());
+        auto parameterVector = std::vector<double>(parameters.begin(),
+                                                   parameters.end());
         auto jobFinished = [&](JobData *job, int dataIdx) { // jobFinished
             // deserialize
             auto results =
-                    amici::deserializeFromChar<
-                    std::map<int, AmiciSimulationRunner::AmiciResultPackageSimple> > (
+                    amici::deserializeFromChar<ResultMap> (
                         job->recvBuffer.data(), job->recvBuffer.size());
             job->recvBuffer = std::vector<char>(); // free buffer
 
@@ -201,7 +203,8 @@ public:
 
 #ifdef PARPE_ENABLE_MPI
         if (loadBalancer && loadBalancer->isRunning()) {
-            errors += simRunner.runDistributedMemory(loadBalancer, maxSimulationsPerPackage);
+            errors += simRunner.runDistributedMemory(loadBalancer,
+                                                     maxSimulationsPerPackage);
         } else {
 #endif
             errors += simRunner.runSharedMemory(
@@ -211,7 +214,8 @@ public:
 #ifdef PARPE_ENABLE_MPI
         }
 #endif
-        return errors == 0 ? functionEvaluationSuccess : functionEvaluationFailure;
+        return errors == 0 ? functionEvaluationSuccess
+                           : functionEvaluationFailure;
     }
 
     virtual std::vector<std::vector<double>> getAllSigmas() const {
@@ -262,17 +266,22 @@ public:
         auto model = dataProvider->getModel();
 
         // unpack simulation job data
-        auto workPackage = amici::deserializeFromChar<
-                AmiciSimulationRunner::AmiciWorkPackageSimple>(buffer.data(), buffer.size());
+        auto workPackage = amici::deserializeFromChar<WorkPackage>(
+                    buffer.data(), buffer.size());
 
         solver->setSensitivityOrder(workPackage.sensitivityOrder);
 
-        std::map<int, AmiciSimulationRunner::AmiciResultPackageSimple> results;
+        ResultMap results;
         // run simulations for all condition indices
         for(auto conditionIdx: workPackage.conditionIndices) {
-            dataProvider->updateSimulationParameters(conditionIdx, workPackage.optimizationParameters, *model);
-            Logger logger(workPackage.logPrefix + "c" + std::to_string(conditionIdx));
-            auto result = runAndLogSimulation(*solver, *model, conditionIdx, jobId, &logger);
+            dataProvider->updateSimulationParameters(
+                        conditionIdx,
+                        workPackage.optimizationParameters,
+                        *model);
+            Logger logger(workPackage.logPrefix
+                          + "c" + std::to_string(conditionIdx));
+            auto result = runAndLogSimulation(
+                        *solver, *model, conditionIdx, jobId, &logger);
             results[conditionIdx] = result;
         }
 
@@ -286,7 +295,8 @@ public:
 
     virtual amici::ParameterScaling getParameterScaling(int parameterIndex) const
     {
-        // parameterIndex is optimization parameter index, not necessarily model parameter index!
+        // parameterIndex is optimization parameter index,
+        // not necessarily model parameter index!
         return dataProvider->getParameterScale(parameterIndex);
     }
 
@@ -311,13 +321,18 @@ protected:// for testing
 
         int errors = 0;
 
-        auto parameterVector = std::vector<double>(optimizationParameters.begin(), optimizationParameters.end());
+        auto parameterVector = std::vector<double>(
+                    optimizationParameters.begin(),
+                    optimizationParameters.end());
         double simulationTimeSec = 0.0;
 
-        AmiciSimulationRunner simRunner(parameterVector,
-                                        objectiveFunctionGradient.size() ? amici::SensitivityOrder::first : amici::SensitivityOrder::none,
-                                        dataIndices,
-                                        [&](JobData *job, int /*jobIdx*/) {
+        AmiciSimulationRunner simRunner(
+                    parameterVector,
+                    objectiveFunctionGradient.size()
+                      ? amici::SensitivityOrder::first
+                      : amici::SensitivityOrder::none,
+                    dataIndices,
+                    [&](JobData *job, int /*jobIdx*/) {
             errors += aggregateLikelihood(*job,
                                           nllh,
                                           objectiveFunctionGradient,
@@ -326,10 +341,14 @@ protected:// for testing
 
 #ifdef PARPE_ENABLE_MPI
         if (loadBalancer && loadBalancer->isRunning()) {
-            // When running simulations (without gradient), send more simulations to each worker
+            // When running simulations (without gradient),
+            // send more simulations to each worker
             // to reduce communication overhead
-            errors += simRunner.runDistributedMemory(loadBalancer,
-                                                     objectiveFunctionGradient.size() ? maxGradientSimulationsPerPackage : maxSimulationsPerPackage);
+            errors += simRunner.runDistributedMemory(
+                        loadBalancer,
+                        objectiveFunctionGradient.size()
+                        ? maxGradientSimulationsPerPackage
+                        : maxSimulationsPerPackage);
         } else {
 #endif
             // Adjoint sensitivity analysis in Sundials 2.6.2 is not thread-safe, so run sequentially
@@ -352,20 +371,23 @@ protected:// for testing
     /**
      * @brief Aggregates loglikelihood received from workers.
      * @param data Simulation job result
-     * @param negLogLikelihood output argument to which *negative* log likelihood is added
-     * @param negLogLikelihoodGradient output argument to which *negative* log likelihood gradient is added
+     * @param negLogLikelihood output argument to which *negative*
+     * log likelihood is added
+     * @param negLogLikelihoodGradient output argument to which *negative*
+     * log likelihood gradient is added
      * @param simulationTimeInS unused
      * @return
      */
 
     int aggregateLikelihood(JobData &data, double &negLogLikelihood,
-                            gsl::span<double> negLogLikelihoodGradient, double &simulationTimeInS) const {
+                            gsl::span<double> negLogLikelihoodGradient,
+                            double &simulationTimeInS) const
+    {
         int errors = 0;
 
         // deserialize
         auto results =
-                amici::deserializeFromChar<
-                std::map<int, AmiciSimulationRunner::AmiciResultPackageSimple> > (
+                amici::deserializeFromChar<ResultMap> (
                     data.recvBuffer.data(), data.recvBuffer.size());
         data.recvBuffer = std::vector<char>(); // free buffer
 
@@ -390,14 +412,17 @@ protected:// for testing
      * @brief Aggregates loglikelihood gradient received from workers.
      * @param conditionIdx
      * @param simulationGradient log-likelihood gradient from simulation
-     * @param objectiveFunctionGradient output to which *negative* log-likelihood gradient from simulation is added
+     * @param objectiveFunctionGradient output to which *negative*
+     * log-likelihood gradient from simulation is added
      */
 
-    void addSimulationGradientToObjectiveFunctionGradient(int conditionIdx,
-                                                          gsl::span<const double> simulationGradient,
-                                                          gsl::span<double> objectiveFunctionGradient) const {
+    void addSimulationGradientToObjectiveFunctionGradient(
+            int conditionIdx,
+            gsl::span<const double> simulationGradient,
+            gsl::span<double> objectiveFunctionGradient) const {
         dataProvider->mapSimulationToOptimizationVariablesAddMultiply(
-                    conditionIdx, simulationGradient, objectiveFunctionGradient, -1.0);
+                    conditionIdx, simulationGradient,
+                    objectiveFunctionGradient, -1.0);
     }
 
     void setSensitivityOptions(bool sensiRequired) const {
@@ -418,7 +443,9 @@ private:
     LoadBalancerMaster *loadBalancer = nullptr;
     std::unique_ptr<amici::Model> model;
     std::unique_ptr<amici::Solver> solver;
-    std::unique_ptr<amici::Solver> solverOriginal; // for saving sensitivity options which are changed depending on whether gradient is needed
+    /** For saving sensitivity options which are changed depending on whether
+     * gradient is needed */
+    std::unique_ptr<amici::Solver> solverOriginal;
     OptimizationResultWriter *resultWriter = nullptr; // TODO: owning?
     bool logLineSearch = false;
     int maxSimulationsPerPackage = 8;
@@ -428,8 +455,9 @@ private:
 
 
 /**
- * @brief The MultiConditionProblem class represents an optimization problem based
- * on an MultiConditionGradientFunction (AMICI ODE model) and MultiConditionDataProvider
+ * @brief The MultiConditionProblem class represents an optimization problem
+ * based on an MultiConditionGradientFunction (AMICI ODE model) and
+ * MultiConditionDataProvider
  */
 
 class MultiConditionProblem
@@ -441,10 +469,11 @@ class MultiConditionProblem
 
     MultiConditionProblem(MultiConditionDataProvider *dp);
 
-    MultiConditionProblem(MultiConditionDataProvider *dp,
-                          LoadBalancerMaster *loadBalancer,
-                          std::unique_ptr<Logger> logger,
-                          std::unique_ptr<OptimizationResultWriter> resultWriter);
+    MultiConditionProblem(
+            MultiConditionDataProvider *dp,
+            LoadBalancerMaster *loadBalancer,
+            std::unique_ptr<Logger> logger,
+            std::unique_ptr<OptimizationResultWriter> resultWriter);
 
     ~MultiConditionProblem() override = default;
 
@@ -496,16 +525,17 @@ private:
 class MultiConditionProblemMultiStartOptimizationProblem
     : public MultiStartOptimizationProblem {
   public:
-    MultiConditionProblemMultiStartOptimizationProblem(MultiConditionDataProviderHDF5 *dp,
-                                                       OptimizationOptions options,
-                                                       OptimizationResultWriter *resultWriter,
-                                                       LoadBalancerMaster *loadBalancer,
-                                                       std::unique_ptr<Logger> logger);
+    MultiConditionProblemMultiStartOptimizationProblem(
+            MultiConditionDataProviderHDF5 *dp,
+            OptimizationOptions options,
+            OptimizationResultWriter *resultWriter,
+            LoadBalancerMaster *loadBalancer,
+            std::unique_ptr<Logger> logger);
 
 
-    int getNumberOfStarts() const { return options.numStarts; }
+    int getNumberOfStarts() const override { return options.numStarts; }
 
-    bool restartOnFailure() const { return options.retryOptimization; }
+    bool restartOnFailure() const override { return options.retryOptimization; }
 
     std::unique_ptr<OptimizationProblem> getLocalProblem(int multiStartIndex) const override;
 
@@ -518,10 +548,13 @@ private:
 };
 
 
-void saveSimulation(hid_t file_id, const std::string &pathStr, const std::vector<double> &parameters, double llh,
-                   gsl::span<const double> gradient, double timeElapsedInSeconds, gsl::span<const double> states,
-                   gsl::span<const double> stateSensi, gsl::span<const double> outputs, int jobId, int status, const std::string &label);
-
+void saveSimulation(
+        hid_t file_id, const std::string &pathStr,
+        const std::vector<double> &parameters, double llh,
+        gsl::span<const double> gradient, double timeElapsedInSeconds,
+        gsl::span<const double> states,
+        gsl::span<const double> stateSensi, gsl::span<const double> outputs,
+        int jobId, int status, const std::string &label);
 
 } // namespace parpe
 
