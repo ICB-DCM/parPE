@@ -30,8 +30,8 @@ public:
      * @param parameters Point x at which to evaluate f(x). Must be of length
      * numParameters().
      * @param fval (output) Will be set to the function value f(x)
-     * @param gradient (output) If not nullptr, will contain the gradient of
-     * f(x) at x. Must be of length numParameters().
+     * @param gradient (output) If not gsl::span<double>(), will contain the
+     * gradient of f(x) at x. Must be of length numParameters().
      * @return functionEvaluationSuccess on success, functionEvaluationFailure
      * otherwise
      */
