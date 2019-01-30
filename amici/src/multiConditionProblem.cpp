@@ -252,7 +252,7 @@ void saveSimulation(hid_t file_id, std::string const& pathStr, std::vector<doubl
 }
 
 AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
-        amici::Solver &solver,
+        amici::Solver &solverTemplate,
         amici::Model &model,
         int conditionIdx,
         int jobId,
@@ -272,16 +272,11 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
 
     auto edata = dataProvider->getExperimentalDataForCondition(conditionIdx);
 
-    // save tolerances to restore later
-    auto absTolOrig = solver.getAbsoluteTolerance();
-    auto absTolQuadOrig = solver.getAbsoluteToleranceQuadratures();
-    auto relTolOrig = solver.getRelativeTolerance();
-    auto relTolQuadOrig = solver.getRelativeToleranceQuadratures();
-
     /* In case of simulation failure, try rerunning with higher error tolerance */
-    constexpr int maxNumTrials = 4; // on failure, rerun simulation
+    constexpr int maxNumTrials = 6; // on failure, rerun simulation
     constexpr double errorRelaxation = 1e2;
     std::unique_ptr<amici::ReturnData> rdata;
+
     for(int trial = 1; trial <= maxNumTrials; ++trial) {
         // It is currently not safe to reuse solver if an exception has occured
         // so clone every time
@@ -296,9 +291,10 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
             break;
 
         if(rdata) {
-            // something went wrong in the previous simulation
-            // until we have better exception handling, we check those fields to deduce where
-            // the error occurred
+            /* something went wrong in the previous simulation. until we have
+             * better exception handling, we check those fields to deduce where
+             * the error occurred
+             */
             bool forwardFailed = std::isnan(rdata->x[rdata->x.size() - 1]);
             bool backwardFailed = std::isnan(rdata->llh);
 
@@ -339,7 +335,7 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
         }
 
         try {
-            rdata = amici::runAmiciSimulation(solver, edata.get(), model);
+            rdata = amici::runAmiciSimulation(*solver, edata.get(), model);
         } catch (std::exception const& e) {
             logger->logmessage(LOGLVL_WARNING, "Error during simulation: %s (%d)", e.what(), rdata->status);
             if(rdata->status == AMICI_SUCCESS)
@@ -354,7 +350,7 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
 
     printSimulationResult(logger, jobId, rdata.get(), timeSeconds);
 
-    if (resultWriter && (solver.getSensitivityOrder() > amici::SensitivityOrder::none || logLineSearch)) {
+    if (resultWriter && (solverTemplate.getSensitivityOrder() > amici::SensitivityOrder::none || logLineSearch)) {
         saveSimulation(resultWriter->getFileId(), resultWriter->getRootPath(),
                       model.getParameters(), rdata->llh, rdata->sllh,
                       timeSeconds, rdata->x, rdata->sx, rdata->y,
@@ -364,7 +360,7 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
     return AmiciSimulationRunner::AmiciResultPackageSimple {
         rdata->llh,
                 timeSeconds,
-                (solver.getSensitivityOrder() > amici::SensitivityOrder::none) ? rdata->sllh : std::vector<double>(),
+                (solverTemplate.getSensitivityOrder() > amici::SensitivityOrder::none) ? rdata->sllh : std::vector<double>(),
                 rdata->y,
                 rdata->status
     };
