@@ -10,7 +10,8 @@ namespace parpe {
 /**
  * @brief The CostFunction class.
  *
- * Currently not used. Test implementation to see if we can abstract things a bit more.
+ * Currently not used. Test implementation to see if we can abstract things a
+ * bit more.
  */
 class CostFunction {
 public:
@@ -58,7 +59,8 @@ public:
                 gradient[p] = 0.0;
 
                 for(int i = 0; (unsigned) i < label.size(); ++i) {
-                    gradient[p] += -2.0 * (label[i] - prediction[i]) * predictionGradient[i][p];
+                    gradient[p] += -2.0 * (label[i] - prediction[i])
+                            * predictionGradient[i][p];
                 }
 
                 gradient[p] /= label.size();

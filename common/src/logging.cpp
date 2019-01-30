@@ -54,7 +54,8 @@ void printMPIInfo() {
         int procNameLen;
         MPI_Get_processor_name(procName, &procNameLen);
 
-        logmessage(LOGLVL_DEBUG, "Rank %d/%d running on %s.", mpiRank, mpiCommSize, procName);
+        logmessage(LOGLVL_DEBUG, "Rank %d/%d running on %s.", mpiRank,
+                   mpiCommSize, procName);
     } else {
         logmessage(LOGLVL_DEBUG, "MPI not initialized.");
     }
@@ -68,7 +69,9 @@ void printDebugInfoAndWait(int seconds) {
     //int i = 0;
     char hostname[256];
     gethostname(hostname, sizeof(hostname));
-    logmessage(LOGLVL_DEBUG, "PID %d on %s ready for attach (will wait for %ds)", getpid(), hostname, seconds);
+    logmessage(LOGLVL_DEBUG,
+               "PID %d on %s ready for attach (will wait for %ds)", getpid(),
+               hostname, seconds);
     fflush(stdout);
     //while (0 == i)
     sleep(seconds);

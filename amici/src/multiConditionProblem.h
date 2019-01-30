@@ -533,9 +533,9 @@ class MultiConditionProblemMultiStartOptimizationProblem
             std::unique_ptr<Logger> logger);
 
 
-    int getNumberOfStarts() const { return options.numStarts; }
+    int getNumberOfStarts() const override { return options.numStarts; }
 
-    bool restartOnFailure() const { return options.retryOptimization; }
+    bool restartOnFailure() const override { return options.retryOptimization; }
 
     std::unique_ptr<OptimizationProblem> getLocalProblem(int multiStartIndex) const override;
 
