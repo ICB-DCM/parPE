@@ -83,8 +83,9 @@ int StandaloneSimulator::run(const std::string& resultFile,
                                                 std::move(hierarchicalSigmaReader),
                                                 dataProvider->getNumberOfConditions(), model->nytrue, model->nt(),
                                                 ErrorModel::normal);
+        std::cout<<"Need to compute analytical parameters: "<<conditionFilePath<<"  "<<proportionalityFactorIndices.size()<<" parameters.size() == "<<parameters.size()<<" ; hierarchical.numParameters() == "<<hierarchical.numParameters()<<std::endl;
         RELEASE_ASSERT(parameters.size() == (unsigned) hierarchical.numParameters(), "");
-    
+
         // expand parameter vector
         auto scalingDummy = hierarchical.getDefaultScalingFactors();
         auto offsetDummy = hierarchical.getDefaultOffsetParameters();
@@ -110,6 +111,7 @@ int StandaloneSimulator::run(const std::string& resultFile,
     std::vector<int> dataIndices(dataProvider->getNumberOfConditions());
     std::iota(dataIndices.begin(), dataIndices.end(), 0);
     int errors = 0;
+    std::cout<<"Starting simulation. Number of conditions: " << dataProvider->getNumberOfConditions()<<std::endl;
 
     auto jobFinished = [&](JobData *job, int /*dataIdx*/) { /* job finished */
         // if we are running hierarchical optimization we need to wait until all jobs are finished
@@ -450,7 +452,7 @@ int runAlongTrajectory(StandaloneSimulator &sim,
 
                 auto lock = hdf5MutexGetLock();
                 H5::H5File conditionFile = hdf5OpenForReading(conditionFileName);
-                lock.release();
+                lock.unlock();
 
                 auto outerParameters = getOuterParameters(parameters[iter], parameterFile, parameterFilePath);
 
