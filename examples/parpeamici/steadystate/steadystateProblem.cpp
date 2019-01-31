@@ -105,13 +105,13 @@ parpe::FunctionEvaluationStatus ExampleSteadystateGradientFunction::evaluate(gsl
 
     //    printArray(parameters, udata->np);printf("\n");
 
-    requireSensitivities(gradient.size());
+    requireSensitivities(!gradient.empty());
 
     auto rdata = amici::runAmiciSimulation(*solver, edata.get(), *model);
 
     fval = -rdata->llh;
 
-    if (gradient.size())
+    if (!gradient.empty())
         for (int i = 0; i < model->np(); ++i)
             gradient[i] = -rdata->sllh[i];
 

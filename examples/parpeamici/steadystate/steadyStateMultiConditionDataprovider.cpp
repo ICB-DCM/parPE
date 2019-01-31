@@ -39,7 +39,7 @@ void SteadyStateMultiConditionDataProvider::setupModelAndSolver(amici::Model &mo
     solver.setSensitivityOrder(amici::SensitivityOrder::first);
     //solver.setSensitivityMethod(amici::AMICI_SENSI_FSA);
     solver.setSensitivityMethod(amici::SensitivityMethod::adjoint);
-    solver.setMaxSteps(1e4);
+    solver.setMaxSteps(10000);
     solver.setNewtonMaxLinearSteps(100);
     solver.setNewtonMaxSteps(40);
 }

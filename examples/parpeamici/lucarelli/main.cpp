@@ -71,7 +71,7 @@ public:
         multiStartOptimizationProblem.reset(ms);
     }
 
-    virtual ~MyOptimizationApplication() override {
+    ~MyOptimizationApplication() override {
         parpe::logProcessStats();
     }
 

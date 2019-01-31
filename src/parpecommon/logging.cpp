@@ -129,7 +129,7 @@ void logmessage(loglevel lvl, const char *format, va_list argptr)
     strftime(dateBuffer, 25, "[%Y-%m-%d %H:%M:%S] ", tm_info);
     fputs(dateBuffer, stdout);
 
-    printf("[%s] ", loglevelShortStr[lvl]);
+    printf("[%s] ", loglevelShortStr[static_cast<int>(lvl)]);
 
     // MPI info
     int mpiCommSize = 1, mpiRank = -1;

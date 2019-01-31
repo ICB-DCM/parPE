@@ -11,8 +11,6 @@
 #include <memory>
 #include <assert.h>
 
-#include "wrapfunctions.h"
-
 /**
  * @brief The SteadyStateMultiConditionDataProvider class provides the interface
  * to a HDF5 data file. Some non-default paths within the hdf5 file are set here.

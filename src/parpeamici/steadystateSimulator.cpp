@@ -40,7 +40,9 @@ std::unique_ptr<amici::ReturnData> SteadystateSimulator::getSteadystateSolution(
 
         if (inSteadyState) {
             break;
-        } else if (iterations >= 100) {
+        }
+
+        if (iterations >= 100) {
             logmessage(LOGLVL_WARNING, "getSteadystateSolutionForExperiment: "
                                        "no steady after %d iterations... "
                                        "aborting...",
