@@ -7,7 +7,7 @@
 #include <CppUTest/TestHarness.h>
 #include <CppUTestExt/MockSupport.h>
 
-#define TESTFILE "../../../amici/tests/testhierarchical.h5"
+#define TESTFILE "testhierarchical.h5"
 
 // clang-format off
 TEST_GROUP(hierarchicalOptimization){
