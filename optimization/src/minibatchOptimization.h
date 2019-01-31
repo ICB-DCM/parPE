@@ -602,13 +602,13 @@ public:
         /* If no line search desired: that's it! */
         if (lineSearchSteps == 0) return;
         
-        /* Define lambda function for step length evaluation 
-         * We'll need it a lot, so let's keep it handy... */
-        std::function<int (int)> func = [](int i) { return i+4; };
-        double evalStepLength(double alpha) {
+        /* Define lambda function for step length evaluation  */
+        std::function<double (double)> evalLineSearch = [](double alpha) {
+            /* Reset oldParameters and re-update with new step length */
             oldParameters = parameters;
             parameterUpdater->updateParameters(alpha, iteration, gradient, parameters, 
                                                lowerParameterBounds, upperParameterBounds);
+            /* Write new cost funtion value and return */
             double newCost = NAN;
             FunctionEvaluationStatus status = evaluate(f, parameters, datasets, newCost, 
                                                        gsl::span<double>(), logger, reporter);
@@ -691,7 +691,13 @@ public:
         } else {
             /* No descent found and line search option is set: iterate! */
             auto 
-            performLineSearch(stepLength, newStepLength, cost, cost1, cost2, dirGradient);
+            performLineSearch(stepLength,
+                              newStepLength,
+                              cost,
+                              cost1,
+                              cost2,
+                              dirGradient,
+                              );
         }
     }
 
@@ -707,8 +713,7 @@ public:
                            double cost1, 
                            double cost2, 
                            double dirGradient,
-                           std::function costFunEvaluate,
-                           int maxSteps) {
+                           std::function costFunEvaluate) {
 
         /* From here on, we will use cubic interpolation.
          * We need to comute the matrix-vector multiplication
