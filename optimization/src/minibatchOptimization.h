@@ -602,6 +602,19 @@ public:
         /* If no line search desired: that's it! */
         if (lineSearchSteps == 0) return;
         
+        /* Define lambda function for step length evaluation 
+         * We'll need it a lot, so let's keep it handy... */
+        std::function<int (int)> func = [](int i) { return i+4; };
+        double evalStepLength(double alpha) {
+            oldParameters = parameters;
+            parameterUpdater->updateParameters(alpha, iteration, gradient, parameters, 
+                                               lowerParameterBounds, upperParameterBounds);
+            double newCost = NAN;
+            FunctionEvaluationStatus status = evaluate(f, parameters, datasets, newCost, 
+                                                       gsl::span<double>(), logger, reporter);
+            return newCost;
+        };
+        
         /* Do we check for a decreasing cost function? */
         double cost1 = NAN;
         double cost2 = NAN;
@@ -677,7 +690,8 @@ public:
                                                lowerParameterBounds, upperParameterBounds);
         } else {
             /* No descent found and line search option is set: iterate! */
-            performLineSearch();
+            auto 
+            performLineSearch(stepLength, newStepLength, cost, cost1, cost2, dirGradient);
         }
     }
 
@@ -687,17 +701,79 @@ public:
      *
      * @param parameters current parameter vector
      */
-    void performLineSearch() {
+    void performLineSearch(double alpha1,
+                           double alpha2, 
+                           double cost, 
+                           double cost1, 
+                           double cost2, 
+                           double dirGradient,
+                           std::function costFunEvaluate,
+                           int maxSteps) {
 
-        /* First, try to interpolate quadratically */
-        double cost0 = cost;
-        double cost1 = newCost;
+        /* From here on, we will use cubic interpolation.
+         * We need to comute the matrix-vector multiplication
+         * 
+         * a = 1/tmp_D * [ tmp_11, tmp_12 ] [tmp_v1]
+         * b = 1/tmp_D * [ tmp_21, tmp_22 ] [tmp_v2]
+         * 
+         * in order to find the possible minimum at
+         * 
+         * alpha3 = -b + sqrt( ² - 3*a*dirGradient ) / (3*a)
+         * 
+         * Possibly, we have to iterrate this process. */
         
-        /* The initial guess for the step size failed, 
-         * let's try half of the intended step size first */
-        double cost2 = NAN;
-        FunctionEvaluationStatus status = evaluate(f, parameters, datasets, cost2, gsl::span<double>(), logger, reporter)
+        /* Declare variables which will be used repeatedly */
+        double tmp_D;
+        double tmp_11;
+        double tmp_12;
+        double tmp_21;
+        double tmp_22;
+        double tmp_v1;
+        double tmp_v2;
+        double a;
+        double b;
+        double alpha2;
+        double cost3;
         
+        for (int iStep = 2; iStep <= lineSearchSteps; ++iStep) {
+            /* declare temporary variables */
+            tmp_D = std::pow(alpha2 * alpha1, 2.0) * (alpha2 - alpha1);
+            tmp_11 = std::pow(alpha1, 2.0);
+            tmp_12 = -1.0 * std::pow(alpha2, 2.0);
+            tmp_21 = -1.0 * std::pow(alpha1, 3.0);
+            tmp_22 = std::pow(alpha2, 3.0);
+            tmp_v1 = cost2 - cost - dirGradient * alpha2;
+            tmp_v2 = cost1 - cost - dirGradient * alpha1;
+            a = (tmp_11 * tmp_v1 + tmp_12 * tmp_v2) / tmp_D;
+            b = (tmp_21 * tmp_v1 + tmp_22 * tmp_v2) / tmp_D;
+            
+            /* Compute possible new step length */
+            alpha3 = (-b + std::sqrt(b*b - 3.0*a*dirGradient)) / (3.0*a);
+            
+            /* Evaluate line search function at alpha2 */
+            cost3 = costFunEvaluate(alpha3);
+            
+            /* If improvement, return */
+            if (cost3 < cost) return;
+            
+            /* If no improvement, update values and re-iterate */
+            if (iStep < lineSearchSteps) {
+                cost1 = cost2;
+                cost2 = cost3;
+                alpha1 = alpha2;
+                alpha2 = alpha3;
+            }
+        }
+        
+        /* No good step was found, but the max number 
+         * of line search steps was reached */
+        if cost3 < std::min(cost1, cost2) return;
+        
+        if (cost1 < cost2) {
+            cost1 = costFunEvaluate(alpha1);
+        } else {
+            cost2 = costFunEvaluate(alpha2);
+        }
     }
         
     
