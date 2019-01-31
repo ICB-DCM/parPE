@@ -5,10 +5,7 @@ find_package(Amici HINTS ${CMAKE_SOURCE_DIR}/deps/AMICI/build)
 include(${SWIG_USE_FILE})
 
 include_directories(${PYTHON_INCLUDE_PATH})
-include_directories(${CMAKE_SOURCE_DIR}/common/src)
-include_directories(${CMAKE_SOURCE_DIR}/loadbalancer/src)
-include_directories(${CMAKE_SOURCE_DIR}/optimization/src)
-include_directories(${CMAKE_SOURCE_DIR}/amici/src)
+include_directories(${CMAKE_SOURCE_DIR}/include)
 
 get_target_property(AMICI_INCLUDE_DIRS Upstream::amici INTERFACE_INCLUDE_DIRECTORIES)
 include_directories(${AMICI_INCLUDE_DIRS})
