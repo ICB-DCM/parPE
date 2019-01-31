@@ -252,7 +252,7 @@ void saveSimulation(hid_t file_id, std::string const& pathStr, std::vector<doubl
 }
 
 AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
-        amici::Solver &solver,
+        amici::Solver &solverTemplate,
         amici::Model &model,
         int conditionIdx,
         int jobId,
@@ -261,79 +261,116 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
         bool logLineSearch,
         Logger* logger)
 {
-    /* wall time  on worker for current simulation */
+    // wall time  on worker for current simulation
     WallTimer simulationTimer;
 
-    // run simulation
 
-    // get ExpData with measurement and fixed parameters
-    // (other model parameter have been set already, parameter mapping
-    // has been done by master)
-
+    /* Get ExpData with measurement and fixed parameters. Other model parameters
+     * and sensitivity options have been set already */
     auto edata = dataProvider->getExperimentalDataForCondition(conditionIdx);
 
-    // save tolerances to restore later
-    auto absTolOrig = solver.getAbsoluteTolerance();
-    auto absTolQuadOrig = solver.getAbsoluteToleranceQuadratures();
-    auto relTolOrig = solver.getRelativeTolerance();
-    auto relTolQuadOrig = solver.getRelativeToleranceQuadratures();
-
-    /* In case of simulation failure, try rerunning with higher error tolerance */
-    constexpr int maxNumTrials = 4; // on failure, rerun simulation
+    /* In case of simulation failure, try rerunning with higher error tolerance
+     * for a total of maxNumTrials times */
+    constexpr int maxNumTrials = 6; // on failure, rerun simulation
+    // Error tolerance relaxation factor upon failure
     constexpr double errorRelaxation = 1e2;
     std::unique_ptr<amici::ReturnData> rdata;
+
     for(int trial = 1; trial <= maxNumTrials; ++trial) {
+        /* It is currently not safe to reuse solver if an exception has
+         * occurred,so clone every time */
+        auto solver = std::unique_ptr<amici::Solver>(solverTemplate.clone());
+
+        if(trial == maxNumTrials) {
+            logger->logmessage(LOGLVL_ERROR,
+                               "Simulation trial %d/%d failed. Giving up.",
+                               trial, maxNumTrials);
+            break;
+        }
+
+        if(rdata && rdata->status == AMICI_SUCCESS)
+            break;
+
+        if(rdata) {
+            /* something went wrong in the previous simulation. until we have
+             * better exception handling, we check those fields to deduce where
+             * the error occurred
+             */
+            bool forwardFailed = std::isnan(rdata->x[rdata->x.size() - 1]);
+            bool backwardFailed = std::isnan(rdata->llh);
+
+            // relax respective tolerances
+            if(forwardFailed) {
+                solver->setAbsoluteTolerance(
+                            std::pow(errorRelaxation, trial - 1)
+                            * solver->getAbsoluteTolerance());
+                solver->setRelativeTolerance(
+                            std::pow(errorRelaxation, trial - 1)
+                            * solver->getRelativeTolerance());
+            } else if (backwardFailed) {
+                solver->setAbsoluteToleranceQuadratures(
+                            std::pow(errorRelaxation, trial - 1)
+                            * solver->getAbsoluteToleranceQuadratures());
+                solver->setRelativeToleranceQuadratures(
+                            std::pow(errorRelaxation, trial - 1)
+                            * solver->getRelativeToleranceQuadratures());
+                solver->setAbsoluteToleranceB(
+                            std::pow(errorRelaxation, trial - 1)
+                            * solver->getAbsoluteToleranceB());
+                solver->setRelativeToleranceB(
+                            std::pow(errorRelaxation, trial - 1)
+                            * solver->getRelativeToleranceB());
+            }
+
+            logger->logmessage(
+                        LOGLVL_WARNING,
+                        "Error during simulation (try %d/%d), "
+                        "retrying with relaxed error tolerances (*= %g): "
+                        "abs: %g rel: %g quadAbs: %g quadRel: %g "
+                        "abs_asa: %g, rel_asa: %g",
+                        trial - 1, maxNumTrials, errorRelaxation,
+                        solver->getAbsoluteTolerance(),
+                        solver->getRelativeTolerance(),
+                        solver->getAbsoluteToleranceQuadratures(),
+                        solver->getRelativeToleranceQuadratures(),
+                        solver->getAbsoluteToleranceB(),
+                        solver->getRelativeToleranceB());
+
+        }
+
         try {
-            rdata = amici::runAmiciSimulation(solver, edata.get(), model);
+            rdata = amici::runAmiciSimulation(*solver, edata.get(), model);
         } catch (std::exception const& e) {
-            logger->logmessage(LOGLVL_DEBUG, "Error during simulation: %s (%d)", e.what(), rdata->status);
+            logger->logmessage(
+                        LOGLVL_WARNING, "Error during simulation: %s (%d)",
+                        e.what(), rdata->status);
             if(rdata->status == AMICI_SUCCESS)
+                // shouldn't happen, but just to be safe
                 rdata->status = AMICI_ERROR;
             rdata->invalidateLLH();
         }
 
         if(rdata->status == AMICI_SUCCESS)
             break;
-
-        if(trial < maxNumTrials) {
-            solver.setAbsoluteTolerance(errorRelaxation * solver.getAbsoluteTolerance());
-            solver.setAbsoluteToleranceQuadratures(errorRelaxation * solver.getAbsoluteToleranceQuadratures());
-            solver.setRelativeTolerance(errorRelaxation * solver.getRelativeTolerance());
-            solver.setRelativeToleranceQuadratures(errorRelaxation * solver.getRelativeToleranceQuadratures());
-
-            logger->logmessage(LOGLVL_WARNING, "Error during simulation (try %d/%d), "
-                                               "retrying with relaxed error tolerances (*= %g): "
-                                               "abs: %g rel: %g quadAbs: %g quadRel: %g ",
-                               trial, maxNumTrials, errorRelaxation,
-                               solver.getAbsoluteTolerance(), solver.getRelativeTolerance(),
-                               solver.getAbsoluteToleranceQuadratures(),
-                               solver.getRelativeToleranceQuadratures());
-        } else {
-            logger->logmessage(LOGLVL_ERROR, "Simulation trial %d/%d failed. Giving up.", trial, maxNumTrials);
-        }
     }
-
-    // reset tolerances (solver might be reused)
-    solver.setAbsoluteTolerance(absTolOrig);
-    solver.setAbsoluteToleranceQuadratures(absTolQuadOrig);
-    solver.setRelativeTolerance(relTolOrig);
-    solver.setRelativeToleranceQuadratures(relTolQuadOrig);
-
     double timeSeconds = simulationTimer.getTotal();
 
     printSimulationResult(logger, jobId, rdata.get(), timeSeconds);
 
-    if (resultWriter && (solver.getSensitivityOrder() > amici::SensitivityOrder::none || logLineSearch)) {
+    if (resultWriter && (solverTemplate.getSensitivityOrder()
+                         > amici::SensitivityOrder::none || logLineSearch)) {
         saveSimulation(resultWriter->getFileId(), resultWriter->getRootPath(),
-                      model.getParameters(), rdata->llh, rdata->sllh,
-                      timeSeconds, rdata->x, rdata->sx, rdata->y,
-                      jobId, rdata->status, logger->getPrefix());
+                       model.getParameters(), rdata->llh, rdata->sllh,
+                       timeSeconds, rdata->x, rdata->sx, rdata->y,
+                       jobId, rdata->status, logger->getPrefix());
     }
 
     return AmiciSimulationRunner::AmiciResultPackageSimple {
         rdata->llh,
                 timeSeconds,
-                (solver.getSensitivityOrder() > amici::SensitivityOrder::none) ? rdata->sllh : std::vector<double>(),
+                (solverTemplate.getSensitivityOrder()
+                 > amici::SensitivityOrder::none)
+                ? rdata->sllh : std::vector<double>(),
                 rdata->y,
                 rdata->status
     };
