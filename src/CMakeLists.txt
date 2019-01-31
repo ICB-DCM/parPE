@@ -1,0 +1,4 @@
+add_subdirectory(parpecommon)
+add_subdirectory(parpeloadbalancer)
+add_subdirectory(parpeoptimization)
+add_subdirectory(parpeamici)

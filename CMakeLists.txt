@@ -17,8 +17,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wno-unused-function -f
 # <versioning>
 # Version number from git
 add_custom_target(get_version ALL
-    COMMAND ${CMAKE_COMMAND} -DINFILE=${PROJECT_SOURCE_DIR}/common/src/parpeVersion.h.in
-    -DOUTFILE=${PROJECT_BINARY_DIR}/common/src/parpeVersion.h
+    COMMAND ${CMAKE_COMMAND} -DINFILE=${PROJECT_SOURCE_DIR}/src/parpecommon/parpeVersion.h.in
+    -DOUTFILE=${CMAKE_BINARY_DIR}/src/parpecommon/parpeVersion.h
     -P ${PROJECT_SOURCE_DIR}/CMakeModules/ConfigureVersion.cmake)
 
 include("getVersion")
@@ -93,7 +93,7 @@ if(${BUILD_TESTS})
     if(${GCOV_REPORT})
         if(${CMAKE_COMPILER_IS_GNUCXX})
             # NOTE: LCOV uses absolute paths for exclusion; arguments must be enclosed in single quotes
-            set(COVERAGE_EXCLUDES '/usr/*' '${CMAKE_CURRENT_LIST_DIR}/ThirdParty/*' '${CMAKE_CURRENT_LIST_DIR}/deps/*' '${CMAKE_CURRENT_LIST_DIR}/amici/examples/steadystate/model/*')
+            set(COVERAGE_EXCLUDES '/usr/*' '${CMAKE_CURRENT_LIST_DIR}/ThirdParty/*' '${CMAKE_CURRENT_LIST_DIR}/deps/*' '${CMAKE_CURRENT_LIST_DIR}/examples/*')
             set(GCOV_LIBRARY gcov)
             include(CodeCoverage)
             APPEND_COVERAGE_COMPILER_FLAGS()
@@ -102,7 +102,7 @@ if(${BUILD_TESTS})
                 EXECUTABLE ctest -R unittests
                 DEPENDENCIES ${COVERAGE_DEPENDENCIES})
         else()
-            message("Not creating coverage report, because coamici/examples/steadystate/modelamici/examples/steadystate/modelmpiler is not GCC but ${CMAKE_CXX_COMPILER_ID}.")
+            message("Not creating coverage report, because compiler is not GCC but ${CMAKE_CXX_COMPILER_ID}.")
         endif()
     endif()
 
@@ -110,7 +110,7 @@ if(${BUILD_TESTS})
         if(${CMAKE_COMPILER_IS_GNUCXX})
 
             # NOTE: GCOVR uses regexs on relative paths from ${PROJECT_BINARY_DIR} for exclusion
-            set(COVERAGE_EXCLUDES "^ThirdParty/" "^deps/" "^amici/examples/steadystate/model/")
+            set(COVERAGE_EXCLUDES "^ThirdParty/" "^deps/" "^examples/")
             set(GCOV_LIBRARY gcov)
             include(CodeCoverage)
             APPEND_COVERAGE_COMPILER_FLAGS()
@@ -150,18 +150,21 @@ include(clang-tools)
 
 # calc lines of code
 add_custom_target(cloc
-    COMMAND cloc misc amici common optimization loadbalancer --fullpath --not-match-d=amici/examples/steadystate/model/*
+    COMMAND cloc misc src include examples --fullpath --not-match-d=amici/examples/steadystate/model/*
     WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
     COMMENT "Counting lines of code"
     VERBATIM)
 
 
-add_subdirectory(common)
-add_subdirectory(optimization)
-#if(${PARPE_ENABLE_MPI})
-add_subdirectory(loadbalancer)
-#endif(${PARPE_ENABLE_MPI})
-add_subdirectory(amici)
+add_subdirectory(src)
+
+if(${BUILD_TESTS})
+    add_subdirectory(tests)
+endif()
+
+if(${BUILD_EXAMPLES})
+    add_subdirectory(examples)
+endif()
 
 # create single library
 add_library(${PROJECT_NAME} "")
@@ -176,23 +179,36 @@ install(TARGETS ${PROJECT_NAME} EXPORT ParPETargets
     INCLUDES DESTINATION include
     )
 export(EXPORT ParPETargets
-    FILE "${CMAKE_CURRENT_BINARY_DIR}/ParPETargets.cmake"
-    NAMESPACE Upstream::
+    #DESTINATION "lib/cmake"
+    NAMESPACE "ParPE::"
+    FILE "ParPETargets.cmake"
     )
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/ParPETargets.cmake"
+    DESTINATION "lib/cmake")
 
+set(LIB_INSTALL_DIR lib)
 include(CMakePackageConfigHelpers)
-configure_package_config_file(CMakeModules/ParPEConfig.cmake.in ${CMAKE_CURRENT_BINARY_DIR}/ParPEConfig.cmake
-                              INSTALL_DESTINATION ${LIB_INSTALL_DIR}/cmake/)
-write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/ParPEConfigVersion.cmake
-                                 VERSION "${major}.${minor}.${patch}"
-                                 COMPATIBILITY ExactVersion )
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/ParPEConfig.cmake ${CMAKE_CURRENT_BINARY_DIR}/ParPEConfigVersion.cmake
-        DESTINATION ${LIB_INSTALL_DIR}/cmake/)
+configure_package_config_file(
+    CMakeModules/ParPEConfig.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/ParPEConfig.cmake
+    INSTALL_DESTINATION ${LIB_INSTALL_DIR}/cmake/)
+
+write_basic_package_version_file(
+    ${CMAKE_CURRENT_BINARY_DIR}/ParPEConfigVersion.cmake
+    VERSION "${major}.${minor}.${patch}"
+    COMPATIBILITY ExactVersion )
+
+install(
+    FILES
+    ${CMAKE_CURRENT_BINARY_DIR}/ParPEConfig.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/ParPEConfigVersion.cmake
+    DESTINATION ${LIB_INSTALL_DIR}/cmake/)
 
 configure_file(CMakeModules/ParPEConfig.cmake.in
     "${CMAKE_CURRENT_BINARY_DIR}/ParPEConfig.cmake"
     @ONLY
     )
+
 # Register package
 export(PACKAGE ParPE)
 # </Export cmake configuration>
