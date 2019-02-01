@@ -1,9 +1,6 @@
 #ifndef LOGGING_H
 #define LOGGING_H
 
-#include <parpecommon/parpeConfig.h>
-#include <parpecommon/misc.h> // make_unique
-
 #include <string>
 #include <cstdarg>
 #include <memory>

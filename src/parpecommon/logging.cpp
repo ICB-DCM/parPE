@@ -1,5 +1,8 @@
 #include <parpecommon/logging.h>
 
+#include <parpecommon/parpeConfig.h>
+#include <parpecommon/misc.h> // getMpiActive
+
 #include <ctime>
 #include <cstdio>
 #include <cmath>

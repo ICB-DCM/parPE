@@ -3,6 +3,7 @@
 
 #include <parpeoptimization/optimizationOptions.h>
 #include <parpeoptimization/optimizationProblem.h>
+#include <parpeoptimization/optimizationResultWriter.h>
 #include <parpecommon/misc.h>
 #include <parpecommon/model.h>
 

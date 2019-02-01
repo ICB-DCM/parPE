@@ -14,7 +14,7 @@ void runAmiciSimulation(Solver &solver, const ExpData *edata,
 /**
  * @brief Mock MultiConditionProblem
  */
-class AmiciSummedGradientFunctionTest : public parpe::AmiciSummedGradientFunction<int> {
+class AmiciSummedGradientFunctionTest : public parpe::AmiciSummedGradientFunction {
   public:
     AmiciSummedGradientFunctionTest() = default;
 //    void addSimulationGradientToObjectiveFunctionGradient(

@@ -1,8 +1,8 @@
 #ifndef LOCAL_OPTIMIZATION_H
 #define LOCAL_OPTIMIZATION_H
 
-#include "optimizationProblem.h"
-#include "optimizer.h"
+#include <parpeoptimization/optimizationProblem.h>
+#include <parpeoptimization/optimizer.h>
 
 namespace parpe {
 

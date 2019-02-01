@@ -1,6 +1,9 @@
 #include <parpeamici/hierarchicalOptimization.h>
 
 #include <parpecommon/logging.h>
+#include <parpeamici/multiConditionDataProvider.h>
+#include <parpecommon/misc.h>
+#include <parpecommon/parpeException.h>
 
 #include <exception>
 #include <cmath>
@@ -14,7 +17,7 @@ namespace parpe {
 
 
 HierarchicalOptimizationWrapper::HierarchicalOptimizationWrapper(
-        std::unique_ptr<AmiciSummedGradientFunction<int>> fun,
+        std::unique_ptr<AmiciSummedGradientFunction> fun,
         int numConditions,
         int numObservables,
         int numTimepoints)
@@ -31,7 +34,7 @@ HierarchicalOptimizationWrapper::HierarchicalOptimizationWrapper(
 }
 
 HierarchicalOptimizationWrapper::HierarchicalOptimizationWrapper(
-        std::unique_ptr<AmiciSummedGradientFunction<int> > fun,
+        std::unique_ptr<AmiciSummedGradientFunction > fun,
         H5::H5File const& file,
         std::string const& hdf5RootPath,
         int numConditions, int numObservables, int numTimepoints,
@@ -56,7 +59,7 @@ HierarchicalOptimizationWrapper::HierarchicalOptimizationWrapper(
 }
 
 HierarchicalOptimizationWrapper::HierarchicalOptimizationWrapper(
-        std::unique_ptr<AmiciSummedGradientFunction<int> > fun,
+        std::unique_ptr<AmiciSummedGradientFunction > fun,
         std::unique_ptr<parpe::AnalyticalParameterProvider> scalingReader,
         std::unique_ptr<parpe::AnalyticalParameterProvider> offsetReader,
         std::unique_ptr<parpe::AnalyticalParameterProvider> sigmaReader,
@@ -566,8 +569,8 @@ HierarchicalOptimizationProblemWrapper::HierarchicalOptimizationProblemWrapper(
 
     auto lock = hdf5MutexGetLock();
     costFun.reset(new HierarchicalOptimizationWrapper(
-                      std::unique_ptr<AmiciSummedGradientFunction<int>>(
-                          dynamic_cast<AmiciSummedGradientFunction<int>*>(wrappedFun->getWrappedFunction())),
+                      std::unique_ptr<AmiciSummedGradientFunction>(
+                          dynamic_cast<AmiciSummedGradientFunction*>(wrappedFun->getWrappedFunction())),
                       dataProvider->getHdf5FileId(), "/",
                       dataProvider->getNumberOfConditions(),
                       model->nytrue,

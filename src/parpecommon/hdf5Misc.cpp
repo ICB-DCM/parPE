@@ -645,6 +645,10 @@ void hdf5GetDatasetDimensions(hid_t file_id,
     H5_RESTORE_ERROR_HANDLER;
 }
 
+HDF5Exception::HDF5Exception(std::string msg) : msg(msg) {
+    stackTrace = getBacktrace(20);
+}
+
 HDF5Exception::HDF5Exception(const char *format, ...)
 {
     va_list argptr;
@@ -659,6 +663,8 @@ HDF5Exception::HDF5Exception(const char *format, ...)
 
     msg = buf;
 }
+
+const char *HDF5Exception::what() const noexcept { return msg.c_str(); }
 
 bool hdf5DatasetExists(hid_t file_id, const std::string &datasetName)
 {

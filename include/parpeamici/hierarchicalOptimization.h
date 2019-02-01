@@ -3,8 +3,6 @@
 
 #include <parpeoptimization/optimizationProblem.h>
 #include <parpeamici/multiConditionProblem.h>
-#include <parpecommon/misc.h>
-#include <parpecommon/parpeException.h>
 
 #include <gsl/gsl-lite.hpp>
 
@@ -43,7 +41,7 @@ public:
      * @param numObservables
      * @param numTimepoints
      */
-    HierarchicalOptimizationWrapper(std::unique_ptr<AmiciSummedGradientFunction<int>> fun,
+    HierarchicalOptimizationWrapper(std::unique_ptr<AmiciSummedGradientFunction> fun,
                                    int numConditions = 0,
                                    int numObservables = 0,
                                    int numTimepoints = 0);
@@ -58,7 +56,7 @@ public:
      * @param numTimepoints
      * @param errorModel
      */
-    HierarchicalOptimizationWrapper(std::unique_ptr<AmiciSummedGradientFunction<int>> fun,
+    HierarchicalOptimizationWrapper(std::unique_ptr<AmiciSummedGradientFunction> fun,
                                    const H5::H5File &file,
                                    const std::string &hdf5RootPath,
                                    int numConditions,
@@ -76,7 +74,7 @@ public:
      * @param numTimepoints
      * @param errorModel
      */
-    HierarchicalOptimizationWrapper(std::unique_ptr<AmiciSummedGradientFunction<int>> fun,
+    HierarchicalOptimizationWrapper(std::unique_ptr<AmiciSummedGradientFunction> fun,
                                    std::unique_ptr<AnalyticalParameterProvider> scalingReader,
                                    std::unique_ptr<AnalyticalParameterProvider> offsetReader,
                                    std::unique_ptr<AnalyticalParameterProvider> sigmaReader,
@@ -204,7 +202,7 @@ public:
 
     std::vector<int> getAnalyticalParameterIndices() const;
 
-    std::unique_ptr<AmiciSummedGradientFunction<int>> fun;
+    std::unique_ptr<AmiciSummedGradientFunction> fun;
 
 private:
     void init();
