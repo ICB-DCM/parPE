@@ -21,7 +21,6 @@
 
 namespace parpe {
 
-class MultiConditionDataProvider;
 class LoadBalancerMaster;
 class OptimizationResultWriter;
 class MultiConditionDataProviderHDF5;
@@ -39,12 +38,11 @@ class MultiConditionDataProvider;
  * @return Simulation results
  */
 
-AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
-        amici::Solver &solver,
+AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(amici::Solver const &solver,
         amici::Model &model,
         int conditionIdx,
         int jobId,
-        MultiConditionDataProvider *dataProvider,
+        const MultiConditionDataProvider *dataProvider,
         OptimizationResultWriter *resultWriter,
         bool logLineSearch,
         Logger *logger);

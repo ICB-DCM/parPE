@@ -268,18 +268,17 @@ void saveSimulation(hid_t file_id, std::string const& pathStr, std::vector<doubl
 }
 
 AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
-        amici::Solver &solverTemplate,
+        amici::Solver const &solverTemplate,
         amici::Model &model,
         int conditionIdx,
         int jobId,
-        MultiConditionDataProvider *dataProvider,
+        MultiConditionDataProvider const *dataProvider,
         OptimizationResultWriter *resultWriter,
         bool logLineSearch,
         Logger* logger)
 {
     // wall time  on worker for current simulation
     WallTimer simulationTimer;
-
 
     /* Get ExpData with measurement and fixed parameters. Other model parameters
      * and sensitivity options have been set already */
@@ -303,9 +302,6 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
                                trial, maxNumTrials);
             break;
         }
-
-        if(rdata && rdata->status == AMICI_SUCCESS)
-            break;
 
         if(rdata) {
             /* something went wrong in the previous simulation. until we have
@@ -351,7 +347,6 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
                         solver->getRelativeToleranceQuadratures(),
                         solver->getAbsoluteToleranceB(),
                         solver->getRelativeToleranceB());
-
         }
 
         try {

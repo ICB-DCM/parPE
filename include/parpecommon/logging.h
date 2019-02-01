@@ -15,6 +15,8 @@ namespace parpe {
 #define ANSI_COLOR_CYAN "\x1b[36m"
 #define ANSI_COLOR_RESET "\x1b[0m"
 
+std::string printfToString(const char *fmt, va_list ap);
+
 // TODO enum class
 typedef enum loglevel_tag {
     LOGLVL_CRITICAL = 1,
