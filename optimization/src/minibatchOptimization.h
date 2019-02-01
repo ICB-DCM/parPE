@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <iostream>
 #include <sstream>
+#include <functional>
 
 namespace parpe {
 
@@ -586,8 +587,7 @@ public:
                     gsl::span<double> gradient,
                     gsl::span<const double> lowerParameterBounds,
                     gsl::span<const double> upperParameterBounds,
-                    double &cost,
-                    int &subsequentFails,
+                    double cost,
                     int iteration,
                     SummedGradientFunction<BATCH_ELEMENT> const& f,
                     std::vector<BATCH_ELEMENT> datasets,
@@ -595,25 +595,12 @@ public:
                     OptimizationReporter *reporter) {
 
         /* Retrieve step length and try a full step */
-        stepLength = learningRateUpdater->getCurrentLearningRate();
+        double stepLength = learningRateUpdater->getCurrentLearningRate();
         parameterUpdater->updateParameters(stepLength, iteration, gradient, parameters, 
                                            lowerParameterBounds, upperParameterBounds);
 
         /* If no line search desired: that's it! */
         if (lineSearchSteps == 0) return;
-        
-        /* Define lambda function for step length evaluation  */
-        std::function<double (double)> evalLineSearch = [](double alpha) {
-            /* Reset oldParameters and re-update with new step length */
-            oldParameters = parameters;
-            parameterUpdater->updateParameters(alpha, iteration, gradient, parameters, 
-                                               lowerParameterBounds, upperParameterBounds);
-            /* Write new cost funtion value and return */
-            double newCost = NAN;
-            FunctionEvaluationStatus status = evaluate(f, parameters, datasets, newCost, 
-                                                       gsl::span<double>(), logger, reporter);
-            return newCost;
-        };
         
         /* Do we check for a decreasing cost function? */
         double cost1 = NAN;
@@ -621,6 +608,23 @@ public:
         double newStepLength = NAN;
         FunctionEvaluationStatus status = evaluate(f, parameters, datasets, cost1, 
                                                    gsl::span<double>(), logger, reporter);
+        
+        /* Define lambda function for step length evaluation  */
+        std::function<double (double)> evalLineSearch 
+                = [f, datasets, iteration, status, 
+                   parameters, oldParameters, gradient, 
+                   lowerParameterBounds, upperParameterBounds, 
+                   logger, reporter, this](double alpha) {
+            /* Reset oldParameters and re-update with new step length */
+            oldParameters = parameters;
+            parameterUpdater->updateParameters(alpha, iteration, gradient, parameters, 
+                                               lowerParameterBounds, upperParameterBounds);
+            /* Write new cost funtion value and return */
+            double newCost = NAN;
+            status = evaluate(f, parameters, datasets, newCost, 
+                              gsl::span<double>(), logger, reporter);
+            return newCost;
+        };
 
         /* Return on improvement */
         if (cost1 <= cost) return;
@@ -634,7 +638,7 @@ public:
             direction[i] /= dirNorm;
         
         /* Is the step direction a descent direction? */
-        dirGradient = getScalarProduct(direction, gradient);
+        double dirGradient = getScalarProduct(direction, gradient);
         if (dirGradient > 0) {
             /* No descent direction, no hope for improvement:
              * Try to do something smart anyway */
@@ -670,7 +674,7 @@ public:
         /* Original step was too big, but we're facing a descent direction 
          * Propose a new step based on a parabolic interpolation */
         newStepLength = 0.5 * dirGradient * std::pow(stepLength, 2.0) /
-                (cost1 - cost - dirGradient * stepLength)
+                (cost1 - cost - dirGradient * stepLength);
         parameters = oldParameters;
         parameterUpdater->updateParameters(newStepLength, iteration, gradient, parameters, 
                                            lowerParameterBounds, upperParameterBounds);
@@ -690,14 +694,13 @@ public:
                                                lowerParameterBounds, upperParameterBounds);
         } else {
             /* No descent found and line search option is set: iterate! */
-            auto 
             performLineSearch(stepLength,
                               newStepLength,
                               cost,
                               cost1,
                               cost2,
                               dirGradient,
-                              );
+                              evalLineSearch);
         }
     }
 
@@ -713,7 +716,7 @@ public:
                            double cost1, 
                            double cost2, 
                            double dirGradient,
-                           std::function costFunEvaluate) {
+                           auto costFunEvaluate) {
 
         /* From here on, we will use cubic interpolation.
          * We need to comute the matrix-vector multiplication
@@ -737,7 +740,7 @@ public:
         double tmp_v2;
         double a;
         double b;
-        double alpha2;
+        double alpha3;
         double cost3;
         
         for (int iStep = 2; iStep <= lineSearchSteps; ++iStep) {
@@ -772,7 +775,7 @@ public:
         
         /* No good step was found, but the max number 
          * of line search steps was reached */
-        if cost3 < std::min(cost1, cost2) return;
+        if (cost3 < std::min(cost1, cost2)) return;
         
         if (cost1 < cost2) {
             cost1 = costFunEvaluate(alpha1);
