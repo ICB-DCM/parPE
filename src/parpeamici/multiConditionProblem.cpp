@@ -296,7 +296,7 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
          * occurred,so clone every time */
         auto solver = std::unique_ptr<amici::Solver>(solverTemplate.clone());
 
-        if(trial == maxNumTrials) {
+        if(trial - 1 == maxNumTrials) {
             logger->logmessage(LOGLVL_ERROR,
                                "Simulation trial %d/%d failed. Giving up.",
                                trial, maxNumTrials);
@@ -359,6 +359,7 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
                 // shouldn't happen, but just to be safe
                 rdata->status = AMICI_ERROR;
             rdata->invalidateLLH();
+            rdata->invalidateSLLH();
         }
 
         if(rdata->status == AMICI_SUCCESS)
@@ -640,7 +641,7 @@ int AmiciSummedGradientFunction::aggregateLikelihood(JobData &data, double &negL
     data.recvBuffer = std::vector<char>(); // free buffer
 
     for (auto const& result : results) {
-        errors += result.second.status;
+        errors += result.second.status != AMICI_SUCCESS;
 
         // sum up
         negLogLikelihood -= result.second.llh;
