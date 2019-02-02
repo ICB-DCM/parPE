@@ -336,6 +336,15 @@ private:
      */
     int getNumAnalyticalParameters() const;
 
+    /**
+     * @brief Read mapping of parameter to model outputs.
+     *
+     * Data is expected to come as matrix/table with the following columns:
+     * - scalingParameterIndex: 0-based index referring to entries in the
+     *     parameter index list
+     * - conditionIdx: condition index
+     * - observableIdx: index of model output
+     */
     void readParameterConditionObservableMappingFromFile();
     std::vector<int> readRawMap(H5::DataSet& dataset, hsize_t &nRows, hsize_t &nCols);
 
