@@ -628,13 +628,13 @@ public:
 
         /* Return on improvement */
         if (cost1 <= cost) return;
-        
+
         /* No improvement: retrieve update direction */
         std::vector<double> direction(parameters.size(), NAN);
-        for (int i = 0; i < gradient.size(); ++i)
+        for (unsigned int i = 0; i < gradient.size(); ++i)
             direction[i] = parameters[i] - oldParameters[i];
         double dirNorm = getVectorNorm(direction);
-        for (int i = 0; i < gradient.size(); ++i)
+        for (unsigned int i = 0; i < gradient.size(); ++i)
             direction[i] /= dirNorm;
         
         /* Is the step direction a descent direction? */
@@ -655,7 +655,6 @@ public:
             parameters = oldParameters;
             parameterUpdater->updateParameters(newStepLength, iteration, gradient, parameters, 
                                                lowerParameterBounds, upperParameterBounds);
-            double cost2 = NAN;
             evaluate(f, parameters, datasets, cost2, gsl::span<double>(), logger, reporter);
             
             if (cost2 > cost1) {
