@@ -1,11 +1,8 @@
-#include <multiConditionDataProvider.h>
-#include <standaloneSimulator.h>
-#include <misc.h>
+#include <parpeamici/multiConditionDataProvider.h>
+#include <parpeamici/standaloneSimulator.h>
+#include <parpecommon/misc.h>
 
-#include <cstdio> // remove
 #include <iostream>
-
-#include <model.h>
 
 std::unique_ptr<amici::Model> getModel();
 
@@ -27,7 +24,7 @@ int main(int argc, char **argv) {
         // TODO: testing-only remove result file
         //    remove(resultFileName.c_str());
 
-        parpe::MultiConditionDataProviderHDF5 dp(getModel(), dataFileName.c_str(), dataFilePath + "/inputData");
+        parpe::MultiConditionDataProviderHDF5 dp(getModel(), dataFileName, dataFilePath + "/inputData");
         status = parpe::runSimulator(dp, simulationMode,
                                      dataFileName, dataFilePath,
                                      dataFileName, dataFilePath,

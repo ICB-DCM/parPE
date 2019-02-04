@@ -1,10 +1,10 @@
-#include <optimizationApplication.h>
-#include <multiConditionDataProvider.h>
-#include <multiConditionProblem.h>
-#include <optimizationResultWriter.h>
-#include <logging.h>
-#include <optimizationOptions.h>
-#include <misc.h>
+#include <parpeamici/optimizationApplication.h>
+#include <parpeamici/multiConditionDataProvider.h>
+#include <parpeamici/multiConditionProblem.h>
+#include <parpeoptimization/optimizationResultWriter.h>
+#include <parpecommon/logging.h>
+#include <parpeoptimization/optimizationOptions.h>
+#include <parpecommon/misc.h>
 
 #include <amici/model.h>
 
@@ -71,7 +71,7 @@ public:
         multiStartOptimizationProblem.reset(ms);
     }
 
-    virtual ~MyOptimizationApplication() override {
+    ~MyOptimizationApplication() override {
         parpe::logProcessStats();
     }
 

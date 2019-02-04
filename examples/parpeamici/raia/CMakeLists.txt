@@ -7,7 +7,7 @@ find_package(PythonInterp 3.6)
 include(ExternalProject)
 set(MODEL_NAME raia)
 ExternalProject_Add(${MODEL_NAME}
-    DOWNLOAD_DIR        "${CMAKE_CURRENT_BINARY_DIR}/${MODEL_NAME}-prefix/src/${MODEL_NAME}"
+    DOWNLOAD_DIR      "${CMAKE_CURRENT_BINARY_DIR}/${MODEL_NAME}-prefix/src/${MODEL_NAME}"
     DOWNLOAD_COMMAND  ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/build_raia_model.py"
     # Don't install anything
     INSTALL_COMMAND   ""
