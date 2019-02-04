@@ -113,6 +113,16 @@ def create_assigment_rule(model, name, formula):
     rule.setFormula(formula)
     return rule
 
+def add_sigma(model, observable):
+    # corresponding sigma
+    p = create_parameter(model, f'sigma_{observable}', False, 1.0,
+                         'mole_per_litre')
+    p = create_parameter(model, f'noiseParameter1_{observable}', True, 0.2,
+                         'mole_per_litre')
+    rule = create_assigment_rule(model, f'sigma_{observable}',
+                                 f'noiseParameter1_{observable}')
+
+
 def create_model():
     document = SBMLDocument(3, 1)
     model = document.createModel()
@@ -165,32 +175,29 @@ def create_model():
     # write observables
     for i in range(1, 4):
         # all states fully observed
-        observable = 'observable_x%d' %i
+        observable = f'observable_x{i}'
         p = create_parameter(model, observable, False, 1.0, 'mole_per_litre')
         rule = create_assigment_rule(model, observable, 'x%d' % i)
+        add_sigma(model, f'x{i}')
 
     # Scaled x1
     p = create_parameter(model, 'observableParameter1_x1_scaled', True, 2.0, 'dimensionless')
     p = create_parameter(model, 'observable_x1_scaled', False, 1.0, 'mole_per_litre')
     rule = create_assigment_rule(model, 'observable_x1_scaled', 'observableParameter1_x1_scaled * x1')
+    add_sigma(model, 'x1_scaled')
 
     # x2 with offset
     p = create_parameter(model, 'observableParameter1_x2_offsetted', True, 3.0, 'mole_per_litre')
     p = create_parameter(model, 'observable_x2_offsetted', False, 1.0, 'mole_per_litre')
     rule = create_assigment_rule(model, 'observable_x2_offsetted', 'observableParameter1_x2_offsetted + x2')
+    add_sigma(model, 'x2_offsetted')
 
     # Fully observed with sigma parameter
     # observable
     p = create_parameter(model, 'observable_x1withsigma', False, 1.0,
                          'mole_per_litre')
     rule = create_assigment_rule(model, 'observable_x1withsigma', 'x1')
-    # corresponding sigma
-    p = create_parameter(model, 'sigma_x1withsigma', False, 1.0,
-                         'mole_per_litre')
-    p = create_parameter(model, 'noiseParameter1_x1withsigma', True, 0.2,
-                         'mole_per_litre')
-    rule = create_assigment_rule(model, 'sigma_x1withsigma',
-                                 'noiseParameter1_x1withsigma')
+    add_sigma(model, 'x1withsigma')
 
     return writeSBMLToString(document)
 

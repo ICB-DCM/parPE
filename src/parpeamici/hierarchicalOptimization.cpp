@@ -157,6 +157,9 @@ FunctionEvaluationStatus HierarchicalOptimizationWrapper::evaluate(gsl::span<con
     // needs scaled outputs
     auto sigmas = computeAnalyticalSigmas(measurements, modelOutput);
 
+    std::cout<<"scalings "<<scalings<<std::endl;
+    std::cout<<"sigmas "<<sigmas<<std::endl;
+
     // splice parameter vector we get from optimizer with analytically computed parameters
     fullParameters = spliceParameters(reducedParameters,
                                       proportionalityFactorIndices, offsetParameterIndices, sigmaParameterIndices,
@@ -700,6 +703,12 @@ double computeAnalyticalScalings(int scalingIdx,
                     if(std::isnan(sim)) {
                         logmessage(LOGLVL_WARNING, "In computeAnalyticalScalings %d: Simulation is NaN for condition %d observable %d timepoint %d", scalingIdx, conditionIdx, observableIdx, timeIdx);
                     }
+                    if(sim < 0 && sim > -1e-18) {
+                        // negative values due to numerical errors | TODO: some outputs may be validly < 0
+                        logmessage(LOGLVL_WARNING, "In computeAnalyticalScalings %d: Simulation is %g < 0 for condition %d observable %d timepoint %d. Setting to 0.0.", scalingIdx, sim, conditionIdx, observableIdx, timeIdx);
+                        sim = 0.0;
+                    }
+
                     enumerator += sim * mes;
                     denominator += sim * sim;
                 }

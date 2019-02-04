@@ -290,7 +290,8 @@ def append_measurements_for_condition(
 
 
 def generate_hdf5_file(sbml_file_name, model_output_dir, measurement_file_name,
-                       condition_file_name, hdf5_file_name):
+                       condition_file_name, hdf5_file_name,
+                       parameter_file_name, model_name):
 
     cmd = f"bash -c 'if [[ -f {hdf5_file_name} ]]; then "\
         f"cp {hdf5_file_name} {hdf5_file_name}.bak; fi'"
@@ -298,16 +299,17 @@ def generate_hdf5_file(sbml_file_name, model_output_dir, measurement_file_name,
     print(out.decode('utf-8'))
 
     # convert to HDF5
-    # TODO new format; parameter_file
     script_file = os.path.join(os.path.split(os.path.abspath(__file__))[0],
                                '..', '..', '..', 'misc',
                                'generateHDF5DataFileFromText.py')
     cmd = [script_file,
-           hdf5_file_name,
-           sbml_file_name,
-           model_output_dir,
-           measurement_file_name,
-           condition_file_name]
+           '-o', hdf5_file_name,
+           '-s', sbml_file_name,
+           '-d', model_output_dir,
+           '-m', measurement_file_name,
+           '-c', condition_file_name,
+           '-n', model_name,
+           '-p', parameter_file_name]
     print("Running: ", ' '.join(cmd))
     out = subprocess.run(cmd, stdout=subprocess.PIPE,
                          stderr=subprocess.STDOUT)
@@ -354,6 +356,12 @@ def create_parameter_table(sbml_file, condition_file, measurement_file,
     problem = petab.Problem(sbml_file, condition_file, measurement_file)
     df = problem.create_parameter_df(lower_bound=-3,
                                      upper_bound=5)
+    # TODO: to peTAB
+    df['hierarchicalOptimization'] = 0
+    df.loc['scaling_x1_common', 'hierarchicalOptimization'] = 1
+    df.loc['offset_x2_batch-0', 'hierarchicalOptimization'] = 1
+    df.loc['offset_x2_batch-1', 'hierarchicalOptimization'] = 1
+    df.loc['x1withsigma_sigma', 'hierarchicalOptimization'] = 1
 
     df.to_csv(parameter_file, sep="\t", index=True)
 
@@ -415,7 +423,9 @@ def main():
         model_output_dir=args.model_output_dir,
         measurement_file_name=args.measurement_file_name,
         condition_file_name=args.condition_file_name,
-        hdf5_file_name=args.hdf5_file_name
+        hdf5_file_name=args.hdf5_file_name,
+        parameter_file_name=args.parameter_file_name,
+        model_name=model_name
     )
 
     save_expected_results(args.hdf5_file_name, true_parameters, expected_llh)
