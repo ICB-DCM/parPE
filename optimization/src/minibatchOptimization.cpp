@@ -7,7 +7,7 @@ namespace parpe {
 double getScalarProduct(gsl::span<const double> v,
                         gsl::span<const double> w) {
     double scalarProduct = 0.0;
-    for (int i = 0; i < v.size(); ++i)
+    for (unsigned int i = 0; i < v.size(); ++i)
         scalarProduct += v[i] * w[i];
     return scalarProduct;
 }

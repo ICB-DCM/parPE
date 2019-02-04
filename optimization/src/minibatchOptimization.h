@@ -407,9 +407,11 @@ public:
                     oldParameters = parameters;
                 }
 
-                // Update parameters after successful gradient evaluation
-                parameterUpdater->updateParameters(learningRateUpdater->getCurrentLearningRate(), iteration, gradient,
-                                                   parameters, lowerParameterBounds, upperParameterBounds);
+                /* Update parameters after successful gradient evaluation */
+                handleStep(parameters, oldParameters, gradient, lowerParameterBounds, upperParameterBounds,
+                           cost, iteration, f, batches[batchIdx], batchLogger.get(), reporter);
+                /*parameterUpdater->updateParameters(learningRateUpdater->getCurrentLearningRate(), iteration, gradient,
+                                                   parameters, lowerParameterBounds, upperParameterBounds);*/
 
             }
 
@@ -606,23 +608,21 @@ public:
         double cost1 = NAN;
         double cost2 = NAN;
         double newStepLength = NAN;
-        FunctionEvaluationStatus status = evaluate(f, parameters, datasets, cost1, 
-                                                   gsl::span<double>(), logger, reporter);
+        evaluate(f, parameters, datasets, cost1, gsl::span<double>(), logger, reporter);
         
         /* Define lambda function for step length evaluation  */
-        std::function<double (double)> evalLineSearch 
-                = [f, datasets, iteration, status, 
-                   parameters, oldParameters, gradient, 
-                   lowerParameterBounds, upperParameterBounds, 
-                   logger, reporter, this](double alpha) {
+        std::function<double (double)> evalLineSearch = [&f, &datasets, iteration,
+                   &parameters, &oldParameters, &gradient, 
+                   &lowerParameterBounds, &upperParameterBounds, 
+                   &logger, &reporter, this](double alpha) {
+            
             /* Reset oldParameters and re-update with new step length */
             oldParameters = parameters;
             parameterUpdater->updateParameters(alpha, iteration, gradient, parameters, 
                                                lowerParameterBounds, upperParameterBounds);
             /* Write new cost funtion value and return */
             double newCost = NAN;
-            status = evaluate(f, parameters, datasets, newCost, 
-                              gsl::span<double>(), logger, reporter);
+            evaluate(f, parameters, datasets, newCost, gsl::span<double>(), logger, reporter);
             return newCost;
         };
 
@@ -656,16 +656,14 @@ public:
             parameterUpdater->updateParameters(newStepLength, iteration, gradient, parameters, 
                                                lowerParameterBounds, upperParameterBounds);
             double cost2 = NAN;
-            status = evaluate(f, parameters, datasets, cost2, 
-                              gsl::span<double>(), logger, reporter);
+            evaluate(f, parameters, datasets, cost2, gsl::span<double>(), logger, reporter);
             
             if (cost2 > cost1) {
                 /* The parabola idea didn't work. Just admit the step, as it is */
                 parameters = oldParameters;
                 parameterUpdater->updateParameters(stepLength, iteration, gradient, parameters, 
                                                    lowerParameterBounds, upperParameterBounds);
-                status = evaluate(f, parameters, datasets, cost2, 
-                                  gsl::span<double>(), logger, reporter);
+                evaluate(f, parameters, datasets, cost2, gsl::span<double>(), logger, reporter);
             }
             /* We tried all we could */
             return;
@@ -678,8 +676,7 @@ public:
         parameters = oldParameters;
         parameterUpdater->updateParameters(newStepLength, iteration, gradient, parameters, 
                                            lowerParameterBounds, upperParameterBounds);
-        status = evaluate(f, parameters, datasets, cost2, 
-                          gsl::span<double>(), logger, reporter);
+        evaluate(f, parameters, datasets, cost2, gsl::span<double>(), logger, reporter);
         
         /* If we did improve, return, otherwise iterate */
         if (cost2 < cost) return;
