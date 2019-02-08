@@ -29,7 +29,7 @@ void setMinibatchOption(const std::pair<const std::string, const std::string> &p
     } else if (key == "gradientNormThreshold") {
         optimizer->gradientNormThreshold = std::stod(val);
     } else if (key == "lineSearchSteps") {
-        optimizer->lineSearchSteps = (std::stoi(val) < 10) ? std::stoi(val) : 10;
+        optimizer->lineSearchSteps = std::stoi(val);
     } else if (key == "rescueInterceptor") {
         if (val == "none" or val == "0") {
             optimizer->interceptor = parpe::interceptType::none;

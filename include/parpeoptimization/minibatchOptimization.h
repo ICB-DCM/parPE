@@ -177,17 +177,11 @@ public:
                           gsl::span<const double> lowerBounds = gsl::span<const double>(),
                           gsl::span<const double> upperBounds = gsl::span<const double>()) override;
 
-    void undoLastStep() override {
-    }
-    ;
+    void undoLastStep() override;
 
-    void clearCache() override {
-    }
-    ;
+    void clearCache() override;
 
-    void initialize(unsigned int numParameters) override {
-    }
-    ;
+    void initialize(unsigned int numParameters) override;
 };
 
 /**
@@ -706,7 +700,7 @@ public:
                            auto costFunEvaluate) {
 
         /* From here on, we will use cubic interpolation.
-         * We need to comute the matrix-vector multiplication
+         * We need to compute the matrix-vector multiplication
          * 
          * a = 1/tmp_D * [ tmp_11, tmp_12 ] [tmp_v1]
          * b = 1/tmp_D * [ tmp_21, tmp_22 ] [tmp_v2]
@@ -716,37 +710,24 @@ public:
          * alpha3 = -b + sqrt( ² - 3*a*dirGradient ) / (3*a)
          * 
          * Possibly, we have to iterrate this process. */
-        
-        /* Declare variables which will be used repeatedly */
-        double tmp_D;
-        double tmp_11;
-        double tmp_12;
-        double tmp_21;
-        double tmp_22;
-        double tmp_v1;
-        double tmp_v2;
-        double a;
-        double b;
-        double alpha3;
-        double cost3;
-        
+
         for (int iStep = 2; iStep <= lineSearchSteps; ++iStep) {
             /* declare temporary variables */
-            tmp_D = std::pow(alpha2 * alpha1, 2.0) * (alpha2 - alpha1);
-            tmp_11 = std::pow(alpha1, 2.0);
-            tmp_12 = -1.0 * std::pow(alpha2, 2.0);
-            tmp_21 = -1.0 * std::pow(alpha1, 3.0);
-            tmp_22 = std::pow(alpha2, 3.0);
-            tmp_v1 = cost2 - cost - dirGradient * alpha2;
-            tmp_v2 = cost1 - cost - dirGradient * alpha1;
-            a = (tmp_11 * tmp_v1 + tmp_12 * tmp_v2) / tmp_D;
-            b = (tmp_21 * tmp_v1 + tmp_22 * tmp_v2) / tmp_D;
+            double tmp_D = std::pow(alpha2 * alpha1, 2.0) * (alpha2 - alpha1);
+            double tmp_11 = std::pow(alpha1, 2.0);
+            double tmp_12 = -1.0 * std::pow(alpha2, 2.0);
+            double tmp_21 = -1.0 * std::pow(alpha1, 3.0);
+            double tmp_22 = std::pow(alpha2, 3.0);
+            double tmp_v1 = cost2 - cost - dirGradient * alpha2;
+            double tmp_v2 = cost1 - cost - dirGradient * alpha1;
+            double a = (tmp_11 * tmp_v1 + tmp_12 * tmp_v2) / tmp_D;
+            double b = (tmp_21 * tmp_v1 + tmp_22 * tmp_v2) / tmp_D;
             
             /* Compute possible new step length */
-            alpha3 = (-b + std::sqrt(b*b - 3.0*a*dirGradient)) / (3.0*a);
+            double alpha3 = (-b + std::sqrt(b*b - 3.0*a*dirGradient)) / (3.0*a);
             
             /* Evaluate line search function at alpha2 */
-            cost3 = costFunEvaluate(alpha3);
+            double cost3 = costFunEvaluate(alpha3);
             
             /* If improvement, return */
             if (cost3 < cost) return;

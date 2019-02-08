@@ -61,9 +61,9 @@ def main():
 
     # set observables and constants
     observables_list = ['observable_RecSurf', 'observable_IL13_cell',
-                        'observable_pIL4Ra', 'observable_pJAK2', 
+                        'observable_pIL4Ra', 'observable_pJAK2',
 						'observable_SOCS3mRNA', 'observable_CD274mRNA',
-                        'observable_SOCS3', 'observable_pSTAT5']  #
+                        'observable_SOCS3', 'observable_pSTAT5']
     fixed_parameters = ['il13_level']
 
     # wrap the model
@@ -176,7 +176,7 @@ def main():
     amici_options = f_hdf5['amiciOptions']
     amici_options.attrs['atol'] = 1.0e-8
     amici_options.attrs['rtol'] = 1.0e-6
-    amici_options.attrs['sensi_meth'] = 1 
+    amici_options.attrs['sensi_meth'] = 1
 
 if __name__ == '__main__':
     main()
