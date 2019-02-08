@@ -162,10 +162,9 @@ public:
 
 };
 
-/** Minibatch optimizer: Vanilla SGD Updater
- * The Vanilla SGD updater currently takes two inputs:
- * start value of the learning rate
- * end value of the learning rate
+/** 
+ * @brief Minibatch optimizer: Vanilla SGD Updater
+ * The simplest mini batch algorithm.
  */
 class ParameterUpdaterVanilla: public ParameterUpdater {
 public:
@@ -191,8 +190,10 @@ public:
     ;
 };
 
-/** Minibatch optimizer: RMSProp Updater
- *
+/**
+* @brief Minibatch optimizer: RMSProp Updater
+* A so-called adaptive mini batching algorithm without momentum
+*/
  * The RMSProp updater currently takes two inputs:
  * start value of the learning rate
  * end value of the learning rate
@@ -229,12 +230,10 @@ private:
     std::vector<double> oldGradientNormCache;
 };
 
-/** Minibatch optimizer: Adam Updater
- * The Adam updater currently takes two inputs:
- * start value of the learning rate
- * end value of the learning rate
+ /**
+ * @brief Minibatch optimizer: Adam Updater
+ * A momentum-based and so-called adaptive mini batching algorithm
  */
-
 class ParameterUpdaterAdam: public ParameterUpdater {
 public:
     ParameterUpdaterAdam() = default;
@@ -604,12 +603,6 @@ public:
         /* If no line search desired: that's it! */
         if (lineSearchSteps == 0) return;
         
-        /* Do we check for a decreasing cost function? */
-        double cost1 = NAN;
-        double cost2 = NAN;
-        double newStepLength = NAN;
-        evaluate(f, parameters, datasets, cost1, gsl::span<double>(), logger, reporter);
-        
         /* Define lambda function for step length evaluation  */
         std::function<double (double)> evalLineSearch = [&f, &datasets, iteration,
                    &parameters, &oldParameters, &gradient, 
@@ -625,11 +618,14 @@ public:
             evaluate(f, parameters, datasets, newCost, gsl::span<double>(), logger, reporter);
             return newCost;
         };
+        
+        /* Do we check for a decreasing cost function? */
+        double cost1 = evalLineSearch(stepLength);
 
         /* Return on improvement */
         if (cost1 <= cost) return;
 
-        /* No improvement: retrieve update direction */
+        /* No improvement: compute update direction */
         std::vector<double> direction(parameters.size(), NAN);
         for (unsigned int i = 0; i < gradient.size(); ++i)
             direction[i] = parameters[i] - oldParameters[i];
@@ -646,23 +642,17 @@ public:
             /* Fit a parabola to decide whether a smaller or 
              * a bigger step seems more promising */
             if (cost1 < cost + 2.0 * dirNorm * dirGradient) {
-                newStepLength = stepLength * 2.0;
+                double newStepLength = stepLength * 2.0;
             } else {
-                newStepLength = stepLength / 2.0;
+                double newStepLength = stepLength / 2.0;
             }
             
             /* re-evaluate cost function */
-            parameters = oldParameters;
-            parameterUpdater->updateParameters(newStepLength, iteration, gradient, parameters, 
-                                               lowerParameterBounds, upperParameterBounds);
-            evaluate(f, parameters, datasets, cost2, gsl::span<double>(), logger, reporter);
+            double cost2 = evalLineSearch(newStepLength);
             
             if (cost2 > cost1) {
                 /* The parabola idea didn't work. Just admit the step, as it is */
-                parameters = oldParameters;
-                parameterUpdater->updateParameters(stepLength, iteration, gradient, parameters, 
-                                                   lowerParameterBounds, upperParameterBounds);
-                evaluate(f, parameters, datasets, cost2, gsl::span<double>(), logger, reporter);
+                cost1 = evalLineSearch(stepLength);
             }
             /* We tried all we could */
             return;
@@ -670,12 +660,9 @@ public:
         
         /* Original step was too big, but we're facing a descent direction 
          * Propose a new step based on a parabolic interpolation */
-        newStepLength = 0.5 * dirGradient * std::pow(stepLength, 2.0) /
+        double newStepLength = 0.5 * dirGradient * std::pow(stepLength, 2.0) /
                 (cost1 - cost - dirGradient * stepLength);
-        parameters = oldParameters;
-        parameterUpdater->updateParameters(newStepLength, iteration, gradient, parameters, 
-                                           lowerParameterBounds, upperParameterBounds);
-        evaluate(f, parameters, datasets, cost2, gsl::span<double>(), logger, reporter);
+        double cost2 = evalLineSearch(newStepLength);
         
         /* If we did improve, return, otherwise iterate */
         if (cost2 < cost) return;
@@ -685,9 +672,7 @@ public:
             if (cost2 <= cost1) return;
             
             /* 1st try was better than 2nd, use it */
-            parameters = oldParameters;
-            parameterUpdater->updateParameters(stepLength, iteration, gradient, parameters, 
-                                               lowerParameterBounds, upperParameterBounds);
+            cost1 = evalLineSearch(stepLength);
         } else {
             /* No descent found and line search option is set: iterate! */
             performLineSearch(stepLength,
@@ -704,7 +689,13 @@ public:
      * @brief Perform line search according to interpolation algo by [Dennis and Schnabel, 
      * Numerical Methods for Unconstrained Optimization and Non-linear Equations, 1993].
      *
-     * @param parameters current parameter vector
+     * @param alpha1 step length of first step
+     * @param alpha2 step length of second step
+     * @param cost objective function value before update
+     * @param cost1 objective function value after first step
+     * @param cost2 objective function value after second step
+     * @param dirGradient alignment of gradient and step direction
+     * @param costFunEvaluate objective function wo gradient
      */
     void performLineSearch(double alpha1,
                            double alpha2, 
