@@ -185,12 +185,8 @@ public:
 };
 
 /**
-* @brief Minibatch optimizer: RMSProp Updater
-* A so-called adaptive mini batching algorithm without momentum
-*/
- * The RMSProp updater currently takes two inputs:
- * start value of the learning rate
- * end value of the learning rate
+ * @brief Minibatch optimizer: RMSProp Updater
+ * A so-called adaptive mini batching algorithm without momentum
  */
 class ParameterUpdaterRmsProp: public ParameterUpdater {
 public:
@@ -635,10 +631,11 @@ public:
             
             /* Fit a parabola to decide whether a smaller or 
              * a bigger step seems more promising */
+            double newStepLength = NAN;
             if (cost1 < cost + 2.0 * dirNorm * dirGradient) {
-                double newStepLength = stepLength * 2.0;
+                newStepLength = stepLength * 2.0;
             } else {
-                double newStepLength = stepLength / 2.0;
+                newStepLength = stepLength / 2.0;
             }
             
             /* re-evaluate cost function */
@@ -711,6 +708,9 @@ public:
          * 
          * Possibly, we have to iterrate this process. */
 
+        /* Declare variables which will be needed outside the loop */
+        double cost3 = NAN;
+        
         for (int iStep = 2; iStep <= lineSearchSteps; ++iStep) {
             /* declare temporary variables */
             double tmp_D = std::pow(alpha2 * alpha1, 2.0) * (alpha2 - alpha1);

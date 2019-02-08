@@ -252,4 +252,10 @@ void ParameterUpdaterVanilla::updateParameters(double learningRate,
     clipToBounds(lowerBounds, upperBounds, parameters);
 }
 
+void ParameterUpdaterVanilla::initialize(unsigned int numParameters) {}
+
+void ParameterUpdaterVanilla::clearCache() {}
+
+void ParameterUpdaterVanilla::undoLastStep() {}
+
 }
