@@ -52,23 +52,19 @@ def getReturnDataForCondition(model, solver, condition, simulationParameters,
 def main():
     script_dir = os.path.splitext(os.path.abspath(__file__))[0]
     script_dir = os.path.split(script_dir)[0]
-    sbml_file = os.path.join(script_dir, 'lucarelli_12.xml')
-    model_name = 'lucarelli_12'
+    sbml_file = os.path.join(script_dir, 'raia.xml')
+    model_name = 'raia'
     model_output_dir = os.path.join(os.getcwd())
 
     print("Importing model from", sbml_file)
     print("Generating files in", model_output_dir)
 
     # set observables and constants
-    observables_list = ['observable_Ski', 'observable_Skil',
-                        'observable_Dnmt3a',
-                        'observable_Sox4', 'observable_Jun',
-                        'observable_Smad7',
-                        'observable_Klf10', 'observable_Bmp4',
-                        'observable_Cxcl15',
-                        'observable_Dusp5', 'observable_Tgfa',
-                        'observable_Pdk4']  #
-    fixed_parameters = ['init_TGFb', 'init_S2', 'init_S3', 'init_S4']
+    observables_list = ['observable_RecSurf', 'observable_IL13_cell',
+                        'observable_pIL4Ra', 'observable_pJAK2',
+						'observable_SOCS3mRNA', 'observable_CD274mRNA',
+                        'observable_SOCS3', 'observable_pSTAT5']
+    fixed_parameters = ['il13_level']
 
     # wrap the model
     sbmlImporter = amici.SbmlImporter(sbml_file)
@@ -84,7 +80,7 @@ def main():
 
     # load model
     sys.path.insert(0, model_output_dir)
-    import lucarelli_12 as modelModule
+    import raia as modelModule
 
     model = modelModule.getModel()
     solver = model.getSolver()
@@ -106,16 +102,13 @@ def main():
     solver.setMaxSteps(10000)
 
     # generate condition-vectors
-    sigma = 0.5
-    mu = 1.5
     nConditions = 10
-    init_TGFb = np.linspace(0, 1, 11)
-    init_conditions = [10.0 ** (mu + sigma * np.random.randn(4))]
-    init_conditions[0][0] = init_TGFb[np.random.randint(0, 11)]
-    for i in range(1, nConditions):
-        init_conditions.append(
-            np.array(10.0 ** (mu + sigma * np.random.randn(4))))
-        init_conditions[i][0] = init_TGFb[np.random.randint(0, 11)]
+    init_conditions = [np.array([0.])]
+    for i_cond in range(1, nConditions):
+    	if (i_cond < 5):
+    		init_conditions.append(2. * np.array([float(i_cond)]))
+    	else:
+    		init_conditions.append(15. * np.array([float(i_cond - 4)]))
 
     indices = fixed_parameters
     conditionDf = createConditionDataframe(indices, init_conditions,
@@ -166,7 +159,6 @@ def main():
     conditionDf.to_csv(fixed_parameter_file, sep='\t', index=False)
 
     # convert to HDF5
-
     subprocess.call(["/bin/bash", "-c",
                      "if [[ -f example_data.h5 ]]; then cp example_data.h5 example_data.h5.bak; fi"])
 
