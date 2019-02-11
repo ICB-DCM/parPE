@@ -49,7 +49,7 @@ def plotDoseResponseLogDose(conc, mes, sim, title, ax):
     ax.semilogx(conc, mes, '.', label='mes')
     ax.semilogx(conc, sim, '.', label='sim')
     ax.set_ylabel('Proliferation')
-    ax.set_xlabel('[Drug]');
+    ax.set_xlabel('[Drug]')
     ax.set_title(title)
     #ax.legend();
 
@@ -68,7 +68,7 @@ def plotDoseResponseCategorical(conc, mes, sim, title, ax):
     ax.vlines(concStr, np.array(mes)[order], np.array(sim)[order])
 
     ax.set_ylabel('Proliferation')
-    ax.set_xlabel('[Drug]');
+    ax.set_xlabel('[Drug]')
     ax.set_title(title)
     #ax.legend();
 

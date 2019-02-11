@@ -8,7 +8,7 @@ include(ExternalProject)
 set(MODEL_NAME raia)
 ExternalProject_Add(${MODEL_NAME}
     DOWNLOAD_DIR      "${CMAKE_CURRENT_BINARY_DIR}/${MODEL_NAME}-prefix/src/${MODEL_NAME}"
-    DOWNLOAD_COMMAND  ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/build_raia_model.py"
+    DOWNLOAD_COMMAND  ${CMAKE_CURRENT_SOURCE_DIR}/recreateExampleData.sh ${CMAKE_BINARY_DIR}
     # Don't install anything
     INSTALL_COMMAND   ""
     TEST_COMMAND      ""
