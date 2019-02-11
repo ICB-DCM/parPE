@@ -186,12 +186,18 @@ std::unique_ptr<OptimizationProblem> MultiConditionProblemMultiStartOptimization
 }
 
 void printSimulationResult(Logger *logger, int jobId, amici::ReturnData const* rdata, double timeSeconds) {
-    logger->logmessage(LOGLVL_DEBUG, "Result for %d: %g (%d) (%.4fs%c)",
-               jobId, rdata->llh, rdata->status, timeSeconds, rdata->sensi >= amici::SensitivityOrder::first?'+':'-');
+    bool with_sensi = rdata->sensi >= amici::SensitivityOrder::first;
+
+    logger->logmessage(LOGLVL_DEBUG, "Result for %d: %g (%d) (%d/%d/%.4fs%c)",
+                       jobId, rdata->llh, rdata->status,
+                       rdata->numsteps[rdata->numsteps.size() - 1],
+                       with_sensi?rdata->numstepsB[0]:0,
+                       timeSeconds,
+                       with_sensi?'+':'-');
 
 
     // check for NaNs, only report first
-    if (rdata->sensi >= amici::SensitivityOrder::first) {
+    if (with_sensi) {
         for (int i = 0; i < rdata->np; ++i) {
             if (std::isnan(rdata->sllh[i])) {
                 logger->logmessage(LOGLVL_DEBUG, "Gradient contains NaN at %d", i);
