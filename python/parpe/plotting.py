@@ -32,8 +32,11 @@ def plotCostTrajectory(costTrajectory,
 
     minCost = np.nanmin(costTrajectory)
     maxCost = np.nanmax(costTrajectory[scaleToIteration:,:])
-    ax.set_ylim(bottom=(1 - np.sign(minCost) * 0.02) * minCost,
-                top=(1 + np.sign(maxCost) * 0.02) * maxCost)
+    #ax.set_ylim(bottom=(1 - np.sign(minCost) * 0.02) * minCost,
+    #            top=(1 + np.sign(maxCost) * 0.02) * maxCost)
+    ax.set_ylim(bottom=minCost - 0.01 * np.abs(maxCost - minCost),
+                top=maxCost + 0.01 * np.abs(maxCost - minCost))
+
     if legend:
         ax.legend(['start %d'%i for i in range(costTrajectory.shape[1]) ], loc=legend_loc)
     ax.set_xlabel('Iteration')
@@ -86,7 +89,7 @@ def plotCorrelations(ymes, ysim):
                         title='Observable %d' % iy)
 
 
-def plotCorrelation(ymes, ysim, title=None, alpha=1.0):
+def plotCorrelation(ymes, ysim, title=None, alpha=1.0, legend=False, square=True):
     """
     Plot correlation of measured and simulated data
 
@@ -101,18 +104,22 @@ def plotCorrelation(ymes, ysim, title=None, alpha=1.0):
     for icondition in range(ysim.shape[0]):
         x = ymes[icondition, :]
         y = ysim[icondition, :]
+        #x, y = flatten_filter_nan(x, y)
         r = correlation_coefficient(x, y)
         ax.scatter(x, y, label='Condition %d, r=%.3f' % (icondition, r), alpha=alpha)
 
     ax.set_xlabel('measurement (AU)')
     ax.set_ylabel('simulation (AU)')
 
-    square_plot_equal_ranges(ax)
+    if square:
+        square_plot_equal_ranges(ax)
 
     if title:
         plt.title(title)
+    if legend:
+        plt.legend()
 
-    plt.legend()
+    return ax
 
 
 def square_plot_equal_ranges(ax, lim=None):
@@ -126,7 +133,7 @@ def square_plot_equal_ranges(ax, lim=None):
         xlim = ax.get_xlim()
         ylim = ax.get_ylim()
         lim = [np.min([xlim[0], ylim[0]]),
-               np.min([xlim[1], ylim[1]])]
+               np.max([xlim[1], ylim[1]])]
 
     ax.set_xlim(lim)
     ax.set_ylim(lim)
