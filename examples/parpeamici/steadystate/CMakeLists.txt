@@ -25,7 +25,7 @@ ExternalProject_Add_StepDependencies(${MODEL_NAME} build parpeamici)
 
 ExternalProject_Get_property(${MODEL_NAME} SOURCE_DIR)
 ExternalProject_Get_property(${MODEL_NAME} BINARY_DIR)
-message("Generating ${MODEL_NAME} example model and data in ${SOURCE_DIR} (${BINARY_DIR})")
+message(STATUS "Generating ${MODEL_NAME} example model and data in ${SOURCE_DIR} (${BINARY_DIR})")
 
 # Import external library
 set(MODEL_LIBRARIES "model_${MODEL_NAME}")
@@ -39,7 +39,7 @@ set_target_properties(model_${MODEL_NAME}
     IMPORTED_LOCATION
     "${BINARY_DIR}/${CMAKE_STATIC_LIBRARY_PREFIX}${MODEL_LIBRARIES}${CMAKE_STATIC_LIBRARY_SUFFIX}"
 )
-message("Imported lib ${MODEL_LIBRARIES}")
+message(STATUS "Imported lib ${MODEL_LIBRARIES}")
 
 
 # example_steadystate executable

@@ -21,7 +21,7 @@ ExternalProject_Add_StepDependencies(${MODEL_NAME} build parpeamici)
 
 ExternalProject_Get_property(${MODEL_NAME} SOURCE_DIR)
 ExternalProject_Get_property(${MODEL_NAME} BINARY_DIR)
-message("Generating Raia example model and data in ${SOURCE_DIR}")
+message(STATUS "Generating Raia example model and data in ${SOURCE_DIR}")
 
 # Import external library
 set(MODEL_LIBRARIES "model_${MODEL_NAME}")
