@@ -11,6 +11,7 @@ ExternalProject_Add(
     DOWNLOAD_DIR    "${CMAKE_CURRENT_BINARY_DIR}/${MODEL_NAME}-prefix/src/${MODEL_NAME}"
     DOWNLOAD_COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/recreateExampleData.sh ${CMAKE_BINARY_DIR}
     SOURCE_SUBDIR    model_steadystate_scaled
+    CMAKE_ARGS    -DAmici_DIR=${Amici_DIR}
     # Don't install anything
     INSTALL_COMMAND  ""
     TEST_COMMAND     ""
@@ -21,6 +22,7 @@ ExternalProject_Add(
 # Rebuild if amici files are updated
 ExternalProject_Add_StepDependencies(${MODEL_NAME} download recreateExampleData.sh)
 ExternalProject_Add_StepDependencies(${MODEL_NAME} build parpeamici)
+ExternalProject_Add_StepDependencies(${MODEL_NAME} download ${PROJECT_BINARY_DIR}/venv)
 
 ExternalProject_Get_property(${MODEL_NAME} SOURCE_DIR)
 ExternalProject_Get_property(${MODEL_NAME} BINARY_DIR)
