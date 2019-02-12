@@ -8,81 +8,76 @@ Daniel Weindl 2017
 
 import h5py
 import sys
-import re 
+import re
 import numpy as np
 
+
 def getOptionsObject(f):
+    """Get h5py dataset where options are stored"""
     if "/optimizationOptions" in f:
         options = f["/optimizationOptions"]
         return options
-    
+
     print("Error: file does not contain /optimizationOptions")
-    
-    return None
+    exit(1)
 
 
 def setOption(filename, option, value):
     """
-    Set the given option to value 
+    Set the given option to value
     """
     value = convertValue(value)
-    
-    f = h5py.File(filename, "r+")
-    options = getOptionsObject(f)
 
-    if options:
+    with h5py.File(filename, "r+") as f:
+        options = getOptionsObject(f)
+
         parts = option.split('/')
         if len(parts) == 1:
             options.attrs[option] = value
         else:
             g = options.require_group(parts[0])
             g.attrs[parts[1]] = value
-    else:
-        exit(1)
+
 
 def convertValue(value):
     """
-    Guess type of data represented as string value and convert to the respective type 
+    Guess type of data represented as string value and convert to the
+    respective type
     """
-    
+
     if re.match(r'^\d+$', value):
         return int(value)
-    
+
     try:
         return float(value)
     except ValueError:
         return np.string_(value)
 
+
 def printOptions(filename):
     """
     Recursively print all options in /optimizationOptions
     """
-    f = h5py.File(filename, "r")
-    
-    options = getOptionsObject(f)
-    if options:
+    with h5py.File(filename, "r") as f:
+        options = getOptionsObject(f)
         printAttributes(options)
-      
+
         for o in options:
             printAttributes(options[o], o + "/")
 
-    else:
-        exit(1)    
 
 def printAttributes(object, prefix=''):
     """
-    Print all attributes of the given object 
+    Print all attributes of the given object
     """
-    
     for o in object.attrs:
         print("%40s %12s" % (prefix + o, object.attrs[o]))
-    
-    
+
+
 def unsetOption(filename, option):
-    f = h5py.File(filename, "r+")
-    
-    group = getOptionsObject(f)
-    if group:
+    with h5py.File(filename, "r+") as f:
+        group = getOptionsObject(f)
+
         parts = option.split('/')
         if len(parts) > 1:
             group = group.require_group(parts[0])
@@ -91,8 +86,6 @@ def unsetOption(filename, option):
             group.attrs.__delitem__(option)
         except KeyError:
             pass
-    else:
-        exit(1)    
 
 
 def printUsage():
@@ -110,7 +103,7 @@ def printUsage():
 
 
 if __name__ == "__main__":
-    
+
     if len(sys.argv) < 2:
         printUsage()
         exit()
@@ -120,14 +113,13 @@ if __name__ == "__main__":
     if len(sys.argv) == 2:
         printOptions(filename)
         exit()
-    
+
     if sys.argv[2] != "-s":
         print("Unrecognized options " + sys.argv(2))
         exit(1)
-    
+
     if len(sys.argv) == 4:
         unsetOption(filename, sys.argv[3])
-    
+
     elif len(sys.argv) == 5:
         setOption(filename, sys.argv[3], sys.argv[4])
-        
