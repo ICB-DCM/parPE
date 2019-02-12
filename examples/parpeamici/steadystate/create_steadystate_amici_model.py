@@ -146,10 +146,15 @@ def create_data_tables(model, fixed_parameters,
     for p, val in zip(model.getParameterIds(), model.getParameters()):
         print(f'\t{p}: {val}')
     print()
-    true_parameters = default_parameters.copy()
+
+    true_parameters = {pid: val for pid, val in zip(model.getParameterIds(), default_parameters)}
+    true_parameters['scaling_x1_common'] = \
+        true_parameters['observableParameter1_x1_scaled']
     # extend to optimization parameter vector: add second offset parameter
-    true_parameters = np.append(true_parameters,
-                                offset_batch_2)
+    true_parameters['offset_x2_batch-0'] = offset_batch_1
+    true_parameters['offset_x2_batch-1'] = offset_batch_2
+    true_parameters['x1withsigma_sigma'] = sigma_parameter
+
     print('True parameters:\t%s' % true_parameters)
 
     # setup model
@@ -317,9 +322,11 @@ def generate_hdf5_file(sbml_file_name, model_output_dir, measurement_file_name,
     assert out.returncode == 0
 
 
-def save_expected_results(hdf5_file_name, true_parameters, expected_llh):
+def save_expected_results(hdf5_file_name, true_parameters_dict, expected_llh):
     # write true parameters
     with h5py.File(hdf5_file_name, 'r+') as f:
+        true_parameters = [true_parameters_dict[p] for p in
+                           f['/parameters/parameterNames']]
         f.require_dataset(
             '/parameters/true_parameters',
             shape=(len(true_parameters),), dtype="f8", data=true_parameters)
@@ -333,15 +340,16 @@ def write_starting_points(hdf5_file_name, true_parameters):
     # two times the same point to check for reproducibility
     with h5py.File(hdf5_file_name, 'r+') as f:
         pscale = f['/parameters/pscale'][:]
-        true_parameters_scaled = true_parameters.copy()
+        true_parameters_scaled = np.array([true_parameters[p] for p in
+                           f['/parameters/parameterNames']])
         for i, p in enumerate(pscale):
             if p == amici.ParameterScaling_log10:
-                true_parameters_scaled[i] = np.log10(true_parameters[i])
+                true_parameters_scaled[i] = np.log10(true_parameters_scaled[i])
 
         for i in range(10):
             parameters = true_parameters_scaled
-            parameters = parameters + np.random.normal(0.0, 0.2 + i * 0.1,
-                                                       true_parameters.shape)
+            parameters += np.random.normal(0.0, 0.2 + i * 0.1,
+                                           true_parameters_scaled.shape)
             # parameters = np.random.uniform(-3, 5, true_parameters.shape)
 
             # print(parameters)
@@ -350,19 +358,33 @@ def write_starting_points(hdf5_file_name, true_parameters):
 
 
 def create_parameter_table(sbml_file, condition_file, measurement_file,
-                           parameter_file):
+                           parameter_file, nominal_parameters):
     """Create PEtab parameter table"""
 
     problem = petab.Problem(sbml_file, condition_file, measurement_file)
     df = problem.create_parameter_df(lower_bound=-3,
                                      upper_bound=5)
-    # TODO: to peTAB
+    # TODO: move to peTAB
     df['hierarchicalOptimization'] = 0
     df.loc['scaling_x1_common', 'hierarchicalOptimization'] = 1
     df.loc['offset_x2_batch-0', 'hierarchicalOptimization'] = 1
     df.loc['offset_x2_batch-1', 'hierarchicalOptimization'] = 1
     df.loc['x1withsigma_sigma', 'hierarchicalOptimization'] = 1
+    #df.parameterScale = 'lin'
+    #df.estimate = 0
 
+    print(nominal_parameters)
+
+    for pid, val in nominal_parameters.items():
+        if pid in df.index:
+            df.loc[pid, 'nominalParameter'] = val
+            df.loc[pid, 'parameterScale'] = 'log10'
+            df.loc[pid, 'estimate'] = 1
+        elif pid.startswith('noiseParameter') \
+            or pid.startswith('observableParameter'):
+            continue
+        else:
+            print("extra parameter", pid, val)
     df.to_csv(parameter_file, sep="\t", index=True)
 
 
@@ -409,6 +431,7 @@ def main():
                            args.condition_file_name,
                            args.measurement_file_name,
                            args.parameter_file_name,
+                           true_parameters
                            )
 
     # check for valid PEtab

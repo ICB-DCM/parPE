@@ -9,7 +9,6 @@ data in the PEtab format https://github.com/ICB-DCM/PEtab
 
 """
 
-import amiciHelper
 import numpy as np
 import pandas as pd
 from libsbml import SBMLReader
@@ -24,6 +23,7 @@ import sympy as sp
 import argparse
 import petab
 import importlib
+from numbers import Number
 
 SCALING_LOG10 = 2
 SCALING_LIN = 0
@@ -31,9 +31,26 @@ SCALING_LIN = 0
 NO_PREEQ_CONDITION_IDX = -1
 
 
-def writeStringArray(f, path, strings):
+def unique_ordered(seq):
+    """
+    Make unique, preserving order of first occurrence
+
+    Arguments:
+        seq: any sequence
+    """
+    seen = set()
+    seen_add = seen.add
+    return [x for x in seq if not (x in seen or seen_add(x))]
+
+
+def write_string_array(f, path, strings):
     """
     Write string array to hdf5
+
+    Arguments:
+        f: h5py.File
+        path: path of the dataset to create
+        strings: list of strings
     """
     dt = h5py.special_dtype(vlen=str)
     dset = f.create_dataset(path, (len(strings),), dtype=dt)
@@ -41,18 +58,30 @@ def writeStringArray(f, path, strings):
     f.flush()
 
 
-def writeFloatArray(f, path, values, dtype='f8'):
+def write_float_array(f, path, values, dtype='f8'):
     """
     Write float array to hdf5
+
+    Arguments:
+        f: h5py.File
+        path: path of the dataset to create
+        values: array to write
+        dtype: datatype
     """
     dset = f.create_dataset(path, (len(values),), dtype=dtype)
     dset[:] = values
     f.flush()
 
 
-def writeIntArray(f, path, values, dtype='<i4'):
+def write_int_array(f, path, values, dtype='<i4'):
     """
     Write integer array to hdf5
+
+    Arguments:
+        f: h5py.File
+        path: path of the dataset to create
+        values: array to write
+        dtype: datatype
     """
     dset = f.create_dataset(path, (len(values),), dtype=dtype)
     dset[:] = values
@@ -125,7 +154,7 @@ class HDF5DataGenerator:
         print("Measurements shape:", self.measurement_df.shape)
 
         # Get list of used conditions
-        self.condition_ids = amiciHelper.unique(
+        self.condition_ids = unique_ordered(
             self.measurement_df.simulationConditionId.values)
         self.num_conditions = len(self.condition_ids)
 
@@ -204,14 +233,14 @@ class HDF5DataGenerator:
 
         # simulation parameters from model
         model_parameter_ids = np.array(self.model.getParameterIds())
-        writeStringArray(self.f, "/parameters/modelParameterNames",
-                         model_parameter_ids)
+        write_string_array(self.f, "/parameters/modelParameterNames",
+                           model_parameter_ids)
         print("Number of model parameters:", len(model_parameter_ids))
 
         print("Number of optimization parameters: %d" %
               len(self.parameter_df))
-        writeStringArray(self.f, "/parameters/parameterNames",
-                         self.parameter_df.index.name)
+        write_string_array(self.f, "/parameters/parameterNames",
+                           self.parameter_df.index)
         # assert (len(model_parameter_ids) <=
         #        len(self.parameter_df))
 
@@ -310,9 +339,9 @@ class HDF5DataGenerator:
         """
         self.f.require_group("/fixedParameters")
 
-        writeStringArray(self.f, "/fixedParameters/parameterNames",
-                         fixed_parameter_ids)
-        writeStringArray(self.f,
+        write_string_array(self.f, "/fixedParameters/parameterNames",
+                           fixed_parameter_ids)
+        write_string_array(self.f,
                          "/fixedParameters/conditionNames", self.condition_ids)
 
         # chunked for reading experiment-wise
@@ -363,7 +392,7 @@ class HDF5DataGenerator:
                     row['simulationConditionId'])
                 if isinstance(row['preequilibrationConditionId'],
                               float) and np.isnan(
-                        row['preequilibrationConditionId']):
+                    row['preequilibrationConditionId']):
                     conditionIdxRef = NO_PREEQ_CONDITION_IDX
                 else:
                     conditionIdxRef = self.condition_ids.index(
@@ -454,7 +483,7 @@ class HDF5DataGenerator:
         self.observable_ids = [o[len('observable_'):] for o in
                                self.observable_ids]
         self.ny = self.model.ny
-        writeStringArray(self.f,
+        write_string_array(self.f,
                          "/measurements/observableNames", self.observable_ids)
 
         print("Number of observables: %d" % self.ny)
@@ -497,7 +526,7 @@ class HDF5DataGenerator:
                 # observableName = p[len('observable_'):]
                 observableName = p
                 observables.append(observableName)
-        observablesUni = amiciHelper.unique(observables)
+        observablesUni = unique_ordered(observables)
 
         if len(observables) != len(observablesUni):
             print("!! %d redundant observable definitions in model"
@@ -579,16 +608,16 @@ class HDF5DataGenerator:
                 row.observableId, 'observable')
             assert (len(overrides) == len(placeholders))
             for override, placeholder in zip(overrides, placeholders):
+                if isinstance(override, Number):
+                    continue
                 if override in observable_parameter_override_id_to_placeholder_id:
-                    if observable_parameter_override_id_to_placeholder_id[
-                        override] != placeholder:
+                    if observable_parameter_override_id_to_placeholder_id[override] != placeholder:
                         print(
-                            f"WARNING: {override} overrides both {placeholder} and {
-                            observable_parameter_override_id_to_placeholder_id[
-                                override]}. Doubting that this will work...")
+                            f"WARNING: {override} overrides both {placeholder}"
+                            f" and {observable_parameter_override_id_to_placeholder_id[override]}."
+                            " Doubting that this will work...")
                         # TODO: append
-                observable_parameter_override_id_to_placeholder_id[
-                    override] = placeholder
+                observable_parameter_override_id_to_placeholder_id[override] = placeholder
 
             overrides = petab.split_parameter_replacement_list(
                 row.noiseParameters)
@@ -597,16 +626,18 @@ class HDF5DataGenerator:
                 'noise')
             assert (len(overrides) == len(placeholders))
             for override, placeholder in zip(overrides, placeholders):
+                if isinstance(override, Number):
+                    continue
                 if override in noise_parameter_override_id_to_placeholder_id:
-                    if noise_parameter_override_id_to_placeholder_id[
-                        override] != placeholder:
+                    if noise_parameter_override_id_to_placeholder_id[override] \
+                            != placeholder:
                         print(
-                            f"WARNING: {override} overrides both {placeholder} and {
-                            noise_parameter_override_id_to_placeholder_id[
-                                override]}. Doubting that this will work...")
-                        # TODO: append
-                noise_parameter_override_id_to_placeholder_id[
-                    override] = placeholder
+                            f"WARNING: {override} overrides both {placeholder}"
+                            f" and {noise_parameter_override_id_to_placeholder_id[override]}."
+                            " Doubting that this will work...")
+
+                    # TODO: append
+            noise_parameter_override_id_to_placeholder_id[override] = placeholder
 
         print(observable_parameter_override_id_to_placeholder_id)
         print(noise_parameter_override_id_to_placeholder_id)
@@ -615,18 +646,16 @@ class HDF5DataGenerator:
         scaling_candidates = []
         sigma_candidates = []
 
-        for optimization_parameter_id in self.parameter_df.index[
-            self.parameter_df.hierarchicalOptimization == 1]:
+        for optimization_parameter_id in self.parameter_df.index[self.parameter_df.hierarchicalOptimization == 1]:
             # check which model parameter this one overrides
 
             # check in which observables this parameter occurs
             if optimization_parameter_id in observable_parameter_override_id_to_placeholder_id:
                 placeholder_id = \
-                observable_parameter_override_id_to_placeholder_id[
-                    optimization_parameter_id]
+                    observable_parameter_override_id_to_placeholder_id[optimization_parameter_id]
                 observable_id = '_'.join(placeholder_id.split('_')[1:])
                 observable_formula = \
-                observables['observable_' + observable_id]['formula']
+                    observables['observable_' + observable_id]['formula']
 
                 """
                 print('optimization_parameter_id', optimization_parameter_id)
@@ -662,6 +691,7 @@ class HDF5DataGenerator:
             offset_candidates)  # must call after handleProportionalityFactors
         self.handleSigmas(sigma_candidates)
 
+
     def handleOffsetParameter(self, offset_candidates):
         """
         Write list of offset parameters selected for hierarchical optimization
@@ -690,6 +720,7 @@ class HDF5DataGenerator:
         self.f.require_dataset("/offsetParametersMapToObservables",
                                shape=(len(use), 3),
                                dtype='<i4', data=use)
+
 
     def getAnalyticalParameterTable(self, parametersForHierarchical, type):
         """Generate (scalingIdx, conditionIdx, observableIdx) table for all occurrences of the given parameter names
@@ -728,6 +759,7 @@ class HDF5DataGenerator:
         assert len(use)
         return use
 
+
     def handleProportionalityFactors(self, scaling_candidates):
         """
         Write datasets specifying which proportionality factors to consider for
@@ -757,6 +789,7 @@ class HDF5DataGenerator:
                                shape=(len(use), 3),
                                dtype='<i4', data=use)
 
+
     def handleSigmas(self, sigma_candidates):
         """
         Write data for dealing with sigma parameters in hierarchical optimization
@@ -782,6 +815,7 @@ class HDF5DataGenerator:
         self.f.require_dataset("/sigmaParametersMapToObservables",
                                shape=(len(use), 3),
                                dtype='<i4', data=use)
+
 
     def copyAmiciOptions(self):
         """
@@ -839,6 +873,7 @@ class HDF5DataGenerator:
                                      for ip in
                                      range(numOptimizationParameters)])
 
+
     def getAnalyticallyComputedSimulationParameterIndices(self):
         """
         Get model parameter index (not optimization parameter index) of all analytically computed parameters
@@ -868,6 +903,7 @@ class HDF5DataGenerator:
         return [self.f['/parameters/modelParameterNames'][:].tolist().index(p)
                 for p in set(parameterNamesModel)]
 
+
     def getAnalyticallyComputedOptimizationParameterIndices(self):
         """
         Get optimization parameter index of all analytically computed parameters
@@ -883,6 +919,7 @@ class HDF5DataGenerator:
             indices.extend(self.f['/sigmaParameterIndices'])
 
         return list(set(indices))
+
 
     def writeOptimizationOptions(self):
         """
@@ -929,6 +966,7 @@ class HDF5DataGenerator:
         self.writeBounds()
         self.writeStartingPoints()
 
+
     def writeBounds(self):
         """
         Parameter bounds for optimizer
@@ -949,6 +987,7 @@ class HDF5DataGenerator:
         if len(offsetIndices):
             lower[offsetIndices] = -1e10
             upper[offsetIndices] = +1e10
+
 
     def writeStartingPoints(self):
         """
