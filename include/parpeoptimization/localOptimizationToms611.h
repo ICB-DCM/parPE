@@ -1,8 +1,8 @@
 #ifndef LOCAL_OPTIMIZATION_TOMS611_H
 #define LOCAL_OPTIMIZATION_TOMS611_H
 
-#include "optimizationProblem.h"
-#include "optimizer.h"
+#include <parpeoptimization/optimizationProblem.h>
+#include <parpeoptimization/optimizer.h>
 
 namespace parpe {
 

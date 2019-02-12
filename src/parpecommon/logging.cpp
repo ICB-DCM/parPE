@@ -1,5 +1,8 @@
 #include <parpecommon/logging.h>
 
+#include <parpecommon/parpeConfig.h>
+#include <parpecommon/misc.h> // getMpiActive
+
 #include <ctime>
 #include <cstdio>
 #include <cmath>
@@ -16,13 +19,36 @@ namespace parpe {
 
 const char *loglevelShortStr[] = {"", "CRI", "ERR", "WRN", "INF", "DBG"};
 loglevel minimumLogLevel = LOGLVL_DEBUG;
+static void printlogmessage(loglevel lvl, const char *message);
+
+std::string printfToString(const char *fmt, va_list ap) {
+    // Get size of string
+    va_list ap_count;
+    va_copy(ap_count, ap);
+    auto size = vsnprintf(nullptr, 0, fmt, ap_count);
+    va_end(ap_count);
+    ++size;
+
+    // actual formatting
+    auto buf = new char[size];
+    size = vsnprintf(buf, size, fmt, ap);
+    std::string str(buf, size);
+    delete[] buf;
+
+    return str;
+}
 
 void logmessage(loglevel lvl, const char *format, ...)
 {
     va_list argptr;
-    va_start(argptr,format);
-    logmessage(lvl, format, argptr);
+    va_start(argptr, format);
+    auto str = printfToString(format, argptr);
     va_end(argptr);
+    logmessage(lvl, str);
+}
+
+void logmessage(loglevel lvl, const char *format, va_list argptr) {
+    logmessage(lvl, printfToString(format, argptr));
 }
 
 void logProcessStats()
@@ -34,7 +60,7 @@ void logProcessStats()
 
     while (fgets(buffer, bufSize, status)) {
         buffer[strlen(buffer) - 1] = '\0'; // remove \n
-        logmessage(LOGLVL_DEBUG, "%s", buffer);
+        printlogmessage(LOGLVL_DEBUG, buffer);
     }
 
     fclose(status);
@@ -91,10 +117,10 @@ void logmessage(loglevel lvl, const std::string &msg)
     std::string line;
 
     while(std::getline(ss, line, '\n'))
-        logmessage(lvl, line.c_str());
+        printlogmessage(lvl, line.c_str());
 }
 
-void logmessage(loglevel lvl, const char *format, va_list argptr)
+void printlogmessage(loglevel lvl, const char *message)
 {
     if(minimumLogLevel < lvl)
         return;
@@ -151,9 +177,7 @@ void logmessage(loglevel lvl, const char *format, va_list argptr)
     auto procName = "";
 #endif
     printf("[%*d/%s] ", 1 + static_cast<int>(log10(mpiCommSize)), mpiRank, procName);
-
-    // Message
-    vprintf(format, argptr);
+    printf("%s", message);
     printf(ANSI_COLOR_RESET "\n");
 
     switch (lvl) {
@@ -177,17 +201,14 @@ void Logger::logmessage(loglevel lvl, const std::string &msg) const {
 }
 
 void Logger::logmessage(loglevel lvl, const char *format, ...) const {
-    std::string str = "[" + prefix + "] " + format;
-
     va_list argptr;
-    va_start(argptr,format);
-    parpe::logmessage(lvl, str.c_str(), argptr);
+    va_start(argptr, format);
+    logmessage(lvl, format, argptr);
     va_end(argptr);
 }
 
 void Logger::logmessage(loglevel lvl, const char *format, va_list argptr) const {
-    std::string str = "[" + prefix + "] " + format;
-    parpe::logmessage(lvl, str.c_str(), argptr);
+    logmessage(lvl, printfToString(format, argptr));
 }
 
 void Logger::setPrefix(const std::string &pre) {

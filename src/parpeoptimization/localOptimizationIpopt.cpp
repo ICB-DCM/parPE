@@ -3,6 +3,7 @@
 #include <parpeoptimization/localOptimizationIpoptTNLP.h>
 #include <parpeoptimization/optimizationOptions.h>
 #include <parpeoptimization/optimizationProblem.h>
+#include <parpeoptimization/optimizationResultWriter.h>
 #include <parpecommon/logging.h>
 #include <parpecommon/parpeException.h>
 

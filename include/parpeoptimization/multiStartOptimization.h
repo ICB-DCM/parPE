@@ -1,7 +1,8 @@
 #ifndef MULTI_START_OPTIMIZATION_H
 #define MULTI_START_OPTIMIZATION_H
 
-#include "optimizationProblem.h"
+#include <parpeoptimization/optimizationProblem.h>
+
 #include <vector>
 #include <memory>
 

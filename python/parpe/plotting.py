@@ -32,8 +32,11 @@ def plotCostTrajectory(costTrajectory,
 
     minCost = np.nanmin(costTrajectory)
     maxCost = np.nanmax(costTrajectory[scaleToIteration:,:])
-    ax.set_ylim(bottom=(1 - np.sign(minCost) * 0.02) * minCost,
-                top=(1 + np.sign(maxCost) * 0.02) * maxCost)
+    #ax.set_ylim(bottom=(1 - np.sign(minCost) * 0.02) * minCost,
+    #            top=(1 + np.sign(maxCost) * 0.02) * maxCost)
+    ax.set_ylim(bottom=minCost - 0.01 * np.abs(maxCost - minCost),
+                top=maxCost + 0.01 * np.abs(maxCost - minCost))
+
     if legend:
         ax.legend(['start %d'%i for i in range(costTrajectory.shape[1]) ], loc=legend_loc)
     ax.set_xlabel('Iteration')
@@ -46,7 +49,7 @@ def plotDoseResponseLogDose(conc, mes, sim, title, ax):
     ax.semilogx(conc, mes, '.', label='mes')
     ax.semilogx(conc, sim, '.', label='sim')
     ax.set_ylabel('Proliferation')
-    ax.set_xlabel('[Drug]');
+    ax.set_xlabel('[Drug]')
     ax.set_title(title)
     #ax.legend();
 
@@ -65,7 +68,7 @@ def plotDoseResponseCategorical(conc, mes, sim, title, ax):
     ax.vlines(concStr, np.array(mes)[order], np.array(sim)[order])
 
     ax.set_ylabel('Proliferation')
-    ax.set_xlabel('[Drug]');
+    ax.set_xlabel('[Drug]')
     ax.set_title(title)
     #ax.legend();
 
@@ -86,7 +89,8 @@ def plotCorrelations(ymes, ysim):
                         title='Observable %d' % iy)
 
 
-def plotCorrelation(ymes, ysim, title=None, alpha=1.0):
+def plotCorrelation(ymes, ysim, title=None, alpha=1.0, legend=False,
+                    square=True, ax=None):
     """
     Plot correlation of measured and simulated data
 
@@ -97,22 +101,28 @@ def plotCorrelation(ymes, ysim, title=None, alpha=1.0):
     ysim: @type numpy.ndarray
         simulated values n_condition x nt
     """
-    fig, ax = plt.subplots()
+    if ax is None:
+        ax = plt.subplots()[1]
+
     for icondition in range(ysim.shape[0]):
         x = ymes[icondition, :]
         y = ysim[icondition, :]
+        #x, y = flatten_filter_nan(x, y)
         r = correlation_coefficient(x, y)
         ax.scatter(x, y, label='Condition %d, r=%.3f' % (icondition, r), alpha=alpha)
 
     ax.set_xlabel('measurement (AU)')
     ax.set_ylabel('simulation (AU)')
 
-    square_plot_equal_ranges(ax)
+    if square:
+        square_plot_equal_ranges(ax)
 
     if title:
-        plt.title(title)
+        ax.set_title(title)
+    if legend:
+        ax.legend()
 
-    plt.legend()
+    return ax
 
 
 def square_plot_equal_ranges(ax, lim=None):
@@ -126,7 +136,7 @@ def square_plot_equal_ranges(ax, lim=None):
         xlim = ax.get_xlim()
         ylim = ax.get_ylim()
         lim = [np.min([xlim[0], ylim[0]]),
-               np.min([xlim[1], ylim[1]])]
+               np.max([xlim[1], ylim[1]])]
 
     ax.set_xlim(lim)
     ax.set_ylim(lim)
@@ -174,11 +184,11 @@ def plotTrajectoryFit(ymes, ysim, timepoints, title=None):
         ax.plot(timepoints, ymes[iy],
                 label='$y_%d$ mes' % (iy), linestyle='dotted', marker='o',
                 c='C%d' % iy)
-    plt.xlabel('$t$ (s)')
-    plt.ylabel('$y_i(t)$ (AU)')
+    ax.set_xlabel('$t$ (s)')
+    ax.set_ylabel('$y_i(t)$ (AU)')
     if title:
-        plt.title(title)
-    plt.legend()
+        ax.set_title(title)
+    ax.legend()
 
     return ax
 
@@ -299,10 +309,10 @@ def plotWaterfall(finalCost):
     ax.xaxis.set_major_locator(MaxNLocator(integer=True))
 
     order = np.argsort(finalCost)
-    plt.scatter(range(finalCost.size), finalCost[:, order])
+    ax.scatter(range(finalCost.size), finalCost[:, order])
 
-    plt.xlabel('Sorted start index')
-    plt.ylabel('Final cost')
+    ax.set_xlabel('Sorted start index')
+    ax.set_ylabel('Final cost')
 
 
 def plotCorrelationBox(data):

@@ -4,6 +4,7 @@
 #include <parpecommon/parpeConfig.h>
 #include <parpecommon/misc.h>
 #include <parpeamici/multiConditionProblem.h>
+#include <parpeamici/multiConditionDataProvider.h>
 
 #include "../../../tests/parpecommon/testingMisc.h"
 
@@ -142,7 +143,7 @@ TEST(steadystateProblemTests, testSteadystateHierarchical) {
 
     auto sigmas = std::make_unique<parpe::AnalyticalParameterProviderDefault>();
 
-    auto gradFun = std::make_unique<parpe::AmiciSummedGradientFunction<int>>(&dp, nullptr, nullptr);
+    auto gradFun = std::make_unique<parpe::AmiciSummedGradientFunction>(&dp, nullptr, nullptr);
     parpe::HierarchicalOptimizationWrapper hier(std::move(gradFun),
                                                std::move(scalings),
                                                std::move(offsets),
@@ -213,7 +214,7 @@ TEST(steadystateProblemTests, testOptimizationHierarchical) {
     auto sigmas = std::make_unique<parpe::AnalyticalParameterProviderDefault>();
 
     // create wrapper
-    auto gradFun = std::make_unique<parpe::AmiciSummedGradientFunction<int>>(&dp, nullptr, nullptr);
+    auto gradFun = std::make_unique<parpe::AmiciSummedGradientFunction>(&dp, nullptr, nullptr);
     auto hier = std::make_unique<parpe::HierarchicalOptimizationWrapper>(std::move(gradFun),
                                                                         std::move(scalings),
                                                                         std::move(offsets),
