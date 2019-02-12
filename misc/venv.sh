@@ -16,3 +16,7 @@ source ${BUILD_DIR}/venv/bin/activate
 cd ${PARPE_ROOT}/deps/AMICI/python/sdist
 pip3 install -e .
 pip3 install termcolor
+
+# install parpe
+cd ${PARPE_ROOT}/python
+pip3 install -e .
