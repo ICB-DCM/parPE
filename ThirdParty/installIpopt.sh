@@ -46,6 +46,6 @@ if [ -f install ]; then
 	mv INSTALL INSTALL.bak
 fi
 
-./configure --prefix=`pwd`/install --enable-static --enable-shared
+./configure --prefix=`pwd`/install --enable-static --disable-shared --with-pic
 make -j 12
 make install
