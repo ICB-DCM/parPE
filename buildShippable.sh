@@ -1,6 +1,7 @@
 #!/bin/bash
 # Build script for CI on shippable.com
 
+set -e
 # build cpputest without memory leak detector
 ThirdParty/installCpputest.sh
 
