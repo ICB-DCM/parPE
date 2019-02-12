@@ -9,5 +9,9 @@ setup(
     description='parpe python package',
     packages=find_packages(),
     install_requires=['numpy',
-                      'termcolor'],
+                      'termcolor',
+                      'petab',
+                      'amici',
+                      'h5py',
+                      'python-libsbml'],
 )
