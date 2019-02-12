@@ -1,9 +1,10 @@
 #ifndef LOCAL_OPTIMIZATION_FSQP_H
 #define LOCAL_OPTIMIZATION_FSQP_H
 
+#include <parpeoptimization/optimizationProblem.h>
+#include <parpeoptimization/optimizer.h>
+
 #include <vector>
-#include <optimizationProblem.h>
-#include <optimizer.h>
 
 namespace parpe {
 

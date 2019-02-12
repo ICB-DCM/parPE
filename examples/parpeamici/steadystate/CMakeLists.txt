@@ -9,8 +9,9 @@ set(MODEL_NAME steadystate_scaled)
 ExternalProject_Add(
     ${MODEL_NAME}
     DOWNLOAD_DIR    "${CMAKE_CURRENT_BINARY_DIR}/${MODEL_NAME}-prefix/src/${MODEL_NAME}"
-    DOWNLOAD_COMMAND ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/create_steadystate_amici_model.py"
+    DOWNLOAD_COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/recreateExampleData.sh ${CMAKE_BINARY_DIR}
     SOURCE_SUBDIR    model_steadystate_scaled
+    CMAKE_ARGS    -DAmici_DIR=${Amici_DIR}
     # Don't install anything
     INSTALL_COMMAND  ""
     TEST_COMMAND     ""
@@ -19,13 +20,13 @@ ExternalProject_Add(
 )
 
 # Rebuild if amici files are updated
-ExternalProject_Add_StepDependencies(${MODEL_NAME} download createSteadystateExampleSBML.py)
-ExternalProject_Add_StepDependencies(${MODEL_NAME} download create_steadystate_amici_model.py)
+ExternalProject_Add_StepDependencies(${MODEL_NAME} download recreateExampleData.sh)
 ExternalProject_Add_StepDependencies(${MODEL_NAME} build parpeamici)
+ExternalProject_Add_StepDependencies(${MODEL_NAME} download setup_venv)
 
 ExternalProject_Get_property(${MODEL_NAME} SOURCE_DIR)
 ExternalProject_Get_property(${MODEL_NAME} BINARY_DIR)
-message("Generating ${MODEL_NAME} example model and data in ${SOURCE_DIR} (${BINARY_DIR})")
+message(STATUS "Generating ${MODEL_NAME} example model and data in ${SOURCE_DIR} (${BINARY_DIR})")
 
 # Import external library
 set(MODEL_LIBRARIES "model_${MODEL_NAME}")
@@ -39,7 +40,7 @@ set_target_properties(model_${MODEL_NAME}
     IMPORTED_LOCATION
     "${BINARY_DIR}/${CMAKE_STATIC_LIBRARY_PREFIX}${MODEL_LIBRARIES}${CMAKE_STATIC_LIBRARY_SUFFIX}"
 )
-message("Imported lib ${MODEL_LIBRARIES}")
+message(STATUS "Imported lib ${MODEL_LIBRARIES}")
 
 
 # example_steadystate executable

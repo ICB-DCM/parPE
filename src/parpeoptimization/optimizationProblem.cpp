@@ -5,6 +5,7 @@
 #include <parpeoptimization/optimizationOptions.h>
 #include <parpeoptimization/optimizer.h>
 #include <parpeoptimization/minibatchOptimization.h>
+#include <parpeoptimization/optimizationResultWriter.h>
 
 #include <cstdio>
 #include <cstdlib>
@@ -339,6 +340,34 @@ void OptimizationReporter::setGradientFunction(GradientFunction *gradFun) const 
     this->gradFun = gradFun;
     numParameters_ = gradFun->numParameters();
     cachedGradient.resize(numParameters_);
+}
+
+void OptimizationProblemImpl::fillParametersMin(gsl::span<double> buffer) const {
+    std::copy(parametersMin.begin(), parametersMin.end(), buffer.begin());
+}
+
+void OptimizationProblemImpl::fillParametersMax(gsl::span<double> buffer) const {
+    std::copy(parametersMax.begin(), parametersMax.end(), buffer.begin());
+}
+
+void OptimizationProblemImpl::setParametersMin(std::vector<double> parametersMin) {
+    this->parametersMin = parametersMin;
+}
+
+void OptimizationProblemImpl::setParametersMax(std::vector<double> parametersMax) {
+    this->parametersMax = parametersMax;
+}
+
+void OptimizationProblemImpl::setInitialParameters(std::vector<double> initial) {
+    parametersStart = initial;
+}
+
+void OptimizationProblemImpl::fillInitialParameters(gsl::span<double> buffer) const {
+    if (parametersStart.size()) {
+        std::copy(parametersStart.begin(), parametersStart.end(), buffer.begin());
+    } else {
+        OptimizationProblem::fillInitialParameters(buffer);
+    }
 }
 
 } // namespace parpe

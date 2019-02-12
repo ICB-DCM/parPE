@@ -86,7 +86,7 @@ public:
             Logger *logger,
             double *cpuTime) const override;
 
-    int numParameters() const {return numParameters_;}
+    int numParameters() const override {return numParameters_;}
 
 
     int numParameters_ = 0;

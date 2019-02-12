@@ -2,14 +2,13 @@
 #define OPTIMIZATIONAPPLICATION_H
 
 #include <parpecommon/parpeConfig.h>
+#include <parpeamici/multiConditionProblem.h>
+#include <parpeamici/hierarchicalOptimization.h>
 
 #ifdef PARPE_ENABLE_MPI
 #include <parpeloadbalancer/loadBalancerMaster.h>
 #include <parpeloadbalancer/loadBalancerWorker.h>
 #endif
-
-#include <parpeamici/multiConditionProblem.h>
-#include <parpeamici/hierarchicalOptimization.h>
 
 #include <getopt.h>
 #include <string>

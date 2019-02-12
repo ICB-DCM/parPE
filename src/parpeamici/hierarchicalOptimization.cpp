@@ -1,6 +1,9 @@
 #include <parpeamici/hierarchicalOptimization.h>
 
 #include <parpecommon/logging.h>
+#include <parpeamici/multiConditionDataProvider.h>
+#include <parpecommon/misc.h>
+#include <parpecommon/parpeException.h>
 
 #include <exception>
 #include <cmath>
@@ -14,7 +17,7 @@ namespace parpe {
 
 
 HierarchicalOptimizationWrapper::HierarchicalOptimizationWrapper(
-        std::unique_ptr<AmiciSummedGradientFunction<int>> fun,
+        std::unique_ptr<AmiciSummedGradientFunction> fun,
         int numConditions,
         int numObservables,
         int numTimepoints)
@@ -31,7 +34,7 @@ HierarchicalOptimizationWrapper::HierarchicalOptimizationWrapper(
 }
 
 HierarchicalOptimizationWrapper::HierarchicalOptimizationWrapper(
-        std::unique_ptr<AmiciSummedGradientFunction<int> > fun,
+        std::unique_ptr<AmiciSummedGradientFunction > fun,
         H5::H5File const& file,
         std::string const& hdf5RootPath,
         int numConditions, int numObservables, int numTimepoints,
@@ -56,7 +59,7 @@ HierarchicalOptimizationWrapper::HierarchicalOptimizationWrapper(
 }
 
 HierarchicalOptimizationWrapper::HierarchicalOptimizationWrapper(
-        std::unique_ptr<AmiciSummedGradientFunction<int> > fun,
+        std::unique_ptr<AmiciSummedGradientFunction > fun,
         std::unique_ptr<parpe::AnalyticalParameterProvider> scalingReader,
         std::unique_ptr<parpe::AnalyticalParameterProvider> offsetReader,
         std::unique_ptr<parpe::AnalyticalParameterProvider> sigmaReader,
@@ -124,7 +127,7 @@ FunctionEvaluationStatus HierarchicalOptimizationWrapper::evaluate(gsl::span<con
         std::vector<double> &fullGradient, Logger *logger, double *cpuTime) const
 {
     WallTimer walltimer;
-
+    FunctionEvaluationStatus status;
     RELEASE_ASSERT(reducedParameters.size() == (unsigned)numParameters(), "");
     RELEASE_ASSERT(gradient.empty() || gradient.size() == reducedParameters.size(), "");
     if(numProportionalityFactors() == 0 && numOffsetParameters() == 0 && numSigmaParameters() == 0) {
@@ -138,8 +141,12 @@ FunctionEvaluationStatus HierarchicalOptimizationWrapper::evaluate(gsl::span<con
 
 
     // evaluate with scaling parameters set to 1 and offsets to 0
-    auto modelOutput = getUnscaledModelOutputs(reducedParameters, logger, cpuTime);
-
+    std::vector<std::vector<double> > modelOutput;
+    try {
+        modelOutput = getUnscaledModelOutputs(reducedParameters, logger, cpuTime);
+    } catch (ParPEException const &e) {
+        return FunctionEvaluationStatus::functionEvaluationFailure;
+    }
 
     auto measurements = fun->getAllMeasurements();
 
@@ -164,7 +171,7 @@ FunctionEvaluationStatus HierarchicalOptimizationWrapper::evaluate(gsl::span<con
 
     double cpuTimeInner = 0.0;
     // evaluate with analytical scaling parameters
-    auto status = evaluateWithOptimalParameters(fullParameters, sigmas,
+    status = evaluateWithOptimalParameters(fullParameters, sigmas,
                                                 measurements, modelOutput,
                                                 fval, gradient,
                                                 fullGradient, logger, &cpuTimeInner);
@@ -227,7 +234,9 @@ std::vector<std::vector<double> > HierarchicalOptimizationWrapper::getUnscaledMo
                                            scalingDummy, offsetDummy, sigmaDummy);
 
     std::vector<std::vector<double> > modelOutput(numConditions);
-    fun->getModelOutputs(fullParameters, modelOutput, logger, cpuTime);
+    auto status = fun->getModelOutputs(fullParameters, modelOutput, logger, cpuTime);
+    if(status != FunctionEvaluationStatus::functionEvaluationSuccess)
+        throw ParPEException("Function evaluation failed.");
 
     return modelOutput;
 }
@@ -566,8 +575,8 @@ HierarchicalOptimizationProblemWrapper::HierarchicalOptimizationProblemWrapper(
 
     auto lock = hdf5MutexGetLock();
     costFun.reset(new HierarchicalOptimizationWrapper(
-                      std::unique_ptr<AmiciSummedGradientFunction<int>>(
-                          dynamic_cast<AmiciSummedGradientFunction<int>*>(wrappedFun->getWrappedFunction())),
+                      std::unique_ptr<AmiciSummedGradientFunction>(
+                          dynamic_cast<AmiciSummedGradientFunction*>(wrappedFun->getWrappedFunction())),
                       dataProvider->getHdf5FileId(), "/",
                       dataProvider->getNumberOfConditions(),
                       model->nytrue,

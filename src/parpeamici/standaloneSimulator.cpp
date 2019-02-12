@@ -6,6 +6,7 @@
 #include <parpeoptimization/optimizationOptions.h>
 #include <parpecommon/misc.h>
 #include <parpeamici/hierarchicalOptimization.h>
+#include <parpeamici/multiConditionDataProvider.h>
 
 #ifdef PARPE_ENABLE_MPI
 #include <parpeloadbalancer/loadBalancerWorker.h>
@@ -74,7 +75,7 @@ int StandaloneSimulator::run(const std::string& resultFile,
         auto offsetParameterIndices = hierarchicalOffsetReader->getOptimizationParameterIndices();
         auto sigmaParameterIndices = hierarchicalSigmaReader->getOptimizationParameterIndices();
 
-        auto wrappedFun = std::make_unique<AmiciSummedGradientFunction<int>>(dataProvider, loadBalancer, nullptr);
+        auto wrappedFun = std::make_unique<AmiciSummedGradientFunction>(dataProvider, loadBalancer, nullptr);
 
         hierarchical = HierarchicalOptimizationWrapper(std::move(wrappedFun),
                                                 std::move(hierarchicalScalingReader),

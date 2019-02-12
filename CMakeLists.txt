@@ -193,7 +193,7 @@ install(TARGETS ${PROJECT_NAME} EXPORT ParPETargets
     )
 export(EXPORT ParPETargets
     #DESTINATION "lib/cmake"
-    NAMESPACE "ParPE::"
+    NAMESPACE "Upstream::"
     FILE "ParPETargets.cmake"
     )
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/ParPETargets.cmake"

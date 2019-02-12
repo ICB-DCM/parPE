@@ -5,8 +5,8 @@
 #include <hdf5.h>
 #include <hdf5_hl.h>
 #include <H5Cpp.h>
+
 #include <pthread.h>
-#include <stdbool.h>
 #include <exception>
 #include <string>
 #include <mutex>
@@ -16,13 +16,11 @@ namespace parpe {
 
 class HDF5Exception : public std::exception {
 public:
-    HDF5Exception(std::string msg = "") : msg(msg) {
-        stackTrace = getBacktrace(20);
-    }
+    HDF5Exception(std::string msg = "");
 
     HDF5Exception(const char *format, ...);
 
-    const char* what() const noexcept override { return msg.c_str(); }
+    const char* what() const noexcept;
 
     std::string msg;
     std::string stackTrace;
