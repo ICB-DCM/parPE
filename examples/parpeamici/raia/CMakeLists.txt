@@ -19,8 +19,7 @@ ExternalProject_Add(${MODEL_NAME}
 
 # Rebuild if amici files are updated
 ExternalProject_Add_StepDependencies(${MODEL_NAME} build parpeamici)
-ExternalProject_Add_StepDependencies(${MODEL_NAME} download ${CMAKE_BINARY_DIR}/venv)
-
+ExternalProject_Add_StepDependencies(${MODEL_NAME} download setup_venv)
 ExternalProject_Get_property(${MODEL_NAME} SOURCE_DIR)
 ExternalProject_Get_property(${MODEL_NAME} BINARY_DIR)
 message(STATUS "Generating Raia example model and data in ${SOURCE_DIR}")
