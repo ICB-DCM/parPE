@@ -89,7 +89,8 @@ def plotCorrelations(ymes, ysim):
                         title='Observable %d' % iy)
 
 
-def plotCorrelation(ymes, ysim, title=None, alpha=1.0, legend=False, square=True):
+def plotCorrelation(ymes, ysim, title=None, alpha=1.0, legend=False,
+                    square=True, ax=None):
     """
     Plot correlation of measured and simulated data
 
@@ -100,7 +101,9 @@ def plotCorrelation(ymes, ysim, title=None, alpha=1.0, legend=False, square=True
     ysim: @type numpy.ndarray
         simulated values n_condition x nt
     """
-    fig, ax = plt.subplots()
+    if ax is None:
+        ax = plt.subplots()[1]
+
     for icondition in range(ysim.shape[0]):
         x = ymes[icondition, :]
         y = ysim[icondition, :]
@@ -115,9 +118,9 @@ def plotCorrelation(ymes, ysim, title=None, alpha=1.0, legend=False, square=True
         square_plot_equal_ranges(ax)
 
     if title:
-        plt.title(title)
+        ax.set_title(title)
     if legend:
-        plt.legend()
+        ax.legend()
 
     return ax
 
@@ -181,11 +184,11 @@ def plotTrajectoryFit(ymes, ysim, timepoints, title=None):
         ax.plot(timepoints, ymes[iy],
                 label='$y_%d$ mes' % (iy), linestyle='dotted', marker='o',
                 c='C%d' % iy)
-    plt.xlabel('$t$ (s)')
-    plt.ylabel('$y_i(t)$ (AU)')
+    ax.set_xlabel('$t$ (s)')
+    ax.set_ylabel('$y_i(t)$ (AU)')
     if title:
-        plt.title(title)
-    plt.legend()
+        ax.set_title(title)
+    ax.legend()
 
     return ax
 
@@ -306,10 +309,10 @@ def plotWaterfall(finalCost):
     ax.xaxis.set_major_locator(MaxNLocator(integer=True))
 
     order = np.argsort(finalCost)
-    plt.scatter(range(finalCost.size), finalCost[:, order])
+    ax.scatter(range(finalCost.size), finalCost[:, order])
 
-    plt.xlabel('Sorted start index')
-    plt.ylabel('Final cost')
+    ax.set_xlabel('Sorted start index')
+    ax.set_ylabel('Final cost')
 
 
 def plotCorrelationBox(data):
