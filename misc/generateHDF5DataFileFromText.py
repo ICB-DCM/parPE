@@ -32,6 +32,12 @@ SCALING_LIN = 0
 NO_PREEQ_CONDITION_IDX = -1
 
 
+def to_float_if_float(x):
+    try:
+        return float(x)
+    except ValueError:
+        return x
+
 def unique_ordered(seq):
     """
     Make unique, preserving order of first occurrence
@@ -196,15 +202,15 @@ class HDF5DataGenerator:
         Load file and select relevant conditions
         """
 
-        self.condition_df = pd.read_csv(filename, delimiter="\t")
+        self.condition_df = petab.get_condition_df(filename)
         print(Fore.CYAN + "Fixed parameters orginal: ",
               self.condition_df.shape)
 
         # drop conditions that do not have measurements
-        dropCols = [
-            label for label in self.condition_df if
+        dropRows = [
+            label for label in self.condition_df.index if
             not label in self.condition_ids]
-        self.condition_df.drop(dropCols, 1, inplace=True)
+        self.condition_df.drop(dropRows, 0, inplace=True)
 
         print(Fore.CYAN + "Fixed parameters usable: ",
               self.condition_df.shape)
@@ -343,8 +349,8 @@ class HDF5DataGenerator:
               len(fixed_parameter_ids))
 
         # Create in-memory table, write all at once for speed
-        fixedParameterMatrix = np.full(
-            shape=(self.nk, self.num_conditions), fill_value=np.nan)
+        fixedParameterMatrix = np.full(shape=(self.nk, self.num_conditions),
+                                       fill_value=np.nan)
         for i in range(len(fixed_parameter_ids)):
             self.handleFixedParameter(i, fixed_parameter_ids[i],
                                       fixedParameterMatrix)
@@ -442,11 +448,13 @@ class HDF5DataGenerator:
         dset: 2D array-like (nFixedParameters x nConditions) where the parameter value is to be set
         """
 
-        if parameterName in self.condition_df.index:
+        if parameterName in self.condition_df:
             # Parameter in condition table
-            dset[parameterIndex, :] = self.condition_df.loc[parameterName,
-                                                            self.condition_ids].values
+            dset[parameterIndex, :] = \
+                self.condition_df.loc[self.condition_ids, parameterName].values
         else:
+            print(Fore.RED + "Parameter not found in condition table. "
+                  "This should not happen.")
             sbml_parameter = self.sbml_model.getParameter(parameterName)
             if sbml_parameter:
                 # Parameter value from model
@@ -457,8 +465,10 @@ class HDF5DataGenerator:
                     # A constant species might have been turned in to a model parameter
                     # TODO: we dont do any conversion here, although we would want to have concentration
                     # currently there is only 1.0
-                    dset[parameterIndex,
-                    :] = sbml_species.getInitialConcentration() if sbml_species.isSetInitialConcentration() else sbml_species.getInitialAmount()
+                    dset[parameterIndex, :] = \
+                        sbml_species.getInitialConcentration() \
+                            if sbml_species.isSetInitialConcentration() \
+                            else sbml_species.getInitialAmount()
                 else:
                     # We need to check for "globalized" parameter names too (reactionId_localParameterId)
                     # model has localParameterId, data file has globalized name
@@ -497,6 +507,19 @@ class HDF5DataGenerator:
 
         dim: num_conditions x num_timepoints x num_observables
         """
+        if petab.measurement_table_has_timepoint_specific_mappings(
+            self.measurement_df):
+            raise RuntimeError("Timepoint-specific overrides are not yet "
+                               "supported.")
+
+        # We cannot handle replicates
+        # TODO: at the moment we cannot deal with replicate measurements
+        #  (same condition, same observable, same timepoint)
+        has_replicates = np.any(self.measurement_df.groupby(
+            ['observableId', 'simulationConditionId', 'time']).size().values - 1)
+        if has_replicates:
+            raise RuntimeError("Replicates are currently not supported.")
+
 
         self.f.create_group("/measurements")
 
@@ -537,9 +560,11 @@ class HDF5DataGenerator:
         NOTE: Observables are not accounted for in the SBML standard.
         We implement them as parameters and assignment rules.
         The respective parameters start with "observable_",
-        but do not end in "_sigma", which is reserved for encoding the error model.
+        but do not end in "_sigma", which is reserved for encoding the error
+        model.
 
-        NOTE: observable names in the model are expected to match the ones in the data table
+        NOTE: observable names in the model are expected to match the ones in
+        the data table
         """
         observables = []
         for p in self.sbml_model.getListOfParameters():
@@ -551,7 +576,8 @@ class HDF5DataGenerator:
         observablesUni = unique_ordered(observables)
 
         if len(observables) != len(observablesUni):
-            print(Fore.YELLOW + "!! %d redundant observable definitions in model"
+            print(Fore.YELLOW
+                  + "!! %d redundant observable definitions in model"
                   % (len(observables) - len(observablesUni)))
         return observablesUni
 
@@ -559,9 +585,6 @@ class HDF5DataGenerator:
         """
         Write measurements to hdf5 dataset
         """
-        # TODO: at the moment we cannot deal with replicate measurements
-        #  (same condition, same observable, same timepoint) since not
-        #  supported by AMICI
 
         # create inverse mapping for faster lookup
         condition_id_to_index = {
@@ -576,37 +599,23 @@ class HDF5DataGenerator:
             time_idx = self.timepoints.index(row.time)
 
             if not np.isnan(dsetY[condition_idx, time_idx, observable_idx]):
-                raise RuntimeError('Multiple measurements provided for '
-                                   f'{row.simulationConditionId} - {row.observableId} time {row.time}'
-                                   'Replicate measurements cannot be handled currently.')
+                raise RuntimeError(
+                    'Multiple measurements provided for '
+                    f'{row.simulationConditionId} - {row.observableId} '
+                    f'time {row.time}'
+                    'Replicate measurements cannot be handled currently.')
 
             dsetY[condition_idx, time_idx, observable_idx] = \
                 float(row['measurement'])
 
-        # set sigmas
-        # numeric sigma overrides have been mapped by petab already
-        # will be the same for all timepoints
-        # TODO: what if not? checked by petab?
-
-        model_parameter_ids = self.model.getParameterIds()
-
-        for condition_idx, condition_map in enumerate(self.parameter_mapping):
-            for model_parameter_idx, mapped_parameter in enumerate(
-                    condition_map):
-                if isinstance(mapped_parameter, str):
-                    continue
-
-                model_parameter_id = model_parameter_ids[model_parameter_idx]
-                if not model_parameter_id.startswith('noiseParameter1'):
-                    continue
-
-                observable_id = model_parameter_id[len('noiseParameter1_'):]
-                observable_idx = observable_id_to_index[observable_id]
-                dsetSigmaY[condition_idx, :, observable_idx] = mapped_parameter
+            sigma = to_float_if_float(row['noiseParameters'])
+            if isinstance(sigma, float):
+                dsetSigmaY[condition_idx, time_idx, observable_idx] = sigma
 
     def generateHierarchicalOptimizationData(self, verbose=1):
         """
-        Deal with offsets, proportionality factors and sigmas for hierarchical optimization
+        Deal with offsets, proportionality factors and sigmas for hierarchical
+        optimization
 
         Generate the respective index lists and mappings
         """
