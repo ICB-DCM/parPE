@@ -20,7 +20,9 @@ ExternalProject_Add(
 )
 
 # Rebuild if amici files are updated
-ExternalProject_Add_StepDependencies(${MODEL_NAME} download recreateExampleData.sh)
+ExternalProject_Add_StepDependencies(${MODEL_NAME} download
+    recreateExampleData.sh
+    ${CMAKE_SOURCE_DIR}/misc/generateHDF5DataFileFromText.py)
 ExternalProject_Add_StepDependencies(${MODEL_NAME} build parpeamici)
 ExternalProject_Add_StepDependencies(${MODEL_NAME} download setup_venv)
 
