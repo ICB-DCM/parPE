@@ -48,8 +48,8 @@ set(CERES_LIBRARIES "" CACHE STRINGS "CERES libraries")
 set(PARPE_ENABLE_IPOPT TRUE CACHE BOOL "Enable ipopt optimizer?")
 set(PARPE_ENABLE_CERES TRUE CACHE BOOL "Enable ceres optimizer?")
 set(PARPE_ENABLE_DLIB FALSE CACHE BOOL "Enable dlib optimizers?")
-set(PARPE_ENABLE_TOMS611 FALSE CACHE BOOL "Enable toms611 optimizers?")
-set(PARPE_ENABLE_FSQP FALSE CACHE BOOL "Enable FSQP optimizers?")
+set(PARPE_ENABLE_TOMS611 FALSE CACHE BOOL "Enable toms611 optimizer?")
+set(PARPE_ENABLE_FSQP FALSE CACHE BOOL "Enable FSQP optimizer?")
 
 # Enable MPI?
 if(${PARPE_ENABLE_MPI})
