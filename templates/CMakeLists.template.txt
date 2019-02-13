@@ -96,4 +96,21 @@ target_include_directories(${PROJECT_NAME} PUBLIC "model")
 
 #################################
 
+
+#################################
+# simulateNominal executable
+#################################
+
+project(simulateNominal_${MODEL_NAME})
+set(SRC_LIST main_nominal.cpp)
+add_executable(${PROJECT_NAME} ${SRC_LIST})
+
+target_link_libraries(${PROJECT_NAME}
+    model
+    Upstream::parpe
+)
+target_include_directories(${PROJECT_NAME} PUBLIC "model")
+
+#################################
+
 project(${MODEL_NAME}) # for IDE, will use last project as label
