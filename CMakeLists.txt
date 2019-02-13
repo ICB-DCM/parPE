@@ -50,6 +50,7 @@ set(PARPE_ENABLE_CERES TRUE CACHE BOOL "Enable ceres optimizer?")
 set(PARPE_ENABLE_DLIB FALSE CACHE BOOL "Enable dlib optimizers?")
 set(PARPE_ENABLE_TOMS611 FALSE CACHE BOOL "Enable toms611 optimizer?")
 set(PARPE_ENABLE_FSQP FALSE CACHE BOOL "Enable FSQP optimizer?")
+set(PARPE_EXPORT_PACKAGE FALSE CACHE BOOL "Export this build to CMake registry?")
 
 # Enable MPI?
 if(${PARPE_ENABLE_MPI})
@@ -224,7 +225,9 @@ configure_file(CMakeModules/ParPEConfig.cmake.in
     )
 
 # Register package
-export(PACKAGE ParPE)
+if(${PARPE_EXPORT_PACKAGE})
+    export(PACKAGE ParPE)
+endif(${PARPE_EXPORT_PACKAGE})
 # </Export cmake configuration>
 
 # <Package configuration>
