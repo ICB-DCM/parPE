@@ -1,9 +1,6 @@
 #ifndef LOGGING_H
 #define LOGGING_H
 
-#include <parpecommon/parpeConfig.h>
-#include <parpecommon/misc.h> // make_unique
-
 #include <string>
 #include <cstdarg>
 #include <memory>
@@ -17,6 +14,8 @@ namespace parpe {
 #define ANSI_COLOR_MAGENTA "\x1b[35m"
 #define ANSI_COLOR_CYAN "\x1b[36m"
 #define ANSI_COLOR_RESET "\x1b[0m"
+
+std::string printfToString(const char *fmt, va_list ap);
 
 // TODO enum class
 typedef enum loglevel_tag {

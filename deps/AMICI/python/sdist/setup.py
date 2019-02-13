@@ -1,6 +1,6 @@
 """Setuptools file for creating AMICI module
 
-This file is based on setuptools alone and does not require CMake. 
+This file is based on setuptools alone and does not require CMake.
 All sources are compiled anew.
 
 This file expects to be run from within its directory.
@@ -24,8 +24,25 @@ import glob
 import sysconfig
 import subprocess
 from shutil import copyfile
-import numpy as np # for include directory
-import setup_clibs  # Must run from within containing directory
+import setup_clibs # Must run from within containing directory
+
+
+def try_install(package):
+    """Try installing the given package using pip. Exit on error."""
+    errno = subprocess.call([sys.executable, "-m", "pip", "install", package])
+    if errno:
+        print(f"Failed trying to install {package}. Please install manually.")
+        raise SystemExit(errno)
+
+
+try:
+    # required for include directory
+    import numpy as np
+except ImportError:
+    # We need numpy, but setup_requires fires too late
+    try_install('numpy')
+    # retry
+    import numpy as np
 
 from amici import __version__
 
@@ -272,8 +289,13 @@ def main():
                     ],
         packages=find_packages(),
         package_dir={'amici': 'amici'},
-        install_requires=['sympy', 'python-libsbml', 'h5py', 'pandas', 'setuptools>=40.6.3'],
+        install_requires=['sympy',
+                          'python-libsbml',
+                          'h5py',
+                          'pandas',
+                          'setuptools>=40.6.3'],
         python_requires='>=3.6',
+        extras_require={'wurlitzer': ['wurlitzer']},
         package_data={
             'amici': ['amici/include/amici/*',
                       'src/*template*',

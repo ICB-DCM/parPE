@@ -1,68 +1,29 @@
 #ifndef OPTIMIZATION_PROBLEM_H
 #define OPTIMIZATION_PROBLEM_H
 
-#include <parpeoptimization/optimizationResultWriter.h>
 #include <parpeoptimization/optimizationOptions.h>
-#include <parpecommon/misc.h>
+#include <parpeoptimization/optimizationResultWriter.h>
 #include <parpecommon/functions.h>
 #include <parpecommon/logging.h>
 
-#include <cstdlib>
 #include <vector>
-#include <ctime>
-#include <cmath>
 
 #include <hdf5.h>
 #include <gsl/gsl-lite.hpp>
 
 namespace parpe {
 
-class OptimizationResultWriter;
 class OptimizationReporter;
 
-///**
-// * TODO: will we use this for minibatch?
-// */
-//template<typename T>
-//class SummedGradientProblem {
-
-//public:
-//    SummedGradientProblem() = default;
-//    SummedGradientProblem(std::unique_ptr<SummedGradientFunction<T>> costFun);
-
-//    virtual ~SummedGradientProblem() = default;
-
-//    /** Default implementation: random starting points are drawn from [parametersMin, parametersMax] */
-//    virtual void fillInitialParameters(double *buffer) const;
-
-//    /** lower bound of parameter values */
-//    virtual void fillParametersMin(double *buffer) const = 0;
-
-//    /** upper bound of parameter values */
-//    // TODO:     template <class RandomAccessIterator>
-//    virtual void fillParametersMax(double *buffer) const = 0;
-
-//    OptimizationOptions const& getOptimizationOptions() const;
-
-//    void setOptimizationOptions(OptimizationOptions const& options);
-
-//    // const?
-//    std::unique_ptr<SummedGradientFunction<T>> costFun;
-
-//    virtual std::unique_ptr<OptimizationReporter> getReporter() const;
-
-//private:
-//    OptimizationOptions optimizationOptions;
-//};
-
 /**
- * @brief The OptimizationReporter class is called from the optimizer and takes care of
- * calling the actual objective function, thereby keeping track of iterations, computation time,
- * logging intermediate results, timing and can tell the optimizer to exit.
+ * @brief The OptimizationReporter class is called from the optimizer and takes
+ * care of calling the actual objective function, thereby keeping track of
+ * iterations, computation time, logging intermediate results, timing and can
+ * tell the optimizer to exit.
  *
- * This extra level of abstraction is added to avoid reimplementing timing, and other things for
- * each supported optimizer. The indirection of cost function evaluation is added to allow caching
- * previous cost function values.
+ * This extra level of abstraction is added to avoid reimplementing timing, and
+ * other things for each supported optimizer. The indirection of cost function
+ * evaluation is added to allow caching previous cost function values.
  */
 
 class OptimizationReporter: public GradientFunction {
@@ -74,8 +35,6 @@ public:
                          std::unique_ptr<OptimizationResultWriter> rw,
                          std::unique_ptr<Logger> logger);
 
-    virtual ~OptimizationReporter() override = default;
-
     FunctionEvaluationStatus evaluate(gsl::span<double const> parameters,
                                       double &fval,
                                       gsl::span<double> gradient,
@@ -85,7 +44,8 @@ public:
     int numParameters() const override;
 
     /**
-     * @brief Is called just before the optimizer starts. Must be called before other functions.
+     * @brief Is called just before the optimizer starts. Must be called before
+     * other functions.
      * @param numParameters
      * @param initialParameters
      * @return Quit optimization?
@@ -167,9 +127,8 @@ protected:
     mutable std::vector<double> cachedParameters;
 
     std::string defaultLoggerPrefix;
-private:
-
 };
+
 
 /**
  * @brief The OptimizationProblem class describes an optimization problem.
@@ -217,6 +176,7 @@ private:
     OptimizationOptions optimizationOptions;
 };
 
+
 /**
  * @brief Mixin class for handling parameter bounds
  */
@@ -226,34 +186,18 @@ public:
     using OptimizationProblem::OptimizationProblem;
 
     /** lower bound of parameter values */
-    void fillParametersMin(gsl::span<double> buffer) const override {
-        std::copy(parametersMin.begin(), parametersMin.end(), buffer.begin());
-    }
+    void fillParametersMin(gsl::span<double> buffer) const override;
 
     /** upper bound of parameter values */
-    void fillParametersMax(gsl::span<double> buffer) const override {
-        std::copy(parametersMax.begin(), parametersMax.end(), buffer.begin());
-    }
+    void fillParametersMax(gsl::span<double> buffer) const override;
 
-    void setParametersMin(std::vector<double> parametersMin) {
-        this->parametersMin = parametersMin;
-    }
+    void setParametersMin(std::vector<double> parametersMin);
 
-    void setParametersMax(std::vector<double> parametersMax) {
-        this->parametersMax = parametersMax;
-    }
+    void setParametersMax(std::vector<double> parametersMax);
 
-    void setInitialParameters(std::vector<double> initial) {
-        parametersStart = initial;
-    }
+    void setInitialParameters(std::vector<double> initial);
 
-    void fillInitialParameters(gsl::span<double> buffer) const override {
-        if (parametersStart.size()) {
-            std::copy(parametersStart.begin(), parametersStart.end(), buffer.begin());
-        } else {
-            OptimizationProblem::fillInitialParameters(buffer);
-        }
-    }
+    void fillInitialParameters(gsl::span<double> buffer) const override;
 
 private:
     std::vector<double> parametersMin;

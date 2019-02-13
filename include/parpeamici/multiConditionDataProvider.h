@@ -5,14 +5,14 @@
 #include <parpeoptimization/optimizationOptions.h>
 
 #include <amici/amici.h>
+
 #include <gsl/gsl-lite.hpp>
+
+#include <H5Cpp.h>
 
 #include <memory>
 #include <string>
 #include <vector>
-
-#include <H5Cpp.h>
-
 
 namespace parpe {
 

@@ -1,4 +1,5 @@
 #include <parpeamici/hierarchicalOptimization.h>
+#include <parpecommon/parpeException.h>
 
 #include "../parpeoptimization/quadraticTestProblem.h"
 #include "../parpecommon/testingMisc.h"
@@ -79,7 +80,7 @@ public:
 };
 
 
-class AmiciSummedGradientFunctionMock : public parpe::AmiciSummedGradientFunction<int> {
+class AmiciSummedGradientFunctionMock : public parpe::AmiciSummedGradientFunction {
 public:
     parpe::FunctionEvaluationStatus getModelOutputs(gsl::span<double const> parameters,
                                                     std::vector<std::vector<double> > &modelOutput,

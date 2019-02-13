@@ -25,9 +25,6 @@ build:
         - mkdir -p ${AMICI_PATH}/build && cd ${AMICI_PATH}/build
         - CPPUTEST_BUILD_DIR=${AMICI_PATH}/ThirdParty/cpputest-master/build/ 
         - cmake -DCMAKE_BUILD_TYPE=Debug -DENABLE_PYTHON=ON -DBUILD_TESTS=OFF -DCppUTest_DIR=${CPPUTEST_BUILD_DIR} .. && make -j12
-        - python3 -m pip install --upgrade pip
-        - pip3 install -U setuptools pkgconfig wheel numpy
-        - pip3 install --verbose -e ${AMICI_PATH}/python/sdist
 
         #- cd $PARPE_BASE/ThirdParty && ./downloadPackages.sh
         # Download AMICI from github - cd $PARPE_BASE/ThirdParty && ./installAMICI.sh

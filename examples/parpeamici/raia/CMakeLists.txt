@@ -1,11 +1,11 @@
-# Build Lucarelli example
+# Build Raia example
 
 # This requires python to generate the model code from SBML
 find_package(PythonInterp 3.6)
 
 # Generate model code and data; build model
 include(ExternalProject)
-set(MODEL_NAME lucarelli_12)
+set(MODEL_NAME raia)
 ExternalProject_Add(${MODEL_NAME}
     DOWNLOAD_DIR      "${CMAKE_CURRENT_BINARY_DIR}/${MODEL_NAME}-prefix/src/${MODEL_NAME}"
     DOWNLOAD_COMMAND  ${CMAKE_CURRENT_SOURCE_DIR}/recreateExampleData.sh ${CMAKE_BINARY_DIR}
@@ -20,10 +20,9 @@ ExternalProject_Add(${MODEL_NAME}
 # Rebuild if amici files are updated
 ExternalProject_Add_StepDependencies(${MODEL_NAME} build parpeamici)
 ExternalProject_Add_StepDependencies(${MODEL_NAME} download setup_venv)
-
 ExternalProject_Get_property(${MODEL_NAME} SOURCE_DIR)
 ExternalProject_Get_property(${MODEL_NAME} BINARY_DIR)
-message(STATUS "Generating Lucarelli example model and data in ${SOURCE_DIR}")
+message(STATUS "Generating Raia example model and data in ${SOURCE_DIR}")
 
 # Import external library
 set(MODEL_LIBRARIES "model_${MODEL_NAME}")
@@ -37,8 +36,8 @@ set_target_properties(model_${MODEL_NAME}
     )
 
 
-# estimateLucarelli executable
-project(estimateLucarelli)
+# estimateRaia executable
+project(estimateRaia)
 
 set(SRC_LIST
     main.cpp
@@ -59,11 +58,11 @@ install(TARGETS ${PROJECT_NAME} EXPORT ParPETargets
     RUNTIME DESTINATION bin
     INCLUDES DESTINATION include
     )
-# /estimateLucarelli executable
+# /estimateRaia executable
 
 
-# simulateLucarelli executable
-project(simulateLucarelli)
+# simulateRaia executable
+project(simulateRaia)
 
 set(SRC_LIST
     main_simulate.cpp
@@ -77,4 +76,4 @@ target_link_libraries(${PROJECT_NAME}
     parpeamici
     ${GCOV_LIBRARY}
 )
-# /simulateLucarelli executable_simulator
+# /simulateRaia executable_simulator
