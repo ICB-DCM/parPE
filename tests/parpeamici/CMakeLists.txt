@@ -19,8 +19,9 @@ add_executable(${PROJECT_NAME} ${SRC_LIST_CPP})
 
 # generate test h5 file first
 add_custom_target(prepare_test_hierarchical_optimization
-    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/hierarchicalOptimizationTest.py
-    COMMENT "Creating test data using hierarchicalOptimizationTest.py")
+    COMMAND ${CMAKE_SOURCE_DIR}/misc/run_in_venv.sh ${CMAKE_BINARY_DIR}/venv ${CMAKE_CURRENT_SOURCE_DIR}/hierarchicalOptimizationTest.py
+    COMMENT "Creating test data using hierarchicalOptimizationTest.py"
+    DEPENDS setup_venv)
 add_dependencies(${PROJECT_NAME} prepare_test_hierarchical_optimization)
 
 #target_compile_options(${PROJECT_NAME} PUBLIC
