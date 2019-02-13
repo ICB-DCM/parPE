@@ -34,6 +34,8 @@ cd ${SCRIPT_PATH}
 if [[ ! -d parpe_${MODEL_NAME} ]]; then
     echo "Setting up parPE..."
     ${PARPE_DIR}/misc/setup_amici_model.sh ${AMICI_MODEL_DIR} parpe_${MODEL_NAME}
+else
+    (cd parpe_${MODEL_NAME}/build && make)
 fi
 
 # generate data file

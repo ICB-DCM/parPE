@@ -135,6 +135,9 @@ void MultiConditionDataProviderHDF5::updateFixedSimulationParameters(int conditi
 
 void MultiConditionDataProviderHDF5::readFixedSimulationParameters(int conditionIdx, double *buffer) const
 {
+    if(!model->nk())
+        return;
+
     auto lock = hdf5MutexGetLock();
 
     H5_SAVE_ERROR_HANDLER;

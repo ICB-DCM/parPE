@@ -375,18 +375,25 @@ class HDF5DataGenerator:
 
         # chunked for reading experiment-wise
         nk = len(fixed_parameter_ids)
-        dset = self.f.create_dataset("/fixedParameters/k",
-                                     (nk, self.num_conditions),
-                                     dtype='f8', chunks=(nk, 1),
-                                     compression=self.compression, data=data)
 
-        # set dimension scales
-        dset.dims.create_scale(
-            self.f['/fixedParameters/parameterNames'], 'parameterNames')
-        dset.dims.create_scale(
-            self.f['/fixedParameters/conditionNames'], 'conditionNames')
-        dset.dims[0].attach_scale(self.f['/fixedParameters/parameterNames'])
-        dset.dims[1].attach_scale(self.f['/fixedParameters/conditionNames'])
+        if len(data):
+            dset = self.f.create_dataset("/fixedParameters/k",
+                                         (nk, self.num_conditions),
+                                         dtype='f8', chunks=(nk, 1),
+                                         compression=self.compression,
+                                         data=data)
+            # set dimension scales
+            dset.dims.create_scale(
+                self.f['/fixedParameters/parameterNames'], 'parameterNames')
+            dset.dims.create_scale(
+                self.f['/fixedParameters/conditionNames'], 'conditionNames')
+            dset.dims[0].attach_scale(
+                self.f['/fixedParameters/parameterNames'])
+            dset.dims[1].attach_scale(
+                self.f['/fixedParameters/conditionNames'])
+        else:
+            dset = self.f.create_dataset("/fixedParameters/k",
+                                         dtype='f8')
 
         return dset
 
@@ -520,6 +527,11 @@ class HDF5DataGenerator:
         if has_replicates:
             raise RuntimeError("Replicates are currently not supported.")
 
+        # Can only handle lin observables for now
+        if 'observableTransformation' in self.measurement_df \
+            and self.measurement_df.observableTransformation.dtype is str \
+            and np.any(self.measurement_df.observableTransformation.dtype != 'lin'):
+            raise ValueError("Cannot deal with non-lin observable transformation")
 
         self.f.create_group("/measurements")
 

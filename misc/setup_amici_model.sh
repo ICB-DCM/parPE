@@ -40,7 +40,7 @@ cp ${TEMPLATE_DIR}/main*.cpp ${OUTPUT_DIR}
 echo "Setting up build ..."
 mkdir ${OUTPUT_DIR}/build
 cd ${OUTPUT_DIR}/build
-CC=mpicc CXX=mpiCC cmake ..
+CC=mpicc CXX=mpiCC cmake -DParPE_DIR=${SCRIPT_PATH}/../build ..
 
 echo "Building ..."
 make ${MAKE_OPTS}
