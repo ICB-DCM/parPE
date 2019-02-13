@@ -1040,6 +1040,11 @@ class HDF5DataGenerator:
             np.random.rand(numStartingPoints, numParams) * (
                     upper - lower) + lower)
 
+        if 'nominalValue' in self.parameter_df:
+            # set first start to nominal parameters, for debugging/testing
+            print(Fore.YELLOW + "Setting first starting point to nominal values")
+            startingPoints[:, 0] = self.parameter_df.nominalValue
+
 
 def parse_cli_args():
     """Parse command line arguments"""
