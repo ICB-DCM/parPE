@@ -44,6 +44,13 @@ def unique_ordered(seq):
     return [x for x in seq if not (x in seen or seen_add(x))]
 
 
+def requires_preequilibration(measurement_df):
+    return 'preequilibrationConditionId' in measurement_df \
+            and not np.issubdtype(
+        measurement_df.preequilibrationConditionId.dtype,
+        np.number)
+
+
 def write_string_array(f, path, strings):
     """
     Write string array to hdf5
@@ -160,6 +167,12 @@ class HDF5DataGenerator:
         # Get list of used conditions
         self.condition_ids = unique_ordered(
             self.measurement_df.simulationConditionId.values)
+        if requires_preequilibration(self.measurement_df):
+            print(Fore.YELLOW + "!!! Model requires preequilibration."
+                  "This is not yet fully implemented!!!")
+            self.condition_ids = unique_ordered(
+                [*self.condition_ids,
+                 *self.measurement_df.preequilibrationConditionId.values])
         self.num_conditions = len(self.condition_ids)
 
         # when using adjoint sensitivities, we cannot keep inf
@@ -381,8 +394,7 @@ class HDF5DataGenerator:
         """
         referenceMap = [NO_PREEQ_CONDITION_IDX] * self.num_conditions
 
-        if np.issubdtype(self.measurement_df.preequilibrationConditionId.dtype,
-                         np.number):
+        if not requires_preequilibration(self.measurement_df):
             # all NaNs, so there is no preeq required:
             pass
         else:
@@ -601,6 +613,11 @@ class HDF5DataGenerator:
 
         # TODO: should check at the end of the function if scalingIndices lists
         # are non-overlapping
+
+        if 'hierarchicalOptimization' not in self.parameter_df:
+            print(Fore.YELLOW + 'Missing hierarchicalOptimization column in '
+                  'parameter table. Skipping.')
+            return
 
         observables = petab.get_observables(self.sbml_model, remove=False)
         sigmas = petab.get_sigmas(self.sbml_model, remove=False)
