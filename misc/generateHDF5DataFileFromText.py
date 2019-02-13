@@ -528,9 +528,10 @@ class HDF5DataGenerator:
             raise RuntimeError("Replicates are currently not supported.")
 
         # Can only handle lin observables for now
+        print(self.measurement_df.observableTransformation.dtype)
         if 'observableTransformation' in self.measurement_df \
-            and self.measurement_df.observableTransformation.dtype is str \
-            and np.any(self.measurement_df.observableTransformation.dtype != 'lin'):
+            and not np.issubdtype(self.measurement_df.observableTransformation.dtype, np.number)  \
+            and np.any(self.measurement_df.observableTransformation != 'lin'):
             raise ValueError("Cannot deal with non-lin observable transformation")
 
         self.f.create_group("/measurements")
