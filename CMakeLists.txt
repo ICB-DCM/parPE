@@ -161,6 +161,7 @@ add_custom_target(cloc
     COMMENT "Counting lines of code"
     VERBATIM)
 
+add_subdirectory(templates)
 
 add_subdirectory(src)
 
