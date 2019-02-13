@@ -105,6 +105,7 @@ def create_reaction(model, id, reactants, products, formula, reversible = False,
     kinetic_law.setMath(math_ast)
     return r
 
+
 def create_assigment_rule(model, name, formula):
     rule = model.createAssignmentRule()
     rule.setId(name)
@@ -112,6 +113,7 @@ def create_assigment_rule(model, name, formula):
     rule.setVariable(name)
     rule.setFormula(formula)
     return rule
+
 
 def add_sigma(model, observable):
     # corresponding sigma

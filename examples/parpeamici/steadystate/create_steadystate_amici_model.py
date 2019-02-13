@@ -336,8 +336,8 @@ def save_expected_results(hdf5_file_name, true_parameters_dict, expected_llh):
 
 
 def write_starting_points(hdf5_file_name, true_parameters):
-    # write true parameters as first starting point, an perturbed additional points
-    # two times the same point to check for reproducibility
+    """Write true parameters as first starting point, an perturbed additional
+    points, two times the same point to check for reproducibility"""
     with h5py.File(hdf5_file_name, 'r+') as f:
         pscale = f['/parameters/pscale'][:]
         true_parameters_scaled = np.array([true_parameters[p] for p in
