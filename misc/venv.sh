@@ -16,7 +16,7 @@ source ${BUILD_DIR}/venv/bin/activate
 # install amici
 cd ${PARPE_ROOT}/deps/AMICI/python/sdist
 pip3 install -e .
-pip3 install termcolor
+pip3 install -U termcolor colorama
 
 deactivate
 fi
