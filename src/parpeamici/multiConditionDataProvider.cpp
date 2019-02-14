@@ -88,7 +88,11 @@ void MultiConditionDataProviderHDF5::mapSimulationToOptimizationVariablesAddMult
     auto mapping = getSimulationToOptimizationParameterMapping(conditionIdx);
 
     for(int i = 0; i < model->np(); ++i) {
-        optimization[mapping[i]] += coefficient * simulation[i];
+        // some model parameter are not mapped if there is no respective data
+        if(mapping[i] >= 0)
+            optimization[mapping[i]] += coefficient * simulation[i];
+        else
+            RELEASE_ASSERT(std::isnan(simulation[i]) || simulation[i] == 0.0, "");
     }
 }
 
@@ -97,7 +101,10 @@ void MultiConditionDataProviderHDF5::mapAndSetOptimizationToSimulationVariables(
     auto mapping = getSimulationToOptimizationParameterMapping(conditionIdx);
 
     for(int i = 0; i < model->np(); ++i) {
-        simulation[i] = optimization[mapping[i]];
+        if(mapping[i] >= 0)
+            simulation[i] = optimization[mapping[i]];
+        else
+            simulation[i] = NAN;
     }
 }
 

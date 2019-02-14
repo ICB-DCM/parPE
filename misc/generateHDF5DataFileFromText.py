@@ -156,6 +156,7 @@ class HDF5DataGenerator:
         model_module = importlib.import_module(model_name)
         self.model = model_module.getModel()
 
+        self.UNMAPPED_PARAMETER=-1
         # scriptDir = os.path.dirname(os.path.realpath(__file__))
 
         # hdf5 dataset compression
@@ -292,7 +293,7 @@ class HDF5DataGenerator:
         # use in-memory matrix, don't write every entry to file directly (super
         # slow)
         mapping_matrix = np.zeros(
-            shape=(num_model_parameters, self.num_conditions), )
+            shape=(num_model_parameters, self.num_conditions), dtype='<i4')
 
         # create inverse mapping for faster lookup
         optimization_parameter_name_to_index = {
@@ -312,14 +313,15 @@ class HDF5DataGenerator:
                 else:
                     # Have numeric override
                     # This condition does not use any parameter override here
-                    # Cannot set to NaN in integer matrix. Will use 0.
-                    # AMICI will not use this parameter anyways and its
-                    # gradient will be 0.0
+                    # Cannot set to NaN in integer matrix. Will use -1 which
+                    # will be replaced by NaN or arbitrary value in C++ code
+
                     # numeric overrides for sigmas will be handled by model
                     # others are not yet supported
                     model_parameter_id = model_parameter_ids[
                         model_parameter_idx]
-                    mapping_matrix[model_parameter_idx, condition_idx] = 0
+                    mapping_matrix[model_parameter_idx, condition_idx] = \
+                        self.UNMAPPED_PARAMETER
                     if False:
                         print(Fore.CYAN + "Numeric override for condition "
                               f"{condition_idx} parameter {model_parameter_id}"
@@ -327,6 +329,8 @@ class HDF5DataGenerator:
                     if not model_parameter_id.startswith('noiseParameter1'):
                         raise RuntimeError(
                             'Cannot handle numeric non-noise parameter overrides.')
+
+        self.mapping_matrix = mapping_matrix
 
         # write to file
         self.f.require_dataset(
@@ -894,40 +898,63 @@ class HDF5DataGenerator:
         g.attrs['rtol'] = 1e-8
         g.attrs['stldet'] = 1
 
-        numParameters = self.f['/parameters/modelParameterNames'].shape[0]
+        model_parameter_names = self.f['/parameters/modelParameterNames'][:]
+        optimization_parameter_names = self.f['/parameters/parameterNames'][:]
+
+        num_model_parameters = \
+            self.f['/parameters/modelParameterNames'].shape[0]
+
+        num_optimization_parameters = \
+            self.f['/parameters/parameterNames'].shape[0]
 
         # parameter indices w.r.t. which to compute sensitivities
         self.f.require_dataset(
-            '/amiciOptions/sens_ind', shape=(numParameters,), dtype="<i4",
-            data=range(numParameters))
+            '/amiciOptions/sens_ind', shape=(num_model_parameters,), dtype="<i4",
+            data=range(num_model_parameters))
 
         self.f.require_dataset(
             '/amiciOptions/ts', shape=(len(self.timepoints),), dtype="f8",
             data=self.timepoints)
 
-        # set parameter scaling: all log10, except for offsets which can be negative
-        # ... for AMICI model parameters:
-        offsetIndices = [i for i, p in enumerate(
-            self.f['/parameters/modelParameterNames']) if
-                         p.find('offset') >= 0]
-        pscale = np.full(numParameters, 2)
-        pscale[offsetIndices] = 0
-        self.f.require_dataset('/amiciOptions/pscale',
-                               shape=(numParameters,), dtype="<i4",
-                               data=pscale)
+        # set parameter scaling for all parameters
+        # (required for hierarchical optimization)
+        pscale_optimization = [petab_scale_to_amici_scale(
+            self.parameter_df.loc[p]['parameterScale'])
+            for p in optimization_parameter_names]
 
-        # ... for all parameters for hierarchical optimization
-        offsetIndices = [i for i, p in enumerate(
-            self.f['/parameters/parameterNames']) if p.startswith('offset_')]
-        # self.getAnalyticallyComputedSimulationParameterIndices()
-        linParametersAmiciIndices = offsetIndices
-        numOptimizationParameters = self.f['/parameters/parameterNames'].shape[
-            0]
         self.f.require_dataset('/parameters/pscale',
-                               shape=(numOptimizationParameters,), dtype="<i4",
-                               data=[2 * (ip not in linParametersAmiciIndices)
-                                     for ip in
-                                     range(numOptimizationParameters)])
+                               shape=(num_optimization_parameters,),
+                               dtype="<i4",
+                               data=pscale_optimization)
+
+
+        # set parameter scaling for AMICI model parameters:
+        pscale_model = self.UNMAPPED_PARAMETER * np.ones(shape=(num_model_parameters,))
+        for p_idx, p_id in enumerate(model_parameter_names):
+            try:
+                scale = petab_scale_to_amici_scale(
+                    self.parameter_df.loc[p_id]['parameterScale'])
+                pscale_model[p_idx] = scale
+            except KeyError:
+                # this is not a model parameter but an override
+                # find which parameter that one overrides
+
+                # num_model_parameters x num_conditions
+                for mapped_idx in self.mapping_matrix[p_idx]:
+                    scale = pscale_optimization[mapped_idx]
+                    if pscale_model[p_idx] == self.UNMAPPED_PARAMETER:
+                        pscale_model[p_idx] = scale
+                    elif pscale_model[p_idx] != self.UNMAPPED_PARAMETER \
+                            and pscale_model[p_idx] != scale:
+                        # TODO: this potentially needs to be condition specific
+                        # for full petab # support
+                        raise ValueError(
+                            "Condition-specific parameter scaling is currently"
+                            " not supported but required for " + p_id)
+
+        self.f.require_dataset('/amiciOptions/pscale',
+                               shape=(num_model_parameters,), dtype="<i4",
+                               data=pscale_model)
 
 
     def getAnalyticallyComputedSimulationParameterIndices(self):
@@ -1066,6 +1093,18 @@ class HDF5DataGenerator:
             # set first start to nominal parameters, for debugging/testing
             print(Fore.YELLOW + "Setting first starting point to nominal values")
             startingPoints[:, 0] = self.parameter_df.nominalValue
+
+
+def petab_scale_to_amici_scale(scale_str):
+    """Convert PEtab parameter scaling string to AMICI scaling integer"""
+
+    if scale_str == 'lin':
+        return 0
+    if scale_str == 'log':
+        return 1
+    if scale_str == 'log10':
+        return 2
+    raise ValueError("Invalid pscale " + scale_str)
 
 
 def parse_cli_args():

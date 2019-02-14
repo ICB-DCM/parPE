@@ -187,6 +187,14 @@ class MultiConditionDataProviderHDF5 : public MultiConditionDataProvider {
      */
     virtual int getNumberOfConditions() const override;
 
+    /**
+     * @brief Get index vector of length of model parameter with indices of
+     * optimization parameters for the given condition.
+     *
+     * NOTE: This may contain -1 for parameter which are not mapped.
+     * @param conditionIdx
+     * @return
+     */
     virtual std::vector<int> getSimulationToOptimizationParameterMapping(int conditionIdx) const override;
 
     virtual void mapSimulationToOptimizationVariablesAddMultiply(

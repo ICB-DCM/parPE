@@ -128,7 +128,12 @@ FunctionEvaluationStatus HierarchicalOptimizationWrapper::evaluate(gsl::span<con
 {
     WallTimer walltimer;
     FunctionEvaluationStatus status;
-    RELEASE_ASSERT(reducedParameters.size() == (unsigned)numParameters(), "");
+    if(reducedParameters.size() != (unsigned)numParameters()) {
+        throw ParPEException("Reduced parameter vector size "
+                             + std::to_string(reducedParameters.size())
+                             + " does not match numParameters "
+                             + std::to_string(numParameters()));
+    }
     RELEASE_ASSERT(gradient.empty() || gradient.size() == reducedParameters.size(), "");
     if(numProportionalityFactors() == 0 && numOffsetParameters() == 0 && numSigmaParameters() == 0) {
         // nothing to do, just pass through
