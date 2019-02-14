@@ -14,18 +14,15 @@
 
 namespace parpe {
 
-/**
- * @brief
- * @param hdf5Filename Filename from where to read data
- */
-
-MultiConditionDataProviderHDF5::MultiConditionDataProviderHDF5(std::unique_ptr<amici::Model> model,
-                                                               std::string const& hdf5Filename)
+MultiConditionDataProviderHDF5::MultiConditionDataProviderHDF5(
+        std::unique_ptr<amici::Model> model,
+        std::string const& hdf5Filename)
     : MultiConditionDataProviderHDF5(std::move(model), hdf5Filename, "") {}
 
-MultiConditionDataProviderHDF5::MultiConditionDataProviderHDF5(std::unique_ptr<amici::Model> model,
-                                                               std::string const& hdf5Filename,
-                                                               std::string const& rootPath)
+MultiConditionDataProviderHDF5::MultiConditionDataProviderHDF5(
+        std::unique_ptr<amici::Model> model,
+        std::string const& hdf5Filename,
+        std::string const& rootPath)
     : model(std::move(model)), rootPath(rootPath) {
 
     auto lock = hdf5MutexGetLock();
@@ -47,12 +44,6 @@ MultiConditionDataProviderHDF5::MultiConditionDataProviderHDF5(std::unique_ptr<a
     amici::hdf5::readModelDataFromHDF5(file, *this->model, hdf5AmiciOptionPath);
 }
 
-/**
- * @brief Get the number of simulations required for objective function
- * evaluation. Currently, this amounts to the number
- * of conditions present in the data.
- * @return
- */
 int MultiConditionDataProviderHDF5::getNumberOfConditions() const {
     // TODO: add additional layer for selection of condition indices (for testing
     // and later for minibatch)
@@ -84,7 +75,8 @@ std::vector<int> MultiConditionDataProviderHDF5::getSimulationToOptimizationPara
 }
 
 void MultiConditionDataProviderHDF5::mapSimulationToOptimizationVariablesAddMultiply(
-        int conditionIdx, gsl::span<double const> simulation, gsl::span<double> optimization, double coefficient) const {
+        int conditionIdx, gsl::span<double const> simulation,
+        gsl::span<double> optimization, double coefficient) const {
     auto mapping = getSimulationToOptimizationParameterMapping(conditionIdx);
 
     for(int i = 0; i < model->np(); ++i) {
@@ -96,7 +88,9 @@ void MultiConditionDataProviderHDF5::mapSimulationToOptimizationVariablesAddMult
     }
 }
 
-void MultiConditionDataProviderHDF5::mapAndSetOptimizationToSimulationVariables(int conditionIdx, gsl::span<const double> optimization, gsl::span<double> simulation) const
+void MultiConditionDataProviderHDF5::mapAndSetOptimizationToSimulationVariables(
+        int conditionIdx, gsl::span<const double> optimization,
+        gsl::span<double> simulation) const
 {
     auto mapping = getSimulationToOptimizationParameterMapping(conditionIdx);
 
@@ -108,7 +102,8 @@ void MultiConditionDataProviderHDF5::mapAndSetOptimizationToSimulationVariables(
     }
 }
 
-amici::ParameterScaling MultiConditionDataProviderHDF5::getParameterScale(int optimizationParameterIndex) const
+amici::ParameterScaling MultiConditionDataProviderHDF5::getParameterScale(
+        int optimizationParameterIndex) const
 {
     auto res = hdf5Read1DIntegerHyperslab(file, hdf5ParameterScalingPath,
                                           1, optimizationParameterIndex).at(0);
@@ -123,7 +118,8 @@ amici::ParameterScaling MultiConditionDataProviderHDF5::getParameterScale(int op
  * parameters should be taken.
  * @param edata The object to be updated.
  */
-void MultiConditionDataProviderHDF5::updateFixedSimulationParameters(int conditionIdx, amici::ExpData &edata) const {
+void MultiConditionDataProviderHDF5::updateFixedSimulationParameters(
+        int conditionIdx, amici::ExpData &edata) const {
     edata.fixedParameters.resize(model->nk());
     readFixedSimulationParameters(conditionIdx, edata.fixedParameters.data());
 
@@ -228,10 +224,12 @@ void MultiConditionDataProviderHDF5::getOptimizationParametersLowerBounds(
     auto dataset = file.openDataSet(hdf5ParameterMinPath);
 
     auto dataspace = dataset.getSpace();
-    RELEASE_ASSERT(dataspace.getSimpleExtentNdims() == 1, "hdf5ParameterMinPath dimensions dont match");
+    RELEASE_ASSERT(dataspace.getSimpleExtentNdims() == 1,
+                   "hdf5ParameterMinPath dimensions dont match");
     hsize_t dim = 0;
     dataspace.getSimpleExtentDims(&dim);
-    RELEASE_ASSERT(dim == (unsigned) getNumOptimizationParameters(), "hdf5ParameterMinPath dimensions dont match");
+    RELEASE_ASSERT(dim == (unsigned) getNumOptimizationParameters(),
+                   "hdf5ParameterMinPath dimensions dont match");
 
     dataset.read(buffer, H5::PredType::NATIVE_DOUBLE);
 }
@@ -243,10 +241,12 @@ void MultiConditionDataProviderHDF5::getOptimizationParametersUpperBounds(
     auto dataset = file.openDataSet(hdf5ParameterMaxPath);
 
     auto dataspace = dataset.getSpace();
-    RELEASE_ASSERT(dataspace.getSimpleExtentNdims() == 1, "hdf5ParameterMaxPath dimensions dont match");
+    RELEASE_ASSERT(dataspace.getSimpleExtentNdims() == 1,
+                   "hdf5ParameterMaxPath dimensions dont match");
     hsize_t dim = 0;
     dataspace.getSimpleExtentDims(&dim);
-    RELEASE_ASSERT(dim == (unsigned) getNumOptimizationParameters(), "hdf5ParameterMaxPath dimensions dont match");
+    RELEASE_ASSERT(dim == (unsigned) getNumOptimizationParameters(),
+                   "hdf5ParameterMaxPath dimensions dont match");
 
     dataset.read(buffer, H5::PredType::NATIVE_DOUBLE);
 }
@@ -273,7 +273,9 @@ std::unique_ptr<amici::Solver> MultiConditionDataProviderHDF5::getSolver() const
 }
 
 
-void MultiConditionDataProviderHDF5::updateSimulationParameters(int conditionIndex, gsl::span<const double> optimizationParams, amici::Model &model) const
+void MultiConditionDataProviderHDF5::updateSimulationParameters(
+        int conditionIndex, gsl::span<const double> optimizationParams,
+        amici::Model &model) const
 {
     auto p = model.getParameters();
     mapAndSetOptimizationToSimulationVariables(conditionIndex, optimizationParams, p);
@@ -419,7 +421,6 @@ std::vector<std::vector<double> > MultiConditionDataProviderDefault::getAllSigma
 
 int MultiConditionDataProviderDefault::getNumOptimizationParameters() const
 {
-    // TODO
     return model->np();
 }
 

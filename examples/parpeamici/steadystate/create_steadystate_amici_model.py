@@ -377,7 +377,7 @@ def create_parameter_table(sbml_file, condition_file, measurement_file,
 
     for pid, val in nominal_parameters.items():
         if pid in df.index:
-            df.loc[pid, 'nominalParameter'] = val
+            df.loc[pid, 'nominalValue'] = val
             df.loc[pid, 'parameterScale'] = 'log10'
             df.loc[pid, 'estimate'] = 1
         elif pid.startswith('noiseParameter') \
