@@ -421,8 +421,9 @@ class HDF5DataGenerator:
             # extend the simulation condition vector over the number of unique
             # conditions listed in the measurement file
             assert len(self.measurement_df.simulationConditionId.unique()) \
-                   == len(self.measurement_df.groupby(['simulationConditionId',
-                                                       'preequilibrationConditionId']).size())
+                   == len(self.measurement_df.groupby(
+                ['simulationConditionId',
+                 'preequilibrationConditionId']).size())
 
             for index, row in self.measurement_df.groupby(
                     ['simulationConditionId',
@@ -439,7 +440,7 @@ class HDF5DataGenerator:
 
                 referenceMap[conditionIdx] = conditionIdxRef
 
-        self.f.create_dataset("/fixedParameters/referenceConditionsX",
+        self.f.create_dataset("/fixedParameters/referenceConditions",
                               shape=(self.num_conditions,), dtype="<i4",
                               data=referenceMap)
 
@@ -532,7 +533,6 @@ class HDF5DataGenerator:
             raise RuntimeError("Replicates are currently not supported.")
 
         # Can only handle lin observables for now
-        print(self.measurement_df.observableTransformation.dtype)
         if 'observableTransformation' in self.measurement_df \
             and not np.issubdtype(self.measurement_df.observableTransformation.dtype, np.number)  \
             and np.any(self.measurement_df.observableTransformation != 'lin'):
