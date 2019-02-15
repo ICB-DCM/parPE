@@ -10,26 +10,16 @@ data in the PEtab format https://github.com/ICB-DCM/PEtab
 """
 
 import numpy as np
-import pandas as pd
 import h5py
 import sys
-import re
-import os
-import collections
-import math
-import sympy as sp
 import argparse
 import petab
 import importlib
+import amici
 from libsbml import SBMLReader
 from colorama import init as init_colorama
 from colorama import Fore
 from numbers import Number
-
-SCALING_LOG10 = 2
-SCALING_LIN = 0
-# index for no reference/preequilibration condition
-NO_PREEQ_CONDITION_IDX = -1
 
 
 def to_float_if_float(x):
@@ -37,6 +27,7 @@ def to_float_if_float(x):
         return float(x)
     except ValueError:
         return x
+
 
 def unique_ordered(seq):
     """
@@ -156,7 +147,12 @@ class HDF5DataGenerator:
         model_module = importlib.import_module(model_name)
         self.model = model_module.getModel()
 
-        self.UNMAPPED_PARAMETER=-1
+        # index for no reference/preequilibration condition
+        self.NO_PREEQ_CONDITION_IDX = -1
+
+        # value for unmapped model parameter in opt<->sim mapping
+        self.UNMAPPED_PARAMETER = -1
+
         # scriptDir = os.path.dirname(os.path.realpath(__file__))
 
         # hdf5 dataset compression
@@ -409,7 +405,7 @@ class HDF5DataGenerator:
         If conditionRef is empty, set to -1, otherwise to condition index.
 
         """
-        referenceMap = [NO_PREEQ_CONDITION_IDX] * self.num_conditions
+        referenceMap = [self.NO_PREEQ_CONDITION_IDX] * self.num_conditions
 
         if not requires_preequilibration(self.measurement_df):
             # all NaNs, so there is no preeq required:
@@ -433,7 +429,7 @@ class HDF5DataGenerator:
                 if isinstance(row['preequilibrationConditionId'],
                               float) and np.isnan(
                     row['preequilibrationConditionId']):
-                    conditionIdxRef = NO_PREEQ_CONDITION_IDX
+                    conditionIdxRef = self.NO_PREEQ_CONDITION_IDX
                 else:
                     conditionIdxRef = self.condition_ids.index(
                         row['preequilibrationConditionId'])
@@ -882,15 +878,15 @@ class HDF5DataGenerator:
         Write simulation options
         """
         g = self.f.require_group("/amiciOptions")
-        g.attrs['sensi'] = 1
-        g.attrs['sensi_meth'] = 2
+        g.attrs['sensi'] = amici.SensitivityOrder_first
+        g.attrs['sensi_meth'] = amici.SensitivityMethod_adjoint
         g.attrs['tstart'] = 0.0
         g.attrs['atol'] = 1e-16
-        g.attrs['interpType'] = 1
-        g.attrs['ism'] = 1
-        g.attrs['iter'] = 2
-        g.attrs['linsol'] = 9
-        g.attrs['lmm'] = 2
+        g.attrs['interpType'] = amici.InterpolationType_hermite
+        g.attrs['ism'] = amici.InternalSensitivityMethod_simultaneous
+        g.attrs['iter'] = amici.NonlinearSolverIteration_newton
+        g.attrs['linsol'] = amici.LinearSolver_KLU
+        g.attrs['lmm'] = amici.LinearMultistepMethod_BDF
         g.attrs['maxsteps'] = 10000
         g.attrs['newton_preeq'] = 0
         g.attrs['nmaxevent'] = 0
@@ -909,7 +905,8 @@ class HDF5DataGenerator:
 
         # parameter indices w.r.t. which to compute sensitivities
         self.f.require_dataset(
-            '/amiciOptions/sens_ind', shape=(num_model_parameters,), dtype="<i4",
+            '/amiciOptions/sens_ind', shape=(num_model_parameters,),
+            dtype="<i4",
             data=range(num_model_parameters))
 
         self.f.require_dataset(
@@ -1099,11 +1096,11 @@ def petab_scale_to_amici_scale(scale_str):
     """Convert PEtab parameter scaling string to AMICI scaling integer"""
 
     if scale_str == 'lin':
-        return 0
+        return amici.ParameterScaling_none
     if scale_str == 'log':
-        return 1
+        return amici.ParameterScaling_ln
     if scale_str == 'log10':
-        return 2
+        return amici.ParameterScaling_log10
     raise ValueError("Invalid pscale " + scale_str)
 
 
