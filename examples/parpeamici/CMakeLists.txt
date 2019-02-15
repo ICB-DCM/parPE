@@ -11,5 +11,5 @@ add_custom_command(
 
 
 add_subdirectory(steadystate)
-add_subdirectory(lucarelli)
-add_subdirectory(raia)
+#add_subdirectory(lucarelli)
+#add_subdirectory(raia)

@@ -46,7 +46,7 @@ int StandaloneSimulator::run(const std::string& resultFile,
     solver->setSensitivityOrder(amici::SensitivityOrder::none);
 
     std::vector<double> parameters = optimizationParameters;
-    HierarchicalOptimizationWrapper hierarchical(nullptr, 0, 0, 0);
+    HierarchicalOptimizationWrapper hierarchical(nullptr, 0, 0);
 
     /* If the provided parameter vector is shorter than required, this means, we got only the result
      * of the outer problem of an hierarchical optimization run, and thus, need to compute the
@@ -81,7 +81,7 @@ int StandaloneSimulator::run(const std::string& resultFile,
                                                 std::move(hierarchicalScalingReader),
                                                 std::move(hierarchicalOffsetReader),
                                                 std::move(hierarchicalSigmaReader),
-                                                dataProvider->getNumberOfSimulationConditions(), model->nytrue, model->nt(),
+                                                dataProvider->getNumberOfSimulationConditions(), model->nytrue,
                                                 ErrorModel::normal);
         std::cout<<"Need to compute analytical parameters: "<<conditionFilePath<<"  "<<proportionalityFactorIndices.size()<<" parameters.size() == "<<parameters.size()<<" ; hierarchical.numParameters() == "<<hierarchical.numParameters()<<std::endl;
         RELEASE_ASSERT(parameters.size() == (unsigned) hierarchical.numParameters(), "");

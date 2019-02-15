@@ -19,12 +19,10 @@ namespace parpe {
 HierarchicalOptimizationWrapper::HierarchicalOptimizationWrapper(
         std::unique_ptr<AmiciSummedGradientFunction> fun,
         int numConditions,
-        int numObservables,
-        int numTimepoints)
+        int numObservables)
     : fun(std::move(fun)),
       numConditions(numConditions),
-      numObservables(numObservables),
-      numTimepoints(numTimepoints)
+      numObservables(numObservables)
 {
     scalingReader = std::make_unique<AnalyticalParameterHdf5Reader>();
     offsetReader  = std::make_unique<AnalyticalParameterHdf5Reader>();
@@ -37,12 +35,11 @@ HierarchicalOptimizationWrapper::HierarchicalOptimizationWrapper(
         std::unique_ptr<AmiciSummedGradientFunction > fun,
         H5::H5File const& file,
         std::string const& hdf5RootPath,
-        int numConditions, int numObservables, int numTimepoints,
+        int numConditions, int numObservables,
         ErrorModel errorModel)
     : fun(std::move(fun)),
       numConditions(numConditions),
       numObservables(numObservables),
-      numTimepoints(numTimepoints),
       errorModel(errorModel)
 {
     scalingReader = std::make_unique<AnalyticalParameterHdf5Reader>(file,
@@ -58,12 +55,11 @@ HierarchicalOptimizationWrapper::HierarchicalOptimizationWrapper(
     init();
 }
 
-HierarchicalOptimizationWrapper::HierarchicalOptimizationWrapper(
-        std::unique_ptr<AmiciSummedGradientFunction > fun,
+HierarchicalOptimizationWrapper::HierarchicalOptimizationWrapper(std::unique_ptr<AmiciSummedGradientFunction > fun,
         std::unique_ptr<parpe::AnalyticalParameterProvider> scalingReader,
         std::unique_ptr<parpe::AnalyticalParameterProvider> offsetReader,
         std::unique_ptr<parpe::AnalyticalParameterProvider> sigmaReader,
-        int numConditions, int numObservables, int numTimepoints,
+        int numConditions, int numObservables,
         ErrorModel errorModel)
     : fun(std::move(fun)),
       scalingReader(std::move(scalingReader)),
@@ -71,7 +67,6 @@ HierarchicalOptimizationWrapper::HierarchicalOptimizationWrapper(
       sigmaReader(std::move(sigmaReader)),
       numConditions(numConditions),
       numObservables(numObservables),
-      numTimepoints(numTimepoints),
       errorModel(errorModel)
 {
     init();
@@ -261,7 +256,7 @@ std::vector<double> HierarchicalOptimizationWrapper::computeAnalyticalScalings(
     for(int scalingIdx = 0; scalingIdx < numProportionalityFactors; ++scalingIdx) {
         auto proportionalityFactor = parpe::computeAnalyticalScalings(scalingIdx,
                                                                       modelOutputsUnscaled, measurements,
-                                                                      *scalingReader, numObservables, numTimepoints);
+                                                                      *scalingReader, numObservables);
         auto scale = fun->getParameterScaling(proportionalityFactorIndices[scalingIdx]);
         proportionalityFactors[scalingIdx] = parpe::getScaledParameter(proportionalityFactor, scale);
     }
@@ -277,13 +272,14 @@ void HierarchicalOptimizationWrapper::applyOptimalScalings(std::vector<double> c
                                               fun->getParameterScaling(proportionalityFactorIndices[i]));
 
         applyOptimalScaling(i, scaling, modelOutputs,
-                            *scalingReader, numObservables, numTimepoints);
+                            *scalingReader, numObservables);
     }
 }
 
 
-std::vector<double> HierarchicalOptimizationWrapper::computeAnalyticalOffsets(std::vector<std::vector<double>> const& measurements,
-                                                                             std::vector<std::vector<double> > &modelOutputsUnscaled) const {
+std::vector<double> HierarchicalOptimizationWrapper::computeAnalyticalOffsets(
+        std::vector<std::vector<double>> const& measurements,
+        std::vector<std::vector<double> > &modelOutputsUnscaled) const {
     // NOTE: does not handle replicates, assumes normal distribution
 
     int numOffsetParameters = offsetParameterIndices.size();
@@ -292,7 +288,7 @@ std::vector<double> HierarchicalOptimizationWrapper::computeAnalyticalOffsets(st
     for(int i = 0; i < numOffsetParameters; ++i) {
         auto offsetParameter = parpe::computeAnalyticalOffsets(i,
                                                                modelOutputsUnscaled, measurements,
-                                                               *offsetReader, numObservables, numTimepoints);
+                                                               *offsetReader, numObservables);
         auto scale = fun->getParameterScaling(offsetParameterIndices[i]);
         offsetParameters[i] = parpe::getScaledParameter(offsetParameter, scale);
     }
@@ -313,21 +309,22 @@ std::vector<double> HierarchicalOptimizationWrapper::computeAnalyticalSigmas(
         auto sigma = parpe::computeAnalyticalSigmas(
                     i,
                     modelOutputsScaled, measurements,
-                    *sigmaReader, numObservables, numTimepoints);
+                    *sigmaReader, numObservables);
         auto scale = fun->getParameterScaling(sigmaParameterIndices[i]);
         sigmas[i] = parpe::getScaledParameter(sigma, scale);
     }
     return sigmas;
 }
 
-void HierarchicalOptimizationWrapper::applyOptimalOffsets(std::vector<double> const& offsetParameters,
-                                                         std::vector<std::vector<double> > &modelOutputs) const {
+void HierarchicalOptimizationWrapper::applyOptimalOffsets(
+        std::vector<double> const& offsetParameters,
+        std::vector<std::vector<double> > &modelOutputs) const {
 
     for(int i = 0; (unsigned) i < offsetParameters.size(); ++i) {
         double offset = getUnscaledParameter(offsetParameters[i],
                                              fun->getParameterScaling(offsetParameterIndices[i]));
         applyOptimalOffset(i, offset, modelOutputs,
-                           *offsetReader, numObservables, numTimepoints);
+                           *offsetReader, numObservables);
     }
 }
 
@@ -343,6 +340,7 @@ void HierarchicalOptimizationWrapper::fillInAnalyticalSigmas(
 
         auto dependentConditions = sigmaReader->getConditionsForParameter(sigmaParameterIdx);
         for (auto const conditionIdx: dependentConditions) {
+            int numTimepoints = allSigmas[conditionIdx].size() / numObservables;
             auto dependentObservables = sigmaReader->getObservablesForParameter(sigmaParameterIdx, conditionIdx);
             for(auto const observableIdx: dependentObservables) {
                 RELEASE_ASSERT(observableIdx < numObservables, "");
@@ -588,7 +586,6 @@ HierarchicalOptimizationProblemWrapper::HierarchicalOptimizationProblemWrapper(
                       dataProvider->getHdf5FileId(), "/",
                       dataProvider->getNumberOfSimulationConditions(),
                       model->nytrue,
-                      model->nt(),
                       ErrorModel::normal));
 }
 
@@ -699,7 +696,7 @@ double computeAnalyticalScalings(int scalingIdx,
                                  const std::vector<std::vector<double> > &modelOutputsUnscaled,
                                  const std::vector<std::vector<double> > &measurements,
                                  AnalyticalParameterProvider const& scalingReader,
-                                 int numObservables, int numTimepoints) {
+                                 int numObservables) {
 
     auto dependentConditions = scalingReader.getConditionsForParameter(scalingIdx);
 
@@ -708,6 +705,7 @@ double computeAnalyticalScalings(int scalingIdx,
 
     for (auto const conditionIdx: dependentConditions) {
         auto dependentObservables = scalingReader.getObservablesForParameter(scalingIdx, conditionIdx);
+        int numTimepoints = measurements[conditionIdx].size() / numObservables;
         for(auto const observableIdx: dependentObservables) {
             for(int timeIdx = 0; timeIdx < numTimepoints; ++timeIdx) {
                 double mes = measurements[conditionIdx][observableIdx + timeIdx * numObservables];
@@ -745,7 +743,7 @@ double computeAnalyticalOffsets(int offsetIdx,
                                 std::vector<std::vector<double>> const& modelOutputsUnscaled,
                                 std::vector<std::vector<double>> const& measurements,
                                 AnalyticalParameterProvider& offsetReader,
-                                int numObservables, int numTimepoints)
+                                int numObservables)
 {
     auto dependentConditions = offsetReader.getConditionsForParameter(offsetIdx);
 
@@ -754,6 +752,7 @@ double computeAnalyticalOffsets(int offsetIdx,
 
     for (auto const conditionIdx: dependentConditions) {
         auto dependentObservables = offsetReader.getObservablesForParameter(offsetIdx, conditionIdx);
+        int numTimepoints = measurements[conditionIdx].size() / numObservables;
         for(auto const observableIdx: dependentObservables) {
             for(int timeIdx = 0; timeIdx < numTimepoints; ++timeIdx) {
                 double mes = measurements[conditionIdx][observableIdx + timeIdx * numObservables];
@@ -785,7 +784,7 @@ double computeAnalyticalSigmas(int sigmaIdx,
                                const std::vector<std::vector<double> > &modelOutputsScaled,
                                const std::vector<std::vector<double> > &measurements,
                                AnalyticalParameterProvider const& sigmaReader,
-                               int numObservables, int numTimepoints,
+                               int numObservables,
                                double epsilonAbs, double epsilonRel)
 {
     auto dependentConditions = sigmaReader.getConditionsForParameter(sigmaIdx);
@@ -797,6 +796,7 @@ double computeAnalyticalSigmas(int sigmaIdx,
 
     for (auto const conditionIdx: dependentConditions) {
         auto dependentObservables = sigmaReader.getObservablesForParameter(sigmaIdx, conditionIdx);
+        int numTimepoints = measurements[conditionIdx].size() / numObservables;
         for(auto const observableIdx: dependentObservables) {
             if(observableIdx >= numObservables) {
                 throw ParPEException("applyOptimalOffset: Invalid observableIdx >= numObservables.");
@@ -846,9 +846,10 @@ double computeAnalyticalSigmas(int sigmaIdx,
 void applyOptimalScaling(int scalingIdx, double scalingLin,
                          std::vector<std::vector<double> > &modelOutputs,
                          AnalyticalParameterProvider const& scalingReader,
-                         int numObservables, int numTimepoints) {
+                         int numObservables) {
     auto dependentConditions = scalingReader.getConditionsForParameter(scalingIdx);
     for (auto const conditionIdx: dependentConditions) {
+        int numTimepoints = modelOutputs[conditionIdx].size() / numObservables;
         auto dependentObservables = scalingReader.getObservablesForParameter(scalingIdx, conditionIdx);
         for(auto const observableIdx: dependentObservables) {
             if(observableIdx >= numObservables) {
@@ -880,9 +881,10 @@ double getScaledParameter(double parameter, amici::ParameterScaling scale) {
 void applyOptimalOffset(int offsetIdx, double offsetLin,
                         std::vector<std::vector<double> > &modelOutputs,
                         const AnalyticalParameterProvider &offsetReader,
-                        int numObservables, int numTimepoints) {
+                        int numObservables) {
     auto dependentConditions = offsetReader.getConditionsForParameter(offsetIdx);
     for (auto const conditionIdx: dependentConditions) {
+        int numTimepoints = modelOutputs[conditionIdx].size() / numObservables;
         auto dependentObservables = offsetReader.getObservablesForParameter(offsetIdx, conditionIdx);
         for(auto const observableIdx: dependentObservables) {
             if(observableIdx >= numObservables) {

@@ -111,7 +111,7 @@ class HDF5DataGenerator:
         sbml_model:
         condition_ids: numpy.array condition IDs
         num_conditions: number of conditions
-        timepoints: time points for which there is data
+        unique_timepoints: time points for which there is data
         num_timepoints: number of time points for which there is data
         f: h5py.File
             hdf5 file which is being created
@@ -184,15 +184,13 @@ class HDF5DataGenerator:
         self.measurement_df.loc[
             self.measurement_df.time == np.inf, 'time'] = 1e8
 
-        # list of timepoints
-        # TODO: this will have to allowed to contain duplicates, if we want to
-        # deal with replicate measurements
-        self.timepoints = sorted(self.measurement_df.time.unique())
-        self.num_timepoints = len(self.timepoints)
+        # list of unique timepoints, just for info and AMICI model default
+        # setting
+        self.unique_timepoints = sorted(self.measurement_df.time.unique())
 
         print(Fore.CYAN + "Num conditions: ", self.num_conditions)
-        print(Fore.CYAN + "Num timepoints: ", self.num_timepoints,
-              self.timepoints)
+        print(Fore.CYAN + "Num timepoints: ", self.unique_timepoints,
+              len(self.unique_timepoints))
 
     def parseFixedParametersFile(self, filename):
         """
@@ -229,11 +227,11 @@ class HDF5DataGenerator:
         """
         self.f = h5py.File(fileNameH5, "w")
 
-        print(Fore.GREEN + "Generating parameter list...")
-        self.generateParameterList()
-
         print(Fore.GREEN + "Generating simulation condition list...")
         self.generateSimulationConditionMap()
+
+        print(Fore.GREEN + "Generating parameter list...")
+        self.generateParameterList()
 
         print(Fore.GREEN + "Generating fixed parameters matrix...")
         self.generateFixedParameterMatrix()
@@ -289,7 +287,8 @@ class HDF5DataGenerator:
         # use in-memory matrix, don't write every entry to file directly (super
         # slow)
         mapping_matrix = np.zeros(
-            shape=(num_model_parameters, self.num_conditions), dtype='<i4')
+            shape=(num_model_parameters, self.condition_map.shape[0]),
+            dtype='<i4')
 
         # create inverse mapping for faster lookup
         optimization_parameter_name_to_index = {
@@ -331,11 +330,11 @@ class HDF5DataGenerator:
         # write to file
         self.f.require_dataset(
             name='/parameters/optimizationSimulationMapping',
-            shape=(num_model_parameters, self.num_conditions),
             chunks=(num_model_parameters, 1),
             dtype='<i4',
             fillvalue=0,
             compression=self.compression,
+            shape=mapping_matrix.shape,
             data=mapping_matrix)
 
     def generateFixedParameterMatrix(self):
@@ -378,7 +377,6 @@ class HDF5DataGenerator:
 
         if len(data):
             dset = self.f.create_dataset("/fixedParameters/k",
-                                         (nk, self.num_conditions),
                                          dtype='f8', chunks=(nk, 1),
                                          compression=self.compression,
                                          data=data)
@@ -502,22 +500,16 @@ class HDF5DataGenerator:
 
     def generate_measurement_matrices(self):
         """
-        Generate matrix with training data for all observables and timepoints
-
-        dim: num_conditions x num_timepoints x num_observables
+        Generate matrices with training data for conditions, observables and
+        timepoints. Matrices are numbered by simulation conditions, each of
+        dimension of the respective num_timepoints x num_observables.
+        num_observables will always be ny from the model, since this is what is
+        required for AMICI. num_timepoints is condition dependent
         """
         if petab.measurement_table_has_timepoint_specific_mappings(
             self.measurement_df):
             raise RuntimeError("Timepoint-specific overrides are not yet "
                                "supported.")
-
-        # We cannot handle replicates
-        # TODO: at the moment we cannot deal with replicate measurements
-        #  (same condition, same observable, same timepoint)
-        has_replicates = np.any(self.measurement_df.groupby(
-            ['observableId', 'simulationConditionId', 'time']).size().values - 1)
-        if has_replicates:
-            raise RuntimeError("Replicates are currently not supported.")
 
         # Can only handle lin observables for now
         if 'observableTransformation' in self.measurement_df \
@@ -526,66 +518,22 @@ class HDF5DataGenerator:
             raise ValueError("Cannot deal with non-lin observable transformation")
 
         self.f.create_group("/measurements")
-
         self.observable_ids = self.model.getObservableIds()
         # trim observable_ TODO: should be done in amici import
-        self.observable_ids = [o[len('observable_'):] for o in
-                               self.observable_ids]
+        self.observable_ids = [o[len('observable_'):]
+                               if o.startswith('observable_') else o
+                               for o in self.observable_ids]
         self.ny = self.model.ny
-        write_string_array(self.f,
-                         "/measurements/observableNames", self.observable_ids)
+        write_string_array(self.f, "/measurements/observableNames",
+                           self.observable_ids)
 
         print(Fore.CYAN + "Number of observables:", self.ny)
 
-        dsetY = self.f.create_dataset(name="/measurements/y",
-                                      shape=(self.num_conditions,
-                                             self.num_timepoints, self.ny),
-                                      chunks=(1, self.num_timepoints, self.ny),
-                                      fillvalue=np.nan, dtype='f8',
-                                      compression=self.compression)
-
-        dsetSigmaY = self.f.create_dataset(name="/measurements/ysigma",
-                                           shape=(self.num_conditions,
-                                                  self.num_timepoints,
-                                                  self.ny),
-                                           chunks=(
-                                               1, self.num_timepoints,
-                                               self.ny),
-                                           fillvalue=np.nan, dtype='f8',
-                                           compression=self.compression)
-
-        self.writeMeasurements(dsetY, dsetSigmaY)
+        self.writeMeasurements()
         self.f.flush()
 
-    def getObservableNamesFromSbml(self):
-        """
-        Get array with names of observables from SBML model.
 
-        NOTE: Observables are not accounted for in the SBML standard.
-        We implement them as parameters and assignment rules.
-        The respective parameters start with "observable_",
-        but do not end in "_sigma", which is reserved for encoding the error
-        model.
-
-        NOTE: observable names in the model are expected to match the ones in
-        the data table
-        """
-        observables = []
-        for p in self.sbml_model.getListOfParameters():
-            p = p.getId()
-            if p.startswith('observable_') and not p.endswith('_sigma'):
-                # observableName = p[len('observable_'):]
-                observableName = p
-                observables.append(observableName)
-        observablesUni = unique_ordered(observables)
-
-        if len(observables) != len(observablesUni):
-            print(Fore.YELLOW
-                  + "!! %d redundant observable definitions in model"
-                  % (len(observables) - len(observablesUni)))
-        return observablesUni
-
-    def writeMeasurements(self, dsetY, dsetSigmaY):
+    def writeMeasurements(self):
         """
         Write measurements to hdf5 dataset
         """
@@ -596,25 +544,50 @@ class HDF5DataGenerator:
         observable_id_to_index = {
             name: idx for idx, name in enumerate(self.observable_ids)}
 
-        # write measurements from each row in measurementDf
-        for index, row in self.measurement_df.iterrows():
-            condition_idx = condition_id_to_index[row.simulationConditionId]
-            observable_idx = observable_id_to_index[row.observableId]
-            time_idx = self.timepoints.index(row.time)
+        for sim_idx, (preeq_idx, sim_idx) in enumerate(self.condition_map):
+            filter = 1
+            filter &= self.measurement_df.simulationConditionId \
+                      == self.condition_ids[sim_idx]
+            if preeq_idx == self.NO_PREEQ_CONDITION_IDX:
+                filter &= self.measurement_df.preequilibrationConditionId.isnull()
+            cur_mes_df = self.measurement_df.loc[filter, :]
 
-            if not np.isnan(dsetY[condition_idx, time_idx, observable_idx]):
-                raise RuntimeError(
-                    'Multiple measurements provided for '
-                    f'{row.simulationConditionId} - {row.observableId} '
-                    f'time {row.time}'
-                    'Replicate measurements cannot be handled currently.')
+            # get the required, possibly non-unique (replicates) timepoints
+            grp = cur_mes_df.groupby(['observableId', 'time']).size() \
+                .reset_index().rename(columns={0:'sum'}) \
+                .groupby(['time'])['sum'].agg(['max']).reset_index()
+            timepoints = np.sort(np.repeat(grp['time'], grp['max'])).tolist()
 
-            dsetY[condition_idx, time_idx, observable_idx] = \
-                float(row['measurement'])
+            mes = np.full(shape=(len(timepoints), self.ny),
+                           fill_value=np.nan)
+            sd = mes.copy()
 
-            sigma = to_float_if_float(row['noiseParameters'])
-            if isinstance(sigma, float):
-                dsetSigmaY[condition_idx, time_idx, observable_idx] = sigma
+            # write measurements from each row in measurementDf
+            for index, row in cur_mes_df.iterrows():
+                observable_idx = observable_id_to_index[row.observableId]
+                time_idx = timepoints.index(row.time)
+                while not np.isnan(mes[time_idx, observable_idx]):
+                    time_idx += 1
+                    if timepoints[time_idx] != row.time:
+                        raise AssertionError(
+                            "Replicate handling failed for "
+                            f'{row.simulationConditionId} - {row.observableId}'
+                            f' time {row.time}\n' + str(cur_mes_df))
+                mes[time_idx, observable_idx] = float(row['measurement'])
+                sigma = to_float_if_float(row['noiseParameters'])
+                if isinstance(sigma, float):
+                    sd[time_idx, observable_idx] = sigma
+
+            self.f.create_dataset(name=f"/measurements/y/{sim_idx}",
+                                  data=mes, dtype='f8',
+                                  compression=self.compression)
+            self.f.create_dataset(name=f"/measurements/ysigma/{sim_idx}",
+                                  data=sd, dtype='f8',
+                                  compression=self.compression)
+            self.f.create_dataset(name=f"/measurements/t/{sim_idx}",
+                                  data=timepoints, dtype='f8',
+                                  compression=self.compression)
+
 
     def generateHierarchicalOptimizationData(self, verbose=1):
         """
@@ -901,8 +874,8 @@ class HDF5DataGenerator:
             data=range(num_model_parameters))
 
         self.f.require_dataset(
-            '/amiciOptions/ts', shape=(len(self.timepoints),), dtype="f8",
-            data=self.timepoints)
+            '/amiciOptions/ts', shape=(len(self.unique_timepoints),), dtype="f8",
+            data=self.unique_timepoints)
 
         # set parameter scaling for all parameters
         # (required for hierarchical optimization)

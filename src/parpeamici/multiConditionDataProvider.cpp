@@ -177,9 +177,12 @@ std::unique_ptr<amici::ExpData> MultiConditionDataProviderHDF5::getExperimentalD
 
     auto edata = std::make_unique<amici::ExpData>(*model);
     RELEASE_ASSERT(edata, "Failed getting experimental data. Check data file.");
-
-    edata->setObservedData(getMeasurementForConditionIndex(simulationIdx));
-    edata->setObservedDataStdDev(getSigmaForConditionIndex(simulationIdx));
+    edata->setTimepoints(
+                amici::hdf5::getDoubleDataset1D(
+                    file.getId(), rootPath + "/measurements/t/"
+                    + std::to_string(simulationIdx)));
+    edata->setObservedData(getMeasurementForSimulationIndex(simulationIdx));
+    edata->setObservedDataStdDev(getSigmaForSimulationIndex(simulationIdx));
     updateFixedSimulationParameters(simulationIdx, *edata);
 
     return edata;
@@ -188,7 +191,7 @@ std::unique_ptr<amici::ExpData> MultiConditionDataProviderHDF5::getExperimentalD
 std::vector<std::vector<double> > MultiConditionDataProviderHDF5::getAllMeasurements() const {
     std::vector<std::vector<double>> result(getNumberOfSimulationConditions());
     for(int conditionIdx = 0; (unsigned) conditionIdx < result.size(); ++conditionIdx) {
-        result[conditionIdx] = getMeasurementForConditionIndex(conditionIdx);
+        result[conditionIdx] = getMeasurementForSimulationIndex(conditionIdx);
     }
     return result;
 }
@@ -198,31 +201,27 @@ std::vector<std::vector<double> > MultiConditionDataProviderHDF5::getAllSigmas()
     // TODO: how to deal with sigma parameters vs table
     std::vector<std::vector<double>> result(getNumberOfSimulationConditions());
     for(int conditionIdx = 0; (unsigned) conditionIdx < result.size(); ++conditionIdx) {
-        result[conditionIdx]= getSigmaForConditionIndex(conditionIdx);
+        result[conditionIdx]= getSigmaForSimulationIndex(conditionIdx);
     }
     return result;
 }
 
-std::vector<double> MultiConditionDataProviderHDF5::getSigmaForConditionIndex(int conditionIdx) const
+std::vector<double> MultiConditionDataProviderHDF5::getSigmaForSimulationIndex(int simulationIdx) const
 {
-    auto result = std::vector<double>(model->nt() * model->nytrue);
-
-    hdf5Read3DDoubleHyperslab(file.getId(), hdf5MeasurementSigmaPath.c_str(),
-                              1, model->nt(), model->nytrue,
-                              conditionIdx, 0, 0, result.data());
-
-    return result;
+    hsize_t dim1, dim2;
+    return amici::hdf5::getDoubleDataset2D(
+                file.getId(),
+                hdf5MeasurementSigmaPath + "/" + std::to_string(simulationIdx),
+                dim1, dim2);
 }
 
-std::vector<double> MultiConditionDataProviderHDF5::getMeasurementForConditionIndex(int conditionIdx) const
+std::vector<double> MultiConditionDataProviderHDF5::getMeasurementForSimulationIndex(int simulationIdx) const
 {
-    auto result = std::vector<double>(model->nt() * model->nytrue);
-
-    hdf5Read3DDoubleHyperslab(file.getId(), hdf5MeasurementPath.c_str(),
-                              1, model->nt(), model->nytrue,
-                              conditionIdx, 0, 0, result.data());
-
-    return result;
+    hsize_t dim1, dim2;
+    return amici::hdf5::getDoubleDataset2D(
+                file.getId(),
+                hdf5MeasurementPath + "/" + std::to_string(simulationIdx),
+                dim1, dim2);
 }
 
 void MultiConditionDataProviderHDF5::getOptimizationParametersLowerBounds(
@@ -332,22 +331,21 @@ void MultiConditionDataProviderHDF5::checkDataIntegrity() const {
     assert(H5Lexists(file.getId(), hdf5MeasurementPath.c_str(), H5P_DEFAULT));
     assert(H5Lexists(file.getId(), hdf5MeasurementSigmaPath.c_str(), H5P_DEFAULT));
 
-    parpe::hdf5GetDatasetDimensions(file.getId(), hdf5MeasurementPath.c_str(),
-                                    3, &d1, &d2, &d3);
-    RELEASE_ASSERT(d1 >= numConditions, "");
-    RELEASE_ASSERT(d2 == model->nytrue, "");
-    RELEASE_ASSERT(d3 >= model->nt(), "");
+//    parpe::hdf5GetDatasetDimensions(file.getId(), hdf5MeasurementPath.c_str(),
+//                                    3, &d1, &d2, &d3);
+//    RELEASE_ASSERT(d1 >= numConditions, "");
+//    RELEASE_ASSERT(d2 == model->nytrue, "");
+//    RELEASE_ASSERT(d3 >= model->nt(), "");
 
-    parpe::hdf5GetDatasetDimensions(file.getId(), hdf5MeasurementSigmaPath.c_str(),
-                                    3, &d1, &d2, &d3);
-    RELEASE_ASSERT(d1 >= numConditions, "");
-    RELEASE_ASSERT(d2 == model->nytrue, "");
-    RELEASE_ASSERT(d3 >= model->nt(), "");
+//    parpe::hdf5GetDatasetDimensions(file.getId(), hdf5MeasurementSigmaPath.c_str(),
+//                                    3, &d1, &d2, &d3);
+//    RELEASE_ASSERT(d1 >= numConditions, "");
+//    RELEASE_ASSERT(d2 == model->nytrue, "");
+//    RELEASE_ASSERT(d3 >= model->nt(), "");
 
     parpe::hdf5GetDatasetDimensions(file.getId(), hdf5ConditionPath.c_str(),
                                     2, &d1, &d2);
     RELEASE_ASSERT(d1 == model->nk(), "");
-    RELEASE_ASSERT(d2 >= numConditions, "");
 }
 
 

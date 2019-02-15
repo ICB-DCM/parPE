@@ -233,8 +233,8 @@ class MultiConditionDataProviderHDF5 : public MultiConditionDataProvider {
     std::vector<std::vector<double> > getAllMeasurements() const override;
     std::vector<std::vector<double> > getAllSigmas() const override;
 
-    std::vector<double> getSigmaForConditionIndex(int conditionIdx) const;
-    std::vector<double> getMeasurementForConditionIndex(int conditionIdx) const;
+    std::vector<double> getSigmaForSimulationIndex(int simulationIdx) const;
+    std::vector<double> getMeasurementForSimulationIndex(int conditionIdx) const;
 
     /**
      * @brief getOptimizationParametersLowerBounds Get lower parameter bounds
