@@ -232,14 +232,14 @@ class HDF5DataGenerator:
         print(Fore.GREEN + "Generating parameter list...")
         self.generateParameterList()
 
-        print(Fore.GREEN + "Generating reference condition list...")
-        self.generateReferenceConditionMap()
+        print(Fore.GREEN + "Generating simulation condition list...")
+        self.generateSimulationConditionMap()
 
         print(Fore.GREEN + "Generating fixed parameters matrix...")
         self.generateFixedParameterMatrix()
 
         print(Fore.GREEN + "Generating measurement matrix...")
-        self.generateMeasurementMatrix()
+        self.generate_measurement_matrices()
 
         print(Fore.GREEN + "Handling scaling parameters...")
         self.generateHierarchicalOptimizationData()
@@ -397,48 +397,39 @@ class HDF5DataGenerator:
 
         return dset
 
-    def generateReferenceConditionMap(self):
+    def generateSimulationConditionMap(self):
         """
-        Write index map for conditions to be used for pre-equilibration.
+        Write index map for independent simulations to be performed
+        (preequilibrationConditionIdx, simulationConditionIdx) referencing the
+        fixed parameter table.
 
         Parse preequilibrationConditionId column, and write to hdf5 dataset.
         If conditionRef is empty, set to -1, otherwise to condition index.
 
         """
-        referenceMap = [self.NO_PREEQ_CONDITION_IDX] * self.num_conditions
-
-        if not requires_preequilibration(self.measurement_df):
-            # all NaNs, so there is no preeq required:
-            pass
+        simulations = self.measurement_df.groupby(
+            petab.get_notnull_columns(self.measurement_df,
+                                      ['preequilibrationConditionId',
+                                       'simulationConditionId'])) \
+                 .size().reset_index()
+        condition_map = np.full(shape=(len(simulations), 2),
+                                fill_value=self.NO_PREEQ_CONDITION_IDX)
+        condition_id_to_idx = {cid: idx for idx, cid
+                               in enumerate(self.condition_ids)}
+        if simulations.shape[1] == 2:
+            # preeq always nan, we only need simulation condition id
+            condition_map[:, 1] = [condition_id_to_idx[condition_id]
+                                   for condition_id in simulations.iloc[:, 0]]
         else:
-            # TODO: This assumes a one to one mapping of simulationCondition and
-            # (possibly empty) preequilibrationCondition
-            # we might have t allow for different combinations there, which will
-            # extend the simulation condition vector over the number of unique
-            # conditions listed in the measurement file
-            assert len(self.measurement_df.simulationConditionId.unique()) \
-                   == len(self.measurement_df.groupby(
-                ['simulationConditionId',
-                 'preequilibrationConditionId']).size())
-
-            for index, row in self.measurement_df.groupby(
-                    ['simulationConditionId',
-                     'preequilibrationConditionId']).size().reset_index().iterrows():
-                conditionIdx = self.condition_ids.index(
-                    row['simulationConditionId'])
-                if isinstance(row['preequilibrationConditionId'],
-                              float) and np.isnan(
-                    row['preequilibrationConditionId']):
-                    conditionIdxRef = self.NO_PREEQ_CONDITION_IDX
-                else:
-                    conditionIdxRef = self.condition_ids.index(
-                        row['preequilibrationConditionId'])
-
-                referenceMap[conditionIdx] = conditionIdxRef
-
-        self.f.create_dataset("/fixedParameters/referenceConditions",
-                              shape=(self.num_conditions,), dtype="<i4",
-                              data=referenceMap)
+            # we need to set both preeq and simulation condition
+            for sim_idx, (preeq_id, sim_id) \
+                    in enumerate(simulations.iloc[:, 0:2].values):
+                condition_map[sim_idx] = [condition_id_to_idx[preeq_id],
+                                          condition_id_to_idx[sim_id]]
+        self.condition_map = condition_map
+        self.f.create_dataset("/fixedParameters/simulationConditions",
+                              dtype="<i4",
+                              data=condition_map)
 
     def handleFixedParameter(self, parameterIndex, parameterName, dset):
         """
@@ -509,7 +500,7 @@ class HDF5DataGenerator:
                     return f'{reaction.getId()}_{parameter_id}'
         return None
 
-    def generateMeasurementMatrix(self):
+    def generate_measurement_matrices(self):
         """
         Generate matrix with training data for all observables and timepoints
 

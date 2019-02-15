@@ -586,7 +586,7 @@ HierarchicalOptimizationProblemWrapper::HierarchicalOptimizationProblemWrapper(
                       std::unique_ptr<AmiciSummedGradientFunction>(
                           dynamic_cast<AmiciSummedGradientFunction*>(wrappedFun->getWrappedFunction())),
                       dataProvider->getHdf5FileId(), "/",
-                      dataProvider->getNumberOfConditions(),
+                      dataProvider->getNumberOfSimulationConditions(),
                       model->nytrue,
                       model->nt(),
                       ErrorModel::normal));

@@ -27,11 +27,9 @@ class MultiConditionDataProvider {
     /**
      * @brief Provides the number of conditions for which data is available and
      * simulations need to be run.
-     * This is determined from the dimensions of the hdf5MeasurementPath
-     * dataset.
      * @return Number of conditions
      */
-    virtual int getNumberOfConditions() const = 0;
+    virtual int getNumberOfSimulationConditions() const = 0;
 
     virtual std::vector<int> getSimulationToOptimizationParameterMapping(int conditionIdx) const = 0;
 
@@ -86,7 +84,7 @@ class MultiConditionDataProviderDefault : public MultiConditionDataProvider {
      * dataset.
      * @return Number of conditions
      */
-    virtual int getNumberOfConditions() const override;
+    virtual int getNumberOfSimulationConditions() const override;
 
     virtual std::vector<int> getSimulationToOptimizationParameterMapping(
             int conditionIdx) const override;
@@ -196,12 +194,9 @@ class MultiConditionDataProviderHDF5 : public MultiConditionDataProvider {
      * @brief Get the number of simulations required for objective function
      * evaluation. Currently, this amounts to the number
      * of conditions present in the data.
-     * This is determined from the dimensions of the hdf5MeasurementPath
-     * dataset.
      * @return Number of conditions
      */
-
-    virtual int getNumberOfConditions() const override;
+    virtual int getNumberOfSimulationConditions() const override;
 
     /**
      * @brief Get index vector of length of model parameter with indices of

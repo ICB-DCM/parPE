@@ -33,18 +33,20 @@ MultiConditionDataProviderHDF5::MultiConditionDataProviderHDF5(
     hdf5MeasurementPath = rootPath + "/measurements/y";
     hdf5MeasurementSigmaPath = rootPath + "/measurements/ysigma";
     hdf5ConditionPath = rootPath + "/fixedParameters/k";
-    hdf5ReferenceConditionPath = rootPath + "/fixedParameters/referenceConditions";
+    hdf5ReferenceConditionPath = rootPath
+            + "/fixedParameters/simulationConditions";
     hdf5AmiciOptionPath = rootPath + "/amiciOptions";
     hdf5ParameterPath = rootPath + "/parameters";
     hdf5ParameterMinPath = hdf5ParameterPath + "/lowerBound";
     hdf5ParameterMaxPath = hdf5ParameterPath + "/upperBound";
     hdf5ParameterScalingPath = hdf5ParameterPath + "/pscale";
-    hdf5SimulationToOptimizationParameterMappingPath = rootPath + "/parameters/optimizationSimulationMapping";
+    hdf5SimulationToOptimizationParameterMappingPath = rootPath
+            + "/parameters/optimizationSimulationMapping";
 
     amici::hdf5::readModelDataFromHDF5(file, *this->model, hdf5AmiciOptionPath);
 }
 
-int MultiConditionDataProviderHDF5::getNumberOfConditions() const {
+int MultiConditionDataProviderHDF5::getNumberOfSimulationConditions() const {
     // TODO: add additional layer for selection of condition indices (for testing
     // and later for minibatch)
     // -> won't need different file for testing/validation splits
@@ -52,8 +54,9 @@ int MultiConditionDataProviderHDF5::getNumberOfConditions() const {
 
     auto lock = hdf5MutexGetLock();
 
-    int d1, d2, d3;
-    hdf5GetDatasetDimensions(file.getId(), hdf5MeasurementPath.c_str(), 3, &d1, &d2, &d3);
+    int d1, d2;
+    hdf5GetDatasetDimensions(file.getId(), hdf5ReferenceConditionPath.c_str(),
+                             2, &d1, &d2);
 
     return d1;
 }
@@ -111,32 +114,36 @@ amici::ParameterScaling MultiConditionDataProviderHDF5::getParameterScale(
 }
 
 /**
- * @brief Update the contstants in AMICI UserData object. Reads a slab for the
- * given experimental conditions
- * from fixed parameters matrix.
- * @param conditionIdx Index of the experimental condition for which the
+ * @brief Update the contstants in AMICI ExpData object. Reads a slab for the
+ * given simulation from fixed parameters matrix.
+ *
+ * @param simulationIdx Index of the experimental condition for which the
  * parameters should be taken.
  * @param edata The object to be updated.
  */
 void MultiConditionDataProviderHDF5::updateFixedSimulationParameters(
-        int conditionIdx, amici::ExpData &edata) const {
+        int simulationIdx, amici::ExpData &edata) const {
     edata.fixedParameters.resize(model->nk());
-    readFixedSimulationParameters(conditionIdx, edata.fixedParameters.data());
 
-    if(hdf5DatasetExists(file.getId(), hdf5ReferenceConditionPath)) {
-        // TODO cache
-        auto tmp = hdf5Read1DIntegerHyperslab(file.getId(), hdf5ReferenceConditionPath, 1, conditionIdx);
-        int conditionIdxPreeq = tmp[0];
-        if(conditionIdxPreeq >= 0) {
-            // -1 means no preequilibration
-            edata.fixedParametersPreequilibration.resize(model->nk());
-            readFixedSimulationParameters(conditionIdxPreeq,
-                                          edata.fixedParametersPreequilibration.data());
-        }
+    // TODO cache
+    auto tmp = hdf5Read2DIntegerHyperslab(file.getId(),
+                                          hdf5ReferenceConditionPath,
+                                          1, 2, simulationIdx, 0);
+    int conditionIdxPreeq = tmp[0];
+    int conditionIdxSim = tmp[1];
+    if(conditionIdxPreeq >= 0) {
+        // -1 means no preequilibration
+        edata.fixedParametersPreequilibration.resize(model->nk());
+        readFixedSimulationParameters(
+                    conditionIdxPreeq,
+                    edata.fixedParametersPreequilibration.data());
     }
+    readFixedSimulationParameters(conditionIdxSim,
+                                  edata.fixedParameters.data());
 }
 
-void MultiConditionDataProviderHDF5::readFixedSimulationParameters(int conditionIdx, double *buffer) const
+void MultiConditionDataProviderHDF5::readFixedSimulationParameters(
+        int conditionIdx, double *buffer) const
 {
     if(!model->nk())
         return;
@@ -145,7 +152,8 @@ void MultiConditionDataProviderHDF5::readFixedSimulationParameters(int condition
 
     H5_SAVE_ERROR_HANDLER;
 
-    hdf5Read2DDoubleHyperslab(file.getId(), hdf5ConditionPath.c_str(), model->nk(), 1,
+    hdf5Read2DDoubleHyperslab(file.getId(), hdf5ConditionPath.c_str(),
+                              model->nk(), 1,
                               0, conditionIdx, buffer);
 
     if (H5Eget_num(H5E_DEFAULT)) {
@@ -164,21 +172,21 @@ void MultiConditionDataProviderHDF5::readFixedSimulationParameters(int condition
 }
 
 std::unique_ptr<amici::ExpData> MultiConditionDataProviderHDF5::getExperimentalDataForCondition(
-        int conditionIdx) const {
+        int simulationIdx) const {
     auto lock = hdf5MutexGetLock();
 
     auto edata = std::make_unique<amici::ExpData>(*model);
     RELEASE_ASSERT(edata, "Failed getting experimental data. Check data file.");
 
-    edata->setObservedData(getMeasurementForConditionIndex(conditionIdx));
-    edata->setObservedDataStdDev(getSigmaForConditionIndex(conditionIdx));
-    updateFixedSimulationParameters(conditionIdx, *edata);
+    edata->setObservedData(getMeasurementForConditionIndex(simulationIdx));
+    edata->setObservedDataStdDev(getSigmaForConditionIndex(simulationIdx));
+    updateFixedSimulationParameters(simulationIdx, *edata);
 
     return edata;
 }
 
 std::vector<std::vector<double> > MultiConditionDataProviderHDF5::getAllMeasurements() const {
-    std::vector<std::vector<double>> result(getNumberOfConditions());
+    std::vector<std::vector<double>> result(getNumberOfSimulationConditions());
     for(int conditionIdx = 0; (unsigned) conditionIdx < result.size(); ++conditionIdx) {
         result[conditionIdx] = getMeasurementForConditionIndex(conditionIdx);
     }
@@ -188,7 +196,7 @@ std::vector<std::vector<double> > MultiConditionDataProviderHDF5::getAllMeasurem
 std::vector<std::vector<double> > MultiConditionDataProviderHDF5::getAllSigmas() const
 {
     // TODO: how to deal with sigma parameters vs table
-    std::vector<std::vector<double>> result(getNumberOfConditions());
+    std::vector<std::vector<double>> result(getNumberOfSimulationConditions());
     for(int conditionIdx = 0; (unsigned) conditionIdx < result.size(); ++conditionIdx) {
         result[conditionIdx]= getSigmaForConditionIndex(conditionIdx);
     }
@@ -313,7 +321,7 @@ hid_t MultiConditionDataProviderHDF5::getHdf5FileId() const { return file.getId(
 
 
 void MultiConditionDataProviderHDF5::checkDataIntegrity() const {
-    int numConditions = getNumberOfConditions();
+    int numConditions = getNumberOfSimulationConditions();
 
     auto model = getModel();
 
@@ -349,7 +357,7 @@ MultiConditionDataProviderDefault::MultiConditionDataProviderDefault(std::unique
 
 }
 
-int MultiConditionDataProviderDefault::getNumberOfConditions() const
+int MultiConditionDataProviderDefault::getNumberOfSimulationConditions() const
 {
     return edata.size();
 }

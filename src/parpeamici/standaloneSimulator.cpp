@@ -81,7 +81,7 @@ int StandaloneSimulator::run(const std::string& resultFile,
                                                 std::move(hierarchicalScalingReader),
                                                 std::move(hierarchicalOffsetReader),
                                                 std::move(hierarchicalSigmaReader),
-                                                dataProvider->getNumberOfConditions(), model->nytrue, model->nt(),
+                                                dataProvider->getNumberOfSimulationConditions(), model->nytrue, model->nt(),
                                                 ErrorModel::normal);
         std::cout<<"Need to compute analytical parameters: "<<conditionFilePath<<"  "<<proportionalityFactorIndices.size()<<" parameters.size() == "<<parameters.size()<<" ; hierarchical.numParameters() == "<<hierarchical.numParameters()<<std::endl;
         RELEASE_ASSERT(parameters.size() == (unsigned) hierarchical.numParameters(), "");
@@ -106,12 +106,12 @@ int StandaloneSimulator::run(const std::string& resultFile,
 
     RELEASE_ASSERT(parameters.size() == (unsigned)dataProvider->getNumOptimizationParameters(), "Size of supplied parameter vector does not match model dimensions.");
 
-    rw.createDatasets(*model, dataProvider->getNumberOfConditions());
+    rw.createDatasets(*model, dataProvider->getNumberOfSimulationConditions());
 
-    std::vector<int> dataIndices(dataProvider->getNumberOfConditions());
+    std::vector<int> dataIndices(dataProvider->getNumberOfSimulationConditions());
     std::iota(dataIndices.begin(), dataIndices.end(), 0);
     int errors = 0;
-    std::cout<<"Starting simulation. Number of conditions: " << dataProvider->getNumberOfConditions()<<std::endl;
+    std::cout<<"Starting simulation. Number of conditions: " << dataProvider->getNumberOfSimulationConditions()<<std::endl;
 
     auto jobFinished = [&](JobData *job, int /*dataIdx*/) { /* job finished */
         // if we are running hierarchical optimization we need to wait until all jobs are finished

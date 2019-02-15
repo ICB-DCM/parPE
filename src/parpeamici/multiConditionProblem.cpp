@@ -45,7 +45,7 @@ MultiConditionProblem::MultiConditionProblem(
 {
     this->logger = std::move(logger);
     // run on all data
-    std::vector<int> dataIndices(dataProvider->getNumberOfConditions());
+    std::vector<int> dataIndices(dataProvider->getNumberOfSimulationConditions());
     std::iota(dataIndices.begin(), dataIndices.end(), 0);
 
     costFun = std::make_unique<
@@ -133,7 +133,7 @@ std::unique_ptr<OptimizationReporter> MultiConditionProblem::getReporter() const
 
 std::vector<int> MultiConditionProblem::getTrainingData() const
 {
-    std::vector<int> dataIndices(dataProvider->getNumberOfConditions());
+    std::vector<int> dataIndices(dataProvider->getNumberOfSimulationConditions());
     std::iota(dataIndices.begin(), dataIndices.end(), 0);
     return dataIndices;
 }
@@ -407,7 +407,7 @@ FunctionEvaluationStatus getModelOutputs(
 {
     int errors = 0;
 
-    std::vector<int> dataIndices(dataProvider->getNumberOfConditions());
+    std::vector<int> dataIndices(dataProvider->getNumberOfSimulationConditions());
     std::iota(dataIndices.begin(), dataIndices.end(), 0);
 
     modelOutput.resize(dataIndices.size());
