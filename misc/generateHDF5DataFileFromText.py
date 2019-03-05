@@ -931,17 +931,19 @@ class HDF5DataGenerator:
         g.attrs['sensi'] = amici.SensitivityOrder_first
         g.attrs['sensi_meth'] = amici.SensitivityMethod_adjoint
         g.attrs['tstart'] = 0.0
-        g.attrs['atol'] = 1e-16
+        g.attrs['atol'] = 1e-14
         g.attrs['interpType'] = amici.InterpolationType_hermite
         g.attrs['ism'] = amici.InternalSensitivityMethod_simultaneous
         g.attrs['iter'] = amici.NonlinearSolverIteration_newton
         g.attrs['linsol'] = amici.LinearSolver_KLU
         g.attrs['lmm'] = amici.LinearMultistepMethod_BDF
         g.attrs['maxsteps'] = 10000
+        # fail fast to retry with looser tolerances
+        g.attrs['maxstepsB'] = 5000
         g.attrs['newton_preeq'] = 0
         g.attrs['nmaxevent'] = 0
         g.attrs['ordering'] = 0
-        g.attrs['rtol'] = 1e-8
+        g.attrs['rtol'] = 1e-6
         g.attrs['stldet'] = 1
 
         model_parameter_names = self.f['/parameters/modelParameterNames'][:]
