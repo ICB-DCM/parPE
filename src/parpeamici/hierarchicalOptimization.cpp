@@ -730,12 +730,27 @@ double computeAnalyticalScalings(int scalingIdx,
 
     if(denominator == 0.0) {
         logmessage(LOGLVL_WARNING,
-                   "In computeAnalyticalScalings: denominator is 0.0 for scaling parameter "
-                   + std::to_string(scalingIdx) + ". Setting scaling parameter to 1.0");
+                   "In computeAnalyticalScalings: denominator is 0.0 for "
+                   "scaling parameter " + std::to_string(scalingIdx)
+                   + ". Probably model output is always 0.0 and scaling, "
+                   "thus, not used. Setting scaling parameter to 1.0.");
         return 1.0;
     }
 
-    return enumerator / denominator;
+    double scaling = enumerator / denominator;
+    constexpr double upper_bound = 1e10;
+
+    // too large values of scaling parameters cause problems in backwards
+    // integration for adjoint sensitivities
+    if(upper_bound > scaling)
+        return scaling;
+
+    logmessage(LOGLVL_WARNING,
+               "In computeAnalyticalScalings: force-bounding scaling parameter "
+               + std::to_string(scalingIdx) + " which was "
+               + std::to_string(scaling) + " to "
+               + std::to_string(upper_bound));
+    return upper_bound;
 }
 
 
