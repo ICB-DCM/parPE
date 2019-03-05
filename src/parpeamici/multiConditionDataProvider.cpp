@@ -101,7 +101,7 @@ void MultiConditionDataProviderHDF5::mapAndSetOptimizationToSimulationVariables(
         if(mapping[i] >= 0)
             simulation[i] = optimization[mapping[i]];
         else
-            simulation[i] = NAN;
+            simulation[i] = 0.0;//NAN;
     }
 }
 
