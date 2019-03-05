@@ -316,7 +316,9 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
              * the error occurred
              */
             bool forwardFailed = std::isnan(rdata->x[rdata->x.size() - 1]);
-            bool backwardFailed = std::isnan(rdata->llh);
+            bool backwardFailed = solver->getSensitivityOrder() >= amici::SensitivityOrder::first
+                    && solver->getSensitivityMethod() == amici::SensitivityMethod::adjoint
+                    && !rdata->sllh.empty() && std::isnan(rdata->sllh[0]);
 
             // relax respective tolerances
             if(forwardFailed) {
