@@ -105,9 +105,10 @@ void MultiConditionDataProviderHDF5::mapAndSetOptimizationToSimulationVariables(
 
     std::vector<double> overrides;
     if(hdf5DatasetExists(file.getId(), hdf5ParameterOverridesPath)) {
-         hdf5Read2DDoubleHyperslab(
-                     file.getId(), hdf5ParameterOverridesPath.c_str(),
-                     model->np(), 1, 0, conditionIdx, overrides.data());
+        overrides.resize(model->np());
+        hdf5Read2DDoubleHyperslab(
+                    file.getId(), hdf5ParameterOverridesPath.c_str(),
+                    model->np(), 1, 0, conditionIdx, overrides.data());
     }
 
     for(int i = 0; i < model->np(); ++i) {
