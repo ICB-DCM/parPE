@@ -4,6 +4,7 @@
 #include <parpecommon/misc.h>
 #include <parpeoptimization/optimizationOptions.h>
 #include <amici/model.h>
+#include <amici/hdf5.h>
 #include <iostream>
 #include <memory>
 
@@ -39,10 +40,9 @@ int main(int argc, char **argv) {
 
     MultiConditionProblem problem {&dataProvider};
 
-    // We assume we have nominal parameter stored as starting point 0
-    // TODO: should be stored separately
-    int start_idx = 0;
-    auto optimizationParams = options->getStartingPoint(dataProvider.getHdf5FileId(), start_idx);
+    // Read nominal parameters
+    auto optimizationParams = amici::hdf5::getDoubleDataset1D(
+                dataProvider.getHdf5FileId(), "/parameters/nominalValues");
 
     double fval = NAN;
     std::vector<double> gradient(optimizationParams.size(), NAN);
