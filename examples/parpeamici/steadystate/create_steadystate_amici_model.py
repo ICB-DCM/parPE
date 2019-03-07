@@ -357,11 +357,10 @@ def write_starting_points(hdf5_file_name, true_parameters):
             f['/optimizationOptions/randomStarts'][:, 2 * i + 1] = parameters
 
 
-def create_parameter_table(sbml_file, condition_file, measurement_file,
+def create_parameter_table(problem: petab.Problem,
                            parameter_file, nominal_parameters):
     """Create PEtab parameter table"""
 
-    problem = petab.Problem(sbml_file, condition_file, measurement_file)
     df = problem.create_parameter_df(lower_bound=-3,
                                      upper_bound=5)
     # TODO: move to peTAB
@@ -385,6 +384,9 @@ def create_parameter_table(sbml_file, condition_file, measurement_file,
             continue
         else:
             print("extra parameter", pid, val)
+
+    problem.parameter_df = df
+
     df.to_csv(parameter_file, sep="\t", index=True)
 
 
@@ -427,18 +429,17 @@ def main():
         fixed_parameters=fixed_parameters
     )
 
-    create_parameter_table(args.sbml_file_name,
-                           args.condition_file_name,
-                           args.measurement_file_name,
-                           args.parameter_file_name,
-                           true_parameters
-                           )
-
     # check for valid PEtab
-    pp = petab.Problem(args.sbml_file_name,
-                       args.condition_file_name,
-                       args.measurement_file_name,
-                       args.parameter_file_name)
+    pp = petab.Problem.from_files(
+        sbml_file=args.sbml_file_name,
+        condition_file=args.condition_file_name,
+        measurement_file=args.measurement_file_name)
+
+    create_parameter_table(
+        problem=pp,
+        parameter_file=args.parameter_file_name,
+        nominal_parameters=true_parameters)
+
     petab.lint_problem(pp)
 
     generate_hdf5_file(
