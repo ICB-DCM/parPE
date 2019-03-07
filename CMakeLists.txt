@@ -182,7 +182,7 @@ endif()
 
 
 # create single library
-add_library(${PROJECT_NAME} "")
+add_library(${PROJECT_NAME} /dev/null)
 target_link_libraries(${PROJECT_NAME} PUBLIC parpecommon parpeloadbalancer parpeoptimization parpeamici)
 
 
