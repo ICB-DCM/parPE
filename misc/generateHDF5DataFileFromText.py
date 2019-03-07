@@ -272,7 +272,7 @@ class HDF5DataGenerator:
         print(Fore.CYAN + "Number of optimization parameters:",
               len(self.parameter_df))
         write_string_array(self.f, "/parameters/parameterNames",
-                           self.parameter_df.index)
+                           self.parameter_df.index[self.parameter_df.estimate])
 
         self.generateSimulationToOptimizationParameterMapping()
 
