@@ -42,6 +42,8 @@ MultiConditionDataProviderHDF5::MultiConditionDataProviderHDF5(
     hdf5ParameterScalingPath = hdf5ParameterPath + "/pscale";
     hdf5SimulationToOptimizationParameterMappingPath = rootPath
             + "/parameters/optimizationSimulationMapping";
+    hdf5ParameterOverridesPath = rootPath
+            + "/parameters/parameterOverrides";
 
     amici::hdf5::readModelDataFromHDF5(file, *this->model, hdf5AmiciOptionPath);
 }
@@ -63,7 +65,9 @@ int MultiConditionDataProviderHDF5::getNumberOfSimulationConditions() const {
 
 
 
-std::vector<int> MultiConditionDataProviderHDF5::getSimulationToOptimizationParameterMapping(int conditionIdx) const  {
+std::vector<int>
+MultiConditionDataProviderHDF5::getSimulationToOptimizationParameterMapping(
+        int conditionIdx) const  {
     std::string path = hdf5SimulationToOptimizationParameterMappingPath;
 
     if(hdf5DatasetExists(file.getId(), path)) {
@@ -77,7 +81,9 @@ std::vector<int> MultiConditionDataProviderHDF5::getSimulationToOptimizationPara
     return defaultMap;
 }
 
-void MultiConditionDataProviderHDF5::mapSimulationToOptimizationVariablesAddMultiply(
+
+void
+MultiConditionDataProviderHDF5::mapSimulationToOptimizationVariablesAddMultiply(
         int conditionIdx, gsl::span<double const> simulation,
         gsl::span<double> optimization, double coefficient) const {
     auto mapping = getSimulationToOptimizationParameterMapping(conditionIdx);
@@ -86,8 +92,8 @@ void MultiConditionDataProviderHDF5::mapSimulationToOptimizationVariablesAddMult
         // some model parameter are not mapped if there is no respective data
         if(mapping[i] >= 0)
             optimization[mapping[i]] += coefficient * simulation[i];
-        else
-            RELEASE_ASSERT(std::isnan(simulation[i]) || simulation[i] == 0.0, "");
+        // else
+        //     RELEASE_ASSERT(std::isnan(simulation[i]) || simulation[i] == 0.0, "");
     }
 }
 
@@ -97,11 +103,22 @@ void MultiConditionDataProviderHDF5::mapAndSetOptimizationToSimulationVariables(
 {
     auto mapping = getSimulationToOptimizationParameterMapping(conditionIdx);
 
+    std::vector<double> overrides;
+    if(hdf5DatasetExists(file.getId(), hdf5ParameterOverridesPath)) {
+         hdf5Read2DDoubleHyperslab(
+                     file.getId(), hdf5ParameterOverridesPath.c_str(),
+                     model->np(), 1, 0, conditionIdx, overrides.data());
+    }
+
     for(int i = 0; i < model->np(); ++i) {
-        if(mapping[i] >= 0)
+        if(mapping[i] >= 0) {
+            // map from optimization parameters
             simulation[i] = optimization[mapping[i]];
-        else
-            simulation[i] = 0.0;//NAN;
+        } else if (overrides.size()) {
+            simulation[i] = overrides[i];
+        } else {
+            simulation[i] = NAN;
+        }
     }
 }
 

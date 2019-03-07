@@ -87,7 +87,12 @@
   - optimizationSimulationMapping
         [int np * n_simulation_conditions]
         Mapping of optimization parameters to model parameters for a given 
-        condition
+        condition. -1 for no mapping, in which case the respective value 
+        from `parameterOverrides` will be used.
+  - parameterOverrides
+        [int np * n_simulation_conditions]
+        Constant condition-specific parameter overrides 
+        (see `optimizationSimulationMapping`)
   - parameterNames
         [string n_opt_par]
         Optimization parameter names

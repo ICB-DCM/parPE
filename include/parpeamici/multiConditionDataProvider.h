@@ -310,6 +310,7 @@ protected:
     std::string hdf5ParameterMaxPath;
     std::string hdf5ParameterScalingPath;
     std::string hdf5SimulationToOptimizationParameterMappingPath;
+    std::string hdf5ParameterOverridesPath;
 
     /**
      * @brief HDF5 file handles for C++ and C API
