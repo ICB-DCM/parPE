@@ -1,5 +1,5 @@
 [![Run Status](https://api.shippable.com/projects/59463d3e8993d7070010407b/badge?branch=master)](https://app.shippable.com/github/dweindl/parPE)
-[![Coverage Badge](https://api.shippable.com/projects/59463d3e8993d7070010407b/coverageBadge?branch=master)](https://app.shippable.com/github/dweindl/parPE) 
+[![Coverage Badge](https://api.shippable.com/projects/59463d3e8993d7070010407b/coverageBadge?branch=master)](https://app.shippable.com/github/dweindl/parPE)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/1f1ee5a0d90d431499f200a148fb7fdc)](https://www.codacy.com?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=ICB-DCM/parPE&amp;utm_campaign=Badge_Grade)
 # parPE
 
@@ -29,13 +29,13 @@ parPE offers the following features:
 
 For full functionality, parPE requires the following libraries:
 
-* CMAKE (>=2.8)
+* CMAKE (>=3.0)
 * MPI
 * PTHREADS
 * IPOPT (>= 1.2.7) (requires coinhsl)
 * CERES (>=1.13) ([requires Eigen](http://ceres-solver.org/installation.html#dependencies))
 * HDF5 (>= 1.10)
-* BLAS (CBLAS / Intel MKL)
+* CBLAS compatible BLAS (libcblas, Intel MKL, ...)
 * [AMICI](https://github.com/ICB-DCM/AMICI) (included in this repository) (uses SuiteSparse, Sundials)
 
 On Debian-based systems, dependencies can be installed via:
@@ -54,7 +54,7 @@ cd ThirdParty
 
 ## Building
 
-After having taken care of the dependencies listed above, parPE can be built: 
+After having taken care of the dependencies listed above, parPE can be built:
 
 ```
 ./build.sh
@@ -70,8 +70,8 @@ Other sample build scripts are provided as `/build*.sh`.
 
 ## Documentation & further information
 
-No extensive full-text documentation is available yet. See `*/examples` and `*/tests` for usage examples. 
-Little documentation is available in `doc` and among github issues. 
+No extensive full-text documentation is available yet. See `*/examples` and `*/tests` for usage examples.
+Little documentation is available in `doc` and among github issues.
 
 ## FAQ
 
