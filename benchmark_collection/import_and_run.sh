@@ -22,6 +22,9 @@ AMICI_MODEL_DIR=${SCRIPT_PATH}/${MODEL_NAME}
 
 cd ${PETAB_MODEL_DIR}
 
+echo "Running petablint..."
+petablint.py -v -n ${MODEL_NAME}
+
 # import AMICI model
 if [[ ! -d ${AMICI_MODEL_DIR} ]]; then
     echo "Importing model..."
@@ -35,7 +38,7 @@ if [[ ! -d parpe_${MODEL_NAME} ]]; then
     echo "Setting up parPE..."
     ${PARPE_DIR}/misc/setup_amici_model.sh ${AMICI_MODEL_DIR} parpe_${MODEL_NAME}
 else
-    (cd parpe_${MODEL_NAME}/build && make)
+    (cd parpe_${MODEL_NAME}/build && cmake -DAmici_DIR=${PARPE_DIR}/deps/AMICI/build .. && make)
 fi
 
 # generate data file
