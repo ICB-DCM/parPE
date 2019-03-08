@@ -155,7 +155,10 @@ void MultiConditionDataProviderHDF5::updateFixedSimulationParameters(
         readFixedSimulationParameters(
                     conditionIdxPreeq,
                     edata.fixedParametersPreequilibration.data());
+    } else {
+        edata.fixedParametersPreequilibration.resize(0);
     }
+
     readFixedSimulationParameters(conditionIdxSim,
                                   edata.fixedParameters.data());
 }
