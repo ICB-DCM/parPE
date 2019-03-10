@@ -790,7 +790,7 @@ void hdf5EnsureGroupExists(const H5::H5File & file, const std::string &groupName
 
 bool hdf5DatasetExists(const H5::H5File &file, const std::string &datasetName)
 {
-    hdf5DatasetExists(file.getId(), datasetName.c_str());
+    return hdf5DatasetExists(file.getId(), datasetName.c_str());
 }
 
 } // namespace parpe
