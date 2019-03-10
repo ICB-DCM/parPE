@@ -92,8 +92,10 @@ MultiConditionDataProviderHDF5::mapSimulationToOptimizationVariablesAddMultiply(
         // some model parameter are not mapped if there is no respective data
         if(mapping[i] >= 0)
             optimization[mapping[i]] += coefficient * simulation[i];
-        // else
-        //     RELEASE_ASSERT(std::isnan(simulation[i]) || simulation[i] == 0.0, "");
+        else if(not std::isnan(simulation[i]) && simulation[i] != 0.0)
+            logmessage(LOGLVL_ERROR,
+                       "Gradient w.r.t. unmapped parameter expected to be 0.0, "
+                       "but is %e", simulation[i]);
     }
 }
 
