@@ -479,9 +479,6 @@ class HDF5DataGenerator:
             dset[parameterIndex, :] = \
                 self.condition_df.loc[self.condition_ids, parameterName].values
         else:
-            print(Fore.RED + "Parameter not found in condition table. "
-                  "This should not happen:", parameterName)
-
             # TODO Legacy:
             sbml_parameter = self.sbml_model.getParameter(parameterName)
             if sbml_parameter:
@@ -520,6 +517,9 @@ class HDF5DataGenerator:
                                             "found in ExpTable, setting to 0.0: ",
                               parameterName)
                         dset[parameterIndex, :] = 0.0
+            print(Fore.RED + "Parameter not found in condition table. "
+                  "This should not happen:", parameterName, parameterIndex,
+                  "Set to ", dset[parameterIndex, :], " according to legacy code.")
 
     def generate_measurement_matrices(self):
         """
