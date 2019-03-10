@@ -106,7 +106,7 @@ int StandaloneSimulator::run(const std::string& resultFile,
 
     RELEASE_ASSERT(parameters.size() == (unsigned)dataProvider->getNumOptimizationParameters(), "Size of supplied parameter vector does not match model dimensions.");
 
-    rw.createDatasets(*model, dataProvider->getNumberOfSimulationConditions());
+    rw.createDatasets(dataProvider->getNumberOfSimulationConditions());
 
     std::vector<int> dataIndices(dataProvider->getNumberOfSimulationConditions());
     std::iota(dataIndices.begin(), dataIndices.end(), 0);
@@ -128,8 +128,11 @@ int StandaloneSimulator::run(const std::string& resultFile,
             errors += result.second.status;
             int conditionIdx = result.first;
             auto edata = dataProvider->getExperimentalDataForCondition(conditionIdx);
-            rw.saveMeasurements(edata->getObservedData(), edata->nt(), edata->nytrue(), conditionIdx);
-            rw.saveModelOutputs(result.second.modelOutput,  model->nt(), model->nytrue, conditionIdx);
+            rw.saveTimepoints(edata->getTimepoints(), conditionIdx);
+            rw.saveMeasurements(edata->getObservedData(), edata->nt(),
+                                edata->nytrue(), conditionIdx);
+            rw.saveModelOutputs(result.second.modelOutput,  edata->nt(),
+                                model->nytrue, conditionIdx);
             rw.saveLikelihood(result.second.llh, conditionIdx);
         }
     };
@@ -175,9 +178,14 @@ int StandaloneSimulator::run(const std::string& resultFile,
                         allMeasurements[conditionIdx],
                         modelOutputs[conditionIdx],
                         fullSigmaMatrices[conditionIdx]);
-            auto edata = dataProvider->getExperimentalDataForCondition(conditionIdx);
-            rw.saveMeasurements(edata->getObservedData(), edata->nt(), edata->nytrue(), conditionIdx);
-            rw.saveModelOutputs(modelOutputs[conditionIdx],  model->nt(), model->nytrue, conditionIdx);
+
+            auto edata = dataProvider->getExperimentalDataForCondition(
+                        conditionIdx);
+            rw.saveTimepoints(edata->getTimepoints(), conditionIdx);
+            rw.saveMeasurements(edata->getObservedData(), edata->nt(),
+                                edata->nytrue(), conditionIdx);
+            rw.saveModelOutputs(modelOutputs[conditionIdx],  edata->nt(),
+                                model->nytrue, conditionIdx);
             rw.saveLikelihood(llh, conditionIdx);
         }
         return 0;
