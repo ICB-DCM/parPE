@@ -105,6 +105,34 @@ def concatenateStarts(a, b):
 def readSimulationsFromFile(filename):
     """
     Read result from simulations at final point from data file for all starts
+
+    Returns:
+        (measured, simulated, time, llh)[startString]
+            [nCondition][nTimepoints, nObservables]
+    """
+
+    sim = {}
+    mes = {}
+    llh = {}
+    time = {}
+
+    with h5py.File(filename, 'r') as f:
+        for ms in f['/multistarts']:
+            llh[ms] = f[f'/multistarts/{ms}/llh'][:]
+            mes[ms] = []
+            sim[ms] = []
+            time[ms] = []
+            for condition in f[f'/multistarts/{ms}/t']:
+                mes[ms].append(f[f'/multistarts/{ms}/yMes/{condition}'][:])
+                sim[ms].append(f[f'/multistarts/{ms}/ySim/{condition}'][:])
+                time[ms].append(f[f'/multistarts/{ms}/t/{condition}'][:])
+
+    return mes, sim, time, llh
+
+
+def readSimulationsFromFileLegacy(filename):
+    """
+    Read result from simulations at final point from data file for all starts
     Returns:
     (measure, simulated)[startString][nCondition, nTimepoints, nObservables]
     """
