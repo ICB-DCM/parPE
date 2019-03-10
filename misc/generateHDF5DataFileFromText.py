@@ -826,9 +826,14 @@ class HDF5DataGenerator:
             return
 
         # find indices for names
-        offsetsForHierarchicalIndices = sorted([
+        offsetsForHierarchicalIndices = [
             self.optimization_parameter_name_to_index[x] for x in
-            offset_candidates])
+            offset_candidates]
+        order = np.argsort(offsetsForHierarchicalIndices)
+        offsetsForHierarchicalIndices = \
+            [offsetsForHierarchicalIndices[i] for i in order]
+        offset_candidates = [offset_candidates[i] for i in order]
+
 
         print(Fore.CYAN + "Number of offset parameters for hierarchical optimization: %d" %
               len(offsetsForHierarchicalIndices))
@@ -847,10 +852,17 @@ class HDF5DataGenerator:
 
     def getAnalyticalParameterTable(
             self,
-            parametersForHierarchical: list,
+            hierarchical_candidate_ids: list,
             parameter_type: str) -> list:
         """Generate (scalingIdx, conditionIdx, observableIdx) table for all
         occurrences of the given parameter names.
+
+        Parameters:
+            hierarchical_candidate_ids: Ids of optimization parameters for
+                hierarchical optimization. This table depends on ordering of
+                this list.
+            parameter_type:
+                'observable' or 'noise'
 
         Returns:
         list of (scalingIdx, conditionIdx, observableIdx) tuples
@@ -884,7 +896,7 @@ class HDF5DataGenerator:
             for s in overrides:
                 #print(s, parametersForHierarchical)
                 try:
-                    scalingIdx = parametersForHierarchical.index(s)
+                    scalingIdx = hierarchical_candidate_ids.index(s)
                 except ValueError:
                     continue # current parameter not in list
 
@@ -900,7 +912,7 @@ class HDF5DataGenerator:
                     use.append(tup)
 
         if not len(use):
-            raise AssertionError("Candidates were: " + str(parametersForHierarchical) + " but nothing usable found")
+            raise AssertionError("Candidates were: " + str(hierarchical_candidate_ids) + " but nothing usable found")
 
         return use
 
@@ -913,9 +925,14 @@ class HDF5DataGenerator:
         if not len(scaling_candidates):
             return
 
-        scalingsForHierarchicalIndices = sorted([
+        scalingsForHierarchicalIndices = [
             self.optimization_parameter_name_to_index[x] for x in
-            scaling_candidates])
+            scaling_candidates]
+        order = np.argsort(scalingsForHierarchicalIndices)
+        scalingsForHierarchicalIndices = \
+            [scalingsForHierarchicalIndices[i] for i in order]
+        scaling_candidates = [scaling_candidates[i] for i in order]
+
 
         self.f.require_dataset("/scalingParameterIndices",
                                shape=(len(scalingsForHierarchicalIndices),),
@@ -938,14 +955,24 @@ class HDF5DataGenerator:
     def handleSigmas(self, sigma_candidates):
         """
         Write data for dealing with sigma parameters in hierarchical optimization
+
+        Parameters:
+            sigma_candidates:
+                IDs of optimization parameters which are sigmas to be
+                hierarchically computed. No particular order.
         """
 
         if not len(sigma_candidates):
             return
 
-        sigmas_for_hierarchical_indices = sorted([
+        # must sort by indices for C++ code
+        sigmas_for_hierarchical_indices = [
             self.optimization_parameter_name_to_index[x] for x in
-            sigma_candidates])
+            sigma_candidates]
+        order = np.argsort(sigmas_for_hierarchical_indices)
+        sigmas_for_hierarchical_indices = \
+            [sigmas_for_hierarchical_indices[i] for i in order]
+        sigma_candidates = [sigma_candidates[i] for i in order]
 
         self.f.require_dataset("/sigmaParameterIndices",
                                shape=(len(sigmas_for_hierarchical_indices),),
