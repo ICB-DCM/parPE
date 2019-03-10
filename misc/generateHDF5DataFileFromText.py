@@ -268,7 +268,7 @@ class HDF5DataGenerator:
         print(Fore.CYAN + "Number of optimization parameters:",
               len(self.parameter_df))
         write_string_array(self.f, "/parameters/parameterNames",
-                           self.parameter_df.index[self.parameter_df.estimate])
+                           self.parameter_df.index.values[self.parameter_df.estimate == 1])
 
         self.generateSimulationToOptimizationParameterMapping()
 
@@ -297,7 +297,9 @@ class HDF5DataGenerator:
 
         # create inverse mapping for faster lookup
         optimization_parameter_name_to_index = {
-            name: idx for idx, name in enumerate(self.parameter_df.index)}
+            name: idx for idx, name
+            in enumerate(
+            self.parameter_df.index[self.parameter_df.estimate == 1])}
         # print(optimization_parameter_name_to_index)
         self.optimization_parameter_name_to_index = \
             optimization_parameter_name_to_index
@@ -713,7 +715,8 @@ class HDF5DataGenerator:
         sigma_candidates = set()
 
         hierarchical_candidates = self.parameter_df.index[
-            self.parameter_df.hierarchicalOptimization == 1]
+            (self.parameter_df.estimate == 1)
+            & (self.parameter_df.hierarchicalOptimization == 1)]
 
         for optimization_parameter_id in hierarchical_candidates:
             # check which model parameter this one overrides
@@ -1149,21 +1152,14 @@ class HDF5DataGenerator:
 
         Offset parameters are allowed to be negative
         """
-        # TODO: respect parameter file
-        numParams = self.f['/parameters/parameterNames'].shape[0]
-        lower = self.f.require_dataset(
-            '/parameters/lowerBound', [numParams], 'f8')
-        upper = self.f.require_dataset(
-            '/parameters/upperBound', [numParams], 'f8')
-        lower[:] = [-5] * numParams
-        upper[:] = [3] * numParams
-
-        # offset parameters are optimized in linear space
-        offsetIndices = [i for i, p in enumerate(
-            self.f['/parameters/parameterNames']) if p.startswith('offset_')]
-        if len(offsetIndices):
-            lower[offsetIndices] = -1e10
-            upper[offsetIndices] = +1e10
+        optimized_par_df = \
+            self.parameter_df.loc[self.parameter_df.estimate == 1, :]
+        self.f.require_dataset('/parameters/lowerBound',
+                               shape=optimized_par_df.lowerBound.shape,
+                               data=optimized_par_df.lowerBound, dtype='f8')
+        self.f.require_dataset('/parameters/upperBound',
+                               shape=optimized_par_df.upperBound.shape,
+                               data=optimized_par_df.upperBound, dtype='f8')
 
 
     def writeStartingPoints(self):
@@ -1184,9 +1180,9 @@ class HDF5DataGenerator:
                     upper - lower) + lower)
 
         if 'nominalValue' in self.parameter_df:
-            # set first start to nominal parameters, for debugging/testing
-            #print(Fore.YELLOW + "Setting first starting point to nominal values")
-            self.f['/parameters/nominalValues'] = self.parameter_df.nominalValue
+            self.f['/parameters/nominalValues'] = \
+                self.parameter_df.nominalValue[
+                    self.parameter_df.estimate == 1]
 
 
 def petab_scale_to_amici_scale(scale_str):
