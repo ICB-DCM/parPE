@@ -385,6 +385,12 @@ def create_parameter_table(problem: petab.Problem,
         else:
             print("extra parameter", pid, val)
 
+    # offsets can be negative: adapt scaling and bounds:
+    offsets = df.index.str.startswith('offset_')
+    df.loc[offsets, 'parameterScale'] = 'lin'
+    df.loc[offsets, 'lowerBound'] = np.power(10.0, df.loc[offsets, 'lowerBound'])
+    df.loc[offsets, 'upperBound'] = np.power(10.0, df.loc[offsets, 'upperBound'])
+
     problem.parameter_df = df
 
     df.to_csv(parameter_file, sep="\t", index=True)
