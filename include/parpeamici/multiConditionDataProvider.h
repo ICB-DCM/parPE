@@ -27,11 +27,9 @@ class MultiConditionDataProvider {
     /**
      * @brief Provides the number of conditions for which data is available and
      * simulations need to be run.
-     * This is determined from the dimensions of the hdf5MeasurementPath
-     * dataset.
      * @return Number of conditions
      */
-    virtual int getNumberOfConditions() const = 0;
+    virtual int getNumberOfSimulationConditions() const = 0;
 
     virtual std::vector<int> getSimulationToOptimizationParameterMapping(int conditionIdx) const = 0;
 
@@ -74,7 +72,8 @@ class MultiConditionDataProvider {
 
 class MultiConditionDataProviderDefault : public MultiConditionDataProvider {
   public:
-    MultiConditionDataProviderDefault(std::unique_ptr<amici::Model> model, std::unique_ptr<amici::Solver> solver);
+    MultiConditionDataProviderDefault(std::unique_ptr<amici::Model> model,
+                                      std::unique_ptr<amici::Solver> solver);
 
     virtual ~MultiConditionDataProviderDefault() override = default;
 
@@ -85,24 +84,32 @@ class MultiConditionDataProviderDefault : public MultiConditionDataProvider {
      * dataset.
      * @return Number of conditions
      */
-    virtual int getNumberOfConditions() const override;
+    virtual int getNumberOfSimulationConditions() const override;
 
-    virtual std::vector<int> getSimulationToOptimizationParameterMapping(int conditionIdx) const override;
+    virtual std::vector<int> getSimulationToOptimizationParameterMapping(
+            int conditionIdx) const override;
 
     virtual void mapSimulationToOptimizationVariablesAddMultiply(
-            int conditionIdx, gsl::span<double const> simulation, gsl::span<double> optimization, double coefficient = 1.0) const override;
+            int conditionIdx, gsl::span<double const> simulation,
+            gsl::span<double> optimization,
+            double coefficient = 1.0) const override;
 
     virtual void mapAndSetOptimizationToSimulationVariables(
-            int conditionIdx, gsl::span<double const> optimization, gsl::span<double> simulation) const override;
+            int conditionIdx, gsl::span<double const> optimization,
+            gsl::span<double> simulation) const override;
 
 
-    virtual amici::ParameterScaling getParameterScale(int optimizationParameterIndex) const override;
+    virtual amici::ParameterScaling getParameterScale(
+            int optimizationParameterIndex) const override;
 
 
-    virtual void updateSimulationParameters(int conditionIndex, gsl::span<const double> optimizationParams,
-        amici::Model &model) const override;
+    virtual void updateSimulationParameters(
+            int conditionIndex,
+            gsl::span<const double> optimizationParams,
+            amici::Model &model) const override;
 
-    virtual std::unique_ptr<amici::ExpData> getExperimentalDataForCondition(int conditionIdx) const override;
+    virtual std::unique_ptr<amici::ExpData> getExperimentalDataForCondition(
+            int conditionIdx) const override;
 
     virtual std::vector<std::vector<double> > getAllMeasurements() const override;
     virtual std::vector<std::vector<double> > getAllSigmas() const override;
@@ -176,17 +183,29 @@ class MultiConditionDataProviderHDF5 : public MultiConditionDataProvider {
 
     virtual ~MultiConditionDataProviderHDF5() override = default;
 
+    /**
+     * @brief
+     * @param hdf5Filename Filename from where to read data
+     */
+
     void openHdf5File(const std::string &hdf5Filename);
 
     /**
-     * @brief Provides the number of conditions for which data is available and
-     * simulations need to be run.
-     * This is determined from the dimensions of the hdf5MeasurementPath
-     * dataset.
+     * @brief Get the number of simulations required for objective function
+     * evaluation. Currently, this amounts to the number
+     * of conditions present in the data.
      * @return Number of conditions
      */
-    virtual int getNumberOfConditions() const override;
+    virtual int getNumberOfSimulationConditions() const override;
 
+    /**
+     * @brief Get index vector of length of model parameter with indices of
+     * optimization parameters for the given condition.
+     *
+     * NOTE: This may contain -1 for parameter which are not mapped.
+     * @param conditionIdx
+     * @return
+     */
     virtual std::vector<int> getSimulationToOptimizationParameterMapping(int conditionIdx) const override;
 
     virtual void mapSimulationToOptimizationVariablesAddMultiply(
@@ -214,8 +233,8 @@ class MultiConditionDataProviderHDF5 : public MultiConditionDataProvider {
     std::vector<std::vector<double> > getAllMeasurements() const override;
     std::vector<std::vector<double> > getAllSigmas() const override;
 
-    std::vector<double> getSigmaForConditionIndex(int conditionIdx) const;
-    std::vector<double> getMeasurementForConditionIndex(int conditionIdx) const;
+    std::vector<double> getSigmaForSimulationIndex(int simulationIdx) const;
+    std::vector<double> getMeasurementForSimulationIndex(int conditionIdx) const;
 
     /**
      * @brief getOptimizationParametersLowerBounds Get lower parameter bounds
@@ -291,6 +310,7 @@ protected:
     std::string hdf5ParameterMaxPath;
     std::string hdf5ParameterScalingPath;
     std::string hdf5SimulationToOptimizationParameterMappingPath;
+    std::string hdf5ParameterOverridesPath;
 
     /**
      * @brief HDF5 file handles for C++ and C API

@@ -43,8 +43,7 @@ public:
      */
     HierarchicalOptimizationWrapper(std::unique_ptr<AmiciSummedGradientFunction> fun,
                                    int numConditions = 0,
-                                   int numObservables = 0,
-                                   int numTimepoints = 0);
+                                   int numObservables = 0);
 
     /**
      * @brief Get information on analytically computed parameters from HDF5 file
@@ -53,7 +52,6 @@ public:
      * @param hdf5RootPath
      * @param numConditions
      * @param numObservables
-     * @param numTimepoints
      * @param errorModel
      */
     HierarchicalOptimizationWrapper(std::unique_ptr<AmiciSummedGradientFunction> fun,
@@ -61,7 +59,6 @@ public:
                                    const std::string &hdf5RootPath,
                                    int numConditions,
                                    int numObservables,
-                                   int numTimepoints,
                                    ErrorModel errorModel);
 
     /**
@@ -71,7 +68,6 @@ public:
      * @param offsetReader
      * @param numConditions
      * @param numObservables
-     * @param numTimepoints
      * @param errorModel
      */
     HierarchicalOptimizationWrapper(std::unique_ptr<AmiciSummedGradientFunction> fun,
@@ -80,7 +76,6 @@ public:
                                    std::unique_ptr<AnalyticalParameterProvider> sigmaReader,
                                    int numConditions,
                                    int numObservables,
-                                   int numTimepoints,
                                    ErrorModel errorModel);
 
     /**
@@ -223,8 +218,6 @@ private:
     int numConditions;
     /** Total number of observables occuring in `fun` */
     int numObservables;
-    /** Total number of timepoints used in `fun` */
-    int numTimepoints;
 
     /** Error model to use for computing analytical parameters and negative log-likelihood */
     ErrorModel errorModel = ErrorModel::normal;
@@ -472,32 +465,32 @@ double computeAnalyticalScalings(int scalingIdx,
                                  const std::vector<std::vector<double> > &modelOutputsUnscaled,
                                  const std::vector<std::vector<double> > &measurements,
                                  const AnalyticalParameterProvider &scalingReader,
-                                 int numObservables, int numTimepoints);
+                                 int numObservables);
 
 double computeAnalyticalOffsets(int offsetIdx,
                                 const std::vector<std::vector<double> > &modelOutputsUnscaled,
                                 const std::vector<std::vector<double> > &measurements,
                                 AnalyticalParameterProvider& offsetReader,
-                                int numObservables, int numTimepoints);
+                                int numObservables);
 
 double computeAnalyticalSigmas(int sigmaIdx,
                                const std::vector<std::vector<double> > &modelOutputsScaled,
                                const std::vector<std::vector<double> > &measurements,
                                const AnalyticalParameterProvider &sigmaReader,
-                               int numObservables, int numTimepoints,
+                               int numObservables,
                                double epsilonAbs = 1e-12, double epsilonRel = 0.01);
 
 void applyOptimalScaling(int scalingIdx, double scalingLin,
                          std::vector<std::vector<double> > &modelOutputs,
                          AnalyticalParameterProvider const& scalingReader,
-                         int numObservables, int numTimepoints);
+                         int numObservables);
 
 double getScaledParameter(double parameter, amici::ParameterScaling scale);
 
 void applyOptimalOffset(int offsetIdx, double offsetLin,
                         std::vector<std::vector<double> > &modelOutputs,
                         AnalyticalParameterProvider const& offsetReader,
-                        int numObservables, int numTimepoints);
+                        int numObservables);
 
 /**
  * @brief Assemble full parameter vector of wrapped problem from scaling parameters and numerically optimized parameters

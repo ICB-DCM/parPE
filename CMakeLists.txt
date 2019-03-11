@@ -13,6 +13,11 @@ set(CMAKE_DEBUG_POSTFIX "-dbg")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -Wall -Wno-unused-function -fopenmp -D_GNU_SOURCE") # -D_GNU_SOURCE for pthread recursive mutex issues
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wno-unused-function -fopenmp -D_GNU_SOURCE") # -D_GNU_SOURCE for pthread recursive mutex issues
 
+if(BUILD_PYTHON_MODULE)
+    # Build PIC code to be used for swig/python module
+    set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+endif()
+
 
 # <versioning>
 # Version number from git
@@ -31,6 +36,7 @@ split_version(${PARPE_VERSION} libname major minor patch)
 set(BUILD_TESTS TRUE CACHE BOOL "Build tests? (requires cppUTest)")
 set(BUILD_EXAMPLES TRUE CACHE BOOL "Build examples?")
 set(BUILD_DOCS FALSE CACHE BOOL "Generate documentation?")
+set(BUILD_PYTHON_MODULE FALSE CACHE BOOL "Build Python module?")
 set(BLAS "CBLAS" CACHE STRING "BLAS library to use")
 set_property(CACHE BLAS PROPERTY STRINGS "CBLAS" "MKL")
 set(PARPE_ENABLE_MPI TRUE CACHE BOOL "Use MPI?")
@@ -42,8 +48,9 @@ set(CERES_LIBRARIES "" CACHE STRINGS "CERES libraries")
 set(PARPE_ENABLE_IPOPT TRUE CACHE BOOL "Enable ipopt optimizer?")
 set(PARPE_ENABLE_CERES TRUE CACHE BOOL "Enable ceres optimizer?")
 set(PARPE_ENABLE_DLIB FALSE CACHE BOOL "Enable dlib optimizers?")
-set(PARPE_ENABLE_TOMS611 FALSE CACHE BOOL "Enable toms611 optimizers?")
-set(PARPE_ENABLE_FSQP FALSE CACHE BOOL "Enable FSQP optimizers?")
+set(PARPE_ENABLE_TOMS611 FALSE CACHE BOOL "Enable toms611 optimizer?")
+set(PARPE_ENABLE_FSQP FALSE CACHE BOOL "Enable FSQP optimizer?")
+set(PARPE_EXPORT_PACKAGE FALSE CACHE BOOL "Export this build to CMake registry?")
 
 # Enable MPI?
 if(${PARPE_ENABLE_MPI})
@@ -155,6 +162,7 @@ add_custom_target(cloc
     COMMENT "Counting lines of code"
     VERBATIM)
 
+add_subdirectory(templates)
 
 add_subdirectory(src)
 
@@ -166,8 +174,15 @@ if(${BUILD_EXAMPLES})
     add_subdirectory(examples)
 endif()
 
+if(BUILD_PYTHON_MODULE AND CMAKE_BUILD_TYPE MATCHES Debug)
+    # Only build swig/python module when we are in debug mode
+    # This requires PIC, but we don't want PIC for release build at the moment
+    add_subdirectory(python/swig)
+endif()
+
+
 # create single library
-add_library(${PROJECT_NAME} "")
+add_library(${PROJECT_NAME} /dev/null)
 target_link_libraries(${PROJECT_NAME} PUBLIC parpecommon parpeloadbalancer parpeoptimization parpeamici)
 
 
@@ -210,7 +225,9 @@ configure_file(CMakeModules/ParPEConfig.cmake.in
     )
 
 # Register package
-export(PACKAGE ParPE)
+if(${PARPE_EXPORT_PACKAGE})
+    export(PACKAGE ParPE)
+endif(${PARPE_EXPORT_PACKAGE})
 # </Export cmake configuration>
 
 # <Package configuration>

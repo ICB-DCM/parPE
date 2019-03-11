@@ -105,6 +105,34 @@ def concatenateStarts(a, b):
 def readSimulationsFromFile(filename):
     """
     Read result from simulations at final point from data file for all starts
+
+    Returns:
+        (measured, simulated, time, llh)[startString]
+            [nCondition][nTimepoints, nObservables]
+    """
+
+    sim = {}
+    mes = {}
+    llh = {}
+    time = {}
+
+    with h5py.File(filename, 'r') as f:
+        for ms in f['/multistarts']:
+            llh[ms] = f[f'/multistarts/{ms}/llh'][:]
+            mes[ms] = []
+            sim[ms] = []
+            time[ms] = []
+            for condition_idx in range(len(f[f'/multistarts/{ms}/t'])):
+                mes[ms].append(f[f'/multistarts/{ms}/yMes/{condition_idx}'][:])
+                sim[ms].append(f[f'/multistarts/{ms}/ySim/{condition_idx}'][:])
+                time[ms].append(f[f'/multistarts/{ms}/t/{condition_idx}'][:])
+
+    return mes, sim, time, llh
+
+
+def readSimulationsFromFileLegacy(filename):
+    """
+    Read result from simulations at final point from data file for all starts
     Returns:
     (measure, simulated)[startString][nCondition, nTimepoints, nObservables]
     """
@@ -148,8 +176,51 @@ def getFinalCostFromSummary(filename):
     return finalCost
 
 
-def getCorrTable(simulationResults, minimum_number_datapoints=0):
+def getCorrTable(mes, sim, minimum_number_datapoints=0):
     """Generate correlation table by observable
+
+    Arguments:
+        simulationResults: simulationResults as obtained from
+        parpe.readSimulationsFromFile
+
+    Returns:
+        ndarray with correlations of measurement and simulation for
+        each start and observables in simulationResults
+    """
+
+    numStarts = len(mes)
+    numCond = len(list(mes.values())[0])
+    numObs = list(mes.values())[0][0].shape[1]
+
+    corr = np.full((numStarts, numObs), np.nan)
+    for ims, ms in enumerate(mes):
+        ymes = None
+        ysim = None
+
+        for icond in range(numCond):
+            if ymes is None:
+                ymes = mes[ms][icond]
+                ysim = sim[ms][icond]
+            else:
+                ymes = np.append(ymes, mes[ms][icond], axis=0)
+                ysim = np.append(ysim, sim[ms][icond], axis=0)
+
+        for iobservable in range(numObs):
+            if np.sum(np.isfinite(
+                    ymes[:, iobservable])) < minimum_number_datapoints:
+                corr[ims, iobservable] = np.nan
+                continue
+
+            corr[ims, iobservable] = correlation_coefficient(
+                ymes[:, iobservable], ysim[:, iobservable])
+
+    return corr
+
+
+def getCorrTableLegacy(simulationResults, minimum_number_datapoints=0):
+    """Generate correlation table by observable
+
+    Old data format
 
     Arguments:
         simulationResults: simulationResults as obtained from
