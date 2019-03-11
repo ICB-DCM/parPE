@@ -45,7 +45,7 @@ MultiConditionProblem::MultiConditionProblem(
 {
     this->logger = std::move(logger);
     // run on all data
-    std::vector<int> dataIndices(dataProvider->getNumberOfConditions());
+    std::vector<int> dataIndices(dataProvider->getNumberOfSimulationConditions());
     std::iota(dataIndices.begin(), dataIndices.end(), 0);
 
     costFun = std::make_unique<
@@ -133,7 +133,7 @@ std::unique_ptr<OptimizationReporter> MultiConditionProblem::getReporter() const
 
 std::vector<int> MultiConditionProblem::getTrainingData() const
 {
-    std::vector<int> dataIndices(dataProvider->getNumberOfConditions());
+    std::vector<int> dataIndices(dataProvider->getNumberOfSimulationConditions());
     std::iota(dataIndices.begin(), dataIndices.end(), 0);
     return dataIndices;
 }
@@ -172,8 +172,9 @@ std::unique_ptr<OptimizationProblem> MultiConditionProblemMultiStartOptimization
                     std::make_unique<OptimizationResultWriter>(*resultWriter));
         problem->getResultWriter()->setRootPath("/multistarts/" + std::to_string(multiStartIndex));
     } else {
-        problem = std::make_unique<MultiConditionProblem>(dp, loadBalancer,
-                                                          logger->getChild(std::string("o") + std::to_string(multiStartIndex)), nullptr);
+        problem = std::make_unique<MultiConditionProblem>(
+                    dp, loadBalancer,
+                    logger->getChild(std::string("o") + std::to_string(multiStartIndex)), nullptr);
     }
     problem->setOptimizationOptions(options);
     problem->setInitialParameters(parpe::OptimizationOptions::getStartingPoint(dp->getHdf5FileId(), multiStartIndex));
@@ -315,7 +316,9 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
              * the error occurred
              */
             bool forwardFailed = std::isnan(rdata->x[rdata->x.size() - 1]);
-            bool backwardFailed = std::isnan(rdata->llh);
+            bool backwardFailed = solver->getSensitivityOrder() >= amici::SensitivityOrder::first
+                    && solver->getSensitivityMethod() == amici::SensitivityMethod::adjoint
+                    && !rdata->sllh.empty() && std::isnan(rdata->sllh[0]);
 
             // relax respective tolerances
             if(forwardFailed) {
@@ -406,7 +409,7 @@ FunctionEvaluationStatus getModelOutputs(
 {
     int errors = 0;
 
-    std::vector<int> dataIndices(dataProvider->getNumberOfConditions());
+    std::vector<int> dataIndices(dataProvider->getNumberOfSimulationConditions());
     std::iota(dataIndices.begin(), dataIndices.end(), 0);
 
     modelOutput.resize(dataIndices.size());
@@ -495,7 +498,10 @@ void messageHandler(MultiConditionDataProvider *dataProvider,
     buffer = amici::serializeToStdVec(results);
 }
 
-AmiciSummedGradientFunction::AmiciSummedGradientFunction(MultiConditionDataProvider *dataProvider, LoadBalancerMaster *loadBalancer, OptimizationResultWriter *resultWriter)
+AmiciSummedGradientFunction::AmiciSummedGradientFunction(
+        MultiConditionDataProvider *dataProvider,
+        LoadBalancerMaster *loadBalancer,
+        OptimizationResultWriter *resultWriter)
     : dataProvider(dataProvider),
       loadBalancer(loadBalancer),
       model(dataProvider->getModel()),
@@ -517,14 +523,20 @@ AmiciSummedGradientFunction::AmiciSummedGradientFunction(MultiConditionDataProvi
     }
 }
 
-FunctionEvaluationStatus AmiciSummedGradientFunction::evaluate(gsl::span<const double> parameters, int dataset, double &fval, gsl::span<double> gradient, Logger *logger, double *cpuTime) const
+FunctionEvaluationStatus AmiciSummedGradientFunction::evaluate(
+        gsl::span<const double> parameters, int dataset,
+        double &fval, gsl::span<double> gradient, Logger *logger,
+        double *cpuTime) const
 {
     std::vector<int> datasets(1);
     datasets.at(0) = dataset;
     return evaluate(parameters, datasets, fval, gradient, logger, cpuTime);
 }
 
-FunctionEvaluationStatus AmiciSummedGradientFunction::evaluate(gsl::span<const double> parameters, std::vector<int> datasets, double &fval, gsl::span<double> gradient, Logger *logger, double *cpuTime) const
+FunctionEvaluationStatus AmiciSummedGradientFunction::evaluate(
+        gsl::span<const double> parameters, std::vector<int> datasets,
+        double &fval, gsl::span<double> gradient, Logger *logger,
+        double *cpuTime) const
 {
 #ifdef NO_OBJ_FUN_EVAL
     if (objectiveFunctionGradient)
@@ -556,7 +568,10 @@ int AmiciSummedGradientFunction::numParameters() const
     return dataProvider->getNumOptimizationParameters();
 }
 
-FunctionEvaluationStatus AmiciSummedGradientFunction::getModelOutputs(gsl::span<const double> parameters, std::vector<std::vector<double> > &modelOutput, Logger *logger, double *cpuTime) const
+FunctionEvaluationStatus AmiciSummedGradientFunction::getModelOutputs(
+        gsl::span<const double> parameters,
+        std::vector<std::vector<double> > &modelOutput,
+        Logger *logger, double *cpuTime) const
 {
     return parpe::getModelOutputs(dataProvider, loadBalancer,
                                   maxSimulationsPerPackage, resultWriter,
@@ -585,7 +600,10 @@ amici::ParameterScaling AmiciSummedGradientFunction::getParameterScaling(int par
     return dataProvider->getParameterScale(parameterIndex);
 }
 
-int AmiciSummedGradientFunction::runSimulations(gsl::span<const double> optimizationParameters, double &nllh, gsl::span<double> objectiveFunctionGradient, std::vector<int> dataIndices, Logger *logger, double *cpuTime) const {
+int AmiciSummedGradientFunction::runSimulations(
+        gsl::span<const double> optimizationParameters,
+        double &nllh, gsl::span<double> objectiveFunctionGradient,
+        std::vector<int> dataIndices, Logger *logger, double *cpuTime) const {
 
     int errors = 0;
 
@@ -662,7 +680,9 @@ int AmiciSummedGradientFunction::aggregateLikelihood(JobData &data, double &negL
     return errors;
 }
 
-void AmiciSummedGradientFunction::addSimulationGradientToObjectiveFunctionGradient(int conditionIdx, gsl::span<const double> simulationGradient, gsl::span<double> objectiveFunctionGradient) const {
+void AmiciSummedGradientFunction::addSimulationGradientToObjectiveFunctionGradient(
+        int conditionIdx, gsl::span<const double> simulationGradient,
+        gsl::span<double> objectiveFunctionGradient) const {
     dataProvider->mapSimulationToOptimizationVariablesAddMultiply(
                 conditionIdx, simulationGradient,
                 objectiveFunctionGradient, -1.0);

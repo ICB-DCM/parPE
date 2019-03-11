@@ -180,10 +180,11 @@ TEST(hierarchicalOptimization, hierarchicalOptimization) {
     auto sigmaReaderUnique = std::make_unique<parpe::AnalyticalParameterHdf5Reader>(H5::H5File(TESTFILE, H5F_ACC_RDONLY),
                                                                                      "/sigmaParameterIndices",
                                                                                      "/sigmaParametersMapToObservables");
-    parpe::HierarchicalOptimizationWrapper hierarchicalOptimizationWrapper(std::move(funUnqiue),
-                                            std::move(scalingReaderUnique), std::move(offsetReaderUnique), std::move(sigmaReaderUnique),
-                                            fun->numConditions, fun->numObservables, fun->numTimepoints,
-                                            parpe::ErrorModel::normal);
+    parpe::HierarchicalOptimizationWrapper hierarchicalOptimizationWrapper(
+                std::move(funUnqiue),
+                std::move(scalingReaderUnique), std::move(offsetReaderUnique), std::move(sigmaReaderUnique),
+                fun->numConditions, fun->numObservables,
+                parpe::ErrorModel::normal);
 
     CHECK_TRUE(hierarchicalOptimizationWrapper.numProportionalityFactors() == 2);
 
@@ -203,13 +204,14 @@ TEST(hierarchicalOptimization, hierarchicalOptimization) {
     auto outputs = hierarchicalOptimizationWrapper.getUnscaledModelOutputs(gsl::make_span(reducedParameters.data(), reducedParameters.size()), nullptr, nullptr);
     CHECK_TRUE(onesFullParameters == fun->lastParameters);
 
-    auto s = parpe::getScaledParameter(parpe::computeAnalyticalScalings(0,
-                                                                        outputs, fun->measurements,
-                                                                        *scalingReader, fun->numObservables, fun->numTimepoints),
-                                       amici::ParameterScaling::log10);
+    auto s = parpe::getScaledParameter(
+                parpe::computeAnalyticalScalings(0,
+                                                 outputs, fun->measurements,
+                                                 *scalingReader, fun->numObservables),
+                amici::ParameterScaling::log10);
     CHECK_EQUAL(log10(2.0), s);
 
-    applyOptimalScaling(0, 2.0, outputs, *scalingReader, fun->numObservables, fun->numTimepoints);
+    applyOptimalScaling(0, 2.0, outputs, *scalingReader, fun->numObservables);
     // output has to be equal to measurement for all points scaled with this parameter
     CHECK_TRUE(outputs[1][0] == fun->measurements[1][0]);
     CHECK_TRUE(outputs[1][3] == fun->measurements[1][3]);
@@ -248,7 +250,7 @@ TEST(hierarchicalOptimization, testNoAnalyticalParameters) {
 
     parpe::HierarchicalOptimizationWrapper w(std::move(fun),
                                             std::move(scalingProvider), std::move(offsetProvider), std::move(sigmaProvider),
-                                            fun2->numConditions, fun2->numObservables, fun2->numTimepoints,
+                                            fun2->numConditions, fun2->numObservables,
                                             parpe::ErrorModel::normal);
 
 
@@ -286,7 +288,7 @@ TEST(hierarchicalOptimization, testComputeAnalyticalScalings) {
 
     auto scaling = parpe::getScaledParameter(parpe::computeAnalyticalScalings(scalingIdx,
                                                     modelOutputsUnscaled, measurements,
-                                                    scalingProvider, numObservables, numTimepoints),
+                                                    scalingProvider, numObservables),
                                              amici::ParameterScaling::none);
     CHECK_EQUAL(10.0, scaling);
 
@@ -298,7 +300,7 @@ TEST(hierarchicalOptimization, testComputeAnalyticalScalings) {
 
     scaling = parpe::getScaledParameter(parpe::computeAnalyticalScalings(scalingIdx,
                                                modelOutputsUnscaled, measurements,
-                                               scalingProvider, numObservables, numTimepoints),
+                                               scalingProvider, numObservables),
                                         amici::ParameterScaling::log10);
     CHECK_EQUAL(1.0, scaling);
 
@@ -312,7 +314,7 @@ TEST(hierarchicalOptimization, testComputeAnalyticalScalings) {
 
     scaling = parpe::getScaledParameter(parpe::computeAnalyticalScalings(scalingIdx,
                                                modelOutputsUnscaled, measurements,
-                                               scalingProvider, numObservables, numTimepoints),
+                                               scalingProvider, numObservables),
                                         amici::ParameterScaling::log10);
     CHECK_EQUAL(1.0, scaling);
 
@@ -345,7 +347,7 @@ TEST(hierarchicalOptimization, testComputeAnalyticalOffsets) {
 
     auto offset = parpe::getScaledParameter(parpe::computeAnalyticalOffsets(scalingIdx,
                                                   modelOutputsUnscaled, measurements,
-                                                  scalingProvider, numObservables, numTimepoints),
+                                                  scalingProvider, numObservables),
                                             amici::ParameterScaling::none);
     CHECK_EQUAL(10.0, offset);
 
@@ -357,7 +359,7 @@ TEST(hierarchicalOptimization, testComputeAnalyticalOffsets) {
 
     offset = parpe::getScaledParameter(parpe::computeAnalyticalOffsets(scalingIdx,
                                              modelOutputsUnscaled, measurements,
-                                             scalingProvider, numObservables, numTimepoints),
+                                             scalingProvider, numObservables),
                                        amici::ParameterScaling::log10);
     CHECK_EQUAL(1.0, offset);
 }
@@ -383,7 +385,7 @@ TEST(hierarchicalOptimization, applyOptimalScaling) {
             .withIntParameter("parameterIndex", 0).withIntParameter("conditionIdx", 0);
 
     parpe::applyOptimalScaling(scalingIdx, scaling, modelOutputs,
-                               scalingProvider, numObservables, numTimepoints);
+                               scalingProvider, numObservables);
 
     CHECK_TRUE(modelOutputsScaledExpected == modelOutputs);
 }
@@ -411,7 +413,7 @@ TEST(hierarchicalOptimization, applyOptimalOffset) {
             .withIntParameter("parameterIndex", 0).withIntParameter("conditionIdx", 0);
 
     parpe::applyOptimalOffset(offsetIdx, offset, modelOutputs,
-                              offsetProvider, numObservables, numTimepoints);
+                              offsetProvider, numObservables);
 
     CHECK_TRUE(modelOutputsScaledExpected == modelOutputs);
 }
@@ -503,9 +505,11 @@ TEST(hierarchicalOptimization, testWrappedFunIsCalledWithGradient) {
     // for offsets and proportionality factors and sigmas
     mock().expectNCalls(3, "AnalyticalParameterProviderMock::getOptimizationParameterIndices");
 
-    parpe::HierarchicalOptimizationWrapper hierarchicalWrapper(std::move(fun), std::move(scalingProvider), std::move(offsetProvider), std::move(sigmaProvider),
-                                            funNonOwning->numConditions, funNonOwning->numObservables, funNonOwning->numTimepoints,
-                                            parpe::ErrorModel::normal);
+    parpe::HierarchicalOptimizationWrapper hierarchicalWrapper(
+                std::move(fun), std::move(scalingProvider),
+                std::move(offsetProvider), std::move(sigmaProvider),
+                funNonOwning->numConditions, funNonOwning->numObservables,
+                parpe::ErrorModel::normal);
 
     const std::vector<double> parameters { 1.0, 2.0, 3.0, /*4.0*/ };
     CHECK_EQUAL((unsigned) hierarchicalWrapper.numParameters(), parameters.size());

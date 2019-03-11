@@ -13,7 +13,7 @@ def plotCostTrajectory(costTrajectory,
     costTrajectory: ndarray(numIterations x numStarts): cost over iterations for all optimizations
 
     Returns:
-
+        ax
     """
 
     if ax is None:
@@ -89,7 +89,43 @@ def plotCorrelations(ymes, ysim):
                         title='Observable %d' % iy)
 
 
-def plotCorrelation(ymes, ysim, title=None, alpha=1.0, legend=False,
+def plotCorrelation(ymes, ysim, observable_idx=None, title=None, alpha=1.0, legend=False,
+                    square=True, ax=None):
+    """
+    Plot correlation of measured and simulated data
+
+    Arguments:
+    ----------
+    ymes: @type numpy.ndarray
+        measured values n_condition x nt
+    ysim: @type numpy.ndarray
+        simulated values n_condition x nt
+    """
+    if ax is None:
+        ax = plt.subplots()[1]
+
+    for icondition in range(len(ysim)):
+        x = ymes[icondition][:, observable_idx]
+        y = ysim[icondition][:, observable_idx]
+        #x, y = flatten_filter_nan(x, y)
+        r = correlation_coefficient(x, y)
+        ax.scatter(x, y, label='Condition %d, r=%.3f' % (icondition, r), alpha=alpha)
+
+    ax.set_xlabel('measurement (AU)')
+    ax.set_ylabel('simulation (AU)')
+
+    if square:
+        square_plot_equal_ranges(ax)
+
+    if title:
+        ax.set_title(title)
+    if legend:
+        ax.legend()
+
+    return ax
+
+
+def plotCorrelationOld(ymes, ysim, title=None, alpha=1.0, legend=False,
                     square=True, ax=None):
     """
     Plot correlation of measured and simulated data
