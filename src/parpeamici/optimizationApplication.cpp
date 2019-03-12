@@ -295,8 +295,8 @@ std::string OptimizationApplication::processResultFilenameCommandLineArgument(
         const char *commandLineArg) {
     std::size_t bufSize = 1024;
     char tmpFileName[bufSize];
-    snprintf(tmpFileName, bufSize, "%s_rank%05d.h5", commandLineArg,
-             getMpiRank());
+    int rank = std::max(getMpiRank(), 0);
+    snprintf(tmpFileName, bufSize, "%s_rank%05d.h5", commandLineArg, rank);
     return tmpFileName;
 
     /*
