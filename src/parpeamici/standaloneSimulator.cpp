@@ -78,11 +78,11 @@ int StandaloneSimulator::run(const std::string& resultFile,
         auto wrappedFun = std::make_unique<AmiciSummedGradientFunction>(dataProvider, loadBalancer, nullptr);
 
         hierarchical = HierarchicalOptimizationWrapper(std::move(wrappedFun),
-                                                std::move(hierarchicalScalingReader),
-                                                std::move(hierarchicalOffsetReader),
-                                                std::move(hierarchicalSigmaReader),
-                                                dataProvider->getNumberOfSimulationConditions(), model->nytrue,
-                                                ErrorModel::normal);
+                                                       std::move(hierarchicalScalingReader),
+                                                       std::move(hierarchicalOffsetReader),
+                                                       std::move(hierarchicalSigmaReader),
+                                                       dataProvider->getNumberOfSimulationConditions(), model->nytrue,
+                                                       ErrorModel::normal);
         std::cout<<"Need to compute analytical parameters: "<<conditionFilePath<<"  "<<proportionalityFactorIndices.size()<<" parameters.size() == "<<parameters.size()<<" ; hierarchical.numParameters() == "<<hierarchical.numParameters()<<std::endl;
         RELEASE_ASSERT(parameters.size() == (unsigned) hierarchical.numParameters(), "");
 
@@ -249,7 +249,7 @@ void StandaloneSimulator::messageHandler(std::vector<char> &buffer, int  /*jobId
 
 
 AmiciSimulationRunner::AmiciResultPackageSimple StandaloneSimulator::runSimulation(int conditionIdx,
-                                                            amici::Solver& solver, amici::Model& model)
+                                                                                   amici::Solver& solver, amici::Model& model)
 {
     // currently requires edata, since all condition specific parameters are set via edata
     auto edata = dataProvider->getExperimentalDataForCondition(conditionIdx);
@@ -450,19 +450,24 @@ int runAlongTrajectory(StandaloneSimulator &sim,
 
     int errors = 0;
 
-    for(int i = 0; i < getNumStarts(parameterFile); ++i) {
+    for(int startIdx = 0; startIdx < getNumStarts(parameterFile); ++startIdx) {
         try {
-            auto parameters = getParameterTrajectory(std::to_string(i), parameterFile);
+            auto parameters = getParameterTrajectory(std::to_string(startIdx),
+                                                     parameterFile);
 
             for(int iter = 0; (unsigned) iter < parameters.size(); ++iter) {
-                std::cout<<"Running for start "<<i<<" iter "<<iter<<std::endl;
-                std::string curResultPath = resultPath + "/multistarts/" + std::to_string(i) + "/iter/" + std::to_string(iter);
+                std::cout<<"Running for start "<<startIdx
+                        <<" iter "<<iter<<std::endl;
+                std::string curResultPath = resultPath
+                        + "/multistarts/" + std::to_string(startIdx)
+                        + "/iter/" + std::to_string(iter);
 
                 auto lock = hdf5MutexGetLock();
                 H5::H5File conditionFile = hdf5OpenForReading(conditionFileName);
                 lock.unlock();
 
-                auto outerParameters = getOuterParameters(parameters[iter], parameterFile, parameterFilePath);
+                auto outerParameters = getOuterParameters(
+                            parameters[iter], parameterFile, parameterFilePath);
 
                 errors += sim.run(resultFileName, curResultPath,
                                   outerParameters, loadBalancer,
@@ -550,15 +555,18 @@ std::vector<double> getOuterParameters(const std::vector<double> &fullParameters
                                        const std::string &parameterPath)
 {
     //auto options = OptimizationOptions::fromHDF5(parameterFile.getId(), parameterPath + "/optimizationOptions");
-    AnalyticalParameterHdf5Reader hierarchicalScalingReader(parameterFile,
-                                                            parameterPath + "/inputData/scalingParameterIndices",
-                                                            parameterPath + "/inputData/scalingParametersMapToObservables");
-    AnalyticalParameterHdf5Reader hierarchicalOffsetReader(parameterFile,
-                                                           parameterPath + "/inputData/offsetParameterIndices",
-                                                           parameterPath + "/inputData/offsetParametersMapToObservables");
-    AnalyticalParameterHdf5Reader hierarchicalSigmaReader(parameterFile,
-                                                          parameterPath + "/inputData/sigmaParameterIndices",
-                                                          parameterPath + "/inputData/sigmaParametersMapToObservables");
+    AnalyticalParameterHdf5Reader hierarchicalScalingReader(
+                parameterFile,
+                parameterPath + "/inputData/scalingParameterIndices",
+                parameterPath + "/inputData/scalingParametersMapToObservables");
+    AnalyticalParameterHdf5Reader hierarchicalOffsetReader(
+                parameterFile,
+                parameterPath + "/inputData/offsetParameterIndices",
+                parameterPath + "/inputData/offsetParametersMapToObservables");
+    AnalyticalParameterHdf5Reader hierarchicalSigmaReader(
+                parameterFile,
+                parameterPath + "/inputData/sigmaParameterIndices",
+                parameterPath + "/inputData/sigmaParametersMapToObservables");
 
     auto proportionalityFactorIndices = hierarchicalScalingReader.getOptimizationParameterIndices();
     auto offsetParameterIndices = hierarchicalOffsetReader.getOptimizationParameterIndices();

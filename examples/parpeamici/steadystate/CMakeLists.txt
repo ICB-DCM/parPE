@@ -112,10 +112,8 @@ install(TARGETS ${PROJECT_NAME} EXPORT ParPETargets
 
 if(${BUILD_TESTS} AND ${PARPE_ENABLE_MPI})
     add_test (NAME ${PROJECT_NAME}
-        COMMAND ${TESTS_MPIEXEC_COMMAND} ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME} -o ${PROJECT_NAME}-testresults ${SOURCE_DIR}/example_data.h5
-        )
-    add_test (NAME ${PROJECT_NAME}_gradient_check
-        COMMAND ${TESTS_MPIEXEC_COMMAND} ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME} -t gradient_check -o ${PROJECT_NAME}-testresults ${SOURCE_DIR}/example_data.h5
+        COMMAND ${CMAKE_CURRENT_LIST_DIR}/run-examples.sh
+        ${SOURCE_DIR}/example_data.h5
         )
 endif()
 # /example_steadystate_multi executable
