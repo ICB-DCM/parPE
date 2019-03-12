@@ -3,48 +3,60 @@
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/1f1ee5a0d90d431499f200a148fb7fdc)](https://www.codacy.com?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=ICB-DCM/parPE&amp;utm_campaign=Badge_Grade)
 # parPE
 
-The *parPE* library provides functionality for solving large-scale parameter optimization
-problems requiring thousands of simulations per objective function evaluation on HPC systems.
+The *parPE* library provides functionality for solving large-scale parameter
+optimization problems requiring up to thousands of simulations per objective
+function evaluation on HPC systems.
 
 Currently, parPE provides interfaces to the
-[IpOpt](http://www.coin-or.org/Ipopt/),
+[Ipopt](http://www.coin-or.org/Ipopt/),
 [Ceres](http://ceres-solver.org/),
 [FFSQP](https://www.isr.umd.edu/news/news_story.php?id=4088) and
 [SUMSL (CALGO/TOMS 611)](http://www.netlib.org/toms/index.html)
 optimizers. parPE offers easy integration with
-[AMICI](https://github.com/ICB-DCM/AMICI)-generated ordinary differential equation (ODE) models.
+[AMICI](https://github.com/ICB-DCM/AMICI)-generated ordinary differential
+equation (ODE) models.
 
 ## Features
 
 parPE offers the following features:
 
 * MPI-based load-balancing of individual simulations
-* improved load balancing by intermingling multiple optimization runs (multi-start local optimization)
-* simple integration with SBML models via AMICI
+* improved load balancing by intermingling multiple optimization runs
+  (multi-start local optimization)
+* simple integration with [SBML](http://sbml.org/) models via
+  [AMICI](https://github.com/ICB-DCM/AMICI) and
+  [PEtab](https://github.com/ICB-DCM/PEtab)
 * interfaces to Ipopt and Ceres optimizers
 * HDF5 I/O compatible with a wide variety of programming languages
-* Good parallel scaling to up to several thousand cores (highly problem dependent)
+* Good parallel scaling to up to several thousand cores
+  (highly problem dependent)
 
 ## Dependencies
 
 For full functionality, parPE requires the following libraries:
 
-* CMAKE (>=3.0)
-* MPI
+* CMAKE (>=3.6)
+* MPI ([OpenMPI](https://www.open-mpi.org/),
+  [MPICH](https://www.mpich.org/), ...)
 * PTHREADS
 * IPOPT (>= 1.2.7) (requires coinhsl)
-* CERES (>=1.13) ([requires Eigen](http://ceres-solver.org/installation.html#dependencies))
+* CERES (>=1.13)
+  ([requires Eigen](http://ceres-solver.org/installation.html#dependencies))
 * HDF5 (>= 1.10)
 * CBLAS compatible BLAS (libcblas, Intel MKL, ...)
-* [AMICI](https://github.com/ICB-DCM/AMICI) (included in this repository) (uses SuiteSparse, Sundials)
+* [AMICI](https://github.com/ICB-DCM/AMICI) (included in this repository)
+  (uses SuiteSparse, Sundials)
+* C++14 compiler
 
 On Debian-based systems, dependencies can be installed via:
 ```
-sudo apt-get install build-essential gfortran libmpich-dev libblas-dev libhdf5-dev cmake \
-    libceres-dev coinor-libipopt-dev libcpputest-dev libboost-serialization-dev
+sudo apt-get install build-essential gfortran libmpich-dev libblas-dev \
+    libhdf5-dev cmake libceres-dev coinor-libipopt-dev libcpputest-dev \
+    libboost-serialization-dev
 ```
 
-Scripts to fetch and build the remaining dependencies are provided in `/ThirdParty/` :
+Scripts to fetch and build the remaining dependencies are provided in
+`/ThirdParty/`:
 
 ```
 cd ThirdParty
@@ -62,21 +74,22 @@ After having taken care of the dependencies listed above, parPE can be built:
 
 Other sample build scripts are provided as `/build*.sh`.
 
-## Tested compilers
+## Recently tested compilers
 
-* GCC 7.2.0 (IpOpt 1.2.9 requires libgfortran.so.4)
-* Intel 16.0.4
+* GCC 8.3.0
+* Intel icpc (ICC) 17.0.6
 
 
 ## Documentation & further information
 
-No extensive full-text documentation is available yet. See `*/examples` and `*/tests` for usage examples.
-Little documentation is available in `doc` and among github issues.
+No extensive full-text documentation is available yet. See `*/examples` and
+`*/tests` for usage examples. Some additional documentation is available
+in `doc/` and among [Github issues](https://github.com/ICB-DCM/parPE/issues).
 
 ## FAQ
 
 Q: The program is killed due to memory exhaustion, what should I do?
 
-A: When running with MPI, the master process (rank 0) is consuming more memory than the others.
-Consider reserving more memory for this one. For LoadLeveler, this can be done conveniently via
-`#@ first_node_tasks`.
+A: When running with MPI, the master process (rank 0) is consuming more memory
+than the others. Consider reserving more memory for this one. For LoadLeveler,
+this can be done conveniently via `#@ first_node_tasks`.
