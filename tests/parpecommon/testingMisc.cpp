@@ -69,7 +69,8 @@ std::string captureStreamToString(const std::function<void()>& f, std::FILE* cap
     // use fmemopen instead of file?
 
     char tempFileName[TMP_MAX];
-    std::tmpnam(tempFileName);
+    if(!std::tmpnam(tempFileName))
+        std::abort();
 
     int newStreamFd = open(tempFileName, O_CREAT | O_WRONLY, S_IRWXU);
     assert(newStreamFd >= 0);

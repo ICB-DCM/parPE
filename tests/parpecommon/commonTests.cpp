@@ -107,14 +107,16 @@ TEST(commonMisc, testCreateDirectoryIfNotExists) {
     parpe::createDirectoryIfNotExists(dir);
 
     char tmpName[TMP_MAX];
-    std::tmpnam(tmpName);
+    if(!std::tmpnam(tmpName))
+        std::abort();
     parpe::createDirectoryIfNotExists(tmpName);
     rmdir(tmpName);
 }
 
 TEST(commonMisc, testRecursiveMkpath) {
     char tmpName[TMP_MAX];
-    std::tmpnam(tmpName);
+    if(!std::tmpnam(tmpName))
+        std::abort();
     std::string name(tmpName);
     name += "/a/b/c";
     parpe::mkpathConstChar(name.c_str(), 0755);

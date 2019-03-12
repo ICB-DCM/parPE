@@ -114,7 +114,8 @@ TEST(optimizationOptions, setCeresOptions) {
 
 TEST(optimizationOptions, fromHDF5) {
     char tmpName[TMP_MAX];
-    std::tmpnam(tmpName);
+    if(!std::tmpnam(tmpName))
+        std::abort();
 
     // TODO: hide hdf5 errors
 //    parpe::captureStreamToString([tmpName](){

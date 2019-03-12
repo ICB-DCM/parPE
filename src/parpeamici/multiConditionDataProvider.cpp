@@ -343,11 +343,11 @@ hid_t MultiConditionDataProviderHDF5::getHdf5FileId() const { return file.getId(
 
 
 void MultiConditionDataProviderHDF5::checkDataIntegrity() const {
-    int numConditions = getNumberOfSimulationConditions();
+    //int numConditions = getNumberOfSimulationConditions();
 
     auto model = getModel();
 
-    int d1, d2, d3;
+    int d1, d2;//, d3;
 
     auto lock = hdf5MutexGetLock();
 

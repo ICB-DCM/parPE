@@ -30,7 +30,8 @@ TEST_GROUP(simulationResultWriter){
 TEST(simulationResultWriter, testResultWriter) {
     // setup ResultWriter
     char tmpName[TMP_MAX];
-    std::tmpnam(tmpName);
+    if(!std::tmpnam(tmpName))
+        std::abort();
     parpe::SimulationResultWriter rw(tmpName, "/testResultWriter/");
 
     rw.saveLlh = true;
@@ -83,7 +84,8 @@ TEST(simulationResultWriter, testResultWriter) {
 
 TEST(simulationResultWriter, testResultWriterNewExistingFile) {
     char tmpName[TMP_MAX];
-    std::tmpnam(tmpName);
+    if(!std::tmpnam(tmpName))
+        std::abort();
 
     // create file
     parpe::SimulationResultWriter rw1(tmpName, "/testResultWriter/");
