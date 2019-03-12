@@ -11,7 +11,7 @@ void printAmiciErrMsgIdAndTxt(const char *identifier, const char *format, ...) {
     }
 
     va_list argptr;
-    va_start(argptr, format); // NOLINT(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+    va_start(argptr, format); // NOLINT(cppcoreguidelines-pro-bounds-array-to-pointer-decay, cppcoreguidelines-pro-type-vararg)
     logmessage(LOGLVL_ERROR, ss.str().c_str(), argptr);
     va_end(argptr); // NOLINT(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 }
@@ -23,7 +23,7 @@ void printAmiciWarnMsgIdAndTxt(const char *identifier, const char *format, ...) 
     }
 
     va_list argptr;
-    va_start(argptr, format); // NOLINT(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+    va_start(argptr, format); // NOLINT(cppcoreguidelines-pro-bounds-array-to-pointer-decay, cppcoreguidelines-pro-type-vararg)
     logmessage(LOGLVL_WARNING, ss.str().c_str(), argptr);
     va_end(argptr); // NOLINT(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 }

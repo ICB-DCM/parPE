@@ -69,7 +69,7 @@ void ExampleSteadystateGradientFunction::setupUserData(int conditionIdx) {
 }
 
 void ExampleSteadystateGradientFunction::setupExpData(int conditionIdx) {
-    edata.reset(new amici::ExpData(*model));
+    edata = std::make_unique<amici::ExpData>(*model);
     readMeasurement(conditionIdx);
 }
 
@@ -98,7 +98,7 @@ ExampleSteadystateGradientFunction::ExampleSteadystateGradientFunction(hid_t fil
     setupExpData(0);
 }
 
-parpe::FunctionEvaluationStatus ExampleSteadystateGradientFunction::evaluate(gsl::span<const double> parameters, double &fval, gsl::span<double> gradient, parpe::Logger *logger, double *cpuTime) const
+parpe::FunctionEvaluationStatus ExampleSteadystateGradientFunction::evaluate(gsl::span<const double> parameters, double &fval, gsl::span<double> gradient, parpe::Logger * /*logger*/, double * /*cpuTime*/) const
 {
 
     model->setParameters(std::vector<double>(parameters.begin(), parameters.end()));

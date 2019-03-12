@@ -951,7 +951,8 @@ double computeAnalyticalSigmas(
         int numTimepoints = measurements[conditionIdx].size() / numObservables;
         for(auto const observableIdx: dependentObservables) {
             if(observableIdx >= numObservables) {
-                throw ParPEException("computeAnalyticalSigmas: Invalid observableIdx >= numObservables.");
+                throw ParPEException("computeAnalyticalSigmas: Invalid "
+                                     "observableIdx >= numObservables.");
             }
 
             for(int timeIdx = 0; timeIdx < numTimepoints; ++timeIdx) {
@@ -1023,10 +1024,12 @@ double getScaledParameter(double parameter, amici::ParameterScaling scale) {
         return parameter;
     case amici::ParameterScaling::log10:
         if(parameter < 0.0)
-            throw(ParPEException("getScaledParameter: Can't take log of negative value."));
+            throw(ParPEException("getScaledParameter: "
+                                 "Can't take log of negative value."));
         return log10(parameter);
     default:
-        throw(ParPEException("Parameter scaling must be ParameterScaling::none or ParameterScaling::log10."));
+        throw(ParPEException("Parameter scaling must be ParameterScaling::none "
+                             "or ParameterScaling::log10."));
     }
 }
 
@@ -1258,15 +1261,19 @@ const std::vector<double> &HierarchicalOptimizationReporter::getFinalParameters(
 bool HierarchicalOptimizationReporter::iterationFinished(
         gsl::span<const double> parameters,
         double objectiveFunctionValue,
-        gsl::span<const double> objectiveFunctionGradient) const
+        gsl::span<const double>  /*objectiveFunctionGradient*/) const
 {
     double wallTimeIter = wallTimer.getRound();
     double wallTimeOptim = wallTimer.getTotal();
 
     if(logger)
-        logger->logmessage(LOGLVL_INFO, "iter: %d cost: %g time_iter: wall: %gs cpu: %gs time_optim: wall: %gs cpu: %gs",
+        logger->logmessage(LOGLVL_INFO,
+                           "iter: %d cost: %g "
+                           "time_iter: wall: %gs cpu: %gs "
+                           "time_optim: wall: %gs cpu: %gs",
                            numIterations, objectiveFunctionValue,
-                           wallTimeIter, cpuTimeIterationSec, wallTimeOptim, cpuTimeTotalSec);
+                           wallTimeIter, cpuTimeIterationSec,
+                           wallTimeOptim, cpuTimeTotalSec);
 
     if(resultWriter) {
         /* check if the optimizer-reported cost matches the last function evaluation.
@@ -1311,7 +1318,7 @@ bool HierarchicalOptimizationReporter::iterationFinished(
 }
 
 bool HierarchicalOptimizationReporter::afterCostFunctionCall(
-        gsl::span<const double> parameters,
+        gsl::span<const double>  /*parameters*/,
         double objectiveFunctionValue,
         gsl::span<const double> objectiveFunctionGradient) const
 {
@@ -1336,6 +1343,7 @@ void checkGradientForAnalyticalParameters(
 {
     for(auto const idx: analyticalIndices) {
         auto curGradient = gradient[idx];
+        //std::cout<<"    : "<<idx<<"\t"<<curGradient<<std::endl;
         if(std::fabs(curGradient) > threshold)
             logmessage(LOGLVL_WARNING,
                        "Gradient w.r.t. analytically computed parameter "

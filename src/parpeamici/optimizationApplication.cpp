@@ -83,7 +83,7 @@ void OptimizationApplication::runMultiStarts()
 int OptimizationApplication::parseOptions(int argc, char **argv) {
     int c;
 
-    while (1) {
+    while (true) {
         int optionIndex = 0;
         c = getopt_long(argc, argv, shortOptions, longOptions, &optionIndex);
 

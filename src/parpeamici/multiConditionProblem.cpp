@@ -405,7 +405,7 @@ FunctionEvaluationStatus getModelOutputs(
         bool logLineSearch,
         gsl::span<const double> parameters,
         std::vector<std::vector<double> > &modelOutput,
-        Logger *logger, double *cpuTime)
+        Logger *logger, double * /*cpuTime*/)
 {
     int errors = 0;
 
@@ -547,9 +547,9 @@ FunctionEvaluationStatus AmiciSummedGradientFunction::evaluate(
     return 0;
 #endif
 
-    setSensitivityOptions(gradient.size());
+    setSensitivityOptions(!gradient.empty());
     fval = 0.0;
-    if (gradient.size())
+    if (!gradient.empty())
         std::fill(gradient.begin(), gradient.end(), 0.0);
 
     int errors = runSimulations(parameters, fval, gradient, datasets,
@@ -603,7 +603,7 @@ amici::ParameterScaling AmiciSummedGradientFunction::getParameterScaling(int par
 int AmiciSummedGradientFunction::runSimulations(
         gsl::span<const double> optimizationParameters,
         double &nllh, gsl::span<double> objectiveFunctionGradient,
-        std::vector<int> dataIndices, Logger *logger, double *cpuTime) const {
+        std::vector<int> const& dataIndices, Logger *logger, double *cpuTime) const {
 
     int errors = 0;
 
@@ -614,7 +614,7 @@ int AmiciSummedGradientFunction::runSimulations(
 
     AmiciSimulationRunner simRunner(
                 parameterVector,
-                objectiveFunctionGradient.size()
+                !objectiveFunctionGradient.empty()
                 ? amici::SensitivityOrder::first
                 : amici::SensitivityOrder::none,
                 dataIndices,
@@ -632,7 +632,7 @@ int AmiciSummedGradientFunction::runSimulations(
         // to reduce communication overhead
         errors += simRunner.runDistributedMemory(
                     loadBalancer,
-                    objectiveFunctionGradient.size()
+                    !objectiveFunctionGradient.empty()
                     ? maxGradientSimulationsPerPackage
                     : maxSimulationsPerPackage);
     } else {
@@ -671,7 +671,7 @@ int AmiciSummedGradientFunction::aggregateLikelihood(JobData &data, double &negL
         negLogLikelihood -= result.second.llh;
         simulationTimeInS += result.second.simulationTimeSeconds;
 
-        if (negLogLikelihoodGradient.size())
+        if (!negLogLikelihoodGradient.empty())
             addSimulationGradientToObjectiveFunctionGradient(
                         result.first, result.second.gradient,
                         negLogLikelihoodGradient);

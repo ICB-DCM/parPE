@@ -15,6 +15,7 @@
 #include <numeric>
 #include <random>
 #include <memory>
+#include <utility>
 
 namespace parpe {
 
@@ -351,19 +352,19 @@ void OptimizationProblemImpl::fillParametersMax(gsl::span<double> buffer) const 
 }
 
 void OptimizationProblemImpl::setParametersMin(std::vector<double> parametersMin) {
-    this->parametersMin = parametersMin;
+    this->parametersMin = std::move(parametersMin);
 }
 
 void OptimizationProblemImpl::setParametersMax(std::vector<double> parametersMax) {
-    this->parametersMax = parametersMax;
+    this->parametersMax = std::move(parametersMax);
 }
 
 void OptimizationProblemImpl::setInitialParameters(std::vector<double> initial) {
-    parametersStart = initial;
+    parametersStart = std::move(initial);
 }
 
 void OptimizationProblemImpl::fillInitialParameters(gsl::span<double> buffer) const {
-    if (parametersStart.size()) {
+    if (!parametersStart.empty()) {
         std::copy(parametersStart.begin(), parametersStart.end(), buffer.begin());
     } else {
         OptimizationProblem::fillInitialParameters(buffer);

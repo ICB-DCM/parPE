@@ -268,7 +268,7 @@ TEST(hierarchicalOptimization, testComputeAnalyticalScalings) {
      * check scaling = 10
      * */
     constexpr int numObservables = 2;
-    constexpr int numTimepoints = 2;
+    // constexpr int numTimepoints = 2;
     constexpr int scalingIdx = 0;
 
     std::vector<std::vector<double> > modelOutputsUnscaled { {1.0, 2.0, 3.0, 4.0} };
@@ -327,7 +327,7 @@ TEST(hierarchicalOptimization, testComputeAnalyticalOffsets) {
      * check offset = 10
      * */
     constexpr int numObservables = 2;
-    constexpr int numTimepoints = 2;
+    // constexpr int numTimepoints = 2;
     constexpr int scalingIdx = 0;
 
     const std::vector<std::vector<double> > modelOutputsUnscaled { {1.0, 2.0, 3.0, 4.0} };
@@ -366,7 +366,7 @@ TEST(hierarchicalOptimization, testComputeAnalyticalOffsets) {
 
 TEST(hierarchicalOptimization, applyOptimalScaling) {
     constexpr int numObservables = 2;
-    constexpr int numTimepoints = 2;
+    // constexpr int numTimepoints = 2;
     constexpr int scalingIdx = 0;
     constexpr double scaling = 0.5;
     const std::vector<std::vector<double> > modelOutputsScaledExpected { {1.0, 4.0, 3.0, 8.0} };
@@ -393,7 +393,7 @@ TEST(hierarchicalOptimization, applyOptimalScaling) {
 
 TEST(hierarchicalOptimization, applyOptimalOffset) {
     constexpr int numObservables = 2;
-    constexpr int numTimepoints = 2;
+    // constexpr int numTimepoints = 2;
     constexpr int offsetIdx = 0;
     constexpr double offset = 5;
     const std::vector<std::vector<double> > modelOutputsScaledExpected { {1.0, 4.0, 3.0, 8.0} };

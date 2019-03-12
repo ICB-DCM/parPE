@@ -61,10 +61,12 @@ public:
     clock_t roundStart = clock();
 };
 
+
 #define RELEASE_ASSERT(expr, msg) \
     if(!(expr)) { \
+        /* NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay, cppcoreguidelines-pro-type-vararg) */ \
         printf("CRITICAL: Assertion %s in %s:%d failed (%s)\n", \
-                          (#expr), __FILE__, __LINE__, msg); /* NOLINT(cppcoreguidelines-pro-bounds-array-to-pointer-decay) */ \
+                          (#expr), __FILE__, __LINE__, msg); \
         abort(); \
     }
 

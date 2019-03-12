@@ -166,7 +166,7 @@ protected:// for testing
     virtual int runSimulations(gsl::span<double const> optimizationParameters,
                                double &nllh,
                                gsl::span<double> objectiveFunctionGradient,
-                               std::vector<int> dataIndices,
+                               const std::vector<int> &dataIndices,
                                Logger *logger,
                                double *cpuTime) const;
 

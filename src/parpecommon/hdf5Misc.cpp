@@ -4,6 +4,7 @@
 
 #include <cassert>
 #include <cstdlib>
+#include <utility>
 #include <unistd.h>
 #include <sys/stat.h>
 
@@ -645,7 +646,7 @@ void hdf5GetDatasetDimensions(hid_t file_id,
     H5_RESTORE_ERROR_HANDLER;
 }
 
-HDF5Exception::HDF5Exception(std::string msg) : msg(msg) {
+HDF5Exception::HDF5Exception(std::string msg) : msg(std::move(msg)) {
     stackTrace = getBacktrace(20);
 }
 
