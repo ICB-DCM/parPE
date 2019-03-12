@@ -156,6 +156,14 @@ private:
     MUTEX *mutex = nullptr;
 };
 
+/**
+ * @brief Check if a and b are equal to machine precission
+ * @param a
+ * @param b
+ * @return
+ */
+bool almostEqual(double a, double b);
+
 } // namespace parpe
 
 #ifndef __cpp_lib_make_unique

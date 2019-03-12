@@ -1281,9 +1281,10 @@ bool HierarchicalOptimizationReporter::iterationFinished(
          * the optimizer provided us. if no parameters are provided, we will still save the cached
          * one, even if the cost does not match, since this is the best parameter guess we have.
          */
-        if(objectiveFunctionValue == cachedCost
+        if(almostEqual(objectiveFunctionValue, cachedCost)
                 && (parameters.empty()
-                    || std::equal(parameters.begin(), parameters.end(), cachedParameters.begin()))) {
+                    || std::equal(parameters.begin(), parameters.end(),
+                                  cachedParameters.begin()))) {
             resultWriter->logOptimizerIteration(
                         numIterations,
                         cachedFullParameters,

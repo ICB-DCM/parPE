@@ -278,5 +278,14 @@ void finalizeMpiIfNeeded()
 #endif
 }
 
+bool almostEqual(double a, double b)
+{
+    if (std::isnan(a) && std::isnan(b))
+        return true;
+
+    return std::fabs(a - b) < (std::fabs(a) + std::fabs(b))
+            * std::numeric_limits<double>::epsilon();
+}
+
 
 } // namespace parpe
