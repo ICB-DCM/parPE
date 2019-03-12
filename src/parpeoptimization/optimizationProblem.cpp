@@ -128,9 +128,9 @@ void optimizationProblemGradientCheck(OptimizationProblem *problem,
         double reg = 1e-5;
         double regRelError = (curGrad - fd_c) / (fd_c + reg);
         loglevel ll = LOGLVL_INFO;
-        if (fabs(regRelError) > reg)
+        if (fabs(regRelError) > std::max(reg, reg * std::fabs(curGrad)))
             ll = LOGLVL_WARNING;
-        if (fabs(regRelError) > 0.1)
+        if (fabs(regRelError) > 0.1 * std::fabs(curGrad))
             ll = LOGLVL_ERROR;
 
         logmessage(ll, "%5d g: %12.6g  fd_c: %12.6g  Δ/fd_c: %.6e  f: %12.6g", curInd, curGrad, fd_c, regRelError, fc);

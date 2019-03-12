@@ -52,7 +52,9 @@ int StandaloneSimulator::run(const std::string& resultFile,
      * of the outer problem of an hierarchical optimization run, and thus, need to compute the
      * inner optimal parameters here.
      */
-    bool needComputeAnalyticalParameters = (parameters.size() != (unsigned)dataProvider->getNumOptimizationParameters());
+    // TODO: check parameter names! until this is implemented, let's always recompute output parameters
+    bool needComputeAnalyticalParameters = true;
+            // (parameters.size() != (unsigned)dataProvider->getNumOptimizationParameters());
 
     if(needComputeAnalyticalParameters) {
         if(hdf5GroupExists(conditionFile.getId(), "inputData"))
@@ -98,11 +100,12 @@ int StandaloneSimulator::run(const std::string& resultFile,
     } else {
         // is already the correct length
         // parameters = optimizationParameters;
+
+        auto resultFileH5 = rw.reopenFile();
+        hdf5EnsureGroupExists(resultFileH5.getId(), resultPath.c_str());
+        amici::hdf5::createAndWriteDouble1DDataset(resultFileH5, resultPath + "/parameters", parameters.data(), parameters.size());
     }
 
-    auto resultFileH5 = rw.reopenFile();
-    hdf5EnsureGroupExists(resultFileH5.getId(), resultPath.c_str());
-    amici::hdf5::createAndWriteDouble1DDataset(resultFileH5, resultPath + "/parameters", parameters.data(), parameters.size());
 
     RELEASE_ASSERT(parameters.size() == (unsigned)dataProvider->getNumOptimizationParameters(), "Size of supplied parameter vector does not match model dimensions.");
 
@@ -171,6 +174,16 @@ int StandaloneSimulator::run(const std::string& resultFile,
         if(!hierarchical.getSigmaParameterIndices().empty()) {
             hierarchical.fillInAnalyticalSigmas(fullSigmaMatrices, sigmas);
         }
+
+        // save parameters
+        parameters = spliceParameters(
+                    parameters, hierarchical.getProportionalityFactorIndices(),
+                    hierarchical.getOffsetParameterIndices(),
+                    hierarchical.getSigmaParameterIndices(),
+                    scalings, offsets, sigmas);
+        auto resultFileH5 = rw.reopenFile();
+        hdf5EnsureGroupExists(resultFileH5.getId(), resultPath.c_str());
+        amici::hdf5::createAndWriteDouble1DDataset(resultFileH5, resultPath + "/parameters", parameters.data(), parameters.size());
 
         // compute llh
         for(int conditionIdx = 0; (unsigned) conditionIdx < simulationResults.size(); ++conditionIdx) {

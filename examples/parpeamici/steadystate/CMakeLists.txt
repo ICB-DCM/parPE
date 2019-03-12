@@ -113,7 +113,7 @@ install(TARGETS ${PROJECT_NAME} EXPORT ParPETargets
 if(${BUILD_TESTS} AND ${PARPE_ENABLE_MPI})
     add_test (NAME ${PROJECT_NAME}
         COMMAND ${CMAKE_CURRENT_LIST_DIR}/run-examples.sh
-        ${SOURCE_DIR}/example_data.h5
+        ${SOURCE_DIR}/example_data.h5 ${SOURCE_DIR}/example_data-testset.h5
         )
 endif()
 # /example_steadystate_multi executable

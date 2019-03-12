@@ -48,7 +48,19 @@ int main(int argc, char **argv) {
         // TODO: testing-only remove result file
         remove(resultFileName.c_str());
 
-        SteadyStateMultiConditionDataProvider dp(getModel(), conditionFileName, conditionFilePath + "/inputData");
+        auto dpPath = conditionFilePath;
+        {
+            // check if this is a result file or a new input file
+            // TODO: this should be handled cleaner
+            auto file = parpe::hdf5OpenForReading(conditionFileName);
+            if(parpe::hdf5GroupExists(
+                        file.getId(),
+                        (conditionFilePath + "/inputData").c_str()))
+                dpPath = conditionFilePath + "/inputData";
+        }
+
+        SteadyStateMultiConditionDataProvider dp(
+                    getModel(), conditionFileName, dpPath);
 
         status = parpe::runSimulator(dp, simulationMode,
                                      conditionFileName, conditionFilePath,
