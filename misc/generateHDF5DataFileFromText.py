@@ -317,8 +317,19 @@ class HDF5DataGenerator:
                 try:
                     if isinstance(mapped_parameter, str):
                         # actually a mapped optimization parameter
-                        mapping_matrix[model_parameter_idx, condition_idx] = \
-                            optimization_parameter_name_to_index[mapped_parameter]
+                        try:
+                            mapping_matrix[model_parameter_idx, condition_idx] = \
+                                optimization_parameter_name_to_index[mapped_parameter]
+                        except KeyError:
+                            # This is a fixed parameter which is to be replaced
+                            # by nominalValue
+                            mapping_matrix[
+                                model_parameter_idx, condition_idx] = \
+                                self.UNMAPPED_PARAMETER
+                            override_matrix[
+                                model_parameter_idx, condition_idx] = \
+                                self.parameter_df.loc[mapped_parameter,
+                                                      'nominalValue']
                     elif np.isnan(mapped_parameter):
                         # This condition does not use any parameter override.
                         # We override with 0.0, NAN will cause AMICI warnings.
