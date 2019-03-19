@@ -6,19 +6,21 @@ import amici
 import unittest
 import importlib
 import os
-import re
-import numpy as np
 import copy
+from amici.gradient_check import check_derivatives, check_results
+
 
 class TestAmiciPregeneratedModel(unittest.TestCase):
-    '''
-    TestCase class for tests that were pregenerated using the the matlab code generation routines and cmake
-    build routines
-    
-    NOTE: requires having run `make python-tests` in /build/ before to build the python modules for the test models
-    '''
+    """
+    TestCase class for tests that were pregenerated using the the matlab code
+    generation routines and cmake build routines
 
-    expectedResultsFile = os.path.join(os.path.dirname(__file__), 'cpputest','expectedResults.h5')
+    NOTE: requires having run `make python-tests` in /build/ before to build
+    the python modules for the test models
+    """
+
+    expectedResultsFile = os.path.join(os.path.dirname(__file__),
+                                       'cpputest', 'expectedResults.h5')
 
     def setUp(self):
         self.default_path = copy.copy(sys.path)
@@ -29,75 +31,104 @@ class TestAmiciPregeneratedModel(unittest.TestCase):
         sys.path = self.default_path
 
     def runTest(self):
-        '''
-        test runner routine that loads data expectedResults.h5 hdf file and runs individual models/settings
-        as subTests
-        '''
-        expectedResults = h5py.File(self.expectedResultsFile, 'r')
+        """
+        test runner routine that loads data expectedResults.h5 hdf file and
+        runs individual models/settings as subTests
+        """
+        expected_results = h5py.File(self.expectedResultsFile, 'r')
 
-        for subTest in expectedResults.keys():
-            for case in list(expectedResults[subTest].keys()):
-                if re.search('^sensi2',case) != None:
-                    modelName = subTest + '_o2'
+        for subTest in expected_results.keys():
+            for case in list(expected_results[subTest].keys()):
+                if case.startswith('sensi2'):
+                    model_name = subTest + '_o2'
                 else:
-                    modelName = subTest
+                    model_name = subTest
 
-                with self.subTest(modelName=modelName, caseName=case):
-                    print('running subTest modelName = ' + modelName + ', caseName = ' + case)
-                    modelSwigFolder = os.path.join(os.path.dirname(__file__), '..', 'build', 'tests',
-                                                   'cpputest', 'external_' + modelName + '-prefix', 
-                                                   'src', 'external_' + modelName + '-build', 'swig')
-                    sys.path.insert(0, modelSwigFolder)
-                    testModelModule = importlib.import_module(modelName)
-                    self.model = testModelModule.getModel()
+                with self.subTest(modelName=model_name, caseName=case):
+                    print(f'running {model_name}::{case}')
+
+                    def assert_fun(x):
+                        return self.assertTrue(x)
+
+                    model_swig_folder = \
+                        os.path.join(os.path.dirname(__file__), '..',
+                                     'build', 'tests', 'cpputest',
+                                     f'external_{model_name}-prefix',
+                                     'src', f'external_{model_name}-build',
+                                     'swig')
+                    sys.path.insert(0, model_swig_folder)
+                    test_model_module = importlib.import_module(model_name)
+                    self.model = test_model_module.getModel()
                     self.solver = self.model.getSolver()
-                    amici.readModelDataFromHDF5(self.expectedResultsFile,
-                                                self.model.get(),
-                                                "/" + subTest + "/" + case + "/options")
-                    amici.readSolverSettingsFromHDF5(self.expectedResultsFile,
-                                                 self.solver.get(),
-                                                 "/" + subTest + "/" + case + "/options")
+                    amici.readModelDataFromHDF5(
+                        self.expectedResultsFile, self.model.get(),
+                        f'/{subTest}/{case}/options'
+                    )
+                    amici.readSolverSettingsFromHDF5(
+                        self.expectedResultsFile, self.solver.get(),
+                        f'/{subTest}/{case}/options'
+                    )
 
                     edata = None
-                    if 'data' in expectedResults[subTest][case].keys():
-                        edata = amici.readSimulationExpData(self.expectedResultsFile,
-                                                            "/" + subTest + "/" + case + "/data",
-                                                            self.model.get())
-                    rdata = amici.runAmiciSimulation(self.model, self.solver, edata)
+                    if 'data' in expected_results[subTest][case].keys():
+                        edata = amici.readSimulationExpData(
+                            self.expectedResultsFile,
+                            f'/{subTest}/{case}/data', self.model.get()
+                        )
+                    rdata = amici.runAmiciSimulation(self.model, self.solver,
+                                                     edata)
 
-                    # todo: set higher tolerances in testcase options and
-                    # regenerate results
-                    if modelName == 'model_jakstat_adjoint_o2':
-                        self.solver.setRelativeTolerance(1e-10)
-                        self.solver.setAbsoluteTolerance(1e-10)
+                    if model_name == 'model_nested_events':
+                        rtol = 1e-2
+                    else:
+                        rtol = 1e-4
 
-                    if modelName in [
-                        'model_jakstat_adjoint', 'model_nested_events',
-                        'model_steadystate'
-                    ]:
-                        self.solver.setRelativeTolerance(1e-12)
-                        self.solver.setAbsoluteTolerance(1e-12)
-                    
                     if edata \
                             and self.solver.getSensitivityMethod() \
                             and self.solver.getSensitivityOrder() \
                             and len(self.model.getParameterList()) \
-                            and not modelName.startswith('model_neuron') \
+                            and not model_name.startswith('model_neuron') \
                             and not case.endswith('byhandpreeq'):
-                        checkDerivatives(self.model, self.solver, edata)
+                        check_derivatives(self.model, self.solver, edata,
+                                          assert_fun, rtol=rtol)
 
-                    if modelName == 'model_neuron_o2':
-                        self.solver.setRelativeTolerance(1e-12)
-                        verifySimulationResults(rdata, expectedResults[subTest][case]['results'],atol=1e-6,rtol=1e-2)
+                    if model_name == 'model_neuron_o2':
+                        verify_simulation_results(
+                            rdata, expected_results[subTest][case]['results'],
+                            assert_fun,
+                            atol=1e-5, rtol=1e-3
+                        )
                     else:
-                        verifySimulationResults(rdata, expectedResults[subTest][case]['results'])
+                        verify_simulation_results(
+                            rdata, expected_results[subTest][case]['results'],
+                            assert_fun,
+                        )
 
-                    if edata and modelName != 'model_neuron_o2':
-                        # Test runAmiciSimulations: ensure running twice with same ExpData yields same results
-                        edatas = [edata.get(), edata.get()]
-                        rdatas = amici.runAmiciSimulations(self.model, self.solver, edatas, num_threads=2)
-                        verifySimulationResults(rdatas[0], expectedResults[subTest][case]['results'])
-                        verifySimulationResults(rdatas[1], expectedResults[subTest][case]['results'])
+                    if model_name == 'model_steadystate' and \
+                            case == 'sensiforwarderrorint':
+                        edata = amici.amici.ExpData(self.model.get())
+
+                    if edata and model_name != 'model_neuron_o2':
+                        # Test runAmiciSimulations: ensure running twice
+                        # with same ExpData yields same results
+                        if isinstance(edata, amici.amici.ExpData):
+                            edatas = [edata, edata]
+                        else:
+                            edatas = [edata.get(), edata.get()]
+
+                        rdatas = amici.runAmiciSimulations(
+                            self.model, self.solver, edatas, num_threads=2
+                        )
+                        verify_simulation_results(
+                            rdatas[0],
+                            expected_results[subTest][case]['results'],
+                            assert_fun,
+                        )
+                        verify_simulation_results(
+                            rdatas[1],
+                            expected_results[subTest][case]['results'],
+                            assert_fun,
+                        )
 
                     self.assertRaises(
                         RuntimeError,
@@ -106,199 +137,40 @@ class TestAmiciPregeneratedModel(unittest.TestCase):
                     )
 
 
-def checkDerivatives(model, solver, edata, atol=1e-4, rtol=1e-4, epsilon=1e-5):
-    """Finite differences check for likelihood gradient
-    
-    Arguments:
-        model:
-        solver:
-        edata:
+def verify_simulation_results(rdata, expected_results, assert_fun,
+                              atol=1e-8, rtol=1e-4):
     """
-    from scipy.optimize import check_grad
+    compares all fields of the simulation results in rdata against the
+    expectedResults using the provided tolerances
 
-    def func(x0, symbol='llh', x0full=None, plist=None, verbose=False):
-        """Function of which the gradient is to be checked"""
-        if plist is None:
-            plist = []
-        p = copy.deepcopy(x0)
-        if len(plist):
-            p = copy.deepcopy(x0full)
-            p[plist] = copy.deepcopy(x0)
-        verbose and print('f: p=%s' % p)
-        
-        old_sensitivity_order = solver.getSensitivityOrder()
-        old_parameters = model.getParameters()
-        
-        solver.setSensitivityOrder(amici.SensitivityOrder_none)
-        model.setParameters(p)
-        rdata = amici.runAmiciSimulation(model, solver, edata)
-        
-        solver.setSensitivityOrder(old_sensitivity_order)
-        model.setParameters(old_parameters)
-
-        res = np.sum(rdata[symbol])
-        return res
-    
-    def grad(x0, symbol='llh', x0full=None, plist=None, verbose=False):
-        """Gradient which is to be checked"""
-        if plist is None:
-            plist = []
-        old_parameters = model.getParameters()
-        old_plist = model.getParameterList()
-        
-        p = copy.deepcopy(x0)
-        if len(plist):
-            model.setParameterList(plist)
-            p = copy.deepcopy(x0full)
-            p[plist] = copy.deepcopy(x0)
-        else:
-            model.requireSensitivitiesForAllParameters()
-        verbose and print('g: p=%s' % p)
-        
-        model.setParameters(p)
-
-        rdata = amici.runAmiciSimulation(model, solver, edata)
-
-        model.setParameters(old_parameters)
-        model.setParameterList(old_plist)
-
-        res = rdata['s%s' % symbol]
-        if not isinstance(res, float):
-            if len(res.shape) == 2:
-                res = np.sum(res, axis=(0,))
-            if len(res.shape) == 3:
-                res = np.sum(res, axis=(0, 2))
-        return res
-    
-    p = np.array(model.getParameters())
-
-    rdata = amici.runAmiciSimulation(model, solver, edata)
-      
-    for ip in range(model.np()):
-        plist = [ip]
-        err_norm = check_grad(func, grad, copy.deepcopy(p[plist]), 'llh',
-                              copy.deepcopy(p), [ip], epsilon=epsilon)
-        print(f'sllh: p[{ip}]: |error|_2: {err_norm}')
-        assert err_norm <= rtol * abs(rdata["sllh"][ip]) \
-            or err_norm <= atol
-
-
-
-    leastsquares_applicable = solver.getSensitivityMethod() == amici.SensitivityMethod_forward
-
-    if 'ssigmay' in rdata.keys():
-        if rdata['ssigmay'] is not None:
-            if rdata['ssigmay'].any():
-                leastsquares_applicable = False
-
-    if leastsquares_applicable:
-        for ip in range(model.np()):
-            plist = [ip]
-            err_norm = check_grad(func, grad, copy.deepcopy(p[plist]), 'res',
-                                  copy.deepcopy(p), [ip], epsilon=epsilon)
-            print('sres: p[%d]: |error|_2: %f' % (ip, err_norm))
-            assert err_norm < atol \
-                or err_norm < rtol * abs(rdata['sres'][:,ip].sum())
-
-        checkResults(rdata, 'FIM', np.dot(rdata['sres'].transpose(),rdata['sres']), 1e-8, 1e-4)
-        checkResults(rdata, 'sllh', -np.dot(rdata['res'].transpose(),rdata['sres']), 1e-8, 1e-4)
-
-
-        print()
-        for ip in range(model.np()):
-            plist = [ip]
-            err_norm = check_grad(func, grad, copy.deepcopy(p[plist]), 'y',
-                                  copy.deepcopy(p), [ip], epsilon=epsilon)
-            print('sy: p[%d]: |error|_2: %f' % (ip, err_norm))
-            assert err_norm < atol \
-                or err_norm < rtol * abs(rdata['sy'][:,ip].sum())
-
-        print()
-        for ip in range(model.np()):
-            plist = [ip]
-            err_norm = check_grad(func, grad, copy.deepcopy(p[plist]), 'x',
-                                  copy.deepcopy(p), [ip], epsilon=epsilon)
-            print('sx: p[%d]: |error|_2: %f' % (ip, err_norm))
-            assert err_norm < atol \
-                or err_norm < rtol * abs(rdata['sx'][:,ip].sum())
-
-
-def verifySimulationResults(rdata, expectedResults, atol=1e-8, rtol=1e-4):
-    """
-    compares all fields of the simulation results in rdata against the expectedResults using the provided
-    tolerances
-    
     Arguments:
         rdata: simulation results as returned by amici.runAmiciSimulation
-        expectedResults: stored test results
+        expected_results: stored test results
         atol: absolute tolerance
         rtol: relative tolerance
     """
 
-    if expectedResults.attrs['status'][0] != 0:
-        assert rdata['status'] == expectedResults.attrs['status'][0]
+    if expected_results.attrs['status'][0] != 0:
+        assert rdata['status'] == expected_results.attrs['status'][0]
         return
 
-    for field in expectedResults.keys():
+    for field in expected_results.keys():
         if field == 'diagnosis':
-           for subfield in ['J', 'xdot']:
-               checkResults(rdata, subfield, expectedResults[field][subfield][()], 0, 2)
+            for subfield in ['J', 'xdot']:
+                check_results(rdata, subfield,
+                              expected_results[field][subfield][()],
+                              assert_fun, 0, 2)
         else:
             if field == 's2llh':
-                checkResults(rdata, field, expectedResults[field][()], 1e-4, 1e-3)
+                check_results(rdata, field, expected_results[field][()],
+                              assert_fun, 1e-4, 1e-3)
             else:
-                checkResults(rdata, field, expectedResults[field][()], atol, rtol)
+                check_results(rdata, field, expected_results[field][()],
+                              assert_fun, atol, rtol)
 
-    for attr in expectedResults.attrs.keys():
-        checkResults(rdata, attr, expectedResults.attrs[attr], atol, rtol)
-
-
-def checkResults(rdata, field, expected, atol, rtol):
-    '''
-    checks whether rdata[field] agrees with expected according to provided tolerances
-    
-    Arguments:
-        rdata: simulation results as returned by amici.runAmiciSimulation
-        field: name of the field to check
-        expected: expected test results 
-        atol: absolute tolerance
-        rtol: relative tolerance
-    '''
-
-    result = rdata[field]
-    if type(result) is float:
-        result = np.array(result)
-
-    #if field == 'sres':
-    #    result = result.transpose()
-
-
-    adev = abs(result - expected)
-    rdev = abs((result - expected)) / (abs(expected) + rtol)
-
-    if np.any(np.isnan(expected)):
-        if len(expected) > 1 :
-            assert all(np.isnan(result[np.isnan(expected)]))
-        else: # subindexing fails for scalars
-            assert np.isnan(result)
-        adev = adev[~np.isnan(expected)]
-        rdev = rdev[~np.isnan(expected)]
-
-    if np.any(np.isinf(expected)):
-        if len(expected) > 1 :
-            assert all(np.isinf(result[np.isinf(expected)]))
-        else: # subindexing fails for scalars
-            assert np.isinf(result)
-        adev = adev[~np.isinf(expected)]
-        rdev = rdev[~np.isinf(expected)]
-
-    if not np.all(np.logical_or(rdev <= rtol, adev <= atol)):
-        print('Failed to meet tolerances in ' + field + ':')
-        print('adev:')
-        print(adev[np.logical_and(rdev > rtol, adev > atol)])
-        print('rdev:')
-        print(rdev[np.logical_and(rdev > rtol, adev > atol)])
-        assert np.all(np.logical_or(rdev <= rtol, adev <= atol))
+    for attr in expected_results.attrs.keys():
+        check_results(rdata, attr, expected_results.attrs[attr], assert_fun,
+                      atol, rtol)
 
 
 if __name__ == '__main__':

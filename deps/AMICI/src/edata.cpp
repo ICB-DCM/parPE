@@ -20,28 +20,28 @@ ExpData::ExpData(int nytrue, int nztrue, int nmaxevent)
 }
 
 ExpData::ExpData(int nytrue, int nztrue, int nmaxevent,
-                 std::vector<realtype>  const& ts_)
-    : nytrue_(nytrue), nztrue_(nztrue), nmaxevent_(nmaxevent), ts(ts_)
+                 std::vector<realtype> ts_)
+    : nytrue_(nytrue), nztrue_(nztrue), nmaxevent_(nmaxevent), ts(std::move(ts_))
 {
     applyDimensions();
 }
 
 ExpData::ExpData(int nytrue, int nztrue, int nmaxevent,
-                 std::vector<realtype>  const& ts_,
-                 std::vector<realtype>  const& fixedParameters_
+                 std::vector<realtype> ts_,
+                 std::vector<realtype> fixedParameters_
                  )
-    : fixedParameters(fixedParameters_), nytrue_(nytrue), nztrue_(nztrue), nmaxevent_(nmaxevent), ts(ts_)
+    : fixedParameters(std::move(fixedParameters_)), nytrue_(nytrue), nztrue_(nztrue), nmaxevent_(nmaxevent), ts(std::move(ts_))
 {
     applyDimensions();
 }
 
 ExpData::ExpData(int nytrue, int nztrue, int nmaxevent,
-                 std::vector<realtype> const& ts_,
+                 std::vector<realtype> ts_,
                  std::vector<realtype> const& observedData,
                  std::vector<realtype> const& observedDataStdDev,
                  std::vector<realtype> const& observedEvents,
                  std::vector<realtype> const& observedEventsStdDev)
-    : nytrue_(nytrue), nztrue_(nztrue), nmaxevent_(nmaxevent), ts(ts_)
+    : nytrue_(nytrue), nztrue_(nztrue), nmaxevent_(nmaxevent), ts(std::move(ts_))
 {
     applyDimensions();
     setObservedData(observedData);
@@ -209,7 +209,7 @@ void ExpData::setObservedEvents(const std::vector<realtype> &observedEvents, int
 }
 
 bool ExpData::isSetObservedEvents(int ie, int iz) const {
-    return !observedEvents.size() && !isNaN(observedEvents.at(ie * nztrue_ + iz));
+    return !observedEvents.empty() && !isNaN(observedEvents.at(ie * nztrue_ + iz));
 }
 
 std::vector<realtype> const& ExpData::getObservedEvents() const {
@@ -287,12 +287,12 @@ void ExpData::applyEventDimension() {
     observedEventsStdDev.resize(nmaxevent_*nztrue_, getNaN());
 }
 
-void ExpData::checkDataDimension(std::vector<realtype> input, const char *fieldname) const {
+void ExpData::checkDataDimension(std::vector<realtype> const& input, const char *fieldname) const {
     if (input.size() != (unsigned) nt()*nytrue_ && !input.empty())
         throw AmiException("Input %s did not match dimensions nt (%i) x nytrue (%i), was %i", fieldname, nt(), nytrue_, input.size());
 }
 
-void ExpData::checkEventsDimension(std::vector<realtype> input, const char *fieldname) const {
+void ExpData::checkEventsDimension(std::vector<realtype> const& input, const char *fieldname) const {
     if (input.size() != (unsigned) nmaxevent_*nztrue_ && !input.empty())
         throw AmiException("Input %s did not match dimensions nt (%i) x nytrue (%i), was %i", fieldname, nmaxevent_, nztrue_, input.size());
 }
@@ -324,8 +324,13 @@ int ExpData::nmaxevent() const
 
 ConditionContext::ConditionContext(Model *model, const ExpData *edata)
     : model(model),
+      originalx0(model->getInitialStates()),
+      originalsx0(model->getInitialStateSensitivities()),
+      originalParameters(model->getParameters()),
       originalFixedParameters(model->getFixedParameters()),
-      originalTimepoints(model->getTimepoints())
+      originalTimepoints(model->getTimepoints()),
+      originalParameterList(model->getParameterList()),
+      originalScaling(model->getParameterScale())
 {
     applyCondition(edata);
 }
@@ -339,11 +344,52 @@ void ConditionContext::applyCondition(const ExpData *edata)
 {
     if(!edata)
         return;
-
+    
+    // this needs to go first, otherwise nplist will not have the right
+    // dimension for all other fields that depend on Model::nplist
+    if(!edata->plist.empty())
+        model->setParameterList(edata->plist);
+    
+    // this needs to go second as setParameterScale will reset sx0
+    if(!edata->pscale.empty()) {
+        if(edata->pscale.size() != (unsigned) model->np())
+            throw AmiException("Number of parameters (%d) in model does not"
+                               " match ExpData (%zd).",
+                               model->np(), edata->pscale.size());
+        model->setParameterScale(edata->pscale);
+        
+    }
+    
+    if(!edata->x0.empty()) {
+        if(edata->x0.size() != (unsigned) model->nx_rdata)
+            throw AmiException("Number of initial conditions (%d) in model does"
+                               " not match ExpData (%zd).",
+                               model->nx_rdata, edata->x0.size());
+        model->setInitialStates(edata->x0);
+    }
+    
+    if(!edata->sx0.empty()) {
+        if(edata->sx0.size() != (unsigned) model->nx_rdata * model->nplist())
+            throw AmiException("Number of initial conditions sensitivities (%d)"
+                               " in model does not match ExpData (%zd).",
+                               model->nx_rdata * model->nplist(),
+                               edata->sx0.size());
+        model->setInitialStateSensitivities(edata->sx0);
+    }
+    
+    if(!edata->parameters.empty()) {
+        if(edata->parameters.size() != (unsigned) model->np())
+            throw AmiException("Number of parameters (%d) in model does not"
+                               " match ExpData (%zd).",
+                               model->np(), edata->parameters.size());
+        model->setParameters(edata->parameters);
+    }
+    
     if(!edata->fixedParameters.empty()) {
         // fixed parameter in model are superseded by those provided in edata
         if(edata->fixedParameters.size() != (unsigned) model->nk())
-            throw AmiException("Number of fixed parameters (%d) in model does not match ExpData (%zd).",
+            throw AmiException("Number of fixed parameters (%d) in model does"
+                               " not match ExpData (%zd).",
                                model->nk(), edata->fixedParameters.size());
         model->setFixedParameters(edata->fixedParameters);
     }
@@ -356,8 +402,16 @@ void ConditionContext::applyCondition(const ExpData *edata)
 
 void ConditionContext::restore()
 {
+    // parameter list has to be set before initial state sensitivities
+    model->setParameterList(originalParameterList);
+    // parameter scale has to be set before initial state sensitivities
+    model->setParameterScale(originalScaling);
+    model->setInitialStates(originalx0);
+    model->setUnscaledInitialStateSensitivities(originalsx0);
+    model->setParameters(originalParameters);
     model->setFixedParameters(originalFixedParameters);
     model->setTimepoints(originalTimepoints);
+    
 }
 
 
