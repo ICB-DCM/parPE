@@ -4,6 +4,7 @@
 #include "../parpeoptimization/quadraticTestProblem.h"
 #include "../parpecommon/testingMisc.h"
 #include <amici/defines.h>
+#include <amici/misc.h>
 
 #include <CppUTest/TestHarness.h>
 #include <CppUTestExt/MockSupport.h>
