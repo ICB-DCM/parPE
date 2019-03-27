@@ -31,7 +31,6 @@ build:
         #- cd $PARPE_BASE/ThirdParty && ./downloadPackages.sh
         #- cd $PARPE_BASE/ThirdParty && ./installCeres.sh
 
-        - ls -l $PARPE_BASE/ThirdParty # Debug
         - cd $PARPE_BASE && ThirdParty/installGoogleTest.sh
 
         # build parPE
