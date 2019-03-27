@@ -151,10 +151,12 @@ if(${BUILD_TESTS})
     add_test (NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME} -c)
 
     set(SRC_LIST_CPP
-        ${CMAKE_SOURCE_DIR}/tests/parpeamici/main.cpp
+        main_test.cpp
+        exampleSteadystateScaledTest.h
         ${CMAKE_SOURCE_DIR}/tests/parpecommon/testingMisc.cpp
         steadystateProblem.cpp
-        exampleSteadystateScaledTest.cpp
+        ${GTestSrc}/src/gtest-all.cc
+        ${GMockSrc}/src/gmock-all.cc
     )
 
     add_executable(${PROJECT_NAME} ${SRC_LIST_CPP})
@@ -162,7 +164,6 @@ if(${BUILD_TESTS})
     target_link_libraries(${PROJECT_NAME}
         parpeamici
         ${MODEL_LIBRARIES}
-        ${CppUTest_LIBRARIES}
         ${GCOV_LIBRARY}
     )
 endif()

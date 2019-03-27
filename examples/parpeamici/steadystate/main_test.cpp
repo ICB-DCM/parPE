@@ -1,6 +1,7 @@
-#include "loadBalancerMasterTest.h"
+#include "exampleSteadystateScaledTest.h"
 
 #include <gtest/gtest.h>
+
 #include <cstdlib>
 #include <ctime>
 

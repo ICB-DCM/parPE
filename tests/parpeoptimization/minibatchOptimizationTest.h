@@ -1,5 +1,4 @@
-#include <CppUTest/TestHarness.h>
-#include <CppUTestExt/MockSupport.h>
+#include <gtest/gtest.h>
 
 #include <parpecommon/parpeConfig.h>
 #include <parpeoptimization/minibatchOptimization.h>
@@ -14,19 +13,6 @@
 #include <random>
 #include <algorithm>
 
-// clang-format off
-TEST_GROUP(minibatchOptimization) {
-
-    void setup() {
-        mock().clear();
-    }
-
-    void teardown() {
-        mock().checkExpectations();
-        mock().clear();
-    }
-};
-// clang-format on
 
 TEST(minibatchOptimization, getBatches) {
 
@@ -37,22 +23,22 @@ TEST(minibatchOptimization, getBatches) {
     // single batch
     int batchSize = numElements;
     auto batchesAct = parpe::getBatches<int>(input, batchSize);
-    CHECK_EQUAL(1, batchesAct.size());
-    CHECK_TRUE(input == batchesAct[0]);
+    EXPECT_EQ(1UL, batchesAct.size());
+    EXPECT_TRUE(input == batchesAct[0]);
 
     // 2 batches, equal size
     batchSize = 5;
     batchesAct = parpe::getBatches<int>(input, batchSize);
-    CHECK_EQUAL(2, batchesAct.size());
-    CHECK_TRUE(std::vector<int>(input.begin(), input.begin() + batchSize) == batchesAct[0]);
-    CHECK_TRUE(std::vector<int>(input.begin() + batchSize, input.end()) == batchesAct[1]);
+    EXPECT_EQ(2UL, batchesAct.size());
+    EXPECT_TRUE(std::vector<int>(input.begin(), input.begin() + batchSize) == batchesAct[0]);
+    EXPECT_TRUE(std::vector<int>(input.begin() + batchSize, input.end()) == batchesAct[1]);
 
     // 2 batches, unequal
     batchSize = 6;
     batchesAct = parpe::getBatches<int>(input, batchSize);
-    CHECK_EQUAL(2, batchesAct.size());
-    CHECK_TRUE(std::vector<int>(input.begin(), input.begin() + batchSize) == batchesAct[0]);
-    CHECK_TRUE(std::vector<int>(input.begin() + batchSize, input.end()) == batchesAct[1]);
+    EXPECT_EQ(2UL, batchesAct.size());
+    EXPECT_TRUE(std::vector<int>(input.begin(), input.begin() + batchSize) == batchesAct[0]);
+    EXPECT_TRUE(std::vector<int>(input.begin() + batchSize, input.end()) == batchesAct[1]);
 }
 
 TEST(minibatchOptimization, updateParameters) {
@@ -80,14 +66,15 @@ TEST(minibatchOptimization, updateParameters) {
             if (parametersExp[i] > toleratedError or parametersExp[i] < -toleratedError)
                 errored = true;
 
-    CHECK_TRUE(!errored);
+    EXPECT_TRUE(!errored);
 }
 
-// clang-format off
-TEST_GROUP(minibatchOptimizationLinearModel) {
-    void setup() {
-        mock().clear();
 
+
+class minibatchOptimizationLinearModel : public ::testing::Test {
+
+protected:
+    void SetUp() override {
         generateRandomFeatures();
 
         dataIndices.resize(data.size());
@@ -97,6 +84,7 @@ TEST_GROUP(minibatchOptimizationLinearModel) {
         labels.resize(numDatasets);
         lm.evaluate(trueParameters, data, labels);
     }
+
 
     void generateRandomFeatures() {
         // generate data or feature vector
@@ -131,9 +119,8 @@ TEST_GROUP(minibatchOptimizationLinearModel) {
         return p;
     }
 
-    void teardown() {
-        mock().checkExpectations();
-        mock().clear();
+
+    void TearDown() override {
     }
 
     std::vector<double> trueParameters = { 3.0, 2.0 };
@@ -147,33 +134,32 @@ TEST_GROUP(minibatchOptimizationLinearModel) {
     std::vector<double> labels;
 
     std::vector<int> dataIndices;
-
 };
-// clang-format on
 
-TEST(minibatchOptimizationLinearModel, testCostWithTrueParametersIsZeroIndivdually) {
+
+TEST_F(minibatchOptimizationLinearModel, testCostWithTrueParametersIsZeroIndivdually) {
     // verify cost gradient with true parameters is 0
     auto lm2 = getLinearModelMSE();
     double mse = NAN;
     std::vector<double> gradient(trueParameters.size());
     for(int i = 0; i < numDatasets; ++i) {
         lm2->evaluate(trueParameters, i, mse, gradient, nullptr, nullptr);
-        CHECK_EQUAL(0.0, mse);
-        CHECK_TRUE(std::vector<double>(trueParameters.size(), 0.0) == gradient);
+        EXPECT_EQ(0.0, mse);
+        EXPECT_TRUE(std::vector<double>(trueParameters.size(), 0.0) == gradient);
     }
 }
 
-TEST(minibatchOptimizationLinearModel, testCostWithTrueParametersIsZeroFull) {
+TEST_F(minibatchOptimizationLinearModel, testCostWithTrueParametersIsZeroFull) {
     // verify cost gradient with true parameters is 0
     auto lm2 = getLinearModelMSE();
     double mse = NAN;
     std::vector<double> gradient(trueParameters.size());
     lm2->evaluate(trueParameters, dataIndices, mse, gradient, nullptr, nullptr);
-    CHECK_EQUAL(0.0, mse);
-    CHECK_TRUE(std::vector<double>(trueParameters.size(), 0.0) == gradient);
+    EXPECT_EQ(0.0, mse);
+    EXPECT_TRUE(std::vector<double>(trueParameters.size(), 0.0) == gradient);
 }
 
-TEST(minibatchOptimizationLinearModel, testMinibatchSucceedFromOptimum) {
+TEST_F(minibatchOptimizationLinearModel, testMinibatchSucceedFromOptimum) {
     // verify optimization succeeds with true parameters
     auto lm2 = getLinearModelMSE();
     parpe::MinibatchOptimizer<int> mb;
@@ -181,12 +167,12 @@ TEST(minibatchOptimizationLinearModel, testMinibatchSucceedFromOptimum) {
     mb.batchSize = 2;
     std::vector<double> startingPoint = {3.0, 2.0};
     auto result = mb.optimize(*lm2, dataIndices, startingPoint, gsl::span<const double>(), gsl::span<const double>(), nullptr, nullptr);
-    CHECK_EQUAL((int)parpe::minibatchExitStatus::gradientNormConvergence, std::get<0>(result));
-    CHECK_EQUAL(0.0, std::get<1>(result));
-    CHECK_TRUE(trueParameters == std::get<2>(result));
+    EXPECT_EQ((int)parpe::minibatchExitStatus::gradientNormConvergence, std::get<0>(result));
+    EXPECT_EQ(0.0, std::get<1>(result));
+    EXPECT_TRUE(trueParameters == std::get<2>(result));
 }
 
-TEST(minibatchOptimizationLinearModel, linearModelCheckCostGradient) {
+TEST_F(minibatchOptimizationLinearModel, linearModelCheckCostGradient) {
     // use gradient checker
     auto p = getOptimizationProblem();
 
@@ -198,7 +184,7 @@ TEST(minibatchOptimizationLinearModel, linearModelCheckCostGradient) {
 
 #ifdef PARPE_ENABLE_IPOPT
 #include <parpeoptimization/localOptimizationIpopt.h>
-TEST(minibatchOptimizationLinearModel, linearModelTestBatchOptimizerSucceeds) {
+TEST_F(minibatchOptimizationLinearModel, linearModelTestBatchOptimizerSucceeds) {
     // test batch optimizer
     auto p = getOptimizationProblem();
 
@@ -208,14 +194,14 @@ TEST(minibatchOptimizationLinearModel, linearModelTestBatchOptimizerSucceeds) {
     p->setOptimizationOptions(oo);
 
     auto resultBatchOpt = o.optimize(p.get());
-    DOUBLES_EQUAL(0.0, std::get<1>(resultBatchOpt), 1e-8);
+    EXPECT_NEAR(0.0, std::get<1>(resultBatchOpt), 1e-8);
     for(int i = 0; (unsigned) i < trueParameters.size(); ++i)
-    DOUBLES_EQUAL(trueParameters[i], std::get<2>(resultBatchOpt)[i], 1e-6);
+    EXPECT_NEAR(trueParameters[i], std::get<2>(resultBatchOpt)[i], 1e-6);
     // -> is identifiable and gradient okay
 }
 #endif
 
-TEST(minibatchOptimizationLinearModel, linearModel) {
+TEST_F(minibatchOptimizationLinearModel, linearModel) {
     // optimization/tests/unittests_optimization -sg minibatchOptimizationLinearModel -sn linearModel
     std::cout<<"True parameters "<<trueParameters<<std::endl;
 

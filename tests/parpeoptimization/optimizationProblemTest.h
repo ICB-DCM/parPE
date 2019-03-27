@@ -1,5 +1,4 @@
-#include <CppUTest/TestHarness.h>
-#include <CppUTestExt/MockSupport.h>
+#include <gtest/gtest.h>
 
 #include <parpecommon/parpeConfig.h>
 #include <parpeoptimization/optimizationProblem.h>
@@ -13,17 +12,6 @@
 
 #include <cmath>
 
-// clang-format off
-TEST_GROUP(optimizationProblem){
-    void setup() {
-        mock().disable();
-    }
-
-    void teardown() {
-    }
-};
-// clang-format on
-
 
 /**
  * @brief The SummedGradientFunctionLinearModelTest class is a linear model with
@@ -33,13 +21,15 @@ TEST_GROUP(optimizationProblem){
  *
  * cost = MSE = 1/N \sum_i^N (\bar{y} - y)^2
  */
-class SummedGradientFunctionLinearModelTest : public parpe::SummedGradientFunction<double> {
+class SummedGradientFunctionLinearModelTest
+        : public parpe::SummedGradientFunction<double> {
 public:
     parpe::FunctionEvaluationStatus evaluate(
             gsl::span<double const> parameters,
             double dataset,
             double &fval,
-            gsl::span<double> gradient, parpe::Logger* logger, double *cpuTime) const override
+            gsl::span<double> gradient,
+            parpe::Logger* logger, double *cpuTime) const override
     {
         fval = parameters[0] * dataset + parameters[1];
 
@@ -52,8 +42,9 @@ public:
     }
 
     /**
-     * @brief Evaluate cost function on a set of training points. Calls evaluate for every
-     * data points. This is far from efficient and intended to be used only for testing.
+     * @brief Evaluate cost function on a set of training points. Calls evaluate
+     * for every data point. This is far from efficient and intended to be used
+     * only for testing.
      * @param parameters
      * @param datasets
      * @param fval
@@ -75,7 +66,8 @@ public:
         std::vector<double> tmpGradient(parameters.size());
 
         for(auto& d : datasets) {
-            auto status = evaluate(parameters, d, tmpFVal, tmpGradient, nullptr, nullptr);
+            auto status = evaluate(parameters, d, tmpFVal, tmpGradient,
+                                   nullptr, nullptr);
             if(status != parpe::functionEvaluationSuccess)
                 return status;
 
@@ -107,10 +99,11 @@ TEST(optimizationProblem, quadraticTestFunction) {
 
     double fValAct = NAN;
     double gradientAct = NAN;
-    f.evaluate(gsl::span<double const>(&parameter, 1), fValAct, gsl::span<double>(&gradientAct, 1));
+    f.evaluate(gsl::span<double const>(&parameter, 1), fValAct,
+               gsl::span<double>(&gradientAct, 1));
 
-    CHECK_EQUAL(fValExp, fValAct);
-    CHECK_EQUAL(gradientExp, gradientAct);
+    EXPECT_EQ(fValExp, fValAct);
+    EXPECT_EQ(gradientExp, gradientAct);
 }
 
 
@@ -133,32 +126,35 @@ TEST(optimizationProblem, linearModel) {
     std::vector<double> gradient(model.numParameters(), NAN);
 
     model.evaluate(parameters, 1.0, fval, gradient, nullptr, nullptr);
-    CHECK_EQUAL(3.0, fval);
-    CHECK_EQUAL(1.0, gradient[0]);
-    CHECK_EQUAL(0.0, gradient[1]);
+    EXPECT_EQ(3.0, fval);
+    EXPECT_EQ(1.0, gradient[0]);
+    EXPECT_EQ(0.0, gradient[1]);
 
     std::vector<double> dataset {2.0, 3.0};
     model.evaluate(parameters, dataset, fval, gradient, nullptr, nullptr);
-    CHECK_EQUAL(9.0, fval);
-    CHECK_EQUAL(5.0, gradient[0]);
-    CHECK_EQUAL(0.0, gradient[1]);
+    EXPECT_EQ(9.0, fval);
+    EXPECT_EQ(5.0, gradient[0]);
+    EXPECT_EQ(0.0, gradient[1]);
 }
 
 
 TEST(optimizationProblem, linearModelToGradientFun) {
-    // Test that the SummedGradientFunction <-> GradientFunction Adapter works with the linear model
+    // Test that the SummedGradientFunction <-> GradientFunction Adapter works
+    // with the linear model
     std::vector<double> dataset {2.0, 3.0};
-    auto model = std::unique_ptr<parpe::SummedGradientFunction<double>>(new SummedGradientFunctionLinearModelTest());
-    parpe::SummedGradientFunctionGradientFunctionAdapter<double> gradFun(std::move(model), dataset);
+    auto model = std::unique_ptr<parpe::SummedGradientFunction<double> >(
+                new SummedGradientFunctionLinearModelTest());
+    parpe::SummedGradientFunctionGradientFunctionAdapter<double> gradFun(
+                std::move(model), dataset);
 
     std::vector<double> parameters {1.0, 2.0};
     double fval = NAN;
     std::vector<double> gradient(gradFun.numParameters(), NAN);
 
     gradFun.evaluate(parameters, fval, gradient);
-    CHECK_EQUAL(9.0, fval);
-    CHECK_EQUAL(5.0, gradient[0]);
-    CHECK_EQUAL(0.0, gradient[1]);
+    EXPECT_EQ(9.0, fval);
+    EXPECT_EQ(5.0, gradient[0]);
+    EXPECT_EQ(0.0, gradient[1]);
 }
 
 
@@ -167,11 +163,13 @@ TEST(optimizationProblem, linearModelToGradientFunOptimization) {
     // create optimization problem for the linear model
     // does not do anything meaningful yet
     std::vector<double> dataset {2.0, 3.0};
-    auto model = std::unique_ptr<parpe::SummedGradientFunction<double>>(new SummedGradientFunctionLinearModelTest());
+    auto model = std::unique_ptr<parpe::SummedGradientFunction<double> >(
+                new SummedGradientFunctionLinearModelTest());
     auto gradFun = std::unique_ptr<parpe::GradientFunction>(
                 new parpe::SummedGradientFunctionGradientFunctionAdapter<double>(
                     std::move(model), dataset));
-    parpe::OptimizationProblemImpl problem {std::move(gradFun), std::make_unique<parpe::Logger>()};
+    parpe::OptimizationProblemImpl problem {std::move(gradFun),
+                std::make_unique<parpe::Logger>()};
 
     std::vector<double> parametersMin {-100, -100};
     std::vector<double> parametersMax {100, 100};

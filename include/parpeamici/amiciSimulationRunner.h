@@ -128,6 +128,9 @@ private:
 
 void swap(AmiciSimulationRunner::AmiciResultPackageSimple& first, AmiciSimulationRunner::AmiciResultPackageSimple& second);
 
+bool operator==(AmiciSimulationRunner::AmiciResultPackageSimple const& lhs,
+                AmiciSimulationRunner::AmiciResultPackageSimple const& rhs);
+
 } // namespace parpe
 
 
