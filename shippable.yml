@@ -32,7 +32,7 @@ build:
         # Download AMICI from github - cd $PARPE_BASE/ThirdParty && ./installAMICI.sh
         #- cd $PARPE_BASE/ThirdParty && ./installCeres.sh
 
-        - ThirdParty/installGoogleTest.sh
+        - cd $PARPE_BASE && ThirdParty/installGoogleTest.sh
 
         # build parPE
         - pip install -r $PARPE_BASE/python/requirements.txt
