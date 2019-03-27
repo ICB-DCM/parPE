@@ -4,6 +4,7 @@
 #include <parpeamici/multiConditionDataProvider.h>
 #include <parpecommon/misc.h>
 #include <parpecommon/parpeException.h>
+#include <amici/misc.h>
 
 #include <exception>
 #include <cmath>
@@ -15,6 +16,7 @@
 
 namespace parpe {
 
+using amici::getUnscaledParameter;
 
 HierarchicalOptimizationWrapper::HierarchicalOptimizationWrapper(
         std::unique_ptr<AmiciSummedGradientFunction> fun,

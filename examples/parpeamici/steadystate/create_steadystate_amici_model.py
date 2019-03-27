@@ -264,7 +264,7 @@ def getReturnDataForCondition(model, solver, fixed_parameters,
     # TODO: confirm gradient is 0 for real measurements and save expected llh
 
     # return generated noisy measurements
-    rdata['y'] = synthetic_data
+    rdata._swigptr.y = amici.DoubleVector(synthetic_data.flatten())
 
     return rdata
 

@@ -7,6 +7,8 @@ set -x
 
 HDF5_FILE=$1
 HDF5_FILE_TEST=$2
+MPIEXEC="mpiexec --oversubscribe -n 5"
+test -v SHIPPABLE && MPIEXEC="${MPIEXEC} --allow-run-as-root"
 
 rm -f test.log
 
@@ -41,7 +43,7 @@ test -f simulate1.h5
 # Run optimization with default settings
 
 rm -rf example_steadystate_multi-test-optimize/
-mpiexec --oversubscribe -n 5 ./example_steadystate_multi \
+${MPIEXEC} ./example_steadystate_multi \
   -o example_steadystate_multi-test-optimize/ ${HDF5_FILE} 2>&1 >> test.log
 (! grep ERR test.log)
 (! grep WRN test.log)
@@ -49,7 +51,7 @@ mpiexec --oversubscribe -n 5 ./example_steadystate_multi \
 # Simulate along trajectory
 
 rm -f simulate2.h5
-mpiexec --oversubscribe -n 5 ./example_steadystate_multi_simulator \
+${MPIEXEC} ./example_steadystate_multi_simulator \
   example_steadystate_multi-test-optimize/_rank00000.h5 / simulate2.h5 / \
   --along-trajectory 2>&1 >> test.log
 (! grep ERR test.log)
@@ -62,7 +64,7 @@ test -f simulate2.h5
 
 
 rm -f simulate3.h5
-mpiexec --oversubscribe -n 5 ./example_steadystate_multi_simulator \
+${MPIEXEC} ./example_steadystate_multi_simulator \
   ${HDF5_FILE_TEST} / example_steadystate_multi-test-optimize/_rank00000.h5 / \
   simulate3.h5 / --at-optimum
 h5dump -d /multistarts/0/ySim/3 simulate3.h5 # test dataset exists

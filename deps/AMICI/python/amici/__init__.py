@@ -97,7 +97,7 @@ try:
     # be installed if the the AMICI package was properly installed. If not,
     # AMICI was probably imported from setup.py and we don't need those.
     from .sbml_import import SbmlImporter, assignmentRules2observables
-    from .numpy import rdataToNumPyArrays, edataToNumPyArrays
+    from .numpy import ReturnDataView, ExpDataView
     from .pandas import getEdataFromDataFrame, \
         getDataObservablesAsDataFrame, getSimulationObservablesAsDataFrame, \
         getSimulationStatesAsDataFrame, getResidualsAsDataFrame
@@ -126,7 +126,7 @@ def runAmiciSimulation(model, solver, edata=None):
 
     with capture_cstdout():
         rdata = amici.runAmiciSimulation(solver.get(), edata, model.get())
-    return rdataToNumPyArrays(rdata)
+    return numpy.ReturnDataView(rdata)
 
 
 def ExpData(*args):
@@ -141,8 +141,7 @@ def ExpData(*args):
     Raises:
 
     """
-    if isinstance(args[0], dict):
-        # rdata dict created by rdataToNumPyArrays
+    if isinstance(args[0], ReturnDataView):
         return amici.ExpData(args[0]['ptr'].get(), *args[1:])
     elif isinstance(args[0], ExpDataPtr):
         # the *args[:1] should be empty, but by the time you read this,
@@ -153,13 +152,15 @@ def ExpData(*args):
         return amici.ExpData(*args)
 
 
-def runAmiciSimulations(model, solver, edata_list, num_threads=1):
+def runAmiciSimulations(model, solver, edata_list, failfast=True,
+                        num_threads=1):
     """ Convenience wrapper for loops of amici.runAmiciSimulation
 
     Arguments:
         model: Model instance
         solver: Solver instance, must be generated from Model.getSolver()
         edata_list: list of ExpData instances
+        failfast: returns as soon as an integration failure is encountered
         num_threads: number of threads to use
                      (only used if compiled with openmp)
 
@@ -174,5 +175,6 @@ def runAmiciSimulations(model, solver, edata_list, num_threads=1):
         rdata_ptr_list = amici.runAmiciSimulations(solver.get(),
                                                    edata_ptr_vector,
                                                    model.get(),
+                                                   failfast,
                                                    num_threads)
-    return [numpy.rdataToNumPyArrays(r) for r in rdata_ptr_list]
+    return [numpy.ReturnDataView(r) for r in rdata_ptr_list]
