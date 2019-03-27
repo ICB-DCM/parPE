@@ -29,9 +29,9 @@ build:
         - cmake -DCMAKE_BUILD_TYPE=Debug -DENABLE_PYTHON=ON -DBUILD_TESTS=OFF -DCppUTest_DIR=${CPPUTEST_BUILD_DIR} .. && make -j12
 
         #- cd $PARPE_BASE/ThirdParty && ./downloadPackages.sh
-        # Download AMICI from github - cd $PARPE_BASE/ThirdParty && ./installAMICI.sh
         #- cd $PARPE_BASE/ThirdParty && ./installCeres.sh
 
+        - ls -l $PARPE_BASE/ThirdParty # Debug
         - cd $PARPE_BASE && ThirdParty/installGoogleTest.sh
 
         # build parPE
