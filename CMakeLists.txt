@@ -90,10 +90,6 @@ if(${BUILD_TESTS})
     # --allow-run-as-root is required for running on shippable systems
     set(TESTS_MPIEXEC_COMMAND mpiexec --allow-run-as-root -n 4 CACHE STRING "")
 
-    # CppUTest
-    find_package(CppUTest REQUIRED)
-    add_definitions(-DD_MemoryLeakWarningPlugin_h) # prevent undefined reference to operator new; new is redefined even when memoryleakdetector is disabled
-
     # googletest
     add_definitions(-DGTEST_LANGUAGE_CXX11)
     find_package(Threads REQUIRED)
