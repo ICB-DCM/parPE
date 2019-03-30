@@ -47,8 +47,8 @@ build:
         - cd $PARPE_BASE/build && make parpe_coverage_cobertura
         - mkdir -p $PARPE_BASE/shippable/codecoverage && cp $PARPE_BASE/build/parpe_coverage_cobertura.xml $PARPE_BASE/shippable/codecoverage
 
-    on_failure:
-        - #ls -R ${PARPE_BASE}
+#    on_failure:
+#        - ls -R ${PARPE_BASE}
 
 jobs:
   - name: parPE_runCI
