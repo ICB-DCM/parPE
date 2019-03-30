@@ -10,6 +10,7 @@ setup(
     packages=find_packages(),
     install_requires=['numpy',
                       'termcolor',
+                      'colorama'
                       'petab',
                       'amici',
                       'h5py',
