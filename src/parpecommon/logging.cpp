@@ -68,10 +68,9 @@ void logProcessStats()
 
 void printMPIInfo() {
 #ifdef PARPE_ENABLE_MPI
-    int mpiInitialized = 0;
-    MPI_Initialized(&mpiInitialized);
+    int mpiActive = getMpiActive();
 
-    if(mpiInitialized) {
+    if(mpiActive) {
         int mpiCommSize, mpiRank;
         MPI_Comm_size(MPI_COMM_WORLD, &mpiCommSize);
         MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);

@@ -1,5 +1,4 @@
-#include <CppUTest/TestHarness.h>
-#include <CppUTestExt/MockSupport.h>
+#include <gtest/gtest.h>
 
 #include <parpecommon/parpeConfig.h>
 #include <parpeoptimization/multiStartOptimization.h>
@@ -9,19 +8,6 @@
 
 #ifdef PARPE_ENABLE_IPOPT
 #include <parpeoptimization/localOptimizationIpopt.h>
-
-// clang-format off
-TEST_GROUP(multiStartOptimization){
-    void setup(){
-        // Disable mock for multi-threaded test; mocking does not seem to be thread-safe
-        mock().disable();
-    }
-
-    void teardown(){
-    }
-};
-// clang-format on
-
 
 TEST(multiStartOptimization, testMultiStartOptimization) {
     int numStarts = 10;

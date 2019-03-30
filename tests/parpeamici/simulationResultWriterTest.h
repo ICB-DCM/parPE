@@ -1,5 +1,4 @@
-#include <CppUTest/TestHarness.h>
-#include <CppUTestExt/MockSupport.h>
+#include <gtest/gtest.h>
 
 #include "../parpecommon/testingMisc.h"
 
@@ -13,18 +12,6 @@
 #include <amici/amici.h>
 #include <amici/hdf5.h>
 #include <amici/solver_cvodes.h>
-
-
-// clang-format off
-TEST_GROUP(simulationResultWriter){
-    void setup(){
-
-    }
-
-    void teardown(){
-    }
-};
-// clang-format on
 
 
 TEST(simulationResultWriter, testResultWriter) {
@@ -47,7 +34,7 @@ TEST(simulationResultWriter, testResultWriter) {
 
     amici::ExpData edata(nytrue, 0, 0, timepoints);
     std::vector<double> measurements {1.1, 2.1, 3.1, 4.1};
-    CHECK_TRUE(measurements.size() == (unsigned) nytrue * timepoints.size());
+    EXPECT_TRUE(measurements.size() == (unsigned) nytrue * timepoints.size());
     edata.setObservedData(measurements);
 
     amici::ReturnData rdata(timepoints, 0, 1, nx, nx, nx, nytrue, nytrue, 0, 0,
@@ -64,12 +51,12 @@ TEST(simulationResultWriter, testResultWriter) {
     // write
     rw.createDatasets(numSimulations);
 
-    CHECK_TRUE(parpe::hdf5GroupExists(file.getId(), "/testResultWriter/"));
-    CHECK_TRUE(parpe::hdf5DatasetExists(file, rw.llhPath));
-    CHECK_TRUE(parpe::hdf5DatasetExists(file, rw.xPath));
-    CHECK_TRUE(parpe::hdf5DatasetExists(file, rw.yMesPath));
-    CHECK_TRUE(parpe::hdf5DatasetExists(file, rw.ySimPath));
-    CHECK_TRUE(parpe::hdf5DatasetExists(file, rw.timePath));
+    EXPECT_TRUE(parpe::hdf5GroupExists(file.getId(), "/testResultWriter/"));
+    EXPECT_TRUE(parpe::hdf5DatasetExists(file, rw.llhPath));
+    EXPECT_TRUE(parpe::hdf5DatasetExists(file, rw.xPath));
+    EXPECT_TRUE(parpe::hdf5DatasetExists(file, rw.yMesPath));
+    EXPECT_TRUE(parpe::hdf5DatasetExists(file, rw.ySimPath));
+    EXPECT_TRUE(parpe::hdf5DatasetExists(file, rw.timePath));
 
     rw.saveSimulationResults(&edata, &rdata, 1);
 

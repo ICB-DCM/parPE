@@ -1,5 +1,4 @@
-#include <CppUTest/TestHarness.h>
-#include <CppUTestExt/MockSupport.h>
+#include <gtest/gtest.h>
 
 #include <iostream>
 
@@ -19,24 +18,13 @@
 #include <parpeoptimization/localOptimizationCeres.h>
 #include <ceres/gradient_problem_solver.h>
 
-// need prototype here, otherwise mess with headers (including ceres.h causes some errors with EIGEN)
+// need prototype here, otherwise mess with headers
+// (including ceres.h causes some errors with EIGEN)
 namespace parpe {
-void setCeresOption(const std::pair<const std::string, const std::string> &pair, ceres::GradientProblemSolver::Options* options);
+void setCeresOption(const std::pair<const std::string, const std::string> &pair,
+                    ceres::GradientProblemSolver::Options* options);
 } // namespace parpe
 #endif
-
-// clang-format off
-TEST_GROUP(optimizationOptions){
-    void setup() {
-        mock().clear();
-    }
-
-    void teardown() {
-        mock().checkExpectations();
-        mock().clear();
-    }
-};
-// clang-format on
 
 
 TEST(optimizationOptions, setGetOptionStr) {
@@ -46,7 +34,7 @@ TEST(optimizationOptions, setGetOptionStr) {
     o.setOption(key, expVal);
     auto actVal = o.getStringOption(key);
 
-    CHECK_EQUAL(expVal, actVal);
+    EXPECT_EQ(expVal, actVal);
 }
 
 TEST(optimizationOptions, setGetOptionInt) {
@@ -56,7 +44,7 @@ TEST(optimizationOptions, setGetOptionInt) {
     o.setOption(key, expVal);
     auto actVal = o.getDoubleOption(key);
 
-    DOUBLES_EQUAL(expVal, actVal, 1e-15);
+    EXPECT_NEAR(expVal, actVal, 1e-15);
 }
 
 TEST(optimizationOptions, setGetOptionDouble) {
@@ -66,14 +54,14 @@ TEST(optimizationOptions, setGetOptionDouble) {
     o.setOption(key, expVal);
     auto actVal = o.getIntOption(key);
 
-    CHECK_EQUAL(expVal, actVal);
+    EXPECT_EQ(expVal, actVal);
 }
 
 
 TEST(optimizationOptions, getNonExistingOption) {
     parpe::OptimizationOptions o;
 
-    CHECK_THROWS(std::invalid_argument, o.getIntOption("missingKey"));
+    EXPECT_THROW(o.getIntOption("missingKey"), std::invalid_argument);
 }
 
 #ifdef PARPE_ENABLE_IPOPT
@@ -86,11 +74,12 @@ TEST(optimizationOptions, setIpOptOptions) {
 
     parpe::OptimizationOptions o;
     o.setOption(key, expVal);
-    o.for_each<Ipopt::SmartPtr<Ipopt::OptionsList>*>(parpe::setIpOptOption, &options);
+    o.for_each<Ipopt::SmartPtr<Ipopt::OptionsList>*>(parpe::setIpOptOption,
+                                                     &options);
 
     int actVal = 0;
-    CHECK_EQUAL(true, options->GetIntegerValue(key, actVal, ""));
-    CHECK_EQUAL(expVal, actVal);
+    EXPECT_EQ(true, options->GetIntegerValue(key, actVal, ""));
+    EXPECT_EQ(expVal, actVal);
 }
 #endif
 
@@ -103,12 +92,14 @@ TEST(optimizationOptions, setCeresOptions) {
 
     parpe::OptimizationOptions o;
     o.setOption(key, expVal);
-    o.for_each<ceres::GradientProblemSolver::Options*>(parpe::setCeresOption, &options);
+    o.for_each<ceres::GradientProblemSolver::Options*>(parpe::setCeresOption,
+                                                       &options);
 
     int actVal = options.max_num_iterations;
 
-    // NOTE: disabled for ceres 1.11 compatibility CHECK_TRUE(options.IsValid(nullptr));
-    CHECK_EQUAL(expVal, actVal);
+    // NOTE: disabled for ceres 1.11 compatibility
+    // CHECK_TRUE(options.IsValid(nullptr));
+    EXPECT_EQ(expVal, actVal);
 }
 #endif
 
@@ -117,34 +108,36 @@ TEST(optimizationOptions, fromHDF5) {
     if(!std::tmpnam(tmpName))
         std::abort();
 
-    // TODO: hide hdf5 errors
-//    parpe::captureStreamToString([tmpName](){
-    H5_SAVE_ERROR_HANDLER;
-        CHECK_THROWS(parpe::HDF5Exception, parpe::OptimizationOptions::fromHDF5(tmpName));
-    H5_RESTORE_ERROR_HANDLER;
-//    }, stdout);
+    // fail on non-existing file (hide hdf5 errors)
+    parpe::captureStreamToString([tmpName](){
+        EXPECT_THROW(parpe::OptimizationOptions::fromHDF5(tmpName),
+                     parpe::HDF5Exception);
+    }, stdout);
 
     // create file
     hid_t fileId = parpe::hdf5CreateFile(tmpName, false);
     parpe::hdf5CreateGroup(fileId, "/optimizationOptions/ceres", true);
     int optimizer = 1;
-    H5LTset_attribute_int(fileId, "/optimizationOptions", "optimizer", &optimizer, 1);
-    H5LTset_attribute_int(fileId, "/optimizationOptions/ceres", "someOption", &optimizer, 1);
+    H5LTset_attribute_int(fileId, "/optimizationOptions", "optimizer",
+                          &optimizer, 1);
+    H5LTset_attribute_int(fileId, "/optimizationOptions/ceres", "someOption",
+                          &optimizer, 1);
     hsize_t dims[] = {2, 3};
     double buf[] = {1, 2, 3,
                     4, 5, 6};
-    H5LTmake_dataset_double(fileId, "/optimizationOptions/randomStarts", 2, dims, buf);
+    H5LTmake_dataset_double(fileId, "/optimizationOptions/randomStarts", 2,
+                            dims, buf);
 
-    // TODO: throw instead of pront
-    auto startingPoint = parpe::OptimizationOptions::getStartingPoint(fileId, 0);
-    CHECK_EQUAL(1, startingPoint[0]);
-    CHECK_EQUAL(4, startingPoint[1]);
+    auto startingPoint = parpe::OptimizationOptions::getStartingPoint(fileId,
+                                                                      0);
+    EXPECT_EQ(1, startingPoint[0]);
+    EXPECT_EQ(4, startingPoint[1]);
     H5Fclose(fileId);
 
     auto o = parpe::OptimizationOptions::fromHDF5(tmpName);
-    CHECK_EQUAL(optimizer, static_cast<int>(o->optimizer));
-    CHECK_EQUAL(optimizer, o->getIntOption("someOption"));
-    CHECK_TRUE(o->toString().size() > 50);
+    EXPECT_EQ(optimizer, static_cast<int>(o->optimizer));
+    EXPECT_EQ(optimizer, o->getIntOption("someOption"));
+    EXPECT_TRUE(o->toString().size() > 50);
 
     remove(tmpName);
 }

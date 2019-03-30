@@ -1,6 +1,3 @@
-#include <CppUTest/TestHarness.h>
-#include <CppUTestExt/MockSupport.h>
-
 #include <parpecommon/parpeConfig.h>
 #include <parpecommon/misc.h>
 #include <parpecommon/logging.h>
@@ -13,47 +10,36 @@
 #include <vector>
 #include <cstring> // strlen
 
+#include <gtest/gtest.h>
+
 #ifdef PARPE_ENABLE_MPI
 #include <mpi.h>
 #endif
 
 using namespace parpe;
 
-// clang-format off
-TEST_GROUP(testingMisc){
-    void setup(){
-
-    }
-
-    void teardown(){
-        mock().checkExpectations();
-        mock().clear();
-    }
-};
-// clang-format on
-
 TEST(testingMisc, testTenToMinusInf) {
-    CHECK_EQUAL(0.0, pow(10, -INFINITY));
+    ASSERT_EQ(0.0, pow(10, -INFINITY));
 }
-
 
 TEST(testingMisc, testWithinTolerance) {
     captureStreamToString([](){
         double atol = 0.1;
         double rtol = 0.1;
 
-        CHECK_TRUE(withinTolerance(1.0, 1.0, atol, rtol, 0));
-        CHECK_TRUE(withinTolerance(2.0, 2.15, atol, rtol, 0)); // abs false, rel true
-        CHECK_TRUE(withinTolerance(0, 0.05, atol, rtol, 0)); // abs true, rel false
+        EXPECT_TRUE(withinTolerance(1.0, 1.0, atol, rtol, 0));
+        // abs false, rel true
+        EXPECT_TRUE(withinTolerance(2.0, 2.15, atol, rtol, 0));
+        // abs true, rel false
+        EXPECT_TRUE(withinTolerance(0, 0.05, atol, rtol, 0));
 
+        EXPECT_TRUE(withinTolerance(NAN, NAN, atol, rtol, 0));
+        EXPECT_FALSE(withinTolerance(NAN, 1, atol, rtol, 0));
+        EXPECT_FALSE(withinTolerance(1, NAN, atol, rtol, 0));
 
-        CHECK_TRUE(withinTolerance(NAN, NAN, atol, rtol, 0));
-        CHECK_FALSE(withinTolerance(NAN, 1, atol, rtol, 0));
-        CHECK_FALSE(withinTolerance(1, NAN, atol, rtol, 0));
-
-        CHECK_TRUE(withinTolerance(INFINITY, INFINITY, atol, rtol, 0));
-        CHECK_FALSE(withinTolerance(1, INFINITY, atol, rtol, 0));
-        CHECK_FALSE(withinTolerance(INFINITY, 1, atol, rtol, 0));
+        EXPECT_TRUE(withinTolerance(INFINITY, INFINITY, atol, rtol, 0));
+        EXPECT_FALSE(withinTolerance(1, INFINITY, atol, rtol, 0));
+        EXPECT_FALSE(withinTolerance(INFINITY, 1, atol, rtol, 0));
     }, stderr, STDERR_FILENO);
 }
 
@@ -72,34 +58,20 @@ TEST(testingMisc, testRandInt) {
 
     for(int i = 0; i < numTests; ++i) {
         int r = randInt(min, max);
-        CHECK_TRUE(r >= min && r <= max);
+        EXPECT_TRUE(r >= min && r <= max);
     }
 }
-
-
-// clang-format off
-TEST_GROUP(commonMisc){
-    void setup(){
-
-    }
-
-    void teardown(){
-        mock().checkExpectations();
-        mock().clear();
-    }
-};
-// clang-format on
 
 TEST(commonMisc, testBacktrace) {
     std::string output = captureStreamToString([]() {
         parpe::printBacktrace(5);
     }, stderr, STDERR_FILENO);
-    CHECK_TRUE(100 < output.size());
+    EXPECT_TRUE(100 < output.size());
 }
 
 TEST(commonMisc, testFilexists) {
-    CHECK_TRUE(parpe::fileExists("/"));
-    CHECK_FALSE(parpe::fileExists("/doesntExists"));
+    EXPECT_TRUE(parpe::fileExists("/"));
+    EXPECT_FALSE(parpe::fileExists("/doesntExists"));
 }
 
 TEST(commonMisc, testCreateDirectoryIfNotExists) {
@@ -130,7 +102,7 @@ TEST(commonMisc, testRandDouble) {
 
     for(int i = 0; i < numTests; ++i) {
         double r = parpe::randDouble(min, max);
-        CHECK_TRUE(r >= min && r <= max);
+        EXPECT_TRUE(r >= min && r <= max);
     }
 }
 
@@ -143,7 +115,7 @@ TEST(commonMisc, testFillArrayRandomDoubleSameInterval) {
     parpe::fillArrayRandomDoubleSameInterval(min, max, numTests, buf);
 
     for(int i = 0; i < numTests; ++i) {
-        CHECK_TRUE(buf[i] >= min && buf[i] <= max);
+        EXPECT_TRUE(buf[i] >= min && buf[i] <= max);
     }
 }
 
@@ -156,30 +128,26 @@ TEST(commonMisc, testFillArrayRandomDoubleIndividualInterval) {
     parpe::fillArrayRandomDoubleIndividualInterval(min, max, numTests, buf);
 
     for(int i = 0; i < numTests; ++i) {
-        CHECK_TRUE(buf[i] >= min[i] && buf[i] <= max[i]);
+        EXPECT_TRUE(buf[i] >= min[i] && buf[i] <= max[i]);
     }
 }
 
 
 #ifdef PARPE_ENABLE_MPI
 TEST(commonMisc, testMpi) {
-#if IGNORE_ALL_LEAKS_IN_TEST
-    IGNORE_ALL_LEAKS_IN_TEST()
-        #endif
-
-            // Before MPI initialized
-            CHECK_EQUAL(-1, parpe::getMpiRank());
-    CHECK_EQUAL(-1, parpe::getMpiCommSize());
+    // Before MPI initialized
+    EXPECT_EQ(-1, parpe::getMpiRank());
+    EXPECT_EQ(-1, parpe::getMpiCommSize());
 
     // MPI initialized
     MPI_Init(0, nullptr);
-    CHECK_EQUAL(0, parpe::getMpiRank());
-    CHECK_EQUAL(1, parpe::getMpiCommSize());
+    EXPECT_EQ(0, parpe::getMpiRank());
+    EXPECT_EQ(1, parpe::getMpiCommSize());
     MPI_Finalize();
 
     // Should not make invalid calls after mpi_finalize
-    CHECK_EQUAL(-1, parpe::getMpiRank());
-    CHECK_EQUAL(-1, parpe::getMpiCommSize());
+    EXPECT_EQ(-1, parpe::getMpiRank());
+    EXPECT_EQ(-1, parpe::getMpiCommSize());
 }
 #endif
 
@@ -198,22 +166,8 @@ TEST(commonMisc, strFormatCurrentLocaltime) {
     int buflen = 10;
     char buf[buflen];
     parpe::strFormatCurrentLocaltime(buf, buflen, "abc");
-    CHECK_EQUAL(3, std::strlen(buf));
+    EXPECT_EQ(3UL, std::strlen(buf));
 }
-
-
-// clang-format off
-TEST_GROUP(logging){
-    void setup(){
-
-    }
-
-    void teardown(){
-        mock().checkExpectations();
-        mock().clear();
-    }
-};
-// clang-format on
 
 
 TEST(logging, printDebugInfoAndWait) {
@@ -235,7 +189,7 @@ TEST(logging, printMPIInfo) {
         parpe::printMPIInfo();
     }, stdout);
 
-    CHECK_TRUE(s.size() > 20);
+    EXPECT_TRUE(s.size() > 20);
 }
 
 TEST(logging, logProcessStats) {
@@ -243,26 +197,12 @@ TEST(logging, logProcessStats) {
         parpe::logProcessStats();
     }, stdout);
 
-    CHECK_TRUE(s.size() > 200);
+    EXPECT_TRUE(s.size() > 200);
 }
-
 
 
 #include <parpecommon/costFunction.h>
 #include <parpecommon/model.h>
-// clang-format off
-TEST_GROUP(costFunction){
-    void setup(){
-
-    }
-
-    void teardown(){
-        mock().checkExpectations();
-        mock().clear();
-    }
-};
-// clang-format on
-
 
 TEST(costFunction, mseZero) {
     parpe::MeanSquaredError mse;
@@ -271,10 +211,11 @@ TEST(costFunction, mseZero) {
     double costExp = 0.0;
     double costAct = NAN;
     mse.evaluate(label, prediction, costAct);
-    CHECK_EQUAL(costExp, costAct);
+    EXPECT_EQ(costExp, costAct);
 
     std::vector<double> predictionGradient0 = {1.0, 1.0};
-    std::vector<double*> predictionGradient = { &predictionGradient0[0], &predictionGradient0[1]};
+    std::vector<double*> predictionGradient = { &predictionGradient0[0],
+                                                &predictionGradient0[1]};
 
     std::vector<double> costGradientExp = {0.0};
     std::vector<double> costGradientAct = {NAN};
@@ -283,8 +224,8 @@ TEST(costFunction, mseZero) {
                  1, predictionGradient,
                  costAct, costGradientAct.data());
 
-    CHECK_EQUAL(costExp, costAct);
-    CHECK_TRUE(costGradientExp == costGradientAct);
+    EXPECT_EQ(costExp, costAct);
+    EXPECT_TRUE(costGradientExp == costGradientAct);
 
 }
 
@@ -295,7 +236,7 @@ TEST(costFunction, mseNonzero) {
     double costExp = 0.5;
     double costAct = NAN;
     mse.evaluate(label, prediction, costAct);
-    CHECK_EQUAL(costExp, costAct);
+    EXPECT_EQ(costExp, costAct);
 
     std::vector<double> predictionGradient0 = {5.0, 3.0};
     std::vector<double*> predictionGradient = { &predictionGradient0[0], &predictionGradient0[1]};
@@ -307,8 +248,8 @@ TEST(costFunction, mseNonzero) {
                  1, predictionGradient,
                  costAct, costGradientAct.data());
 
-    CHECK_EQUAL(costExp, costAct);
-    CHECK_TRUE(costGradientExp == costGradientAct);
+    EXPECT_EQ(costExp, costAct);
+    EXPECT_TRUE(costGradientExp == costGradientAct);
 
 }
 
@@ -323,14 +264,16 @@ TEST(costFunction, linearModel) {
     LinearModel lm;
     lm.evaluate(parameters, features, outputsAct);
 
-    CHECK_TRUE(outputsExp == outputsAct);
+    EXPECT_TRUE(outputsExp == outputsAct);
 
     std::vector<std::vector<double>> gradExp = {{4.0, 1.0}};
 
-    auto gradAct = std::vector<std::vector<double>>(features.size(), std::vector<double>(parameters.size(), NAN));
+    auto gradAct = std::vector<std::vector<double> >(
+                features.size(),
+                std::vector<double>(parameters.size(), NAN));
 
     lm.evaluate(parameters, features, outputsAct, gradAct);
-    CHECK_TRUE(gradExp == gradAct);
+    EXPECT_TRUE(gradExp == gradAct);
 }
 
 TEST(costFunction, linearModel2) {
@@ -343,14 +286,16 @@ TEST(costFunction, linearModel2) {
     LinearModel lm;
     lm.evaluate(parameters, features, outputsAct);
 
-    CHECK_TRUE(outputsExp == outputsAct);
+    EXPECT_TRUE(outputsExp == outputsAct);
 
     std::vector<std::vector<double>> gradExp = {{4.0, 1.0, 1.0}};
 
-    auto gradAct = std::vector<std::vector<double>>(features.size(), std::vector<double>(parameters.size(), NAN));
+    auto gradAct = std::vector<std::vector<double> >(
+                features.size(),
+                std::vector<double>(parameters.size(), NAN));
 
     lm.evaluate(parameters, features, outputsAct, gradAct);
-    CHECK_TRUE(gradExp == gradAct);
+    EXPECT_TRUE(gradExp == gradAct);
 }
 
 TEST(costFunction, linearModel3) {
@@ -364,12 +309,13 @@ TEST(costFunction, linearModel3) {
     parpe::LinearModel lm;
     lm.evaluate(parameters, features, outputsAct);
 
-    CHECK_TRUE(outputsExp == outputsAct);
+    EXPECT_TRUE(outputsExp == outputsAct);
 
     std::vector<std::vector<double>> gradExp = {{4.0, 1.0, 1.0}, {8.0, 2.0, 1.0}};
 
-    auto gradAct = std::vector<std::vector<double>>(features.size(), std::vector<double>(parameters.size(), NAN));
+    auto gradAct = std::vector<std::vector<double> >(
+                features.size(), std::vector<double>(parameters.size(), NAN));
 
     lm.evaluate(parameters, features, outputsAct, gradAct);
-    CHECK_TRUE(gradExp == gradAct);
+    EXPECT_TRUE(gradExp == gradAct);
 }

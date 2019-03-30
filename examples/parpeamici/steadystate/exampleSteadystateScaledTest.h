@@ -1,5 +1,4 @@
-#include <CppUTest/TestHarness.h>
-#include <CppUTestExt/MockSupport.h>
+#include <gtest/gtest.h>
 
 #include <parpecommon/parpeConfig.h>
 #include <parpecommon/misc.h>
@@ -18,8 +17,15 @@
 
 /* Tests using model model_steadystate_scaled */
 
-// clang-format off
-TEST_GROUP(steadystateProblemTests){
+class steadystateProblemTests : public ::testing::Test {
+
+protected:
+    void SetUp() override {
+    }
+
+    void TearDown() override {
+    }
+
     /*
     const std::vector<double> t { 1.0e8 };
     const std::vector<double> k { 0.1, 0.4, 0.7, 1.0 };
@@ -45,17 +51,9 @@ TEST_GROUP(steadystateProblemTests){
                                     2.0 * 0.456644592142075,
                                     3.0 + 0.437977375496898,
                                     0.456644592142075};
-    void setup(){
-
-    }
-
-    void teardown(){
-    }
 };
-// clang-format on
 
-
-TEST(steadystateProblemTests, testSteadystate) {
+TEST_F(steadystateProblemTests, testSteadystate) {
     /* Verify steadystate matches saved results and loglikelihood is correct */
 
     // verify steadystate
@@ -75,11 +73,13 @@ TEST(steadystateProblemTests, testSteadystate) {
     edata.setObservedData(yExp);
     edata.setObservedDataStdDev(std::vector<double>(yExp.size(), 1.0));
     rdata = amici::runAmiciSimulation(*solver, &edata, *model);
-    CHECK_EQUAL(rdata->status, AMICI_SUCCESS);
-    DOUBLES_EQUAL(parpe::getLogLikelihoodOffset(edata.nt() * edata.nytrue()), rdata->llh, 1e-5);
+
+    EXPECT_EQ(rdata->status, AMICI_SUCCESS);
+    EXPECT_NEAR(parpe::getLogLikelihoodOffset(edata.nt() * edata.nytrue()),
+                rdata->llh, 1e-5);
 }
 
-TEST(steadystateProblemTests, testSteadystateMultiCond) {
+TEST_F(steadystateProblemTests, testSteadystateMultiCond) {
     auto model = getModel();
     auto modelNonOwning = model.get();
     auto p = model->getParameters();
@@ -87,7 +87,8 @@ TEST(steadystateProblemTests, testSteadystateMultiCond) {
     model->setInitialStates(x0);
     //model->setParameters(p);
 
-    parpe::MultiConditionDataProviderDefault dp(std::move(model), modelNonOwning->getSolver());
+    parpe::MultiConditionDataProviderDefault dp(std::move(model),
+                                                modelNonOwning->getSolver());
 
     dp.edata.push_back(amici::ExpData(*modelNonOwning));
     dp.edata[0].fixedParameters = modelNonOwning->getFixedParameters();
@@ -98,68 +99,71 @@ TEST(steadystateProblemTests, testSteadystateMultiCond) {
     parpe::MultiConditionProblem problem(&dp);
     double cost;
     problem.costFun->evaluate(p, cost, gsl::span<double>());
-    DOUBLES_EQUAL(-parpe::getLogLikelihoodOffset(dp.edata[0].getObservedData().size()), cost, 1e-5);
+    EXPECT_NEAR(-parpe::getLogLikelihoodOffset(
+                    dp.edata[0].getObservedData().size()), cost, 1e-5);
 }
 
 
-//TEST(steadystateProblemTests, testSteadystateHierarchical) {
-//    // introduce scaling parameters
-//    auto model = getModel();
-//    //model->setFixedParameters(k);
-//    model->setInitialStates(x0);
-//    //model->setParameters(p);
-//    model->setTimepoints(t);
-//    auto modelNonOwning = model.get();
+TEST_F(steadystateProblemTests, testSteadystateHierarchical) {
+    // introduce scaling parameters
+    auto model = getModel();
+    //model->setFixedParameters(k);
+    model->setInitialStates(x0);
+    //model->setParameters(p);
+    model->setTimepoints(t);
+    auto modelNonOwning = model.get();
 
-//    const double scalingExp = 2.0; // scaling parameter
-//    const double offsetExp = 2.0; // offset parameter
-//    const std::vector<double> pReduced { 1.0, 0.5, 0.4, 2.0, 0.1, /*2.0, 3.0,*/ 0.2, 4.0 };
-//    auto yScaledExp = yExp;
-//    yScaledExp[scaledObservableIdx] = scalingExp * yExp[0];
-//    yScaledExp[offsettedObservableIdx] = offsetExp + yExp[1];
-//    parpe::MultiConditionDataProviderDefault dp(std::move(model), modelNonOwning->getSolver());
-//    // x0?
-//    dp.edata.push_back(amici::ExpData(*modelNonOwning));
-//    dp.edata[0].fixedParameters = modelNonOwning->getFixedParameters();
-//    dp.edata[0].setObservedData(yScaledExp);
-//    dp.edata[0].setObservedDataStdDev(std::vector<double>(yExp.size(), 1.0));
+    const double scalingExp = 2.0; // scaling parameter
+    const double offsetExp = 2.0; // offset parameter
+    const std::vector<double> pReduced { 1.0, 0.5, 0.4, 2.0, 0.1, /*2.0, 3.0,*/ 0.2, 4.0 };
+    auto yScaledExp = yExp;
+    yScaledExp[scaledObservableIdx] = scalingExp * yExp[0];
+    yScaledExp[offsettedObservableIdx] = offsetExp + yExp[1];
+    parpe::MultiConditionDataProviderDefault dp(std::move(model), modelNonOwning->getSolver());
+    // x0?
+    dp.edata.push_back(amici::ExpData(*modelNonOwning));
+    dp.edata[0].fixedParameters = modelNonOwning->getFixedParameters();
+    dp.edata[0].setObservedData(yScaledExp);
+    dp.edata[0].setObservedDataStdDev(std::vector<double>(yExp.size(), 1.0));
 
-//    //parpe::MultiConditionProblem problem(&dp);
+    //parpe::MultiConditionProblem problem(&dp);
 
-//    auto scalings = std::make_unique<parpe::AnalyticalParameterProviderDefault>();
-//    scalings->conditionsForParameter.push_back({0});
-//    scalings->optimizationParameterIndices.push_back(scalingParameterIdx);
-//    // x[scalingIdx][conditionIdx] -> std::vector of observableIndicies
-//    scalings->mapping.resize(1);
-//    scalings->mapping[0][0] = {scaledObservableIdx};
+    auto scalings = std::make_unique<parpe::AnalyticalParameterProviderDefault>();
+    scalings->conditionsForParameter.push_back({0});
+    scalings->optimizationParameterIndices.push_back(scalingParameterIdx);
+    // x[scalingIdx][conditionIdx] -> std::vector of observableIndicies
+    scalings->mapping.resize(1);
+    scalings->mapping[0][0] = {scaledObservableIdx};
 
-//    auto offsets = std::make_unique<parpe::AnalyticalParameterProviderDefault>();
-//    offsets->conditionsForParameter.push_back({0});
-//    offsets->optimizationParameterIndices.push_back(offsetParameterIdx);
-//    // x[scalingIdx][conditionIdx] -> std::vector of observableIndicies
-//    offsets->mapping.resize(1);
-//    offsets->mapping[0][0] = {offsettedObservableIdx};
+    auto offsets = std::make_unique<parpe::AnalyticalParameterProviderDefault>();
+    offsets->conditionsForParameter.push_back({0});
+    offsets->optimizationParameterIndices.push_back(offsetParameterIdx);
+    // x[scalingIdx][conditionIdx] -> std::vector of observableIndicies
+    offsets->mapping.resize(1);
+    offsets->mapping[0][0] = {offsettedObservableIdx};
 
-//    auto sigmas = std::make_unique<parpe::AnalyticalParameterProviderDefault>();
+    auto sigmas = std::make_unique<parpe::AnalyticalParameterProviderDefault>();
 
-//    auto gradFun = std::make_unique<parpe::AmiciSummedGradientFunction>(&dp, nullptr, nullptr);
-//    parpe::HierarchicalOptimizationWrapper hier(std::move(gradFun),
-//                                               std::move(scalings),
-//                                               std::move(offsets),
-//                                               std::move(sigmas),
-//                                               dp.getNumberOfConditions(),
-//                                               modelNonOwning->nytrue,
-//                                               modelNonOwning->nt(),
-//                                               parpe::ErrorModel::normal);
+    auto gradFun = std::make_unique<parpe::AmiciSummedGradientFunction>(&dp, nullptr, nullptr);
+    parpe::HierarchicalOptimizationWrapper hier(std::move(gradFun),
+                                               std::move(scalings),
+                                               std::move(offsets),
+                                               std::move(sigmas),
+                                               dp.getNumberOfSimulationConditions(),
+                                               modelNonOwning->nytrue,
+                                               parpe::ErrorModel::normal);
+    // TODO: need to adapt to changed model
 //    double cost;
 //    hier.evaluate(pReduced, cost, gsl::span<double>(), nullptr, nullptr);
-//    DOUBLES_EQUAL(-parpe::getLogLikelihoodOffset(dp.edata[0].getObservedData().size()), cost, 1e-5);
+//    EXPECT_NEAR(-parpe::getLogLikelihoodOffset(
+//                    dp.edata[0].getObservedData().size()), cost, 1e-5);
 
 //    const std::vector<double> pFull { 1.0, 0.5, 0.4, 2.0,
 //                                      0.1, scalingExp, offsetExp, 0.2, 4.0 };
 //    hier.fun->evaluate(pFull, {0}, cost, gsl::span<double>(), nullptr, nullptr);
-//    DOUBLES_EQUAL(-parpe::getLogLikelihoodOffset(dp.edata[0].getObservedData().size()), cost, 1e-5);
-//}
+//    EXPECT_NEAR(-parpe::getLogLikelihoodOffset(
+//                    dp.edata[0].getObservedData().size()), cost, 1e-5);
+}
 
 
 
