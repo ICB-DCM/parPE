@@ -85,8 +85,7 @@ int mkpathConstChar(const char *file_path, mode_t mode);
 
 void createDirectoryIfNotExists(char *dirName);
 
-void strFormatCurrentLocaltime(char *buffer, size_t bufferSize,
-                                       const char *format);
+void strFormatCurrentLocaltime(gsl::span<char> buffer, const char *format);
 
 void runInParallelAndWaitForFinish(void *(*function)(void *),
                                            void **args, int numArgs);
@@ -105,13 +104,11 @@ double randDouble(double min, double max);
  * @param length
  * @param buffer
  */
-void fillArrayRandomDoubleIndividualInterval(const double *min,
-                                                     const double *max,
-                                                     int length,
-                                                     double *buffer);
+void fillArrayRandomDoubleIndividualInterval(gsl::span<const double> min,
+                                                     gsl::span<const double> max,
+                                                     gsl::span<double> buffer);
 
-void fillArrayRandomDoubleSameInterval(double min, double max,
-                                               int length, double *buffer);
+void fillArrayRandomDoubleSameInterval(double min, double max, gsl::span<double> buffer);
 
 int getMpiRank();
 int getMpiCommSize();

@@ -112,7 +112,7 @@ TEST(commonMisc, testFillArrayRandomDoubleSameInterval) {
     const double max = 1.0;
 
     double buf[numTests];
-    parpe::fillArrayRandomDoubleSameInterval(min, max, numTests, buf);
+    parpe::fillArrayRandomDoubleSameInterval(min, max, buf);
 
     for(int i = 0; i < numTests; ++i) {
         EXPECT_TRUE(buf[i] >= min && buf[i] <= max);
@@ -125,7 +125,7 @@ TEST(commonMisc, testFillArrayRandomDoubleIndividualInterval) {
     const double max[numTests] = {-0.5, 0.5, 1.5};
 
     double buf[numTests];
-    parpe::fillArrayRandomDoubleIndividualInterval(min, max, numTests, buf);
+    parpe::fillArrayRandomDoubleIndividualInterval(min, max, buf);
 
     for(int i = 0; i < numTests; ++i) {
         EXPECT_TRUE(buf[i] >= min[i] && buf[i] <= max[i]);
@@ -165,7 +165,7 @@ TEST(commonMisc, runInParallelAndWaitForFinish) {
 TEST(commonMisc, strFormatCurrentLocaltime) {
     int buflen = 10;
     char buf[buflen];
-    parpe::strFormatCurrentLocaltime(buf, buflen, "abc");
+    parpe::strFormatCurrentLocaltime(gsl::make_span(buf, buflen), "abc");
     EXPECT_EQ(3UL, std::strlen(buf));
 }
 
