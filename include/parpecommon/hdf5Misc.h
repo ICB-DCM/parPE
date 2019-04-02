@@ -91,11 +91,11 @@ void hdf5CreateExtendableString1DArray(hid_t file_id, const char *datasetPath);
 
 void hdf5Extend2ndDimensionAndWriteToDouble2DArray(hid_t file_id,
                                                    const char *datasetPath,
-                                                   const double *buffer);
+                                                   gsl::span<const double> buffer);
 
 void hdf5Extend2ndDimensionAndWriteToInt2DArray(hid_t file_id,
                                                 const char *datasetPath,
-                                                const int *buffer);
+                                                gsl::span<const int> buffer);
 
 void hdf5ExtendAndWriteToString1DArray(hid_t file_id,
                                        const char *datasetPath,
@@ -104,19 +104,19 @@ void hdf5ExtendAndWriteToString1DArray(hid_t file_id,
 void hdf5CreateOrExtendAndWriteToDouble2DArray(hid_t file_id,
                                                const char *parentPath,
                                                const char *datasetName,
-                                               const double *buffer,
-                                               hsize_t stride);
+                                               gsl::span<const double> buffer);
 
 void hdf5CreateOrExtendAndWriteToInt2DArray(hid_t file_id,
                                             const char *parentPath,
                                             const char *datasetName,
-                                            const int *buffer, hsize_t stride);
+                                            gsl::span<const int> buffer);
 
 void hdf5CreateOrExtendAndWriteToDouble3DArray(hid_t file_id,
                                                const char *parentPath,
                                                const char *datasetName,
-                                               const double *buffer,
-                                               hsize_t stride1, hsize_t stride2);
+                                               gsl::span<const double> buffer,
+                                               hsize_t stride1,
+                                               hsize_t stride2);
 
 void hdf5CreateOrExtendAndWriteToString1DArray(hid_t file_id,
                                                const char *parentPath,
@@ -125,23 +125,27 @@ void hdf5CreateOrExtendAndWriteToString1DArray(hid_t file_id,
 
 int hdf5Read2DDoubleHyperslab(hid_t file_id, const char *path, hsize_t size0,
                               hsize_t size1, hsize_t offset0, hsize_t offset1,
-                              double *buffer);
+                              gsl::span<double> buffer);
 
 int hdf5Read3DDoubleHyperslab(hid_t file_id, const char *path, hsize_t size0,
                               hsize_t size1, hsize_t size2, hsize_t offset0,
-                              hsize_t offset1, hsize_t offset2, double *buffer);
+                              hsize_t offset1, hsize_t offset2,
+                              gsl::span<double> buffer);
 
 std::vector<double> hdf5Get3DDoubleHyperslab(hid_t file_id, const char *path, hsize_t size0,
                               hsize_t size1, hsize_t size2, hsize_t offset0,
                               hsize_t offset1, hsize_t offset2);
 
-std::vector<int> hdf5Read1DIntegerHyperslab(const H5::H5File &file, std::string const& path,
-                                            hsize_t count, hsize_t offset);
+std::vector<int> hdf5Read1DIntegerHyperslab(
+        const H5::H5File &file, std::string const& path,
+        hsize_t count, hsize_t offset);
 
-std::vector<int> hdf5Read2DIntegerHyperslab(H5::H5File const& file, std::string const& path,
-                                            hsize_t size0, hsize_t size1, hsize_t offset0, hsize_t offset1);
+std::vector<int> hdf5Read2DIntegerHyperslab(
+        H5::H5File const& file, std::string const& path,
+        hsize_t size0, hsize_t size1, hsize_t offset0, hsize_t offset1);
 
-void hdf5GetDatasetDimensions(hid_t file_id, const char *path, hsize_t nDimsExpected,
+void hdf5GetDatasetDimensions(hid_t file_id, const char *path,
+                              hsize_t nDimsExpected,
                               int *d1 = nullptr, int *d2 = nullptr,
                               int *d3 = nullptr, int *d4 = nullptr);
 

@@ -76,7 +76,8 @@ void ExampleSteadystateGradientFunction::setupExpData(int conditionIdx) {
 
 void ExampleSteadystateGradientFunction::readFixedParameters(int conditionIdx) const {
     std::vector<double> k(model->nk());
-    parpe::hdf5Read2DDoubleHyperslab(fileId, "/fixedParameters/k", k.size(), 1, 0, conditionIdx, k.data());
+    parpe::hdf5Read2DDoubleHyperslab(fileId, "/fixedParameters/k", k.size(),
+                                     1, 0, conditionIdx, k);
     model->setFixedParameters(k);
 }
 

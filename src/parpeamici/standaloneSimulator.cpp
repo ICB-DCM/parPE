@@ -327,7 +327,7 @@ std::vector<double> getFinalParameters(std::string const& startIndex, H5::H5File
 
     parpe::hdf5Read2DDoubleHyperslab(file.getId(), parameterPath.c_str(),
                                      numParam, 1, 0, costFunEvaluationIndex,
-                                     parameters.data());
+                                     parameters);
 
     /*
     // read from last iteration (last column in /multistarts/$/iterCostFunParameters)
@@ -367,8 +367,7 @@ std::pair<int, double> getFunctionEvaluationWithMinimalCost(std::string const& d
     std::vector<double> cost(numFunctionEvalations, INFINITY);
 
     parpe::hdf5Read2DDoubleHyperslab(file.getId(), datasetPath.c_str(),
-                                     1, numFunctionEvalations, 0, 0,
-                                     cost.data());
+                                     1, numFunctionEvalations, 0, 0, cost);
     int minIndex = std::min_element(cost.begin(), cost.end()) - cost.begin();
     return { minIndex, cost[minIndex] };
 }
@@ -395,14 +394,15 @@ std::vector<std::vector<double>> getParameterTrajectory(std::string const& start
         parameters[iter] = std::vector<double>(numParam);
         parpe::hdf5Read2DDoubleHyperslab(file.getId(), parameterPath.c_str(),
                                          numParam, 1, 0, iter,
-                                         parameters[iter].data());
+                                         parameters[iter]);
     }
 
     return parameters;
 }
 
 int getNumStarts(H5::H5File const& file, std::string const& rootPath)  {
-    auto o = parpe::OptimizationOptions::fromHDF5(file.getId(), rootPath + "/inputData/optimizationOptions");
+    auto o = parpe::OptimizationOptions::fromHDF5(
+                file.getId(), rootPath + "/inputData/optimizationOptions");
     return o->numStarts;
 }
 
@@ -426,19 +426,23 @@ int runFinalParameters(StandaloneSimulator &sim,
     for(int i = 0; i < numStarts; ++i) {
         std::cout<<"Running for start "<<i<<std::endl;
         try {
-            auto parameters = parpe::getFinalParameters(std::to_string(i), parameterFile);
-            auto outerParameters = getOuterParameters(parameters, parameterFile, parameterFilePath);
+            auto parameters = parpe::getFinalParameters(std::to_string(i),
+                                                        parameterFile);
+            auto outerParameters = getOuterParameters(
+                        parameters, parameterFile, parameterFilePath);
 
-            std::string curResultPath = resultPath + "multistarts/" + std::to_string(i);
+            std::string curResultPath = resultPath + "multistarts/"
+                    + std::to_string(i);
 
             auto lock = hdf5MutexGetLock();
             H5::H5File conditionFile = hdf5OpenForReading(conditionFileName);
             lock.unlock();
 
-            errors += sim.run(resultFileName, curResultPath, outerParameters, loadBalancer,
-                              conditionFile, conditionFilePath);
+            errors += sim.run(resultFileName, curResultPath, outerParameters,
+                              loadBalancer, conditionFile, conditionFilePath);
         } catch (H5::FileIException const& e) {
-            std::cerr<<"Exception during start " << i << " "<<e.getDetailMsg()<<std::endl;
+            std::cerr<<"Exception during start " << i << " "
+                    <<e.getDetailMsg()<<std::endl;
             std::cerr<<"... skipping"<<std::endl;
         }
     }
@@ -581,13 +585,20 @@ std::vector<double> getOuterParameters(const std::vector<double> &fullParameters
                 parameterPath + "/inputData/sigmaParameterIndices",
                 parameterPath + "/inputData/sigmaParametersMapToObservables");
 
-    auto proportionalityFactorIndices = hierarchicalScalingReader.getOptimizationParameterIndices();
-    auto offsetParameterIndices = hierarchicalOffsetReader.getOptimizationParameterIndices();
-    auto sigmaParameterIndices = hierarchicalSigmaReader.getOptimizationParameterIndices();
+    auto proportionalityFactorIndices =
+            hierarchicalScalingReader.getOptimizationParameterIndices();
+    auto offsetParameterIndices =
+            hierarchicalOffsetReader.getOptimizationParameterIndices();
+    auto sigmaParameterIndices =
+            hierarchicalSigmaReader.getOptimizationParameterIndices();
 
     auto combinedIndices = proportionalityFactorIndices;
-    combinedIndices.insert(combinedIndices.end(), offsetParameterIndices.begin(), offsetParameterIndices.end());
-    combinedIndices.insert(combinedIndices.end(), sigmaParameterIndices.begin(), sigmaParameterIndices.end());
+    combinedIndices.insert(combinedIndices.end(),
+                           offsetParameterIndices.begin(),
+                           offsetParameterIndices.end());
+    combinedIndices.insert(combinedIndices.end(),
+                           sigmaParameterIndices.begin(),
+                           sigmaParameterIndices.end());
     std::sort(combinedIndices.begin(), combinedIndices.end());
 
     std::vector<double> result(fullParameters.size() - combinedIndices.size());

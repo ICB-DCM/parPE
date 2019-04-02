@@ -61,29 +61,37 @@ void OptimizationResultWriter::logObjectiveFunctionEvaluation(gsl::span<const do
     std::string pathStr = getIterationPath(numIterations);
     const char *fullGroupPath = pathStr.c_str();
 
-    hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "costFunCost", &objectiveFunctionValue, 1);
+    hdf5CreateOrExtendAndWriteToDouble2DArray(
+                file_id, fullGroupPath, "costFunCost",
+                gsl::make_span<const double>(&objectiveFunctionValue, 1));
 
     if (logGradientEachFunctionEvaluation) {
         if (!objectiveFunctionGradient.empty()) {
-            hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "costFunGradient",
-                                                      objectiveFunctionGradient.data(),
-                                                      objectiveFunctionGradient.size());
+            hdf5CreateOrExtendAndWriteToDouble2DArray(
+                        file_id, fullGroupPath, "costFunGradient",
+                        objectiveFunctionGradient);
         } else if (!parameters.empty()) {
             double dummyGradient[parameters.size()];
             std::fill_n(dummyGradient, parameters.size(), NAN);
-            hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "costFunGradient", dummyGradient,
-                                                      parameters.size());
+            hdf5CreateOrExtendAndWriteToDouble2DArray(
+                        file_id, fullGroupPath, "costFunGradient",
+                        gsl::make_span<const double>(dummyGradient,
+                                                     parameters.size()));
         }
     }
 
     if (logParametersEachFunctionEvaluation)
         if (!parameters.empty())
-            hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "costFunParameters", parameters.data(),
-                                                      parameters.size());
+            hdf5CreateOrExtendAndWriteToDouble2DArray(
+                        file_id, fullGroupPath, "costFunParameters", parameters);
 
-    hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "costFunWallTimeInSec", &timeElapsedInSeconds, 1);
+    hdf5CreateOrExtendAndWriteToDouble2DArray(
+                file_id, fullGroupPath, "costFunWallTimeInSec",
+                gsl::make_span<const double>(&timeElapsedInSeconds, 1));
 
-    hdf5CreateOrExtendAndWriteToInt2DArray(file_id, fullGroupPath, "costFunCallIndex", &numFunctionCalls, 1);
+    hdf5CreateOrExtendAndWriteToInt2DArray(
+                file_id, fullGroupPath, "costFunCallIndex",
+                gsl::make_span<const int>(&numFunctionCalls, 1));
 
     flushResultWriter();
 }
@@ -97,29 +105,40 @@ void OptimizationResultWriter::logOptimizerIteration(int numIterations,
     std::string const& pathStr = getRootPath();
     const char *fullGroupPath = pathStr.c_str();
 
-    hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "iterCostFunCost", &objectiveFunctionValue, 1);
+    hdf5CreateOrExtendAndWriteToDouble2DArray(
+                file_id, fullGroupPath, "iterCostFunCost",
+                gsl::make_span<const double>(&objectiveFunctionValue, 1));
 
     if (logGradientEachIteration) {
         if (!gradient.empty()) {
-            hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "iterCostFunGradient", gradient.data(),
-                                                      gradient.size());
+            hdf5CreateOrExtendAndWriteToDouble2DArray(
+                        file_id, fullGroupPath, "iterCostFunGradient",
+                        gradient);
         } else if (!parameters.empty()) {
             std::vector<double> nanGradient(parameters.size(), NAN);
-            hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "iterCostFunGradient", nanGradient.data(),
-                                                      nanGradient.size());
+            hdf5CreateOrExtendAndWriteToDouble2DArray(
+                        file_id, fullGroupPath, "iterCostFunGradient",
+                        nanGradient);
         }
     }
 
     if (!parameters.empty()) {
-        hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "iterCostFunParameters", parameters.data(),
-                                                  parameters.size());
+        hdf5CreateOrExtendAndWriteToDouble2DArray(
+                    file_id, fullGroupPath, "iterCostFunParameters",
+                    parameters);
     }
 
-    hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "iterCostFunWallSec", &wallSeconds, 1);
+    hdf5CreateOrExtendAndWriteToDouble2DArray(
+                file_id, fullGroupPath, "iterCostFunWallSec",
+                gsl::make_span<const double>(&wallSeconds, 1));
 
-    hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "iterCostFunCpuSec", &cpuSeconds, 1);
+    hdf5CreateOrExtendAndWriteToDouble2DArray(
+                file_id, fullGroupPath, "iterCostFunCpuSec",
+                gsl::make_span(&cpuSeconds, 1));
 
-    hdf5CreateOrExtendAndWriteToInt2DArray(file_id, fullGroupPath, "iterIndex", &numIterations, 1);
+    hdf5CreateOrExtendAndWriteToInt2DArray(
+                file_id, fullGroupPath, "iterIndex",
+                gsl::make_span<const int>(&numIterations, 1));
     /*
      hdf5CreateOrExtendAndWriteToInt2DArray(file_id, fullGroupPath,
      "iterIpopt_alg_mod", &alg_mod, 1);
@@ -161,8 +180,9 @@ void OptimizationResultWriter::starting(gsl::span<double const> initialParameter
         std::string const& pathStr = getRootPath();
         const char *fullGroupPath = pathStr.c_str();
 
-        hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath, "initialParameters", initialParameters.data(),
-                                                  initialParameters.size());
+        hdf5CreateOrExtendAndWriteToDouble2DArray(
+                    file_id, fullGroupPath, "initialParameters",
+                    initialParameters);
         flushResultWriter();
     }
 }

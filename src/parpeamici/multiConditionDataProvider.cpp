@@ -95,7 +95,8 @@ MultiConditionDataProviderHDF5::mapSimulationToOptimizationVariablesAddMultiply(
         else if(not std::isnan(simulation[i]) && simulation[i] != 0.0)
             logmessage(LOGLVL_ERROR,
                        "Gradient w.r.t. unmapped parameter expected to be 0.0, "
-                       "but is %e", simulation[i]);
+                       "but is %e for parameter %d (%s)", simulation[i], i,
+                       model->getParameterIds()[i].c_str());
     }
 }
 
@@ -110,7 +111,7 @@ void MultiConditionDataProviderHDF5::mapAndSetOptimizationToSimulationVariables(
         overrides.resize(model->np());
         hdf5Read2DDoubleHyperslab(
                     file.getId(), hdf5ParameterOverridesPath.c_str(),
-                    model->np(), 1, 0, conditionIdx, overrides.data());
+                    model->np(), 1, 0, conditionIdx, overrides);
     }
 
     for(int i = 0; i < model->np(); ++i) {
@@ -156,17 +157,16 @@ void MultiConditionDataProviderHDF5::updateFixedSimulationParameters(
         edata.fixedParametersPreequilibration.resize(model->nk());
         readFixedSimulationParameters(
                     conditionIdxPreeq,
-                    edata.fixedParametersPreequilibration.data());
+                    edata.fixedParametersPreequilibration);
     } else {
         edata.fixedParametersPreequilibration.resize(0);
     }
 
-    readFixedSimulationParameters(conditionIdxSim,
-                                  edata.fixedParameters.data());
+    readFixedSimulationParameters(conditionIdxSim, edata.fixedParameters);
 }
 
 void MultiConditionDataProviderHDF5::readFixedSimulationParameters(
-        int conditionIdx, double *buffer) const
+        int conditionIdx, gsl::span<double> buffer) const
 {
     if(!model->nk())
         return;
@@ -248,7 +248,7 @@ std::vector<double> MultiConditionDataProviderHDF5::getMeasurementForSimulationI
 }
 
 void MultiConditionDataProviderHDF5::getOptimizationParametersLowerBounds(
-        double *buffer) const {
+        gsl::span<double> buffer) const {
     auto lock = hdf5MutexGetLock();
 
     auto dataset = file.openDataSet(hdf5ParameterMinPath);
@@ -260,12 +260,12 @@ void MultiConditionDataProviderHDF5::getOptimizationParametersLowerBounds(
     dataspace.getSimpleExtentDims(&dim);
     RELEASE_ASSERT(dim == (unsigned) getNumOptimizationParameters(),
                    "hdf5ParameterMinPath dimensions dont match");
-
-    dataset.read(buffer, H5::PredType::NATIVE_DOUBLE);
+    RELEASE_ASSERT(dim == buffer.size(), "");
+    dataset.read(buffer.data(), H5::PredType::NATIVE_DOUBLE);
 }
 
 void MultiConditionDataProviderHDF5::getOptimizationParametersUpperBounds(
-        double *buffer) const {
+        gsl::span<double> buffer) const {
     auto lock = hdf5MutexGetLock();
 
     auto dataset = file.openDataSet(hdf5ParameterMaxPath);
@@ -277,8 +277,8 @@ void MultiConditionDataProviderHDF5::getOptimizationParametersUpperBounds(
     dataspace.getSimpleExtentDims(&dim);
     RELEASE_ASSERT(dim == (unsigned) getNumOptimizationParameters(),
                    "hdf5ParameterMaxPath dimensions dont match");
-
-    dataset.read(buffer, H5::PredType::NATIVE_DOUBLE);
+    RELEASE_ASSERT(dim == buffer.size(), "");
+    dataset.read(buffer.data(), H5::PredType::NATIVE_DOUBLE);
 }
 
 int MultiConditionDataProviderHDF5::getNumOptimizationParameters() const {

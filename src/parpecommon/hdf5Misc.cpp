@@ -124,9 +124,8 @@ void hdf5CreateExtendableDouble2DArray(hid_t file_id,
 
 }
 
-void hdf5Extend2ndDimensionAndWriteToDouble2DArray(hid_t file_id,
-                                                   const char *datasetPath,
-                                                   const double *buffer)
+void hdf5Extend2ndDimensionAndWriteToDouble2DArray(
+        hid_t file_id, const char *datasetPath, gsl::span<const double> buffer)
 {
     std::lock_guard<mutexHdfType> lock(mutexHdf);
 
@@ -154,6 +153,8 @@ void hdf5Extend2ndDimensionAndWriteToDouble2DArray(hid_t file_id,
     H5Sget_simple_extent_dims(filespace, currentDimensions, nullptr);
     H5Sclose(filespace);
 
+    RELEASE_ASSERT(buffer.size() == currentDimensions[0], "");
+
     hsize_t newDimensions[2] = {currentDimensions[0], currentDimensions[1] + 1};
     herr_t status = H5Dset_extent(dataset, newDimensions);
 
@@ -167,7 +168,7 @@ void hdf5Extend2ndDimensionAndWriteToDouble2DArray(hid_t file_id,
     hid_t memspace = H5Screate_simple(rank, slabsize, nullptr);
 
     status = H5Dwrite(dataset, H5T_NATIVE_DOUBLE, memspace, filespace,
-                      H5P_DEFAULT, buffer);
+                      H5P_DEFAULT, buffer.data());
 
     H5Sclose(memspace);
     H5Sclose(filespace);
@@ -222,8 +223,7 @@ void hdf5Extend3rdDimensionAndWriteToDouble3DArray(hid_t file_id,
 void hdf5CreateOrExtendAndWriteToDouble2DArray(hid_t file_id,
                                                const char *parentPath,
                                                const char *datasetName,
-                                               const double *buffer,
-                                               hsize_t stride)
+                                               gsl::span<const double> buffer)
 {
     hdf5EnsureGroupExists(file_id, parentPath);
 
@@ -231,7 +231,7 @@ void hdf5CreateOrExtendAndWriteToDouble2DArray(hid_t file_id,
 
     if (!hdf5DatasetExists(file_id, fullDatasetPath.c_str())) {
         hdf5CreateExtendableDouble2DArray(
-                    file_id, fullDatasetPath.c_str(), stride);
+                    file_id, fullDatasetPath.c_str(), buffer.size());
     }
 
     hdf5Extend2ndDimensionAndWriteToDouble2DArray(
@@ -241,7 +241,7 @@ void hdf5CreateOrExtendAndWriteToDouble2DArray(hid_t file_id,
 void hdf5CreateOrExtendAndWriteToDouble3DArray(hid_t file_id,
                                                const char *parentPath,
                                                const char *datasetName,
-                                               const double *buffer,
+                                               gsl::span<const double> buffer,
                                                hsize_t stride1,
                                                hsize_t stride2) {
     hdf5EnsureGroupExists(file_id, parentPath);
@@ -255,14 +255,14 @@ void hdf5CreateOrExtendAndWriteToDouble3DArray(hid_t file_id,
 
     hdf5Extend3rdDimensionAndWriteToDouble3DArray(file_id,
                                                   fullDatasetPath.c_str(),
-                                                  buffer);
+                                                  buffer.data());
 
 }
 
 void hdf5CreateOrExtendAndWriteToInt2DArray(hid_t file_id,
                                             const char *parentPath,
                                             const char *datasetName,
-                                            const int *buffer, hsize_t stride)
+                                            gsl::span<const int> buffer)
 {
     std::lock_guard<mutexHdfType> lock(mutexHdf);
 
@@ -272,7 +272,7 @@ void hdf5CreateOrExtendAndWriteToInt2DArray(hid_t file_id,
 
     if (!hdf5DatasetExists(file_id, fullDatasetPath.c_str())) {
         hdf5CreateExtendableInt2DArray(
-                    file_id, fullDatasetPath.c_str(), stride);
+                    file_id, fullDatasetPath.c_str(), buffer.size());
     }
 
     hdf5Extend2ndDimensionAndWriteToInt2DArray(file_id, fullDatasetPath.c_str(),
@@ -281,7 +281,7 @@ void hdf5CreateOrExtendAndWriteToInt2DArray(hid_t file_id,
 
 void hdf5Extend2ndDimensionAndWriteToInt2DArray(hid_t file_id,
                                                 const char *datasetPath,
-                                                const int *buffer)
+                                                gsl::span<const int> buffer)
 {
     std::lock_guard<mutexHdfType> lock(mutexHdf);
 
@@ -297,6 +297,7 @@ void hdf5Extend2ndDimensionAndWriteToInt2DArray(hid_t file_id,
 
     hsize_t currentDimensions[2];
     H5Sget_simple_extent_dims(filespace, currentDimensions, nullptr);
+    RELEASE_ASSERT(buffer.size() == currentDimensions[0], "");
 
     hsize_t newDimensions[2] = {currentDimensions[0], currentDimensions[1] + 1};
     herr_t status = H5Dset_extent(dataset, newDimensions);
@@ -311,7 +312,7 @@ void hdf5Extend2ndDimensionAndWriteToInt2DArray(hid_t file_id,
     hid_t memspace = H5Screate_simple(rank, slabsize, nullptr);
 
     status = H5Dwrite(dataset, H5T_NATIVE_INT, memspace, filespace, H5P_DEFAULT,
-                      buffer);
+                      buffer.data());
     H5Sclose(filespace);
     H5Sclose(memspace);
 
@@ -389,8 +390,10 @@ int hdf5Read2DDoubleHyperslab(hid_t file_id,
                               hsize_t size1,
                               hsize_t offset0,
                               hsize_t offset1,
-                              double *buffer)
+                              gsl::span<double> buffer)
 {
+    RELEASE_ASSERT(buffer.size() == size0 * size1, "");
+
     std::lock_guard<mutexHdfType> lock(mutexHdf);
 
     hid_t dataset = H5Dopen2(file_id, path, H5P_DEFAULT);
@@ -399,7 +402,7 @@ int hdf5Read2DDoubleHyperslab(hid_t file_id,
     hsize_t count[] = {size0, size1};
 
     const int ndims = H5Sget_simple_extent_ndims(dataspace);
-    assert(ndims == 2 && "Only works for 2D arrays!");
+    RELEASE_ASSERT(ndims == 2 && "Only works for 2D arrays!", "");
     hsize_t dims[ndims];
     H5Sget_simple_extent_dims(dataspace, dims, nullptr);
     // printf("%lld %lld, %lld %lld, %lld %lld\n", dims[0], dims[1], offset0,
@@ -415,7 +418,7 @@ int hdf5Read2DDoubleHyperslab(hid_t file_id,
     hid_t memspace = H5Screate_simple(2, count, nullptr);
 
     H5Dread(dataset, H5T_NATIVE_DOUBLE, memspace, dataspace, H5P_DEFAULT,
-            buffer);
+            buffer.data());
 
     H5Sclose(dataspace);
     H5Dclose(dataset);

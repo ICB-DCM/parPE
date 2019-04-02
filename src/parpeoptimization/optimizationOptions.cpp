@@ -197,7 +197,8 @@ std::vector<double> OptimizationOptions::getStartingPoint(hid_t fileId, int inde
                    index, path);
 
         startingPoint.resize(dims[0]);
-        hdf5Read2DDoubleHyperslab(fileId, path, dims[0], 1, 0, index, startingPoint.data());
+        hdf5Read2DDoubleHyperslab(fileId, path, dims[0], 1, 0, index,
+                startingPoint);
     }
 
 freturn:
