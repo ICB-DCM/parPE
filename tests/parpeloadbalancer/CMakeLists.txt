@@ -2,8 +2,6 @@ project(unittests_loadbalancer)
 
 add_test (NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME} -c)
 
-include_directories(${CPPUTEST_INCLUDE_DIRS})
-
 set(SRC_LIST
     main.cpp
     loadBalancerMasterTest.h
