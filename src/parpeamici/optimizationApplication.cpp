@@ -69,14 +69,7 @@ int OptimizationApplication::init(int argc, char **argv) {
 void OptimizationApplication::runMultiStarts()
 {
     // TODO: use uniqe_ptr, not ref
-    MultiStartOptimization optimizer(*multiStartOptimizationProblem, false);
-
-    // if numStarts > 1: need to use multiple MPI
-    // workers or run sequentially,
-    // otherwise simulation crashes due
-    // to CVODES threading issues
-    optimizer.setRunParallel(getMpiCommSize() > 1);
-
+    MultiStartOptimization optimizer(*multiStartOptimizationProblem);
     optimizer.run();
 }
 
