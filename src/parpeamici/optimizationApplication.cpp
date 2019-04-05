@@ -211,8 +211,8 @@ int OptimizationApplication::run(int argc, char **argv) {
 void OptimizationApplication::runMaster() {
     switch (operationType) {
     case OperationType::gradientCheck: {
-        const int numParameterIndicesToCheck = 50;
-        const double epsilon = 1e-8;
+        const int numParameterIndicesToCheck = 10000;
+        const double epsilon = 1e-5;
         optimizationProblemGradientCheck(problem.get(),
                                          numParameterIndicesToCheck,
                                          epsilon);
@@ -248,8 +248,8 @@ void OptimizationApplication::runSingleProcess() {
     // run serially
     switch (operationType) {
     case OperationType::gradientCheck: {
-        const int numParameterIndicesToCheck = 50;
-        const double epsilon = 1e-8;
+        const int numParameterIndicesToCheck = 10000;
+        const double epsilon = 1e-5;
         optimizationProblemGradientCheck(problem.get(),
                                          numParameterIndicesToCheck,
                                          epsilon);

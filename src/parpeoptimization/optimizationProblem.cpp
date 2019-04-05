@@ -123,16 +123,15 @@ void optimizationProblemGradientCheck(OptimizationProblem *problem,
         //        printf("fb: %12.6g fc: %12.6g ff: %12.6g\n", fb, fc, ff);
 
         double reg = 1e-5;
-        double regRelError = (curGrad - fd_c) / (fd_c + reg);
+        double regRelError = (curGrad - fd_c) / (ff + reg);
         loglevel ll = LOGLVL_INFO;
-        if (fabs(regRelError) > std::max(reg, reg * std::fabs(curGrad)))
+        if (fabs(regRelError) > 1e-3)
             ll = LOGLVL_WARNING;
-        if (fabs(regRelError) > 0.1 * std::fabs(curGrad))
+        if (fabs(regRelError) > 1e-2)
             ll = LOGLVL_ERROR;
 
-        logmessage(ll, "%5d g: %12.6g  fd_c: %12.6g  Δ/fd_c: %.6e  f: %12.6g",
-                   curInd, curGrad, fd_c, regRelError, fc);
-
+        logmessage(ll, "%5d g: %12.6g  fd_c: %12.6g  Δ/ff: %.6e  f: %12.6g",
+                   curInd, curGrad, fd_c, regRelError, ff);
     }
 }
 
