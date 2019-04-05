@@ -304,7 +304,15 @@ class HDF5DataGenerator:
         self.optimization_parameter_name_to_index = \
             optimization_parameter_name_to_index
 
-        model_parameter_ids = self.amici_model.getParameterIds()
+        # PEtab mapping may contain fixed parameters, filter out first
+        # parameter ordering might differ from AMICI ordering
+        amici_model_parameter_ids = self.amici_model.getParameterIds()
+        petab_model_parameter_ids = petab.get_model_parameters(
+            self.petab_problem.sbml_model)
+        ordering = [petab_model_parameter_ids.index(ami_idx) for ami_idx in amici_model_parameter_ids]
+        for condition_idx, condition_map \
+                in enumerate(self.parameter_mapping):
+            self.parameter_mapping[condition_idx] = np.array(condition_map)[ordering]
 
         # for each condition index vector
         for condition_idx, condition_map \
@@ -313,7 +321,7 @@ class HDF5DataGenerator:
             # for each model parameter
             for model_parameter_idx, mapped_parameter \
                     in enumerate(condition_map):
-
+                mapped_parameter = to_float_if_float(mapped_parameter)
                 try:
                     if isinstance(mapped_parameter, str):
                         # actually a mapped optimization parameter
@@ -346,6 +354,8 @@ class HDF5DataGenerator:
                 except IndexError as e:
                     print(Fore.RED + "Error in parameter mapping:", e)
                     print(model_parameter_idx, mapped_parameter)
+                    print(self.parameter_mapping)
+                    raise e
 
         self.mapping_matrix = mapping_matrix
 
@@ -545,24 +555,6 @@ class HDF5DataGenerator:
             raise RuntimeError("Timepoint-specific overrides are not yet "
                                "supported.")
 
-        if 'observableTransformation' in self.measurement_df \
-            and not np.issubdtype(
-            self.measurement_df.observableTransformation.dtype, np.number)  \
-            and np.any(self.measurement_df.observableTransformation != 'lin'):
-            # log_obs = self.measurement_df.observableTransformation == 'log'
-            # self.measurement_df.loc[log_obs, 'measurement'] = \
-            #    np.log(self.measurement_df.loc[log_obs, 'measurement'])
-            # self.measurement_df.loc[log_obs, 'observableTransformation'] = 'lin'
-            """
-            log10_obs = self.measurement_df.observableTransformation == 'log10'
-            self.measurement_df.loc[log10_obs, 'measurement'] = \
-                np.power(10, self.measurement_df.loc[log10_obs, 'measurement'])
-            self.measurement_df.loc[log10_obs, 'observableTransformation'] = 'lin'
-            """
-            print(Fore.YELLOW + "Warning: Non-lin observable transformation "
-                                "occurred. Taking exponentiating measurements."
-                                " This may not be what you want.")
-
         self.f.create_group("/measurements")
         self.observable_ids = self.amici_model.getObservableIds()
         # trim observable_ TODO: should be done in amici import
@@ -577,6 +569,7 @@ class HDF5DataGenerator:
 
         self.writeMeasurements()
         self.f.flush()
+
 
     def writeMeasurements(self):
         """
