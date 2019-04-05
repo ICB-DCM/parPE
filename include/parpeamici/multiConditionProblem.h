@@ -313,7 +313,7 @@ private:
 
 
 void saveSimulation(
-        hid_t file_id, const std::string &pathStr,
+        H5::H5File const& file, const std::string &pathStr,
         const std::vector<double> &parameters, double llh,
         gsl::span<const double> gradient, double timeElapsedInSeconds,
         gsl::span<const double> states,

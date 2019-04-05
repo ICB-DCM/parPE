@@ -232,7 +232,7 @@ void printSimulationResult(Logger *logger, int jobId,
 }
 
 
-void saveSimulation(hid_t file_id, std::string const& pathStr,
+void saveSimulation(const H5::H5File &file, std::string const& pathStr,
                     std::vector<double> const& parameters,
                     double llh, gsl::span<double const> gradient,
                     double timeElapsedInSeconds,
@@ -247,54 +247,54 @@ void saveSimulation(hid_t file_id, std::string const& pathStr,
     auto lock = hdf5MutexGetLock();
 
     hdf5CreateOrExtendAndWriteToDouble2DArray(
-        file_id, fullGroupPath, "simulationLogLikelihood",
+        file.getId(), fullGroupPath, "simulationLogLikelihood",
                 gsl::make_span<double>(&llh, 1));
 
     hdf5CreateOrExtendAndWriteToInt2DArray(
-                file_id, fullGroupPath, "jobId",
+                file.getId(), fullGroupPath, "jobId",
                 gsl::make_span<const int>(&jobId, 1));
 
     if (!gradient.empty()) {
         hdf5CreateOrExtendAndWriteToDouble2DArray(
-            file_id, fullGroupPath, "simulationLogLikelihoodGradient",
+            file.getId(), fullGroupPath, "simulationLogLikelihoodGradient",
                     gradient);
     } else if(!parameters.empty()) {
         double dummyGradient[parameters.size()];
         std::fill_n(dummyGradient, parameters.size(), NAN);
         hdf5CreateOrExtendAndWriteToDouble2DArray(
-            file_id, fullGroupPath, "simulationLogLikelihoodGradient",
+            file.getId(), fullGroupPath, "simulationLogLikelihoodGradient",
             gsl::make_span<const double>(dummyGradient, parameters.size()));
     }
 
     if (!parameters.empty())
         hdf5CreateOrExtendAndWriteToDouble2DArray(
-            file_id, fullGroupPath, "simulationParameters", parameters);
+            file.getId(), fullGroupPath, "simulationParameters", parameters);
 
     hdf5CreateOrExtendAndWriteToDouble2DArray(
-                file_id, fullGroupPath, "simulationWallTimeInSec",
+                file.getId(), fullGroupPath, "simulationWallTimeInSec",
                 gsl::make_span<const double>(&timeElapsedInSeconds, 1));
 
     if (!states.empty())
         hdf5CreateOrExtendAndWriteToDouble2DArray(
-            file_id, fullGroupPath, "simulationStates", states);
+            file.getId(), fullGroupPath, "simulationStates", states);
 
     if (!outputs.empty())
         hdf5CreateOrExtendAndWriteToDouble2DArray(
-            file_id, fullGroupPath, "simulationObservables", outputs);
+            file.getId(), fullGroupPath, "simulationObservables", outputs);
 
     if (!stateSensi.empty())
         hdf5CreateOrExtendAndWriteToDouble3DArray(
-            file_id, fullGroupPath, "simulationStateSensitivities", stateSensi,
+            file.getId(), fullGroupPath, "simulationStateSensitivities", stateSensi,
             stateSensi.size() / parameters.size(), parameters.size());
 
     hdf5CreateOrExtendAndWriteToInt2DArray(
-                file_id, fullGroupPath, "simulationStatus",
+                file.getId(), fullGroupPath, "simulationStatus",
                 gsl::make_span<const int>(&status, 1));
 
-    hdf5CreateOrExtendAndWriteToString1DArray(file_id, fullGroupPath,
+    hdf5CreateOrExtendAndWriteToString1DArray(file.getId(), fullGroupPath,
                                            "simulationLabel", label);
 
-    H5Fflush(file_id, H5F_SCOPE_LOCAL);
+    file.flush(H5F_SCOPE_LOCAL);
 
 }
 
@@ -404,7 +404,7 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
 
     if (resultWriter && (solverTemplate.getSensitivityOrder()
                          > amici::SensitivityOrder::none || logLineSearch)) {
-        saveSimulation(resultWriter->getFileId(), resultWriter->getRootPath(),
+        saveSimulation(resultWriter->getH5File(), resultWriter->getRootPath(),
                        model.getParameters(), rdata->llh, rdata->sllh,
                        timeSeconds, rdata->x, rdata->sx, rdata->y,
                        jobId, rdata->status, logger->getPrefix());

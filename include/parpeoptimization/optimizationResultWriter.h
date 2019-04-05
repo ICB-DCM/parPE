@@ -3,7 +3,7 @@
 
 #include <string>
 
-#include <hdf5.h>
+#include <H5Cpp.h>
 #include <gsl/gsl-lite.hpp>
 
 namespace parpe {
@@ -27,7 +27,7 @@ public:
      * @param problem
      * @param file_id
      */
-    OptimizationResultWriter(hid_t file_id,
+    OptimizationResultWriter(const H5::H5File file,
                              std::string rootPath);
 
     /**
@@ -41,7 +41,7 @@ public:
                              std::string rootPath);
 
     OptimizationResultWriter(OptimizationResultWriter const& other);
-    
+
     virtual ~OptimizationResultWriter();
 
     /**
@@ -55,12 +55,13 @@ public:
      * @param timeElapsedInSeconds CPU time for the last objective function
      * evaluation (wall time)
      */
-    virtual void logObjectiveFunctionEvaluation(gsl::span<const double> parameters,
-                                                double objectiveFunctionValue,
-                                                gsl::span<const double> objectiveFunctionGradient,
-                                                int numIterations,
-                                                int numFunctionCalls,
-                                                double timeElapsedInSeconds);
+    virtual void logObjectiveFunctionEvaluation(
+            gsl::span<const double> parameters,
+            double objectiveFunctionValue,
+            gsl::span<const double> objectiveFunctionGradient,
+            int numIterations,
+            int numFunctionCalls,
+            double timeElapsedInSeconds);
 
     /**
      * @brief Function to be called after each optimizer iteration. (For
@@ -86,16 +87,16 @@ public:
                                        gsl::span<const double> gradient,
                                        double wallSeconds,
                                        double cpuSeconds);
-    
+
     void setLoggingEachIteration(bool logGradient);
 
     void setLoggingEachFunctionEvaluation(bool logGradient,
                                           bool logParameters);
-    
-    /*, int alg_mod, double inf_pr, double inf_du,
-     double mu, double d_norm, double regularization_size, double alpha_du,
-     double alpha_pr, int ls_trials*/
 
+    /**
+     * @brief Log optimizer start
+     * @param initialParameters
+     */
     virtual void starting(gsl::span<const double> initialParameters);
 
     /**
@@ -111,16 +112,16 @@ public:
                                       double cpuSec,
                                       int exitStatus) const;
 
-    hid_t getFileId() const;
+    H5::H5File const& getH5File() const;
 
     virtual std::string const& getRootPath() const;
-    
+
     bool logParametersEachFunctionEvaluation = true;
-    
+
     bool logGradientEachFunctionEvaluation = true;
 
     bool logGradientEachIteration = true;
-    
+
     void setRootPath(std::string const& path);
 
 protected:
@@ -132,8 +133,9 @@ protected:
 private:
     virtual std::string getIterationPath(int iterationIdx) const;
 
-    hid_t file_id = 0;
+    H5::H5File file = 0;
 
+    /** Root path within HDF5 file */
     std::string rootPath = "/";
 
 };
