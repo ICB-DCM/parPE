@@ -215,6 +215,7 @@ private:
 
 int getLocalOptimum(OptimizationProblem *problem);
 
+
 /**
  * @brief getLocalOptimumThreadWrapper wrapper for using getLocalOptimum with
  * pThreads.
@@ -223,9 +224,6 @@ int getLocalOptimum(OptimizationProblem *problem);
  */
 
 void *getLocalOptimumThreadWrapper(void *optimizationProblemVp);
-
-//void runOptimizationsParallel(OptimizationProblem **problems,
-//                              int numProblems);
 
 void optimizationProblemGradientCheck(OptimizationProblem *problem,
                                       int numParameterIndicesToCheck,

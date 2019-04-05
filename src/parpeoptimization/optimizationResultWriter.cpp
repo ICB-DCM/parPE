@@ -104,7 +104,8 @@ void OptimizationResultWriter::logOptimizerIteration(
         double objectiveFunctionValue,
         gsl::span<const double> gradient,
         double wallSeconds,
-        double cpuSeconds) {
+        double cpuSeconds)
+{
     std::string const& pathStr = getRootPath();
     const char *fullGroupPath = pathStr.c_str();
 
