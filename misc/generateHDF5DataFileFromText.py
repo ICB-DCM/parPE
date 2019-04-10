@@ -401,6 +401,16 @@ class HDF5DataGenerator:
             for j, s in enumerate(cond_scale_list):
                 pscale[i, j] = petab_scale_to_amici_scale(s)
 
+        # Ensure preequilibration and simulation condition use same parameter
+        # scales, since AMICI cannot handle different pscales for those
+        for (preeq_cond_idx, sim_cond_idx) in self.condition_map:
+            if preeq_cond_idx == -1:
+                continue
+            if np.any(pscale[sim_cond_idx] != pscale[preeq_cond_idx]):
+                raise AssertionError("Cannot handle different parameter "
+                                     "scales for combination of simulation "
+                                     "and preequilibration condition.")
+
         self.f.require_dataset('/parameters/pscaleSimulation',
                                shape=pscale.shape,
                                dtype="<i4",
