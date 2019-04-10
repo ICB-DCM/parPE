@@ -1,0 +1,96 @@
+import parpe
+import os
+
+configfile: "vis_config.yaml"
+
+rule all:
+    # TODO
+    input:
+        files=config["optimization_result_files"]
+    shell:
+         "ls {input.files}"
+
+
+rule waterfall_trajectories:
+    input:
+        files=config["optimization_result_files"]
+    output:
+        trajectories="trajectories.png"
+
+    run:
+        import matplotlib.pyplot as plt
+        final_llh = {}
+
+        ax = plt.subplots(figsize=(10, 5))[1]
+        for file in input['files']:
+            basename = os.path.basename(file)
+            print(basename)
+
+            try:
+                cost = parpe.getCostTrajectories(file)
+                print(cost.shape)
+            except KeyError:
+                print("Unable to read trajectory from", basename)
+                continue
+            final_llh[file] = cost[-1, 0]
+            if cost.size > 1:
+                parpe.plotCostTrajectory(cost[:, 0:1], ax=ax, log=False, legend=False)
+            #ax.set_title(basename)
+        #ax.set_ylim(ax.yaxis.get_data_interval())
+        ax.set_ylim((ax.yaxis.get_data_interval()[0], 52000),)
+        final_llh.values()
+
+        plt.gcf().set_size_inches(10, 5)
+        plt.savefig(output['trajectories'], dpi=150)
+
+
+rule simulations:
+    # Run all simulations for given input files
+    input:
+        files=expand("simulate-{files}", files=config["optimization_result_files"])
+
+
+rule simulate:
+    input:
+        infile="{sample}.h5"
+    output:
+        "simulate-{sample}.h5"
+    shell:
+        "{config[simulator]} {input.infile} / {output} / --at-optimum"
+
+
+rule simulation_df:
+    input:
+        sim_files=expand("simulate-{files}", files=config["optimization_result_files"]),
+        opt_files=config["optimization_result_files"]
+    output:
+        outfile='simulations.tsv'
+    run:
+        import re
+        import sys
+        import petab
+        import numpy as np
+        from importlib import import_module
+        sys.path.insert(0, config["amici_model_dir"])
+
+        model_module = import_module(config['model_module'])
+        model = model_module.getModel()
+        observable_ids = model.getObservableIds()
+
+        mes_df = petab.get_measurement_df(config["mes_table_file"])
+
+        for sim_file, opt_file in zip(input['sim_files'], input['opt_files']):
+            start_label = re.sub(r'.*MS(\d+).*', r'\1', sim_file)
+
+            try:
+                mes, sim, time, llh = parpe.readSimulationsFromFile(sim_file)
+            except OSError:
+                print("Failed reading from file", sim_file)
+                continue
+
+            if not isinstance(sim, dict) and np.isnan(sim):
+                continue
+
+            mes_df = parpe.simulation_to_df(mes_df, sim, result_file=opt_file, start='0', label=start_label, observable_ids=observable_ids)
+
+        mes_df.to_csv(output['outfile'], sep='\t', index=False)
