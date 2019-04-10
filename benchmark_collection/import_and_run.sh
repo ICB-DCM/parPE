@@ -23,7 +23,7 @@ AMICI_MODEL_DIR=${SCRIPT_PATH}/${MODEL_NAME}
 cd ${PETAB_MODEL_DIR}
 
 echo "Running petablint..."
-petablint.py -v -n ${MODEL_NAME}
+petablint -v -n ${MODEL_NAME}
 
 # import AMICI model
 if [[ ! -d ${AMICI_MODEL_DIR} ]]; then
