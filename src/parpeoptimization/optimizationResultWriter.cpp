@@ -13,7 +13,7 @@
 
 namespace parpe {
 
-OptimizationResultWriter::OptimizationResultWriter(const H5::H5File file,
+OptimizationResultWriter::OptimizationResultWriter(const H5::H5File& file,
                                                    std::string rootPath) :
     rootPath(std::move(rootPath)) {
     auto lock = hdf5MutexGetLock();
@@ -33,8 +33,9 @@ OptimizationResultWriter::OptimizationResultWriter(const std::string &filename,
     hdf5EnsureGroupExists(file, this->rootPath);
 }
 
-OptimizationResultWriter::OptimizationResultWriter(const OptimizationResultWriter &other) :
-    rootPath(other.rootPath) {
+OptimizationResultWriter::OptimizationResultWriter(
+        const OptimizationResultWriter &other)
+    : rootPath(other.rootPath) {
     auto lock = hdf5MutexGetLock();
     file = other.file;
     hdf5EnsureGroupExists(file, rootPath);
@@ -85,7 +86,8 @@ void OptimizationResultWriter::logObjectiveFunctionEvaluation(
     if (logParametersEachFunctionEvaluation)
         if (!parameters.empty())
             hdf5CreateOrExtendAndWriteToDouble2DArray(
-                        file.getId(), fullGroupPath, "costFunParameters", parameters);
+                        file.getId(), fullGroupPath, "costFunParameters",
+                        parameters);
 
     hdf5CreateOrExtendAndWriteToDouble2DArray(
                 file.getId(), fullGroupPath, "costFunWallTimeInSec",
@@ -187,7 +189,7 @@ void OptimizationResultWriter::saveOptimizerResults(
         int exitStatus) const {
 
     std::string const& optimPath = getRootPath();
-    hdf5EnsureGroupExists(file, optimPath.c_str());
+    hdf5EnsureGroupExists(file, optimPath);
 
     std::string fullGroupPath;
     hsize_t dimensions[1] = { 1 };
@@ -222,10 +224,7 @@ void OptimizationResultWriter::saveOptimizerResults(
 
 void OptimizationResultWriter::setRootPath(const std::string &path) {
     rootPath = path;
-    hdf5EnsureGroupExists(file, rootPath.c_str());
-}
-
-OptimizationResultWriter::~OptimizationResultWriter() {
+    hdf5EnsureGroupExists(file, rootPath);
 }
 
 const H5::H5File &OptimizationResultWriter::getH5File() const {

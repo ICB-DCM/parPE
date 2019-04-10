@@ -333,7 +333,8 @@ void OptimizationReporter::finished(double optimalCost,
     } // else: our cached parameters were better. use those
 
     if (logger)
-        logger->logmessage(LOGLVL_INFO, "Optimizer status %d, final llh: %e, time: wall: %f cpu: %f.", exitStatus,
+        logger->logmessage(LOGLVL_INFO, "Optimizer status %d, final llh: %e, "
+                                        "time: wall: %f cpu: %f.", exitStatus,
                            cachedCost, timeElapsed, cpuTimeTotalSec);
 
     if (resultWriter)

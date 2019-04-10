@@ -27,7 +27,7 @@ public:
      * @param problem
      * @param file_id
      */
-    OptimizationResultWriter(const H5::H5File file,
+    OptimizationResultWriter(const H5::H5File &file,
                              std::string rootPath);
 
     /**
@@ -42,7 +42,7 @@ public:
 
     OptimizationResultWriter(OptimizationResultWriter const& other);
 
-    virtual ~OptimizationResultWriter();
+    virtual ~OptimizationResultWriter() = default;
 
     /**
      * @brief Function to be called after each objective function f(x) or

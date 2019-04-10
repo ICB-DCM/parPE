@@ -103,7 +103,8 @@ int StandaloneSimulator::run(const std::string& resultFile,
 
         auto resultFileH5 = rw.reopenFile();
         hdf5EnsureGroupExists(resultFileH5.getId(), resultPath.c_str());
-        amici::hdf5::createAndWriteDouble1DDataset(resultFileH5, resultPath + "/parameters", parameters.data(), parameters.size());
+        amici::hdf5::createAndWriteDouble1DDataset(
+                    resultFileH5, resultPath + "/parameters", parameters);
     }
 
 
@@ -183,7 +184,8 @@ int StandaloneSimulator::run(const std::string& resultFile,
                     scalings, offsets, sigmas);
         auto resultFileH5 = rw.reopenFile();
         hdf5EnsureGroupExists(resultFileH5.getId(), resultPath.c_str());
-        amici::hdf5::createAndWriteDouble1DDataset(resultFileH5, resultPath + "/parameters", parameters.data(), parameters.size());
+        amici::hdf5::createAndWriteDouble1DDataset(
+                    resultFileH5, resultPath + "/parameters", parameters);
 
         // compute llh
         for(int conditionIdx = 0; (unsigned) conditionIdx < simulationResults.size(); ++conditionIdx) {
@@ -247,7 +249,7 @@ void StandaloneSimulator::messageHandler(std::vector<char> &buffer, int  /*jobId
     std::map<int, AmiciSimulationRunner::AmiciResultPackageSimple> results;
     // run simulations for all condition indices
     for(auto conditionIndex: sim.conditionIndices) {
-        dataProvider->updateSimulationParameters(conditionIndex, sim.optimizationParameters, *model);
+        dataProvider->updateSimulationParametersAndScale(conditionIndex, sim.optimizationParameters, *model);
         auto result = runSimulation(conditionIndex, *solver, *model);
         results[conditionIndex] = result;
     }

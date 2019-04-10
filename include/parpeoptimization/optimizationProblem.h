@@ -133,8 +133,8 @@ protected:
 /**
  * @brief The OptimizationProblem class describes an optimization problem.
  *
- * A OptimizationProblem has a GradientFunction objective function to be minimized,
- * parameter bounds and initial values.
+ * A OptimizationProblem has a GradientFunction objective function to be
+ * minimized, parameter bounds and initial values.
  *
  * Additional constraints are currently not supported.
  *
@@ -151,14 +151,14 @@ public:
 
     virtual ~OptimizationProblem() = default;
 
-    /** Default implementation: random starting points are drawn from [parametersMin, parametersMax] */
+    /** Default implementation: random starting points are drawn from
+     * [parametersMin, parametersMax] */
     virtual void fillInitialParameters(gsl::span<double> buffer) const;
 
     /** lower bound of parameter values */
     virtual void fillParametersMin(gsl::span<double> buffer) const = 0;
 
     /** upper bound of parameter values */
-    // TODO:     template <class RandomAccessIterator>
     virtual void fillParametersMax(gsl::span<double> buffer) const = 0;
 
     virtual OptimizationOptions const& getOptimizationOptions() const;
