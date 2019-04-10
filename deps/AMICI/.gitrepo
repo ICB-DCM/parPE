@@ -5,8 +5,8 @@
 ;
 [subrepo]
 	remote = git@github.com:ICB-DCM/AMICI.git
-	branch = develop
-	commit = 3021af8cf9a67beca9de751a338e1944aeccb391
-	parent = 3fbdc8e249f8b51ca81ebed9354265f5a778528b
+	branch = update_petab_import
+	commit = b42cc370121c4b1a0376e144a3e1c6f6e31a704c
+	parent = 5fa74777520779b93632efe94c297e1883bacf31
 	cmdver = 0.4.0
 	method = merge

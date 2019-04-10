@@ -339,7 +339,7 @@ def write_starting_points(hdf5_file_name, true_parameters):
     """Write true parameters as first starting point, an perturbed additional
     points, two times the same point to check for reproducibility"""
     with h5py.File(hdf5_file_name, 'r+') as f:
-        pscale = f['/parameters/pscale'][:]
+        pscale = f['/parameters/pscaleOptimization'][:]
         true_parameters_scaled = np.array([true_parameters[p] for p in
                            f['/parameters/parameterNames']])
         for i, p in enumerate(pscale):

@@ -14,9 +14,6 @@
 + /amiciOptions/
  \
   - (Attributes specifying AMICI settings, see deps/AMICI/src/hdf5.cpp)
-  - pscale 
-        Parameter scale for each of `np` model parameters 
-        (amici::ParameterScaling)
   - sens_ind
         List of model parameter indices w.r.t. which to compute sensitivities
   - ts
@@ -96,9 +93,15 @@
   - parameterNames
         [string n_opt_par]
         Optimization parameter names
-  - pscale
+  - pscaleOptimization
         [int n_opt_par]
         Parameter scaling for optimization parameters
+  - pscaleSimulation
+        [int n_simulation_conditions * n_sim_par]
+        Parameter scale for each of `np` model parameters for the 
+        respective condition
+        (amici::ParameterScaling)
+
 ```
 
 ## Optimization options

@@ -35,7 +35,7 @@ int main(int argc, char **argv) {
     int start_idx = 0;
 
     auto optimizationParams = options->getStartingPoint(dataProvider.getHdf5FileId(), start_idx);
-    dataProvider.updateSimulationParameters(condition_idx, optimizationParams, *model);
+    dataProvider.updateSimulationParametersAndScale(condition_idx, optimizationParams, *model);
     auto edata = dataProvider.getExperimentalDataForCondition(condition_idx);
 
     auto solver = dataProvider.getSolver();

@@ -17,6 +17,7 @@ if [[ ! -d ${BUILD_DIR}/venv ]]; then
     # create venv
     python3 -m venv ${BUILD_DIR}/venv
     source ${BUILD_DIR}/venv/bin/activate
+    pip3 install wheel
 
     # install AMICI
     cd ${PARPE_ROOT}/deps/AMICI/python/sdist
@@ -25,4 +26,5 @@ if [[ ! -d ${BUILD_DIR}/venv ]]; then
     # install parPE
     cd ${PARPE_ROOT}/python
     pip3 install -e .
+    pip3 install -U git+https://github.com/ICB-DCM/PEtab.git@develop
 fi

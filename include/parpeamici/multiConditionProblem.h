@@ -183,7 +183,9 @@ protected:// for testing
 
     int aggregateLikelihood(JobData &data, double &negLogLikelihood,
                             gsl::span<double> negLogLikelihoodGradient,
-                            double &simulationTimeInS) const;
+                            double &simulationTimeInS,
+                            gsl::span<const double> optimizationParameters
+                            ) const;
 
 
     /**
@@ -197,7 +199,8 @@ protected:// for testing
     void addSimulationGradientToObjectiveFunctionGradient(
             int conditionIdx,
             gsl::span<const double> simulationGradient,
-            gsl::span<double> objectiveFunctionGradient) const;
+            gsl::span<double> objectiveFunctionGradient,
+            gsl::span<const double> parameters) const;
 
     void setSensitivityOptions(bool sensiRequired) const;
 
