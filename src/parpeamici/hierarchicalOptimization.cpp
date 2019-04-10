@@ -16,8 +16,6 @@
 
 namespace parpe {
 
-using amici::getUnscaledParameter;
-
 HierarchicalOptimizationWrapper::HierarchicalOptimizationWrapper(
         std::unique_ptr<AmiciSummedGradientFunction> fun,
         int numConditions,
@@ -300,7 +298,7 @@ std::vector<double> HierarchicalOptimizationWrapper::computeAnalyticalScalings(
         auto scale = fun->getParameterScaling(
                     proportionalityFactorIndices[scalingIdx]);
         proportionalityFactors[scalingIdx] =
-                parpe::getScaledParameter(proportionalityFactor, scale);
+                getScaledParameter(proportionalityFactor, scale);
     }
 
     return proportionalityFactors;
@@ -333,7 +331,7 @@ std::vector<double> HierarchicalOptimizationWrapper::computeAnalyticalOffsets(
                     i, modelOutputsUnscaled, measurements,
                     *offsetReader, numObservables);
         auto scale = fun->getParameterScaling(offsetParameterIndices[i]);
-        offsetParameters[i] = parpe::getScaledParameter(offsetParameter, scale);
+        offsetParameters[i] = getScaledParameter(offsetParameter, scale);
     }
 
     return offsetParameters;
@@ -352,7 +350,7 @@ std::vector<double> HierarchicalOptimizationWrapper::computeAnalyticalSigmas(
                     modelOutputsScaled, measurements,
                     *sigmaReader, numObservables);
         auto scale = fun->getParameterScaling(sigmaParameterIndices[i]);
-        sigmas[i] = parpe::getScaledParameter(sigma, scale);
+        sigmas[i] = getScaledParameter(sigma, scale);
     }
     return sigmas;
 }
@@ -1020,20 +1018,6 @@ void applyOptimalScaling(int scalingIdx, double scalingLin,
     }
 }
 
-double getScaledParameter(double parameter, amici::ParameterScaling scale) {
-    switch (scale) {
-    case amici::ParameterScaling::none:
-        return parameter;
-    case amici::ParameterScaling::log10:
-        if(parameter < 0.0)
-            throw(ParPEException("getScaledParameter: "
-                                 "Can't take log of negative value."));
-        return log10(parameter);
-    default:
-        throw(ParPEException("Parameter scaling must be ParameterScaling::none "
-                             "or ParameterScaling::log10."));
-    }
-}
 
 
 void applyOptimalOffset(int offsetIdx, double offsetLin,

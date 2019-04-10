@@ -485,8 +485,6 @@ void applyOptimalScaling(int scalingIdx, double scalingLin,
                          AnalyticalParameterProvider const& scalingReader,
                          int numObservables);
 
-double getScaledParameter(double parameter, amici::ParameterScaling scale);
-
 void applyOptimalOffset(int offsetIdx, double offsetLin,
                         std::vector<std::vector<double> > &modelOutputs,
                         AnalyticalParameterProvider const& offsetReader,

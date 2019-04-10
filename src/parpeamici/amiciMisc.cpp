@@ -1,3 +1,5 @@
+#include <parpeamici/amiciMisc.h>
+
 #include <parpecommon/logging.h>
 
 #include <sstream>

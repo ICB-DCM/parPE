@@ -1,4 +1,5 @@
 #include <parpeamici/hierarchicalOptimization.h>
+#include <parpeamici/amiciMisc.h>
 #include <parpecommon/parpeException.h>
 
 #include "../parpeoptimization/quadraticTestProblem.h"
@@ -432,10 +433,12 @@ TEST_F(hierarchicalOptimization, testScaling) {
     EXPECT_EQ(100.0,
               amici::getUnscaledParameter(2.0, amici::ParameterScaling::log10));
 
-    // Not implemented
-    EXPECT_THROW(parpe::getScaledParameter(42.0, amici::ParameterScaling::ln),
-                 parpe::ParPEException);
-
+    EXPECT_DOUBLE_EQ(1.0,
+                     parpe::getScaledParameter(std::exp(1.0),
+                                               amici::ParameterScaling::ln));
+    EXPECT_DOUBLE_EQ(std::exp(1),
+                     amici::getUnscaledParameter(1.0,
+                                                 amici::ParameterScaling::ln));
 }
 
 TEST(hierarchicalOptimization1, spliceParameters) {

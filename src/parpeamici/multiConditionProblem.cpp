@@ -502,7 +502,7 @@ void messageHandler(MultiConditionDataProvider *dataProvider,
     AmiciSummedGradientFunction::ResultMap results;
     // run simulations for all condition indices
     for(auto conditionIdx: workPackage.conditionIndices) {
-        dataProvider->updateSimulationParameters(
+        dataProvider->updateSimulationParametersAndScale(
                     conditionIdx,
                     workPackage.optimizationParameters,
                     *model);
@@ -617,11 +617,12 @@ void AmiciSummedGradientFunction::messageHandler(std::vector<char> &buffer, int 
                           jobId);
 }
 
-amici::ParameterScaling AmiciSummedGradientFunction::getParameterScaling(int parameterIndex) const
+amici::ParameterScaling AmiciSummedGradientFunction::getParameterScaling(
+        int parameterIndex) const
 {
     // parameterIndex is optimization parameter index,
     // not necessarily model parameter index!
-    return dataProvider->getParameterScale(parameterIndex);
+    return dataProvider->getParameterScaleOpt(parameterIndex);
 }
 
 int AmiciSummedGradientFunction::runSimulations(
@@ -646,7 +647,8 @@ int AmiciSummedGradientFunction::runSimulations(
         errors += aggregateLikelihood(*job,
                                       nllh,
                                       objectiveFunctionGradient,
-                                      simulationTimeSec);
+                                      simulationTimeSec,
+                                      optimizationParameters);
     }, nullptr,  logger?logger->getPrefix():"");
 
 #ifdef PARPE_ENABLE_MPI
@@ -674,7 +676,11 @@ int AmiciSummedGradientFunction::runSimulations(
     return errors;
 }
 
-int AmiciSummedGradientFunction::aggregateLikelihood(JobData &data, double &negLogLikelihood, gsl::span<double> negLogLikelihoodGradient, double &simulationTimeInS) const
+int AmiciSummedGradientFunction::aggregateLikelihood(
+        JobData &data, double &negLogLikelihood,
+        gsl::span<double> negLogLikelihoodGradient,
+        double &simulationTimeInS,
+        gsl::span<const double> optimizationParameters) const
 {
     int errors = 0;
 
@@ -684,28 +690,41 @@ int AmiciSummedGradientFunction::aggregateLikelihood(JobData &data, double &negL
                 data.recvBuffer.data(), data.recvBuffer.size());
     data.recvBuffer = std::vector<char>(); // free buffer
 
+
     for (auto const& result : results) {
-        errors += result.second.status != AMICI_SUCCESS;
+        int conditionIdx;
+        ResultPackage resultPackage;
+        std::tie(conditionIdx, resultPackage) = result;
+
+        errors += resultPackage.status != AMICI_SUCCESS;
 
         // sum up
-        negLogLikelihood -= result.second.llh;
-        simulationTimeInS += result.second.simulationTimeSeconds;
+        negLogLikelihood -= resultPackage.llh;
+        simulationTimeInS += resultPackage.simulationTimeSeconds;
 
-        if (!negLogLikelihoodGradient.empty())
+        if (!negLogLikelihoodGradient.empty()) {
+            std::vector<double> p(model->np());
+            auto scaleSim = dataProvider->getParameterScaleSim(conditionIdx);
+            auto scaleOpt = dataProvider->getParameterScaleOpt();
+
+            dataProvider->mapAndSetOptimizationToSimulationVariables(
+                        conditionIdx, optimizationParameters, p, scaleOpt,
+                        scaleSim);
             addSimulationGradientToObjectiveFunctionGradient(
-                        result.first, result.second.gradient,
-                        negLogLikelihoodGradient);
-
+                        conditionIdx, resultPackage.gradient,
+                        negLogLikelihoodGradient, p);
+        }
     }
     return errors;
 }
 
 void AmiciSummedGradientFunction::addSimulationGradientToObjectiveFunctionGradient(
         int conditionIdx, gsl::span<const double> simulationGradient,
-        gsl::span<double> objectiveFunctionGradient) const {
-    dataProvider->mapSimulationToOptimizationVariablesAddMultiply(
+        gsl::span<double> objectiveFunctionGradient,
+        gsl::span<const double> simulationParameters) const {
+    dataProvider->mapSimulationToOptimizationGradientAddMultiply(
                 conditionIdx, simulationGradient,
-                objectiveFunctionGradient, -1.0);
+                objectiveFunctionGradient, simulationParameters, -1.0);
 }
 
 void AmiciSummedGradientFunction::setSensitivityOptions(bool sensiRequired) const {

@@ -134,6 +134,7 @@ class HDF5DataGenerator:
         self.num_condition_vectors = None
         self.unique_timepoints = None
         self.parameter_mapping = None
+        self.parameter_scale_mapping = None
         self.optimization_parameter_name_to_index = None
         self.mapping_matrix = None
         self.nk = None
@@ -284,7 +285,13 @@ class HDF5DataGenerator:
         #   outer has length of number of conditions
         #   inner has length of model parameters
         self.parameter_mapping = self.petab_problem \
-            .get_optimization_to_simulation_parameter_mapping()
+            .get_optimization_to_simulation_parameter_mapping(
+                warn_unmapped=False)
+        self.parameter_scale_mapping = \
+            petab.get_optimization_to_simulation_scale_mapping(
+                mapping_par_opt_to_par_sim=self.parameter_mapping,
+                parameter_df=self.petab_problem.parameter_df
+            )
 
         num_model_parameters = self.amici_model.np()
 
@@ -310,9 +317,15 @@ class HDF5DataGenerator:
         petab_model_parameter_ids = petab.get_model_parameters(
             self.petab_problem.sbml_model)
         ordering = [petab_model_parameter_ids.index(ami_idx) for ami_idx in amici_model_parameter_ids]
-        for condition_idx, condition_map \
-                in enumerate(self.parameter_mapping):
-            self.parameter_mapping[condition_idx] = np.array(condition_map)[ordering]
+        for condition_idx, (condition_map, condition_scale_map) \
+                in enumerate(zip(self.parameter_mapping,
+                                 self.parameter_scale_mapping)):
+            self.parameter_mapping[condition_idx] = \
+                np.array(condition_map)[ordering]
+            self.parameter_scale_mapping[condition_idx] = \
+                np.array(condition_scale_map)[ordering]
+
+        # Translate parameter ID mapping to index mapping
 
         # for each condition index vector
         for condition_idx, condition_map \
@@ -377,6 +390,31 @@ class HDF5DataGenerator:
             compression=self.compression,
             shape=mapping_matrix.shape,
             data=mapping_matrix)
+
+        # write parameter scale mapping
+
+        # for simulation
+        # set parameter scaling for all parameters
+        pscale = np.zeros(shape=(len(self.parameter_scale_mapping),
+                                 len(self.parameter_scale_mapping[0])))
+        for i, cond_scale_list in enumerate(self.parameter_scale_mapping):
+            for j, s in enumerate(cond_scale_list):
+                pscale[i, j] = petab_scale_to_amici_scale(s)
+
+        self.f.require_dataset('/parameters/pscaleSimulation',
+                               shape=pscale.shape,
+                               dtype="<i4",
+                               data=pscale)
+
+        # for cost function parameters
+        pscale = np.array([petab_scale_to_amici_scale(s)
+                           for s in self.parameter_df.parameterScale.values[
+                               self.parameter_df.estimate == 1]])
+        self.f.require_dataset('/parameters/pscaleOptimization',
+                               shape=pscale.shape,
+                               dtype="<i4",
+                               data=pscale)
+
 
     def generateFixedParameterMatrix(self):
         """
@@ -1015,14 +1053,8 @@ class HDF5DataGenerator:
         g.attrs['rtol'] = 1e-6
         g.attrs['stldet'] = 1
 
-        model_parameter_names = self.f['/parameters/modelParameterNames'][:]
-        optimization_parameter_names = self.f['/parameters/parameterNames'][:]
-
         num_model_parameters = \
             self.f['/parameters/modelParameterNames'].shape[0]
-
-        num_optimization_parameters = \
-            self.f['/parameters/parameterNames'].shape[0]
 
         # parameter indices w.r.t. which to compute sensitivities
         self.f.require_dataset(
@@ -1030,57 +1062,10 @@ class HDF5DataGenerator:
             dtype="<i4",
             data=range(num_model_parameters))
 
+        # TODO not really meaningful anymore - remove?
         self.f.require_dataset(
             '/amiciOptions/ts', shape=(len(self.unique_timepoints),), dtype="f8",
             data=self.unique_timepoints)
-
-        # set parameter scaling for all parameters
-        # (required for hierarchical optimization)
-        pscale_optimization = [petab_scale_to_amici_scale(
-            self.parameter_df.loc[p]['parameterScale'])
-            for p in optimization_parameter_names]
-
-        self.f.require_dataset('/parameters/pscale',
-                               shape=(num_optimization_parameters,),
-                               dtype="<i4",
-                               data=pscale_optimization)
-        self.set_model_parameter_scaling(num_model_parameters,
-                                         model_parameter_names,
-                                         pscale_optimization)
-
-    def set_model_parameter_scaling(self,
-                                    num_model_parameters: int,
-                                    model_parameter_names,
-                                    pscale_optimization):
-
-        # set parameter scaling for AMICI model parameters:
-        pscale_model = self.UNMAPPED_PARAMETER * np.ones(shape=(num_model_parameters,))
-        for p_idx, p_id in enumerate(model_parameter_names):
-            try:
-                scale = petab_scale_to_amici_scale(
-                    self.parameter_df.loc[p_id]['parameterScale'])
-                pscale_model[p_idx] = scale
-            except KeyError:
-                # this is not a model parameter but an override
-                # find which parameter that one overrides
-
-                # num_model_parameters x num_conditions
-                for mapped_idx in self.mapping_matrix[p_idx]:
-                    scale = pscale_optimization[mapped_idx]
-                    if pscale_model[p_idx] == self.UNMAPPED_PARAMETER:
-                        pscale_model[p_idx] = scale
-                    elif pscale_model[p_idx] != self.UNMAPPED_PARAMETER \
-                            and pscale_model[p_idx] != scale:
-                        # TODO: this potentially needs to be condition specific
-                        # for full petab # support
-                        raise ValueError(
-                            "Condition-specific parameter scaling is currently"
-                            " not supported but required for " + p_id)
-
-        self.f.require_dataset('/amiciOptions/pscale',
-                               shape=(num_model_parameters,), dtype="<i4",
-                               data=pscale_model)
-
 
     def getAnalyticallyComputedSimulationParameterIndices(self):
         """
@@ -1111,7 +1096,6 @@ class HDF5DataGenerator:
 
         return [self.f['/parameters/modelParameterNames'][:].tolist().index(p)
                 for p in set(parameterNamesModel)]
-
 
     def getAnalyticallyComputedOptimizationParameterIndices(self):
         """
