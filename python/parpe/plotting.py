@@ -1,5 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
+from typing import List
+
 
 def plotCostTrajectory(costTrajectory,
                        color=None,
@@ -183,41 +185,45 @@ def square_plot_equal_ranges(ax, lim=None):
     return ax
 
 
-def plotTrajectoryFits(ymes, ysim, timepoints):
-    """For each simulation condition create a plot with time-course for measured and simulated values for all observables.
+def plotTrajectoryFits(ymes: List[np.array],
+                      ysim: List[np.array],
+                      timepoints: np.array):
+    """For each simulation condition create a plot with time-course for
+     measured and simulated values for all observables.
 
     Arguments:
     ----------
-    ymes: @type numpy.ndarray
-        measured values n_condition x nt x ny
-    ysim: @type numpy.ndarray
-        simulated values n_condition x nt x ny
-
+    ymes: list of measured values nt x n_observable per condition
+    ymes: list of simulated values nt x n_observable per condition
     """
-    for icondition in range(ysim.shape[0]):
-        plotTrajectoryFit(ymes[icondition].T,
-                          ysim[icondition].T,
+    if len(ymes) != len(ysim):
+        raise AssertionError("Number of measured and simulated conditions "
+                             "do not match")
+    for icondition in range(len(ysim)):
+        plotTrajectoryFit(ymes[icondition],
+                          ysim[icondition],
                           timepoints,
                           title='Condition %d' % icondition)
         plt.show()
 
 
-def plotTrajectoryFit(ymes, ysim, timepoints, title=None):
-    """Create a plot with time-course for measured and simulated values for all observables.
+def plotTrajectoryFit(ymes: np.array,
+                      ysim: np.array,
+                      timepoints: np.array,
+                      title: str = None):
+    """Create a plot with time-course for measured and simulated values for
+     all observables.
 
     Arguments:
     ----------
-    ymes: @type numpy.ndarray
-        measured values n_observable x nt
-    ysim: @type numpy.ndarray
-        simulated values n_observable x nt
-
+    ymes: measured values nt x n_observable per condition
+    ymes: simulated values nt x n_observable per condition
     """
     fig, ax = plt.subplots()
-    for iy in range(ysim.shape[0]):
-        ax.plot(timepoints, ysim[iy],
+    for iy in range(ysim.shape[1]):
+        ax.plot(timepoints, ysim[:, iy],
                 label='$y_%d$ sim' % (iy), alpha=0.7, c='C%d' % iy)
-        ax.plot(timepoints, ymes[iy],
+        ax.plot(timepoints, ymes[:, iy],
                 label='$y_%d$ mes' % (iy), linestyle='dotted', marker='o',
                 c='C%d' % iy)
     ax.set_xlabel('$t$ (s)')
@@ -390,6 +396,7 @@ def plotCorrelationBoxMulti(datasets, labels,
         plt.setp(bp['whiskers'], color=color)
         plt.setp(bp['caps'], color=color)
         plt.setp(bp['medians'], color=color)
+        plt.setp(bp['fliers'], color=color)
         '''
         plt.setp(bp['medians'], color='b')
         for patch in bp['boxes']:
