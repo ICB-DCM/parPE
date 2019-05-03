@@ -341,12 +341,15 @@ class MultiConditionDataProviderHDF5 : public MultiConditionDataProvider {
      * @param optimizationParams
      * @param udata
      */
-    void updateSimulationParametersAndScale(
-            int conditionIndex,
+    void updateSimulationParametersAndScale(int simulationIdx,
             gsl::span<const double> optimizationParams,
             amici::Model &model) const override;
 
     void copyInputData(const H5::H5File &target);
+
+    void getSimAndPreeqConditions(const int simulationIdx,
+                                  int &preequilibrationConditionIdx,
+                                  int &simulationConditionIdx) const;
 
     /**
      * @brief Get the identifier of the used HDF5 file. Does not reopen. Do not close file.

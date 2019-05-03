@@ -134,6 +134,7 @@ void MultiConditionDataProviderHDF5::mapAndSetOptimizationToSimulationVariables(
                             optimization[mapping[i]],
                         optimizationScale[mapping[i]]), simulationScale[i]);
         } else if (!overrides.empty()) {
+            // TODO do we need to rescale here? or done in PEtab?
             simulation[i] = overrides[i];
         } else {
             simulation[i] = NAN;
@@ -195,11 +196,9 @@ void MultiConditionDataProviderHDF5::updateFixedSimulationParameters(
     edata.fixedParameters.resize(model->nk());
 
     // TODO cache
-    auto tmp = hdf5Read2DIntegerHyperslab(file.getId(),
-                                          hdf5ReferenceConditionPath,
-                                          1, 2, simulationIdx, 0);
-    int conditionIdxPreeq = tmp[0];
-    int conditionIdxSim = tmp[1];
+    int conditionIdxPreeq, conditionIdxSim;
+    getSimAndPreeqConditions(simulationIdx, conditionIdxPreeq, conditionIdxSim);
+
     if(conditionIdxPreeq >= 0) {
         // -1 means no preequilibration
         edata.fixedParametersPreequilibration.resize(model->nk());
@@ -352,16 +351,19 @@ std::unique_ptr<amici::Solver> MultiConditionDataProviderHDF5::getSolver() const
 
 
 void MultiConditionDataProviderHDF5::updateSimulationParametersAndScale(
-        int conditionIndex, gsl::span<const double> optimizationParams,
+        int simulationIdx, gsl::span<const double> optimizationParams,
         amici::Model &model) const
 {
-    auto scaleSim = getParameterScaleSim(conditionIndex);
+    // int conditionIdxPreeq, conditionIdxSim;
+    // getSimAndPreeqConditions(simulationIdx, conditionIdxPreeq, conditionIdxSim);
+
+    auto scaleSim = getParameterScaleSim(simulationIdx);
     auto p = model.getParameters();
     auto scaleOpt = getParameterScaleOpt();
 
     model.setParameterScale(scaleSim);
     mapAndSetOptimizationToSimulationVariables(
-                conditionIndex, optimizationParams, p, scaleOpt,
+                simulationIdx, optimizationParams, p, scaleOpt,
                 scaleSim);
     model.setParameters(p);
 }
@@ -371,6 +373,17 @@ void MultiConditionDataProviderHDF5::copyInputData(H5::H5File const& target)
 
     H5Ocopy(file.getId(), "/", target.getId(), "/inputData", H5P_DEFAULT, H5P_DEFAULT);
     H5Fflush(target.getId(), H5F_SCOPE_LOCAL);
+}
+
+void MultiConditionDataProviderHDF5::getSimAndPreeqConditions(
+        const int simulationIdx, int &preequilibrationConditionIdx,
+        int &simulationConditionIdx) const
+{
+    auto tmp = hdf5Read2DIntegerHyperslab(file.getId(),
+                                          hdf5ReferenceConditionPath,
+                                          1, 2, simulationIdx, 0);
+    preequilibrationConditionIdx = tmp[0];
+    simulationConditionIdx = tmp[1];
 }
 
 hid_t MultiConditionDataProviderHDF5::getHdf5FileId() const { return file.getId(); }
