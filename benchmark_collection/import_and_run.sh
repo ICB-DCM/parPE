@@ -28,7 +28,9 @@ petablint -v -n ${MODEL_NAME}
 # import AMICI model
 if [[ ! -d ${AMICI_MODEL_DIR} ]]; then
     echo "Importing model..."
-    amici_import_petab.py -n ${MODEL_NAME} -o ${AMICI_MODEL_DIR}
+    CMD="amici_import_petab.py --verbose -n ${MODEL_NAME} -o ${AMICI_MODEL_DIR}"
+    echo "${CMD}"
+    ${CMD}
 fi
 
 cd ${SCRIPT_PATH}
@@ -38,19 +40,24 @@ if [[ ! -d parpe_${MODEL_NAME} ]]; then
     echo "Setting up parPE..."
     ${PARPE_DIR}/misc/setup_amici_model.sh ${AMICI_MODEL_DIR} parpe_${MODEL_NAME}
 else
-    (cd parpe_${MODEL_NAME}/build && cmake -DAmici_DIR=${PARPE_DIR}/deps/AMICI/build .. && make)
+    if [[ -z "${AMICI_ROOT}" ]]
+        then AMICI_ROOT=${SCRIPT_PATH}/../deps/AMICI/
+    fi
+    (cd parpe_${MODEL_NAME}/build && cmake -DAmici_DIR=${AMICI_ROOT}/build .. && make)
 fi
 
 # generate data file
 echo "Importing data..."
-${PARPE_DIR}/misc/generateHDF5DataFileFromText.py \
+CMD="${PARPE_DIR}/misc/generateHDF5DataFileFromText.py \
     -o parpe_${MODEL_NAME}/${MODEL_NAME}.h5 \
     -s ${PETAB_MODEL_DIR}/model_${MODEL_NAME}.xml \
     -d ${AMICI_MODEL_DIR} \
     -m ${PETAB_MODEL_DIR}/measurementData_${MODEL_NAME}.tsv \
     -c ${PETAB_MODEL_DIR}/experimentalCondition_${MODEL_NAME}.tsv \
     -n model_${MODEL_NAME} \
-    -p ${PETAB_MODEL_DIR}/parameters_${MODEL_NAME}.tsv
+    -p ${PETAB_MODEL_DIR}/parameters_${MODEL_NAME}.tsv"
+echo $CMD
+$CMD
 
 echo ""
 echo "Start parameter estimation by:"
