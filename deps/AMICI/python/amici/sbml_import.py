@@ -6,6 +6,7 @@ import sympy as sp
 import libsbml as sbml
 import re
 import math
+import itertools as itt
 import warnings
 from sympy.logic.boolalg import BooleanTrue as spTrue
 from sympy.logic.boolalg import BooleanFalse as spFalse
@@ -85,9 +86,10 @@ class SbmlImporter:
 
         Arguments:
 
-            sbml_source:  Either a path to SBML file where the model is specified.
-            Or a model string as created by  sbml.sbmlWriter().writeSBMLToString().
-            @type string
+            sbml_source: Either a path to SBML file where the model is
+                specified, or a model string as created by
+                sbml.sbmlWriter().writeSBMLToString() or an instance of
+                libsbml.Model. @type str
 
             show_sbml_warnings: Indicates whether libSBML warnings should be
             displayed (default = True). @type bool
@@ -102,13 +104,15 @@ class SbmlImporter:
         Raises:
 
         """
-        self.sbml_reader = sbml.SBMLReader()
-
-        if from_file:
-            sbml_doc = self.sbml_reader.readSBMLFromFile(sbml_source)
+        if isinstance(sbml_source, sbml.Model):
+            self.sbml_doc = sbml_source.getSBMLDocument()
         else:
-            sbml_doc = self.sbml_reader.readSBMLFromString(sbml_source)
-        self.sbml_doc = sbml_doc
+            self.sbml_reader = sbml.SBMLReader()
+            if from_file:
+                sbml_doc = self.sbml_reader.readSBMLFromFile(sbml_source)
+            else:
+                sbml_doc = self.sbml_reader.readSBMLFromString(sbml_source)
+            self.sbml_doc = sbml_doc
 
         self.show_sbml_warnings = show_sbml_warnings
 
@@ -381,6 +385,7 @@ class SbmlImporter:
                     sbml.formulaToL3String(initial_assignment.getMath())
                 )
                 if symMath is not None:
+                    symMath = _parse_special_functions(symMath)
                     _check_unsupported_functions(symMath, 'InitialAssignment')
                     speciesInitial[index] = symMath
 
@@ -589,6 +594,7 @@ class SbmlImporter:
                 symMath = sp.sympify(element.getStoichiometry())
             else:
                 return sp.sympify(1.0)
+            symMath = _parse_special_functions(symMath)
             _check_unsupported_functions(symMath, 'Stoichiometry')
             return symMath
 
@@ -627,6 +633,7 @@ class SbmlImporter:
             except:
                 raise SBMLException(f'Kinetic law "{math}" contains an '
                                     'unsupported expression!')
+            symMath = _parse_special_functions(symMath)
             _check_unsupported_functions(symMath, 'KineticLaw')
             for r in reactions:
                 elements = list(r.getListOfReactants()) \
@@ -678,6 +685,7 @@ class SbmlImporter:
             variable = sp.sympify(rule.getVariable())
             # avoid incorrect parsing of pow(x, -1) in symengine
             formula = sp.sympify(sbml.formulaToL3String(rule.getMath()))
+            formula = _parse_special_functions(formula)
             _check_unsupported_functions(formula, 'Rule')
 
             if variable in stoichvars:
@@ -873,13 +881,17 @@ class SbmlImporter:
 
         # set cost functions
         llhYStrings = []
-        for y_name in observables:
+        for y_name in observableNames:
             llhYStrings.append(noise_distribution_to_cost_function(
                 noise_distributions.get(y_name, 'normal')))
 
         llhYValues = []
-        for llhYString, o_sym, m_sym, s_sym in zip(llhYStrings, observableSyms, measurementYSyms, sigmaYSyms):
-            f = sp.sympify(llhYString(o_sym), locals={str(o_sym): o_sym, str(m_sym): m_sym, str(s_sym): s_sym})
+        for llhYString, o_sym, m_sym, s_sym \
+                in zip(llhYStrings, observableSyms,
+                       measurementYSyms, sigmaYSyms):
+            f = sp.sympify(llhYString(o_sym), locals={str(o_sym): o_sym,
+                                                      str(m_sym): m_sym,
+                                                      str(s_sym): s_sym})
             llhYValues.append(f)
         llhYValues = sp.Matrix(llhYValues)
 
@@ -1116,7 +1128,7 @@ def _check_unsupported_functions(sym, expression_type, full_sym=None):
 
     unsupported_functions = [
         sp.functions.factorial, sp.functions.ceiling, sp.functions.floor,
-        sp.functions.Piecewise, spTrue, spFalse, sp.function.UndefinedFunction
+        sp.function.UndefinedFunction
     ]
 
     unsupp_fun_type = next(
@@ -1148,6 +1160,46 @@ def _check_unsupported_functions(sym, expression_type, full_sym=None):
                                 f'{expression_type}: "{full_sym}"!')
         if fun is not sym:
             _check_unsupported_functions(fun, expression_type)
+
+
+def _parse_special_functions(sym):
+    """Recursively checks the symbolic expression for functions which have be
+    to parsed in a special way, such as piecewise functions
+
+        Arguments:
+            sym: symbolic expressions @type sympy.Basic
+
+        Returns:
+
+        Raises:
+    """
+    args = tuple(_parse_special_functions(arg) for arg in sym._args)
+
+    # Do we have piecewise expressions?
+    if sym.__class__.__name__ == 'piecewise':
+        # how many condition-expression pairs will we have?
+        return sp.Piecewise(*grouper(args, 2, True))
+    elif isinstance(sym, (sp.Function, sp.Mul, sp.Add)):
+        sym._args = args
+
+    return sym
+
+
+def grouper(iterable, n, fillvalue=None):
+    """Collect data into fixed-length chunks or blocks
+
+    E.g. grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx"
+
+    Arguments:
+        iterable: any iterable
+        n: chunk length
+        fillvalue: padding for last chunk if length < n
+
+    Returns:
+        itertools.zip_longest of requested chunks
+    """
+    args = [iter(iterable)] * n
+    return itt.zip_longest(*args, fillvalue=fillvalue)
 
 
 def assignmentRules2observables(sbml_model,
