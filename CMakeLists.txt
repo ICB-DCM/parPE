@@ -103,7 +103,8 @@ if(${BUILD_TESTS})
         set(GMockSrc ${GOOGLETEST_DIR}/googlemock)
     else ()
         message(FATAL_ERROR "No googletest src dir found - set GOOGLETEST_DIR "
-            "or run ../ThirdParty/installGoogleTest.sh to enable!")
+            "or run ../ThirdParty/installGoogleTest.sh to enable!"
+            " (Or disable building tests with BUILD_TESTS=OFF)")
     endif ()
     include_directories(${GTestSrc} ${GTestSrc}/include ${GMockSrc} ${GMockSrc}/include)
 
