@@ -11,6 +11,7 @@
 #include <numeric>
 
 #include <amici/amici.h>
+#include <amici/hdf5.h>
 #include <amici/solver_cvodes.h>
 
 
@@ -60,28 +61,24 @@ TEST(simulationResultWriter, testResultWriter) {
     auto file = rw.reopenFile();
 
     // write
-    rw.createDatasets(nytrue, nx, timepoints.size(), numSimulations);
+    rw.createDatasets(numSimulations);
 
     CHECK_TRUE(parpe::hdf5GroupExists(file.getId(), "/testResultWriter/"));
-    CHECK_TRUE(parpe::hdf5DatasetExists(file.getId(), rw.llhPath.c_str()));
-    CHECK_TRUE(parpe::hdf5DatasetExists(file.getId(), rw.xPath.c_str()));
-    CHECK_TRUE(parpe::hdf5DatasetExists(file.getId(), rw.yMesPath.c_str()));
-    CHECK_TRUE(parpe::hdf5DatasetExists(file.getId(), rw.ySimPath.c_str()));
+    CHECK_TRUE(parpe::hdf5DatasetExists(file, rw.llhPath));
+    CHECK_TRUE(parpe::hdf5DatasetExists(file, rw.xPath));
+    CHECK_TRUE(parpe::hdf5DatasetExists(file, rw.yMesPath));
+    CHECK_TRUE(parpe::hdf5DatasetExists(file, rw.ySimPath));
+    CHECK_TRUE(parpe::hdf5DatasetExists(file, rw.timePath));
 
     rw.saveSimulationResults(&edata, &rdata, 1);
 
     // verify
-    auto xAct = parpe::hdf5Get3DDoubleHyperslab(
-                file.getId(), rw.xPath.c_str(),
-                1, timepoints.size(), nx,
-                1, 0, 0);
+    hsize_t m, n;
+    auto xAct = amici::hdf5::getDoubleDataset2D(file, rw.xPath + "/1", m, n);
     parpe::checkEqualArray(rdata.x.data(), xAct.data(), xAct.size(), 1e-16, 1e-16);
 
-    auto yMesAct = parpe::hdf5Get3DDoubleHyperslab(
-                file.getId(), rw.yMesPath.c_str(),
-                1, timepoints.size(), nytrue, 1, 0, 0);
+    auto yMesAct = amici::hdf5::getDoubleDataset2D(file, rw.yMesPath + "/1", m, n);
     parpe::checkEqualArray(measurements.data(), yMesAct.data(), yMesAct.size(), 1e-16, 1e-16);
-
 }
 
 TEST(simulationResultWriter, testResultWriterNewExistingFile) {

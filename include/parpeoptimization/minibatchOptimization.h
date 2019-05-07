@@ -695,7 +695,7 @@ public:
                            double cost1, 
                            double cost2, 
                            double dirGradient,
-                           auto costFunEvaluate) {
+                           std::function<double (double)> costFunEvaluate) {
 
         /* From here on, we will use cubic interpolation.
          * We need to compute the matrix-vector multiplication

@@ -46,7 +46,7 @@ int StandaloneSimulator::run(const std::string& resultFile,
     solver->setSensitivityOrder(amici::SensitivityOrder::none);
 
     std::vector<double> parameters = optimizationParameters;
-    HierarchicalOptimizationWrapper hierarchical(nullptr, 0, 0, 0);
+    HierarchicalOptimizationWrapper hierarchical(nullptr, 0, 0);
 
     /* If the provided parameter vector is shorter than required, this means, we got only the result
      * of the outer problem of an hierarchical optimization run, and thus, need to compute the
@@ -81,7 +81,7 @@ int StandaloneSimulator::run(const std::string& resultFile,
                                                 std::move(hierarchicalScalingReader),
                                                 std::move(hierarchicalOffsetReader),
                                                 std::move(hierarchicalSigmaReader),
-                                                dataProvider->getNumberOfConditions(), model->nytrue, model->nt(),
+                                                dataProvider->getNumberOfSimulationConditions(), model->nytrue,
                                                 ErrorModel::normal);
         std::cout<<"Need to compute analytical parameters: "<<conditionFilePath<<"  "<<proportionalityFactorIndices.size()<<" parameters.size() == "<<parameters.size()<<" ; hierarchical.numParameters() == "<<hierarchical.numParameters()<<std::endl;
         RELEASE_ASSERT(parameters.size() == (unsigned) hierarchical.numParameters(), "");
@@ -106,12 +106,12 @@ int StandaloneSimulator::run(const std::string& resultFile,
 
     RELEASE_ASSERT(parameters.size() == (unsigned)dataProvider->getNumOptimizationParameters(), "Size of supplied parameter vector does not match model dimensions.");
 
-    rw.createDatasets(*model, dataProvider->getNumberOfConditions());
+    rw.createDatasets(dataProvider->getNumberOfSimulationConditions());
 
-    std::vector<int> dataIndices(dataProvider->getNumberOfConditions());
+    std::vector<int> dataIndices(dataProvider->getNumberOfSimulationConditions());
     std::iota(dataIndices.begin(), dataIndices.end(), 0);
     int errors = 0;
-    std::cout<<"Starting simulation. Number of conditions: " << dataProvider->getNumberOfConditions()<<std::endl;
+    std::cout<<"Starting simulation. Number of conditions: " << dataProvider->getNumberOfSimulationConditions()<<std::endl;
 
     auto jobFinished = [&](JobData *job, int /*dataIdx*/) { /* job finished */
         // if we are running hierarchical optimization we need to wait until all jobs are finished
@@ -128,8 +128,11 @@ int StandaloneSimulator::run(const std::string& resultFile,
             errors += result.second.status;
             int conditionIdx = result.first;
             auto edata = dataProvider->getExperimentalDataForCondition(conditionIdx);
-            rw.saveMeasurements(edata->getObservedData(), edata->nt(), edata->nytrue(), conditionIdx);
-            rw.saveModelOutputs(result.second.modelOutput,  model->nt(), model->nytrue, conditionIdx);
+            rw.saveTimepoints(edata->getTimepoints(), conditionIdx);
+            rw.saveMeasurements(edata->getObservedData(), edata->nt(),
+                                edata->nytrue(), conditionIdx);
+            rw.saveModelOutputs(result.second.modelOutput,  edata->nt(),
+                                model->nytrue, conditionIdx);
             rw.saveLikelihood(result.second.llh, conditionIdx);
         }
     };
@@ -175,9 +178,14 @@ int StandaloneSimulator::run(const std::string& resultFile,
                         allMeasurements[conditionIdx],
                         modelOutputs[conditionIdx],
                         fullSigmaMatrices[conditionIdx]);
-            auto edata = dataProvider->getExperimentalDataForCondition(conditionIdx);
-            rw.saveMeasurements(edata->getObservedData(), edata->nt(), edata->nytrue(), conditionIdx);
-            rw.saveModelOutputs(modelOutputs[conditionIdx],  model->nt(), model->nytrue, conditionIdx);
+
+            auto edata = dataProvider->getExperimentalDataForCondition(
+                        conditionIdx);
+            rw.saveTimepoints(edata->getTimepoints(), conditionIdx);
+            rw.saveMeasurements(edata->getObservedData(), edata->nt(),
+                                edata->nytrue(), conditionIdx);
+            rw.saveModelOutputs(modelOutputs[conditionIdx],  edata->nt(),
+                                model->nytrue, conditionIdx);
             rw.saveLikelihood(llh, conditionIdx);
         }
         return 0;

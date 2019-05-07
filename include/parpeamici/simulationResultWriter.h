@@ -12,29 +12,56 @@ namespace parpe {
 /**
  * @brief The SimulationResultWriter class saves AMICI simulation results
  * for one or multiple conditions to an HDF5 file.
+ *
+ * Will write to existing file or create new one. Will fail if the dataset
+ * to be written already exist.
+ *
+ * Structure is
+ *
+ * ```
+ * rootPath/
+ * +- yMes/$conditionIdx [double: nt x ny] (nt may be condition-specific)
+ * +- ySim/$conditionIdx [double: nt x ny] (nt may be condition-specific)
+ * +- llh [double: nConditions]
+ * +- ...
+ * ```
  */
 
 class SimulationResultWriter {
+
 public:
 
     SimulationResultWriter() = default;
 
+    /**
+     * @brief SimulationResultWriter
+     * @param file HDF5 file object to write to
+     * @param rootPath Path prefix inside HDF5 file
+     */
     SimulationResultWriter(const H5::H5File &file, std::string rootPath);
 
-    SimulationResultWriter(std::string const& hdf5FileName, std::string  rootPath);
-
-    SimulationResultWriter(SimulationResultWriter const&) = delete;
     /**
-     * @brief Create results datasets. Condition index is first dimension.
+     * @brief SimulationResultWriter
+     * @param hdf5FileName HDF5 file to create or open for appending
+     * @param rootPath Path prefix inside HDF5 file
+     */
+    SimulationResultWriter(std::string const& hdf5FileName,
+                           std::string  rootPath);
+
+    // Implement me
+    SimulationResultWriter(SimulationResultWriter const&) = delete;
+
+    /**
+     * @brief Create results datasets.
+     *
+     * Must be called before first call to `save*`
      * @param udata
      * @param edata
      * @param numSimulations
      */
+    void createDatasets(hsize_t numSimulations);
 
-    void createDatasets(hsize_t ny, hsize_t nx, hsize_t nt, hsize_t numSimulations);
-
-    void createDatasets(const amici::Model &model,
-                        int numberOfSimulations = 1);
+    void createDatasets(int numberOfSimulations = 1);
 
     /**
      * @brief Save results for a single simulation to HDF5 file.
@@ -49,11 +76,17 @@ public:
                                const amici::ReturnData *rdata,
                                int simulationIdx);
 
-    void saveMeasurements(gsl::span<const double> measurements, int nt, int nytrue, int simulationIdx) const;
+    void saveTimepoints(gsl::span<const double> timepoints,
+                        int simulationIdx) const;
 
-    void saveModelOutputs(gsl::span<const double> outputs, int nt, int nytrue, int simulationIdx) const;
+    void saveMeasurements(gsl::span<const double> measurements, int nt,
+                          int nytrue, int simulationIdx) const;
 
-    void saveStates(gsl::span<const double> states, int nt, int nx, int simulationIdx) const;
+    void saveModelOutputs(gsl::span<const double> outputs, int nt,
+                          int nytrue, int simulationIdx) const;
+
+    void saveStates(gsl::span<const double> states, int nt, int nx,
+                    int simulationIdx) const;
 
     void saveLikelihood(double llh, int simulationIdx) const;
 
@@ -71,6 +104,7 @@ public:
     std::string ySimPath;
     std::string xPath;
     std::string llhPath;
+    std::string timePath;
 
 private:
     void updatePaths();

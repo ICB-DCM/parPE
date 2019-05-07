@@ -48,11 +48,16 @@ bool hdf5DatasetExists(hid_t file_id, std::string const& datasetName);
 
 bool hdf5DatasetExists(hid_t file_id, const char *datasetName);
 
+bool hdf5DatasetExists(H5::H5File const& file, const std::string &datasetName);
+
 bool hdf5GroupExists(hid_t file_id, const char *groupName);
 
 void hdf5EnsureGroupExists(hid_t file_id, const char *groupName);
 
 void hdf5EnsureGroupExists(hid_t file_id, const std::string &groupName);
+
+void hdf5EnsureGroupExists(H5::H5File const& file,
+                           const std::string &groupName);
 
 void hdf5CreateGroup(hid_t file_id, const char *groupPath, bool recursively = false);
 
