@@ -203,10 +203,12 @@ void ParameterUpdaterAdam::updateParameters(double learningRate,
     double tmpNumerator;
     double tmpDenominator;
 
-    oldGradientNormCache = gradientNormCache;
-    oldGradientCache = gradientCache;
-
     for (int i = 0; i < numParameters; ++i) {
+        
+        oldGradientNormCache[i] = gradientNormCache[i];
+        oldGradientCache[i] = gradientCache[i];
+        
+        // compute new steps from last gradient information
         gradientCache[i] = decayRateGradient * gradientCache[i] + (1 - decayRateGradient) * gradient[i];
         gradientNormCache[i] = decayRateGradientNorm * gradientNormCache[i]
                 + (1 - decayRateGradientNorm) * gradient[i] * gradient[i];
@@ -223,6 +225,11 @@ void ParameterUpdaterAdam::updateParameters(double learningRate,
 
 void ParameterUpdaterAdam::undoLastStep() {
     // The cached gradient norm needs to be restored, since the new one is probably NaN
+    for (int i = 0; i < gradientCache.size(); ++i) {
+        gradientNormCache[i] = oldGradientNormCache[i];
+        gradientCache[i] = oldGradientCache[i];
+    }
+    
     gradientNormCache = oldGradientNormCache;
     gradientCache = oldGradientCache;
 }
