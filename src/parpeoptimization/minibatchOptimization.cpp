@@ -18,10 +18,10 @@ double getVectorNorm(gsl::span<const double> v) {
 
 double getVectorDifference(gsl::span<const double> v,
                            gsl::span<const double> w) {
-    
+    Expects(v.size() == w.size());
     std::vector<double> difference(v.size(), 0.0);
     for (unsigned int i = 0; i < v.size(); ++i)
-        difference += v[i] - w[i];
+        difference[i] = v[i] - w[i];
     
     return difference;
 }
@@ -31,6 +31,7 @@ void setMinibatchOption(const std::pair<const std::string, const std::string> &p
     const std::string &key = pair.first;
     const std::string &val = pair.second;
 
+    /* Get options from h5-file */
     if (key == "maxEpochs") {
         optimizer->maxEpochs = std::stoi(val);
     } else if (key == "batchSize") {

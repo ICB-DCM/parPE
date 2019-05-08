@@ -310,7 +310,7 @@ double getScalarProduct(gsl::span<const double> v,
 double getVectorNorm(gsl::span<const double> v);
 
 /**
- * @brief Get difference of two vectors.
+ * @brief Get difference of two vectors (v - w).
  * @param v
  * @param w
  * @return the norm
@@ -403,7 +403,7 @@ public:
 
                     // Overwrite old parameters and old gradient, since they won't be needed any more
                     std::copy(gradient.begin(), gradient.end(), oldGradient.begin())
-                    std::copy(parameters.begin(), parameters.end(), parameters.begin())
+                    std::copy(parameters.begin(), parameters.end(), oldParameters.begin())
                 }
 
                 /* Update parameters after successful gradient evaluation */
@@ -531,7 +531,7 @@ public:
         
         // debug output
         if (logger) {
-            std::vector<double> firstDifference = getVectorDifference(parameters[i], oldParameters[i]);
+            std::vector<double> firstDifference = getVectorDifference(parameters, oldParameters);
             std::stringstream first_ss;
             first_ss << " Interceptor is active! Former step size: " << getVectorNorm(firstDifference) << std::endl;
             logger->logmessage(LOGLVL_DEBUG, first_ss.str().c_str());
@@ -594,7 +594,7 @@ public:
             status = evaluate(f, parameters, datasets, cost, gradient, logger, reporter);
             
             // get Difference for debugging
-            parDifference = getVectorDifference(parameters[i], oldParameters[i]);
+            parDifference = getVectorDifference(parameters, oldParameters);
             
             // debug output
             ss << ": Interceptor, after new evalaluation: " << std::endl 
@@ -672,7 +672,7 @@ public:
          * cost0 is the previous cost before the parameter update,
          * we want the update to be lower.
          * 
-         * First compute a naive step as if there was now line-search -> get cost1
+         * First compute a naive step as if there was no line-search -> get cost1
          * If cost1 > cost0: Try to improve -> get cost2
          * If also cost2 > cost0:
          *     If only short line-search is desired:  take min(cost1, cost2)
@@ -690,7 +690,7 @@ public:
         // Debugging output
         std::stringstream line_ss;
         std::stringstream parabola_ss;
-        std::vector<double> parDifference = getVectorDifference(parameters[i], oldParameters[i]);
+        std::vector<double> parDifference = getVectorDifference(parameters, oldParameters);
 
         /* No improvement: compute update direction */
         std::vector<double> direction(parameters.size(), NAN);
@@ -807,7 +807,7 @@ public:
          * 
          * in order to find the possible minimum at
          * 
-         * alpha3 = -b + sqrt( ² - 3*a*dirGradient ) / (3*a)
+         * alpha3 = -b + sqrt(b*b - 3*a*dirGradient ) / (3*a)
          * 
          * Possibly, we have to iterrate this process. */
 
