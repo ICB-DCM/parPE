@@ -548,7 +548,7 @@ public:
             std::copy(oldParameters.begin(), oldParameters.end(), parameters.begin());
 
             // note the previous parameter step for debugging
-            parDifference = getVectorDifference(parameters[i], oldParameters[i]);
+            parDifference = getVectorDifference(parameters, oldParameters);
             
             // Check if there are NaNs in the parameter vector now (e.g., fail at first iteration)
             if (std::any_of(parameters.begin(), parameters.end(), [](double d) {return std::isnan(d);}))
