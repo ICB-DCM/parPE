@@ -16,8 +16,8 @@ double getVectorNorm(gsl::span<const double> v) {
     return std::sqrt(getScalarProduct(v, v));
 }
 
-double getVectorDifference(gsl::span<const double> v,
-                           gsl::span<const double> w) {
+std::vector<double> getVectorDifference(gsl::span<const double> v,
+                                        gsl::span<const double> w) {
     Expects(v.size() == w.size());
     std::vector<double> difference(v.size(), 0.0);
     for (unsigned int i = 0; i < v.size(); ++i)

@@ -402,8 +402,8 @@ public:
                     learningRateUpdater->increaseLearningRate();
 
                     // Overwrite old parameters and old gradient, since they won't be needed any more
-                    std::copy(gradient.begin(), gradient.end(), oldGradient.begin())
-                    std::copy(parameters.begin(), parameters.end(), oldParameters.begin())
+                    std::copy(gradient.begin(), gradient.end(), oldGradient.begin());
+                    std::copy(parameters.begin(), parameters.end(), oldParameters.begin());
                 }
 
                 /* Update parameters after successful gradient evaluation */
@@ -544,8 +544,8 @@ public:
             // If the objective function evaluation failed, we want to undo the step
             ++subsequentFails;
             parameterUpdater->undoLastStep();
-            std::copy(oldGradient.begin(), oldGradient.end(), gradient.begin())
-            std::copy(oldParameters.begin(), oldParameters.end(), parameters.begin())
+            std::copy(oldGradient.begin(), oldGradient.end(), gradient.begin());
+            std::copy(oldParameters.begin(), oldParameters.end(), parameters.begin());
 
             // note the previous parameter step for debugging
             parDifference = getVectorDifference(parameters[i], oldParameters[i]);
@@ -654,7 +654,7 @@ public:
                    &logger, &reporter, this](double alpha) {
             
             /* Reset oldParameters and re-update with new step length */
-            std::copy(oldParameters.begin(), oldParameters.end(), parameters.begin())
+            std::copy(oldParameters.begin(), oldParameters.end(), parameters.begin());
             parameterUpdater->undoLastStep();
             
             parameterUpdater->updateParameters(alpha, iteration, gradient, parameters, 
