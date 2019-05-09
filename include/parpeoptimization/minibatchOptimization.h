@@ -237,7 +237,7 @@ public:
                           gsl::span<const double> upperBounds = gsl::span<const double>()) override;
 
     void undoLastStep() override;
-
+    
     void clearCache() override;
 
     void initialize(unsigned int numParameters) override;
@@ -309,6 +309,15 @@ double getScalarProduct(gsl::span<const double> v,
  */
 double getVectorNorm(gsl::span<const double> v);
 
+/**
+ * @brief Get difference of two vectors (v - w).
+ * @param v
+ * @param w
+ * @return the norm
+ */
+std::vector<double> getVectorDifference(gsl::span<const double> v,
+                                        gsl::span<const double> w);
+
 template<typename BATCH_ELEMENT>
 class MinibatchOptimizer {
 public:
@@ -349,7 +358,7 @@ public:
 
         if (reporter) {
             reporter->starting(initialParameters);
-            reporter->resultWriter->setLoggingEachFunctionEvaluation(false, false);
+            reporter->resultWriter->setLoggingEachFunctionEvaluation(false, true);
             reporter->resultWriter->setLoggingEachIteration(false);
         }
 
@@ -393,15 +402,13 @@ public:
                     learningRateUpdater->increaseLearningRate();
 
                     // Overwrite old parameters and old gradient, since they won't be needed any more
-                    oldGradient = gradient;
-                    oldParameters = parameters;
+                    std::copy(gradient.begin(), gradient.end(), oldGradient.begin());
+                    std::copy(parameters.begin(), parameters.end(), oldParameters.begin());
                 }
 
                 /* Update parameters after successful gradient evaluation */
                 handleStep(parameters, oldParameters, gradient, lowerParameterBounds, upperParameterBounds,
                            cost, iteration, f, batches[batchIdx], batchLogger.get(), reporter);
-                /*parameterUpdater->updateParameters(learningRateUpdater->getCurrentLearningRate(), iteration, gradient,
-                                                   parameters, lowerParameterBounds, upperParameterBounds);*/
 
             }
 
@@ -440,17 +447,17 @@ public:
         double cpuTime = 0.0;
         auto status = f.evaluate(parameters, datasets, cost, gradient, logger, &cpuTime);
 
-        if (reporter) {
-            reporter->cpuTimeIterationSec += cpuTime;
-            reporter->cpuTimeTotalSec += cpuTime;
-            reporter->afterCostFunctionCall(parameters, cost, gradient);
-        }
-
         // Normalize to batch size
         double batchSize = datasets.size();
         cost /= batchSize;
         for (auto &g : gradient)
             g /= batchSize;
+
+        if (reporter) {
+            reporter->cpuTimeIterationSec += cpuTime;
+            reporter->cpuTimeTotalSec += cpuTime;
+            reporter->afterCostFunctionCall(parameters, cost, gradient);
+        }
 
         return status;
     }
@@ -507,45 +514,76 @@ public:
                                                std::vector<BATCH_ELEMENT> datasets,
                                                Logger *logger,
                                                OptimizationReporter *reporter) {
+        
+        // initialize disgnostic variables 
         int maxSubsequentFails = 10;
         bool finalFail = false;
+        bool initialFail = false;
         cost = NAN;
         FunctionEvaluationStatus status = functionEvaluationFailure;
-
+        std::vector<double> parDifference(parameters.size(), 0.0);
+        std::stringstream ss;
+        
         if (reporter) {
             reporter->beforeCostFunctionCall(parameters);
             reporter->logger->setPrefix(logger->getPrefix());
         }
+        
+        // debug output
+        if (logger) {
+            std::vector<double> firstDifference = getVectorDifference(parameters, oldParameters);
+            std::stringstream first_ss;
+            first_ss << " Interceptor is active! Former step size: " << getVectorNorm(firstDifference) << std::endl;
+            logger->logmessage(LOGLVL_DEBUG, first_ss.str().c_str());
+        }
+        
 
         // Cost function evaluation failed: We need to intercept
         while (status == functionEvaluationFailure) {
+            
             // If the objective function evaluation failed, we want to undo the step
             ++subsequentFails;
             parameterUpdater->undoLastStep();
-            gradient = oldGradient;
-            parameters = oldParameters;
+            std::copy(oldGradient.begin(), oldGradient.end(), gradient.begin());
+            std::copy(oldParameters.begin(), oldParameters.end(), parameters.begin());
 
+            // note the previous parameter step for debugging
+            parDifference = getVectorDifference(parameters, oldParameters);
+            
             // Check if there are NaNs in the parameter vector now (e.g., fail at first iteration)
             if (std::any_of(parameters.begin(), parameters.end(), [](double d) {return std::isnan(d);}))
-                finalFail = true;
+                initialFail = true;
             if (subsequentFails >= maxSubsequentFails)
                 finalFail = true;
 
             // If nothing helps and no cold restart wanted: cancel optimization
-            if (finalFail and interceptor != interceptType::reduceStepAndRestart)
+            if (initialFail or (finalFail and interceptor != interceptType::reduceStepAndRestart)) {
+                logger->logmessage(LOGLVL_DEBUG, "Failure at intial point of optimization. Stopping.");
                 return functionEvaluationFailure;
+            }
             
             if (finalFail) {
                 /* Reducing step size did not work. 
                  * Do a cold restart and take a very small step.
                  */
+                ss << "Final failure. Rescue interceptor could not recover optimization run." << std::endl;
                 subsequentFails = 0;
                 parameterUpdater->clearCache();
                 learningRateUpdater->setReductionFactor(1e-5);
             } else {
                 /* We did not fail too often: we reduce the step size */
                  learningRateUpdater->reduceLearningRate();
+                 ss << "Failure. Reducing learning rate and retry..." << std::endl;
             }
+            
+            // debug output
+            ss << ": Interceptor, before new evalaluation: " << std::endl 
+                << " New cost: " << cost 
+                << ", new |g|2: " << getVectorNorm(gradient)
+                << ", new LearningRate: " << learningRate 
+                << ", real step length: " << getVectorNorm(parDifference)
+                << ", Failures: " << subsequentFails 
+                << std::endl;
             
             // Do the next step
             learningRate = learningRateUpdater->getCurrentLearningRate();
@@ -554,6 +592,20 @@ public:
 
             // Re-evaluate the cost function and hope for the best
             status = evaluate(f, parameters, datasets, cost, gradient, logger, reporter);
+            
+            // get Difference for debugging
+            parDifference = getVectorDifference(parameters, oldParameters);
+            
+            // debug output
+            ss << ": Interceptor, after new evalaluation: " << std::endl 
+                << " New Cost: " << cost 
+                << " new |g|2: " << getVectorNorm(gradient)
+                << " new LearningRate: " << learningRate 
+                << "real step length: " << getVectorNorm(parDifference) 
+                << std::endl;
+            if (logger)
+                logger->logmessage(LOGLVL_DEBUG, ss.str().c_str());
+
         }
 
         return status;
@@ -592,7 +644,8 @@ public:
                                            lowerParameterBounds, upperParameterBounds);
 
         /* If no line search desired: that's it! */
-        if (lineSearchSteps == 0) return;
+        if (lineSearchSteps == 0)
+            return;
         
         /* Define lambda function for step length evaluation  */
         std::function<double (double)> evalLineSearch = [&f, &datasets, iteration,
@@ -601,7 +654,9 @@ public:
                    &logger, &reporter, this](double alpha) {
             
             /* Reset oldParameters and re-update with new step length */
-            oldParameters = parameters;
+            std::copy(oldParameters.begin(), oldParameters.end(), parameters.begin());
+            parameterUpdater->undoLastStep();
+            
             parameterUpdater->updateParameters(alpha, iteration, gradient, parameters, 
                                                lowerParameterBounds, upperParameterBounds);
             /* Write new cost funtion value and return */
@@ -610,11 +665,32 @@ public:
             return newCost;
         };
         
-        /* Do we check for a decreasing cost function? */
+        /* From here, we check for a decreasing cost function,
+         * otherwise, we already exited. 
+         * 
+         * The idea:
+         * cost0 is the previous cost before the parameter update,
+         * we want the update to be lower.
+         * 
+         * First compute a naive step as if there was no line-search -> get cost1
+         * If cost1 > cost0: Try to improve -> get cost2
+         * If also cost2 > cost0:
+         *     If only short line-search is desired:  take min(cost1, cost2)
+         *     If more longer line-search is desired: step into performLineSearch()
+         * */
+        
         double cost1 = evalLineSearch(stepLength);
 
         /* Return on improvement */
-        if (cost1 <= cost) return;
+        if (cost1 <= cost) {
+            logger->logmessage(LOGLVL_DEBUG, " Line-Search: Step was good right away...");
+            return;
+        }
+        
+        // Debugging output
+        std::stringstream line_ss;
+        std::stringstream parabola_ss;
+        std::vector<double> parDifference = getVectorDifference(parameters, oldParameters);
 
         /* No improvement: compute update direction */
         std::vector<double> direction(parameters.size(), NAN);
@@ -629,13 +705,16 @@ public:
         if (dirGradient > 0) {
             /* No descent direction, no hope for improvement:
              * Try to do something smart anyway */
+            parabola_ss << " Line-Search: Not a descent direction! " << std::endl;
             
             /* Fit a parabola to decide whether a smaller or 
              * a bigger step seems more promising */
             double newStepLength = NAN;
-            if (cost1 < cost + 2.0 * dirNorm * dirGradient) {
+            if (cost1 < cost - 2.0 * dirNorm * dirGradient) {
+                parabola_ss << " Stepping longer now. " << std::endl;
                 newStepLength = stepLength * 2.0;
             } else {
+                parabola_ss << " Stepping shorter now. " << std::endl;
                 newStepLength = stepLength / 2.0;
             }
             
@@ -645,16 +724,34 @@ public:
             if (cost2 > cost1) {
                 /* The parabola idea didn't work. Just admit the step, as it is */
                 cost1 = evalLineSearch(stepLength);
+                parabola_ss << " Step adaption did not work..." << std::endl;
             }
+            parabola_ss << "   cost0: " << cost << " (steplength: " << getVectorNorm(parDifference)
+                << "),   cost1: " << cost1 << " (steplength: " << stepLength
+                << "),   cost2: " << cost2 << " (steplength: " << newStepLength
+                << ") " << std::endl;
+            if (logger)
+                logger->logmessage(LOGLVL_DEBUG, parabola_ss.str().c_str());
+            
             /* We tried all we could */
             return;
         }
         
         /* Original step was too big, but we're facing a descent direction 
          * Propose a new step based on a parabolic interpolation */
-        double newStepLength = 0.5 * dirGradient * std::pow(stepLength, 2.0) /
+        double newStepLength = -0.5 * dirGradient * std::pow(stepLength, 2.0) /
                 (cost1 - cost - dirGradient * stepLength);
         double cost2 = evalLineSearch(newStepLength);
+        
+        // Debugging output
+        if (logger) {
+            line_ss << " Line-Search: two steps were done, results are: " << std::endl
+                << "   cost0: " << cost << " (steplength: " << getVectorNorm(parDifference)
+                << "),   cost1: " << cost1 << " (steplength: " << stepLength
+                << "),   cost2: " << cost2 << " (steplength: " << newStepLength
+                << ")" << std::endl;
+            logger->logmessage(LOGLVL_DEBUG, line_ss.str().c_str());
+        }
         
         /* If we did improve, return, otherwise iterate */
         if (cost2 < cost) return;
@@ -667,6 +764,11 @@ public:
             cost1 = evalLineSearch(stepLength);
         } else {
             /* No descent found and line search option is set: iterate! */
+            std::stringstream line_ss;
+            if (logger) {
+                line_ss << " Line-Search: Need to go to third order approximation, looping... " << std::endl;
+                logger->logmessage(LOGLVL_DEBUG, line_ss.str().c_str());
+            }
             performLineSearch(stepLength,
                               newStepLength,
                               cost,
@@ -705,7 +807,7 @@ public:
          * 
          * in order to find the possible minimum at
          * 
-         * alpha3 = -b + sqrt( ² - 3*a*dirGradient ) / (3*a)
+         * alpha3 = -b + sqrt(b*b - 3*a*dirGradient ) / (3*a)
          * 
          * Possibly, we have to iterrate this process. */
 
