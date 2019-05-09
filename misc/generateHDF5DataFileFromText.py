@@ -319,7 +319,11 @@ class HDF5DataGenerator:
         optimization_parameter_name_to_index = {
             name: idx for idx, name
             in enumerate(
-                self.parameter_df.index[self.parameter_df.estimate == 1])}
+                self.parameter_df.index[
+                    (self.parameter_df.estimate == 1)
+                    & (~self.parameter_df.index.isin(
+                        self.amici_model.getFixedParameterIds()))
+                    ])}
         # print(optimization_parameter_name_to_index)
         self.optimization_parameter_name_to_index = \
             optimization_parameter_name_to_index
@@ -355,7 +359,8 @@ class HDF5DataGenerator:
         # write to file
         write_parameter_map(self.f, mapping_matrix, override_matrix,
                             num_model_parameters, self.compression)
-        write_scale_map(self.f, self.parameter_scale_mapping, self.parameter_df)
+        write_scale_map(self.f, self.parameter_scale_mapping,
+                        self.parameter_df, self.amici_model)
 
     def get_index_mapping_for_par(
             self, mapped_parameter: Any,
@@ -1109,7 +1114,9 @@ class HDF5DataGenerator:
         Offset parameters are allowed to be negative
         """
         optimized_par_df = \
-            self.parameter_df.loc[self.parameter_df.estimate == 1, :]
+            self.parameter_df.loc[self.parameter_df.estimate == 1
+                                  & (~self.parameter_df.index.isin(
+                        self.amici_model.getFixedParameterIds())), :]
         self.f.require_dataset('/parameters/lowerBound',
                                shape=optimized_par_df.lowerBound.shape,
                                data=optimized_par_df.lowerBound, dtype='f8')
@@ -1187,7 +1194,7 @@ def write_parameter_map(f: h5py.File, mapping_matrix: np.array,
 
 
 def write_scale_map(f: h5py.File, parameter_scale_mapping: List[List[str]],
-                    parameter_df: pd.DataFrame):
+                    parameter_df: pd.DataFrame, amici_model: amici.Model):
     """Write parameter scale mapping to HDF5 dataset"""
 
     # for simulation
@@ -1206,7 +1213,9 @@ def write_scale_map(f: h5py.File, parameter_scale_mapping: List[List[str]],
     # for cost function parameters
     pscale = np.array([petab_scale_to_amici_scale(s)
                        for s in parameter_df.parameterScale.values[
-                           parameter_df.estimate == 1]])
+                           (parameter_df.estimate == 1)
+                           & ~parameter_df.index.isin(
+                               amici_model.getFixedParameterIds())]])
     f.require_dataset('/parameters/pscaleOptimization',
                       shape=pscale.shape,
                       dtype="<i4",
