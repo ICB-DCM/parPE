@@ -4,6 +4,7 @@
 #include <parpeamici/multiConditionDataProvider.h>
 #include <parpecommon/misc.h>
 #include <parpecommon/parpeException.h>
+#include <amici/misc.h>
 
 #include <exception>
 #include <cmath>
@@ -14,7 +15,6 @@
 #endif
 
 namespace parpe {
-
 
 HierarchicalOptimizationWrapper::HierarchicalOptimizationWrapper(
         std::unique_ptr<AmiciSummedGradientFunction> fun,
@@ -298,7 +298,7 @@ std::vector<double> HierarchicalOptimizationWrapper::computeAnalyticalScalings(
         auto scale = fun->getParameterScaling(
                     proportionalityFactorIndices[scalingIdx]);
         proportionalityFactors[scalingIdx] =
-                parpe::getScaledParameter(proportionalityFactor, scale);
+                getScaledParameter(proportionalityFactor, scale);
     }
 
     return proportionalityFactors;
@@ -331,7 +331,7 @@ std::vector<double> HierarchicalOptimizationWrapper::computeAnalyticalOffsets(
                     i, modelOutputsUnscaled, measurements,
                     *offsetReader, numObservables);
         auto scale = fun->getParameterScaling(offsetParameterIndices[i]);
-        offsetParameters[i] = parpe::getScaledParameter(offsetParameter, scale);
+        offsetParameters[i] = getScaledParameter(offsetParameter, scale);
     }
 
     return offsetParameters;
@@ -350,7 +350,7 @@ std::vector<double> HierarchicalOptimizationWrapper::computeAnalyticalSigmas(
                     modelOutputsScaled, measurements,
                     *sigmaReader, numObservables);
         auto scale = fun->getParameterScaling(sigmaParameterIndices[i]);
-        sigmas[i] = parpe::getScaledParameter(sigma, scale);
+        sigmas[i] = getScaledParameter(sigma, scale);
     }
     return sigmas;
 }
@@ -951,7 +951,8 @@ double computeAnalyticalSigmas(
         int numTimepoints = measurements[conditionIdx].size() / numObservables;
         for(auto const observableIdx: dependentObservables) {
             if(observableIdx >= numObservables) {
-                throw ParPEException("computeAnalyticalSigmas: Invalid observableIdx >= numObservables.");
+                throw ParPEException("computeAnalyticalSigmas: Invalid "
+                                     "observableIdx >= numObservables.");
             }
 
             for(int timeIdx = 0; timeIdx < numTimepoints; ++timeIdx) {
@@ -1017,18 +1018,6 @@ void applyOptimalScaling(int scalingIdx, double scalingLin,
     }
 }
 
-double getScaledParameter(double parameter, amici::ParameterScaling scale) {
-    switch (scale) {
-    case amici::ParameterScaling::none:
-        return parameter;
-    case amici::ParameterScaling::log10:
-        if(parameter < 0.0)
-            throw(ParPEException("getScaledParameter: Can't take log of negative value."));
-        return log10(parameter);
-    default:
-        throw(ParPEException("Parameter scaling must be ParameterScaling::none or ParameterScaling::log10."));
-    }
-}
 
 
 void applyOptimalOffset(int offsetIdx, double offsetLin,
@@ -1258,15 +1247,19 @@ const std::vector<double> &HierarchicalOptimizationReporter::getFinalParameters(
 bool HierarchicalOptimizationReporter::iterationFinished(
         gsl::span<const double> parameters,
         double objectiveFunctionValue,
-        gsl::span<const double> objectiveFunctionGradient) const
+        gsl::span<const double>  /*objectiveFunctionGradient*/) const
 {
     double wallTimeIter = wallTimer.getRound();
     double wallTimeOptim = wallTimer.getTotal();
 
     if(logger)
-        logger->logmessage(LOGLVL_INFO, "iter: %d cost: %g time_iter: wall: %gs cpu: %gs time_optim: wall: %gs cpu: %gs",
+        logger->logmessage(LOGLVL_INFO,
+                           "iter: %d cost: %g "
+                           "time_iter: wall: %gs cpu: %gs "
+                           "time_optim: wall: %gs cpu: %gs",
                            numIterations, objectiveFunctionValue,
-                           wallTimeIter, cpuTimeIterationSec, wallTimeOptim, cpuTimeTotalSec);
+                           wallTimeIter, cpuTimeIterationSec,
+                           wallTimeOptim, cpuTimeTotalSec);
 
     if(resultWriter) {
         /* check if the optimizer-reported cost matches the last function evaluation.
@@ -1274,9 +1267,10 @@ bool HierarchicalOptimizationReporter::iterationFinished(
          * the optimizer provided us. if no parameters are provided, we will still save the cached
          * one, even if the cost does not match, since this is the best parameter guess we have.
          */
-        if(objectiveFunctionValue == cachedCost
+        if(almostEqual(objectiveFunctionValue, cachedCost)
                 && (parameters.empty()
-                    || std::equal(parameters.begin(), parameters.end(), cachedParameters.begin()))) {
+                    || std::equal(parameters.begin(), parameters.end(),
+                                  cachedParameters.begin()))) {
             resultWriter->logOptimizerIteration(
                         numIterations,
                         cachedFullParameters,
@@ -1311,7 +1305,7 @@ bool HierarchicalOptimizationReporter::iterationFinished(
 }
 
 bool HierarchicalOptimizationReporter::afterCostFunctionCall(
-        gsl::span<const double> parameters,
+        gsl::span<const double>  /*parameters*/,
         double objectiveFunctionValue,
         gsl::span<const double> objectiveFunctionGradient) const
 {
@@ -1336,6 +1330,7 @@ void checkGradientForAnalyticalParameters(
 {
     for(auto const idx: analyticalIndices) {
         auto curGradient = gradient[idx];
+        //std::cout<<"    : "<<idx<<"\t"<<curGradient<<std::endl;
         if(std::fabs(curGradient) > threshold)
             logmessage(LOGLVL_WARNING,
                        "Gradient w.r.t. analytically computed parameter "

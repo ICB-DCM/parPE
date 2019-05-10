@@ -69,21 +69,14 @@ int OptimizationApplication::init(int argc, char **argv) {
 void OptimizationApplication::runMultiStarts()
 {
     // TODO: use uniqe_ptr, not ref
-    MultiStartOptimization optimizer(*multiStartOptimizationProblem, false);
-
-    // if numStarts > 1: need to use multiple MPI
-    // workers or run sequentially,
-    // otherwise simulation crashes due
-    // to CVODES threading issues
-    optimizer.setRunParallel(getMpiCommSize() > 1);
-
+    MultiStartOptimization optimizer(*multiStartOptimizationProblem);
     optimizer.run();
 }
 
 int OptimizationApplication::parseOptions(int argc, char **argv) {
     int c;
 
-    while (1) {
+    while (true) {
         int optionIndex = 0;
         c = getopt_long(argc, argv, shortOptions, longOptions, &optionIndex);
 
@@ -211,8 +204,8 @@ int OptimizationApplication::run(int argc, char **argv) {
 void OptimizationApplication::runMaster() {
     switch (operationType) {
     case OperationType::gradientCheck: {
-        const int numParameterIndicesToCheck = 50;
-        const double epsilon = 1e-8;
+        const int numParameterIndicesToCheck = 10000;
+        const double epsilon = 1e-5;
         optimizationProblemGradientCheck(problem.get(),
                                          numParameterIndicesToCheck,
                                          epsilon);
@@ -248,8 +241,8 @@ void OptimizationApplication::runSingleProcess() {
     // run serially
     switch (operationType) {
     case OperationType::gradientCheck: {
-        const int numParameterIndicesToCheck = 50;
-        const double epsilon = 1e-8;
+        const int numParameterIndicesToCheck = 10000;
+        const double epsilon = 1e-5;
         optimizationProblemGradientCheck(problem.get(),
                                          numParameterIndicesToCheck,
                                          epsilon);
@@ -295,8 +288,8 @@ std::string OptimizationApplication::processResultFilenameCommandLineArgument(
         const char *commandLineArg) {
     std::size_t bufSize = 1024;
     char tmpFileName[bufSize];
-    snprintf(tmpFileName, bufSize, "%s_rank%05d.h5", commandLineArg,
-             getMpiRank());
+    int rank = std::max(getMpiRank(), 0);
+    snprintf(tmpFileName, bufSize, "%s_rank%05d.h5", commandLineArg, rank);
     return tmpFileName;
 
     /*

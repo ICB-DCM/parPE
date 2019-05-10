@@ -61,10 +61,12 @@ public:
     clock_t roundStart = clock();
 };
 
+
 #define RELEASE_ASSERT(expr, msg) \
     if(!(expr)) { \
+        /* NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay, cppcoreguidelines-pro-type-vararg) */ \
         printf("CRITICAL: Assertion %s in %s:%d failed (%s)\n", \
-                          (#expr), __FILE__, __LINE__, msg); /* NOLINT(cppcoreguidelines-pro-bounds-array-to-pointer-decay) */ \
+                          (#expr), __FILE__, __LINE__, msg); \
         abort(); \
     }
 
@@ -83,8 +85,7 @@ int mkpathConstChar(const char *file_path, mode_t mode);
 
 void createDirectoryIfNotExists(char *dirName);
 
-void strFormatCurrentLocaltime(char *buffer, size_t bufferSize,
-                                       const char *format);
+void strFormatCurrentLocaltime(gsl::span<char> buffer, const char *format);
 
 void runInParallelAndWaitForFinish(void *(*function)(void *),
                                            void **args, int numArgs);
@@ -103,13 +104,11 @@ double randDouble(double min, double max);
  * @param length
  * @param buffer
  */
-void fillArrayRandomDoubleIndividualInterval(const double *min,
-                                                     const double *max,
-                                                     int length,
-                                                     double *buffer);
+void fillArrayRandomDoubleIndividualInterval(gsl::span<const double> min,
+                                                     gsl::span<const double> max,
+                                                     gsl::span<double> buffer);
 
-void fillArrayRandomDoubleSameInterval(double min, double max,
-                                               int length, double *buffer);
+void fillArrayRandomDoubleSameInterval(double min, double max, gsl::span<double> buffer);
 
 int getMpiRank();
 int getMpiCommSize();
@@ -153,6 +152,14 @@ public:
 private:
     MUTEX *mutex = nullptr;
 };
+
+/**
+ * @brief Check if a and b are equal to machine precission
+ * @param a
+ * @param b
+ * @return
+ */
+bool almostEqual(double a, double b);
 
 } // namespace parpe
 

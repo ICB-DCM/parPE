@@ -1,5 +1,6 @@
 #include <parpeamici/multiConditionDataProvider.h>
 
+#include <parpeamici/amiciMisc.h>
 #include <parpecommon/logging.h>
 #include <parpecommon/misc.h>
 #include <parpecommon/parpeException.h>
@@ -39,7 +40,9 @@ MultiConditionDataProviderHDF5::MultiConditionDataProviderHDF5(
     hdf5ParameterPath = rootPath + "/parameters";
     hdf5ParameterMinPath = hdf5ParameterPath + "/lowerBound";
     hdf5ParameterMaxPath = hdf5ParameterPath + "/upperBound";
-    hdf5ParameterScalingPath = hdf5ParameterPath + "/pscale";
+    hdf5ParameterScaleSimulationPath = hdf5ParameterPath + "/pscaleSimulation";
+    hdf5ParameterScaleOptimizationPath =
+            hdf5ParameterPath + "/pscaleOptimization";
     hdf5SimulationToOptimizationParameterMappingPath = rootPath
             + "/parameters/optimizationSimulationMapping";
     hdf5ParameterOverridesPath = rootPath
@@ -83,25 +86,35 @@ MultiConditionDataProviderHDF5::getSimulationToOptimizationParameterMapping(
 
 
 void
-MultiConditionDataProviderHDF5::mapSimulationToOptimizationVariablesAddMultiply(
-        int conditionIdx, gsl::span<double const> simulation,
-        gsl::span<double> optimization, double coefficient) const {
+MultiConditionDataProviderHDF5::mapSimulationToOptimizationGradientAddMultiply(int conditionIdx, gsl::span<double const> simulation,
+        gsl::span<double> optimization,
+        gsl::span<double const> parameters, double coefficient) const {
     auto mapping = getSimulationToOptimizationParameterMapping(conditionIdx);
+
+    // Need to consider varying scaling
+    auto scaleOpt = getParameterScaleOpt();
+    auto scaleSim = getParameterScaleSim(conditionIdx);
 
     for(int i = 0; i < model->np(); ++i) {
         // some model parameter are not mapped if there is no respective data
-        if(mapping[i] >= 0)
-            optimization[mapping[i]] += coefficient * simulation[i];
+        if(mapping[i] >= 0) {
+            double newGrad = applyChainRule(simulation[i], parameters[i],
+                                            scaleSim[i], scaleOpt[mapping[i]]);
+            optimization[mapping[i]] += coefficient * newGrad;
+        }
         else if(not std::isnan(simulation[i]) && simulation[i] != 0.0)
             logmessage(LOGLVL_ERROR,
                        "Gradient w.r.t. unmapped parameter expected to be 0.0, "
-                       "but is %e", simulation[i]);
+                       "but is %e for parameter %d (%s)", simulation[i], i,
+                       model->getParameterIds()[i].c_str());
     }
 }
 
 void MultiConditionDataProviderHDF5::mapAndSetOptimizationToSimulationVariables(
         int conditionIdx, gsl::span<const double> optimization,
-        gsl::span<double> simulation) const
+        gsl::span<double> simulation,
+        gsl::span<amici::ParameterScaling> optimizationScale,
+        gsl::span<amici::ParameterScaling> simulationScale) const
 {
     auto mapping = getSimulationToOptimizationParameterMapping(conditionIdx);
 
@@ -110,14 +123,18 @@ void MultiConditionDataProviderHDF5::mapAndSetOptimizationToSimulationVariables(
         overrides.resize(model->np());
         hdf5Read2DDoubleHyperslab(
                     file.getId(), hdf5ParameterOverridesPath.c_str(),
-                    model->np(), 1, 0, conditionIdx, overrides.data());
+                    model->np(), 1, 0, conditionIdx, overrides);
     }
 
     for(int i = 0; i < model->np(); ++i) {
         if(mapping[i] >= 0) {
             // map from optimization parameters
-            simulation[i] = optimization[mapping[i]];
-        } else if (overrides.size()) {
+            simulation[i] = getScaledParameter(
+                        getUnscaledParameter(
+                            optimization[mapping[i]],
+                        optimizationScale[mapping[i]]), simulationScale[i]);
+        } else if (!overrides.empty()) {
+            // TODO do we need to rescale here? or done in PEtab?
             simulation[i] = overrides[i];
         } else {
             simulation[i] = NAN;
@@ -125,11 +142,44 @@ void MultiConditionDataProviderHDF5::mapAndSetOptimizationToSimulationVariables(
     }
 }
 
-amici::ParameterScaling MultiConditionDataProviderHDF5::getParameterScale(
-        int optimizationParameterIndex) const
+std::vector<amici::ParameterScaling> MultiConditionDataProviderHDF5::getParameterScaleOpt() const
 {
-    auto res = hdf5Read1DIntegerHyperslab(file, hdf5ParameterScalingPath,
-                                          1, optimizationParameterIndex).at(0);
+    auto resInt = amici::hdf5::getIntDataset1D(
+                file, hdf5ParameterScaleOptimizationPath);
+    std::vector<amici::ParameterScaling> res(resInt.size());
+    for(unsigned int i = 0; i < resInt.size(); ++i)
+        res[i] = static_cast<amici::ParameterScaling>(resInt[i]);
+    return res;
+}
+
+amici::ParameterScaling MultiConditionDataProviderHDF5::getParameterScaleOpt(
+        int parameterIdx) const
+{
+    auto res = hdf5Read1DIntegerHyperslab(
+                file, hdf5ParameterScaleOptimizationPath,
+                1, parameterIdx).at(0);
+    return static_cast<amici::ParameterScaling>(res);
+}
+
+std::vector<amici::ParameterScaling>
+MultiConditionDataProviderHDF5::getParameterScaleSim(int simulationIdx) const
+{
+    auto resInt = hdf5Read2DIntegerHyperslab(
+                file.getId(), hdf5ParameterScaleSimulationPath,
+                1, model->np(), simulationIdx, 0);
+    std::vector<amici::ParameterScaling> res(resInt.size());
+    for(unsigned int i = 0; i < resInt.size(); ++i)
+        res[i] = static_cast<amici::ParameterScaling>(resInt[i]);
+    return res;
+}
+
+amici::ParameterScaling MultiConditionDataProviderHDF5::getParameterScaleSim(
+        int simulationIdx,
+        int modelParameterIdx) const
+{
+    auto res = hdf5Read2DIntegerHyperslab(
+                file.getId(), hdf5ParameterScaleSimulationPath,
+                1, 1, simulationIdx, modelParameterIdx).at(0);
     return static_cast<amici::ParameterScaling>(res);
 }
 
@@ -146,27 +196,24 @@ void MultiConditionDataProviderHDF5::updateFixedSimulationParameters(
     edata.fixedParameters.resize(model->nk());
 
     // TODO cache
-    auto tmp = hdf5Read2DIntegerHyperslab(file.getId(),
-                                          hdf5ReferenceConditionPath,
-                                          1, 2, simulationIdx, 0);
-    int conditionIdxPreeq = tmp[0];
-    int conditionIdxSim = tmp[1];
+    int conditionIdxPreeq, conditionIdxSim;
+    getSimAndPreeqConditions(simulationIdx, conditionIdxPreeq, conditionIdxSim);
+
     if(conditionIdxPreeq >= 0) {
         // -1 means no preequilibration
         edata.fixedParametersPreequilibration.resize(model->nk());
         readFixedSimulationParameters(
                     conditionIdxPreeq,
-                    edata.fixedParametersPreequilibration.data());
+                    edata.fixedParametersPreequilibration);
     } else {
         edata.fixedParametersPreequilibration.resize(0);
     }
 
-    readFixedSimulationParameters(conditionIdxSim,
-                                  edata.fixedParameters.data());
+    readFixedSimulationParameters(conditionIdxSim, edata.fixedParameters);
 }
 
 void MultiConditionDataProviderHDF5::readFixedSimulationParameters(
-        int conditionIdx, double *buffer) const
+        int conditionIdx, gsl::span<double> buffer) const
 {
     if(!model->nk())
         return;
@@ -248,7 +295,7 @@ std::vector<double> MultiConditionDataProviderHDF5::getMeasurementForSimulationI
 }
 
 void MultiConditionDataProviderHDF5::getOptimizationParametersLowerBounds(
-        double *buffer) const {
+        gsl::span<double> buffer) const {
     auto lock = hdf5MutexGetLock();
 
     auto dataset = file.openDataSet(hdf5ParameterMinPath);
@@ -260,12 +307,12 @@ void MultiConditionDataProviderHDF5::getOptimizationParametersLowerBounds(
     dataspace.getSimpleExtentDims(&dim);
     RELEASE_ASSERT(dim == (unsigned) getNumOptimizationParameters(),
                    "hdf5ParameterMinPath dimensions dont match");
-
-    dataset.read(buffer, H5::PredType::NATIVE_DOUBLE);
+    RELEASE_ASSERT(dim == buffer.size(), "");
+    dataset.read(buffer.data(), H5::PredType::NATIVE_DOUBLE);
 }
 
 void MultiConditionDataProviderHDF5::getOptimizationParametersUpperBounds(
-        double *buffer) const {
+        gsl::span<double> buffer) const {
     auto lock = hdf5MutexGetLock();
 
     auto dataset = file.openDataSet(hdf5ParameterMaxPath);
@@ -277,8 +324,8 @@ void MultiConditionDataProviderHDF5::getOptimizationParametersUpperBounds(
     dataspace.getSimpleExtentDims(&dim);
     RELEASE_ASSERT(dim == (unsigned) getNumOptimizationParameters(),
                    "hdf5ParameterMaxPath dimensions dont match");
-
-    dataset.read(buffer, H5::PredType::NATIVE_DOUBLE);
+    RELEASE_ASSERT(dim == buffer.size(), "");
+    dataset.read(buffer.data(), H5::PredType::NATIVE_DOUBLE);
 }
 
 int MultiConditionDataProviderHDF5::getNumOptimizationParameters() const {
@@ -303,12 +350,21 @@ std::unique_ptr<amici::Solver> MultiConditionDataProviderHDF5::getSolver() const
 }
 
 
-void MultiConditionDataProviderHDF5::updateSimulationParameters(
-        int conditionIndex, gsl::span<const double> optimizationParams,
+void MultiConditionDataProviderHDF5::updateSimulationParametersAndScale(
+        int simulationIdx, gsl::span<const double> optimizationParams,
         amici::Model &model) const
 {
+    // int conditionIdxPreeq, conditionIdxSim;
+    // getSimAndPreeqConditions(simulationIdx, conditionIdxPreeq, conditionIdxSim);
+
+    auto scaleSim = getParameterScaleSim(simulationIdx);
     auto p = model.getParameters();
-    mapAndSetOptimizationToSimulationVariables(conditionIndex, optimizationParams, p);
+    auto scaleOpt = getParameterScaleOpt();
+
+    model.setParameterScale(scaleSim);
+    mapAndSetOptimizationToSimulationVariables(
+                simulationIdx, optimizationParams, p, scaleOpt,
+                scaleSim);
     model.setParameters(p);
 }
 
@@ -317,6 +373,17 @@ void MultiConditionDataProviderHDF5::copyInputData(H5::H5File const& target)
 
     H5Ocopy(file.getId(), "/", target.getId(), "/inputData", H5P_DEFAULT, H5P_DEFAULT);
     H5Fflush(target.getId(), H5F_SCOPE_LOCAL);
+}
+
+void MultiConditionDataProviderHDF5::getSimAndPreeqConditions(
+        const int simulationIdx, int &preequilibrationConditionIdx,
+        int &simulationConditionIdx) const
+{
+    auto tmp = hdf5Read2DIntegerHyperslab(file.getId(),
+                                          hdf5ReferenceConditionPath,
+                                          1, 2, simulationIdx, 0);
+    preequilibrationConditionIdx = tmp[0];
+    simulationConditionIdx = tmp[1];
 }
 
 hid_t MultiConditionDataProviderHDF5::getHdf5FileId() const { return file.getId(); }
@@ -343,11 +410,11 @@ hid_t MultiConditionDataProviderHDF5::getHdf5FileId() const { return file.getId(
 
 
 void MultiConditionDataProviderHDF5::checkDataIntegrity() const {
-    int numConditions = getNumberOfSimulationConditions();
+    //int numConditions = getNumberOfSimulationConditions();
 
     auto model = getModel();
 
-    int d1, d2, d3;
+    int d1, d2;//, d3;
 
     auto lock = hdf5MutexGetLock();
 
@@ -383,14 +450,19 @@ int MultiConditionDataProviderDefault::getNumberOfSimulationConditions() const
     return edata.size();
 }
 
-std::vector<int> MultiConditionDataProviderDefault::getSimulationToOptimizationParameterMapping(int  /*conditionIdx*/) const
+std::vector<int>
+MultiConditionDataProviderDefault::getSimulationToOptimizationParameterMapping(
+        int  /*conditionIdx*/) const
 {
     std::vector<int> mapping(model->np());
     std::iota(mapping.begin(), mapping.end(), 0);
     return mapping;
 }
 
-void MultiConditionDataProviderDefault::mapSimulationToOptimizationVariablesAddMultiply(int conditionIdx, gsl::span<double const> simulation, gsl::span<double> optimization, double coefficient) const
+void MultiConditionDataProviderDefault
+::mapSimulationToOptimizationGradientAddMultiply(int conditionIdx, gsl::span<double const> simulation,
+        gsl::span<double> optimization,
+        gsl::span<const double> parameters, double coefficient) const
 {
     // TODO redundant
     auto mapping = getSimulationToOptimizationParameterMapping(conditionIdx);
@@ -400,7 +472,7 @@ void MultiConditionDataProviderDefault::mapSimulationToOptimizationVariablesAddM
     }
 }
 
-void MultiConditionDataProviderDefault::mapAndSetOptimizationToSimulationVariables(int conditionIdx, gsl::span<const double> optimization, gsl::span<double> simulation) const
+void MultiConditionDataProviderDefault::mapAndSetOptimizationToSimulationVariables(int conditionIdx, gsl::span<const double> optimization, gsl::span<double> simulation, gsl::span<amici::ParameterScaling> optimizationScale, gsl::span<amici::ParameterScaling> simulationScale) const
 {
     // TODO redundant
     auto mapping = getSimulationToOptimizationParameterMapping(conditionIdx);
@@ -411,14 +483,31 @@ void MultiConditionDataProviderDefault::mapAndSetOptimizationToSimulationVariabl
 
 }
 
-amici::ParameterScaling MultiConditionDataProviderDefault::getParameterScale(int optimizationParameterIndex) const
+std::vector<amici::ParameterScaling> MultiConditionDataProviderDefault::getParameterScaleOpt() const
+{
+    return model->getParameterScale();
+}
+
+amici::ParameterScaling MultiConditionDataProviderDefault::getParameterScaleOpt(int optimizationParameterIndex) const
+{
+    return getParameterScaleSim(0, optimizationParameterIndex);
+}
+
+amici::ParameterScaling MultiConditionDataProviderDefault::getParameterScaleSim(
+        int /*simulationIdx*/, int optimizationParameterIndex) const
 {
     // TODO assumes no extra optimization parameters
     return model->getParameterScale()[optimizationParameterIndex];
 }
 
+std::vector<amici::ParameterScaling>
+MultiConditionDataProviderDefault::getParameterScaleSim(int simulationIdx) const
+{
+    return model->getParameterScale();
+}
 
-void MultiConditionDataProviderDefault::updateSimulationParameters(int  /*conditionIndex*/, gsl::span<const double> optimizationParams, amici::Model &model) const
+
+void MultiConditionDataProviderDefault::updateSimulationParametersAndScale(int  /*conditionIndex*/, gsl::span<const double> optimizationParams, amici::Model &model) const
 {
     logmessage(LOGLVL_WARNING, "MultiConditionDataProviderDefault::updateSimulationParameters: No proper mapping implemented. Ensure this is correct.");
     model.setParameters(std::vector<double>(optimizationParams.begin(), optimizationParams.end()));
@@ -461,6 +550,40 @@ std::unique_ptr<amici::Model> MultiConditionDataProviderDefault::getModel() cons
 std::unique_ptr<amici::Solver> MultiConditionDataProviderDefault::getSolver() const
 {
     return std::unique_ptr<amici::Solver>(solver->clone());
+}
+
+double applyChainRule(double gradient, double parameter,
+                      amici::ParameterScaling oldScale,
+                      amici::ParameterScaling newScale)
+{
+    if(oldScale == newScale)
+        return gradient;
+
+    // unapply old
+    switch (oldScale) {
+    case amici::ParameterScaling::log10:
+        gradient /= getUnscaledParameter(parameter, oldScale) * log(10);
+        break;
+    case amici::ParameterScaling::ln:
+        gradient /= getUnscaledParameter(parameter, oldScale);
+        break;
+    case amici::ParameterScaling::none:
+        break;
+    }
+
+    // apply
+    switch (newScale) {
+    case amici::ParameterScaling::log10:
+        gradient *= getUnscaledParameter(parameter, oldScale) * log(10);
+        break;
+    case amici::ParameterScaling::ln:
+        gradient *= getUnscaledParameter(parameter, oldScale);
+        break;
+    case amici::ParameterScaling::none:
+        break;
+    }
+
+    return gradient;
 }
 
 

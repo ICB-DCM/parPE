@@ -40,7 +40,12 @@ cp ${TEMPLATE_DIR}/main*.cpp ${OUTPUT_DIR}
 echo "Setting up build ..."
 mkdir ${OUTPUT_DIR}/build
 cd ${OUTPUT_DIR}/build
-CC=mpicc CXX=mpiCC cmake -DParPE_DIR=${SCRIPT_PATH}/../build ..
+
+if [[ -z "${AMICI_ROOT}" ]]
+    then AMICI_ROOT=${SCRIPT_PATH}/../deps/AMICI/
+fi
+
+CC=mpicc CXX=mpiCC cmake -DAmici_DIR=${AMICI_ROOT}/build -DParPE_DIR=${SCRIPT_PATH}/../build ..
 
 echo "Building ..."
 make ${MAKE_OPTS}

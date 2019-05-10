@@ -11,8 +11,6 @@ set -e
 
 ./installCBLAS.sh
 
-./installCpputest.sh
-
 ./installCeres.sh
 
 ./installIpopt.sh

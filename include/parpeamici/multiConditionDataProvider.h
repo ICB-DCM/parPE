@@ -31,22 +31,54 @@ class MultiConditionDataProvider {
      */
     virtual int getNumberOfSimulationConditions() const = 0;
 
-    virtual std::vector<int> getSimulationToOptimizationParameterMapping(int conditionIdx) const = 0;
+    virtual std::vector<int> getSimulationToOptimizationParameterMapping(
+            int conditionIdx) const = 0;
 
-    virtual void mapSimulationToOptimizationVariablesAddMultiply(
-            int conditionIdx, gsl::span<double const> simulation, gsl::span<double> optimization, double coefficient = 1.0) const = 0;
+    virtual void mapSimulationToOptimizationGradientAddMultiply(
+            int conditionIdx, gsl::span<double const> simulation,
+            gsl::span<double> optimization,
+            gsl::span<const double> parameters, double coefficient = 1.0
+            ) const = 0;
 
     virtual void mapAndSetOptimizationToSimulationVariables(
-            int conditionIdx, gsl::span<double const> optimization, gsl::span<double> simulation) const = 0;
+            int conditionIdx, gsl::span<double const> optimization,
+            gsl::span<double> simulation,
+            gsl::span<amici::ParameterScaling> optimizationScale,
+            gsl::span<amici::ParameterScaling> simulationScale) const = 0;
 
+    /**
+     * @brief Get the parameter scale for the given optimization parameter
+     * @param simulationIdx
+     * @return
+     */
+    virtual amici::ParameterScaling getParameterScaleOpt(
+            int parameterIdx) const = 0;
 
-    virtual amici::ParameterScaling getParameterScale(int optimizationParameterIndex) const = 0;
+    virtual std::vector<amici::ParameterScaling>
+    getParameterScaleOpt() const = 0;
 
+    /**
+     * @brief Get the parameter scale vector for the given simulation
+     * @param simulationIdx
+     * @return
+     */
+    virtual std::vector<amici::ParameterScaling> getParameterScaleSim(
+            int simulationIdx) const = 0;
 
-    virtual void updateSimulationParameters(int conditionIndex, gsl::span<double const> optimizationParams,
-        amici::Model &model) const = 0;
+    /**
+     * @brief Get the parameter scale for the given parameter and simulation
+     * @param simulationIdx
+     * @return
+     */
+    virtual amici::ParameterScaling getParameterScaleSim(int simulationIdx,
+            int modelParameterIdx) const = 0;
 
-    virtual std::unique_ptr<amici::ExpData> getExperimentalDataForCondition(int conditionIdx) const = 0;
+    virtual void updateSimulationParametersAndScale(
+            int conditionIndex, gsl::span<double const> optimizationParams,
+            amici::Model &model) const = 0;
+
+    virtual std::unique_ptr<amici::ExpData> getExperimentalDataForCondition(
+            int conditionIdx) const = 0;
 
     virtual std::vector<std::vector<double> > getAllMeasurements() const = 0;
     virtual std::vector<std::vector<double> > getAllSigmas() const = 0;
@@ -89,21 +121,31 @@ class MultiConditionDataProviderDefault : public MultiConditionDataProvider {
     virtual std::vector<int> getSimulationToOptimizationParameterMapping(
             int conditionIdx) const override;
 
-    virtual void mapSimulationToOptimizationVariablesAddMultiply(
+    virtual void mapSimulationToOptimizationGradientAddMultiply(
             int conditionIdx, gsl::span<double const> simulation,
             gsl::span<double> optimization,
+            gsl::span<const double> parameters,
             double coefficient = 1.0) const override;
 
     virtual void mapAndSetOptimizationToSimulationVariables(
             int conditionIdx, gsl::span<double const> optimization,
-            gsl::span<double> simulation) const override;
+            gsl::span<double> simulation,
+            gsl::span<amici::ParameterScaling> optimizationScale,
+            gsl::span<amici::ParameterScaling> simulationScale) const override;
 
+    virtual std::vector<amici::ParameterScaling>
+    getParameterScaleOpt() const override;
 
-    virtual amici::ParameterScaling getParameterScale(
+    virtual amici::ParameterScaling getParameterScaleOpt(
             int optimizationParameterIndex) const override;
 
+    virtual amici::ParameterScaling getParameterScaleSim(int simulationIdx,
+            int optimizationParameterIndex) const override;
 
-    virtual void updateSimulationParameters(
+    virtual std::vector<amici::ParameterScaling> getParameterScaleSim(
+            int simulationIdx) const override;
+
+    virtual void updateSimulationParametersAndScale(
             int conditionIndex,
             gsl::span<const double> optimizationParams,
             amici::Model &model) const override;
@@ -164,16 +206,20 @@ class MultiConditionDataProviderHDF5 : public MultiConditionDataProvider {
 
     /**
      * @brief MultiConditionDataProvider
-     * @param model A valid pointer to the amici::Model for which the data is to be provided.
-     * @param hdf5Filename Path to the HDF5 file from which the data is to be read
+     * @param model A valid pointer to the amici::Model for which the data is to
+     * be provided.
+     * @param hdf5Filename Path to the HDF5 file from which the data is to be
+     * read
      */
-    MultiConditionDataProviderHDF5(std::unique_ptr<amici::Model> model, const std::string &hdf5Filename);
+    MultiConditionDataProviderHDF5(std::unique_ptr<amici::Model> model,
+                                   const std::string &hdf5Filename);
 
     /**
      * @brief See above.
      * @param model
      * @param hdf5Filename
-     * @param rootPath The name of the HDF5 group under which the data is stored.
+     * @param rootPath The name of the HDF5 group under which the data is
+     * stored.
      */
     MultiConditionDataProviderHDF5(std::unique_ptr<amici::Model> model,
                                    std::string const& hdf5Filename,
@@ -206,16 +252,32 @@ class MultiConditionDataProviderHDF5 : public MultiConditionDataProvider {
      * @param conditionIdx
      * @return
      */
-    virtual std::vector<int> getSimulationToOptimizationParameterMapping(int conditionIdx) const override;
+    virtual std::vector<int> getSimulationToOptimizationParameterMapping(
+            int conditionIdx) const override;
 
-    virtual void mapSimulationToOptimizationVariablesAddMultiply(
-            int conditionIdx, gsl::span<double const> simulation, gsl::span<double> optimization, double coefficient = 1.0) const override;
+    virtual void mapSimulationToOptimizationGradientAddMultiply(
+            int conditionIdx, gsl::span<double const> simulation,
+            gsl::span<double> optimization,
+            gsl::span<const double> parameters, double coefficient = 1.0
+            ) const override;
 
     virtual void mapAndSetOptimizationToSimulationVariables(
-            int conditionIdx, gsl::span<double const> optimization, gsl::span<double> simulation) const override;
+            int conditionIdx, gsl::span<double const> optimization,
+            gsl::span<double> simulation,
+            gsl::span<amici::ParameterScaling> optimizationScale,
+            gsl::span<amici::ParameterScaling> simulationScale) const override;
 
+    virtual std::vector<amici::ParameterScaling>
+    getParameterScaleOpt() const override;
 
-    virtual amici::ParameterScaling getParameterScale(int optimizationParameterIndex) const override;
+    virtual amici::ParameterScaling getParameterScaleOpt(
+            int parameterIdx) const override;
+
+    virtual std::vector<amici::ParameterScaling> getParameterScaleSim(
+            int simulationIdx) const override;
+
+    virtual amici::ParameterScaling getParameterScaleSim(int simulationIdx,
+            int modelParameterIdx) const override;
 
     /**
      * @brief Check if the data in the HDF5 file has consistent dimensions.
@@ -226,9 +288,10 @@ class MultiConditionDataProviderHDF5 : public MultiConditionDataProvider {
     // void printInfo() const;
 
     virtual void readFixedSimulationParameters(int conditionIdx,
-                                               double *buffer) const;
+                                               gsl::span<double> buffer) const;
 
-    virtual std::unique_ptr<amici::ExpData> getExperimentalDataForCondition(int conditionIdx) const override;
+    virtual std::unique_ptr<amici::ExpData> getExperimentalDataForCondition(
+            int conditionIdx) const override;
 
     std::vector<std::vector<double> > getAllMeasurements() const override;
     std::vector<std::vector<double> > getAllSigmas() const override;
@@ -243,14 +306,16 @@ class MultiConditionDataProviderHDF5 : public MultiConditionDataProvider {
      * @param dataPath (not yet used)
      * @param buffer allocated memory to write parameter bounds
      */
-    virtual void getOptimizationParametersLowerBounds(double *buffer) const;
+    virtual void getOptimizationParametersLowerBounds(
+            gsl::span<double> buffer) const;
 
     /**
      * @brief getOptimizationParametersUpperBounds Get upper parameter bounds
      * @param dataPath (not yet used)
      * @param buffer allocated memory to write parameter bounds
      */
-    virtual void getOptimizationParametersUpperBounds(double *buffer) const;
+    virtual void getOptimizationParametersUpperBounds(
+            gsl::span<double> buffer) const;
 
     /**
      * @brief Returns the number of optimization parameters of this problem
@@ -276,10 +341,15 @@ class MultiConditionDataProviderHDF5 : public MultiConditionDataProvider {
      * @param optimizationParams
      * @param udata
      */
-    void updateSimulationParameters(int conditionIndex, gsl::span<const double> optimizationParams,
-        amici::Model &model) const override;
+    void updateSimulationParametersAndScale(int simulationIdx,
+            gsl::span<const double> optimizationParams,
+            amici::Model &model) const override;
 
     void copyInputData(const H5::H5File &target);
+
+    void getSimAndPreeqConditions(const int simulationIdx,
+                                  int &preequilibrationConditionIdx,
+                                  int &simulationConditionIdx) const;
 
     /**
      * @brief Get the identifier of the used HDF5 file. Does not reopen. Do not close file.
@@ -288,7 +358,8 @@ class MultiConditionDataProviderHDF5 : public MultiConditionDataProvider {
     hid_t getHdf5FileId() const;
 
 protected:
-    void updateFixedSimulationParameters(int conditionIdx, amici::ExpData &edata) const;
+    void updateFixedSimulationParameters(int conditionIdx,
+                                         amici::ExpData &edata) const;
 
     /**
      * @brief The model for which the data is to be read
@@ -308,7 +379,8 @@ protected:
     std::string hdf5ParameterPath;
     std::string hdf5ParameterMinPath;
     std::string hdf5ParameterMaxPath;
-    std::string hdf5ParameterScalingPath;
+    std::string hdf5ParameterScaleSimulationPath;
+    std::string hdf5ParameterScaleOptimizationPath;
     std::string hdf5SimulationToOptimizationParameterMappingPath;
     std::string hdf5ParameterOverridesPath;
 
@@ -319,6 +391,11 @@ protected:
 
     std::unique_ptr<OptimizationOptions> optimizationOptions;
 };
+
+
+double applyChainRule(double gradient, double parameter,
+                      amici::ParameterScaling oldScale,
+                      amici::ParameterScaling newScale);
 
 } // namespace parpe
 

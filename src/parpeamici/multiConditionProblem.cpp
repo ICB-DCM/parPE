@@ -57,10 +57,10 @@ MultiConditionProblem::MultiConditionProblem(
 
     if(auto hdp = dynamic_cast<MultiConditionDataProviderHDF5*>(dp)) {
         parametersMin.resize(dp->getNumOptimizationParameters());
-        hdp->getOptimizationParametersLowerBounds(parametersMin.data());
+        hdp->getOptimizationParametersLowerBounds(parametersMin);
 
         parametersMax.resize(dp->getNumOptimizationParameters());
-        hdp->getOptimizationParametersUpperBounds(parametersMax.data());
+        hdp->getOptimizationParametersUpperBounds(parametersMax);
     }
 
 }
@@ -97,7 +97,8 @@ int MultiConditionProblem::earlyStopping() {
      * costValidation.append()
      * if no decrease during last 3 rounds, return stop
      *
-     * TODO: need to have current parameters; need to be supplied to intermediate function;
+     * TODO: need to have current parameters; need to be supplied to
+     * intermediate function;
      * need to from optimizer if in line search or actual step
      */
 
@@ -107,17 +108,20 @@ int MultiConditionProblem::earlyStopping() {
 }
 
 
-void MultiConditionProblem::setInitialParameters(std::vector<double> const& startingPoint)
+void MultiConditionProblem::setInitialParameters(
+        std::vector<double> const& startingPoint)
 {
     this->startingPoint = startingPoint;
 }
 
-void MultiConditionProblem::setParametersMin(std::vector<double> const& lowerBounds)
+void MultiConditionProblem::setParametersMin(
+        std::vector<double> const& lowerBounds)
 {
     parametersMin = lowerBounds;
 }
 
-void MultiConditionProblem::setParametersMax(std::vector<double> const& upperBounds)
+void MultiConditionProblem::setParametersMax(
+        std::vector<double> const& upperBounds)
 {
     parametersMax = upperBounds;
 }
@@ -133,7 +137,8 @@ std::unique_ptr<OptimizationReporter> MultiConditionProblem::getReporter() const
 
 std::vector<int> MultiConditionProblem::getTrainingData() const
 {
-    std::vector<int> dataIndices(dataProvider->getNumberOfSimulationConditions());
+    std::vector<int> dataIndices(
+                dataProvider->getNumberOfSimulationConditions());
     std::iota(dataIndices.begin(), dataIndices.end(), 0);
     return dataIndices;
 }
@@ -142,9 +147,13 @@ MultiConditionDataProvider *MultiConditionProblem::getDataProvider() {
     return dataProvider;
 }
 
-OptimizationResultWriter *MultiConditionProblem::getResultWriter() { return resultWriter.get(); }
+OptimizationResultWriter *MultiConditionProblem::getResultWriter() {
+    return resultWriter.get();
+}
 
-MultiConditionProblemMultiStartOptimizationProblem::MultiConditionProblemMultiStartOptimizationProblem(MultiConditionDataProviderHDF5 *dp,
+MultiConditionProblemMultiStartOptimizationProblem
+::MultiConditionProblemMultiStartOptimizationProblem(
+        MultiConditionDataProviderHDF5 *dp,
         OptimizationOptions options,
         OptimizationResultWriter *resultWriter,
         LoadBalancerMaster *loadBalancer, std::unique_ptr<Logger> logger)
@@ -168,25 +177,32 @@ std::unique_ptr<OptimizationProblem> MultiConditionProblemMultiStartOptimization
     if (resultWriter) {
         problem = std::make_unique<MultiConditionProblem>(
                     dp, loadBalancer,
-                    logger->getChild(std::string("o") + std::to_string(multiStartIndex)),
+                    logger->getChild(std::string("o")
+                                     + std::to_string(multiStartIndex)),
                     std::make_unique<OptimizationResultWriter>(*resultWriter));
-        problem->getResultWriter()->setRootPath("/multistarts/" + std::to_string(multiStartIndex));
+        problem->getResultWriter()->setRootPath(
+                    "/multistarts/" + std::to_string(multiStartIndex));
     } else {
         problem = std::make_unique<MultiConditionProblem>(
                     dp, loadBalancer,
-                    logger->getChild(std::string("o") + std::to_string(multiStartIndex)), nullptr);
+                    logger->getChild(
+                        std::string("o") + std::to_string(multiStartIndex)),
+                    nullptr);
     }
     problem->setOptimizationOptions(options);
-    problem->setInitialParameters(parpe::OptimizationOptions::getStartingPoint(dp->getHdf5FileId(), multiStartIndex));
+    problem->setInitialParameters(parpe::OptimizationOptions::getStartingPoint(
+                                      dp->getHdf5FileId(), multiStartIndex));
 
     if(options.hierarchicalOptimization)
         return std::unique_ptr<OptimizationProblem>(
-                    new parpe::HierarchicalOptimizationProblemWrapper(std::move(problem), dp));
+                    new parpe::HierarchicalOptimizationProblemWrapper(
+                        std::move(problem), dp));
 
     return std::move(problem);
 }
 
-void printSimulationResult(Logger *logger, int jobId, amici::ReturnData const* rdata, double timeSeconds) {
+void printSimulationResult(Logger *logger, int jobId,
+                           amici::ReturnData const* rdata, double timeSeconds) {
     bool with_sensi = rdata->sensi >= amici::SensitivityOrder::first;
 
     logger->logmessage(LOGLVL_DEBUG, "Result for %d: %g (%d) (%d/%d/%.4fs%c)",
@@ -201,12 +217,14 @@ void printSimulationResult(Logger *logger, int jobId, amici::ReturnData const* r
     if (with_sensi) {
         for (int i = 0; i < rdata->np; ++i) {
             if (std::isnan(rdata->sllh[i])) {
-                logger->logmessage(LOGLVL_DEBUG, "Gradient contains NaN at %d", i);
+                logger->logmessage(LOGLVL_DEBUG,
+                                   "Gradient contains NaN at %d", i);
                 break;
             }
 
             if (std::isinf(rdata->sllh[i])) {
-                logger->logmessage(LOGLVL_DEBUG, "Gradient contains Inf at %d", i);
+                logger->logmessage(LOGLVL_DEBUG,
+                                   "Gradient contains Inf at %d", i);
                 break;
             }
         }
@@ -214,11 +232,14 @@ void printSimulationResult(Logger *logger, int jobId, amici::ReturnData const* r
 }
 
 
-void saveSimulation(hid_t file_id, std::string const& pathStr, std::vector<double> const& parameters,
-                   double llh, gsl::span<double const> gradient, double timeElapsedInSeconds,
-                   gsl::span<double const> states, gsl::span<double const> stateSensi,
-                   gsl::span<double const> outputs, int jobId,
-                   int status, std::string const& label)
+void saveSimulation(const H5::H5File &file, std::string const& pathStr,
+                    std::vector<double> const& parameters,
+                    double llh, gsl::span<double const> gradient,
+                    double timeElapsedInSeconds,
+                    gsl::span<double const> states,
+                    gsl::span<double const> stateSensi,
+                    gsl::span<double const> outputs, int jobId,
+                    int status, std::string const& label)
 {
     // TODO replace by SimulationResultWriter
     const char *fullGroupPath = pathStr.c_str();
@@ -226,51 +247,54 @@ void saveSimulation(hid_t file_id, std::string const& pathStr, std::vector<doubl
     auto lock = hdf5MutexGetLock();
 
     hdf5CreateOrExtendAndWriteToDouble2DArray(
-        file_id, fullGroupPath, "simulationLogLikelihood", &llh, 1);
+        file.getId(), fullGroupPath, "simulationLogLikelihood",
+                gsl::make_span<double>(&llh, 1));
 
-    hdf5CreateOrExtendAndWriteToInt2DArray(file_id, fullGroupPath, "jobId",
-                                           &jobId, 1);
+    hdf5CreateOrExtendAndWriteToInt2DArray(
+                file.getId(), fullGroupPath, "jobId",
+                gsl::make_span<const int>(&jobId, 1));
 
     if (!gradient.empty()) {
         hdf5CreateOrExtendAndWriteToDouble2DArray(
-            file_id, fullGroupPath, "simulationLogLikelihoodGradient", gradient.data(),
-            parameters.size());
+            file.getId(), fullGroupPath, "simulationLogLikelihoodGradient",
+                    gradient);
     } else if(!parameters.empty()) {
         double dummyGradient[parameters.size()];
         std::fill_n(dummyGradient, parameters.size(), NAN);
         hdf5CreateOrExtendAndWriteToDouble2DArray(
-            file_id, fullGroupPath, "simulationLogLikelihoodGradient",
-            dummyGradient, parameters.size());
+            file.getId(), fullGroupPath, "simulationLogLikelihoodGradient",
+            gsl::make_span<const double>(dummyGradient, parameters.size()));
     }
 
     if (!parameters.empty())
         hdf5CreateOrExtendAndWriteToDouble2DArray(
-            file_id, fullGroupPath, "simulationParameters", parameters.data(), parameters.size());
+            file.getId(), fullGroupPath, "simulationParameters", parameters);
 
-    hdf5CreateOrExtendAndWriteToDouble2DArray(file_id, fullGroupPath,
-                                              "simulationWallTimeInSec",
-                                              &timeElapsedInSeconds, 1);
+    hdf5CreateOrExtendAndWriteToDouble2DArray(
+                file.getId(), fullGroupPath, "simulationWallTimeInSec",
+                gsl::make_span<const double>(&timeElapsedInSeconds, 1));
 
     if (!states.empty())
         hdf5CreateOrExtendAndWriteToDouble2DArray(
-            file_id, fullGroupPath, "simulationStates", states.data(), states.size());
+            file.getId(), fullGroupPath, "simulationStates", states);
 
     if (!outputs.empty())
         hdf5CreateOrExtendAndWriteToDouble2DArray(
-            file_id, fullGroupPath, "simulationObservables", outputs.data(), outputs.size());
+            file.getId(), fullGroupPath, "simulationObservables", outputs);
 
     if (!stateSensi.empty())
         hdf5CreateOrExtendAndWriteToDouble3DArray(
-            file_id, fullGroupPath, "simulationStateSensitivities", stateSensi.data(),
+            file.getId(), fullGroupPath, "simulationStateSensitivities", stateSensi,
             stateSensi.size() / parameters.size(), parameters.size());
 
-    hdf5CreateOrExtendAndWriteToInt2DArray(file_id, fullGroupPath,
-                                           "simulationStatus", &status, 1);
+    hdf5CreateOrExtendAndWriteToInt2DArray(
+                file.getId(), fullGroupPath, "simulationStatus",
+                gsl::make_span<const int>(&status, 1));
 
-    hdf5CreateOrExtendAndWriteToString1DArray(file_id, fullGroupPath,
+    hdf5CreateOrExtendAndWriteToString1DArray(file.getId(), fullGroupPath,
                                            "simulationLabel", label);
 
-    H5Fflush(file_id, H5F_SCOPE_LOCAL);
+    file.flush(H5F_SCOPE_LOCAL);
 
 }
 
@@ -380,7 +404,7 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
 
     if (resultWriter && (solverTemplate.getSensitivityOrder()
                          > amici::SensitivityOrder::none || logLineSearch)) {
-        saveSimulation(resultWriter->getFileId(), resultWriter->getRootPath(),
+        saveSimulation(resultWriter->getH5File(), resultWriter->getRootPath(),
                        model.getParameters(), rdata->llh, rdata->sllh,
                        timeSeconds, rdata->x, rdata->sx, rdata->y,
                        jobId, rdata->status, logger->getPrefix());
@@ -405,7 +429,7 @@ FunctionEvaluationStatus getModelOutputs(
         bool logLineSearch,
         gsl::span<const double> parameters,
         std::vector<std::vector<double> > &modelOutput,
-        Logger *logger, double *cpuTime)
+        Logger *logger, double * /*cpuTime*/)
 {
     int errors = 0;
 
@@ -478,7 +502,7 @@ void messageHandler(MultiConditionDataProvider *dataProvider,
     AmiciSummedGradientFunction::ResultMap results;
     // run simulations for all condition indices
     for(auto conditionIdx: workPackage.conditionIndices) {
-        dataProvider->updateSimulationParameters(
+        dataProvider->updateSimulationParametersAndScale(
                     conditionIdx,
                     workPackage.optimizationParameters,
                     *model);
@@ -547,9 +571,9 @@ FunctionEvaluationStatus AmiciSummedGradientFunction::evaluate(
     return 0;
 #endif
 
-    setSensitivityOptions(gradient.size());
+    setSensitivityOptions(!gradient.empty());
     fval = 0.0;
-    if (gradient.size())
+    if (!gradient.empty())
         std::fill(gradient.begin(), gradient.end(), 0.0);
 
     int errors = runSimulations(parameters, fval, gradient, datasets,
@@ -593,17 +617,18 @@ void AmiciSummedGradientFunction::messageHandler(std::vector<char> &buffer, int 
                           jobId);
 }
 
-amici::ParameterScaling AmiciSummedGradientFunction::getParameterScaling(int parameterIndex) const
+amici::ParameterScaling AmiciSummedGradientFunction::getParameterScaling(
+        int parameterIndex) const
 {
     // parameterIndex is optimization parameter index,
     // not necessarily model parameter index!
-    return dataProvider->getParameterScale(parameterIndex);
+    return dataProvider->getParameterScaleOpt(parameterIndex);
 }
 
 int AmiciSummedGradientFunction::runSimulations(
         gsl::span<const double> optimizationParameters,
         double &nllh, gsl::span<double> objectiveFunctionGradient,
-        std::vector<int> dataIndices, Logger *logger, double *cpuTime) const {
+        std::vector<int> const& dataIndices, Logger *logger, double *cpuTime) const {
 
     int errors = 0;
 
@@ -614,7 +639,7 @@ int AmiciSummedGradientFunction::runSimulations(
 
     AmiciSimulationRunner simRunner(
                 parameterVector,
-                objectiveFunctionGradient.size()
+                !objectiveFunctionGradient.empty()
                 ? amici::SensitivityOrder::first
                 : amici::SensitivityOrder::none,
                 dataIndices,
@@ -622,7 +647,8 @@ int AmiciSummedGradientFunction::runSimulations(
         errors += aggregateLikelihood(*job,
                                       nllh,
                                       objectiveFunctionGradient,
-                                      simulationTimeSec);
+                                      simulationTimeSec,
+                                      optimizationParameters);
     }, nullptr,  logger?logger->getPrefix():"");
 
 #ifdef PARPE_ENABLE_MPI
@@ -632,19 +658,15 @@ int AmiciSummedGradientFunction::runSimulations(
         // to reduce communication overhead
         errors += simRunner.runDistributedMemory(
                     loadBalancer,
-                    objectiveFunctionGradient.size()
+                    !objectiveFunctionGradient.empty()
                     ? maxGradientSimulationsPerPackage
                     : maxSimulationsPerPackage);
     } else {
 #endif
-        // Adjoint sensitivity analysis in Sundials 2.6.2 is not thread-safe, so run sequentially
-        bool noMultiThreadingWithAdjoints =
-                (solver->getSensitivityMethod() == amici::SensitivityMethod::adjoint)
-                && !objectiveFunctionGradient.empty();
         errors += simRunner.runSharedMemory(
                     [&](std::vector<char> &buffer, int jobId) {
                 messageHandler(buffer, jobId);
-    }, noMultiThreadingWithAdjoints);
+    });
 #ifdef PARPE_ENABLE_MPI
     }
 #endif
@@ -654,7 +676,11 @@ int AmiciSummedGradientFunction::runSimulations(
     return errors;
 }
 
-int AmiciSummedGradientFunction::aggregateLikelihood(JobData &data, double &negLogLikelihood, gsl::span<double> negLogLikelihoodGradient, double &simulationTimeInS) const
+int AmiciSummedGradientFunction::aggregateLikelihood(
+        JobData &data, double &negLogLikelihood,
+        gsl::span<double> negLogLikelihoodGradient,
+        double &simulationTimeInS,
+        gsl::span<const double> optimizationParameters) const
 {
     int errors = 0;
 
@@ -664,28 +690,41 @@ int AmiciSummedGradientFunction::aggregateLikelihood(JobData &data, double &negL
                 data.recvBuffer.data(), data.recvBuffer.size());
     data.recvBuffer = std::vector<char>(); // free buffer
 
+
     for (auto const& result : results) {
-        errors += result.second.status != AMICI_SUCCESS;
+        int conditionIdx;
+        ResultPackage resultPackage;
+        std::tie(conditionIdx, resultPackage) = result;
+
+        errors += resultPackage.status != AMICI_SUCCESS;
 
         // sum up
-        negLogLikelihood -= result.second.llh;
-        simulationTimeInS += result.second.simulationTimeSeconds;
+        negLogLikelihood -= resultPackage.llh;
+        simulationTimeInS += resultPackage.simulationTimeSeconds;
 
-        if (negLogLikelihoodGradient.size())
+        if (!negLogLikelihoodGradient.empty()) {
+            std::vector<double> p(model->np());
+            auto scaleSim = dataProvider->getParameterScaleSim(conditionIdx);
+            auto scaleOpt = dataProvider->getParameterScaleOpt();
+
+            dataProvider->mapAndSetOptimizationToSimulationVariables(
+                        conditionIdx, optimizationParameters, p, scaleOpt,
+                        scaleSim);
             addSimulationGradientToObjectiveFunctionGradient(
-                        result.first, result.second.gradient,
-                        negLogLikelihoodGradient);
-
+                        conditionIdx, resultPackage.gradient,
+                        negLogLikelihoodGradient, p);
+        }
     }
     return errors;
 }
 
 void AmiciSummedGradientFunction::addSimulationGradientToObjectiveFunctionGradient(
         int conditionIdx, gsl::span<const double> simulationGradient,
-        gsl::span<double> objectiveFunctionGradient) const {
-    dataProvider->mapSimulationToOptimizationVariablesAddMultiply(
+        gsl::span<double> objectiveFunctionGradient,
+        gsl::span<const double> simulationParameters) const {
+    dataProvider->mapSimulationToOptimizationGradientAddMultiply(
                 conditionIdx, simulationGradient,
-                objectiveFunctionGradient, -1.0);
+                objectiveFunctionGradient, simulationParameters, -1.0);
 }
 
 void AmiciSummedGradientFunction::setSensitivityOptions(bool sensiRequired) const {
@@ -698,7 +737,6 @@ void AmiciSummedGradientFunction::setSensitivityOptions(bool sensiRequired) cons
         solver->setSensitivityMethod(amici::SensitivityMethod::none);
     }
 }
-
 
 
 } // namespace parpe

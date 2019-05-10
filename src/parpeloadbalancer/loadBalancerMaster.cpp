@@ -302,6 +302,11 @@ bool LoadBalancerMaster::isRunning() const
     return isRunning_;
 }
 
+int LoadBalancerMaster::getNumQueuedJobs() const
+{
+    return queue.size();
+}
+
 } // namespace parpe
 
 #endif

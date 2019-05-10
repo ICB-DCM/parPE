@@ -29,3 +29,10 @@ deps/AMICI/python/sdist/amici/amici_wrap_without_hdf5.cxx
 deps/AMICI/python/sdist/amici/version.txt
 
 python/test_*.png
+
+
+*.egg-info
+*.log
+
+/benchmark_collection/*_*[0-9][0-9][0-9][0-9]/
+/benchmark_collection/parpe_*_*[0-9][0-9][0-9][0-9]/

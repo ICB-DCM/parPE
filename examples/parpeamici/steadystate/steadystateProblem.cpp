@@ -69,14 +69,15 @@ void ExampleSteadystateGradientFunction::setupUserData(int conditionIdx) {
 }
 
 void ExampleSteadystateGradientFunction::setupExpData(int conditionIdx) {
-    edata.reset(new amici::ExpData(*model));
+    edata = std::make_unique<amici::ExpData>(*model);
     readMeasurement(conditionIdx);
 }
 
 
 void ExampleSteadystateGradientFunction::readFixedParameters(int conditionIdx) const {
     std::vector<double> k(model->nk());
-    parpe::hdf5Read2DDoubleHyperslab(fileId, "/fixedParameters/k", k.size(), 1, 0, conditionIdx, k.data());
+    parpe::hdf5Read2DDoubleHyperslab(fileId, "/fixedParameters/k", k.size(),
+                                     1, 0, conditionIdx, k);
     model->setFixedParameters(k);
 }
 
@@ -98,7 +99,10 @@ ExampleSteadystateGradientFunction::ExampleSteadystateGradientFunction(hid_t fil
     setupExpData(0);
 }
 
-parpe::FunctionEvaluationStatus ExampleSteadystateGradientFunction::evaluate(gsl::span<const double> parameters, double &fval, gsl::span<double> gradient, parpe::Logger *logger, double *cpuTime) const
+parpe::FunctionEvaluationStatus ExampleSteadystateGradientFunction::evaluate(
+        gsl::span<const double> parameters, double &fval,
+        gsl::span<double> gradient, parpe::Logger * /*logger*/,
+        double * /*cpuTime*/) const
 {
 
     model->setParameters(std::vector<double>(parameters.begin(), parameters.end()));

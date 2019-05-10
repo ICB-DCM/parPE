@@ -1,0 +1,30 @@
+"""Build and run systems biology benchmark collection models using parPE"""
+
+from snakemake.utils import min_version
+min_version("3.2")
+
+import os
+
+configfile: "benchmark_config.yaml"
+
+benchmark_model_dir = os.path.expandvars(config["benchmark_model_dir"])
+
+rule list:
+    shell:
+        'ls -1d {config[benchmark_model_dir]}/*/'
+
+#rule all:
+
+
+
+rule import_and_run:
+    output:
+        directory('{model_name}')
+    input:
+        model_name=lambda wildcards: os.path.join(benchmark_model_dir, wildcards.model_name)
+    shell:
+        './import_and_run.sh {benchmark_model_dir}/{wildcards.model_name}'
+
+rule clean:
+    shell:
+        "ls -d */ | grep -P '^(parpe_)?[A-Z]\w+_\w+.*\d{{4}}/$' | xargs -d\"\n\" rm -r"

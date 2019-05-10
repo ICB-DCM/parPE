@@ -260,3 +260,40 @@ class ParameterEstimationResultFile:
     """Interface to a parPE parameter estimation result file"""
 
     pass
+
+
+def simulation_to_df(mes_df, sim, result_file, start, label, observable_ids):
+    """Add simulation results as new column to PEtab measurement df"""
+
+    with h5py.File(result_file, 'r') as f:
+        condition_names = f['/inputData/fixedParameters/conditionNames'][:]
+        simulation_conditions = f[
+                                    '/inputData/fixedParameters/simulationConditions'][
+                                :]
+    cond_id_to_idx = {id_: idx for idx, id_ in enumerate(condition_names)}
+    cond_comb_to_idx = {
+    (condition_names[preeq_idx] if not np.isnan(preeq_idx) and preeq_idx >= 0 else -1.0,
+     condition_names[sim_idx] if sim_idx >= 0 else -1.0): comb_idx
+    for comb_idx, (preeq_idx, sim_idx) in enumerate(simulation_conditions)}
+    obs_id_to_idx = {id_: idx for idx, id_ in enumerate(observable_ids)}
+
+    mes_df['simulation_' + label] = np.nan
+    time_tracker = {}
+    for _, row in mes_df.iterrows():
+        if np.isnan(row.preequilibrationConditionId):
+            row.preequilibrationConditionId = -1
+        condition_idx = cond_comb_to_idx[
+            row.preequilibrationConditionId, row.simulationConditionId]
+        observable_idx = obs_id_to_idx['observable_' + row.observableId]
+        """ Replicate simulations will be identical, but lets consider them"""
+        try:
+            time_tracker[(condition_idx, observable_idx, row.time)] += 1
+        except KeyError:
+            time_tracker[(condition_idx, observable_idx, row.time)] = 0
+
+        time_idx = time_tracker[(condition_idx, observable_idx, row.time)]
+
+        # time_idx = 0
+        mes_df.loc[row.name, 'simulation_' + label] = \
+        sim[start][condition_idx][time_idx, observable_idx]
+    return mes_df

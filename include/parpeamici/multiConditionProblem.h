@@ -166,7 +166,7 @@ protected:// for testing
     virtual int runSimulations(gsl::span<double const> optimizationParameters,
                                double &nllh,
                                gsl::span<double> objectiveFunctionGradient,
-                               std::vector<int> dataIndices,
+                               const std::vector<int> &dataIndices,
                                Logger *logger,
                                double *cpuTime) const;
 
@@ -183,7 +183,9 @@ protected:// for testing
 
     int aggregateLikelihood(JobData &data, double &negLogLikelihood,
                             gsl::span<double> negLogLikelihoodGradient,
-                            double &simulationTimeInS) const;
+                            double &simulationTimeInS,
+                            gsl::span<const double> optimizationParameters
+                            ) const;
 
 
     /**
@@ -197,7 +199,8 @@ protected:// for testing
     void addSimulationGradientToObjectiveFunctionGradient(
             int conditionIdx,
             gsl::span<const double> simulationGradient,
-            gsl::span<double> objectiveFunctionGradient) const;
+            gsl::span<double> objectiveFunctionGradient,
+            gsl::span<const double> parameters) const;
 
     void setSensitivityOptions(bool sensiRequired) const;
 
@@ -313,7 +316,7 @@ private:
 
 
 void saveSimulation(
-        hid_t file_id, const std::string &pathStr,
+        H5::H5File const& file, const std::string &pathStr,
         const std::vector<double> &parameters, double llh,
         gsl::span<const double> gradient, double timeElapsedInSeconds,
         gsl::span<const double> states,

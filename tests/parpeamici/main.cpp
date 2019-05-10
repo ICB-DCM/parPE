@@ -1,13 +1,17 @@
-#include <bits/stl_tree.h>
+#include "amiciSimulationRunnerTest.h"
+#include "multiConditionDataProviderTest.h"
+#include "multiConditionProblemTest.h"
+#include "simulationResultWriterTest.h"
+#include "hierarchicalOptimizationTest.h"
 
-#include "CppUTest/CommandLineTestRunner.h"
-#include "CppUTest/TestHarness.h"
+#include <gtest/gtest.h>
 
 #include <cstdlib>
 #include <ctime>
 
-int main(int argc, char **argv) {
+int main(int argc, char *argv[])
+{
     srand(time(nullptr));
-
-    return CommandLineTestRunner::RunAllTests(argc, argv);
+    ::testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
 }

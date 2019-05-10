@@ -80,6 +80,8 @@ class LoadBalancerMaster {
 
     bool isRunning() const;
 
+    int getNumQueuedJobs() const;
+
   private:
     /**
      * @brief Thread entry point. This is run from run()

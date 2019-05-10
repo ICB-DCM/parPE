@@ -10,8 +10,9 @@ setup(
     packages=find_packages(),
     install_requires=['numpy',
                       'termcolor',
-                      'petab',
-                      'amici',
+                      'colorama',
+                      'petab>=0.0.0a14',
+                      'amici>=0.10.6',
                       'h5py',
-                      'python-libsbml'],
+                      'python-libsbml>=5.17.0'],
 )

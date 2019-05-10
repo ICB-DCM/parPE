@@ -148,4 +148,12 @@ void swap(AmiciSimulationRunner::AmiciResultPackageSimple &first, AmiciSimulatio
     swap(first.status, second.status);
 }
 
+bool operator==(const AmiciSimulationRunner::AmiciResultPackageSimple &lhs, const AmiciSimulationRunner::AmiciResultPackageSimple &rhs) {
+    return lhs.llh == rhs.llh
+            && lhs.status == rhs.status
+            && lhs.gradient == rhs.gradient
+            && lhs.modelOutput == rhs.modelOutput
+            && lhs.simulationTimeSeconds == rhs.simulationTimeSeconds;
+}
+
 } // namespace parpe

@@ -52,7 +52,9 @@ int StandaloneSimulator::run(const std::string& resultFile,
      * of the outer problem of an hierarchical optimization run, and thus, need to compute the
      * inner optimal parameters here.
      */
-    bool needComputeAnalyticalParameters = (parameters.size() != (unsigned)dataProvider->getNumOptimizationParameters());
+    // TODO: check parameter names! until this is implemented, let's always recompute output parameters
+    bool needComputeAnalyticalParameters = true;
+            // (parameters.size() != (unsigned)dataProvider->getNumOptimizationParameters());
 
     if(needComputeAnalyticalParameters) {
         if(hdf5GroupExists(conditionFile.getId(), "inputData"))
@@ -78,11 +80,11 @@ int StandaloneSimulator::run(const std::string& resultFile,
         auto wrappedFun = std::make_unique<AmiciSummedGradientFunction>(dataProvider, loadBalancer, nullptr);
 
         hierarchical = HierarchicalOptimizationWrapper(std::move(wrappedFun),
-                                                std::move(hierarchicalScalingReader),
-                                                std::move(hierarchicalOffsetReader),
-                                                std::move(hierarchicalSigmaReader),
-                                                dataProvider->getNumberOfSimulationConditions(), model->nytrue,
-                                                ErrorModel::normal);
+                                                       std::move(hierarchicalScalingReader),
+                                                       std::move(hierarchicalOffsetReader),
+                                                       std::move(hierarchicalSigmaReader),
+                                                       dataProvider->getNumberOfSimulationConditions(), model->nytrue,
+                                                       ErrorModel::normal);
         std::cout<<"Need to compute analytical parameters: "<<conditionFilePath<<"  "<<proportionalityFactorIndices.size()<<" parameters.size() == "<<parameters.size()<<" ; hierarchical.numParameters() == "<<hierarchical.numParameters()<<std::endl;
         RELEASE_ASSERT(parameters.size() == (unsigned) hierarchical.numParameters(), "");
 
@@ -98,11 +100,13 @@ int StandaloneSimulator::run(const std::string& resultFile,
     } else {
         // is already the correct length
         // parameters = optimizationParameters;
+
+        auto resultFileH5 = rw.reopenFile();
+        hdf5EnsureGroupExists(resultFileH5.getId(), resultPath.c_str());
+        amici::hdf5::createAndWriteDouble1DDataset(
+                    resultFileH5, resultPath + "/parameters", parameters);
     }
 
-    auto resultFileH5 = rw.reopenFile();
-    hdf5EnsureGroupExists(resultFileH5.getId(), resultPath.c_str());
-    amici::hdf5::createAndWriteDouble1DDataset(resultFileH5, resultPath + "/parameters", parameters.data(), parameters.size());
 
     RELEASE_ASSERT(parameters.size() == (unsigned)dataProvider->getNumOptimizationParameters(), "Size of supplied parameter vector does not match model dimensions.");
 
@@ -172,6 +176,17 @@ int StandaloneSimulator::run(const std::string& resultFile,
             hierarchical.fillInAnalyticalSigmas(fullSigmaMatrices, sigmas);
         }
 
+        // save parameters
+        parameters = spliceParameters(
+                    parameters, hierarchical.getProportionalityFactorIndices(),
+                    hierarchical.getOffsetParameterIndices(),
+                    hierarchical.getSigmaParameterIndices(),
+                    scalings, offsets, sigmas);
+        auto resultFileH5 = rw.reopenFile();
+        hdf5EnsureGroupExists(resultFileH5.getId(), resultPath.c_str());
+        amici::hdf5::createAndWriteDouble1DDataset(
+                    resultFileH5, resultPath + "/parameters", parameters);
+
         // compute llh
         for(int conditionIdx = 0; (unsigned) conditionIdx < simulationResults.size(); ++conditionIdx) {
             double llh = -parpe::computeNegLogLikelihood(
@@ -234,7 +249,7 @@ void StandaloneSimulator::messageHandler(std::vector<char> &buffer, int  /*jobId
     std::map<int, AmiciSimulationRunner::AmiciResultPackageSimple> results;
     // run simulations for all condition indices
     for(auto conditionIndex: sim.conditionIndices) {
-        dataProvider->updateSimulationParameters(conditionIndex, sim.optimizationParameters, *model);
+        dataProvider->updateSimulationParametersAndScale(conditionIndex, sim.optimizationParameters, *model);
         auto result = runSimulation(conditionIndex, *solver, *model);
         results[conditionIndex] = result;
     }
@@ -249,7 +264,7 @@ void StandaloneSimulator::messageHandler(std::vector<char> &buffer, int  /*jobId
 
 
 AmiciSimulationRunner::AmiciResultPackageSimple StandaloneSimulator::runSimulation(int conditionIdx,
-                                                            amici::Solver& solver, amici::Model& model)
+                                                                                   amici::Solver& solver, amici::Model& model)
 {
     // currently requires edata, since all condition specific parameters are set via edata
     auto edata = dataProvider->getExperimentalDataForCondition(conditionIdx);
@@ -314,7 +329,7 @@ std::vector<double> getFinalParameters(std::string const& startIndex, H5::H5File
 
     parpe::hdf5Read2DDoubleHyperslab(file.getId(), parameterPath.c_str(),
                                      numParam, 1, 0, costFunEvaluationIndex,
-                                     parameters.data());
+                                     parameters);
 
     /*
     // read from last iteration (last column in /multistarts/$/iterCostFunParameters)
@@ -354,8 +369,7 @@ std::pair<int, double> getFunctionEvaluationWithMinimalCost(std::string const& d
     std::vector<double> cost(numFunctionEvalations, INFINITY);
 
     parpe::hdf5Read2DDoubleHyperslab(file.getId(), datasetPath.c_str(),
-                                     1, numFunctionEvalations, 0, 0,
-                                     cost.data());
+                                     1, numFunctionEvalations, 0, 0, cost);
     int minIndex = std::min_element(cost.begin(), cost.end()) - cost.begin();
     return { minIndex, cost[minIndex] };
 }
@@ -382,14 +396,15 @@ std::vector<std::vector<double>> getParameterTrajectory(std::string const& start
         parameters[iter] = std::vector<double>(numParam);
         parpe::hdf5Read2DDoubleHyperslab(file.getId(), parameterPath.c_str(),
                                          numParam, 1, 0, iter,
-                                         parameters[iter].data());
+                                         parameters[iter]);
     }
 
     return parameters;
 }
 
 int getNumStarts(H5::H5File const& file, std::string const& rootPath)  {
-    auto o = parpe::OptimizationOptions::fromHDF5(file.getId(), rootPath + "/inputData/optimizationOptions");
+    auto o = parpe::OptimizationOptions::fromHDF5(
+                file.getId(), rootPath + "/inputData/optimizationOptions");
     return o->numStarts;
 }
 
@@ -413,19 +428,23 @@ int runFinalParameters(StandaloneSimulator &sim,
     for(int i = 0; i < numStarts; ++i) {
         std::cout<<"Running for start "<<i<<std::endl;
         try {
-            auto parameters = parpe::getFinalParameters(std::to_string(i), parameterFile);
-            auto outerParameters = getOuterParameters(parameters, parameterFile, parameterFilePath);
+            auto parameters = parpe::getFinalParameters(std::to_string(i),
+                                                        parameterFile);
+            auto outerParameters = getOuterParameters(
+                        parameters, parameterFile, parameterFilePath);
 
-            std::string curResultPath = resultPath + "multistarts/" + std::to_string(i);
+            std::string curResultPath = resultPath + "multistarts/"
+                    + std::to_string(i);
 
             auto lock = hdf5MutexGetLock();
             H5::H5File conditionFile = hdf5OpenForReading(conditionFileName);
             lock.unlock();
 
-            errors += sim.run(resultFileName, curResultPath, outerParameters, loadBalancer,
-                              conditionFile, conditionFilePath);
+            errors += sim.run(resultFileName, curResultPath, outerParameters,
+                              loadBalancer, conditionFile, conditionFilePath);
         } catch (H5::FileIException const& e) {
-            std::cerr<<"Exception during start " << i << " "<<e.getDetailMsg()<<std::endl;
+            std::cerr<<"Exception during start " << i << " "
+                    <<e.getDetailMsg()<<std::endl;
             std::cerr<<"... skipping"<<std::endl;
         }
     }
@@ -450,19 +469,24 @@ int runAlongTrajectory(StandaloneSimulator &sim,
 
     int errors = 0;
 
-    for(int i = 0; i < getNumStarts(parameterFile); ++i) {
+    for(int startIdx = 0; startIdx < getNumStarts(parameterFile); ++startIdx) {
         try {
-            auto parameters = getParameterTrajectory(std::to_string(i), parameterFile);
+            auto parameters = getParameterTrajectory(std::to_string(startIdx),
+                                                     parameterFile);
 
             for(int iter = 0; (unsigned) iter < parameters.size(); ++iter) {
-                std::cout<<"Running for start "<<i<<" iter "<<iter<<std::endl;
-                std::string curResultPath = resultPath + "/multistarts/" + std::to_string(i) + "/iter/" + std::to_string(iter);
+                std::cout<<"Running for start "<<startIdx
+                        <<" iter "<<iter<<std::endl;
+                std::string curResultPath = resultPath
+                        + "/multistarts/" + std::to_string(startIdx)
+                        + "/iter/" + std::to_string(iter);
 
                 auto lock = hdf5MutexGetLock();
                 H5::H5File conditionFile = hdf5OpenForReading(conditionFileName);
                 lock.unlock();
 
-                auto outerParameters = getOuterParameters(parameters[iter], parameterFile, parameterFilePath);
+                auto outerParameters = getOuterParameters(
+                            parameters[iter], parameterFile, parameterFilePath);
 
                 errors += sim.run(resultFileName, curResultPath,
                                   outerParameters, loadBalancer,
@@ -550,23 +574,33 @@ std::vector<double> getOuterParameters(const std::vector<double> &fullParameters
                                        const std::string &parameterPath)
 {
     //auto options = OptimizationOptions::fromHDF5(parameterFile.getId(), parameterPath + "/optimizationOptions");
-    AnalyticalParameterHdf5Reader hierarchicalScalingReader(parameterFile,
-                                                            parameterPath + "/inputData/scalingParameterIndices",
-                                                            parameterPath + "/inputData/scalingParametersMapToObservables");
-    AnalyticalParameterHdf5Reader hierarchicalOffsetReader(parameterFile,
-                                                           parameterPath + "/inputData/offsetParameterIndices",
-                                                           parameterPath + "/inputData/offsetParametersMapToObservables");
-    AnalyticalParameterHdf5Reader hierarchicalSigmaReader(parameterFile,
-                                                          parameterPath + "/inputData/sigmaParameterIndices",
-                                                          parameterPath + "/inputData/sigmaParametersMapToObservables");
+    AnalyticalParameterHdf5Reader hierarchicalScalingReader(
+                parameterFile,
+                parameterPath + "/inputData/scalingParameterIndices",
+                parameterPath + "/inputData/scalingParametersMapToObservables");
+    AnalyticalParameterHdf5Reader hierarchicalOffsetReader(
+                parameterFile,
+                parameterPath + "/inputData/offsetParameterIndices",
+                parameterPath + "/inputData/offsetParametersMapToObservables");
+    AnalyticalParameterHdf5Reader hierarchicalSigmaReader(
+                parameterFile,
+                parameterPath + "/inputData/sigmaParameterIndices",
+                parameterPath + "/inputData/sigmaParametersMapToObservables");
 
-    auto proportionalityFactorIndices = hierarchicalScalingReader.getOptimizationParameterIndices();
-    auto offsetParameterIndices = hierarchicalOffsetReader.getOptimizationParameterIndices();
-    auto sigmaParameterIndices = hierarchicalSigmaReader.getOptimizationParameterIndices();
+    auto proportionalityFactorIndices =
+            hierarchicalScalingReader.getOptimizationParameterIndices();
+    auto offsetParameterIndices =
+            hierarchicalOffsetReader.getOptimizationParameterIndices();
+    auto sigmaParameterIndices =
+            hierarchicalSigmaReader.getOptimizationParameterIndices();
 
     auto combinedIndices = proportionalityFactorIndices;
-    combinedIndices.insert(combinedIndices.end(), offsetParameterIndices.begin(), offsetParameterIndices.end());
-    combinedIndices.insert(combinedIndices.end(), sigmaParameterIndices.begin(), sigmaParameterIndices.end());
+    combinedIndices.insert(combinedIndices.end(),
+                           offsetParameterIndices.begin(),
+                           offsetParameterIndices.end());
+    combinedIndices.insert(combinedIndices.end(),
+                           sigmaParameterIndices.begin(),
+                           sigmaParameterIndices.end());
     std::sort(combinedIndices.begin(), combinedIndices.end());
 
     std::vector<double> result(fullParameters.size() - combinedIndices.size());

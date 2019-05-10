@@ -1,11 +1,17 @@
-project(model_jakstat_adjoint_o2)
-
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-
 cmake_minimum_required(VERSION 2.8)
+
+if(POLICY CMP0060)
+  cmake_policy(SET CMP0060 NEW)
+endif(POLICY CMP0060)
+if(POLICY CMP0065)
+  cmake_policy(SET CMP0065 NEW)
+endif(POLICY CMP0065)
+
+project(model_jakstat_adjoint_o2)
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 include(CheckCXXCompilerFlag)
 set(MY_CXX_FLAGS -Wall -Wno-unused-function -Wno-unused-variable -Wno-unused-but-set-variable)
@@ -26,8 +32,6 @@ ${MODEL_DIR}/model_jakstat_adjoint_o2_JB.cpp
 ${MODEL_DIR}/model_jakstat_adjoint_o2_JDiag.cpp
 ${MODEL_DIR}/model_jakstat_adjoint_o2_JSparse.cpp
 ${MODEL_DIR}/model_jakstat_adjoint_o2_JSparseB.cpp
-${MODEL_DIR}/model_jakstat_adjoint_o2_Jv.cpp
-${MODEL_DIR}/model_jakstat_adjoint_o2_JvB.cpp
 ${MODEL_DIR}/model_jakstat_adjoint_o2_Jy.cpp
 ${MODEL_DIR}/model_jakstat_adjoint_o2_dJydsigma.cpp
 ${MODEL_DIR}/model_jakstat_adjoint_o2_dJydy.cpp
@@ -37,13 +41,10 @@ ${MODEL_DIR}/model_jakstat_adjoint_o2_dwdx.cpp
 ${MODEL_DIR}/model_jakstat_adjoint_o2_dxdotdp.cpp
 ${MODEL_DIR}/model_jakstat_adjoint_o2_dydp.cpp
 ${MODEL_DIR}/model_jakstat_adjoint_o2_dydx.cpp
-${MODEL_DIR}/model_jakstat_adjoint_o2_qBdot.cpp
 ${MODEL_DIR}/model_jakstat_adjoint_o2_sigmay.cpp
 ${MODEL_DIR}/model_jakstat_adjoint_o2_sx0.cpp
-${MODEL_DIR}/model_jakstat_adjoint_o2_sxdot.cpp
 ${MODEL_DIR}/model_jakstat_adjoint_o2_w.cpp
 ${MODEL_DIR}/model_jakstat_adjoint_o2_x0.cpp
-${MODEL_DIR}/model_jakstat_adjoint_o2_xBdot.cpp
 ${MODEL_DIR}/model_jakstat_adjoint_o2_xdot.cpp
 ${MODEL_DIR}/model_jakstat_adjoint_o2_y.cpp
 
@@ -54,7 +55,7 @@ add_library(${PROJECT_NAME} ${SRC_LIST_LIB})
 add_library(model ALIAS ${PROJECT_NAME})
 
 target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
-    
+
 target_link_libraries(${PROJECT_NAME}
     PUBLIC Upstream::amici
 )
@@ -62,11 +63,11 @@ target_link_libraries(${PROJECT_NAME}
 set(SRC_LIST_EXE main.cpp)
 
 add_executable(simulate_${PROJECT_NAME} ${SRC_LIST_EXE})
-    
+
 target_link_libraries(simulate_${PROJECT_NAME} ${PROJECT_NAME})
 
 if($ENV{ENABLE_GCOV_COVERAGE})
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0 --coverage")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0 --coverage")
 endif()
 
 ## SWIG

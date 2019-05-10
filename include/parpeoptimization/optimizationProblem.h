@@ -133,8 +133,8 @@ protected:
 /**
  * @brief The OptimizationProblem class describes an optimization problem.
  *
- * A OptimizationProblem has a GradientFunction objective function to be minimized,
- * parameter bounds and initial values.
+ * A OptimizationProblem has a GradientFunction objective function to be
+ * minimized, parameter bounds and initial values.
  *
  * Additional constraints are currently not supported.
  *
@@ -151,14 +151,14 @@ public:
 
     virtual ~OptimizationProblem() = default;
 
-    /** Default implementation: random starting points are drawn from [parametersMin, parametersMax] */
+    /** Default implementation: random starting points are drawn from
+     * [parametersMin, parametersMax] */
     virtual void fillInitialParameters(gsl::span<double> buffer) const;
 
     /** lower bound of parameter values */
     virtual void fillParametersMin(gsl::span<double> buffer) const = 0;
 
     /** upper bound of parameter values */
-    // TODO:     template <class RandomAccessIterator>
     virtual void fillParametersMax(gsl::span<double> buffer) const = 0;
 
     virtual OptimizationOptions const& getOptimizationOptions() const;
@@ -206,12 +206,24 @@ private:
 
 };
 
+
+/**
+ * @brief getLocalOptimum
+ * @param problem
+ * @return int indicating status. 0: success, != 0: failure
+ */
+
 int getLocalOptimum(OptimizationProblem *problem);
 
-void *getLocalOptimumThreadWrapper(void *optimizationProblemVp);
 
-//void runOptimizationsParallel(OptimizationProblem **problems,
-//                              int numProblems);
+/**
+ * @brief getLocalOptimumThreadWrapper wrapper for using getLocalOptimum with
+ * pThreads.
+ * @param problem
+ * @return Pointer to int indicating status. 0: success, != 0: failure
+ */
+
+void *getLocalOptimumThreadWrapper(void *optimizationProblemVp);
 
 void optimizationProblemGradientCheck(OptimizationProblem *problem,
                                       int numParameterIndicesToCheck,

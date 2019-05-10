@@ -118,7 +118,7 @@ def print_model_info(sbml_file):
 
 
 def create_data_tables(model, fixed_parameters,
-        measurement_file, fixed_parameter_file):
+                       measurement_file, fixed_parameter_file):
     """Create synthetic data for parameter estimation
 
     - Simulate time-course for four different conditions
@@ -264,7 +264,7 @@ def getReturnDataForCondition(model, solver, fixed_parameters,
     # TODO: confirm gradient is 0 for real measurements and save expected llh
 
     # return generated noisy measurements
-    rdata['y'] = synthetic_data
+    rdata._swigptr.y = amici.DoubleVector(synthetic_data.flatten())
 
     return rdata
 
@@ -339,7 +339,7 @@ def write_starting_points(hdf5_file_name, true_parameters):
     """Write true parameters as first starting point, an perturbed additional
     points, two times the same point to check for reproducibility"""
     with h5py.File(hdf5_file_name, 'r+') as f:
-        pscale = f['/parameters/pscale'][:]
+        pscale = f['/parameters/pscaleOptimization'][:]
         true_parameters_scaled = np.array([true_parameters[p] for p in
                            f['/parameters/parameterNames']])
         for i, p in enumerate(pscale):
@@ -448,6 +448,7 @@ def main():
 
     petab.lint_problem(pp)
 
+    # create training data
     generate_hdf5_file(
         sbml_file_name=args.sbml_file_name,
         model_output_dir=args.model_output_dir,
@@ -455,6 +456,35 @@ def main():
         condition_file_name=args.condition_file_name,
         hdf5_file_name=args.hdf5_file_name,
         parameter_file_name=args.parameter_file_name,
+        model_name=model_name
+    )
+
+    # create test data
+    args.test_measurement_file_name = \
+        "-testset".join(os.path.splitext(args.measurement_file_name))
+    args.test_parameter_file_name = \
+        "-testset".join(os.path.splitext(args.parameter_file_name))
+    df = petab.get_measurement_df(args.measurement_file_name)
+    df.loc[df.observableParameters == 'scaling_x1_common', 'measurement'] = \
+        df.loc[df.observableParameters == 'scaling_x1_common', 'measurement'] \
+        * 2.0
+    df.loc[~df.observableParameters.isnull(), 'observableParameters'] = \
+        df.loc[~df.observableParameters.isnull(), 'observableParameters'] \
+        + "_test"
+    df.to_csv(args.test_measurement_file_name, sep='\t', index=False)
+    df = petab.get_parameter_df(args.parameter_file_name)
+    df.rename(index={'scaling_x1_common' : 'scaling_x1_common_test',
+                     'offset_x2_batch-0': 'offset_x2_batch-0_test',
+                     'offset_x2_batch-1': 'offset_x2_batch-1_test'},
+              inplace=True)
+    df.to_csv(args.test_parameter_file_name, sep='\t')
+    generate_hdf5_file(
+        sbml_file_name=args.sbml_file_name,
+        model_output_dir=args.model_output_dir,
+        measurement_file_name=args.test_measurement_file_name,
+        condition_file_name=args.condition_file_name,
+        hdf5_file_name="-testset".join(os.path.splitext(args.hdf5_file_name)),
+        parameter_file_name=args.test_parameter_file_name,
         model_name=model_name
     )
 

@@ -32,7 +32,6 @@
 #include <limits>
 #include <utility>
 
-#include <hdf5.h>
 #include <H5Cpp.h>
 
 namespace parpe {
@@ -66,7 +65,8 @@ herr_t optimizationOptionsFromAttribute(hid_t location_id/*in*/,
     H5Aclose(a);
 
     if (typeClass == H5T_STRING) {
-        // NOTE: only works for (fixed-length?) ASCII strings, no unicode -> in python use np.string_("bla")
+        // NOTE: only works for (fixed-length?) ASCII strings, no unicode
+        // -> in python use np.string_("bla")
         o->setOption(attr_name, buf);
     } else if (typeClass == H5T_FLOAT) {
         o->setOption(attr_name, *reinterpret_cast<double*>(buf));
@@ -84,12 +84,14 @@ Optimizer *OptimizationOptions::createOptimizer() const {
     return optimizerFactory(optimizer);
 }
 
-std::unique_ptr<OptimizationOptions> OptimizationOptions::fromHDF5(const char *fileName) {
+std::unique_ptr<OptimizationOptions> OptimizationOptions::fromHDF5(
+        const char *fileName) {
     auto file = hdf5OpenForReading(fileName);
     return fromHDF5(file.getId());
 }
 
-std::unique_ptr<OptimizationOptions> OptimizationOptions::fromHDF5(hid_t fileId, std::string const& path) {
+std::unique_ptr<OptimizationOptions> OptimizationOptions::fromHDF5(
+        hid_t fileId, std::string const& path) {
     auto o = std::make_unique<OptimizationOptions>();
 
     const char *hdf5path = path.c_str();
@@ -168,7 +170,8 @@ std::unique_ptr<OptimizationOptions> OptimizationOptions::fromHDF5(hid_t fileId,
  * @return The selected starting point or NULL if the dataset did not exist or
  * had less columns than `ìndex`
  */
-std::vector<double> OptimizationOptions::getStartingPoint(hid_t fileId, int index) {
+std::vector<double> OptimizationOptions::getStartingPoint(hid_t fileId,
+                                                          int index) {
     std::vector<double> startingPoint;
 
     const char *path = "/optimizationOptions/randomStarts";
@@ -177,7 +180,8 @@ std::vector<double> OptimizationOptions::getStartingPoint(hid_t fileId, int inde
     H5_SAVE_ERROR_HANDLER;
 
     hid_t dataset;
-    if (!hdf5DatasetExists(fileId, path) || (dataset = H5Dopen2(fileId, path, H5P_DEFAULT)) < 0) {
+    if (!hdf5DatasetExists(fileId, path)
+            || (dataset = H5Dopen2(fileId, path, H5P_DEFAULT)) < 0) {
         logmessage(LOGLVL_DEBUG, "No initial parameters found in %s", path);
         H5Eclear1();
         goto freturn;
@@ -197,7 +201,8 @@ std::vector<double> OptimizationOptions::getStartingPoint(hid_t fileId, int inde
                    index, path);
 
         startingPoint.resize(dims[0]);
-        hdf5Read2DDoubleHyperslab(fileId, path, dims[0], 1, 0, index, startingPoint.data());
+        hdf5Read2DDoubleHyperslab(fileId, path, dims[0], 1, 0, index,
+                startingPoint);
     }
 
 freturn:
@@ -219,7 +224,10 @@ std::string OptimizationOptions::toString() {
     s += "numStarts: " + patch::to_string(numStarts) + "\n";
     s += "\n";
 
-    for_each<std::string&>([](const std::pair<const std::string, const std::string> pair, std::string &out){
+    for_each<std::string&>(
+                [](const std::pair<const std::string, const std::string> pair,
+                std::string &out)
+    {
         out = out + pair.first + ": " + pair.second + "\n";
     }, s);
 
@@ -292,7 +300,8 @@ Optimizer* optimizerFactory(optimizerName optimizer)
         return nullptr;
 #endif
     case optimizerName::OPTIMIZER_MINIBATCH_1:
-        throw ParPEException("optimizerFactory() cannot be used with minibatch optimizer.");
+        throw ParPEException("optimizerFactory() cannot be used with "
+                             "minibatch optimizer.");
     }
 
     return nullptr;

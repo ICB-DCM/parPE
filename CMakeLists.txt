@@ -1,4 +1,6 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.6)
+cmake_policy(VERSION 3.6)
+
 project(parpe)
 
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/CMakeModules/)
@@ -33,7 +35,7 @@ split_version(${PARPE_VERSION} libname major minor patch)
 
 
 # <Build options>
-set(BUILD_TESTS TRUE CACHE BOOL "Build tests? (requires cppUTest)")
+set(BUILD_TESTS TRUE CACHE BOOL "Build tests? (requires googletest)")
 set(BUILD_EXAMPLES TRUE CACHE BOOL "Build examples?")
 set(BUILD_DOCS FALSE CACHE BOOL "Generate documentation?")
 set(BUILD_PYTHON_MODULE FALSE CACHE BOOL "Build Python module?")
@@ -82,14 +84,29 @@ set(GSL_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/ThirdParty/gsl)
 
 # Build tests?
 if(${BUILD_TESTS})
+    enable_testing()
     include (CTest)
 
     # --allow-run-as-root is required for running on shippable systems
     set(TESTS_MPIEXEC_COMMAND mpiexec --allow-run-as-root -n 4 CACHE STRING "")
 
-    # CppUTest
-    find_package(CppUTest REQUIRED)
-    add_definitions(-DD_MemoryLeakWarningPlugin_h) # prevent undefined reference to operator new; new is redefined even when memoryleakdetector is disabled
+    # googletest
+    add_definitions(-DGTEST_LANGUAGE_CXX11)
+    find_package(Threads REQUIRED)
+    if ($ENV{GOOGLETEST_DIR})
+        set(GOOGLETEST_DIR $ENV{GOOGLETEST_DIR})
+    else()
+        set(GOOGLETEST_DIR ${CMAKE_CURRENT_LIST_DIR}/ThirdParty/googletest)
+    endif()
+    if (EXISTS ${GOOGLETEST_DIR})
+        set(GTestSrc ${GOOGLETEST_DIR}/googletest)
+        set(GMockSrc ${GOOGLETEST_DIR}/googlemock)
+    else ()
+        message(FATAL_ERROR "No googletest src dir found - set GOOGLETEST_DIR "
+            "or run ../ThirdParty/installGoogleTest.sh to enable!"
+            " (Or disable building tests with BUILD_TESTS=OFF)")
+    endif ()
+    include_directories(${GTestSrc} ${GTestSrc}/include ${GMockSrc} ${GMockSrc}/include)
 
     # <Coverage>
     # Create test coverage reports?

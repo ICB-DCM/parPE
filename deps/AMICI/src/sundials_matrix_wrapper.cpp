@@ -1,126 +1,255 @@
 #include <amici/sundials_matrix_wrapper.h>
 
-#include <utility>
-#include <new> // bad_alloc
+#include <amici/cblas.h>
 
-#include <sundials/sundials_dense.h> // DenseCopy
+#include <new> // bad_alloc
+#include <utility>
+#include <stdexcept> // invalid_argument and domain_error
 
 namespace amici {
 
-SlsMatWrapper::SlsMatWrapper(int M, int N, int NNZ, int sparsetype)
-    : matrix(SparseNewMat(M, N, NNZ, sparsetype))
-{
-    if(NNZ && !matrix)
+SUNMatrixWrapper::SUNMatrixWrapper(int M, int N, int NNZ, int sparsetype)
+    : matrix(SUNSparseMatrix(M, N, NNZ, sparsetype)) {
+
+    if (sparsetype != CSC_MAT && sparsetype != CSR_MAT)
+        throw std::invalid_argument("Invalid sparsetype. Must be CSC_MAT or "
+                                    "CSR_MAT");
+
+    if (NNZ && !matrix)
         throw std::bad_alloc();
+
+    update_ptrs();
 }
 
-SlsMatWrapper::SlsMatWrapper(SlsMat mat)
-    : matrix(mat)
-{}
+SUNMatrixWrapper::SUNMatrixWrapper(int M, int N)
+    : matrix(SUNDenseMatrix(M, N)) {
+    if (M && N && !matrix)
+        throw std::bad_alloc();
 
-SlsMatWrapper::~SlsMatWrapper()
-{
-    if(matrix)
-        SparseDestroyMat(matrix);
+    update_ptrs();
 }
 
-SlsMatWrapper::SlsMatWrapper(const SlsMatWrapper &other)
-{
-    if(!other.matrix)
+SUNMatrixWrapper::SUNMatrixWrapper(int M, int ubw, int lbw)
+    : matrix(SUNBandMatrix(M, ubw, lbw)) {
+    if (M && !matrix)
+        throw std::bad_alloc();
+
+    update_ptrs();
+}
+
+SUNMatrixWrapper::SUNMatrixWrapper(const SUNMatrixWrapper &A, realtype droptol,
+                                   int sparsetype) {
+    if (sparsetype != CSC_MAT && sparsetype != CSR_MAT)
+        throw std::invalid_argument("Invalid sparsetype. Must be CSC_MAT or "
+                                    "CSR_MAT");
+
+    switch (SUNMatGetID(A.get())) {
+    case SUNMATRIX_DENSE:
+        matrix = SUNSparseFromDenseMatrix(A.get(), droptol, sparsetype);
+        break;
+    case SUNMATRIX_BAND:
+        matrix = SUNSparseFromBandMatrix(A.get(), droptol, sparsetype);
+        break;
+    default:
+        throw std::invalid_argument("Invalid Matrix. Must be SUNMATRIX_DENSE or"
+                                    " SUNMATRIX_BAND");
+    }
+
+    if (!matrix)
+        throw std::bad_alloc();
+
+    update_ptrs();
+}
+
+SUNMatrixWrapper::SUNMatrixWrapper(SUNMatrix mat) : matrix(mat) {
+    update_ptrs();
+}
+
+SUNMatrixWrapper::~SUNMatrixWrapper() {
+    if (matrix)
+        SUNMatDestroy(matrix);
+}
+
+SUNMatrixWrapper::SUNMatrixWrapper(const SUNMatrixWrapper &other) {
+    if (!other.matrix)
         return;
 
-    matrix = SparseNewMat(other.matrix->M,
-                          other.matrix->N,
-                          other.matrix->NNZ,
-                          other.matrix->sparsetype);
-    if(!matrix)
+    matrix = SUNMatClone(other.matrix);
+    if (!matrix)
         throw std::bad_alloc();
 
-    SparseCopyMat(other.matrix, matrix);
+    SUNMatCopy(other.matrix, matrix);
+    update_ptrs();
 }
 
-SlsMatWrapper::SlsMatWrapper(SlsMatWrapper &&other) noexcept
-{
+SUNMatrixWrapper::SUNMatrixWrapper(SUNMatrixWrapper &&other) noexcept {
     std::swap(matrix, other.matrix);
-
+    update_ptrs();
 }
 
-SlsMatWrapper &SlsMatWrapper::operator=(const SlsMatWrapper &other)
-{
-    return *this = SlsMatWrapper(other);
+SUNMatrixWrapper &SUNMatrixWrapper::operator=(const SUNMatrixWrapper &other) {
+    if(&other == this)
+        return *this;
+    return *this = SUNMatrixWrapper(other);
 }
 
-SlsMatWrapper &SlsMatWrapper::operator=(SlsMatWrapper &&other) noexcept
-{
+SUNMatrixWrapper &SUNMatrixWrapper::
+operator=(SUNMatrixWrapper &&other) noexcept {
     std::swap(matrix, other.matrix);
+    update_ptrs();
     return *this;
 }
 
-realtype *SlsMatWrapper::data() {
-    if(matrix)
-        return matrix->data;
-    return nullptr;
+realtype *SUNMatrixWrapper::data() const {
+    return data_ptr;
 }
 
-SlsMat SlsMatWrapper::slsmat() const {
-    return matrix;
+sunindextype SUNMatrixWrapper::rows() const {
+    if (!matrix)
+        return 0;
+
+    switch (SUNMatGetID(matrix)) {
+    case SUNMATRIX_DENSE:
+        return SM_ROWS_D(matrix);
+    case SUNMATRIX_SPARSE:
+        return SM_ROWS_S(matrix);
+    case SUNMATRIX_BAND:
+        return SM_ROWS_B(matrix);
+    case SUNMATRIX_CUSTOM:
+        throw std::domain_error("Amici currently does not support custom matrix"
+                                " types.");
+    default:
+        throw std::domain_error("Invalid SUNMatrix type.");
+    }
 }
 
+sunindextype SUNMatrixWrapper::columns() const {
+    if (!matrix)
+        return 0;
 
-
-DlsMatWrapper::DlsMatWrapper(long int M, long int N)
-    : matrix(NewDenseMat(M, N))
-{
-    if((M*N > 0) && !matrix)
-        throw std::bad_alloc();
+    switch (SUNMatGetID(matrix)) {
+    case SUNMATRIX_DENSE:
+        return SM_COLUMNS_D(matrix);
+    case SUNMATRIX_SPARSE:
+        return SM_COLUMNS_S(matrix);
+    case SUNMATRIX_BAND:
+        return SM_COLUMNS_B(matrix);
+    case SUNMATRIX_CUSTOM:
+        throw std::domain_error("Amici currently does not support custom matrix"
+                                " types.");
+    default:
+        throw std::domain_error("Invalid SUNMatrix type.");
+    }
 }
 
-DlsMatWrapper::DlsMatWrapper(DlsMat mat)
-    : matrix(mat)
-{}
-
-DlsMatWrapper::~DlsMatWrapper()
-{
-    if(matrix)
-        DestroyMat(matrix);
+sunindextype *SUNMatrixWrapper::indexvals() const {
+    return indexvals_ptr;
 }
 
-DlsMatWrapper::DlsMatWrapper(const DlsMatWrapper &other)
-{
-    if(!other.matrix)
+sunindextype *SUNMatrixWrapper::indexptrs() const {
+    return indexptrs_ptr;
+}
+
+int SUNMatrixWrapper::sparsetype() const {
+    if (SUNMatGetID(matrix) == SUNMATRIX_SPARSE)
+        return SM_SPARSETYPE_S(matrix);
+    throw std::domain_error("Function only available for sparse matrices");
+}
+
+void SUNMatrixWrapper::reset() {
+    if (matrix)
+        SUNMatZero(matrix);
+}
+
+void SUNMatrixWrapper::multiply(N_Vector c, const_N_Vector b) const {
+    multiply(gsl::make_span<realtype>(NV_DATA_S(c), NV_LENGTH_S(c)),
+             gsl::make_span<const realtype>(NV_DATA_S(b), NV_LENGTH_S(b)));
+}
+
+void SUNMatrixWrapper::multiply(gsl::span<realtype> c, gsl::span<const realtype> b) const {
+    if (!matrix)
         return;
 
-    matrix = NewDenseMat(other.matrix->M,
-                          other.matrix->N);
+    if (static_cast<sunindextype>(c.size()) != rows())
+        throw std::invalid_argument("Dimension mismatch between number of rows "
+                                    "in A (" + std::to_string(rows()) + ") and "
+                                    "elements in c (" + std::to_string(c.size())
+                                    + ")");
+
+    if (static_cast<sunindextype>(b.size()) != columns())
+        throw std::invalid_argument("Dimension mismatch between number of cols "
+                                    "in A (" + std::to_string(columns())
+                                    + ") and elements in b ("
+                                    + std::to_string(b.size()) + ")");
+
+    switch (SUNMatGetID(matrix)) {
+    case SUNMATRIX_DENSE:
+        amici_dgemv(BLASLayout::colMajor, BLASTranspose::noTrans, rows(),
+                    columns(), 1.0, data(), rows(), b.data(), 1, 1.0, c.data(), 1);
+        break;
+    case SUNMATRIX_SPARSE:
+
+        switch (sparsetype()) {
+        case CSC_MAT:
+            for (sunindextype i = 0; i < columns(); ++i) {
+                for (sunindextype k = indexptrs_ptr[i]; k < indexptrs_ptr[i + 1];
+                     ++k) {
+                    c[indexvals_ptr[k]] += data_ptr[k] * b[i];
+                }
+            }
+            break;
+        case CSR_MAT:
+            for (sunindextype i = 0; i < rows(); ++i) {
+                for (sunindextype k = indexptrs_ptr[i]; k < indexptrs_ptr[i + 1];
+                     ++k) {
+                    c[i] += data_ptr[k] * b[indexvals_ptr[k]];
+                }
+            }
+            break;
+        }
+        break;
+    case SUNMATRIX_BAND:
+        throw std::domain_error("Not Implemented.");
+    case SUNMATRIX_CUSTOM:
+        throw std::domain_error("Amici currently does not support custom"
+                                " matrix types.");
+    }
+}
+
+void SUNMatrixWrapper::zero()
+{
+    if(int res = SUNMatZero(matrix))
+        throw std::runtime_error("SUNMatrixWrapper::zero() failed with "
+                                 + std::to_string(res));
+}
+
+void SUNMatrixWrapper::update_ptrs() {
     if(!matrix)
-        throw std::bad_alloc();
+        return;
 
-    DenseCopy(other.matrix, matrix);
+    switch (SUNMatGetID(matrix)) {
+    case SUNMATRIX_DENSE:
+        if (columns() > 0 && rows() > 0)
+            data_ptr = SM_DATA_D(matrix);
+        break;
+    case SUNMATRIX_SPARSE:
+        if (SM_NNZ_S(matrix) > 0) {
+            data_ptr = SM_DATA_S(matrix);
+            indexptrs_ptr = SM_INDEXPTRS_S(matrix);
+            indexvals_ptr = SM_INDEXVALS_S(matrix);
+        }
+        break;
+    case SUNMATRIX_BAND:
+        if (columns() > 0 && rows() > 0)
+            data_ptr = SM_DATA_B(matrix);
+        break;
+    case SUNMATRIX_CUSTOM:
+        throw std::domain_error("Amici currently does not support"
+                                "custom matrix types.");
+    }
 }
 
-DlsMatWrapper::DlsMatWrapper(DlsMatWrapper &&other) noexcept
-{
-    std::swap(matrix, other.matrix);
-}
+SUNMatrix SUNMatrixWrapper::get() const { return matrix; }
 
-DlsMatWrapper &DlsMatWrapper::operator=(const DlsMatWrapper &other)
-{
-    return *this = DlsMatWrapper(other);
-}
-
-DlsMatWrapper &DlsMatWrapper::operator=(DlsMatWrapper &&other) noexcept
-{
-    std::swap(matrix, other.matrix);
-    return *this;
-}
-
-realtype *DlsMatWrapper::data() {
-    if(matrix)
-        return matrix->data;
-    return nullptr;
-}
-
-DlsMat DlsMatWrapper::dlsmat() const {
-    return matrix;
-}
 } // namespace amici
+

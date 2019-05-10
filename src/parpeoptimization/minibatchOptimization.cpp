@@ -16,12 +16,22 @@ double getVectorNorm(gsl::span<const double> v) {
     return std::sqrt(getScalarProduct(v, v));
 }
 
+std::vector<double> getVectorDifference(gsl::span<const double> v,
+                                        gsl::span<const double> w) {
+    Expects(v.size() == w.size());
+    std::vector<double> difference(v.size(), 0.0);
+    for (unsigned int i = 0; i < v.size(); ++i)
+        difference[i] = v[i] - w[i];
+    
+    return difference;
+}
 
 void setMinibatchOption(const std::pair<const std::string, const std::string> &pair,
                         MinibatchOptimizer<int> *optimizer) {
     const std::string &key = pair.first;
     const std::string &val = pair.second;
 
+    /* Get options from h5-file */
     if (key == "maxEpochs") {
         optimizer->maxEpochs = std::stoi(val);
     } else if (key == "batchSize") {
@@ -205,8 +215,9 @@ void ParameterUpdaterAdam::updateParameters(double learningRate,
 
     oldGradientNormCache = gradientNormCache;
     oldGradientCache = gradientCache;
-
-    for (int i = 0; i < numParameters; ++i) {
+    
+    for (int i = 0; i < numParameters; ++i) {        
+        // compute new steps from last gradient information
         gradientCache[i] = decayRateGradient * gradientCache[i] + (1 - decayRateGradient) * gradient[i];
         gradientNormCache[i] = decayRateGradientNorm * gradientNormCache[i]
                 + (1 - decayRateGradientNorm) * gradient[i] * gradient[i];

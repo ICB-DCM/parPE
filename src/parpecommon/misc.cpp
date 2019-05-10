@@ -18,6 +18,10 @@
 #include <sstream>
 #include <cstdlib> // getenv
 
+#include <pthread.h>
+
+#include <gsl/gsl-lite.hpp>
+
 #ifdef PARPE_ENABLE_MPI
 #include <mpi.h>
 #endif
@@ -75,18 +79,15 @@ int mkpathConstChar(const char *file_path, mode_t mode) {
     return mkpath(tmp, mode);
 }
 
-void strFormatCurrentLocaltime(char *buffer, size_t bufferSize,
-                               const char *format) {
+void strFormatCurrentLocaltime(gsl::span<char> buffer, const char *format) {
     time_t timer;
     time(&timer);
 
     struct tm *tm_info;
     tm_info = localtime(&timer);
 
-    strftime(buffer, bufferSize, format, tm_info);
+    strftime(buffer.data(), buffer.size(), format, tm_info);
 }
-
-#include <pthread.h>
 
 void runInParallelAndWaitForFinish(void *(*function)(void *), void **args,
                                    int numArgs) {
@@ -157,16 +158,19 @@ double randDouble(double min, double max) {
     return min + rand() / static_cast<double>(RAND_MAX) * (max - min);
 }
 
-void fillArrayRandomDoubleIndividualInterval(const double *min,
-                                             const double *max, int length,
-                                             double *buffer) {
-    for (int i = 0; i < length; ++i)
+void fillArrayRandomDoubleIndividualInterval(gsl::span<const double> min,
+                                             gsl::span<const double> max,
+                                             gsl::span<double> buffer) {
+    RELEASE_ASSERT(min.size() == max.size(), "");
+    RELEASE_ASSERT(min.size() == buffer.size(), "");
+
+    for (gsl::span<double>::index_type i = 0; i < buffer.size(); ++i)
         buffer[i] = randDouble(min[i], max[i]);
 }
 
-void fillArrayRandomDoubleSameInterval(double min, double max, int length,
-                                       double *buffer) {
-    for (int i = 0; i < length; ++i)
+void fillArrayRandomDoubleSameInterval(double min, double max,
+                                       gsl::span<double> buffer) {
+    for (gsl::span<double>::index_type i = 0; i < buffer.size(); ++i)
         buffer[i] = randDouble(min, max);
 }
 
@@ -276,6 +280,15 @@ void finalizeMpiIfNeeded()
     if(parpe::launchedWithMpi())
         MPI_Finalize();
 #endif
+}
+
+bool almostEqual(double a, double b)
+{
+    if (std::isnan(a) && std::isnan(b))
+        return true;
+
+    return std::fabs(a - b) < (std::fabs(a) + std::fabs(b))
+            * std::numeric_limits<double>::epsilon();
 }
 
 

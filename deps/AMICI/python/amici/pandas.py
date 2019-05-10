@@ -3,7 +3,7 @@ import numpy as np
 import math
 import copy
 
-from .numpy import edataToNumPyArrays
+from .numpy import ExpDataView
 import amici
 from amici import ExpData
 
@@ -37,7 +37,7 @@ def getDataObservablesAsDataFrame(model, edata_list, by_id=False):
 
     # append all converted edatas
     for edata in edata_list:
-        npdata = edataToNumPyArrays(edata)
+        npdata = ExpDataView(edata)
         for i_time, timepoint in enumerate(edata.getTimepoints()):
             datadict = {
                 'time': timepoint,
@@ -367,28 +367,31 @@ def _get_names_or_ids(model, variable, by_id):
     # check whether variable type permitted
     variable_options = ['Parameter', 'FixedParameter', 'Observable', 'State']
     if variable not in variable_options:
-        raise ValueError('variable must be in ' + str(variable_options))
+        raise ValueError('Variable must be in ' + str(variable_options))
 
-    # functions to extract attributes
-    namegetter = getattr(model, 'get' + variable + 'Names')
-    idgetter = getattr(model, 'get' + variable + 'Ids')
+    # extract attributes
+    names = list(getattr(model, f'get{variable}Names')())
+    ids = list(getattr(model, f'get{variable}Ids')())
+
+    # find out if model has names and ids
+    has_names = getattr(model, f'has{variable}Names')()
+    has_ids = getattr(model, f'has{variable}Ids')()
 
     # extract labels
-    if not by_id and len(set(namegetter())) == len(namegetter()) \
-            and getattr(model, f"has{variable}Names")():
+    if not by_id and has_names and len(set(names)) == len(names):
         # use variable names
-        return list(namegetter())
-    elif getattr(model, f"has{variable}Ids")():
+        return names
+    elif has_ids:
         # use variable ids
-        return list(idgetter())
+        return ids
     else:
         # unable to create unique labels
         if by_id:
-            raise RuntimeError(f"Model {variable} ids are not set.")
+            msg = f"Model {variable} ids are not set."
         else:
-            raise RuntimeError(
-                f"Model {variable} names are not unique and "
-                f"{variable} ids are not set.")
+            msg = f"Model {variable} names are not unique and " \
+                  f"{variable} ids are not set."
+        raise ValueError(msg)
 
 
 def _get_specialized_fixed_parameters(
@@ -414,7 +417,7 @@ def _get_specialized_fixed_parameters(
     cond = copy.deepcopy(condition)
     for field in overwrite:
         cond[field] = overwrite[field]
-    return [cond[name] for name in _get_names_or_ids(
+    return [float(cond[name]) for name in _get_names_or_ids(
         model, 'FixedParameter', by_id=by_id)]
 
 
@@ -444,7 +447,7 @@ def constructEdataFromDataFrame(df, model, condition, by_id=False):
 
     # timepoints
     df = df.sort_values(by='time', ascending=True)
-    edata.setTimepoints(df['time'].values)
+    edata.setTimepoints(df['time'].values.astype(float))
 
     # get fixed parameters from condition
     overwrite_preeq = {}
@@ -485,16 +488,16 @@ def constructEdataFromDataFrame(df, model, condition, by_id=False):
 
     # fill in presimulation time
     if 't_presim' in condition.keys():
-        edata.t_presim = condition['t_presim']
+        edata.t_presim = float(condition['t_presim'])
 
     # fill in data and stds
     for obs_index, obs in enumerate(
             _get_names_or_ids(model, 'Observable', by_id=by_id)):
         if obs in df.keys():
-            edata.setObservedData(df[obs].values, obs_index)
+            edata.setObservedData(df[obs].values.astype(float), obs_index)
         if obs + '_std' in df.keys():
             edata.setObservedDataStdDev(
-                df[obs + '_std'].values, obs_index
+                df[obs + '_std'].values.astype(float), obs_index
             )
 
     return edata

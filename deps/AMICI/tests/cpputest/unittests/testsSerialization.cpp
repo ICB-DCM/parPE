@@ -95,7 +95,7 @@ TEST_GROUP(dataSerialization){
         solver.setNewtonMaxSteps(1e6);
         solver.setNewtonMaxLinearSteps(1e6);
         solver.setNewtonPreequilibration(true);
-        solver.setStateOrdering(amici::StateOrdering::COLAMD);
+        solver.setStateOrdering(static_cast<int>(amici::SUNLinSolKLU::StateOrdering::COLAMD));
         solver.setInterpolationType(amici::InterpolationType::polynomial);
         solver.setStabilityLimitFlag(0);
         solver.setLinearSolver(amici::LinearSolver::dense);
@@ -117,7 +117,7 @@ TEST(dataSerialization, testFile) {
     int nx = 3;
     int nz = 4;
     amici::CVodeSolver solver;
-    amici::Model_Test m = amici::Model_Test(nx, nx, nx, nx, 4, 4, nz, nz, 8, 9, 10, 11, 12, 13, 14, 15,
+    amici::Model_Test m = amici::Model_Test(nx, nx, nx, nx, 4, 4, nz, nz, 8, 9, 10, 11, 12, 13, 14, 15, 16,
                                             amici::SecondOrderMode::none,
                                             std::vector<realtype>(np,0.0),
                                             std::vector<realtype>(nk,0.0),
@@ -150,18 +150,18 @@ TEST(dataSerialization, testString) {
     int nx = 3;
     int nz = 4;
     amici::CVodeSolver solver;
-    amici::Model_Test m = amici::Model_Test(nx, nx, nx, nx, 4, 4, nz, nz, 8, 9, 10, 11, 12, 13, 14, 15,
+    amici::Model_Test m = amici::Model_Test(nx, nx, nx, nx, 4, 4, nz, nz, 8, 9, 10, 11, 12, 13, 14, 15, 16,
                                             amici::SecondOrderMode::none,
                                             std::vector<realtype>(np,0.0),
                                             std::vector<realtype>(nk,0.0),
                                             std::vector<int>(np,0),
                                             std::vector<realtype>(nx,0.0),
                                             std::vector<int>(nz,0));
-    
-    amici::ReturnData r(solver, &m);
-    
+
+    amici::ReturnData r(solver, m);
+
     std::string serialized = amici::serializeToString(r);
-    
+
     checkReturnDataEqual(r, amici::deserializeFromString<amici::ReturnData>(serialized));
 }
 
@@ -182,7 +182,3 @@ TEST(dataSerialization, testStdVec) {
 
     CHECK_TRUE(solver == v);
 }
-
-
-
-

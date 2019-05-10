@@ -112,10 +112,8 @@ install(TARGETS ${PROJECT_NAME} EXPORT ParPETargets
 
 if(${BUILD_TESTS} AND ${PARPE_ENABLE_MPI})
     add_test (NAME ${PROJECT_NAME}
-        COMMAND ${TESTS_MPIEXEC_COMMAND} ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME} -o ${PROJECT_NAME}-testresults ${SOURCE_DIR}/example_data.h5
-        )
-    add_test (NAME ${PROJECT_NAME}_gradient_check
-        COMMAND ${TESTS_MPIEXEC_COMMAND} ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME} -t gradient_check -o ${PROJECT_NAME}-testresults ${SOURCE_DIR}/example_data.h5
+        COMMAND ${CMAKE_CURRENT_LIST_DIR}/run-examples.sh
+        ${SOURCE_DIR}/example_data.h5 ${SOURCE_DIR}/example_data-testset.h5
         )
 endif()
 # /example_steadystate_multi executable
@@ -153,10 +151,12 @@ if(${BUILD_TESTS})
     add_test (NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME} -c)
 
     set(SRC_LIST_CPP
-        ${CMAKE_SOURCE_DIR}/tests/parpeamici/main.cpp
+        main_test.cpp
+        exampleSteadystateScaledTest.h
         ${CMAKE_SOURCE_DIR}/tests/parpecommon/testingMisc.cpp
         steadystateProblem.cpp
-        exampleSteadystateScaledTest.cpp
+        ${GTestSrc}/src/gtest-all.cc
+        ${GMockSrc}/src/gmock-all.cc
     )
 
     add_executable(${PROJECT_NAME} ${SRC_LIST_CPP})
@@ -164,7 +164,6 @@ if(${BUILD_TESTS})
     target_link_libraries(${PROJECT_NAME}
         parpeamici
         ${MODEL_LIBRARIES}
-        ${CppUTest_LIBRARIES}
         ${GCOV_LIBRARY}
     )
 endif()

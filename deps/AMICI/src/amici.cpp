@@ -29,13 +29,13 @@ static_assert(AMICI_ILL_INPUT == CV_ILL_INPUT,
               "AMICI_ILL_INPUT != CV_ILL_INPUT");
 static_assert(AMICI_NORMAL == CV_NORMAL, "AMICI_NORMAL != CV_NORMAL");
 static_assert(AMICI_ONE_STEP == CV_ONE_STEP, "AMICI_ONE_STEP != CV_ONE_STEP");
-static_assert(std::is_same<amici::realtype, realtype>::value, "Definition of realtype does not match");
+static_assert(std::is_same<amici::realtype, realtype>::value,
+              "Definition of realtype does not match");
+
 
 namespace amici {
 
-/** errMsgIdAndTxt is a function pointer for printErrMsgIdAndTxt  */
 msgIdAndTxtFp errMsgIdAndTxt = &printErrMsgIdAndTxt;
-/** warnMsgIdAndTxt is a function pointer for printWarnMsgIdAndTxt  */
 msgIdAndTxtFp warnMsgIdAndTxt = &printWarnMsgIdAndTxt;
 
 
@@ -47,7 +47,7 @@ std::unique_ptr<ReturnData> runAmiciSimulation(Solver &solver, const ExpData *ed
     ConditionContext conditionContext(&model, edata);
 
     try{
-        rdata = std::unique_ptr<ReturnData>(new ReturnData(solver,&model));
+        rdata = std::unique_ptr<ReturnData>(new ReturnData(solver, model));
 
         if (model.nx_solver <= 0) {
             return rdata;
@@ -79,8 +79,6 @@ std::unique_ptr<ReturnData> runAmiciSimulation(Solver &solver, const ExpData *ed
         rdata->status = AMICI_ERROR;
         if(rethrow) throw;
         amici::warnMsgIdAndTxt("AMICI:mex:simulation","AMICI simulation failed:\n%s\nError occured in:\n%s",ex.what(),ex.getBacktrace());
-    } catch (...) {
-        throw std::runtime_error("Unknown internal error occured!");
     }
 
     rdata->applyChainRuleFactorToSimulationResults(&model);
@@ -88,15 +86,6 @@ std::unique_ptr<ReturnData> runAmiciSimulation(Solver &solver, const ExpData *ed
     return rdata;
 }
 
-/*!
- * printErrMsgIdAndTxt prints a specified error message associated to the
- * specified identifier
- *
- * @param[in] identifier error identifier @type char
- * @param[in] format string with error message printf-style format
- * @param ... arguments to be formatted
- * @return void
- */
 void printErrMsgIdAndTxt(const char *identifier, const char *format, ...) {
     if(identifier && *identifier != '\0')
         fprintf(stderr, "[Error] %s: ", identifier);
@@ -109,15 +98,6 @@ void printErrMsgIdAndTxt(const char *identifier, const char *format, ...) {
     fprintf(stderr, "\n");
 }
 
-/*!
- * printErrMsgIdAndTxt prints a specified warning message associated to the
- * specified identifier
- *
- * @param[in] identifier warning identifier @type char
- * @param[in] format string with error message printf-style format
- * @param ... arguments to be formatted
- * @return void
- */
 void printWarnMsgIdAndTxt(const char *identifier, const char *format, ...) {
     if(identifier && *identifier != '\0')
         printf("[Warning] %s: ", identifier);
@@ -133,6 +113,7 @@ void printWarnMsgIdAndTxt(const char *identifier, const char *format, ...) {
 std::vector<std::unique_ptr<ReturnData> > runAmiciSimulations(const Solver &solver,
                                                               const std::vector<ExpData*> &edatas,
                                                               const Model &model,
+                                                              const bool failfast,
 #if defined(_OPENMP)
                                                               int num_threads
 #else
@@ -141,6 +122,7 @@ std::vector<std::unique_ptr<ReturnData> > runAmiciSimulations(const Solver &solv
 )
 {
     std::vector<std::unique_ptr<ReturnData> > results(edatas.size());
+    bool failed = false;
 
 #if defined(_OPENMP)
     #pragma omp parallel for num_threads(num_threads)
@@ -149,7 +131,18 @@ std::vector<std::unique_ptr<ReturnData> > runAmiciSimulations(const Solver &solv
         auto mySolver = std::unique_ptr<Solver>(solver.clone());
         auto myModel = std::unique_ptr<Model>(model.clone());
 
+        /* if we fail we need to write empty return datas for the python
+         interface */
+        if (failed) {
+            ConditionContext conditionContext(myModel.get(), edatas[i]);
+            results[i] =
+                std::unique_ptr<ReturnData>(new ReturnData(solver, model));
+        }
+
         results[i] = runAmiciSimulation(*mySolver, edatas[i], *myModel);
+
+        if (results[i]->status < 0 && failfast)
+            failed = true;
     }
 
     return results;

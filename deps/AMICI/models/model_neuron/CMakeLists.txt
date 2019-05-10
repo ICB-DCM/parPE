@@ -1,11 +1,17 @@
-project(model_neuron)
-
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-
 cmake_minimum_required(VERSION 2.8)
+
+if(POLICY CMP0060)
+  cmake_policy(SET CMP0060 NEW)
+endif(POLICY CMP0060)
+if(POLICY CMP0065)
+  cmake_policy(SET CMP0065 NEW)
+endif(POLICY CMP0065)
+
+project(model_neuron)
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 include(CheckCXXCompilerFlag)
 set(MY_CXX_FLAGS -Wall -Wno-unused-function -Wno-unused-variable -Wno-unused-but-set-variable)
@@ -27,8 +33,6 @@ ${MODEL_DIR}/model_neuron_JDiag.cpp
 ${MODEL_DIR}/model_neuron_JSparse.cpp
 ${MODEL_DIR}/model_neuron_JSparseB.cpp
 ${MODEL_DIR}/model_neuron_Jrz.cpp
-${MODEL_DIR}/model_neuron_Jv.cpp
-${MODEL_DIR}/model_neuron_JvB.cpp
 ${MODEL_DIR}/model_neuron_Jy.cpp
 ${MODEL_DIR}/model_neuron_Jz.cpp
 ${MODEL_DIR}/model_neuron_dJrzdsigma.cpp
@@ -45,7 +49,6 @@ ${MODEL_DIR}/model_neuron_drzdx.cpp
 ${MODEL_DIR}/model_neuron_dxdotdp.cpp
 ${MODEL_DIR}/model_neuron_dydx.cpp
 ${MODEL_DIR}/model_neuron_dzdx.cpp
-${MODEL_DIR}/model_neuron_qBdot.cpp
 ${MODEL_DIR}/model_neuron_root.cpp
 ${MODEL_DIR}/model_neuron_rz.cpp
 ${MODEL_DIR}/model_neuron_sigmay.cpp
@@ -53,10 +56,8 @@ ${MODEL_DIR}/model_neuron_sigmaz.cpp
 ${MODEL_DIR}/model_neuron_srz.cpp
 ${MODEL_DIR}/model_neuron_stau.cpp
 ${MODEL_DIR}/model_neuron_sx0.cpp
-${MODEL_DIR}/model_neuron_sxdot.cpp
 ${MODEL_DIR}/model_neuron_sz.cpp
 ${MODEL_DIR}/model_neuron_x0.cpp
-${MODEL_DIR}/model_neuron_xBdot.cpp
 ${MODEL_DIR}/model_neuron_xdot.cpp
 ${MODEL_DIR}/model_neuron_y.cpp
 ${MODEL_DIR}/model_neuron_z.cpp
@@ -68,7 +69,7 @@ add_library(${PROJECT_NAME} ${SRC_LIST_LIB})
 add_library(model ALIAS ${PROJECT_NAME})
 
 target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
-    
+
 target_link_libraries(${PROJECT_NAME}
     PUBLIC Upstream::amici
 )
@@ -76,11 +77,11 @@ target_link_libraries(${PROJECT_NAME}
 set(SRC_LIST_EXE main.cpp)
 
 add_executable(simulate_${PROJECT_NAME} ${SRC_LIST_EXE})
-    
+
 target_link_libraries(simulate_${PROJECT_NAME} ${PROJECT_NAME})
 
 if($ENV{ENABLE_GCOV_COVERAGE})
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0 --coverage")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0 --coverage")
 endif()
 
 ## SWIG
