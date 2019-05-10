@@ -64,6 +64,12 @@ cd ThirdParty
 ./installDeps.sh
 ```
 
+NOTE: When using `ThirdParty/installIpopt.sh` to build Ipopt, follow the
+instructions in `ThirdParty/Ipopt-3.12.9/ThirdParty/HSL/INSTALL.HSL` for
+obtaining the hsl library before continuing, otherwise IpOpt will not be
+usable. Afterwards, (re)run `ThirdParty/installIpopt.sh`.
+
+
 ## Building
 
 After having taken care of the dependencies listed above, parPE can be built:
