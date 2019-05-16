@@ -215,13 +215,13 @@ void ParameterUpdaterMomentum::updateParameters(double learningRate,
                                                gsl::span<const double> upperBounds) {
 
     int numParameters = gradient.size();
-
+    double momentumNormalize = 1.0;
     oldMomentum = momentum;
 
     for (int i = 0; i < numParameters; ++i) {
         momentum[i] = decayRate * momentum[i] + (1 - decayRate) * gradient[i];
         
-        momentumNormalize = std::max(getVectorNorm(momentum), 1.0)
+        momentumNormalize = std::max(getVectorNorm(momentum), 1.0);
         
         parameters[i] += -learningRate * momentum[i] / momentumNormalize;
     }
