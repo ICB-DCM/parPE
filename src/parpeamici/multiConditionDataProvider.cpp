@@ -144,6 +144,7 @@ void MultiConditionDataProviderHDF5::mapAndSetOptimizationToSimulationVariables(
 
 std::vector<amici::ParameterScaling> MultiConditionDataProviderHDF5::getParameterScaleOpt() const
 {
+    auto lock = hdf5MutexGetLock();
     auto resInt = amici::hdf5::getIntDataset1D(
                 file, hdf5ParameterScaleOptimizationPath);
     std::vector<amici::ParameterScaling> res(resInt.size());
@@ -247,10 +248,13 @@ std::unique_ptr<amici::ExpData> MultiConditionDataProviderHDF5::getExperimentalD
 
     auto edata = std::make_unique<amici::ExpData>(*model);
     RELEASE_ASSERT(edata, "Failed getting experimental data. Check data file.");
-    edata->setTimepoints(
-                amici::hdf5::getDoubleDataset1D(
-                    file.getId(), rootPath + "/measurements/t/"
-                    + std::to_string(simulationIdx)));
+    {
+        auto lock = hdf5MutexGetLock();
+        edata->setTimepoints(
+                    amici::hdf5::getDoubleDataset1D(
+                        file.getId(), rootPath + "/measurements/t/"
+                        + std::to_string(simulationIdx)));
+    }
     edata->setObservedData(getMeasurementForSimulationIndex(simulationIdx));
     edata->setObservedDataStdDev(getSigmaForSimulationIndex(simulationIdx));
     updateFixedSimulationParameters(simulationIdx, *edata);
@@ -279,6 +283,7 @@ std::vector<std::vector<double> > MultiConditionDataProviderHDF5::getAllSigmas()
 std::vector<double> MultiConditionDataProviderHDF5::getSigmaForSimulationIndex(int simulationIdx) const
 {
     hsize_t dim1, dim2;
+    auto lock = hdf5MutexGetLock();
     return amici::hdf5::getDoubleDataset2D(
                 file.getId(),
                 hdf5MeasurementSigmaPath + "/" + std::to_string(simulationIdx),
@@ -288,6 +293,7 @@ std::vector<double> MultiConditionDataProviderHDF5::getSigmaForSimulationIndex(i
 std::vector<double> MultiConditionDataProviderHDF5::getMeasurementForSimulationIndex(int simulationIdx) const
 {
     hsize_t dim1, dim2;
+    auto lock = hdf5MutexGetLock();
     return amici::hdf5::getDoubleDataset2D(
                 file.getId(),
                 hdf5MeasurementPath + "/" + std::to_string(simulationIdx),
