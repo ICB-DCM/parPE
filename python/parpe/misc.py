@@ -299,22 +299,25 @@ def simulation_to_df(mes_df, sim, result_file, start, label, observable_ids):
     return mes_df
 
 
-def compare_optimization_results_to_true_parameters(filename: str):
+def compare_optimization_results_to_true_parameters(
+        filename: str, start_idx: str = '0'):
     """Compare parameter estimates to true parameters. Print as table.
 
     Used in example notebooks.
 
     Arguments:
         filename: Parameter estimation result file name
+        start_idx: optimizer run index/name to use
     """
     with h5py.File(filename, 'r') as f:
         pscale = f['/inputData/parameters/pscaleOptimization'][:]
         names = f['/inputData/parameters/parameterNames'][:]
         true_parameters = f['/inputData/parameters/true_parameters'][:]
         expectedNllh = -f['/inputData/parameters/true_llh'][:]
-        final_parameters = f['/multistarts/0/finalParameters'][:]
-        exit_status = f['/multistarts/0/exitStatus'][:]
-        final_cost = f['/multistarts/0/finalCost'][:]
+
+        final_parameters = f[f'/multistarts/{start_idx}/finalParameters'][:]
+        exit_status = f[f'/multistarts/{start_idx}/exitStatus'][:]
+        final_cost = f[f'/multistarts/{start_idx}/finalCost'][:]
 
     for i, p in enumerate(pscale):
         if p == 2:
@@ -329,4 +332,5 @@ def compare_optimization_results_to_true_parameters(filename: str):
                                        error, rel_error, names[i]))
     print()
     print('Status: %d' % exit_status)
-    print('Cost: %f (expected: %f)' % (final_cost, expectedNllh)) # FIXME: expectedNllh not correctly written to file
+    # FIXME: expectedNllh not correctly written to file
+    print('Cost: %f (expected: %f)' % (final_cost, expectedNllh))
