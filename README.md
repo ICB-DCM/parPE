@@ -47,12 +47,13 @@ For full functionality, parPE requires the following libraries:
 * [AMICI](https://github.com/ICB-DCM/AMICI) (included in this repository)
   (uses SuiteSparse, Sundials)
 * C++14 compiler
+* Python >= 3.6, including header files
 
 On Debian-based systems, dependencies can be installed via:
 ```
 sudo apt-get install build-essential gfortran libmpich-dev libblas-dev \
     libhdf5-dev cmake libceres-dev coinor-libipopt-dev libcpputest-dev \
-    libboost-serialization-dev
+    libboost-serialization-dev libpython-dev
 ```
 
 Scripts to fetch and build the remaining dependencies are provided in
