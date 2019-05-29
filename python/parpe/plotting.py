@@ -187,7 +187,7 @@ def square_plot_equal_ranges(ax, lim=None):
 
 def plotTrajectoryFits(ymes: List[np.array],
                       ysim: List[np.array],
-                      timepoints: np.array):
+                      timepoints: List[np.array]):
     """For each simulation condition create a plot with time-course for
      measured and simulated values for all observables.
 
@@ -202,7 +202,7 @@ def plotTrajectoryFits(ymes: List[np.array],
     for icondition in range(len(ysim)):
         plotTrajectoryFit(ymes[icondition],
                           ysim[icondition],
-                          timepoints,
+                          timepoints[icondition],
                           title='Condition %d' % icondition)
         plt.show()
 
