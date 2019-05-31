@@ -672,7 +672,7 @@ const char *HDF5Exception::what() const noexcept { return msg.c_str(); }
 
 bool hdf5DatasetExists(hid_t file_id, const std::string &datasetName)
 {
-    return hdf5DatasetExists(file_id, datasetName);
+    return hdf5DatasetExists(file_id, datasetName.c_str());
 }
 
 void closeHDF5File(hid_t file_id)
@@ -789,12 +789,12 @@ H5::H5File hdf5OpenForReading(const std::string &hdf5Filename)
 
 void hdf5EnsureGroupExists(const H5::H5File & file, const std::string &groupName)
 {
-    hdf5EnsureGroupExists(file, groupName);
+    hdf5EnsureGroupExists(file.getId(), groupName);
 }
 
 bool hdf5DatasetExists(const H5::H5File &file, const std::string &datasetName)
 {
-    return hdf5DatasetExists(file, datasetName);
+    return hdf5DatasetExists(file.getId(), datasetName.c_str());
 }
 
 } // namespace parpe
