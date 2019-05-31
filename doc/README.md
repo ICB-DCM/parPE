@@ -15,6 +15,8 @@ Contents in order of assumed relevance:
 
 - standaloneSimulator.md: Documentation for simulator executable
 
+- FAQ.md: Frequently asked questions
+
 - Doxyfile.in: Configuration file for doxygen C++ documentation generation
 
 - gfx/: Graphics for the documentation
