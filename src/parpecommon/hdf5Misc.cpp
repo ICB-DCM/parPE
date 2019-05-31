@@ -229,7 +229,7 @@ void hdf5CreateOrExtendAndWriteToDouble2DArray(hid_t file_id,
 
     std::string fullDatasetPath = std::string(parentPath) + "/" + datasetName;
 
-    if (!hdf5DatasetExists(file_id, fullDatasetPath.c_str())) {
+    if (!hdf5DatasetExists(file_id, fullDatasetPath)) {
         hdf5CreateExtendableDouble2DArray(
                     file_id, fullDatasetPath.c_str(), buffer.size());
     }
@@ -248,7 +248,7 @@ void hdf5CreateOrExtendAndWriteToDouble3DArray(hid_t file_id,
 
     std::string fullDatasetPath = std::string(parentPath) + "/" + datasetName;
 
-    if (!hdf5DatasetExists(file_id, fullDatasetPath.c_str())) {
+    if (!hdf5DatasetExists(file_id, fullDatasetPath)) {
         hdf5CreateExtendableDouble3DArray(
                     file_id, fullDatasetPath.c_str(), stride1, stride2);
     }
@@ -270,7 +270,7 @@ void hdf5CreateOrExtendAndWriteToInt2DArray(hid_t file_id,
 
     auto fullDatasetPath = std::string(parentPath) + "/" + datasetName;
 
-    if (!hdf5DatasetExists(file_id, fullDatasetPath.c_str())) {
+    if (!hdf5DatasetExists(file_id, fullDatasetPath)) {
         hdf5CreateExtendableInt2DArray(
                     file_id, fullDatasetPath.c_str(), buffer.size());
     }
@@ -672,7 +672,7 @@ const char *HDF5Exception::what() const noexcept { return msg.c_str(); }
 
 bool hdf5DatasetExists(hid_t file_id, const std::string &datasetName)
 {
-    return hdf5DatasetExists(file_id, datasetName.c_str());
+    return hdf5DatasetExists(file_id, datasetName);
 }
 
 void closeHDF5File(hid_t file_id)
@@ -759,7 +759,7 @@ void hdf5CreateOrExtendAndWriteToString1DArray(hid_t file_id,
 
     std::string fullDatasetPath = std::string(parentPath) + "/" + datasetName;
 
-    if (!hdf5DatasetExists(file_id, fullDatasetPath.c_str())) {
+    if (!hdf5DatasetExists(file_id, fullDatasetPath)) {
         hdf5CreateExtendableString1DArray(file_id, fullDatasetPath.c_str());
     }
 
@@ -789,12 +789,12 @@ H5::H5File hdf5OpenForReading(const std::string &hdf5Filename)
 
 void hdf5EnsureGroupExists(const H5::H5File & file, const std::string &groupName)
 {
-    hdf5EnsureGroupExists(file.getId(), groupName);
+    hdf5EnsureGroupExists(file, groupName);
 }
 
 bool hdf5DatasetExists(const H5::H5File &file, const std::string &datasetName)
 {
-    return hdf5DatasetExists(file.getId(), datasetName.c_str());
+    return hdf5DatasetExists(file, datasetName);
 }
 
 } // namespace parpe
