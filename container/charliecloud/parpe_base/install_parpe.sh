@@ -5,7 +5,7 @@ git clone --single-branch --branch feature_charlie --depth=1 https://github.com/
 cd parPE
 export PARPE_BASE=`pwd`
 
-# FIXME
+# FIXME AMICI/pull/709
 sed -ri 's/"README\.md", "r"/"README\.md", "r", encoding="utf-8"/' deps/AMICI/python/sdist/setup.py
 
 # Build dependencies
@@ -41,4 +41,4 @@ make -j12 VERBOSE=1
 cd $PARPE_BASE/build && CTEST_OUTPUT_ON_FAILURE=1 make test
 
 # valgrind
-CTEST_OUTPUT_ON_FAILURE=1 make ExperimentalMemCheck; cat Testing/Temporary/MemoryChecker.*.log
+#CTEST_OUTPUT_ON_FAILURE=1 make ExperimentalMemCheck; cat Testing/Temporary/MemoryChecker.*.log
