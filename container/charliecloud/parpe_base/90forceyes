@@ -1,2 +1,2 @@
 APT::Get::Assume-Yes "true";
-APT::Get::force-yes "true";
+APT::Get::allow-downgrades "true";
