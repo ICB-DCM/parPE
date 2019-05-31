@@ -94,9 +94,10 @@ Other sample build scripts are provided as `/build*.sh`.
 
 ## Documentation & further information
 
-No extensive full-text documentation is available yet. See `*/examples` and
-`*/tests` for usage examples. Some additional documentation is available
-in `doc/` and among [Github issues](https://github.com/ICB-DCM/parPE/issues).
+Some high-level documentation is provided in [`doc/`](doc/) and among 
+[Github issues](https://github.com/ICB-DCM/parPE/issues). No extensive
+full-text documentation is available for the C++ interface yet. For usage of
+the C++ interface see [`examples/`](examples/) and `*/tests`.
 
 
 ## FAQ
