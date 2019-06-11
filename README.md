@@ -7,12 +7,7 @@ The *parPE* library provides functionality for solving large-scale parameter
 optimization problems requiring up to thousands of simulations per objective
 function evaluation on HPC systems.
 
-Currently, parPE provides interfaces to the
-[Ipopt](http://www.coin-or.org/Ipopt/),
-[Ceres](http://ceres-solver.org/),
-[FFSQP](https://www.isr.umd.edu/news/news_story.php?id=4088) and
-[SUMSL (CALGO/TOMS 611)](http://www.netlib.org/toms/index.html)
-optimizers. parPE offers easy integration with
+parPE offers easy integration with
 [AMICI](https://github.com/ICB-DCM/AMICI)-generated ordinary differential
 equation (ODE) models.
 
@@ -26,10 +21,20 @@ parPE offers the following features:
 * simple integration with [SBML](http://sbml.org/) models via
   [AMICI](https://github.com/ICB-DCM/AMICI) and
   [PEtab](https://github.com/ICB-DCM/PEtab)
-* interfaces to Ipopt and Ceres optimizers
+* interfaces to [Ipopt](http://www.coin-or.org/Ipopt/),
+  [Ceres](http://ceres-solver.org/),
+  [FFSQP](https://www.isr.umd.edu/news/news_story.php?id=4088) and
+  [SUMSL (CALGO/TOMS 611)](http://www.netlib.org/toms/index.html) optimizers
 * HDF5 I/O compatible with a wide variety of programming languages
 * Good parallel scaling to up to several thousand cores
   (highly problem dependent)
+
+## Getting started
+
+Although various modules of parPE can be used independently, the most
+meaningful and convenient use case is parameter optimization for an SBML model
+specified in the [PEtab](https://github.com/ICB-DCM/PEtab) format. This is
+described in [doc/petab_model_import.md](doc/petab_model_import.md).
 
 ## Dependencies
 
@@ -47,12 +52,13 @@ For full functionality, parPE requires the following libraries:
 * [AMICI](https://github.com/ICB-DCM/AMICI) (included in this repository)
   (uses SuiteSparse, Sundials)
 * C++14 compiler
+* Python >= 3.6, including header files
 
 On Debian-based systems, dependencies can be installed via:
 ```
 sudo apt-get install build-essential gfortran libmpich-dev libblas-dev \
     libhdf5-dev cmake libceres-dev coinor-libipopt-dev libcpputest-dev \
-    libboost-serialization-dev
+    libboost-serialization-dev libpython-dev
 ```
 
 Scripts to fetch and build the remaining dependencies are provided in
@@ -63,6 +69,12 @@ cd ThirdParty
 ./downloadPackages.sh
 ./installDeps.sh
 ```
+
+NOTE: When using `ThirdParty/installIpopt.sh` to build Ipopt, follow the
+instructions in `ThirdParty/Ipopt-3.12.12/ThirdParty/HSL/INSTALL.HSL` for
+obtaining the hsl library before continuing, otherwise IpOpt will not be
+usable. Afterwards, (re)run `ThirdParty/installIpopt.sh`.
+
 
 ## Building
 
@@ -82,21 +94,15 @@ Other sample build scripts are provided as `/build*.sh`.
 
 ## Documentation & further information
 
-No extensive full-text documentation is available yet. See `*/examples` and
-`*/tests` for usage examples. Some additional documentation is available
-in `doc/` and among [Github issues](https://github.com/ICB-DCM/parPE/issues).
+Some high-level documentation is provided in [`doc/`](doc/) and among 
+[Github issues](https://github.com/ICB-DCM/parPE/issues). No extensive
+full-text documentation is available for the C++ interface yet. For usage of
+the C++ interface see [`examples/`](examples/) and `*/tests`.
 
-## FAQ
-
-Q: The program is killed due to memory exhaustion, what should I do?
-
-A: When running with MPI, the master process (rank 0) is consuming more memory
-than the others. Consider reserving more memory for this one. For LoadLeveler,
-this can be done conveniently via `#@ first_node_tasks`.
 
 ## References
 
-parPE has been used in the following projects:
+parPE is being used or has been used in the following projects:
 
 - Leonard Schmiester, Yannik Schälte, Fabian Fröhlich, Jan Hasenauer, Daniel Weindl.
   *Efficient parameterization of large-scale dynamic models based on relative measurements*.

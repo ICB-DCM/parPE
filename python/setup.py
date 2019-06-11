@@ -12,7 +12,9 @@ setup(
                       'termcolor',
                       'colorama',
                       'petab>=0.0.0a14',
-                      'amici>=0.10.6',
+                      'amici>=0.10.7',
                       'h5py',
-                      'python-libsbml>=5.17.0'],
+                      'python-libsbml>=5.17.0',
+                      'jinja2'
+                      ],
 )

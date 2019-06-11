@@ -57,6 +57,7 @@ void ExampleSteadystateGradientFunction::requireSensitivities(
 
 void ExampleSteadystateGradientFunction::setupUserData(int conditionIdx) {
     hsize_t m = 0, n = 0;
+    auto lock = parpe::hdf5MutexGetLock();
     model->setTimepoints(amici::hdf5::getDoubleDataset2D(fileId, "/parameters/t", m, n));
 
     // set model constants

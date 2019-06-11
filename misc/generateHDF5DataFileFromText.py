@@ -267,7 +267,9 @@ class HDF5DataGenerator:
               len(self.parameter_df))
         write_string_array(self.f, "/parameters/parameterNames",
                            self.parameter_df.index.values[
-                               self.parameter_df.estimate == 1])
+                               (self.parameter_df.estimate == 1)
+                           & ~self.parameter_df.index.isin(
+                        self.amici_model.getFixedParameterIds())])
 
         self.generate_simulation_to_optimization_parameter_mapping()
 

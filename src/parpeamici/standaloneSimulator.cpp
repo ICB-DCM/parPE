@@ -103,6 +103,7 @@ int StandaloneSimulator::run(const std::string& resultFile,
 
         auto resultFileH5 = rw.reopenFile();
         hdf5EnsureGroupExists(resultFileH5.getId(), resultPath.c_str());
+        auto lock = hdf5MutexGetLock();
         amici::hdf5::createAndWriteDouble1DDataset(
                     resultFileH5, resultPath + "/parameters", parameters);
     }
@@ -184,9 +185,11 @@ int StandaloneSimulator::run(const std::string& resultFile,
                     scalings, offsets, sigmas);
         auto resultFileH5 = rw.reopenFile();
         hdf5EnsureGroupExists(resultFileH5.getId(), resultPath.c_str());
-        amici::hdf5::createAndWriteDouble1DDataset(
-                    resultFileH5, resultPath + "/parameters", parameters);
-
+        {
+            auto lock = hdf5MutexGetLock();
+            amici::hdf5::createAndWriteDouble1DDataset(
+                        resultFileH5, resultPath + "/parameters", parameters);
+        }
         // compute llh
         for(int conditionIdx = 0; (unsigned) conditionIdx < simulationResults.size(); ++conditionIdx) {
             double llh = -parpe::computeNegLogLikelihood(
@@ -291,7 +294,10 @@ std::vector<double> getFinalParameters(std::string const& startIndex, H5::H5File
     // find last iteration /multistarts/$/iteration/$/costFunParameters
     std::string iterationPath = std::string("/multistarts/") + startIndex + "/iteration/";
     int iteration = 0;
-    while(hdf5GroupExists(file.getId(), (iterationPath + std::to_string(iteration)).c_str()) && hdf5DatasetExists(file.getId(), iterationPath + std::to_string(iteration) + "/costFunParameters")) {
+    while(hdf5GroupExists(file.getId(),
+                          (iterationPath + std::to_string(iteration)).c_str())
+          && hdf5DatasetExists(file, iterationPath + std::to_string(iteration)
+                               + "/costFunParameters")) {
         ++iteration;
     }
     --iteration; // last one did not exist

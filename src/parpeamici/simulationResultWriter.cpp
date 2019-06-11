@@ -64,7 +64,7 @@ void SimulationResultWriter::createDatasets(hsize_t numSimulations)
     // Individual datasets will be created per condition, since we need
     // condition-specific number of timepoints
     // Can only create llh dataset in advance
-    if(saveLlh && !hdf5DatasetExists(file.getId(), llhPath.c_str())) {
+    if(saveLlh && !hdf5DatasetExists(file, llhPath)) {
         hsize_t dims[] = {numSimulations};
         H5::DataSpace dataspace(1, dims);
         hsize_t one = 1;
