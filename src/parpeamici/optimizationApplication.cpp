@@ -134,6 +134,8 @@ void OptimizationApplication::printUsage(char * const argZero)
            "  -s, --first-start-idx Starting point index for first optimization"
            "  -h, --help    Print this help text\n"
            "  -v, --version Print version info\n");
+    printf("\nSupported optimizers:\n");
+    printAvailableOptimizers();
 }
 
 void OptimizationApplication::logParPEVersion(hid_t file_id) const
