@@ -230,6 +230,8 @@ class HDF5DataGenerator:
         """
         self.f = h5py.File(hdf5_file_name, "w")
 
+        self.save_metadata()
+
         print(Fore.GREEN + "Generating simulation condition list...")
         self.generate_simulation_condition_map()
 
@@ -250,6 +252,15 @@ class HDF5DataGenerator:
 
         print(Fore.GREEN + "Writing default optimization options...")
         self.write_optimization_options()
+
+    def save_metadata(self):
+        """Save some extra information in the generated file"""
+
+        g = self.f.require_group('/metadata')
+
+        g.attrs['invocation'] = ' '.join(sys.argv)
+        g.attrs['amici_version'] = amici.__version__
+        # TODO: parPE version
 
     def generate_parameter_list(self) -> None:
         """
