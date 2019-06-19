@@ -31,7 +31,7 @@ def merge_files(in_files, out_file, save_iteration, same_input):
                 if '/inputData' not in f_out:
                     fIn.copy('/inputData', f_out)
                 copy_multistarts(fIn, f_out, start_idx, save_iteration)
-                f_out['multistarts/' + str(start_idx)].attrs['soure_file'] = in_file.split(sep='/')[-1]
+                f_out['multistarts/' + str(start_idx)].attrs['source_file'] = in_file.split(sep='/')[-1]
                 start_idx += 1
     else:
         for in_file in in_files_list:
