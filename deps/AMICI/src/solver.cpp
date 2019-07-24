@@ -8,6 +8,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstring>
+#include <ctime>
 
 namespace amici {
 
@@ -46,12 +47,14 @@ Solver::Solver(const Solver &other) : Solver() {
 
 int Solver::run(const realtype tout) const {
     setStopTime(tout);
+    clock_t starttime = clock();
     int status;
     if (getAdjInitDone()) {
         status = solveF(tout, AMICI_NORMAL, &ncheckPtr);
     } else {
         status = solve(tout, AMICI_NORMAL);
     }
+    cpu_time += (realtype)((clock() - starttime) * 1000) / CLOCKS_PER_SEC;
     return status;
 }
 
@@ -66,7 +69,9 @@ int Solver::step(const realtype tout) const {
 }
 
 void Solver::runB(const realtype tout) const {
+    clock_t starttime = clock();
     solveB(tout, AMICI_NORMAL);
+    cpu_timeB += (realtype)((clock() - starttime) * 1000) / CLOCKS_PER_SEC;
     t = tout;
 }
 
@@ -124,7 +129,7 @@ void Solver::setup(const realtype t0, Model *model, const AmiVector &x0,
     setSuppressAlg(true);
     /* calculate consistent DAE initial conditions (no effect for ODE) */
     if (model->nt() > 1)
-        calcIC(model->t(1));
+        calcIC(model->getTimepoint(1));
 }
 
 void Solver::setupB(int *which, const realtype tf, Model *model,
@@ -874,6 +879,14 @@ void Solver::setQuadInitDoneB(const int which) const {
     if (which >= static_cast<int>(initializedQB.size()))
         initializedQB.resize(which + 1, false);
     initializedQB.at(which) = true;
+}
+
+realtype Solver::getCpuTime() const {
+    return cpu_time;
+}
+
+realtype Solver::getCpuTimeB() const {
+    return cpu_timeB;
 }
 
 void Solver::resetMutableMemory(const int nx, const int nplist,
