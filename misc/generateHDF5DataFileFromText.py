@@ -1151,9 +1151,11 @@ class HDF5DataGenerator:
             [num_params, num_starting_points], 'f8')
         lower = self.f['/parameters/lowerBound'][:]
         upper = self.f['/parameters/upperBound'][:]
-        starting_points[:] = np.transpose(
-            np.random.rand(num_starting_points, num_params) * (
-                    upper - lower) + lower)
+
+        # use PEtab routine for sampling of initial points
+        _, starting_points[:] = \ 
+            self.petab_problem.sample_parameter_startpoints(
+                num_starting_points)
 
         if 'nominalValue' in self.parameter_df:
             self.f['/parameters/nominalValues'] = \
@@ -1208,7 +1210,7 @@ def write_parameter_map(f: h5py.File, mapping_matrix: np.array,
 
 def write_scale_map(f: h5py.File, parameter_scale_mapping: List[List[str]],
                     parameter_df: pd.DataFrame, amici_model: amici.Model):
-    """Write parameter scale mapping to HDF5 dataset"""
+    """Write parameter scale mappiwriteng to HDF5 dataset"""
 
     # for simulation
     # set parameter scaling for all parameters
