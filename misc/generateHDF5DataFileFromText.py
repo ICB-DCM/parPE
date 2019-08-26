@@ -1210,7 +1210,7 @@ def write_parameter_map(f: h5py.File, mapping_matrix: np.array,
 
 def write_scale_map(f: h5py.File, parameter_scale_mapping: List[List[str]],
                     parameter_df: pd.DataFrame, amici_model: amici.Model):
-    """Write parameter scale mappiwriteng to HDF5 dataset"""
+    """Write parameter scale mapping to HDF5 dataset"""
 
     # for simulation
     # set parameter scaling for all parameters
