@@ -9,6 +9,7 @@ namespace amici {
 class Model;
 class ReturnData;
 class Solver;
+class ExpData;
 }
 
 namespace boost {
@@ -104,6 +105,32 @@ class ReturnData {
      */
     void
     applyChainRuleFactorToSimulationResults(const Model *model);
+    
+    /**
+     * Residual function
+     * @param it time index
+     * @param edata ExpData instance containing observable data
+     */
+    void fres(int it, const ExpData &edata);
+    
+    /**
+     * Chi-squared function
+     * @param it time index
+     */
+    void fchi2(int it);
+    
+    /**
+     * Residual sensitivity function
+     * @param it time index
+     * @param edata ExpData instance containing observable data
+     */
+    void fsres(int it, const ExpData &edata);
+    
+    /**
+     * Fisher information matrix function
+     * @param it time index
+     */
+    void fFIM(int it);
 
     /** timepoints (dimension: nt) */
     std::vector<realtype> ts;
@@ -202,10 +229,16 @@ class ReturnData {
     /** employed order forward problem (dimension: nt) */
     std::vector<int> order;
 
+    /** computation time of forward solve [ms] */
+    double cpu_time = 0.0;
+
+    /** computation time of backward solve [ms] */
+    double cpu_timeB = 0.0;
+
     /** flag indicating success of Newton solver */
     int newton_status = 0;
 
-    /** computation time of the Newton solver [s] */
+    /** computation time of the Newton solver [ms] */
     double newton_cpu_time = 0.0;
 
     /** number of Newton steps for steady state problem
