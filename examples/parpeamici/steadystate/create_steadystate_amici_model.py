@@ -129,15 +129,21 @@ def create_data_tables(model, fixed_parameters,
     Arguments:
 
     """
+    timepoints = np.logspace(-5, 1, 20)
     sigma_default = 0.1  # parameters are lin
     sigma_parameter = 0.2
     offset_batch_1 = 3.0
     offset_batch_2 = 4.0
-    offsetted_observable_idx = 4
-    sigma_parameter_observable_idx = 5
-    model_offset_parameter_idx = 6
-    sigma_parameter_idx = 7
-    timepoints = np.logspace(-5, 1, 20)
+
+    parameter_ids = list(model.getParameterIds())
+    observable_ids = list(model.getObservableIds())
+
+    sigma_parameter_observable_idx = \
+        observable_ids.index('observable_x1withsigma')
+    model_offset_parameter_idx = \
+        parameter_ids.index('observableParameter1_x2_offsetted')
+    sigma_parameter_idx = \
+        parameter_ids.index('noiseParameter1_x1withsigma')
 
     # set true parameters
     default_parameters = np.array(model.getParameters())
@@ -187,17 +193,19 @@ def create_data_tables(model, fixed_parameters,
 
     for condition_idx, condition_id in enumerate(condition_df.index.values):
         condition_parameters = condition_df.loc[condition_id, :]
-        print(f'Condition {condition_id}:  {condition_parameters}')
+        print(f'Condition {condition_idx} "{condition_id}":  {condition_parameters}')
 
         # different offset for two "batches"
         batch_id = condition_idx % 2
-        model_parameters = default_parameters
+        model_parameters = default_parameters[:]
         if batch_id == 0:
             model_parameters[
                 model_offset_parameter_idx] = offset_batch_1
         else:
             model_parameters[
                 model_offset_parameter_idx] = offset_batch_2
+
+        print('Model parameters:', model_parameters)
 
         # simulate condition
         rdata = getReturnDataForCondition(
@@ -260,7 +268,6 @@ def getReturnDataForCondition(model, solver, fixed_parameters,
     solver.setSensitivityOrder(amici.SensitivityOrder_first)
     model.requireSensitivitiesForAllParameters()
     rdata = amici.runAmiciSimulation(model, solver, edata)
-
     # TODO: confirm gradient is 0 for real measurements and save expected llh
 
     # return generated noisy measurements

@@ -59,6 +59,7 @@ rule preprocess:
         parpe_model_dir=config["parpe_model_dir"],
         hdf5_training=config['hdf5_training_file']
 
+
 rule optimize:
     """Run optimization"""
     input:
@@ -71,6 +72,20 @@ rule optimize:
         "deleteme/_rank00000.h5"
     shell:
         "{input.optim_exe} -o deleteme/ {input.hdf5_training}"
+
+
+rule gradient_check:
+    """Run finite difference gradient check"""
+    input:
+        optim_exe=os.path.join(
+            config['parpe_model_dir'], 'build',
+            f'estimate_{config["amici_model_dir"]}'),
+        #parpe_model_dir=config['parpe_model_dir'],
+        hdf5_training=config['hdf5_training_file']
+    output:
+        "deletemegc/_rank00000.h5"
+    shell:
+        "{input.optim_exe} -t gradient_check -o deletemegc/ {input.hdf5_training}"
 
 
 # TODO: separate by per-optimization and combined

@@ -3,6 +3,7 @@
 #include <parpecommon/parpeConfig.h>
 #include <parpecommon/misc.h> // getMpiActive
 
+#include <fstream>
 #include <ctime>
 #include <cstdio>
 #include <cmath>
@@ -53,17 +54,17 @@ void logmessage(loglevel lvl, const char *format, va_list argptr) {
 
 void logProcessStats()
 {
-    const int bufSize = 1024;
-    char buffer[bufSize];
-
-    FILE* status = fopen( "/proc/self/status", "r" );
-
-    while (fgets(buffer, bufSize, status)) {
-        buffer[strlen(buffer) - 1] = '\0'; // remove \n
-        printlogmessage(LOGLVL_DEBUG, buffer);
+    std::ifstream file("/proc/self/status");
+    if (file.is_open()) {
+        std::string line;
+        while (std::getline(file, line)) {
+            if(line.rfind("Vm", 0) == 0
+                    || line.rfind("Rss", 0) == 0) {
+                logmessage(LOGLVL_DEBUG, line);
+            }
+        }
+        file.close();
     }
-
-    fclose(status);
 }
 
 void printMPIInfo() {
