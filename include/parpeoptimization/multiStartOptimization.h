@@ -17,7 +17,8 @@ public:
 
     virtual bool restartOnFailure() const { return false; }
 
-    virtual std::unique_ptr<OptimizationProblem> getLocalProblem(int multiStartIndex) const = 0;
+    virtual std::unique_ptr<OptimizationProblem>
+    getLocalProblem(int multiStartIndex) const = 0;
 
     virtual ~MultiStartOptimizationProblem() = default;
 };
@@ -31,7 +32,8 @@ class MultiStartOptimization {
 
   public:
     MultiStartOptimization(MultiStartOptimizationProblem& problem,
-                           bool runParallel = true);
+                           bool runParallel = true,
+                           int first_start_idx = 0);
 
     ~MultiStartOptimization() = default;
 
@@ -70,6 +72,10 @@ class MultiStartOptimization {
 
     /** Run multiple optimizations in parallel */
     bool runParallel = true;
+
+    /** Index value of the first start
+     * Usable when splitting starts across multiple files */
+    int first_start_idx = 0;
 };
 
 } // namespace parpe

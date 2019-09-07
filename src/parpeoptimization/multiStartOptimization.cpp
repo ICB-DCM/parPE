@@ -13,11 +13,13 @@ namespace parpe {
 
 MultiStartOptimization::MultiStartOptimization(
         MultiStartOptimizationProblem &problem,
-        bool runParallel)
+        bool runParallel,
+        int first_start_idx)
     : msProblem(problem),
       numberOfStarts(problem.getNumberOfStarts()),
       restartOnFailure(problem.restartOnFailure()),
-      runParallel(runParallel)
+      runParallel(runParallel),
+      first_start_idx(first_start_idx)
 {
 
 }
@@ -140,7 +142,7 @@ void MultiStartOptimization::runSingleThreaded()
         if(ms == numberOfStarts)
             break;
 
-        auto problem = msProblem.getLocalProblem(ms);
+        auto problem = msProblem.getLocalProblem(first_start_idx + ms);
         auto result = getLocalOptimum(problem.get());
         if(result) {
             logmessage(LOGLVL_DEBUG,
@@ -166,7 +168,7 @@ MultiStartOptimization::createLocalOptimizationProblems() {
     std::vector<OptimizationProblem *> localProblems(numberOfStarts);
 
     for (int ms = 0; ms < numberOfStarts; ++ms) {
-        localProblems[ms] = msProblem.getLocalProblem(ms).release();
+        localProblems[ms] = msProblem.getLocalProblem(first_start_idx + ms).release();
     }
 
     return localProblems;

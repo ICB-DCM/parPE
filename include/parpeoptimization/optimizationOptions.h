@@ -88,6 +88,10 @@ private:
 
 Optimizer* optimizerFactory(optimizerName optimizer);
 
+/**
+ * @brief Print list of supported optimizers
+ */
+void printAvailableOptimizers();
 } // namespace parpe
 
 #endif // OPTIMIZATIONOPTIONS_H

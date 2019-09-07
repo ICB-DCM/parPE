@@ -69,7 +69,8 @@ int OptimizationApplication::init(int argc, char **argv) {
 void OptimizationApplication::runMultiStarts()
 {
     // TODO: use uniqe_ptr, not ref
-    MultiStartOptimization optimizer(*multiStartOptimizationProblem);
+    MultiStartOptimization optimizer(*multiStartOptimizationProblem, true,
+                                     first_start_idx);
     optimizer.run();
 }
 
@@ -94,6 +95,9 @@ int OptimizationApplication::parseOptions(int argc, char **argv) {
         case 'o':
             resultFileName = processResultFilenameCommandLineArgument(optarg);
             break;
+        case 's':
+            first_start_idx = atoi(optarg);
+            break;
         case 'v':
             printf("Version: %s\n", PARPE_VERSION);
             return 1;
@@ -102,6 +106,7 @@ int OptimizationApplication::parseOptions(int argc, char **argv) {
             return 1;
         default:
             printf("Unrecognized option: %c\n", c);
+            exit(EXIT_FAILURE);
         }
     }
 
@@ -126,8 +131,11 @@ void OptimizationApplication::printUsage(char * const argZero)
            "filename)\n"
            "  -t, --task    What to do? Parameter estimation (default) "
            "or check gradient ('gradient_check')\n"
+           "  -s, --first-start-idx Starting point index for first optimization"
            "  -h, --help    Print this help text\n"
            "  -v, --version Print version info\n");
+    printf("\nSupported optimizers:\n");
+    printAvailableOptimizers();
 }
 
 void OptimizationApplication::logParPEVersion(hid_t file_id) const

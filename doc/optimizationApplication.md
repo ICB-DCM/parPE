@@ -2,7 +2,11 @@
 
 **TODO** 
 
-For now see example notebook in amici/examples/steadystate
+For now see example notebook in `../examples/parpeamici/steadystate/`.
+
+## Command line options
+
+Run the created executable with the `-h`/`--help` argument.
 
 ## Output explained
 
@@ -57,4 +61,3 @@ For now see example notebook in amici/examples/steadystate
   
   Note: These variables have no effect in case of shared-memory (non-MPI) execution
    
-  
