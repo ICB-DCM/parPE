@@ -104,9 +104,23 @@ the C++ interface see [`examples/`](examples/) and `*/tests`.
 
 parPE is being used or has been used in the following projects:
 
-- Leonard Schmiester, Yannik Schälte, Fabian Fröhlich, Jan Hasenauer, Daniel Weindl.
+- Leonard Schmiester, Yannik Schälte, Fabian Fröhlich, Jan Hasenauer,
+  Daniel Weindl.
   *Efficient parameterization of large-scale dynamic models based on relative measurements*.
-  bioRxiv 2018.
-  [doi:10.1101/579045](https://www.biorxiv.org/content/10.1101/579045v1)
+  Bioinformatics, btz581, [doi:10.1093/bioinformatics/btz581](https://doi.org/10.1093/bioinformatics/btz581)
+  (preprint: [doi:10.1101/579045](https://www.biorxiv.org/content/10.1101/579045v1)).
 
 - [CanPathPro](http://canpathpro.eu/)
+
+
+## Funding
+
+parPE has been developed within research projects receiving external funding:
+
+* Through  the  European  Union's  Horizon  2020  research  and innovation
+  programme under grant agreement no. 686282
+  ([CanPathPro](http://canpathpro.eu/)).
+
+* Computer resources for testing parPE have been provided among others by the 
+  Gauss Centre for Supercomputing / Leibniz Supercomputing Centre under grant
+  pr62li.
