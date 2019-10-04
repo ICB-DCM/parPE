@@ -1,6 +1,6 @@
 FROM ubuntu:18.04
 
-ADD . /u18
+COPY . /u18
 
 RUN /u18/install.sh && rm -rf /tmp && mkdir /tmp
 
