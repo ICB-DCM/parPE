@@ -518,52 +518,48 @@ class HDF5DataGenerator:
         if parameter_name in self.condition_df.columns:
             # Parameter in condition table
             dset[parameter_index, :] = \
-                self.condition_df.loc[self.condition_ids, parameter_name].values
-        else:
-            # TODO Legacy:
-            sbml_parameter = self.sbml_model.getParameter(parameter_name)
+                self.condition_df.loc[self.condition_ids,
+                                      parameter_name].values
+            return
+
+        sbml_parameter = self.sbml_model.getParameter(parameter_name)
+        if sbml_parameter:
+            # Parameter value from model
+            dset[parameter_index, :] = sbml_parameter.getValue()
+            return
+
+        # Is this a species?
+        sbml_species = self.sbml_model.getSpecies(parameter_name)
+        if sbml_species:
+            # A constant species might have been turned in to a model
+            # parameter
+            # TODO: we dont do any conversion here, although we would
+            #  want to have concentration currently there is only 1.0
+            dset[parameter_index, :] = \
+                sbml_species.getInitialConcentration() \
+                if sbml_species.isSetInitialConcentration() \
+                else sbml_species.getInitialAmount()
+            return
+
+        # We need to check for "globalized" parameter names too
+        # (reactionId_localParameterId)
+        # model has localParameterId, data file has globalized name
+        global_name = get_global_name_for_local_parameter(
+            self.sbml_model, parameter_name)
+        if global_name:
+            sbml_parameter = self.sbml_model.getParameter(
+                global_name)
             if sbml_parameter:
-                # Parameter value from model
-                dset[parameter_index, :] = sbml_parameter.getValue()
-            else:
-                sbml_species = self.sbml_model.getSpecies(parameter_name)
-                if sbml_species:
-                    # A constant species might have been turned in to a model
-                    # parameter
-                    # TODO: we dont do any conversion here, although we would
-                    #  want to have concentration currently there is only 1.0
-                    dset[parameter_index, :] = \
-                        sbml_species.getInitialConcentration() \
-                            if sbml_species.isSetInitialConcentration() \
-                            else sbml_species.getInitialAmount()
-                else:
-                    # We need to check for "globalized" parameter names too
-                    # (reactionId_localParameterId)
-                    # model has localParameterId, data file has globalized name
-                    global_name = get_global_name_for_local_parameter(
-                        self.sbml_model, parameter_name)
-                    if global_name:
-                        sbml_parameter = self.sbml_model.getParameter(
-                            global_name)
-                        if sbml_parameter:
-                            # Use model parameter value
-                            dset[parameter_index, :] = \
-                                sbml_parameter.getValue()
-                        else:
-                            print(Fore.YELLOW + "Warning: Fixed parameter not "
-                                  "found in ExpTable, setting to 0.0: ",
-                                  parameter_name)
-                            dset[parameter_index, :] = 0.0
-                    else:
-                        print(Fore.YELLOW
-                              + "Warning: Fixed parameter not "
-                                "found in ExpTable, setting to 0.0: ",
-                              parameter_name)
-                        dset[parameter_index, :] = 0.0
-            print(Fore.RED + "Parameter not found in condition table. "
-                  "This should not happen:", parameter_name, parameter_index,
-                  "Set to ", dset[parameter_index, :],
-                  " according to legacy code.")
+                # Use model parameter value
+                dset[parameter_index, :] = \
+                    sbml_parameter.getValue()
+                return
+
+        print(Fore.YELLOW
+              + "Warning: Fixed parameter not "
+                "found in ExpTable, setting to 0.0: ",
+              parameter_name)
+        dset[parameter_index, :] = 0.0
 
     def generate_measurement_matrices(self):
         """
