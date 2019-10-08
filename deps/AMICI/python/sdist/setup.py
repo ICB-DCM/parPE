@@ -163,7 +163,7 @@ def main():
             'develop': my_develop,
         },
         version=__version__,
-        description='Advanced multi-language Interface to CVODES and IDAS (%s)',
+        description='Advanced multi-language Interface to CVODES and IDAS',
         long_description=long_description,
         long_description_content_type="text/markdown",
         url='https://github.com/ICB-DCM/AMICI',
@@ -185,7 +185,8 @@ def main():
                           'pkgconfig'],
         setup_requires=['setuptools>=40.6.3'],
         python_requires='>=3.6',
-        extras_require={'wurlitzer': ['wurlitzer']},
+        extras_require={'wurlitzer': ['wurlitzer'],
+                        'petab': ['petab>=0.0.0a14']},
         package_data={
             'amici': ['amici/include/amici/*',
                       'src/*template*',

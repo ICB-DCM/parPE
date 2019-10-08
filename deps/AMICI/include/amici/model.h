@@ -183,7 +183,7 @@ class Model : public AbstractModel {
      * @param sx pointer to state variable sensititivies
      * @param x pointer to state variables
      */
-    void initializeStateSensitivities(AmiVectorArray &sx, AmiVector &x);
+    void initializeStateSensitivities(AmiVectorArray &sx, const AmiVector &x);
 
     /**
      * Initialises the heaviside variables h at the intial time t0
@@ -191,7 +191,7 @@ class Model : public AbstractModel {
      * @param x pointer to state variables
      * @param dx pointer to time derivative of states (DAE only)
      */
-    void initHeaviside(AmiVector &x, AmiVector &dx);
+    void initHeaviside(const AmiVector &x, const AmiVector &dx);
 
     /**
      * @brief Number of parameters wrt to which sensitivities are computed
@@ -524,7 +524,7 @@ class Model : public AbstractModel {
      * @param it time index
      * @return t timepoint
      */
-    realtype getTimepoint(const int it) const;
+    realtype getTimepoint(int it) const;
 
     /**
      * @brief Set the timepoint vector
@@ -1458,8 +1458,6 @@ class Model : public AbstractModel {
      * @brief Recurring terms in xdot, parameter derivative
      * @param t timepoint
      * @param x array with the states
-     * @return flag indicating whether dwdp will be returned in dense storage
-     * dense: true, sparse: false
      */
     void fdwdp(realtype t, const realtype *x);
 
