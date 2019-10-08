@@ -11,7 +11,7 @@
 #include <gsl/gsl-lite.hpp>
 
 namespace amici {
-    
+
 /**
  * @brief creates a slice from existing data
  *
@@ -20,9 +20,9 @@ namespace amici {
  * @param size slice size
  * @return span of the slice
  */
- 
- gsl::span<realtype> slice(std::vector<realtype> &data, const int index,
-                           const unsigned size);
+
+ gsl::span<realtype> slice(std::vector<realtype> &data, int index,
+                           unsigned size);
 
 /**
  * @brief Checks the values in an array for NaNs and Infs
@@ -42,8 +42,6 @@ int checkFinite(gsl::span<const realtype> array, const char* fun);
   * @param bufferScaled scaled parameters
   * @param pscale parameter scaling
   * @param bufferUnscaled unscaled parameters are written to the array
-  *
-  * @return status flag indicating success of execution @type int
   */
 void unscaleParameters(gsl::span<const realtype> bufferScaled,
                        gsl::span<const ParameterScaling> pscale,
