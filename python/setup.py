@@ -15,6 +15,7 @@ setup(
                       'amici>=0.10.10',
                       'h5py',
                       'python-libsbml>=5.17.0',
-                      'jinja2'
+                      'jinja2',
+                      'snakemake'
                       ],
 )
