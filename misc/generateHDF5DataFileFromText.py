@@ -1149,7 +1149,7 @@ class HDF5DataGenerator:
         upper = self.f['/parameters/upperBound'][:]
 
         # use PEtab routine for sampling of initial points
-        _, starting_points[:] = \ 
+        _, starting_points[:] = \
             self.petab_problem.sample_parameter_startpoints(
                 num_starting_points)
 
