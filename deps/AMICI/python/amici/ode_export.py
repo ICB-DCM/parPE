@@ -288,9 +288,6 @@ class ModelQuantity:
 
             value: either formula, numeric value or initial value
 
-        Returns:
-        ModelQuantity instance
-
         Raises:
         TypeError:
             is thrown if input types do not match documented types
@@ -391,9 +388,6 @@ class State(ModelQuantity):
 
             dt: time derivative @type symengine.Basic
 
-        Returns:
-        ModelQuantity instance
-
         Raises:
         TypeError:
             is thrown if input types do not match documented types
@@ -474,9 +468,6 @@ class ConservationLaw(ModelQuantity):
 
             value: formula (sum of states) @type symengine.Basic
 
-        Returns:
-        ModelQuantity instance
-
         Raises:
         TypeError:
             is thrown if input types do not match documented types
@@ -499,9 +490,6 @@ class Observable(ModelQuantity):
             unique) @type str
 
             value: formula @type symengine.Basic
-
-        Returns:
-        ModelQuantity instance
 
         Raises:
         TypeError:
@@ -526,9 +514,6 @@ class SigmaY(ModelQuantity):
             be unique) @type str
 
             value: formula @type symengine.Basic
-
-        Returns:
-        ModelQuantity instance
 
         Raises:
         TypeError:
@@ -555,9 +540,6 @@ class Expression(ModelQuantity):
 
             value: formula @type symengine.Basic
 
-        Returns:
-        ModelQuantity instance
-
         Raises:
         TypeError:
             is thrown if input types do not match documented types
@@ -582,9 +564,6 @@ class Parameter(ModelQuantity):
 
             value: numeric value @type float
 
-        Returns:
-        ModelQuantity instance
-
         Raises:
         TypeError:
             is thrown if input types do not match documented types
@@ -608,9 +587,6 @@ class Constant(ModelQuantity):
              @type str
 
             value: numeric value @type float
-
-        Returns:
-        ModelQuantity instance
 
         Raises:
         TypeError:
@@ -638,9 +614,6 @@ class LogLikelihood(ModelQuantity):
              unique) @type str
 
             value: formula @type symengine.Basic
-
-        Returns:
-        ModelQuantity instance
 
         Raises:
         TypeError:
@@ -745,9 +718,6 @@ class ODEModel:
         """Create a new ODEModel instance.
 
         Arguments:
-
-        Returns:
-        New ODEModel instance
 
         Raises:
 
@@ -1859,7 +1829,6 @@ class ODEExporter:
             python extension @type str
 
             allow_reinit_fixpar_initcond: see ODEExporter
-        Returns:
 
         Raises:
 
@@ -2451,7 +2420,8 @@ class ODEExporter:
                            + '_rowvals.cpp ')
 
         templateData = {'MODELNAME': self.modelName,
-                        'SOURCES': '\n'.join(sources)}
+                        'SOURCES': '\n'.join(sources),
+                        'AMICI_VERSION': __version__}
         applyTemplate(
             MODEL_CMAKE_TEMPLATE_FILE,
             os.path.join(self.modelPath, 'CMakeLists.txt'),
@@ -2495,7 +2465,8 @@ class ODEExporter:
                         'PACKAGE_VERSION': '0.1.0'}
         applyTemplate(os.path.join(amiciModulePath, 'setup.template.py'),
                       os.path.join(self.modelPath, 'setup.py'), templateData)
-
+        applyTemplate(os.path.join(amiciModulePath, 'MANIFEST.template.in'),
+                      os.path.join(self.modelPath, 'MANIFEST.in'), {})
         # write __init__.py for the model module
         if not os.path.exists(os.path.join(self.modelPath, self.modelName)):
             os.makedirs(os.path.join(self.modelPath, self.modelName))

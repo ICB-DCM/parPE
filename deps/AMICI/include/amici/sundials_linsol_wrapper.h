@@ -82,7 +82,6 @@ class SUNLinSolWrapper {
      * @brief Performs any linear solver setup needed, based on an updated
      * system matrix A.
      * @param A
-     * @return
      */
     void setup(SUNMatrix A) const;
 
@@ -90,7 +89,6 @@ class SUNLinSolWrapper {
      * @brief Performs any linear solver setup needed, based on an updated
      * system matrix A.
      * @param A
-     * @return
      */
     void setup(const SUNMatrixWrapper& A) const;
 
@@ -100,13 +98,13 @@ class SUNLinSolWrapper {
      * @param x A template for cloning vectors needed within the solver.
      * @param b
      * @param tol Tolerance (weighted 2-norm), iterative solvers only
-     * @return
+     * @return error flag
      */
     int Solve(SUNMatrix A, N_Vector x, N_Vector b, realtype tol) const;
 
     /**
      * @brief Returns the last error flag encountered within the linear solver
-     * @return
+     * @return error flag
      */
     long int getLastFlag() const;
 
@@ -114,13 +112,13 @@ class SUNLinSolWrapper {
      * @brief Returns the integer and real workspace sizes for the linear solver
      * @param lenrwLS output argument for size of real workspace
      * @param leniwLS output argument for size of interger workspace
-     * @return
+     * @return workspace size
      */
     int space(long int *lenrwLS, long int *leniwLS) const;
 
     /**
      * @brief Get the matrix A (matrix solvers only).
-     * @return
+     * @return A
      */
     virtual SUNMatrix getMatrix() const;
 
@@ -128,7 +126,7 @@ class SUNLinSolWrapper {
     /**
      * @brief Performs linear solver initialization (assumes that all
      * solver-specific options have been set).
-     * @return
+     * @return error code
      */
     int initialize();
 
@@ -380,8 +378,8 @@ class SUNLinSolSPBCGS : public SUNLinSolWrapper {
      * PREC_BOTH)
      * @param maxl Maximum number of solver iterations
      */
-    SUNLinSolSPBCGS(N_Vector x, int pretype = PREC_NONE,
-                    int maxl = SUNSPBCGS_MAXL_DEFAULT);
+    explicit SUNLinSolSPBCGS(N_Vector x, int pretype = PREC_NONE,
+                             int maxl = SUNSPBCGS_MAXL_DEFAULT);
 
     /**
      * @brief SUNLinSolSPBCGS
@@ -390,8 +388,8 @@ class SUNLinSolSPBCGS : public SUNLinSolWrapper {
      * PREC_BOTH)
      * @param maxl Maximum number of solver iterations
      */
-    SUNLinSolSPBCGS(AmiVector const &x, int pretype = PREC_NONE,
-                    int maxl = SUNSPBCGS_MAXL_DEFAULT);
+    explicit SUNLinSolSPBCGS(AmiVector const &x, int pretype = PREC_NONE,
+                             int maxl = SUNSPBCGS_MAXL_DEFAULT);
 
     /**
      * @brief Sets the function pointer for ATimes
@@ -523,8 +521,8 @@ class SUNLinSolSPGMR : public SUNLinSolWrapper {
      * PREC_BOTH)
      * @param maxl Maximum number of solver iterations
      */
-    SUNLinSolSPGMR(AmiVector const &x, int pretype = PREC_NONE,
-                   int maxl = SUNSPGMR_MAXL_DEFAULT);
+    explicit SUNLinSolSPGMR(AmiVector const &x, int pretype = PREC_NONE,
+                            int maxl = SUNSPGMR_MAXL_DEFAULT);
 
     /**
      * @brief Sets the function pointer for ATimes
@@ -590,8 +588,8 @@ class SUNLinSolSPTFQMR : public SUNLinSolWrapper {
      * PREC_BOTH)
      * @param maxl Maximum number of solver iterations
      */
-    SUNLinSolSPTFQMR(N_Vector x, int pretype = PREC_NONE,
-                     int maxl = SUNSPTFQMR_MAXL_DEFAULT);
+    explicit SUNLinSolSPTFQMR(N_Vector x, int pretype = PREC_NONE,
+                              int maxl = SUNSPTFQMR_MAXL_DEFAULT);
 
     /**
      * @brief Create SPTFQMR solver
@@ -600,8 +598,8 @@ class SUNLinSolSPTFQMR : public SUNLinSolWrapper {
      * PREC_BOTH)
      * @param maxl Maximum number of solver iterations
      */
-    SUNLinSolSPTFQMR(AmiVector const &x, int pretype = PREC_NONE,
-                     int maxl = SUNSPTFQMR_MAXL_DEFAULT);
+    explicit SUNLinSolSPTFQMR(AmiVector const &x, int pretype = PREC_NONE,
+                              int maxl = SUNSPTFQMR_MAXL_DEFAULT);
 
     /**
      * @brief Sets the function pointer for ATimes
@@ -788,7 +786,6 @@ class SUNNonLinSolWrapper {
   protected:
     /**
      * @brief initialize
-     * @return
      */
     void initialize();
 
@@ -837,7 +834,7 @@ class SUNNonLinSolFixedPoint : public SUNNonLinSolWrapper {
      * @param x template for cloning vectors needed within the solver.
      * @param m number of acceleration vectors to use
      */
-    SUNNonLinSolFixedPoint(const_N_Vector x, int m = 0);
+    explicit SUNNonLinSolFixedPoint(const_N_Vector x, int m = 0);
 
     /**
      * @brief Create fixed-point solver for use with sensitivity analysis

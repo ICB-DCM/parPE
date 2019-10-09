@@ -35,7 +35,7 @@ split_version(${PARPE_VERSION} libname major minor patch)
 
 
 # <Build options>
-set(BUILD_TESTS TRUE CACHE BOOL "Build tests? (requires googletest)")
+set(BUILD_TESTS FALSE CACHE BOOL "Build tests? (requires googletest)")
 set(BUILD_EXAMPLES TRUE CACHE BOOL "Build examples?")
 set(BUILD_DOCS FALSE CACHE BOOL "Generate documentation?")
 set(BUILD_PYTHON_MODULE FALSE CACHE BOOL "Build Python module?")

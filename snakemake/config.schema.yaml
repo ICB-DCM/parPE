@@ -1,0 +1,61 @@
+$schema: "http://json-schema.org/draft-06/schema#"
+description: Config file for the parPE snakemake optimization workflow
+properties:
+
+  petab:
+    type: object
+    description: PEtab problem
+    properties:
+
+      root:
+        type: string
+        description: Directory with PEtab files
+      sbml_file:
+        type: string
+        description: PEtab SBML file
+      measurement_file:
+        type: string
+        description: PEtab measurement file
+      condition_file:
+        type: string
+        description: PEtab condition file
+      parameter_file:
+        type: string
+        description: PEtab parameter file
+
+  model_name:
+    type: string
+    description: Model name
+
+  amici_build_dir:
+    type: string
+    description: AMICI build directory root
+  amici_src_dir:
+    type: string
+    description: AMICI source directory root
+
+  parpe_build_dir:
+    type: string
+    description: ParPE build directory root
+  parpe_src_dir:
+    type: string
+    description: ParPE source directory root
+
+  optimization:
+    type: object
+    description: Optimization options
+    properties:
+      num_starts:
+        type: integer
+        description: Number of optimizer runs
+      max_iter:
+        type: integer
+        description: Number of optimizer iterations
+
+required:
+  - petab
+  - model_name
+  - amici_build_dir
+  - amici_src_dir
+  - parpe_src_dir
+  - parpe_build_dir

@@ -13,6 +13,7 @@ CC=mpicc CXX=mpiCC cmake \
       -DCERES_INCLUDE_DIRS="/usr/include/;/usr/include/eigen3" \
       -DMPI_INCLUDE_DIRS=/usr/include/openmpi-x86_64/ \
       -DGCOVR_REPORT=TRUE \
+      -DBUILD_TESTS=TRUE \
       ..
 
 make -j12 VERBOSE=1

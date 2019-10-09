@@ -1,6 +1,6 @@
 """Workflow for optimization and analysis of PEtab model"""
 
-from snakemake.utils import min_version
+from snakemake.utils import min_version, validate
 min_version("3.2")
 
 from pprint import pprint
@@ -12,7 +12,7 @@ matplotlib.use('agg')
 import matplotlib.pyplot as plt
 
 configfile: "parpe_optimize_petab.yaml"
-
+validate(config, "config.schema.yaml")
 
 def process_config(config):
     """Process configuration entries"""
@@ -59,6 +59,7 @@ rule preprocess:
         parpe_model_dir=config["parpe_model_dir"],
         hdf5_training=config['hdf5_training_file']
 
+
 rule optimize:
     """Run optimization"""
     input:
@@ -71,6 +72,20 @@ rule optimize:
         "deleteme/_rank00000.h5"
     shell:
         "{input.optim_exe} -o deleteme/ {input.hdf5_training}"
+
+
+rule gradient_check:
+    """Run finite difference gradient check"""
+    input:
+        optim_exe=os.path.join(
+            config['parpe_model_dir'], 'build',
+            f'estimate_{config["amici_model_dir"]}'),
+        #parpe_model_dir=config['parpe_model_dir'],
+        hdf5_training=config['hdf5_training_file']
+    output:
+        "deletemegc/_rank00000.h5"
+    shell:
+        "{input.optim_exe} -t gradient_check -o deletemegc/ {input.hdf5_training}"
 
 
 # TODO: separate by per-optimization and combined

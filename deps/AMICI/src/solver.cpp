@@ -8,50 +8,37 @@
 #include <cmath>
 #include <cstdio>
 #include <cstring>
+#include <ctime>
 
 namespace amici {
 
 extern msgIdAndTxtFp warnMsgIdAndTxt;
 
-Solver::Solver(const Solver &other) : Solver() {
-    t = nan("");
-    ncheckPtr = 0;
-    sensi = other.sensi;
-    atol = other.atol;
-    rtol = other.rtol;
-    atol_fsa = other.atol_fsa;
-    rtol_fsa = other.rtol_fsa;
-    atolB = other.atolB;
-    rtolB = other.rtolB;
-    quad_atol = other.quad_atol;
-    quad_rtol = other.quad_rtol;
-    ss_atol = other.ss_atol;
-    ss_rtol = other.ss_rtol;
-    ss_atol_sensi = other.ss_atol_sensi;
-    ss_rtol_sensi = other.ss_rtol_sensi;
-    maxsteps = other.maxsteps;
-    maxstepsB = other.maxstepsB;
-    newton_maxsteps = other.newton_maxsteps;
-    newton_maxlinsteps = other.newton_maxlinsteps;
-    newton_preeq = other.newton_preeq;
-    ism = other.ism;
-    sensi_meth = other.sensi_meth;
-    linsol = other.linsol;
-    interpType = other.interpType;
-    lmm = other.lmm;
-    iter = other.iter;
-    stldet = other.stldet;
-    ordering = other.ordering;
-}
+Solver::Solver(const Solver &other)
+    : ism(other.ism), lmm(other.lmm), iter(other.iter),
+      interpType(other.interpType), maxsteps(other.maxsteps), t(nan("")),
+      sensi_meth(other.sensi_meth), stldet(other.stldet),
+      ordering(other.ordering), newton_maxsteps(other.newton_maxsteps),
+      newton_maxlinsteps(other.newton_maxlinsteps),
+      requires_preequilibration(other.requires_preequilibration), linsol(other.linsol),
+      atol(other.atol), rtol(other.rtol), atol_fsa(other.atol_fsa),
+      rtol_fsa(other.rtol_fsa), atolB(other.atolB), rtolB(other.rtolB),
+      quad_atol(other.quad_atol), quad_rtol(other.quad_rtol),
+      ss_atol(other.ss_atol), ss_rtol(other.ss_rtol),
+      ss_atol_sensi(other.ss_atol_sensi), ss_rtol_sensi(other.ss_rtol_sensi),
+      maxstepsB(other.maxstepsB), sensi(other.sensi)
+{}
 
 int Solver::run(const realtype tout) const {
     setStopTime(tout);
+    clock_t starttime = clock();
     int status;
     if (getAdjInitDone()) {
         status = solveF(tout, AMICI_NORMAL, &ncheckPtr);
     } else {
         status = solve(tout, AMICI_NORMAL);
     }
+    cpu_time += (realtype)((clock() - starttime) * 1000) / CLOCKS_PER_SEC;
     return status;
 }
 
@@ -66,7 +53,9 @@ int Solver::step(const realtype tout) const {
 }
 
 void Solver::runB(const realtype tout) const {
+    clock_t starttime = clock();
     solveB(tout, AMICI_NORMAL);
+    cpu_timeB += (realtype)((clock() - starttime) * 1000) / CLOCKS_PER_SEC;
     t = tout;
 }
 
@@ -124,7 +113,7 @@ void Solver::setup(const realtype t0, Model *model, const AmiVector &x0,
     setSuppressAlg(true);
     /* calculate consistent DAE initial conditions (no effect for ODE) */
     if (model->nt() > 1)
-        calcIC(model->t(1));
+        calcIC(model->getTimepoint(1));
 }
 
 void Solver::setupB(int *which, const realtype tf, Model *model,
@@ -389,7 +378,7 @@ bool operator==(const Solver &a, const Solver &b) {
            (a.ordering == b.ordering) &&
            (a.newton_maxsteps == b.newton_maxsteps) &&
            (a.newton_maxlinsteps == b.newton_maxlinsteps) &&
-           (a.newton_preeq == b.newton_preeq) && (a.ism == b.ism) &&
+           (a.requires_preequilibration == b.requires_preequilibration) && (a.ism == b.ism) &&
            (a.linsol == b.linsol) && (a.atol == b.atol) && (a.rtol == b.rtol) &&
            (a.maxsteps == b.maxsteps) && (a.maxstepsB == b.maxstepsB) &&
            (a.quad_atol == b.quad_atol) && (a.quad_rtol == b.quad_rtol) &&
@@ -490,10 +479,10 @@ void Solver::setNewtonMaxSteps(const int newton_maxsteps) {
     this->newton_maxsteps = newton_maxsteps;
 }
 
-bool Solver::getNewtonPreequilibration() const { return newton_preeq; }
+bool Solver::getPreequilibration() const { return requires_preequilibration; }
 
-void Solver::setNewtonPreequilibration(const bool newton_preeq) {
-    this->newton_preeq = newton_preeq;
+void Solver::setPreequilibration(const bool require_preequilibration) {
+    this->requires_preequilibration = require_preequilibration;
 }
 
 int Solver::getNewtonMaxLinearSteps() const { return newton_maxlinsteps; }
@@ -874,6 +863,14 @@ void Solver::setQuadInitDoneB(const int which) const {
     if (which >= static_cast<int>(initializedQB.size()))
         initializedQB.resize(which + 1, false);
     initializedQB.at(which) = true;
+}
+
+realtype Solver::getCpuTime() const {
+    return cpu_time;
+}
+
+realtype Solver::getCpuTimeB() const {
+    return cpu_timeB;
 }
 
 void Solver::resetMutableMemory(const int nx, const int nplist,

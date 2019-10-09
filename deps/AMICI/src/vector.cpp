@@ -1,5 +1,7 @@
 #include "amici/vector.h"
 
+#include <functional>
+
 namespace amici {
 
 AmiVector &AmiVector::operator=(AmiVector const &other) {
@@ -23,8 +25,8 @@ int AmiVector::getLength() const { return static_cast<int>(vec.size()); }
 void AmiVector::reset() { set(0.0); }
 
 void AmiVector::minus() {
-    for (auto & it : vec)
-        it = -it;
+    std::transform(vec.begin(), vec.end(),
+                   vec.begin(), std::negate<realtype>());
 }
 
 void AmiVector::set(realtype val) { std::fill(vec.begin(), vec.end(), val); }

@@ -370,6 +370,12 @@ void writeReturnDataDiagnosis(const ReturnData &rdata,
     H5LTset_attribute_double(file.getId(), hdf5Location.c_str(),
                              "newton_cpu_time", &rdata.newton_cpu_time, 1);
 
+    H5LTset_attribute_double(file.getId(), hdf5Location.c_str(),
+                             "cpu_time", &rdata.cpu_time, 1);
+    
+    H5LTset_attribute_double(file.getId(), hdf5Location.c_str(),
+                             "cpu_timeB", &rdata.cpu_timeB, 1);
+    
     if (!rdata.J.empty())
         createAndWriteDouble2DDataset(file, hdf5Location + "/J", rdata.J,
                                       rdata.nx, rdata.nx);
@@ -618,7 +624,7 @@ void readSolverSettingsFromHDF5(H5::H5File const& file, Solver &solver,
     }
 
     if(attributeExists(file, datasetPath, "newton_preeq")) {
-        solver.setNewtonPreequilibration(
+        solver.setPreequilibration(
                     getIntScalarAttribute(file, datasetPath, "newton_preeq"));
     }
 

@@ -2,6 +2,7 @@
 #define AMICI_EDATA_H
 
 #include "amici/defines.h"
+#include "amici/vector.h"
 
 #include <vector>
 
@@ -497,7 +498,7 @@ class ConditionContext {
      * @param model
      * @param edata
      */
-    ConditionContext(Model *model, const ExpData *edata = nullptr);
+    explicit ConditionContext(Model *model, const ExpData *edata = nullptr);
 
     ~ConditionContext();
 

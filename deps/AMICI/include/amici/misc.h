@@ -7,10 +7,23 @@
 #include <algorithm>
 #include <vector>
 #include <memory>
+#include <regex>
 
 #include <gsl/gsl-lite.hpp>
 
 namespace amici {
+
+/**
+ * @brief creates a slice from existing data
+ *
+ * @param data to be sliced
+ * @param index slice index
+ * @param size slice size
+ * @return span of the slice
+ */
+
+ gsl::span<realtype> slice(std::vector<realtype> &data, int index,
+                           unsigned size);
 
 /**
  * @brief Checks the values in an array for NaNs and Infs
@@ -30,8 +43,6 @@ int checkFinite(gsl::span<const realtype> array, const char* fun);
   * @param bufferScaled scaled parameters
   * @param pscale parameter scaling
   * @param bufferUnscaled unscaled parameters are written to the array
-  *
-  * @return status flag indicating success of execution @type int
   */
 void unscaleParameters(gsl::span<const realtype> bufferScaled,
                        gsl::span<const ParameterScaling> pscale,
@@ -74,6 +85,12 @@ void scaleParameters(gsl::span<const realtype> bufferUnscaled,
  */
 std::string backtraceString(int maxFrames);
 
+/**
+ * @brief Convert std::regex_constants::error_type to string
+ * @param err_type error type
+ * @return Error type as string
+ */
+std::string regexErrorToString(std::regex_constants::error_type err_type);
 
 } // namespace amici
 

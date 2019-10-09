@@ -17,12 +17,12 @@
 
 namespace amici {
     
-SteadystateProblem::SteadystateProblem(const Solver *solver):
+SteadystateProblem::SteadystateProblem(const Solver *solver,
+                                       const AmiVector &x0):
     t(solver->gett()), delta(solver->nx()), ewt(solver->nx()),
-    rel_x_newton(solver->nx()), x_newton(solver->nx()),
-    x(solver->getState(solver->gett())), x_old(solver->nx()),
-    dx(solver->nx()), xdot(solver->nx()), xdot_old(solver->nx()),
-    sx(solver->getStateSensitivity(solver->gett())),
+    rel_x_newton(solver->nx()), x_newton(solver->nx()), x(x0),
+    x_old(solver->nx()), dx(solver->nx()), xdot(solver->nx()),
+    xdot_old(solver->nx()), sx(solver->getStateSensitivity(solver->gett())),
     sdx(solver->nx(), solver->nplist()) {}
 
 void SteadystateProblem::workSteadyStateProblem(ReturnData *rdata,
@@ -61,7 +61,7 @@ void SteadystateProblem::workSteadyStateProblem(ReturnData *rdata,
             if (it < 1) /* No previous time point computed, set t = t0 */
                 t = model->t0();
             else /* Carry on simulating from last point */
-                t = model->t(it - 1);
+                t = model->getTimepoint(it - 1);
             if (it < 0) {
                 /* Preequilibration? -> Create a new CVode object for sim */
                 auto newtonSimSolver =
