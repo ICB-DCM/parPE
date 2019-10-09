@@ -1,6 +1,6 @@
 """Workflow for optimization and analysis of PEtab model"""
 
-from snakemake.utils import min_version
+from snakemake.utils import min_version, validate
 min_version("3.2")
 
 from pprint import pprint
@@ -12,7 +12,7 @@ matplotlib.use('agg')
 import matplotlib.pyplot as plt
 
 configfile: "parpe_optimize_petab.yaml"
-
+validate(config, "config.schema.yaml")
 
 def process_config(config):
     """Process configuration entries"""

@@ -8,7 +8,8 @@ set -x
 HDF5_FILE=$1
 HDF5_FILE_TEST=$2
 MPIEXEC="mpiexec --oversubscribe -n 5"
-test -v SHIPPABLE && MPIEXEC="${MPIEXEC} --allow-run-as-root"
+# Allow running as root in docker
+grep docker /proc/1/cgroup -qa && MPIEXEC="${MPIEXEC} --allow-run-as-root"
 
 rm -f test.log
 
