@@ -50,10 +50,17 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(amici::Solve
 /**
  * @brief Run simulations (no gradient) with given parameters and collect
  * model outputs
+ * @param dataProvider
+ * @param loadBalancer
+ * @param maxSimulationsPerPackage
+ * @param resultWriter
+ * @param logLineSearch
  * @param parameters Model parameters for simulation
  * @param modelOutput in: some vector reference, will be resized.
  * output: Vector of double vectors containing AMICI ReturnData::y
  * (nt x ny, column-major)
+ * @param logger
+ * @param cpuTime
  * @return Simulation status
  */
 FunctionEvaluationStatus getModelOutputs(
@@ -68,6 +75,9 @@ FunctionEvaluationStatus getModelOutputs(
 
 /**
  * @brief Callback function for LoadBalancer
+ * @param dataProvider
+ * @param resultWriter
+ * @param logLineSearch
  * @param buffer In/out: message buffer
  * @param jobId: In: Identifier of the job (unique up to INT_MAX)
  */
