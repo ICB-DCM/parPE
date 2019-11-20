@@ -36,7 +36,7 @@ CC=mpicc CXX=mpiCC cmake \
       -DCERES_INCLUDE_DIRS="/usr/include/;/usr/include/eigen3" \
       -DMPI_INCLUDE_DIRS=/usr/include/openmpi-x86_64/ \
       -DBUILD_TESTS=ON \
-      "-DTESTS_MPIEXEC_COMMAND=mpiexec;--allow-run-as-root;-n;4;--oversubscribe"
+      "-DTESTS_MPIEXEC_COMMAND=mpiexec;--allow-run-as-root;-n;4;--oversubscribe" \
       ..
 make -j12 VERBOSE=1
 
