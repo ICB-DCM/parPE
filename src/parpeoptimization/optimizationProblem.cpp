@@ -1,7 +1,8 @@
+#include <parpeoptimization/optimizationProblem.h>
+
 #include <parpecommon/logging.h>
 #include <parpecommon/misc.h>
 #include <parpecommon/parpeException.h>
-#include <parpeoptimization/optimizationProblem.h>
 #include <parpeoptimization/optimizationOptions.h>
 #include <parpeoptimization/optimizer.h>
 #include <parpeoptimization/minibatchOptimization.h>

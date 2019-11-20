@@ -97,11 +97,10 @@ std::string getBacktrace(int nMaxFrames = 20);
 double randDouble(double min, double max);
 
 /**
- * @brief fillArrayRandomDoubleIndividualInterval Fill "buffer" with "length"
+ * @brief fillArrayRandomDoubleIndividualInterval Fill "buffer" with
  * random double values, drawn from an interval [min, max] given for each value.
  * @param min
  * @param max
- * @param length
  * @param buffer
  */
 void fillArrayRandomDoubleIndividualInterval(gsl::span<const double> min,
