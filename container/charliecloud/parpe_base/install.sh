@@ -96,19 +96,20 @@ apt-get install -q -y git
 #echo "================= Adding awscli 1.14.64 ============"
 #sudo pip install -q 'awscli==1.14.64'
 
-#echo "================= parPE requirements ============"
-apt-get install gfortran libmpich-dev libatlas-base-dev libboost-all-dev libhdf5-dev cmake libceres-dev coinor-libipopt-dev swig3.0 python3-venv hdf5-tools libpython-dev
+echo "================= parPE requirements ============"
+# using openmpi coming with libboost-all-dev instead of libmpich-dev
+apt-get install gfortran libatlas-base-dev libboost-all-dev libhdf5-dev cmake libceres-dev coinor-libipopt-dev swig3.0 python3-venv hdf5-tools libpython-dev
 # for setuptools to find:
 ln -s /usr/bin/swig3.0 /usr/bin/swig
 python3 -m pip install --upgrade pip
 pip3 install -U setuptools pkgconfig wheel
 
 # echo "================= Intalling Shippable CLIs ================="
-# 
+#
 # git clone https://github.com/Shippable/node.git nodeRepo
 # ./nodeRepo/shipctl/x86_64/Ubuntu_16.04/install.sh
 # rm -rf nodeRepo
-# 
+#
 # echo "Installed Shippable CLIs successfully"
 # echo "-------------------------------------"
 
