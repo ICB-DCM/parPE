@@ -3,10 +3,10 @@ set -e
 
 cd
 
-# Clone clean repository
-git clone --single-branch --branch feature_charlie --depth=1 https://github.com/ICB-DCM/parPE.git
+# unpack git archive
+mkdir parPE && cd parPE
+tar -xzf /u18/parpe.tar.gz
 
-cd parPE
 export PARPE_BASE=$(pwd)
 
 # Build dependencies
