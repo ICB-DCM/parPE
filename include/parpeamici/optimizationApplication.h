@@ -166,6 +166,7 @@ protected:
 
 /**
  * @brief CPU time for whole application run
+ * @param file_id
  * @param timeInSeconds
  */
 void saveTotalCpuTime(hid_t file_id, const double timeInSeconds);
