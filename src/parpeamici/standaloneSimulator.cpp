@@ -272,7 +272,33 @@ AmiciSimulationRunner::AmiciResultPackageSimple StandaloneSimulator::runSimulati
     // currently requires edata, since all condition specific parameters are set via edata
     auto edata = dataProvider->getExperimentalDataForCondition(conditionIdx);
 
-    auto rdata = amici::runAmiciSimulation(solver, edata.get(), model);
+    // redirect AMICI output to parPE logging
+    Logger logger("c" + std::to_string(conditionIdx));
+    amici::AmiciApplication amiciApp;
+    amiciApp.error = [&logger](
+            std::string const& identifier,
+            std::string const& message){
+        if(!identifier.empty()) {
+            logger.logmessage(LOGLVL_ERROR, "[" + identifier + "] " + message);
+        } else {
+            logger.logmessage(LOGLVL_ERROR, message);
+        }
+    };
+    amiciApp.warning = [&logger](
+            std::string const& identifier,
+            std::string const& message){
+        if(!identifier.empty()) {
+            logger.logmessage(LOGLVL_WARNING,
+                               "[" + identifier + "] " + message);
+        } else {
+            logger.logmessage(LOGLVL_WARNING, message);
+        }
+    };
+    model.app = &amiciApp; // TODO: may dangle need to unset on exit
+    solver.app = &amiciApp; // TODO: may dangle need to unset on exit
+
+
+    auto rdata = amiciApp.runAmiciSimulation(solver, edata.get(), model);
 
     RELEASE_ASSERT(rdata != nullptr, "");
 
