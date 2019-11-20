@@ -73,10 +73,13 @@ class AmiciSimulationRunner {
 
     /**
      * @brief SimulationRunner
+     * @param optimizationParameters
+     * @param sensitivityOrder
+     * @param conditionIndices
      * @param callbackJobFinished Function which is called after any finished simulation.  May be nullptr.
      * @param aggregate Function which is called after all simulations are completed. May be nullptr.
+     * @param logPrefix
      */
-
     AmiciSimulationRunner(const std::vector<double> &optimizationParameters,
                           amici::SensitivityOrder sensitivityOrder,
                           const std::vector<int> &conditionIndices,
@@ -90,6 +93,7 @@ class AmiciSimulationRunner {
     /**
      * @brief Dispatch simulation jobs using LoadBalancerMaster
      * @param loadBalancer
+     * @param maxSimulationsPerPackage
      * @return
      */
     int runDistributedMemory(LoadBalancerMaster *loadBalancer, const int maxSimulationsPerPackage = 1);
@@ -99,6 +103,7 @@ class AmiciSimulationRunner {
      * @brief Runs simulations within the same thread. Mostly intended for
      * debugging.
      * @param messageHandler
+     * @param sequential Run sequential (not in parallel)
      * @return
      */
     int runSharedMemory(const messageHandlerFunc& messageHandler, bool sequential = false);
