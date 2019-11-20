@@ -457,10 +457,14 @@ double getDefaultOffsetParameter(amici::ParameterScaling scaling);
  * See Supplement 1.1 of [1].
  *
  * [1] Loos, Krause, Hasenauer. Hierarchical optimization for the efficient parametrization of ODE models.
- * @param
+ *
+ * @param scalingIdx
+ * @param modelOutputsUnscaled
+ * @param measurements
+ * @param scalingReader
+ * @param numObservables
  * @return
  */
-
 double computeAnalyticalScalings(int scalingIdx,
                                  const std::vector<std::vector<double> > &modelOutputsUnscaled,
                                  const std::vector<std::vector<double> > &measurements,
@@ -506,7 +510,9 @@ std::vector<double> spliceParameters(const gsl::span<double const> reducedParame
 
 /**
  * @brief Compute negative log-likelihood for normal distribution based on the model outputs and measurements for multiple conditions.
+ * @param measurements
  * @param modelOutputsScaled
+ * @param sigmas
  * @return
  */
 double computeNegLogLikelihood(std::vector <std::vector<double>> const& measurements,
@@ -515,7 +521,9 @@ double computeNegLogLikelihood(std::vector <std::vector<double>> const& measurem
 
 /**
  * @brief Compute negative log-likelihood for normal distribution based on the model outputs and measurements for a single condition.
+ * @param measurements
  * @param modelOutputsScaled
+ * @param sigmas
  * @return
  */
 double computeNegLogLikelihood(std::vector<double> const& measurements,
