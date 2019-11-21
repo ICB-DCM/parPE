@@ -230,6 +230,8 @@ class HDF5DataGenerator:
         """
         self.f = h5py.File(hdf5_file_name, "w")
 
+        self.save_metadata()
+
         print(Fore.GREEN + "Generating simulation condition list...")
         self.generate_simulation_condition_map()
 
@@ -251,6 +253,15 @@ class HDF5DataGenerator:
         print(Fore.GREEN + "Writing default optimization options...")
         self.write_optimization_options()
 
+    def save_metadata(self):
+        """Save some extra information in the generated file"""
+
+        g = self.f.require_group('/metadata')
+
+        g.attrs['invocation'] = ' '.join(sys.argv)
+        g.attrs['amici_version'] = amici.__version__
+        # TODO: parPE version
+
     def generate_parameter_list(self) -> None:
         """
         Optimization to simulation parameter mapping. Write parameter names.
@@ -267,7 +278,9 @@ class HDF5DataGenerator:
               len(self.parameter_df))
         write_string_array(self.f, "/parameters/parameterNames",
                            self.parameter_df.index.values[
-                               self.parameter_df.estimate == 1])
+                               (self.parameter_df.estimate == 1)
+                           & ~self.parameter_df.index.isin(
+                        self.amici_model.getFixedParameterIds())])
 
         self.generate_simulation_to_optimization_parameter_mapping()
 
@@ -319,7 +332,11 @@ class HDF5DataGenerator:
         optimization_parameter_name_to_index = {
             name: idx for idx, name
             in enumerate(
-                self.parameter_df.index[self.parameter_df.estimate == 1])}
+                self.parameter_df.index[
+                    (self.parameter_df.estimate == 1)
+                    & (~self.parameter_df.index.isin(
+                        self.amici_model.getFixedParameterIds()))
+                    ])}
         # print(optimization_parameter_name_to_index)
         self.optimization_parameter_name_to_index = \
             optimization_parameter_name_to_index
@@ -355,7 +372,8 @@ class HDF5DataGenerator:
         # write to file
         write_parameter_map(self.f, mapping_matrix, override_matrix,
                             num_model_parameters, self.compression)
-        write_scale_map(self.f, self.parameter_scale_mapping, self.parameter_df)
+        write_scale_map(self.f, self.parameter_scale_mapping,
+                        self.parameter_df, self.amici_model)
 
     def get_index_mapping_for_par(
             self, mapped_parameter: Any,
@@ -500,52 +518,48 @@ class HDF5DataGenerator:
         if parameter_name in self.condition_df.columns:
             # Parameter in condition table
             dset[parameter_index, :] = \
-                self.condition_df.loc[self.condition_ids, parameter_name].values
-        else:
-            # TODO Legacy:
-            sbml_parameter = self.sbml_model.getParameter(parameter_name)
+                self.condition_df.loc[self.condition_ids,
+                                      parameter_name].values
+            return
+
+        sbml_parameter = self.sbml_model.getParameter(parameter_name)
+        if sbml_parameter:
+            # Parameter value from model
+            dset[parameter_index, :] = sbml_parameter.getValue()
+            return
+
+        # Is this a species?
+        sbml_species = self.sbml_model.getSpecies(parameter_name)
+        if sbml_species:
+            # A constant species might have been turned in to a model
+            # parameter
+            # TODO: we dont do any conversion here, although we would
+            #  want to have concentration currently there is only 1.0
+            dset[parameter_index, :] = \
+                sbml_species.getInitialConcentration() \
+                if sbml_species.isSetInitialConcentration() \
+                else sbml_species.getInitialAmount()
+            return
+
+        # We need to check for "globalized" parameter names too
+        # (reactionId_localParameterId)
+        # model has localParameterId, data file has globalized name
+        global_name = get_global_name_for_local_parameter(
+            self.sbml_model, parameter_name)
+        if global_name:
+            sbml_parameter = self.sbml_model.getParameter(
+                global_name)
             if sbml_parameter:
-                # Parameter value from model
-                dset[parameter_index, :] = sbml_parameter.getValue()
-            else:
-                sbml_species = self.sbml_model.getSpecies(parameter_name)
-                if sbml_species:
-                    # A constant species might have been turned in to a model
-                    # parameter
-                    # TODO: we dont do any conversion here, although we would
-                    #  want to have concentration currently there is only 1.0
-                    dset[parameter_index, :] = \
-                        sbml_species.getInitialConcentration() \
-                            if sbml_species.isSetInitialConcentration() \
-                            else sbml_species.getInitialAmount()
-                else:
-                    # We need to check for "globalized" parameter names too
-                    # (reactionId_localParameterId)
-                    # model has localParameterId, data file has globalized name
-                    global_name = get_global_name_for_local_parameter(
-                        self.sbml_model, parameter_name)
-                    if global_name:
-                        sbml_parameter = self.sbml_model.getParameter(
-                            global_name)
-                        if sbml_parameter:
-                            # Use model parameter value
-                            dset[parameter_index, :] = \
-                                sbml_parameter.getValue()
-                        else:
-                            print(Fore.YELLOW + "Warning: Fixed parameter not "
-                                  "found in ExpTable, setting to 0.0: ",
-                                  parameter_name)
-                            dset[parameter_index, :] = 0.0
-                    else:
-                        print(Fore.YELLOW
-                              + "Warning: Fixed parameter not "
-                                "found in ExpTable, setting to 0.0: ",
-                              parameter_name)
-                        dset[parameter_index, :] = 0.0
-            print(Fore.RED + "Parameter not found in condition table. "
-                  "This should not happen:", parameter_name, parameter_index,
-                  "Set to ", dset[parameter_index, :],
-                  " according to legacy code.")
+                # Use model parameter value
+                dset[parameter_index, :] = \
+                    sbml_parameter.getValue()
+                return
+
+        print(Fore.YELLOW
+              + "Warning: Fixed parameter not "
+                "found in ExpTable, setting to 0.0: ",
+              parameter_name)
+        dset[parameter_index, :] = 0.0
 
     def generate_measurement_matrices(self):
         """
@@ -1109,7 +1123,9 @@ class HDF5DataGenerator:
         Offset parameters are allowed to be negative
         """
         optimized_par_df = \
-            self.parameter_df.loc[self.parameter_df.estimate == 1, :]
+            self.parameter_df.loc[self.parameter_df.estimate == 1
+                                  & (~self.parameter_df.index.isin(
+                        self.amici_model.getFixedParameterIds())), :]
         self.f.require_dataset('/parameters/lowerBound',
                                shape=optimized_par_df.lowerBound.shape,
                                data=optimized_par_df.lowerBound, dtype='f8')
@@ -1187,7 +1203,7 @@ def write_parameter_map(f: h5py.File, mapping_matrix: np.array,
 
 
 def write_scale_map(f: h5py.File, parameter_scale_mapping: List[List[str]],
-                    parameter_df: pd.DataFrame):
+                    parameter_df: pd.DataFrame, amici_model: amici.Model):
     """Write parameter scale mapping to HDF5 dataset"""
 
     # for simulation
@@ -1206,7 +1222,9 @@ def write_scale_map(f: h5py.File, parameter_scale_mapping: List[List[str]],
     # for cost function parameters
     pscale = np.array([petab_scale_to_amici_scale(s)
                        for s in parameter_df.parameterScale.values[
-                           parameter_df.estimate == 1]])
+                           (parameter_df.estimate == 1)
+                           & ~parameter_df.index.isin(
+                               amici_model.getFixedParameterIds())]])
     f.require_dataset('/parameters/pscaleOptimization',
                       shape=pscale.shape,
                       dtype="<i4",

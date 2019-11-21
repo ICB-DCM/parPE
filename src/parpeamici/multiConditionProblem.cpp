@@ -1,12 +1,15 @@
 #include <parpeamici/multiConditionProblem.h>
 
-#include <parpeamici/steadystateSimulator.h>
-#include <parpeoptimization/optimizationOptions.h>
 #include <parpecommon/logging.h>
 #include <parpecommon/misc.h>
+
+#include <parpeoptimization/optimizationOptions.h>
+#include <parpeoptimization/optimizationResultWriter.h>
+
+#include <parpeamici/steadystateSimulator.h>
 #include <parpeamici/hierarchicalOptimization.h>
 #include <parpeamici/multiConditionDataProvider.h>
-#include <parpeoptimization/optimizationResultWriter.h>
+#include <parpeamici/amiciMisc.h>
 
 #include <gsl/gsl-lite.hpp>
 
@@ -208,7 +211,7 @@ void printSimulationResult(Logger *logger, int jobId,
     logger->logmessage(LOGLVL_DEBUG, "Result for %d: %g (%d) (%d/%d/%.4fs%c)",
                        jobId, rdata->llh, rdata->status,
                        rdata->numsteps[rdata->numsteps.size() - 1],
-                       with_sensi?rdata->numstepsB[0]:0,
+                       rdata->numstepsB.empty()?0:rdata->numstepsB[0],
                        timeSeconds,
                        with_sensi?'+':'-');
 
@@ -322,10 +325,34 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
     constexpr double errorRelaxation = 1e2;
     std::unique_ptr<amici::ReturnData> rdata;
 
+    // redirect AMICI output to parPE logging
+    amici::AmiciApplication amiciApp;
+    amiciApp.error = [logger](
+            std::string const& identifier,
+            std::string const& message){
+        if(!identifier.empty()) {
+            logger->logmessage(LOGLVL_ERROR, "[" + identifier + "] " + message);
+        } else {
+            logger->logmessage(LOGLVL_ERROR, message);
+        }
+    };
+    amiciApp.warning = [logger](
+            std::string const& identifier,
+            std::string const& message){
+        if(!identifier.empty()) {
+            logger->logmessage(LOGLVL_WARNING,
+                               "[" + identifier + "] " + message);
+        } else {
+            logger->logmessage(LOGLVL_WARNING, message);
+        }
+    };
+    model.app = &amiciApp; // TODO: may dangle need to unset on exit
+
     for(int trial = 1; trial <= maxNumTrials; ++trial) {
         /* It is currently not safe to reuse solver if an exception has
          * occurred,so clone every time */
         auto solver = std::unique_ptr<amici::Solver>(solverTemplate.clone());
+        solver->app = &amiciApp;
 
         if(trial - 1 == maxNumTrials) {
             logger->logmessage(LOGLVL_ERROR,
@@ -383,7 +410,7 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
         }
 
         try {
-            rdata = amici::runAmiciSimulation(*solver, edata.get(), model);
+            rdata = amiciApp.runAmiciSimulation(*solver, edata.get(), model);
         } catch (std::exception const& e) {
             logger->logmessage(
                         LOGLVL_WARNING, "Error during simulation: %s (%d)",
@@ -439,7 +466,7 @@ FunctionEvaluationStatus getModelOutputs(
     modelOutput.resize(dataIndices.size());
     auto parameterVector = std::vector<double>(parameters.begin(),
                                                parameters.end());
-    auto jobFinished = [&](JobData *job, int dataIdx) { // jobFinished
+    auto jobFinished = [&](JobData *job, int /*dataIdx*/) { // jobFinished
         // deserialize
         auto results =
                 amici::deserializeFromChar<AmiciSummedGradientFunction::ResultMap> (

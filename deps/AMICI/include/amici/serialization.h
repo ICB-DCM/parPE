@@ -54,9 +54,11 @@ void serialize(Archive &ar, amici::Solver &u, const unsigned int version) {
     ar &u.ss_rtol_sensi;
     ar &u.maxsteps;
     ar &u.maxstepsB;
-    ar &u.newton_preeq;
+    ar &u.requires_preequilibration;
     ar &u.newton_maxsteps;
     ar &u.newton_maxlinsteps;
+    ar &u.newton_damping_factor_mode;
+    ar &u.newton_damping_factor_lower_bound;
     ar &u.ism;
     ar &u.sensi_meth;
     ar &u.linsol;
@@ -65,6 +67,8 @@ void serialize(Archive &ar, amici::Solver &u, const unsigned int version) {
     ar &u.iter;
     ar &u.stldet;
     ar &u.ordering;
+    ar &u.cpu_time;
+    ar &u.cpu_timeB;
 }
 
 
@@ -154,6 +158,9 @@ void serialize(Archive &ar, amici::ReturnData &r, const unsigned int version) {
     ar &r.numnonlinsolvconvfails;
     ar &r.numnonlinsolvconvfailsB;
     ar &r.order;
+    ar &r.cpu_time;
+    ar &r.cpu_timeB;
+    ar &r.newton_cpu_time;
 
     ar &r.newton_status;
     ar &r.newton_cpu_time;

@@ -73,7 +73,7 @@ MultiConditionDataProviderHDF5::getSimulationToOptimizationParameterMapping(
         int conditionIdx) const  {
     std::string path = hdf5SimulationToOptimizationParameterMappingPath;
 
-    if(hdf5DatasetExists(file.getId(), path)) {
+    if(hdf5DatasetExists(file, path)) {
         return hdf5Read2DIntegerHyperslab(file, path, model->np(), 1, 0, conditionIdx);
     }
 
@@ -119,7 +119,7 @@ void MultiConditionDataProviderHDF5::mapAndSetOptimizationToSimulationVariables(
     auto mapping = getSimulationToOptimizationParameterMapping(conditionIdx);
 
     std::vector<double> overrides;
-    if(hdf5DatasetExists(file.getId(), hdf5ParameterOverridesPath)) {
+    if(hdf5DatasetExists(file, hdf5ParameterOverridesPath)) {
         overrides.resize(model->np());
         hdf5Read2DDoubleHyperslab(
                     file.getId(), hdf5ParameterOverridesPath.c_str(),
@@ -144,6 +144,7 @@ void MultiConditionDataProviderHDF5::mapAndSetOptimizationToSimulationVariables(
 
 std::vector<amici::ParameterScaling> MultiConditionDataProviderHDF5::getParameterScaleOpt() const
 {
+    auto lock = hdf5MutexGetLock();
     auto resInt = amici::hdf5::getIntDataset1D(
                 file, hdf5ParameterScaleOptimizationPath);
     std::vector<amici::ParameterScaling> res(resInt.size());
@@ -165,7 +166,7 @@ std::vector<amici::ParameterScaling>
 MultiConditionDataProviderHDF5::getParameterScaleSim(int simulationIdx) const
 {
     auto resInt = hdf5Read2DIntegerHyperslab(
-                file.getId(), hdf5ParameterScaleSimulationPath,
+                file, hdf5ParameterScaleSimulationPath,
                 1, model->np(), simulationIdx, 0);
     std::vector<amici::ParameterScaling> res(resInt.size());
     for(unsigned int i = 0; i < resInt.size(); ++i)
@@ -178,7 +179,7 @@ amici::ParameterScaling MultiConditionDataProviderHDF5::getParameterScaleSim(
         int modelParameterIdx) const
 {
     auto res = hdf5Read2DIntegerHyperslab(
-                file.getId(), hdf5ParameterScaleSimulationPath,
+                file, hdf5ParameterScaleSimulationPath,
                 1, 1, simulationIdx, modelParameterIdx).at(0);
     return static_cast<amici::ParameterScaling>(res);
 }
@@ -247,10 +248,13 @@ std::unique_ptr<amici::ExpData> MultiConditionDataProviderHDF5::getExperimentalD
 
     auto edata = std::make_unique<amici::ExpData>(*model);
     RELEASE_ASSERT(edata, "Failed getting experimental data. Check data file.");
-    edata->setTimepoints(
-                amici::hdf5::getDoubleDataset1D(
-                    file.getId(), rootPath + "/measurements/t/"
-                    + std::to_string(simulationIdx)));
+    {
+        auto lock = hdf5MutexGetLock();
+        edata->setTimepoints(
+                    amici::hdf5::getDoubleDataset1D(
+                        file, rootPath + "/measurements/t/"
+                        + std::to_string(simulationIdx)));
+    }
     edata->setObservedData(getMeasurementForSimulationIndex(simulationIdx));
     edata->setObservedDataStdDev(getSigmaForSimulationIndex(simulationIdx));
     updateFixedSimulationParameters(simulationIdx, *edata);
@@ -279,8 +283,9 @@ std::vector<std::vector<double> > MultiConditionDataProviderHDF5::getAllSigmas()
 std::vector<double> MultiConditionDataProviderHDF5::getSigmaForSimulationIndex(int simulationIdx) const
 {
     hsize_t dim1, dim2;
+    auto lock = hdf5MutexGetLock();
     return amici::hdf5::getDoubleDataset2D(
-                file.getId(),
+                file,
                 hdf5MeasurementSigmaPath + "/" + std::to_string(simulationIdx),
                 dim1, dim2);
 }
@@ -288,9 +293,9 @@ std::vector<double> MultiConditionDataProviderHDF5::getSigmaForSimulationIndex(i
 std::vector<double> MultiConditionDataProviderHDF5::getMeasurementForSimulationIndex(int simulationIdx) const
 {
     hsize_t dim1, dim2;
+    auto lock = hdf5MutexGetLock();
     return amici::hdf5::getDoubleDataset2D(
-                file.getId(),
-                hdf5MeasurementPath + "/" + std::to_string(simulationIdx),
+                file, hdf5MeasurementPath + "/" + std::to_string(simulationIdx),
                 dim1, dim2);
 }
 
@@ -345,7 +350,7 @@ std::unique_ptr<amici::Solver> MultiConditionDataProviderHDF5::getSolver() const
     auto solver = model->getSolver();
     auto lock = hdf5MutexGetLock();
 
-    amici::hdf5::readSolverSettingsFromHDF5(file.getId(), *solver, hdf5AmiciOptionPath);
+    amici::hdf5::readSolverSettingsFromHDF5(file, *solver, hdf5AmiciOptionPath);
     return solver;
 }
 
@@ -379,8 +384,7 @@ void MultiConditionDataProviderHDF5::getSimAndPreeqConditions(
         const int simulationIdx, int &preequilibrationConditionIdx,
         int &simulationConditionIdx) const
 {
-    auto tmp = hdf5Read2DIntegerHyperslab(file.getId(),
-                                          hdf5ReferenceConditionPath,
+    auto tmp = hdf5Read2DIntegerHyperslab(file, hdf5ReferenceConditionPath,
                                           1, 2, simulationIdx, 0);
     preequilibrationConditionIdx = tmp[0];
     simulationConditionIdx = tmp[1];

@@ -1,0 +1,16 @@
+petab:
+    root: '${HOME}/src/parPE_2/build/examples/parpeamici/steadystate/steadystate_scaled-prefix/src/steadystate_scaled'
+    sbml_file: 'model_steadystate_scaled.sbml'
+    measurement_file: 'example_data.tsv'
+    condition_file: 'example_data_fixed.tsv'
+    parameter_file: 'example_data_parameter.tsv'
+
+model_name: 'steadystate'
+amici_build_dir: '${HOME}/src/AMICI-devel/build'
+amici_src_dir: '${HOME}/src/AMICI-devel/'
+parpe_build_dir: '${HOME}/src/parPE_2/build'
+parpe_src_dir: '${HOME}/src/parPE_2/'
+
+optimization:
+    num_starts: 2
+    max_iter: 3

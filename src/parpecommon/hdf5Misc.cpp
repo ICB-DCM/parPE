@@ -229,7 +229,7 @@ void hdf5CreateOrExtendAndWriteToDouble2DArray(hid_t file_id,
 
     std::string fullDatasetPath = std::string(parentPath) + "/" + datasetName;
 
-    if (!hdf5DatasetExists(file_id, fullDatasetPath.c_str())) {
+    if (!hdf5DatasetExists(file_id, fullDatasetPath)) {
         hdf5CreateExtendableDouble2DArray(
                     file_id, fullDatasetPath.c_str(), buffer.size());
     }
@@ -248,7 +248,7 @@ void hdf5CreateOrExtendAndWriteToDouble3DArray(hid_t file_id,
 
     std::string fullDatasetPath = std::string(parentPath) + "/" + datasetName;
 
-    if (!hdf5DatasetExists(file_id, fullDatasetPath.c_str())) {
+    if (!hdf5DatasetExists(file_id, fullDatasetPath)) {
         hdf5CreateExtendableDouble3DArray(
                     file_id, fullDatasetPath.c_str(), stride1, stride2);
     }
@@ -270,7 +270,7 @@ void hdf5CreateOrExtendAndWriteToInt2DArray(hid_t file_id,
 
     auto fullDatasetPath = std::string(parentPath) + "/" + datasetName;
 
-    if (!hdf5DatasetExists(file_id, fullDatasetPath.c_str())) {
+    if (!hdf5DatasetExists(file_id, fullDatasetPath)) {
         hdf5CreateExtendableInt2DArray(
                     file_id, fullDatasetPath.c_str(), buffer.size());
     }
@@ -759,7 +759,7 @@ void hdf5CreateOrExtendAndWriteToString1DArray(hid_t file_id,
 
     std::string fullDatasetPath = std::string(parentPath) + "/" + datasetName;
 
-    if (!hdf5DatasetExists(file_id, fullDatasetPath.c_str())) {
+    if (!hdf5DatasetExists(file_id, fullDatasetPath)) {
         hdf5CreateExtendableString1DArray(file_id, fullDatasetPath.c_str());
     }
 

@@ -134,14 +134,15 @@ private:
 
 protected:
     // command line option parsing
-    const char *shortOptions = "dhvt:o:";
-    struct option const longOptions[7] = {
+    const char *shortOptions = "dhvt:o:s:";
+    struct option const longOptions[8] = {
         {"debug", no_argument, NULL, 'd'},
         {"print-worklist", no_argument, NULL, 'p'},
         {"help", no_argument, NULL, 'h'},
         {"version", no_argument, NULL, 'v'},
         {"task", required_argument, NULL, 't'},
         {"outfile-prefix", required_argument, NULL, 'o'},
+        {"first-start-idx", required_argument, NULL, 's'},
         {NULL, 0, NULL, 0}};
 
     enum class OperationType {
@@ -151,6 +152,8 @@ protected:
 
     std::string dataFileName;
     std::string resultFileName;
+
+    int first_start_idx {0};
 
     // the need to be filled in by sub
     std::unique_ptr<MultiStartOptimizationProblem> multiStartOptimizationProblem;
@@ -163,6 +166,7 @@ protected:
 
 /**
  * @brief CPU time for whole application run
+ * @param file_id
  * @param timeInSeconds
  */
 void saveTotalCpuTime(hid_t file_id, const double timeInSeconds);

@@ -297,3 +297,40 @@ def simulation_to_df(mes_df, sim, result_file, start, label, observable_ids):
         mes_df.loc[row.name, 'simulation_' + label] = \
         sim[start][condition_idx][time_idx, observable_idx]
     return mes_df
+
+
+def compare_optimization_results_to_true_parameters(
+        filename: str, start_idx: str = '0'):
+    """Compare parameter estimates to true parameters. Print as table.
+
+    Used in example notebooks.
+
+    Arguments:
+        filename: Parameter estimation result file name
+        start_idx: optimizer run index/name to use
+    """
+    with h5py.File(filename, 'r') as f:
+        pscale = f['/inputData/parameters/pscaleOptimization'][:]
+        names = f['/inputData/parameters/parameterNames'][:]
+        true_parameters = f['/inputData/parameters/true_parameters'][:]
+        expectedNllh = -f['/inputData/parameters/true_llh'][:]
+
+        final_parameters = f[f'/multistarts/{start_idx}/finalParameters'][:]
+        exit_status = f[f'/multistarts/{start_idx}/exitStatus'][:]
+        final_cost = f[f'/multistarts/{start_idx}/finalCost'][:]
+
+    for i, p in enumerate(pscale):
+        if p == 2:
+            final_parameters[i] = np.power(10, final_parameters[i])
+
+    print("#  __Exp____ __Act______ __Err______ __RelErr___ __ID_______")
+    for i in range(len(true_parameters)):
+        error = final_parameters[i]-true_parameters[i]
+        rel_error = error / true_parameters[i]
+        print('%d: %9.5f %11.5f %11.5f %11.5f %s' % (i, true_parameters[i],
+                                       final_parameters[i],
+                                       error, rel_error, names[i]))
+    print()
+    print('Status: %d' % exit_status)
+    # FIXME: expectedNllh not correctly written to file
+    print('Cost: %f (expected: %f)' % (final_cost, expectedNllh))

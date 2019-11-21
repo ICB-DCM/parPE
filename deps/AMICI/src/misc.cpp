@@ -5,6 +5,8 @@
 #include <cstdio>
 #include <cstring>
 #include <sstream>
+#include <cstdarg>
+
 #if defined(_WIN32)
 #define PLATFORM_WINDOWS // Windows
 #elif defined(_WIN64)
@@ -18,6 +20,16 @@
 #endif
 
 namespace amici {
+
+gsl::span<realtype> slice(std::vector<realtype> &data, const int index,
+                          const unsigned size) {
+    if ((index + 1) * size > data.size())
+        throw std::out_of_range("requested slice is out of data range");
+    if (size > 0)
+        return gsl::make_span(&data.at(index*size), size);
+    else
+        return gsl::make_span(static_cast<realtype*>(nullptr), 0);
+}
 
 double getUnscaledParameter(double scaledParameter, ParameterScaling scaling)
 {
@@ -76,27 +88,6 @@ void scaleParameters(gsl::span<const realtype> bufferUnscaled,
 
 }
 
-int checkFinite(gsl::span<const realtype> array, const char *fun)
-{
-    for (int idx = 0; idx < (int) array.size(); idx++) {
-        if (isNaN(array[idx])) {
-            warnMsgIdAndTxt(
-                "AMICI:NaN",
-                "AMICI encountered a NaN value at index %i of %i in %s!", idx,
-                (int) array.size(), fun);
-            return AMICI_RECOVERABLE_ERROR;
-        }
-        if (isInf(array[idx])) {
-            warnMsgIdAndTxt(
-                "AMICI:Inf",
-                "AMICI encountered an Inf value at index %i of %i in %s!", idx,
-                (int) array.size(), fun);
-            return AMICI_RECOVERABLE_ERROR;
-        }
-    }
-    return AMICI_SUCCESS;
-}
-
 std::string backtraceString(const int maxFrames)
 {
     std::ostringstream trace_buf;
@@ -140,6 +131,57 @@ std::string backtraceString(const int maxFrames)
         trace_buf << "[truncated]\n";
 #endif
     return trace_buf.str();
+}
+
+std::string regexErrorToString(std::regex_constants::error_type err_type)
+{
+    switch (err_type) {
+    case std::regex_constants::error_collate:
+        return "error_collate";
+    case std::regex_constants::error_ctype:
+        return "error_ctype";
+    case std::regex_constants::error_escape:
+        return "error_escape";
+    case std::regex_constants::error_backref:
+        return "error_backref";
+    case std::regex_constants::error_brack:
+        return "error_brack";
+    case std::regex_constants::error_paren:
+        return "error_paren";
+    case std::regex_constants::error_brace:
+        return "error_brace";
+    case std::regex_constants::error_badbrace:
+        return "error_badbrace";
+    case std::regex_constants::error_range:
+        return "error_range";
+    case std::regex_constants::error_space:
+        return "error_space";
+    case std::regex_constants::error_badrepeat:
+        return "error_badrepeat";
+    case std::regex_constants::error_complexity:
+        return "error_complexity";
+    case std::regex_constants::error_stack:
+        return "error_stack";
+    default:
+        return "unknown error";
+    }
+}
+
+std::string printfToString(const char *fmt, va_list ap) {
+    // Get size of string
+    va_list ap_count;
+    va_copy(ap_count, ap);
+    auto size = vsnprintf(nullptr, 0, fmt, ap_count);
+    va_end(ap_count);
+    ++size;
+
+    // actual formatting
+    auto buf = new char[size];
+    size = vsnprintf(buf, size, fmt, ap);
+    std::string str(buf, size);
+    delete[] buf;
+
+    return str;
 }
 
 } // namespace amici

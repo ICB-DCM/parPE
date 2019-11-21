@@ -5,6 +5,7 @@
 #include "amici/sundials_linsol_wrapper.h"
 #include "amici/symbolic_functions.h"
 #include "amici/vector.h"
+#include "amici/amici.h"
 
 #include <functional>
 #include <memory>
@@ -16,6 +17,9 @@ class ForwardProblem;
 class BackwardProblem;
 class Model;
 class Solver;
+class AmiciApplication;
+
+extern AmiciApplication defaultContext;
 } // namespace amici
 
 // for serialization friend in Solver
@@ -43,6 +47,12 @@ namespace amici {
 class Solver {
   public:
     Solver() = default;
+
+    /**
+     * @brief Constructor
+     * @param app AMICI application context
+     */
+    Solver(AmiciApplication *app);
 
     /**
      * @brief Solver copy constructor
@@ -78,7 +88,6 @@ class Solver {
      * @brief runs a backward simulation until the specified timepoint
      *
      * @param tout next timepooint
-     * @return status flag
      */
     void runB(realtype tout) const;
 
@@ -195,16 +204,16 @@ class Solver {
     void setNewtonMaxSteps(int newton_maxsteps);
 
     /**
-     * @brief Get if preequilibration of model via Newton solver is enabled
+     * @brief Get if model preequilibration is enabled
      * @return
      */
-    bool getNewtonPreequilibration() const;
+    bool getPreequilibration() const;
 
     /**
-     * @brief Enable/disable preequilibration of model via Newton solver
-     * @param newton_preeq
+     * @brief Enable/disable model preequilibration
+     * @param require_preequilibration
      */
-    void setNewtonPreequilibration(bool newton_preeq);
+    void setPreequilibration(bool require_preequilibration);
 
     /**
      * @brief Get maximum number of allowed linear steps per Newton step for
@@ -219,6 +228,30 @@ class Solver {
      * @param newton_maxlinsteps
      */
     void setNewtonMaxLinearSteps(int newton_maxlinsteps);
+
+    /**
+     * @brief Get a state of the damping factor used in the Newton solver
+     * @return
+     */
+    NewtonDampingFactorMode getNewtonDampingFactorMode() const;
+
+    /**
+     * @brief Turn on/off a damping factor in the Newton method
+     * @param dampingFactorMode
+     */
+    void setNewtonDampingFactorMode(NewtonDampingFactorMode dampingFactorMode);
+
+    /**
+     * @brief Get a lower bound of the damping factor used in the Newton solver
+     * @return
+     */
+    double getNewtonDampingFactorLowerBound() const;
+
+    /**
+     * @brief Set a lower bound of the damping factor in the Newton solver
+     * @param dampingFactorLowerBound
+     */
+    void setNewtonDampingFactorLowerBound(double dampingFactorLowerBound);
 
     /**
      * @brief Get sensitvity order
@@ -632,6 +665,18 @@ class Solver {
     realtype gett() const;
 
     /**
+     * @brief Reads out the cpu time needed for forward solve
+     * @return cpu_time
+     */
+    realtype getCpuTime() const;
+
+    /**
+     * @brief Reads out the cpu time needed for bavkward solve
+     * @return cpu_timeB
+     */
+    realtype getCpuTimeB() const;
+
+    /**
      * @brief number of states with which the solver was initialized
      * @return x.getLength()
      */
@@ -666,6 +711,9 @@ class Solver {
      * @return
      */
     friend bool operator==(const Solver &a, const Solver &b);
+
+    /** AMICI context */
+    AmiciApplication *app = &defaultContext;
 
   protected:
     /**
@@ -1205,7 +1253,6 @@ class Solver {
      *
      * @param which identifier of the backwards problem
      * @param ami_mem pointer to the forward solver memory instance
-     * @return pointer to the backward solver memory instance
      */
     virtual void *getAdjBmem(void *ami_mem, int which) const = 0;
 
@@ -1371,8 +1418,14 @@ class Solver {
      * computation */
     long int newton_maxlinsteps = 0;
 
-    /** Preequilibration of model via Newton solver? */
-    bool newton_preeq = false;
+    /** Damping factor state used int the Newton method */
+    NewtonDampingFactorMode newton_damping_factor_mode = NewtonDampingFactorMode::on;
+
+    /** Lower bound of the damping factor. */
+    double newton_damping_factor_lower_bound = 1e-8;
+
+    /** Enable model preequilibration */
+    bool requires_preequilibration = false;
 
     /** linear solver specification */
     LinearSolver linsol = LinearSolver::KLU;
@@ -1413,6 +1466,12 @@ class Solver {
     /** relative tolerances for steadystate computation */
     realtype ss_rtol_sensi = NAN;
 
+    /** CPU time, forward solve */
+    mutable realtype cpu_time = 0.0;
+
+    /** CPU time, backward solve */
+    mutable realtype cpu_timeB = 0.0;
+
     /** maximum number of allowed integration steps for backward problem */
     long int maxstepsB = 0;
 
@@ -1437,21 +1496,20 @@ class Solver {
     mutable std::vector<bool> initializedQB{false};
 
     /** number of checkpoints in the forward problem */
-    mutable int ncheckPtr;
+    mutable int ncheckPtr = 0;
 };
 
 bool operator==(const Solver &a, const Solver &b);
 
 /**
  * @brief Extracts diagnosis information from solver memory block and
- * writes them into the return data object for the backward problem
+ * passes them to the specified output function
  *
  * @param error_code error identifier
  * @param module name of the module in which the error occured
- * @param function name of the function in which the error occured @type
- * char
+ * @param function name of the function in which the error occured
  * @param msg error message
- * @param eh_data unused input
+ * @param eh_data amici::Solver as void*
  */
 void wrapErrHandlerFn(int error_code, const char *module,
                       const char *function, char *msg, void *eh_data);

@@ -244,7 +244,9 @@ void IDASolver::getRootInfo(int *rootsfound) const {
 
 void IDASolver::setErrHandlerFn() const {
     int status =
-        IDASetErrHandlerFn(solverMemory.get(), wrapErrHandlerFn, nullptr);
+        IDASetErrHandlerFn(solverMemory.get(), wrapErrHandlerFn,
+                           reinterpret_cast<void*>(
+                               const_cast<IDASolver*>(this)));
     if (status != IDA_SUCCESS)
         throw IDAException(status, "IDASetErrHandlerFn");
 }
@@ -267,9 +269,10 @@ void IDASolver::setMaxNumSteps(const long int mxsteps) const {
         throw IDAException(status, "IDASetMaxNumSteps");
 }
 
-void IDASolver::setStabLimDet(const int stldet) const {}
+void IDASolver::setStabLimDet(const int /*stldet*/) const {}
 
-void IDASolver::setStabLimDetB(const int which, const int stldet) const {}
+void IDASolver::setStabLimDetB(const int /*which*/,
+                               const int /*stldet*/) const {}
 
 void IDASolver::setId(const Model *model) const {
 
@@ -378,30 +381,31 @@ void IDASolver::reInitPostProcess(void *ami_mem, realtype *t,
 
 void IDASolver::reInit(const realtype t0, const AmiVector &yy0,
                        const AmiVector &yp0) const {
+
+    auto ida_mem = static_cast<IDAMem>(solverMemory.get());
+    ida_mem->ida_tn = t0;
+    if (solverWasCalledF)
+        forceReInitPostProcessF = true;
     x.copy(yy0);
     dx.copy(yp0);
-    auto ida_mem = static_cast<IDAMem>(solverMemory.get());
-    /* set time */
-    ida_mem->ida_tn = t0;
     resetState(ida_mem, x.getNVector(), xB.getNVector());
-    calcIC(t);
 }
 
 void IDASolver::sensReInit(const AmiVectorArray &yyS0,
                            const AmiVectorArray &ypS0) const {
-    sx.copy(yyS0);
-    sdx.copy(ypS0);
     auto ida_mem = static_cast<IDAMem>(solverMemory.get());
     /* Initialize znS[0] in the history array */
     for (int is = 0; is < nplist(); is++)
         ida_mem->ida_cvals[is] = ONE;
-
+    if (solverWasCalledF)
+        forceReInitPostProcessF = true;
+    sx.copy(yyS0);
+    sdx.copy(ypS0);
     auto status =
         N_VScaleVectorArray(nplist(), ida_mem->ida_cvals, sx.getNVectorArray(),
                             ida_mem->ida_phiS[0]);
     if (status != IDA_SUCCESS)
         throw IDAException(IDA_VECTOROP_ERR, "IDASensReInit");
-
     status = N_VScaleVectorArray(nplist(), ida_mem->ida_cvals,
                                  sdx.getNVectorArray(), ida_mem->ida_phiS[1]);
     if (status != IDA_SUCCESS)
@@ -410,18 +414,23 @@ void IDASolver::sensReInit(const AmiVectorArray &yyS0,
 
 void IDASolver::reInitB(const int which, const realtype tB0,
                         const AmiVector &yyB0, const AmiVector &ypB0) const {
-    xB.copy(yyB0);
-    dxB.copy(ypB0);
+
     auto ida_memB =
         static_cast<IDAMem>(IDAGetAdjIDABmem(solverMemory.get(), which));
+    if (solverWasCalledB)
+        forceReInitPostProcessB = true;
     ida_memB->ida_tn = tB0;
+    xB.copy(yyB0);
+    dxB.copy(ypB0);
     resetState(ida_memB, xB.getNVector(), dxB.getNVector());
 }
 
 void IDASolver::quadReInitB(const int which, const AmiVector &yQB0) const {
-    xQB.copy(yQB0);
     auto ida_memB =
         static_cast<IDAMem>(IDAGetAdjIDABmem(solverMemory.get(), which));
+    if (solverWasCalledB)
+        forceReInitPostProcessB = true;
+    xQB.copy(yQB0);
     N_VScale(ONE, xQB.getNVector(), ida_memB->ida_phiQ[0]);
 }
 
@@ -505,7 +514,7 @@ void IDASolver::allocateSolverB(int *which) const {
         solverMemoryB.resize(*which + 1);
     solverMemoryB.at(*which) =
         std::unique_ptr<void, std::function<void(void *)>>(
-            getAdjBmem(solverMemory.get(), *which), [](void *ptr) {});
+            getAdjBmem(solverMemory.get(), *which), [](void */*ptr*/) {});
     if (status != IDA_SUCCESS)
         throw IDAException(status, "IDACreateB");
 }
@@ -526,6 +535,8 @@ void IDASolver::quadSStolerancesB(const int which, const realtype reltolQB,
 }
 
 int IDASolver::solve(const realtype tout, const int itask) const {
+    if (forceReInitPostProcessF)
+        reInitPostProcessF(tout);
     int status = IDASolve(solverMemory.get(), tout, &t, x.getNVector(),
                           dx.getNVector(), itask);
     solverWasCalledF = true;
@@ -536,6 +547,8 @@ int IDASolver::solve(const realtype tout, const int itask) const {
 
 int IDASolver::solveF(const realtype tout, const int itask,
                       int *ncheckPtr) const {
+    if (forceReInitPostProcessF)
+        reInitPostProcessF(tout);
     int status = IDASolveF(solverMemory.get(), tout, &t, x.getNVector(),
                            xB.getNVector(), itask, ncheckPtr);
     solverWasCalledF = true;
@@ -545,6 +558,8 @@ int IDASolver::solveF(const realtype tout, const int itask,
 }
 
 void IDASolver::solveB(const realtype tBout, const int itaskB) const {
+    if (forceReInitPostProcessB)
+        reInitPostProcessB(tBout);
     int status = IDASolveB(solverMemory.get(), tBout, itaskB);
     solverWasCalledB = true;
     if (status != IDA_SUCCESS)
@@ -926,7 +941,7 @@ int fxdot(realtype t, N_Vector x, N_Vector dx, N_Vector xdot,
                      void *user_data) {
     auto model = static_cast<Model_DAE *>(user_data);
 
-    if (t > 1e200 && !amici::checkFinite(gsl::make_span(x), "fxdot")) {
+    if (t > 1e200 && !model->app->checkFinite(gsl::make_span(x), "fxdot")) {
         /* when t is large (typically ~1e300), CVODES may pass all NaN x
            to fxdot from which we typically cannot recover. To save time
            on normal execution, we do not always want to check finiteness

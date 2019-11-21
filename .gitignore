@@ -19,6 +19,8 @@ __pycache__/
 /amici/examples/steadystate/model_steadystate_scaled
 /amici/examples/lucarelli/lucarelli_12/lucarelli_12/
 
+# snakemake
+.snakemake/
 
 # amici
 deps/AMICI/python/sdist/amici.egg-info/
