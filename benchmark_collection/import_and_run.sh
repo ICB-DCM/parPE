@@ -65,4 +65,17 @@ echo "parpe_${MODEL_NAME}/build/estimate_${MODEL_NAME} -o parpe_${MODEL_NAME}_re
 
 echo ""
 echo "Running simulation with nominal parameters..."
-parpe_${MODEL_NAME}/build/simulateNominal_${MODEL_NAME} parpe_${MODEL_NAME}/${MODEL_NAME}.h5
+parpe_${MODEL_NAME}/build/simulateNominal_${MODEL_NAME} parpe_${MODEL_NAME}/${MODEL_NAME}.h5 |& tee tmp.out
+
+# Check output
+LLH=$(grep Likelihood tmp.out | tr -cd '[:print:]' | sed -r 's/.*Likelihood: (.*)\[.*/\1/')
+rm tmp.out
+REF=$(grep -r ${MODEL_NAME} nllh.txt | awk -F ' ' '{print $2}')
+ABS="define abs(i) {\\nif (i < 0) return (-i) \nreturn (i)\n}\n"
+# Do we match within tolerance? (Ref can be off by factor 0.5)
+if (( $(echo -e "${ABS}\nabs($LLH - $REF) < 0.001 * abs($REF) || abs($LLH - 0.5 * $REF) < 0.001 * abs($REF)" | bc) )); then
+  echo "OKAY: Expected $REF (or $(echo "$REF * 0.5" | bc)), got $LLH"
+else
+  echo "FAILED: Expected $REF (or $(echo "$REF * 0.5" | bc)), got $LLH"
+  exit 1
+fi
