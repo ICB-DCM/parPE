@@ -10,6 +10,10 @@ HDF5_FILE_TEST=$2
 MPIEXEC="mpiexec --oversubscribe -n 5"
 # Allow running as root in docker
 grep docker /proc/1/cgroup -qa && MPIEXEC="${MPIEXEC} --allow-run-as-root"
+# If we are running in docker, we generally don't have SYS_PTRACE permissions
+# and thus, cannot use vader
+mpiexec --version | grep open-mpi && MPIEXEC="${MPIEXEC} --oversubscribe --mca btl_vader_single_copy_mechanism none"
+
 
 rm -f test.log
 
