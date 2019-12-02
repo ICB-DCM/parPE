@@ -594,7 +594,7 @@ public:
                                                Logger *logger,
                                                OptimizationReporter *reporter) {
         
-        // initialize disgnostic variables 
+        // initialize diagnostic variables
         int maxSubsequentFails = 10;
         bool finalFail = false;
         bool initialFail = false;
