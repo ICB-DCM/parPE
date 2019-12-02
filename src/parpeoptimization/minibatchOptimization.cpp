@@ -22,7 +22,7 @@ std::vector<double> getVectorDifference(gsl::span<const double> v,
     std::vector<double> difference(v.size(), 0.0);
     for (unsigned int i = 0; i < v.size(); ++i)
         difference[i] = v[i] - w[i];
-    
+
     return difference;
 }
 
@@ -215,14 +215,13 @@ void ParameterUpdaterMomentum::updateParameters(double learningRate,
                                                gsl::span<const double> upperBounds) {
 
     int numParameters = gradient.size();
-    double momentumNormalize = 1.0;
     oldMomentum = momentum;
 
     for (int i = 0; i < numParameters; ++i) {
         momentum[i] = decayRate * momentum[i] + (1 - decayRate) * gradient[i];
-        
-        momentumNormalize = std::max(getVectorNorm(momentum), 1.0);
-        
+
+        double momentumNormalize = std::max(getVectorNorm(momentum), 1.0);
+
         parameters[i] += -learningRate * momentum[i] / momentumNormalize;
     }
 
@@ -264,8 +263,8 @@ void ParameterUpdaterAdam::updateParameters(double learningRate,
 
     oldGradientNormCache = gradientNormCache;
     oldGradientCache = gradientCache;
-    
-    for (int i = 0; i < numParameters; ++i) {        
+
+    for (int i = 0; i < numParameters; ++i) {
         // compute new steps from last gradient information
         gradientCache[i] = decayRateGradient * gradientCache[i] + (1 - decayRateGradient) * gradient[i];
         gradientNormCache[i] = decayRateGradientNorm * gradientNormCache[i]
@@ -319,8 +318,8 @@ void ParameterUpdaterAdamClassic::updateParameters(double learningRate,
 
     oldGradientNormCache = gradientNormCache;
     oldGradientCache = gradientCache;
-    
-    for (int i = 0; i < numParameters; ++i) {        
+
+    for (int i = 0; i < numParameters; ++i) {
         // compute new steps from last gradient information
         gradientCache[i] = decayRateGradient * gradientCache[i] + (1 - decayRateGradient) * gradient[i];
         gradientNormCache[i] = decayRateGradientNorm * gradientNormCache[i]
