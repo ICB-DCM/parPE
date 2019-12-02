@@ -329,7 +329,7 @@ private:
     /** Rate for memorizing gradient norms (between 0 and 1, high rates mean long memory) */
     double decayRateGradientNorm = 0.999;
 
-    /** Stabilization factor for gradient normalization (avoid deviding by 0) */
+    /** Stabilization factor for gradient normalization (avoid dividing by 0) */
     double delta = 1e-7;
 
     /** Memorized gradient norms (decaying average) from last steps */
