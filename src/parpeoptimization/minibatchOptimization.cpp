@@ -22,7 +22,7 @@ std::vector<double> getVectorDifference(gsl::span<const double> v,
     std::vector<double> difference(v.size(), 0.0);
     for (unsigned int i = 0; i < v.size(); ++i)
         difference[i] = v[i] - w[i];
-    
+
     return difference;
 }
 
@@ -57,6 +57,9 @@ void setMinibatchOption(const std::pair<const std::string, const std::string> &p
         } else if (val == "Adam" && !dynamic_cast<ParameterUpdaterAdam*>(optimizer->parameterUpdater.get())) {
             // this might have been set previously if there was an updater-specific option before
             optimizer->parameterUpdater = std::make_unique<ParameterUpdaterAdam>();
+        } else if (val == "AdamClassic" && !dynamic_cast<ParameterUpdaterAdamClassic*>(optimizer->parameterUpdater.get())) {
+            // this might have been set previously if there was an updater-specific option before
+            optimizer->parameterUpdater = std::make_unique<ParameterUpdaterAdamClassic>();
         } else {
             logmessage(LOGLVL_WARNING, "Ignoring unknown Minibatch parameterUpdater %s.", val.c_str());
         }
@@ -162,6 +165,8 @@ void LearningRateUpdater::setEndLearningRate(double learningRate)
 void ParameterUpdaterRmsProp::initialize(unsigned int numParameters) {
     gradientNormCache.resize(numParameters);
     oldGradientNormCache.resize(numParameters);
+    std::fill(gradientNormCache.begin(), gradientNormCache.end(), 0.0);
+    std::fill(oldGradientNormCache.begin(), oldGradientNormCache.end(), 0.0);
 }
 
 void ParameterUpdaterRmsProp::updateParameters(double learningRate,
@@ -195,11 +200,54 @@ void ParameterUpdaterRmsProp::clearCache() {
     std::fill(oldGradientNormCache.begin(), oldGradientNormCache.end(), 0.0);
 }
 
+void ParameterUpdaterMomentum::initialize(unsigned int numParameters) {
+    momentum.resize(numParameters);
+    oldMomentum.resize(numParameters);
+    std::fill(momentum.begin(), momentum.end(), 0.0);
+    std::fill(oldMomentum.begin(), oldMomentum.end(), 0.0);
+}
+
+void ParameterUpdaterMomentum::updateParameters(double learningRate,
+                                               int  /*iteration*/,
+                                               gsl::span<double const> gradient,
+                                               gsl::span<double> parameters,
+                                               gsl::span<const double> lowerBounds,
+                                               gsl::span<const double> upperBounds) {
+
+    int numParameters = gradient.size();
+    oldMomentum = momentum;
+
+    for (int i = 0; i < numParameters; ++i) {
+        momentum[i] = decayRate * momentum[i] + (1 - decayRate) * gradient[i];
+
+        double momentumNormalize = std::max(getVectorNorm(momentum), 1.0);
+
+        parameters[i] += -learningRate * momentum[i] / momentumNormalize;
+    }
+
+    clipToBounds(lowerBounds, upperBounds, parameters);
+}
+
+void ParameterUpdaterMomentum::undoLastStep() {
+    // The cached gradient norm needs to be restored, since the new one is probably NaN
+    momentum = oldMomentum;
+}
+
+void ParameterUpdaterMomentum::clearCache() {
+    // Reset all cached information
+    std::fill(momentum.begin(), momentum.end(), 0.0);
+}
+
+
 void ParameterUpdaterAdam::initialize(unsigned int numParameters) {
     gradientCache.resize(numParameters);
     gradientNormCache.resize(numParameters);
     oldGradientCache.resize(numParameters);
     oldGradientNormCache.resize(numParameters);
+    std::fill(gradientNormCache.begin(), gradientNormCache.end(), 0.0);
+    std::fill(oldGradientNormCache.begin(), oldGradientNormCache.end(), 0.0);
+    std::fill(gradientCache.begin(), gradientCache.end(), 0.0);
+    std::fill(oldGradientCache.begin(), oldGradientCache.end(), 0.0);
 }
 
 void ParameterUpdaterAdam::updateParameters(double learningRate,
@@ -215,8 +263,8 @@ void ParameterUpdaterAdam::updateParameters(double learningRate,
 
     oldGradientNormCache = gradientNormCache;
     oldGradientCache = gradientCache;
-    
-    for (int i = 0; i < numParameters; ++i) {        
+
+    for (int i = 0; i < numParameters; ++i) {
         // compute new steps from last gradient information
         gradientCache[i] = decayRateGradient * gradientCache[i] + (1 - decayRateGradient) * gradient[i];
         gradientNormCache[i] = decayRateGradientNorm * gradientNormCache[i]
@@ -245,6 +293,62 @@ void ParameterUpdaterAdam::clearCache() {
     std::fill(gradientCache.begin(), gradientCache.end(), 0.0);
     std::fill(oldGradientCache.begin(), oldGradientCache.end(), 0.0);
 }
+
+void ParameterUpdaterAdamClassic::initialize(unsigned int numParameters) {
+    gradientCache.resize(numParameters);
+    gradientNormCache.resize(numParameters);
+    oldGradientCache.resize(numParameters);
+    oldGradientNormCache.resize(numParameters);
+    std::fill(gradientNormCache.begin(), gradientNormCache.end(), 0.0);
+    std::fill(oldGradientNormCache.begin(), oldGradientNormCache.end(), 0.0);
+    std::fill(gradientCache.begin(), gradientCache.end(), 0.0);
+    std::fill(oldGradientCache.begin(), oldGradientCache.end(), 0.0);
+}
+
+void ParameterUpdaterAdamClassic::updateParameters(double learningRate,
+                                            int iteration,
+                                            gsl::span<double const> gradient,
+                                            gsl::span<double> parameters,
+                                            gsl::span<const double> lowerBounds,
+                                            gsl::span<const double> upperBounds) {
+
+    int numParameters = gradient.size();
+    double tmpNumerator;
+    double tmpDenominator;
+
+    oldGradientNormCache = gradientNormCache;
+    oldGradientCache = gradientCache;
+
+    for (int i = 0; i < numParameters; ++i) {
+        // compute new steps from last gradient information
+        gradientCache[i] = decayRateGradient * gradientCache[i] + (1 - decayRateGradient) * gradient[i];
+        gradientNormCache[i] = decayRateGradientNorm * gradientNormCache[i]
+                + (1 - decayRateGradientNorm) * gradient[i] * gradient[i];
+
+        tmpNumerator = gradientCache[i] / (1 - std::pow(decayRateGradient, (double) iteration));
+        tmpDenominator = std::sqrt(gradientNormCache[i] / (1 - std::pow(decayRateGradientNorm, (double) iteration)))
+                + delta;
+
+        parameters[i] += -learningRate * tmpNumerator / tmpDenominator;
+    }
+
+    clipToBounds(lowerBounds, upperBounds, parameters);
+}
+
+void ParameterUpdaterAdamClassic::undoLastStep() {
+    // The cached gradient norm needs to be restored, since the new one is probably NaN
+    gradientNormCache = oldGradientNormCache;
+    gradientCache = oldGradientCache;
+}
+
+void ParameterUpdaterAdamClassic::clearCache() {
+    // Reset all cached information
+    std::fill(gradientNormCache.begin(), gradientNormCache.end(), 0.0);
+    std::fill(oldGradientNormCache.begin(), oldGradientNormCache.end(), 0.0);
+    std::fill(gradientCache.begin(), gradientCache.end(), 0.0);
+    std::fill(oldGradientCache.begin(), oldGradientCache.end(), 0.0);
+}
+
 
 void ParameterUpdaterVanilla::updateParameters(double learningRate,
                                                int  /*iteration*/,
