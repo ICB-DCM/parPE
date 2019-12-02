@@ -10,6 +10,10 @@ HDF5_FILE_TEST=$2
 MPIEXEC="mpiexec --oversubscribe -n 5"
 # Allow running as root in docker
 grep docker /proc/1/cgroup -qa && MPIEXEC="${MPIEXEC} --allow-run-as-root"
+# If we are running in docker, we generally don't have SYS_PTRACE permissions
+# and thus, cannot use vader. Also disable Infiniband.
+grep docker /proc/1/cgroup -qa && mpiexec --version | grep open-mpi && MPIEXEC="${MPIEXEC} --oversubscribe --mca btl_vader_single_copy_mechanism none --mca btl ^openib -mca oob_tcp_if_include lo --mca btl_tcp_if_include lo --mca orte_base_help_aggregate 0"
+
 
 rm -f test.log
 
