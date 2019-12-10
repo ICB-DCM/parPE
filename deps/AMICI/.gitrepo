@@ -5,8 +5,8 @@
 ;
 [subrepo]
 	remote = git@github.com:ICB-DCM/AMICI.git
-	branch = v0.10.15
-	commit = d549d9369cb35b35f92e367627ac0c15025153a3
-	parent = f95ad55cc54047d66ea13e2a48f8c0b861546c08
+	branch = feature_sparse_quadratures
+	commit = 2f58828a82111a495511d282cb0aaa958de95a43
+	parent = f940c20f17e7e12cb5a71b33230ad8eb0e3102f1
 	cmdver = 0.4.0
 	method = merge
