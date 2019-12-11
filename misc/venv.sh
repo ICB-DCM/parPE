@@ -21,8 +21,8 @@ if [[ ! -d ${BUILD_DIR}/venv ]]; then
         set -e
         python3 -m venv ${BUILD_DIR}/venv --clear --without-pip
         source ${BUILD_DIR}/venv/bin/activate
-        curl https://bootstrap.pypa.io/get-pip.py -o ${AMICI_PATH}/build/get-pip.py
-        #python ${BUILD_DIR}/get-pip.py
+        curl https://bootstrap.pypa.io/get-pip.py -o ${BUILD_DIR}/xxget-pip.py
+        python3 ${BUILD_DIR}/get-pip.py
     else
         set -e
         source ${BUILD_DIR}/venv/bin/activate
