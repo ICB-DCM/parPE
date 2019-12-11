@@ -1130,7 +1130,6 @@ class Model : public AbstractModel {
 
     /** number of nonzero entries in dxdotdw */
     int ndxdotdw{0};
-    
     /** number of nonzero entries in dJydy */
     std::vector<int> ndJydy;
 
@@ -1173,7 +1172,6 @@ class Model : public AbstractModel {
     /** temporary storage of dxdotdp data across functions, Matlab only
      (dimension: nplist x nx_solver, row-major) */
     AmiVectorArray dxdotdp;
-    
     /** AMICI context */
     AmiciApplication *app = &defaultContext;
 

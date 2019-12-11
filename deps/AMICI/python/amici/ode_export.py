@@ -3,7 +3,6 @@
 #!/usr/bin/env python3
 
 import sympy as sp
-import numpy as np
 import re
 import shutil
 import subprocess
@@ -1658,12 +1657,6 @@ class ODEModel:
         if not len(xx) or not len(variables[y]) or xx.is_zero is True or \
                 variables[y].is_zero is True:
             self._eqs[name] = sp.zeros(len(xx), len(variables[y]))
-        elif name in nobody_functions:
-            # if we dont have to generate explicit expressions we can just
-            # multiply the individual sparsity patterns to avoid putatively
-            # expensive symbolic multiplications
-            self._eqs[name] = xx * np.asarray(variables[y].applyfunc(
-                              lambda z: int(not z.is_zero) ))
         else:
             self._eqs[name] = sign * xx * variables[y]
 
