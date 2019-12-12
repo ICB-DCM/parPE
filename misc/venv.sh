@@ -2,7 +2,6 @@
 #
 # Setup virtual environment for building/testing parPE
 #
-set -e
 
 SCRIPT_PATH=$(dirname $BASH_SOURCE)
 PARPE_ROOT=$(cd ${SCRIPT_PATH}/.. && pwd)
@@ -15,8 +14,20 @@ if [[ -z "${BUILD_DIR}" ]]; then BUILD_DIR="${PARPE_ROOT}/build"; fi
 # NOTE: Must remove folder if AMICI is updated
 if [[ ! -d ${BUILD_DIR}/venv ]]; then
     # create venv
-    python3 -m venv ${BUILD_DIR}/venv
-    source ${BUILD_DIR}/venv/bin/activate
+    python3 -m venv ${BUILD_DIR}/venv 2>/dev/null
+    # in case this fails (usually due to missing ensurepip), try getting pip
+    # manually
+    if [[ $? ]]; then
+        set -e
+        python3 -m venv ${BUILD_DIR}/venv --clear --without-pip
+        source ${BUILD_DIR}/venv/bin/activate
+        curl https://bootstrap.pypa.io/get-pip.py -o ${BUILD_DIR}/get-pip.py
+        python3 ${BUILD_DIR}/get-pip.py
+    else
+        set -e
+        source ${BUILD_DIR}/venv/bin/activate
+    fi
+
     pip3 install wheel
 
     # install AMICI
@@ -26,5 +37,6 @@ if [[ ! -d ${BUILD_DIR}/venv ]]; then
     # install parPE
     cd ${PARPE_ROOT}/python
     pip3 install -e .
-    pip3 install -U git+https://github.com/ICB-DCM/PEtab.git@develop
+    #pip3 install https://github.com/ICB-DCM/PEtab/archive/develop.zip
+    pip3 install -U petab==0.0.0a17
 fi

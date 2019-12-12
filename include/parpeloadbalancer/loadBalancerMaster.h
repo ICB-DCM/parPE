@@ -27,7 +27,7 @@ struct JobData {
     }
 
     /** auto-assigned (unique number up to MAX_INT) */
-    int jobId;
+    int jobId = -1;
 
     /** data to send */
     std::vector<char> sendBuffer;

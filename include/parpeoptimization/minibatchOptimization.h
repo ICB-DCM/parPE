@@ -221,6 +221,39 @@ private:
     std::vector<double> oldGradientNormCache;
 };
 
+/**
+ * @brief Minibatch optimizer: Momentum Updater
+ * A classical gradient based optimizer using a vanilla momentum formula
+ */
+class ParameterUpdaterMomentum: public ParameterUpdater {
+public:
+    ParameterUpdaterMomentum() = default;
+
+    void updateParameters(double learningRate,
+                          int iteration,
+                          gsl::span<const double> gradient,
+                          gsl::span<double> parameters,
+                          gsl::span<const double> lowerBounds = gsl::span<const double>(),
+                          gsl::span<const double> upperBounds = gsl::span<const double>()) override;
+
+    void undoLastStep() override;
+
+    void clearCache() override;
+
+    void initialize(unsigned int numParameters) override;
+
+private:
+
+    /** Rate for memorizing gradient norms (between 0 and 1, high rates mean long memory) */
+    double decayRate = 0.8;
+
+    /** Accumulated momentum (decaying average) from last steps */
+    std::vector<double> momentum;
+
+    /** Accumulated momentum (decaying average), one step back (if one step must be undone) */
+    std::vector<double> oldMomentum;
+};
+
  /**
  * @brief Minibatch optimizer: Adam Updater
  * A momentum-based and so-called adaptive mini batching algorithm
@@ -251,6 +284,52 @@ private:
     double decayRateGradientNorm = 0.9;
 
     /** Stabilization factor for gradient normalization (avoid deviding by 0) */
+    double delta = 1e-7;
+
+    /** Memorized gradient norms (decaying average) from last steps */
+    std::vector<double> gradientNormCache;
+
+    /** Memorized gradient norms (decaying average), one step back (if one step must be undone) */
+    std::vector<double> oldGradientNormCache;
+
+    /** Memorized gradients (decaying average) from last steps */
+    std::vector<double> gradientCache;
+
+    /** Memorized gradients (decaying average), one step back (if one step must be undone) */
+    std::vector<double> oldGradientCache;
+};
+
+/**
+ * @brief Minibatch optimizer: Adam Classic Updater
+ * A momentum-based and so-called adaptive mini batching algorithm,
+ * using the original settings from the literature 
+ */
+class ParameterUpdaterAdamClassic: public ParameterUpdater {
+public:
+    ParameterUpdaterAdamClassic() = default;
+
+    void updateParameters(double learningRate,
+                          int iteration,
+                          gsl::span<const double> gradient,
+                          gsl::span<double> parameters,
+                          gsl::span<const double> lowerBounds = gsl::span<const double>(),
+                          gsl::span<const double> upperBounds = gsl::span<const double>()) override;
+
+    void undoLastStep() override;
+    
+    void clearCache() override;
+
+    void initialize(unsigned int numParameters) override;
+
+private:
+
+    /** Rate for memorizing gradients (between 0 and 1, high rates mean long memory) */
+    double decayRateGradient = 0.9;
+
+    /** Rate for memorizing gradient norms (between 0 and 1, high rates mean long memory) */
+    double decayRateGradientNorm = 0.999;
+
+    /** Stabilization factor for gradient normalization (avoid dividing by 0) */
     double delta = 1e-7;
 
     /** Memorized gradient norms (decaying average) from last steps */
@@ -515,7 +594,7 @@ public:
                                                Logger *logger,
                                                OptimizationReporter *reporter) {
         
-        // initialize disgnostic variables 
+        // initialize diagnostic variables
         int maxSubsequentFails = 10;
         bool finalFail = false;
         bool initialFail = false;
