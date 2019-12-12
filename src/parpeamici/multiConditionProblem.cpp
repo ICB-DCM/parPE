@@ -277,18 +277,21 @@ void saveSimulation(const H5::H5File &file, std::string const& pathStr,
                 file.getId(), fullGroupPath, "simulationWallTimeInSec",
                 gsl::make_span<const double>(&timeElapsedInSeconds, 1));
 
-    if (!states.empty())
-        hdf5CreateOrExtendAndWriteToDouble2DArray(
-            file.getId(), fullGroupPath, "simulationStates", states);
+    // TODO: This was broken by allowing different numbers of timepoints
+    // for different simulation conditions. Vector lengths now may differ and
+    // lead to crashes.
+    //    if (!states.empty())
+    //        hdf5CreateOrExtendAndWriteToDouble2DArray(
+    //            file.getId(), fullGroupPath, "simulationStates", states);
 
-    if (!outputs.empty())
-        hdf5CreateOrExtendAndWriteToDouble2DArray(
-            file.getId(), fullGroupPath, "simulationObservables", outputs);
+    //    if (!outputs.empty())
+    //        hdf5CreateOrExtendAndWriteToDouble2DArray(
+    //            file.getId(), fullGroupPath, "simulationObservables", outputs);
 
-    if (!stateSensi.empty())
-        hdf5CreateOrExtendAndWriteToDouble3DArray(
-            file.getId(), fullGroupPath, "simulationStateSensitivities", stateSensi,
-            stateSensi.size() / parameters.size(), parameters.size());
+    //    if (!stateSensi.empty())
+    //        hdf5CreateOrExtendAndWriteToDouble3DArray(
+    //            file.getId(), fullGroupPath, "simulationStateSensitivities", stateSensi,
+    //            stateSensi.size() / parameters.size(), parameters.size());
 
     hdf5CreateOrExtendAndWriteToInt2DArray(
                 file.getId(), fullGroupPath, "simulationStatus",
