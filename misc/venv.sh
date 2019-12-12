@@ -37,5 +37,6 @@ if [[ ! -d ${BUILD_DIR}/venv ]]; then
     # install parPE
     cd ${PARPE_ROOT}/python
     pip3 install -e .
-    pip3 install https://github.com/ICB-DCM/PEtab/archive/develop.zip
+    #pip3 install https://github.com/ICB-DCM/PEtab/archive/develop.zip
+    pip3 install -U petab==0.0.0a17
 fi
