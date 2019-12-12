@@ -140,7 +140,7 @@ int LoadBalancerMaster::handleFinishedJobs() {
         // loadBalancer.recvRequests
         pthread_testcancel();
 
-        int messageWaiting;
+        int messageWaiting = 0;
         MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &messageWaiting,
                    &status);
 
