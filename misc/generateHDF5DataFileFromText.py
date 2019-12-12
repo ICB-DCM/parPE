@@ -1135,24 +1135,22 @@ class HDF5DataGenerator:
 
     def write_starting_points(self):
         """
-        Write a list of random starting points uniformly sampled from the
-        parameter bounds.
-        Parameter bounds need to be written beforehand.
+        Write a list of random starting points sampled as specified in PEtab
+        file.
         """
         num_params = self.f['/parameters/parameterNames'].shape[0]
         num_starting_points = 100
         np.random.seed(0)
+
         starting_points = self.f.require_dataset(
             '/optimizationOptions/randomStarts',
             [num_params, num_starting_points], 'f8')
-        lower = self.f['/parameters/lowerBound'][:]
-        upper = self.f['/parameters/upperBound'][:]
 
-        # use PEtab routine for sampling of initial points
-        _, starting_points[:] = \
+        starting_points[:] = \
             self.petab_problem.sample_parameter_startpoints(
                 num_starting_points)
 
+        # Write nominal values for testing purposes
         if 'nominalValue' in self.parameter_df:
             self.f['/parameters/nominalValues'] = \
                 self.parameter_df.nominalValue[
