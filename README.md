@@ -1,6 +1,8 @@
 [![Run Status](https://api.shippable.com/projects/59463d3e8993d7070010407b/badge?branch=master)](https://app.shippable.com/github/dweindl/parPE)
 [![Coverage Badge](https://api.shippable.com/projects/59463d3e8993d7070010407b/coverageBadge?branch=master)](https://app.shippable.com/github/dweindl/parPE)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/1f1ee5a0d90d431499f200a148fb7fdc)](https://www.codacy.com?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=ICB-DCM/parPE&amp;utm_campaign=Badge_Grade)
+[![DOI](https://zenodo.org/badge/92953596.svg)](https://zenodo.org/badge/latestdoi/92953596)
+
 # parPE
 
 The *parPE* library provides functionality for solving large-scale parameter
@@ -109,6 +111,12 @@ parPE is being used or has been used in the following projects:
   *Efficient parameterization of large-scale dynamic models based on relative measurements*.
   Bioinformatics, btz581, [doi:10.1093/bioinformatics/btz581](https://doi.org/10.1093/bioinformatics/btz581)
   (preprint: [doi:10.1101/579045](https://www.biorxiv.org/content/10.1101/579045v1)).
+
+- Paul Stapor, Leonard Schmiester, Christoph Wierling, Bodo Lange,
+  Daniel Weindl, and Jan Hasenauer. 2019.
+  *Mini-Batch Optimization Enables Training of Ode Models on Large-Scale Datasets.*
+  bioRxiv. Cold Spring Harbor Laboratory.
+  preprint: [doi:10.1101/859884](https://doi.org/10.1101/859884).
 
 - [CanPathPro](http://canpathpro.eu/)
 

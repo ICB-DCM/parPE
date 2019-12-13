@@ -54,7 +54,7 @@ CMD="${PARPE_DIR}/misc/generateHDF5DataFileFromText.py \
     -d ${AMICI_MODEL_DIR} \
     -m ${PETAB_MODEL_DIR}/measurementData_${MODEL_NAME}.tsv \
     -c ${PETAB_MODEL_DIR}/experimentalCondition_${MODEL_NAME}.tsv \
-    -n model_${MODEL_NAME} \
+    -n ${MODEL_NAME} \
     -p ${PETAB_MODEL_DIR}/parameters_${MODEL_NAME}.tsv"
 echo $CMD
 $CMD

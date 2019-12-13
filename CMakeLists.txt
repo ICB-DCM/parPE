@@ -1,5 +1,5 @@
-cmake_minimum_required(VERSION 3.6)
-cmake_policy(VERSION 3.6)
+cmake_minimum_required(VERSION 3.7)
+cmake_policy(VERSION 3.7)
 
 project(parpe)
 

@@ -1,12 +1,15 @@
 #include <parpeamici/multiConditionProblem.h>
 
-#include <parpeamici/steadystateSimulator.h>
-#include <parpeoptimization/optimizationOptions.h>
 #include <parpecommon/logging.h>
 #include <parpecommon/misc.h>
+
+#include <parpeoptimization/optimizationOptions.h>
+#include <parpeoptimization/optimizationResultWriter.h>
+
+#include <parpeamici/steadystateSimulator.h>
 #include <parpeamici/hierarchicalOptimization.h>
 #include <parpeamici/multiConditionDataProvider.h>
-#include <parpeoptimization/optimizationResultWriter.h>
+#include <parpeamici/amiciMisc.h>
 
 #include <gsl/gsl-lite.hpp>
 
@@ -274,18 +277,21 @@ void saveSimulation(const H5::H5File &file, std::string const& pathStr,
                 file.getId(), fullGroupPath, "simulationWallTimeInSec",
                 gsl::make_span<const double>(&timeElapsedInSeconds, 1));
 
-    if (!states.empty())
-        hdf5CreateOrExtendAndWriteToDouble2DArray(
-            file.getId(), fullGroupPath, "simulationStates", states);
+    // TODO: This was broken by allowing different numbers of timepoints
+    // for different simulation conditions. Vector lengths now may differ and
+    // lead to crashes.
+    //    if (!states.empty())
+    //        hdf5CreateOrExtendAndWriteToDouble2DArray(
+    //            file.getId(), fullGroupPath, "simulationStates", states);
 
-    if (!outputs.empty())
-        hdf5CreateOrExtendAndWriteToDouble2DArray(
-            file.getId(), fullGroupPath, "simulationObservables", outputs);
+    //    if (!outputs.empty())
+    //        hdf5CreateOrExtendAndWriteToDouble2DArray(
+    //            file.getId(), fullGroupPath, "simulationObservables", outputs);
 
-    if (!stateSensi.empty())
-        hdf5CreateOrExtendAndWriteToDouble3DArray(
-            file.getId(), fullGroupPath, "simulationStateSensitivities", stateSensi,
-            stateSensi.size() / parameters.size(), parameters.size());
+    //    if (!stateSensi.empty())
+    //        hdf5CreateOrExtendAndWriteToDouble3DArray(
+    //            file.getId(), fullGroupPath, "simulationStateSensitivities", stateSensi,
+    //            stateSensi.size() / parameters.size(), parameters.size());
 
     hdf5CreateOrExtendAndWriteToInt2DArray(
                 file.getId(), fullGroupPath, "simulationStatus",
@@ -322,10 +328,34 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
     constexpr double errorRelaxation = 1e2;
     std::unique_ptr<amici::ReturnData> rdata;
 
+    // redirect AMICI output to parPE logging
+    amici::AmiciApplication amiciApp;
+    amiciApp.error = [logger](
+            std::string const& identifier,
+            std::string const& message){
+        if(!identifier.empty()) {
+            logger->logmessage(LOGLVL_ERROR, "[" + identifier + "] " + message);
+        } else {
+            logger->logmessage(LOGLVL_ERROR, message);
+        }
+    };
+    amiciApp.warning = [logger](
+            std::string const& identifier,
+            std::string const& message){
+        if(!identifier.empty()) {
+            logger->logmessage(LOGLVL_WARNING,
+                               "[" + identifier + "] " + message);
+        } else {
+            logger->logmessage(LOGLVL_WARNING, message);
+        }
+    };
+    model.app = &amiciApp; // TODO: may dangle need to unset on exit
+
     for(int trial = 1; trial <= maxNumTrials; ++trial) {
         /* It is currently not safe to reuse solver if an exception has
          * occurred,so clone every time */
         auto solver = std::unique_ptr<amici::Solver>(solverTemplate.clone());
+        solver->app = &amiciApp;
 
         if(trial - 1 == maxNumTrials) {
             logger->logmessage(LOGLVL_ERROR,
@@ -383,7 +413,7 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
         }
 
         try {
-            rdata = amici::runAmiciSimulation(*solver, edata.get(), model);
+            rdata = amiciApp.runAmiciSimulation(*solver, edata.get(), model);
         } catch (std::exception const& e) {
             logger->logmessage(
                         LOGLVL_WARNING, "Error during simulation: %s (%d)",
@@ -439,7 +469,7 @@ FunctionEvaluationStatus getModelOutputs(
     modelOutput.resize(dataIndices.size());
     auto parameterVector = std::vector<double>(parameters.begin(),
                                                parameters.end());
-    auto jobFinished = [&](JobData *job, int dataIdx) { // jobFinished
+    auto jobFinished = [&](JobData *job, int /*dataIdx*/) { // jobFinished
         // deserialize
         auto results =
                 amici::deserializeFromChar<AmiciSummedGradientFunction::ResultMap> (

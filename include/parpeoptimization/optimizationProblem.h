@@ -219,7 +219,7 @@ int getLocalOptimum(OptimizationProblem *problem);
 /**
  * @brief getLocalOptimumThreadWrapper wrapper for using getLocalOptimum with
  * pThreads.
- * @param problem
+ * @param optimizationProblemVp
  * @return Pointer to int indicating status. 0: success, != 0: failure
  */
 

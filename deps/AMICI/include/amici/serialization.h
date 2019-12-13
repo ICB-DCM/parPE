@@ -57,6 +57,8 @@ void serialize(Archive &ar, amici::Solver &u, const unsigned int version) {
     ar &u.requires_preequilibration;
     ar &u.newton_maxsteps;
     ar &u.newton_maxlinsteps;
+    ar &u.newton_damping_factor_mode;
+    ar &u.newton_damping_factor_lower_bound;
     ar &u.ism;
     ar &u.sensi_meth;
     ar &u.linsol;
@@ -109,6 +111,9 @@ void serialize(Archive &ar, amici::Model &u, const unsigned int version) {
     ar &u.pscale;
     ar &u.tstart;
     ar &u.stateIsNonNegative;
+    ar &u.pythonGenerated;
+    ar &u.ndxdotdp_explicit;
+    ar &u.ndxdotdp_implicit;
 }
 
 

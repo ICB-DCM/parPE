@@ -56,7 +56,7 @@ class TestAmiciMisc(unittest.TestCase):
         symbolColPtrs, symbolRowVals, sparseList, symbolList, sparseMatrix = \
             amici.ode_export.csc_matrix(matrix, 'a')
         print(symbolColPtrs, symbolRowVals, sparseList, symbolList, sparseMatrix)
-        assert symbolColPtrs == [0]
+        assert symbolColPtrs == []
         assert symbolRowVals == []
         assert sparseList == sp.Matrix(0, 0, [])
         assert symbolList == []
@@ -152,6 +152,26 @@ class TestAmiciMisc(unittest.TestCase):
         assert len(list(r.getListOfReactants())) == 0
         assert len(list(r.getListOfProducts())) == 0
         assert len(list(r.getListOfModifiers())) == 0
+
+    def test_hill_function_dwdx(self):
+        """Kinetic laws with Hill functions, may lead to NaNs in the Jacobian
+        if involved states are zero if not properly arranged symbolically.
+        Test that what we are applying the right sympy simplification."""
+
+        w = sp.sympify('Pow(x1, p1) / (Pow(x1, p1) + a)')
+        dwdx = w.diff(sp.Symbol('x1'))
+
+        # Verify that without simplification we fail
+        with self.assertRaises(ZeroDivisionError):
+            with sp.evaluate(False):
+                res = dwdx.subs({'x1': 0.0})
+            _ = str(res)
+
+        # Test that powsimp does the job
+        dwdx = sp.powsimp(dwdx)
+        with sp.evaluate(False):
+            res = dwdx.subs({'x1': 0.0})
+        _ = str(res)
 
 
 if __name__ == '__main__':
