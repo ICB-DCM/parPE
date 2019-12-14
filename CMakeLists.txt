@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 3.7)
 cmake_policy(VERSION 3.7)
 
+if(POLICY CMP0074)
+  # Use package_ROOT environment variables
+  cmake_policy(SET CMP0074 NEW)
+endif(POLICY CMP0074)
+
 project(parpe)
 
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/CMakeModules/)
@@ -44,9 +49,9 @@ set_property(CACHE BLAS PROPERTY STRINGS "CBLAS" "MKL")
 set(PARPE_ENABLE_MPI TRUE CACHE BOOL "Use MPI?")
 set(IPOPT_DIR "" CACHE PATH "IpOpt root directory")
 set(IPOPT_INCLUDE_DIRS "${IPOPT_DIR}/include/coin/"  CACHE PATH "IpOpt include directory")
-set(IPOPT_LIBRARIES ${IPOPT_DIR}/lib/libipopt.a ${IPOPT_DIR}/lib/libcoinhsl.a gfortran CACHE STRINGS "IpOpt library")
+set(IPOPT_LIBRARIES ${IPOPT_DIR}/lib/libipopt.a ${IPOPT_DIR}/lib/libcoinhsl.a gfortran CACHE STRING "IpOpt library")
 set(CERES_INCLUDE_DIRS "" "/usr/include/eigen3" CACHE PATH "CERES include directories")
-set(CERES_LIBRARIES "" CACHE STRINGS "CERES libraries")
+set(CERES_LIBRARIES "" CACHE STRING "CERES libraries")
 set(PARPE_ENABLE_IPOPT TRUE CACHE BOOL "Enable ipopt optimizer?")
 set(PARPE_ENABLE_CERES TRUE CACHE BOOL "Enable ceres optimizer?")
 set(PARPE_ENABLE_DLIB FALSE CACHE BOOL "Enable dlib optimizers?")
