@@ -262,6 +262,8 @@ bool launchedWithMpi()
         return true; // OpenMPI
     if(std::getenv("MP_PROCS") && atoi(std::getenv("MP_PROCS")) > 1)
         return true;
+    if(std::getenv("PMI_RANK"))
+        return true; // INTEL MPI / Hydra
 
     return false;
 }
