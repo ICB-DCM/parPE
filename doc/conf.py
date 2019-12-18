@@ -58,6 +58,7 @@ extensions = [
     'breathe',
     'exhale',
     'recommonmark',
+    'IPython.sphinxext.ipython_console_highlighting'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -79,12 +80,13 @@ exclude_patterns = []
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+
+# html_static_path = ['_static']
 
 
 # breathe settings
 breathe_projects = {
-    "parPE":"../doxy/xml/",
+    "parPE":"doxy/xml/",
     }
 
 breathe_default_project = "parPE"
@@ -94,9 +96,9 @@ breathe_default_project = "parPE"
 
 exhale_args = {
     # These arguments are required
-    "containmentFolder":     "./api",
+    "containmentFolder":     "./exhale_cpp_api",
     "rootFileName":          "library_root.rst",
-    "rootFileTitle":         "Library API",
+    "rootFileTitle":         "parPE API",
     "doxygenStripFromPath":  "..",
     # Suggested optional arguments
     "createTreeView":        True,
@@ -108,7 +110,9 @@ exhale_args = {
 }
 
 # Tell sphinx what the primary language being documented is.
-primary_domain = 'cpp'
+# primary_domain = 'cpp'
 
 # Tell sphinx what the pygments highlight language should be.
 highlight_language = 'cpp'
+
+html_logo = 'logo/parPE.png'

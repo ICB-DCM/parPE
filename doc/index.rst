@@ -7,13 +7,14 @@ Welcome to parPE's documentation!
 =================================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
    :caption: Contents:
 
-   ../../../README.md
-   ../../README.md
-   ../README.md
-   README.md
+   README <readme_link>
+   FAQ.md
+
+   usage
+
    api/library_root
 
 
