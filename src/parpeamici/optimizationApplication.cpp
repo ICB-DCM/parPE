@@ -39,17 +39,21 @@ int OptimizationApplication::init(int argc, char **argv) {
     if(std::getenv("PARPE_NO_DEBUG"))
         minimumLogLevel = LOGLVL_INFO;
 
+    int status = parseCliOptionsPreMpiInit(argc, argv);
+    if(status)
+        return status;
+
     // install signal handler for backtrace on error
     sigaction(SIGSEGV, &act, &oldact);
     sigaction(SIGHUP, &act, nullptr);
 
-    if(launchedWithMpi() && !getMpiActive())
+    if(withMPI && !getMpiActive())
         initMPI(&argc, &argv);
 
     printMPIInfo();
     initHDF5Mutex();
 
-    int status = parseOptions(argc, argv);
+    status = parseCliOptionsPostMpiInit(argc, argv);
     if(status)
         return status;
 
@@ -70,7 +74,33 @@ void OptimizationApplication::runMultiStarts()
     optimizer.run();
 }
 
-int OptimizationApplication::parseOptions(int argc, char **argv) {
+int OptimizationApplication::parseCliOptionsPreMpiInit(int argc, char **argv)
+{
+    int c;
+
+    while (true) {
+        int optionIndex = 0;
+        c = getopt_long(argc, argv, shortOptions, longOptions, &optionIndex);
+
+        if (c == -1)
+            break; // no more options
+
+        switch (c) {
+        case 'm':
+            withMPI = true;
+            break;
+        case 'h':
+            printUsage(argv[0]);
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int OptimizationApplication::parseCliOptionsPostMpiInit(int argc, char **argv) {
+    // restart from first argument
+    optind = 1;
+
     int c;
 
     while (true) {
@@ -98,8 +128,8 @@ int OptimizationApplication::parseOptions(int argc, char **argv) {
             printf("Version: %s\n", PARPE_VERSION);
             return 1;
         case 'h':
-            printUsage(argv[0]);
-            return 1;
+        case 'm':
+            continue;
         default:
             printf("Unrecognized option: %c\n", c);
             exit(EXIT_FAILURE);
@@ -120,18 +150,19 @@ int OptimizationApplication::parseOptions(int argc, char **argv) {
 
 void OptimizationApplication::printUsage(char * const argZero)
 {
-    printf("Usage: %s [OPTION]... FILE\n", argZero);
-    printf("FILE: HDF5 data file");
+    printf("Usage: %s [OPTION]... FILE\n\n", argZero);
+    printf("FILE: HDF5 data file\n\n");
     printf("Options: \n"
-           "  -o, --outfile-prefix Prefix for result files (path + "
+           "  -o, --outfile-prefix  Prefix for result files (path + "
            "filename)\n"
-           "  -t, --task    What to do? Parameter estimation (default) "
+           "  -t, --task            What to do? Parameter estimation (default) "
            "or check gradient ('gradient_check')\n"
-           "  -s, --first-start-idx Starting point index for first optimization"
-           "  -h, --help    Print this help text\n"
-           "  -v, --version Print version info\n");
+           "  -s, --first-start-idx Starting point index for first optimization\n"
+           "  -m, --mpi             Enable MPI (default: off)\n"
+           "  -h, --help            Print this help text\n"
+           "  -v, --version         Print version info\n");
     printf("\nSupported optimizers:\n");
-    printAvailableOptimizers();
+    printAvailableOptimizers("  ");
 }
 
 void OptimizationApplication::logParPEVersion(hid_t file_id) const
@@ -327,7 +358,8 @@ bool OptimizationApplication::isWorker() { return getMpiRank() > 0; }
 OptimizationApplication::~OptimizationApplication() {
     // objects must be destroyed before MPI_Finalize is called
     // and Hdf5 mutex is destroyed
-    closeHDF5File(file_id);
+    if(file_id)
+        closeHDF5File(file_id);
     problem.reset(nullptr);
 #ifdef PARPE_ENABLE_MPI
     if(getMpiActive())

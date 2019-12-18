@@ -34,7 +34,7 @@ rm -rf example_steadystate_multi-test-optimize/
 rm -f simulate1.h5
 ./example_steadystate_multi_simulator \
   example_steadystate_multi-test-optimize/_rank00000.h5 / simulate1.h5 / \
-  --at-optimum 2>&1 > test.log
+  --at-optimum --nompi 2>&1 > test.log
 (! grep ERR test.log)
 (! grep WRN test.log)
 (! grep exception test.log)
@@ -48,7 +48,7 @@ test -f simulate1.h5
 # Run optimization with default settings
 
 rm -rf example_steadystate_multi-test-optimize/
-${MPIEXEC} ./example_steadystate_multi \
+${MPIEXEC} ./example_steadystate_multi --mpi \
   -o example_steadystate_multi-test-optimize/ ${HDF5_FILE} 2>&1 >> test.log
 (! grep ERR test.log)
 (! grep WRN test.log)
@@ -58,7 +58,7 @@ ${MPIEXEC} ./example_steadystate_multi \
 rm -f simulate2.h5
 ${MPIEXEC} ./example_steadystate_multi_simulator \
   example_steadystate_multi-test-optimize/_rank00000.h5 / simulate2.h5 / \
-  --along-trajectory 2>&1 >> test.log
+  --along-trajectory --mpi 2>&1 >> test.log
 (! grep ERR test.log)
 (! grep WRN test.log)
 (! grep exception test.log)
@@ -67,11 +67,10 @@ test -f simulate2.h5
 
 # Simulate on test set
 
-
 rm -f simulate3.h5
 ${MPIEXEC} ./example_steadystate_multi_simulator \
   ${HDF5_FILE_TEST} / example_steadystate_multi-test-optimize/_rank00000.h5 / \
-  simulate3.h5 / --at-optimum
+  simulate3.h5 / --at-optimum --mpi
 h5dump -d /multistarts/0/ySim/3 simulate3.h5 # test dataset exists
 (! grep ERR test.log)
 (! grep WRN test.log)

@@ -1,5 +1,21 @@
 cmake_minimum_required(VERSION 3.3)
 
+if(POLICY CMP0074)
+  # Use package_ROOT environment variables
+  cmake_policy(SET CMP0074 NEW)
+endif(POLICY CMP0074)
+
+set(default_build_type "RelWithDebInfo")
+
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+  message(STATUS "Setting build type to '${default_build_type}' as none was specified.")
+  set(CMAKE_BUILD_TYPE "${default_build_type}" CACHE
+      STRING "Choose the type of build." FORCE)
+  # Set the possible values of build type for cmake-gui
+  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS
+    "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
+endif()
+
 set(MODEL_NAME mymodel)
 
 # call project to select language and required by some modules
