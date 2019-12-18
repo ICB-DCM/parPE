@@ -51,7 +51,7 @@ PROJECT_BRIEF          = "parallel parameter estimation"
 # pixels and the maximum width should not exceed 200 pixels. Doxygen will copy
 # the logo to the output directory.
 
-PROJECT_LOGO           =
+PROJECT_LOGO           = @CMAKE_CURRENT_LIST_DIR@/doc/logo/parPE.png
 
 # The OUTPUT_DIRECTORY tag is used to specify the (relative or absolute) path
 # into which the generated documentation will be written. If a relative path is
@@ -917,7 +917,9 @@ RECURSIVE              = YES
 # Note that relative paths are relative to the directory from which doxygen is
 # run.
 
-EXCLUDE                =
+EXCLUDE                = "@CMAKE_CURRENT_LIST_DIR@/doc/build" \
+                         "@CMAKE_CURRENT_LIST_DIR@/doc/source" \
+                         "@CMAKE_CURRENT_LIST_DIR@/doc/html"
 
 # The EXCLUDE_SYMLINKS tag can be used to select whether or not files or
 # directories that are symbolic links (a Unix file system feature) are excluded
@@ -943,7 +945,10 @@ EXCLUDE_PATTERNS       = "*/ThirdParty/*" \
                          "*/tests/*" \
                          "*/templates/*" \
                          "*/main_*.cpp" \
-                         "*/examples/*"
+                         "*/examples/*" \
+                         "*/__pycache__/*" \
+                         "*/__pycache__/*" \
+                         "*.egg-info/*"
 
 # The EXCLUDE_SYMBOLS tag can be used to specify one or more symbol names
 # (namespaces, classes, functions, etc.) that should be excluded from the
@@ -1712,7 +1717,7 @@ EXTRA_SEARCH_MAPPINGS  =
 # If the GENERATE_LATEX tag is set to YES, doxygen will generate LaTeX output.
 # The default value is: YES.
 
-GENERATE_LATEX         = YES
+GENERATE_LATEX         = NO
 
 # The LATEX_OUTPUT tag is used to specify where the LaTeX docs will be put. If a
 # relative path is entered the value of OUTPUT_DIRECTORY will be put in front of
