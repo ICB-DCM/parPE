@@ -279,7 +279,7 @@ void initMpiIfNeeded(int *argc, char ***argv)
 void finalizeMpiIfNeeded()
 {
 #ifdef PARPE_ENABLE_MPI
-    if(parpe::launchedWithMpi())
+    if(parpe::getMpiActive())
         MPI_Finalize();
 #endif
 }

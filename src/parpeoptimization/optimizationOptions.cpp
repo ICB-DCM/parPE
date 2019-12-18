@@ -308,7 +308,7 @@ Optimizer* optimizerFactory(optimizerName optimizer)
 }
 
 
-void printAvailableOptimizers()
+void printAvailableOptimizers(std::string prefix)
 {
     optimizerName optimizer {optimizerName::OPTIMIZER_IPOPT};
 
@@ -317,56 +317,56 @@ void printAvailableOptimizers()
     switch (optimizer) {
     case optimizerName::OPTIMIZER_IPOPT:
 #ifdef PARPE_ENABLE_IPOPT
-        std::cout<<std::left<<std::setw(22)<<"OPTIMIZER_IPOPT\t"
+        std::cout<<prefix<<std::left<<std::setw(22)<<"OPTIMIZER_IPOPT\t"
                 <<static_cast<int>(optimizerName::OPTIMIZER_IPOPT)
                <<" enabled\n";
 #else
-        std::cout<<std::left<<std::setw(22)<<"OPTIMIZER_IPOPT"
+        std::cout<<prefix<<std::left<<std::setw(22)<<"OPTIMIZER_IPOPT"
                 <<static_cast<int>(optimizerName::OPTIMIZER_IPOPT)
                <<" disabled\n";
 #endif
     case optimizerName::OPTIMIZER_CERES:
 #ifdef PARPE_ENABLE_CERES
-        std::cout<<std::left<<std::setw(22)<<"OPTIMIZER_CERES"
+        std::cout<<prefix<<std::left<<std::setw(22)<<"OPTIMIZER_CERES"
                 <<static_cast<int>(optimizerName::OPTIMIZER_CERES)
                <<" enabled\n";
 #else
-        std::cout<<std::left<<std::setw(22)<<"OPTIMIZER_CERES"
+        std::cout<<prefix<<std::left<<std::setw(22)<<"OPTIMIZER_CERES"
                 <<static_cast<int>(optimizerName::OPTIMIZER_CERES)
                <<" disabled\n";
 #endif
     case optimizerName::OPTIMIZER_DLIB:
 #ifdef PARPE_ENABLE_DLIB
-        std::cout<<std::left<<std::setw(22)<<"OPTIMIZER_DLIB"
+        std::cout<<prefix<<std::left<<std::setw(22)<<"OPTIMIZER_DLIB"
                 <<static_cast<int>(optimizerName::OPTIMIZER_DLIB)
                <<" enabled\n";
 #else
-        std::cout<<std::left<<std::setw(22)<<"OPTIMIZER_DLIB"
+        std::cout<<prefix<<std::left<<std::setw(22)<<"OPTIMIZER_DLIB"
                 <<static_cast<int>(optimizerName::OPTIMIZER_DLIB)
                <<" disabled\n";
 #endif
     case optimizerName::OPTIMIZER_TOMS611:
 #ifdef PARPE_ENABLE_TOMS611
-        std::cout<<std::left<<std::setw(22)<<"OPTIMIZER_TOMS611"
+        std::cout<<prefix<<std::left<<std::setw(22)<<"OPTIMIZER_TOMS611"
                 <<static_cast<int>(optimizerName::OPTIMIZER_TOMS611)
                <<" enabled\n";
 #else
-        std::cout<<std::left<<std::setw(22)<<"OPTIMIZER_TOMS611"
+        std::cout<<prefix<<std::left<<std::setw(22)<<"OPTIMIZER_TOMS611"
                 <<static_cast<int>(optimizerName::OPTIMIZER_TOMS611)
                <<" disabled\n";
 #endif
     case optimizerName::OPTIMIZER_FSQP:
 #ifdef PARPE_ENABLE_FSQP
-        std::cout<<std::left<<std::setw(22)<<"OPTIMIZER_FSQP"
+        std::cout<<prefix<<std::left<<std::setw(22)<<"OPTIMIZER_FSQP"
                 <<static_cast<int>(optimizerName::OPTIMIZER_FSQP)
                <<" enabled\n";
 #else
-        std::cout<<std::left<<std::setw(22)<<"OPTIMIZER_FSQP"
+        std::cout<<prefix<<std::left<<std::setw(22)<<"OPTIMIZER_FSQP"
                 <<static_cast<int>(optimizerName::OPTIMIZER_FSQP)
                <<" disabled\n";
 #endif
     case optimizerName::OPTIMIZER_MINIBATCH_1:
-        std::cout<<std::left<<std::setw(22)<<"OPTIMIZER_MINIBATCH_1"
+        std::cout<<prefix<<std::left<<std::setw(22)<<"OPTIMIZER_MINIBATCH_1"
                 <<static_cast<int>(optimizerName::OPTIMIZER_MINIBATCH_1)
                <<" enabled\n";
     }

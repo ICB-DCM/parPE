@@ -35,7 +35,8 @@ class OptimizationApplication {
 
     /**
      * @brief User-provided problem initialization.
-     * Must set OptimizationApplication::problem, OptimizationApplication::multiStartOptimization and should set
+     * Must set OptimizationApplication::problem,
+     * OptimizationApplication::multiStartOptimization and should set
      * OptimizationApplication::resultWriter
      * @param inFileArgument
      * @param outFileArgument
@@ -45,6 +46,8 @@ class OptimizationApplication {
 
     /**
      * @brief Start the optimization run. Must only be called once.
+     * Initializes MPI if not already done.
+     * Must be called before any other functions.
      * @return status code; 0 on success
      */
     int run(int argc, char **argv);
@@ -52,7 +55,6 @@ class OptimizationApplication {
     /**
      * @brief This is run by the MPI rank 0 process when started with multiple
      * processes.
-     * @return
      */
     virtual void runMaster();
 
@@ -105,14 +107,26 @@ class OptimizationApplication {
     static void initMPI(int *argc, char ***argv);
 
     /**
-     * @brief Parse command line Options.
-     * Must be called before any other functions.
-     * Initializes MPI if not already done.
+     * @brief Parse command line options before MPI_INIT is potentially called.
+     *
+     * Used e.g. to print usage information without first initialization MPI.
+     *
+     * Argv may contain extra MPI arguments.
      * @param argc
      * @param argv
      * @return
      */
-    virtual int parseOptions(int argc, char **argv);
+    virtual int parseCliOptionsPreMpiInit(int argc, char **argv);
+
+    /**
+     * @brief Parse command line options after MPI_Init is called.
+     *
+     * Any MPI-related CLI arguments will be removed here.
+     * @param argc
+     * @param argv
+     * @return
+     */
+    virtual int parseCliOptionsPostMpiInit(int argc, char **argv);
 
     /**
      * @brief Print CLI usage
@@ -134,12 +148,13 @@ private:
 
 protected:
     // command line option parsing
-    const char *shortOptions = "dhvt:o:s:";
-    struct option const longOptions[8] = {
+    const char *shortOptions = "dhvmt:o:s:";
+    struct option const longOptions[9] = {
         {"debug", no_argument, NULL, 'd'},
         {"print-worklist", no_argument, NULL, 'p'},
         {"help", no_argument, NULL, 'h'},
         {"version", no_argument, NULL, 'v'},
+        {"mpi", no_argument, NULL, 'm'},
         {"task", required_argument, NULL, 't'},
         {"outfile-prefix", required_argument, NULL, 'o'},
         {"first-start-idx", required_argument, NULL, 's'},
@@ -158,9 +173,10 @@ protected:
     // the need to be filled in by sub
     std::unique_ptr<MultiStartOptimizationProblem> multiStartOptimizationProblem;
     std::unique_ptr<OptimizationProblem> problem;
-    hid_t file_id;
+    hid_t file_id = 0;
     OperationType operationType = OperationType::parameterEstimation;
     LoadBalancerMaster loadBalancer;
+    bool withMPI = false;
 };
 
 
