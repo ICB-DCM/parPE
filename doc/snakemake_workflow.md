@@ -23,7 +23,7 @@ provided in `snakemake/config.schema.yaml`.
 After that you can run the full pipeline with:
 
     cd snakemake
-    snakemake --configfile parpe_optimize_petab_steadystate.yaml postprocess
+    snakemake --configfile parpe_optimize_petab_steadystate.yaml -- postprocess
 
 This generate C++ code of the model, build model specific binaries for
 parameter estimation, run parameters, and process the results.
