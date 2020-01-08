@@ -91,7 +91,7 @@ Optimizer* optimizerFactory(optimizerName optimizer);
 /**
  * @brief Print list of supported optimizers
  */
-void printAvailableOptimizers();
+void printAvailableOptimizers(std::string prefix = "");
 } // namespace parpe
 
 #endif // OPTIMIZATIONOPTIONS_H
