@@ -115,7 +115,7 @@ if __name__ == "__main__":
         exit()
 
     if sys.argv[2] != "-s":
-        print("Unrecognized options " + sys.argv(2))
+        print("Unrecognized options " + sys.argv[2])
         exit(1)
 
     if len(sys.argv) == 4:
