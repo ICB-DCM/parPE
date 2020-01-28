@@ -112,6 +112,14 @@ void fillArrayRandomDoubleSameInterval(double min, double max, gsl::span<double>
 int getMpiRank();
 int getMpiCommSize();
 int getMpiActive();
+
+/**
+ * @brief Was application launched by mpiexec?
+ *
+ * Make an educated guess if the application was launched with mpiexec
+ * or similar and therefore require MPI_INIT.
+ * @return True if probably launched by mpiexec
+ */
 bool launchedWithMpi();
 
 void initMpiIfNeeded(int *argc, char ***argv);

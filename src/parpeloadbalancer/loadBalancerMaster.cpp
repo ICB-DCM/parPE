@@ -22,7 +22,7 @@ void LoadBalancerMaster::run() {
 #endif
 
     int mpiCommSize;
-    MPI_Comm_size(MPI_COMM_WORLD, &mpiCommSize);
+    MPI_Comm_size(mpiComm, &mpiCommSize);
     assert(mpiCommSize > 1 &&
            "Need multiple MPI processes!"); // crashes otherwise
 
@@ -32,13 +32,11 @@ void LoadBalancerMaster::run() {
     // have to initialize before can wait!
     sendRequests.resize(numWorkers, MPI_REQUEST_NULL);
 
-    /* Create semaphore to limit queue length
-     * and avoid huge memory allocation for all send and receive buffers.
-     */
-    unsigned int queueMaxLength = mpiCommSize;
+    // Create semaphore to limit queue length
 #ifdef SEM_VALUE_MAX
-    if(SEM_VALUE_MAX < queueMaxLength)
-        throw ParPEException("SEM_VALUE_MAX too small to work with the given MPI_Comm_size.");
+    unsigned int queueMaxLength = SEM_VALUE_MAX;
+#else
+    unsigned int queueMaxLength = UINT_MAX;
 #endif
     sem_init(&semQueue, 0, queueMaxLength);
 
@@ -71,40 +69,16 @@ void *LoadBalancerMaster::loadBalancerThreadRun() {
 
     // dispatch queued work packages
     while (true) {
+        int freeWorkerIndex = NO_FREE_WORKER;
+
+        // empty send queue while there are free workers
+        while((freeWorkerIndex = getNextFreeWorkerIndex()) >= 0
+              && sendQueuedJob(freeWorkerIndex)) {}
 
         // check if any job finished
-        int lastFinishedWorkerIdx = handleFinishedJobs();
+        handleFinishedJobs();
 
         freeEmptiedSendBuffers();
-
-        // getNextFreeWorker
-        int freeWorkerIndex = lastFinishedWorkerIdx;
-
-        if (freeWorkerIndex < 0) {
-            // no job finished recently, check free slots
-            freeWorkerIndex = getNextFreeWorkerIndex();
-        }
-
-        if (freeWorkerIndex < 0) {
-            // add cancellation point to avoid invalid reads in
-            // loadBalancer.recvRequests
-            pthread_testcancel();
-
-            // all workers are busy, wait for next one to finish
-            MPI_Status status;
-            MPI_Probe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
-            freeWorkerIndex = handleReply(&status);
-        }
-
-        // found free worker, check for jobs to do
-        JobData *currentQueueElement = getNextJob();
-
-        if (currentQueueElement) {
-            sendToWorker(freeWorkerIndex, currentQueueElement);
-            sentJobsData[freeWorkerIndex] = currentQueueElement;
-        }
-
-        sched_yield();
     };
 
     return nullptr;
@@ -113,7 +87,7 @@ void *LoadBalancerMaster::loadBalancerThreadRun() {
 void LoadBalancerMaster::freeEmptiedSendBuffers() {
     // free any emptied send buffers
     while (true) {
-        int emptiedBufferIdx = -1;
+        int emptiedBufferIdx = MPI_UNDEFINED;
         int anySendCompleted = 0;
         MPI_Testany(sendRequests.size(), sendRequests.data(), &emptiedBufferIdx,
                     &anySendCompleted, MPI_STATUS_IGNORE);
@@ -131,8 +105,7 @@ void LoadBalancerMaster::freeEmptiedSendBuffers() {
 }
 
 int LoadBalancerMaster::handleFinishedJobs() {
-    MPI_Status status;
-    int finishedWorkerIdx = -1;
+    int finishedWorkerIdx = NO_FREE_WORKER;
 
     // handle all finished jobs, if any
     while (true) {
@@ -140,13 +113,19 @@ int LoadBalancerMaster::handleFinishedJobs() {
         // loadBalancer.recvRequests
         pthread_testcancel();
 
+        // check for waiting incoming message
+        MPI_Status status;
         int messageWaiting = 0;
-        MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &messageWaiting,
-                   &status);
+        MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, mpiComm,
+                   &messageWaiting, &status);
 
         if (messageWaiting) {
-            // some job is finished
+            // some job is finished, process that
             finishedWorkerIdx = handleReply(&status);
+
+            // directly send new work if available
+            if(sendQueuedJob(finishedWorkerIdx))
+                finishedWorkerIdx = NO_FREE_WORKER; // not free anymore
         } else {
             // there was nothing to be finished
             break;
@@ -161,7 +140,7 @@ int LoadBalancerMaster::getNextFreeWorkerIndex() {
             return i;
     }
 
-    return -1;
+    return NO_FREE_WORKER;
 }
 
 JobData *LoadBalancerMaster::getNextJob() {
@@ -192,8 +171,9 @@ void LoadBalancerMaster::sendToWorker(int workerIdx, JobData *data) {
     printf("\x1b[31mSending job #%d to rank %d (%luB).\x1b[0m\n", tag, workerRank, data->sendBuffer.size());
 #endif
 
-    MPI_Isend(data->sendBuffer.data(), data->sendBuffer.size(), MPI_BYTE, workerRank, tag,
-              MPI_COMM_WORLD, &sendRequests[workerIdx]);
+    MPI_Isend(data->sendBuffer.data(), data->sendBuffer.size(), mpiJobDataType,
+              workerRank, tag,
+              mpiComm, &sendRequests[workerIdx]);
 
     sem_post(&semQueue);
 }
@@ -246,7 +226,7 @@ int LoadBalancerMaster::handleReply(MPI_Status *mpiStatus) {
 
     // allocate memory for result
     int lenRecvBuffer = 0;
-    MPI_Get_count(mpiStatus, MPI_BYTE, &lenRecvBuffer);
+    MPI_Get_count(mpiStatus, mpiJobDataType, &lenRecvBuffer);
     data->recvBuffer.resize(lenRecvBuffer);
 
 #ifdef MASTER_QUEUE_H_SHOW_COMMUNICATION
@@ -255,8 +235,8 @@ int LoadBalancerMaster::handleReply(MPI_Status *mpiStatus) {
 #endif
 
     // receive
-    MPI_Recv(data->recvBuffer.data(), data->recvBuffer.size(), MPI_BYTE,
-             mpiStatus->MPI_SOURCE, mpiStatus->MPI_TAG, MPI_COMM_WORLD,
+    MPI_Recv(data->recvBuffer.data(), data->recvBuffer.size(), mpiJobDataType,
+             mpiStatus->MPI_SOURCE, mpiStatus->MPI_TAG, mpiComm,
              MPI_STATUS_IGNORE);
 
     workerIsBusy[workerIdx] = false;
@@ -281,15 +261,30 @@ int LoadBalancerMaster::handleReply(MPI_Status *mpiStatus) {
     return workerIdx;
 }
 
+bool LoadBalancerMaster::sendQueuedJob(int freeWorkerIndex)
+{
+    if (freeWorkerIndex < 0)
+        return false;
+
+    JobData *currentQueueElement = getNextJob();
+
+    if (currentQueueElement) {
+        sendToWorker(freeWorkerIndex, currentQueueElement);
+        sentJobsData[freeWorkerIndex] = currentQueueElement;
+        return true;
+    }
+    return false;
+}
+
 void LoadBalancerMaster::sendTerminationSignalToAllWorkers() {
     int commSize;
-    MPI_Comm_size(MPI_COMM_WORLD, &commSize);
+    MPI_Comm_size(mpiComm, &commSize);
 
     MPI_Request reqs[commSize - 1];
 
     for (int i = 1; i < commSize; ++i) {
         reqs[i - 1] = MPI_REQUEST_NULL;
-        MPI_Isend(MPI_BOTTOM, 0, MPI_INT, i, 0, MPI_COMM_WORLD, &reqs[i - 1]);
+        MPI_Isend(MPI_BOTTOM, 0, MPI_INT, i, 0, mpiComm, &reqs[i - 1]);
     }
     MPI_Waitall(commSize - 1, reqs, MPI_STATUS_IGNORE);
 }
