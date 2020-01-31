@@ -189,6 +189,10 @@ int StandaloneSimulator::run(const std::string& resultFile,
             auto lock = hdf5MutexGetLock();
             amici::hdf5::createAndWriteDouble1DDataset(
                         resultFileH5, resultPath + "/parameters", parameters);
+            hdf5Write1dStringDataset(resultFileH5, resultPath, "stateIds",
+                                     model->getStateIds());
+            hdf5Write1dStringDataset(resultFileH5, resultPath, "observableIds",
+                                     model->getObservableIds());
         }
         // compute llh
         for(int conditionIdx = 0; (unsigned) conditionIdx < simulationResults.size(); ++conditionIdx) {

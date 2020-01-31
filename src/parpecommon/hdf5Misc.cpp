@@ -832,4 +832,30 @@ std::vector<std::string> hdf5Read1dStringDataset(
     return strBuffer;
 }
 
+void hdf5Write1dStringDataset(
+        const H5::H5File &file, const std::string &parentPath,
+        const std::string &datasetPath, std::vector<std::string> const& buffer)
+{
+    auto lock = hdf5MutexGetLock();
+
+    const int dims = 1;
+    hsize_t dims0 = buffer.size();
+    H5::DataSpace sid1(dims, &dims0);
+
+    H5::StrType tid1(0, H5T_VARIABLE);
+    RELEASE_ASSERT(H5T_STRING == H5Tget_class(tid1.getId())
+            || !H5Tis_variable_str(tid1.getId()), "String type failure.");
+
+    hdf5EnsureGroupExists(file, parentPath);
+    auto dataset = file.createDataSet(parentPath + "/" + datasetPath,
+                                      tid1, sid1);
+
+    // we need character pointers
+    std::vector<const char *> charPtrBuffer(buffer.size());
+    for(int i = 0; i < (int) buffer.size(); ++i) {
+        charPtrBuffer[i] = buffer[i].c_str();
+    }
+    dataset.write((void*)charPtrBuffer.data(), tid1);
+}
+
 } // namespace parpe
