@@ -861,21 +861,22 @@ double computeAnalyticalScalings(
                      "thus, not used. Setting scaling parameter to 1.0.");
         return 1.0;
     }
-
     double scaling = enumerator / denominator;
-    constexpr double upper_bound = 1e10;
 
-    // too large values of scaling parameters cause problems in backwards
-    // integration for adjoint sensitivities
-    if(upper_bound > scaling)
-        return scaling;
+    return scaling;
+//    constexpr double upper_bound = 1e10;
 
-    logmessage(LOGLVL_WARNING,
-               "In computeAnalyticalScalings: force-bounding scaling parameter "
-               + std::to_string(scalingIdx) + " which was "
-               + std::to_string(scaling) + " to "
-               + std::to_string(upper_bound));
-    return upper_bound;
+//    // too large values of scaling parameters cause problems in backwards
+//    // integration for adjoint sensitivities
+//    if(upper_bound > scaling)
+//        return scaling;
+
+//    logmessage(LOGLVL_WARNING,
+//               "In computeAnalyticalScalings: force-bounding scaling parameter "
+//               + std::to_string(scalingIdx) + " which was "
+//               + std::to_string(scaling) + " to "
+//               + std::to_string(upper_bound));
+//    return upper_bound;
 }
 
 
