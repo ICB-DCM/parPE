@@ -1,22 +1,27 @@
 """Functions for generating parPE parameter estimation HDF5 input files"""
-import numpy as np
-import h5py
-import sys
 import argparse
-import petab
-import amici
-import pandas as pd
-from pandas import DataFrame
-from colorama import init as init_colorama
-from colorama import Fore
+import sys
 from numbers import Number
 from typing import Any, Collection, Optional, Dict, Tuple
-from parpe.hdf5 import write_string_array
-from parpe.misc import get_amici_model, unique_ordered
+
+import amici
+import h5py
+import numpy as np
+import pandas as pd
+import petab
+from amici.petab_import import petab_scale_to_amici_scale
+from amici.petab_objective import subset_dict
+from colorama import Fore
+from colorama import init as init_colorama
+from pandas import DataFrame
 from petab import C as ptc
 from petab import to_float_if_float
-from amici.petab_objective import subset_dict
-from amici.petab_import import petab_scale_to_amici_scale
+
+from .hdf5 import write_string_array
+from .hierarchical_optimization import (parameter_is_offset_parameter,
+                                        parameter_is_scaling_parameter)
+from .misc import get_amici_model, unique_ordered
+
 
 # TODO: use logging
 # TODO: transpose all datasets?
@@ -571,6 +576,7 @@ class HDF5DataGenerator:
         observable_parameter_override_id_to_placeholder_id = {}
         noise_parameter_override_id_to_placeholder_id = {}
         observable_df = self.petab_problem.observable_df
+
         # TODO: this seems to be redundant with the creation of the mapping
         #  tables later on
         for _, row in self.petab_problem.measurement_df.iterrows():
@@ -675,10 +681,10 @@ class HDF5DataGenerator:
                     print('observable_formula', observable_formula)
                     """
 
-                    if petab.parameter_is_offset_parameter(
+                    if parameter_is_offset_parameter(
                             placeholder_id, observable_formula):
                         offset_candidates.add(optimization_parameter_id)
-                    elif petab.parameter_is_scaling_parameter(
+                    elif parameter_is_scaling_parameter(
                             placeholder_id, observable_formula):
                         scaling_candidates.add(optimization_parameter_id)
                     else:
