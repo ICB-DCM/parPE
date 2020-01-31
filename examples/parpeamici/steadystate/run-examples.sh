@@ -50,7 +50,7 @@ test -f simulate1.h5
 rm -rf example_steadystate_multi-test-optimize/
 ${MPIEXEC} ./example_steadystate_multi --mpi \
   -o example_steadystate_multi-test-optimize/ ${HDF5_FILE} 2>&1 > test.log
-(grep "Solved To Acceptable Level" test.log)
+(grep -E "(Maximum Number of Iterations Exceeded|Solved To Acceptable Level)" test.log)
 
 # Simulate along trajectory
 
