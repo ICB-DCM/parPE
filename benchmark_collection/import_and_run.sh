@@ -19,16 +19,21 @@ SCRIPT_PATH=$(get_abs_filename $(dirname $BASH_SOURCE))
 PARPE_DIR=${SCRIPT_PATH}/..
 MODEL_NAME=$(basename ${PETAB_MODEL_DIR})
 AMICI_MODEL_DIR=${SCRIPT_PATH}/${MODEL_NAME}
+petab_yaml=${MODEL_NAME}.yaml
+if [[ -z "${AMICI_ROOT}" ]]
+    then AMICI_ROOT=${PARPE_DIR}/deps/AMICI/
+fi
+
 
 cd ${PETAB_MODEL_DIR}
 
-echo "Running petablint..."
-petablint -v -n ${MODEL_NAME}
+echo "Running petablint on ${petab_yaml}..."
+petablint -v -y ${MODEL_NAME}.yaml
 
 # import AMICI model
 if [[ ! -d ${AMICI_MODEL_DIR} ]]; then
     echo "Importing model..."
-    CMD="amici_import_petab.py --verbose -n ${MODEL_NAME} -o ${AMICI_MODEL_DIR}"
+    CMD="amici_import_petab.py --verbose -y ${MODEL_NAME}.yaml -o ${AMICI_MODEL_DIR}"
     echo "${CMD}"
     ${CMD}
 fi
@@ -38,24 +43,18 @@ cd ${SCRIPT_PATH}
 # parPE build
 if [[ ! -d parpe_${MODEL_NAME} ]]; then
     echo "Setting up parPE..."
-    ${PARPE_DIR}/misc/setup_amici_model.sh ${AMICI_MODEL_DIR} parpe_${MODEL_NAME}
+    "${PARPE_DIR}"/misc/setup_amici_model.sh "${AMICI_MODEL_DIR}" parpe_"${MODEL_NAME}"
 else
-    if [[ -z "${AMICI_ROOT}" ]]
-        then AMICI_ROOT=${SCRIPT_PATH}/../deps/AMICI/
-    fi
-    (cd parpe_${MODEL_NAME}/build && cmake -DAmici_DIR=${AMICI_ROOT}/build .. && make)
+    (cd parpe_"${MODEL_NAME}"/build && cmake -DAmici_DIR="${AMICI_ROOT}"/build .. && make)
 fi
 
 # generate data file
 echo "Importing data..."
-CMD="${PARPE_DIR}/misc/generateHDF5DataFileFromText.py \
+CMD="parpe_petab_to_hdf5 \
     -o parpe_${MODEL_NAME}/${MODEL_NAME}.h5 \
-    -s ${PETAB_MODEL_DIR}/model_${MODEL_NAME}.xml \
     -d ${AMICI_MODEL_DIR} \
-    -m ${PETAB_MODEL_DIR}/measurementData_${MODEL_NAME}.tsv \
-    -c ${PETAB_MODEL_DIR}/experimentalCondition_${MODEL_NAME}.tsv \
-    -n ${MODEL_NAME} \
-    -p ${PETAB_MODEL_DIR}/parameters_${MODEL_NAME}.tsv"
+    -y ${PETAB_MODEL_DIR}/${MODEL_NAME}.yaml \
+    -n ${MODEL_NAME}"
 echo $CMD
 $CMD
 
@@ -70,12 +69,15 @@ parpe_${MODEL_NAME}/build/simulateNominal_${MODEL_NAME} parpe_${MODEL_NAME}/${MO
 # Check output
 LLH=$(grep Likelihood tmp.out | tr -cd '[:print:]' | sed -r 's/.*Likelihood: (.*)\[.*/\1/')
 rm tmp.out
-REF=$(grep -r ${MODEL_NAME} nllh.txt | awk -F ' ' '{print $2}')
+REFERENCE_FILE="${AMICI_ROOT}/tests/benchmark-models/benchmark_models.yaml"
+REF=$(shyaml get-value ${MODEL_NAME}.llh < $REFERENCE_FILE)
 ABS="define abs(i) {\\nif (i < 0) return (-i) \nreturn (i)\n}\n"
-# Do we match within tolerance? (Ref can be off by factor 0.5)
-if (( $(echo -e "${ABS}\nabs($LLH - $REF) < 0.001 * abs($REF) || abs($LLH - 0.5 * $REF) < 0.001 * abs($REF)" | bc) )); then
-  echo "OKAY: Expected $REF (or $(echo "$REF * 0.5" | bc)), got $LLH"
+
+# Do we match within tolerance?
+# LLH VS NLLH!
+if (( $(echo -e "${ABS}\nabs($LLH + $REF) < 0.001 * abs($REF)" | bc) )); then
+  echo "OKAY: Expected $REF, got $LLH"
 else
-  echo "FAILED: Expected $REF (or $(echo "$REF * 0.5" | bc)), got $LLH"
+  echo "FAILED: Expected $REF, got $LLH"
   exit 1
 fi
