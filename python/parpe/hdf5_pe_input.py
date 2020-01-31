@@ -10,8 +10,8 @@ from pandas import DataFrame
 from colorama import init as init_colorama
 from colorama import Fore
 from numbers import Number
-from typing import Iterable, Any, Collection, Optional, Dict, List, Tuple
-from parpe.hdf5 import write_float_array, write_int_array, write_string_array
+from typing import Any, Collection, Optional, Dict, Tuple
+from parpe.hdf5 import write_string_array
 from parpe.misc import get_amici_model, unique_ordered
 from petab import C as ptc
 from petab import to_float_if_float
@@ -304,7 +304,7 @@ class HDF5DataGenerator:
                 condition_map_preeq_var, condition_map_preeq_fix = \
                     subset_dict(condition_map_preeq, variable_par_ids,
                                 fixed_par_ids)
-                condition_scale_map_preeq_var, condition_scale_map_preeq_fix = \
+                condition_scale_map_preeq_var, _ = \
                     subset_dict(condition_scale_map_preeq, variable_par_ids,
                                 fixed_par_ids)
 
@@ -509,7 +509,6 @@ class HDF5DataGenerator:
             name: idx for idx, name in enumerate(self.observable_ids)}
 
         measurement_df = self.petab_problem.measurement_df
-        condition_df = self.petab_problem.condition_df
 
         for sim_idx, (preeq_cond_idx, sim_cond_idx) \
                 in enumerate(self.condition_map):

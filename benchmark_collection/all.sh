@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Import, build, and run all benchmark models
+# Import, build, and run benchmark models
 
 set -e
 
 [[ -n "${BENCHMARK_COLLECTION}" ]] && model_dir="${BENCHMARK_COLLECTION}"
 
-all_models=$(ls -1d ${model_dir}/*/)
+# all_models=$(ls -1d ${model_dir}/*/)
 
 expected_to_work="
 Boehm_JProteomeRes2014
