@@ -4,6 +4,7 @@
 
 #include <cassert>
 #include <cstdlib>
+#include <iostream>
 #include <sstream>
 #include <utility>
 #include <unistd.h>
@@ -801,6 +802,34 @@ void hdf5EnsureGroupExists(const H5::H5File & file, const std::string &groupName
 bool hdf5DatasetExists(const H5::H5File &file, const std::string &datasetName)
 {
     return hdf5DatasetExists(file.getId(), datasetName.c_str());
+}
+
+std::vector<std::string> hdf5Read1dStringDataset(
+        H5::H5File const& file, const std::string &datasetPath)
+{
+    auto lock = hdf5MutexGetLock();
+    auto dataset = file.openDataSet(datasetPath);
+    auto filespace = dataset.getSpace();
+
+    const int ndims = filespace.getSimpleExtentNdims();
+    assert(ndims == 1 && "Only works for 1D arrays!");
+
+    auto dtype = dataset.getDataType();
+    auto native_type = H5Tget_native_type(dtype.getId(), H5T_DIR_DEFAULT);
+    H5::StrType tid1(0, H5T_VARIABLE);
+    if(!H5Tequal(native_type, tid1.getId()))
+        throw HDF5Exception("Data type mismatch");
+
+    hsize_t length;
+    filespace.getSimpleExtentDims(&length);
+    std::vector<char*> buffer(length);
+    dataset.read((void*)buffer.data(), dtype);
+
+    std::vector<std::string> strBuffer(buffer.size());
+    for(int i = 0; i < (int) buffer.size(); ++i) {
+        strBuffer[i] = buffer[i];
+    }
+    return strBuffer;
 }
 
 } // namespace parpe

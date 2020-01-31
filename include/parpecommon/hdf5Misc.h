@@ -156,5 +156,8 @@ void hdf5WriteStringAttribute(hid_t fileId, const char *datasetPath,
                              const char *attributeName,
                              const char *attributeValue);
 
+std::vector<std::string> hdf5Read1dStringDataset(
+        const H5::H5File &file, std::string const& datasetPath);
+
 } // namespace parpe
 #endif
