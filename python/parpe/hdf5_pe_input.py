@@ -1,111 +1,42 @@
-#!/usr/bin/env python3
-"""
-Generate HDF5 file for parPE with fixed parameters and measurements for an
-AMICI-imported SBML model based on tables with fixed parameters and training
-data in the PEtab format https://github.com/ICB-DCM/PEtab
-"""
-
+"""Functions for generating parPE parameter estimation HDF5 input files"""
 import numpy as np
 import h5py
 import sys
 import argparse
 import petab
-import importlib
 import amici
 import pandas as pd
-import libsbml
 from pandas import DataFrame
 from colorama import init as init_colorama
 from colorama import Fore
 from numbers import Number
 from typing import Iterable, Any, Collection, Optional, Dict, List, Tuple
+from parpe.hdf5 import write_float_array, write_int_array, write_string_array
+from parpe.misc import get_amici_model, unique_ordered
+from petab import C as ptc
+from petab import to_float_if_float
+from amici.petab_objective import subset_dict
+from amici.petab_import import petab_scale_to_amici_scale
 
-
-def to_float_if_float(x: Any) -> Any:
-    try:
-        return float(x)
-    except ValueError:
-        return x
-
-
-def unique_ordered(seq: Iterable) -> list:
-    """
-    Make unique, preserving order of first occurrence
-
-    Arguments:
-        seq: any sequence
-    """
-    seen = set()
-    seen_add = seen.add
-    return [x for x in seq if not (x in seen or seen_add(x))]
-
+# TODO: use logging
+# TODO: transpose all datasets?
 
 def requires_preequilibration(measurement_df: DataFrame) -> bool:
-    return 'preequilibrationConditionId' in measurement_df \
+    return ptc.PREEQUILIBRATION_CONDITION_ID in measurement_df \
             and not np.issubdtype(
-                measurement_df.preequilibrationConditionId.dtype, np.number)
-
-
-def write_string_array(f: h5py.File,
-                       path: str,
-                       strings: Collection):
-    """
-    Write string array to hdf5
-
-    Arguments:
-        f: h5py.File
-        path: path of the dataset to create
-        strings: list of strings
-    """
-    dt = h5py.special_dtype(vlen=str)
-    dset = f.create_dataset(path, (len(strings),), dtype=dt)
-    dset[:] = [s.encode('utf8') for s in strings]
-    f.flush()
-
-
-def write_float_array(f, path, values, dtype='f8'):
-    """
-    Write float array to hdf5
-
-    Arguments:
-        f: h5py.File
-        path: path of the dataset to create
-        values: array to write
-        dtype: datatype
-    """
-    dset = f.create_dataset(path, (len(values),), dtype=dtype)
-    dset[:] = values
-    f.flush()
-
-
-def write_int_array(f, path, values, dtype='<i4'):
-    """
-    Write integer array to hdf5
-
-    Arguments:
-        f: h5py.File
-        path: path of the dataset to create
-        values: array to write
-        dtype: datatype
-    """
-    dset = f.create_dataset(path, (len(values),), dtype=dtype)
-    dset[:] = values
-    f.flush()
+                measurement_df[ptc.PREEQUILIBRATION_CONDITION_ID].dtype,
+                np.number)
 
 
 class HDF5DataGenerator:
     """
     Generate HDF5 file with fixed parameters and measurements for an
-    AMICI-imported SBML model based on SBML model file, AMICI python model,
-    measurement table, fixed parameter table and parameter table
-    in PEtab format.
+    AMICI-imported SBML model based on a PEtab problem.
 
     Attributes:
+        amici_model: AMICI model for which to estimate parameters
+        petab_problem: PEtab optimization problem (will be modified in place)
         compression: h5py compression to be used
-        measurement_df: PEtab measurement table
-        condition_df: PEtab condition table
-        parameter_df: PEtab parameter table
-        sbml_model: SBML model
         condition_ids: numpy.array condition IDs (different condition vectors,
             both simulation and preequilibration)
         num_condition_vectors:
@@ -117,8 +48,10 @@ class HDF5DataGenerator:
             hdf5 file which is being created
     """
 
-    def __init__(self, sbml_file, measurement_file, condition_file,
-                 parameter_file, model_output_dir, model_name, verbose=1):
+    def __init__(self,
+                 petab_problem: petab.Problem,
+                 amici_model: amici.Model,
+                 verbose=1):
         """
         fileNameSBML: filename of model SBML file (PEtab-style)
         fileMeasurements: filename of measurement file
@@ -139,29 +72,11 @@ class HDF5DataGenerator:
         self.ny: int = 0
 
         self.verbose = verbose
+        self.petab_problem: petab.Problem = petab_problem
+        self.amici_model: amici.Model = amici_model
 
-        self.petab_problem = petab.Problem.from_files(
-            sbml_file=sbml_file,
-            condition_file=condition_file,
-            measurement_file=measurement_file,
-            parameter_file=parameter_file
-        )
         # ensure we have valid inputs
         petab.lint_problem(self.petab_problem)
-
-        self.sbml_model: libsbml.Model = self.petab_problem.sbml_model
-        self.condition_df: pd.DataFrame = self.petab_problem.condition_df
-        self.measurement_df: pd.DataFrame = self.petab_problem.measurement_df
-        self.parameter_df: pd.DataFrame = self.petab_problem.parameter_df
-
-        # parse data
-        self.parse_measurement_file()
-        self.parse_fixed_parameters_file()
-
-        # load model
-        sys.path.insert(0, model_output_dir)
-        model_module = importlib.import_module(model_name)
-        self.amici_model = model_module.getModel()
 
         # index for no reference/preequilibration condition
         self.NO_PREEQ_CONDITION_IDX: int = -1
@@ -169,172 +84,177 @@ class HDF5DataGenerator:
         # value for unmapped model parameter in opt<->sim mapping
         self.UNMAPPED_PARAMETER: int = -1
 
-        # scriptDir = os.path.dirname(os.path.realpath(__file__))
-
         # hdf5 dataset compression
         self.compression = "gzip"
 
-    def parse_measurement_file(self) -> None:
+    def generate_file(self, hdf5_file_name: str) -> None:
+        """
+        Create the output file
+
+        Arguments:
+            hdf5_file_name: filename of HDF5 file that is to be generated
+        """
+        self.f = h5py.File(hdf5_file_name, "w")
+
+        self._save_metadata()
+        self._collect_simulation_conditions()
+        self._process_condition_table()
+
+        print(Fore.GREEN + "Generating simulation condition list...")
+        self._generate_simulation_condition_map()
+
+        print(Fore.GREEN + "Generating parameter list...")
+        self._generate_parameter_list()
+        self._generate_simulation_to_optimization_parameter_mapping()
+
+        print(Fore.GREEN + "Generating measurement matrix...")
+        self._generate_measurement_matrices()
+
+        print(Fore.GREEN + "Handling scaling parameters...")
+        self._generate_hierarchical_optimization_data()
+
+        print(Fore.GREEN + "Copying default AMICI options...")
+        self._write_amici_options()
+
+        print(Fore.GREEN + "Writing default optimization options...")
+        write_optimization_options(self.f)
+        self._write_bounds()
+        self._write_starting_points()
+
+    def _collect_simulation_conditions(self) -> None:
         """
         Read cost_fun file and determine number of conditions and timepoints
         """
-
+        measurement_df = self.petab_problem.measurement_df
         if self.verbose:
-            print(Fore.CYAN + "Measurements shape:", self.measurement_df.shape)
+            print(Fore.CYAN + "Number of data points:",
+                  measurement_df.shape[0])
 
-        # Get list of used conditions
+        # Get list of used conditions vectors
         self.condition_ids = unique_ordered(
-            self.measurement_df.simulationConditionId.values)
-        if requires_preequilibration(self.measurement_df):
+            measurement_df[ptc.SIMULATION_CONDITION_ID].values)
+
+        if requires_preequilibration(measurement_df):
             self.condition_ids = unique_ordered(
                 [*self.condition_ids,
-                 *self.measurement_df.preequilibrationConditionId.values])
+                 *measurement_df[
+                     ptc.PREEQUILIBRATION_CONDITION_ID].values])
         self.num_condition_vectors = len(self.condition_ids)
 
         # when using adjoint sensitivities, we cannot keep inf
         # -> consider late timepoint as steady-state
         print(Fore.GREEN + "Changing t = Inf to t = 1e8, since we cannot use "
-                           "Inf with adjoints.")
-        self.measurement_df.loc[
-            self.measurement_df.time == np.inf, 'time'] = 1e8
+                           "Inf with adjoint sensitivities.")
+        measurement_df.loc[measurement_df[ptc.TIME] == np.inf, ptc.TIME] = 1e8
 
         # list of unique timepoints, just for info and AMICI model default
         # setting
-        self.unique_timepoints = sorted(self.measurement_df.time.unique())
+        self.unique_timepoints = sorted(measurement_df[ptc.TIME].unique())
 
         print(Fore.CYAN + "Num condition vectors: ",
               self.num_condition_vectors)
         print(Fore.CYAN + "Num timepoints: ", self.unique_timepoints,
               len(self.unique_timepoints))
 
-    def parse_fixed_parameters_file(self) -> None:
+    def _process_condition_table(self) -> None:
         """
         Load file and select relevant conditions
         """
-        print(Fore.CYAN + "Fixed parameters orginal: ",
-              self.condition_df.shape)
+        condition_df = self.petab_problem.condition_df
+        if ptc.PARAMETER_NAME in condition_df:
+            # we don't need that, so we drop it that we don't need to care
+            # later on
+            condition_df.drop(columns=ptc.PARAMETER_NAME)
+
+        print(Fore.CYAN + "Conditions original: ",
+              condition_df.shape)
 
         # drop conditions that do not have measurements
-        drop_rows = [label for label in self.condition_df.index
+        drop_rows = [label for label in condition_df.index
                      if label not in self.condition_ids]
-        self.condition_df.drop(drop_rows, 0, inplace=True)
+        condition_df.drop(index=drop_rows, inplace=True)
+        print(Fore.CYAN + "Conditions with data: ",
+              condition_df.shape)
 
-        print(Fore.CYAN + "Fixed parameters usable: ",
-              self.condition_df.shape)
-
-    def generate_file(self, hdf5_file_name) -> None:
-        """
-        Create the output file
-
-        fileNameH5:   filename of HDF5 file that is to be generated
-        """
-        self.f = h5py.File(hdf5_file_name, "w")
-
-        self.save_metadata()
-
-        print(Fore.GREEN + "Generating simulation condition list...")
-        self.generate_simulation_condition_map()
-
-        print(Fore.GREEN + "Generating parameter list...")
-        self.generate_parameter_list()
-
-        print(Fore.GREEN + "Generating fixed parameters matrix...")
-        self.generate_fixed_parameter_matrix()
-
-        print(Fore.GREEN + "Generating measurement matrix...")
-        self.generate_measurement_matrices()
-
-        print(Fore.GREEN + "Handling scaling parameters...")
-        self.generate_hierarchical_optimization_data()
-
-        print(Fore.GREEN + "Copying default AMICI options...")
-        self.copy_amici_options()
-
-        print(Fore.GREEN + "Writing default optimization options...")
-        self.write_optimization_options()
-
-    def save_metadata(self):
+    def _save_metadata(self):
         """Save some extra information in the generated file"""
 
         g = self.f.require_group('/metadata')
 
         g.attrs['invocation'] = ' '.join(sys.argv)
         g.attrs['amici_version'] = amici.__version__
+        g.attrs['petab_version'] = petab.__version__
         # TODO: parPE version
+        # g.attrs['parpe_version'] = parpe.__version__
 
-    def generate_parameter_list(self) -> None:
+        # Model info
+        # Allows for checking in C++ code whether we are likely to use the
+        # correct model
+        g = self.f.require_group('/model')
+        # TODO: only available from module, not from pointer
+        # g.attrs['model_name'] = self.amici_model.getName()
+        write_string_array(g, "observableIds",
+                           self.amici_model.getObservableIds())
+        write_string_array(g, "parameterIds",
+                           self.amici_model.getParameterIds())
+        write_string_array(g, "fixedParameterIds",
+                           self.amici_model.getFixedParameterIds())
+        write_string_array(g, "stateIds",
+                           self.amici_model.getStateIds())
+
+    def _generate_parameter_list(self) -> None:
         """
         Optimization to simulation parameter mapping. Write parameter names.
         """
 
         # simulation parameters from model
         model_parameter_ids = np.array(self.amici_model.getParameterIds())
+        # TODO: rename to "ID"
         write_string_array(self.f, "/parameters/modelParameterNames",
                            model_parameter_ids)
         print(Fore.CYAN + "Number of model parameters:",
               len(model_parameter_ids))
 
+        self.problem_parameter_ids = self.petab_problem \
+            .get_optimization_parameters()
+
+        # sanity check: estimated parameters should not be AMICI fixed
+        # parameters
+        fixed_opt_pars = set(self.problem_parameter_ids) \
+            & set(self.amici_model.getFixedParameterIds())
+        if fixed_opt_pars:
+            raise RuntimeError(f"Parameter {fixed_opt_pars} are to be "
+                               "optimized, but are fixed parameters in the "
+                               "model. This should not happen.")
+
         print(Fore.CYAN + "Number of optimization parameters:",
-              len(self.parameter_df))
+              len(self.problem_parameter_ids))
+
         write_string_array(self.f, "/parameters/parameterNames",
-                           self.parameter_df.index.values[
-                               (self.parameter_df.estimate == 1)
-                           & ~self.parameter_df.index.isin(
-                        self.amici_model.getFixedParameterIds())])
+                           self.problem_parameter_ids)
 
-        self.generate_simulation_to_optimization_parameter_mapping()
-
-        self.f.flush()
-
-    def generate_simulation_to_optimization_parameter_mapping(self) -> None:
+    def _generate_simulation_to_optimization_parameter_mapping(self) -> None:
         """
         Create dataset n_parameters_simulation x n_conditions with indices of
-        respective parameters in pararameters_optimization
+        respective parameters in parameters_optimization
         """
 
-        # get list of tuple of parameters dicts for condition
+        # get list of tuple of parameters dicts for all conditions
         self.parameter_mapping = self.petab_problem \
             .get_optimization_to_simulation_parameter_mapping(
                 warn_unmapped=False)
-        self.parameter_scale_mapping = \
-            petab.get_optimization_to_simulation_scale_mapping(
-                mapping_par_opt_to_par_sim=self.parameter_mapping,
-                parameter_df=self.petab_problem.parameter_df,
-                measurement_df=self.petab_problem.measurement_df
-            )
+        self.parameter_scale_mapping = self.petab_problem\
+            .get_optimization_to_simulation_scale_mapping(
+                mapping_par_opt_to_par_sim=self.parameter_mapping)
 
-        amici_model_parameter_ids = self.amici_model.getParameterIds()
-
-        # Merge and preeq and sim parameters, filter fixed parameters
-        for condition_idx, \
-            ((condition_map_preeq, condition_map_sim),
-             (condition_scale_map_preeq, condition_scale_map_sim)) \
-                in enumerate(zip(self.parameter_mapping,
-                                 self.parameter_scale_mapping)):
-            petab.merge_preeq_and_sim_pars_condition(
-                condition_map_preeq, condition_map_sim,
-                condition_scale_map_preeq, condition_scale_map_sim,
-                condition_idx)
-
-            # PEtab mapping may contain fixed parameters, filter out first
-            # NOTE: parameter ordering might differ from AMICI ordering
-            self.parameter_mapping[condition_idx] = np.array(
-                [condition_map_sim[par]
-                 for par in amici_model_parameter_ids])
-            self.parameter_scale_mapping[condition_idx] = np.array(
-                [condition_scale_map_sim[par]
-                 for par in amici_model_parameter_ids])
+        variable_par_ids = self.amici_model.getParameterIds()
+        fixed_par_ids = self.amici_model.getFixedParameterIds()
 
         # Translate parameter ID mapping to index mapping
         # create inverse mapping for faster lookup
+        print(self.problem_parameter_ids)
         optimization_parameter_name_to_index = {
-            name: idx for idx, name
-            in enumerate(
-                self.parameter_df.index[
-                    (self.parameter_df.estimate == 1)
-                    & (~self.parameter_df.index.isin(
-                        self.amici_model.getFixedParameterIds()))
-                    ])}
+            name: idx for idx, name in enumerate(self.problem_parameter_ids)}
         self.optimization_parameter_name_to_index = \
             optimization_parameter_name_to_index
 
@@ -345,13 +265,67 @@ class HDF5DataGenerator:
             dtype='<i4')
         override_matrix = np.full(shape=mapping_matrix.shape,
                                   fill_value=np.nan)
-        # for each condition index vector
-        for condition_idx, par_map \
-                in enumerate(self.parameter_mapping):
+        pscale_matrix = np.full(shape=mapping_matrix.shape, dtype='<i4',
+                                fill_value=amici.ParameterScaling_none)
 
-            # for each model parameter
-            for model_parameter_idx, mapped_parameter \
-                    in enumerate(par_map):
+        # AMICI fixed parameters
+        self.nk = len(fixed_par_ids)
+        print(Fore.CYAN + "Number of fixed parameters:",
+              len(fixed_par_ids))
+        # TODO: can fixed parameter differ between same condition vector used
+        #  in different sim x preeq combinations?
+        fixed_parameter_matrix = np.full(
+            shape=(self.nk, self.num_condition_vectors),
+            fill_value=np.nan)
+
+        # Merge and preeq and sim parameters, filter fixed parameters
+        for condition_idx, \
+            ((condition_map_preeq, condition_map_sim),
+             (condition_scale_map_preeq, condition_scale_map_sim)) \
+                in enumerate(zip(self.parameter_mapping,
+                                 self.parameter_scale_mapping)):
+
+            if len(condition_map_preeq) != len(condition_scale_map_preeq) \
+                    or len(condition_map_sim) != len(condition_scale_map_sim):
+                raise AssertionError(
+                    "Number of parameters and number of parameter "
+                    "scales do not match.")
+            if len(condition_map_preeq) \
+                    and len(condition_map_preeq) != len(condition_map_sim):
+                # logger.debug(
+                #     f"Preequilibration parameter map: {condition_map_preeq}")
+                # logger.debug(f"Simulation parameter map: {condition_map_sim}")
+                raise AssertionError(
+                    "Number of parameters for preequilbration "
+                    "and simulation do not match.")
+
+            # split into fixed and variable parameters:
+            if condition_map_preeq:
+                condition_map_preeq_var, condition_map_preeq_fix = \
+                    subset_dict(condition_map_preeq, variable_par_ids,
+                                fixed_par_ids)
+                condition_scale_map_preeq_var, condition_scale_map_preeq_fix = \
+                    subset_dict(condition_scale_map_preeq, variable_par_ids,
+                                fixed_par_ids)
+
+            condition_map_sim_var, condition_map_sim_fix = \
+                subset_dict(condition_map_sim, variable_par_ids, fixed_par_ids)
+            condition_scale_map_sim_var, condition_scale_map_sim_fix = \
+                subset_dict(condition_scale_map_sim, variable_par_ids,
+                            fixed_par_ids)
+
+            if condition_map_preeq:
+                # merge after having removed potentially fixed parameters
+                # which may differ between preequilibration and simulation
+                petab.merge_preeq_and_sim_pars_condition(
+                    condition_map_preeq_var, condition_map_sim_var,
+                    condition_scale_map_preeq_var, condition_scale_map_sim_var,
+                    condition_idx)
+
+            # mapping for each model parameter
+            for model_parameter_idx, model_parameter_id \
+                    in enumerate(variable_par_ids):
+                mapped_parameter = condition_map_sim[model_parameter_id]
                 mapped_parameter = to_float_if_float(mapped_parameter)
                 try:
                     (mapped_idx, override) = self.get_index_mapping_for_par(
@@ -366,116 +340,127 @@ class HDF5DataGenerator:
                     print(self.parameter_mapping)
                     raise e
 
+            # Set parameter scales for simulation
+            pscale_matrix[:, condition_idx] = list(
+                petab_scale_to_amici_scale(condition_scale_map_sim[amici_id])
+                for amici_id in variable_par_ids)
+
+            fixed_parameter_matrix[:, self.condition_map[condition_idx, 1]] = \
+                np.array([condition_map_sim_fix[par_id]
+                         for par_id in fixed_par_ids])
+
+            if condition_map_preeq:
+                fixed_parameter_matrix[:, self.condition_map[condition_idx, 0]] = \
+                    np.array([condition_map_preeq_fix[par_id]
+                             for par_id in fixed_par_ids])
+
         # write to file
+        self.create_fixed_parameter_dataset_and_write_attributes(
+            fixed_par_ids, fixed_parameter_matrix)
+
+        self.f.require_dataset('/parameters/pscaleSimulation',
+                               shape=pscale_matrix.T.shape, dtype="<i4",
+                               data=pscale_matrix.T)
+
         write_parameter_map(self.f, mapping_matrix, override_matrix,
                             num_model_parameters, self.compression)
-        write_scale_map(self.f, self.parameter_scale_mapping,
-                        self.parameter_df, self.amici_model)
+
+        # for cost function parameters
+        petab_opt_par_scale = \
+            self.petab_problem.get_optimization_parameter_scales()
+        pscale_opt_par = np.array(
+            list(petab_scale_to_amici_scale(petab_opt_par_scale[par_id])
+            for par_id in self.problem_parameter_ids))
+
+        self.f.require_dataset('/parameters/pscaleOptimization',
+                               shape=pscale_opt_par.shape, dtype="<i4",
+                               data=pscale_opt_par)
+
+        self.f.flush()
 
     def get_index_mapping_for_par(
             self, mapped_parameter: Any,
             optimization_parameter_name_to_index: Dict[str, int]
     ) -> Tuple[int, float]:
+        """Get index mapping for a given parameter
+
+        Arguments:
+            mapped_parameter: value mapped to some model parameter
+            optimization_parameter_name_to_index: Dictionary mapping
+                optimization parameter IDs to their position in the
+                optimization parameter vector
+        Returns:
+            Index of parameter to map to, and value for override matrix
+        """
         if isinstance(mapped_parameter, str):
             # actually a mapped optimization parameter
-            try:
-                return (optimization_parameter_name_to_index[mapped_parameter],
-                        np.nan)
-            except KeyError:
-                # This is a fixed parameter which is to be replaced
-                # by nominalValue
-                return (self.UNMAPPED_PARAMETER,
-                        self.parameter_df.loc[mapped_parameter,
-                                              'nominalValue'])
-        elif np.isnan(mapped_parameter):
+            return (optimization_parameter_name_to_index[mapped_parameter],
+                    np.nan)
+
+        if np.isnan(mapped_parameter):
             # This condition does not use any parameter override.
             # We override with 0.0, NAN will cause AMICI warnings.
             return self.UNMAPPED_PARAMETER, 1.0
-        else:
-            # Have numeric override
-            return self.UNMAPPED_PARAMETER, mapped_parameter
 
-    def generate_fixed_parameter_matrix(self) -> None:
-        """
-        Write fixed parameters dataset (nFixedParameters x nConditions).
-        """
-
-        fixed_parameter_ids = self.amici_model.getFixedParameterIds()
-        self.nk = len(fixed_parameter_ids)
-        print(Fore.CYAN + "Number of fixed parameters:",
-              len(fixed_parameter_ids))
-
-        # Create in-memory table, write all at once for speed
-        fixed_parameter_matrix = np.full(
-            shape=(self.nk, self.num_condition_vectors),
-            fill_value=np.nan)
-        for i in range(len(fixed_parameter_ids)):
-            self.handle_fixed_parameter(i, fixed_parameter_ids[i],
-                                        fixed_parameter_matrix)
-
-        self.create_fixed_parameter_dataset_and_write_attributes(
-            fixed_parameter_ids, fixed_parameter_matrix)
-
-        self.f.flush()
+        # Have numeric override
+        return self.UNMAPPED_PARAMETER, mapped_parameter
 
     def create_fixed_parameter_dataset_and_write_attributes(
             self, fixed_parameter_ids: Collection[str], data) -> h5py.Dataset:
         """
         Create fixed parameters data set and annotations
         """
-        self.f.require_group("/fixedParameters")
+        g = self.f.require_group("fixedParameters")
 
-        write_string_array(self.f, "/fixedParameters/parameterNames",
+        write_string_array(g, "parameterNames",
                            fixed_parameter_ids)
-        write_string_array(self.f, "/fixedParameters/conditionNames",
+        write_string_array(g, "conditionNames",
                            self.condition_ids)
 
         # chunked for reading experiment-wise
         nk = len(fixed_parameter_ids)
 
         if len(data):
-            dset = self.f.create_dataset("/fixedParameters/k",
-                                         dtype='f8', chunks=(nk, 1),
-                                         compression=self.compression,
-                                         data=data)
+            dset = g.create_dataset("k", dtype='f8', chunks=(nk, 1),
+                                    compression=self.compression, data=data)
             # set dimension scales
-            dset.dims.create_scale(
-                self.f['/fixedParameters/parameterNames'], 'parameterNames')
-            dset.dims.create_scale(
-                self.f['/fixedParameters/conditionNames'], 'conditionNames')
-            dset.dims[0].attach_scale(
-                self.f['/fixedParameters/parameterNames'])
-            dset.dims[1].attach_scale(
-                self.f['/fixedParameters/conditionNames'])
+            dset.dims.create_scale(g['parameterNames'], 'parameterNames')
+            dset.dims.create_scale(g['conditionNames'], 'conditionNames')
+            dset.dims[0].attach_scale(g['parameterNames'])
+            dset.dims[1].attach_scale(g['conditionNames'])
         else:
-            dset = self.f.create_dataset("/fixedParameters/k",
-                                         dtype='f8')
+            dset = g.create_dataset("k", dtype='f8')
 
         return dset
 
-    def generate_simulation_condition_map(self):
+    def _generate_simulation_condition_map(self):
         """
         Write index map for independent simulations to be performed
         (preequilibrationConditionIdx, simulationConditionIdx) referencing the
         fixed parameter table.
 
-        Parse preequilibrationConditionId column, and write to hdf5 dataset.
-        If conditionRef is empty, set to -1, otherwise to condition index.
-
+        Get PEtab simulation conditions, and write to hdf5 dataset.
+        If conditionRef is empty, set to NO_PREEQ_CONDITION_IDX, otherwise to
+        respective condition index.
         """
+        # PEtab condition list
         simulations = \
             self.petab_problem.get_simulation_conditions_from_measurement_df()
+        # empty dataset
         condition_map = np.full(shape=(len(simulations), 2),
                                 fill_value=self.NO_PREEQ_CONDITION_IDX)
-        condition_id_to_idx = {cid: idx for idx, cid
+        condition_id_to_idx = {condition_id: idx for idx, condition_id
                                in enumerate(self.condition_ids)}
+
         if simulations.shape[1] == 2:
             # preeq always nan, we only need simulation condition id
-            condition_map[:, 1] = [condition_id_to_idx[condition_id]
-                                   for condition_id in simulations.iloc[:, 0]]
+            condition_map[:, 1] = \
+                list(condition_id_to_idx[condition_id]
+                     for condition_id
+                     in simulations[ptc.SIMULATION_CONDITION_ID])
         else:
-            # we need to set both preeq and simulation condition
-            # (mind different ordering preeq/sim sim/preeq here and in PEtab
+            # We need to set both preeq and simulation condition
+            # Mind different ordering preeq/sim sim/preeq here and in PEtab!
             for sim_idx, (sim_id, preeq_id) \
                     in enumerate(simulations.iloc[:, 0:2].values):
                 condition_map[sim_idx] = [condition_id_to_idx[preeq_id],
@@ -489,76 +474,7 @@ class HDF5DataGenerator:
                               dtype="<i4",
                               data=condition_map)
 
-    def handle_fixed_parameter(self, parameter_index: int, parameter_name: str,
-                               dset: h5py.Dataset) -> None:
-        """
-        Extract parameter values from data table or model and set to dset
-
-        Lookup order is condition table > model parameter > model species
-
-        condition table is expected to have "globalized names", i.e.
-        reactionId_localParameterId
-
-        NOTE: parameters which are not provided in fixedParametersDf or model
-        are set to 0.0
-
-        Arguments:
-            parameter_index:
-                Index of the current fixed parameter
-            parameter_name:
-                Name of the current parameter
-            dset:
-                2D array-like (nFixedParameters x nConditions) where the
-                parameter value is to be set
-        """
-
-        if parameter_name in self.condition_df.columns:
-            # Parameter in condition table
-            dset[parameter_index, :] = \
-                self.condition_df.loc[self.condition_ids,
-                                      parameter_name].values
-            return
-
-        sbml_parameter = self.sbml_model.getParameter(parameter_name)
-        if sbml_parameter:
-            # Parameter value from model
-            dset[parameter_index, :] = sbml_parameter.getValue()
-            return
-
-        # Is this a species?
-        sbml_species = self.sbml_model.getSpecies(parameter_name)
-        if sbml_species:
-            # A constant species might have been turned in to a model
-            # parameter
-            # TODO: we dont do any conversion here, although we would
-            #  want to have concentration currently there is only 1.0
-            dset[parameter_index, :] = \
-                sbml_species.getInitialConcentration() \
-                if sbml_species.isSetInitialConcentration() \
-                else sbml_species.getInitialAmount()
-            return
-
-        # We need to check for "globalized" parameter names too
-        # (reactionId_localParameterId)
-        # model has localParameterId, data file has globalized name
-        global_name = get_global_name_for_local_parameter(
-            self.sbml_model, parameter_name)
-        if global_name:
-            sbml_parameter = self.sbml_model.getParameter(
-                global_name)
-            if sbml_parameter:
-                # Use model parameter value
-                dset[parameter_index, :] = \
-                    sbml_parameter.getValue()
-                return
-
-        print(Fore.YELLOW
-              + "Warning: Fixed parameter not "
-                "found in ExpTable, setting to 0.0: ",
-              parameter_name)
-        dset[parameter_index, :] = 0.0
-
-    def generate_measurement_matrices(self):
+    def _generate_measurement_matrices(self):
         """
         Generate matrices with training data for conditions, observables and
         timepoints. Matrices are numbered by simulation conditions, each of
@@ -566,8 +482,9 @@ class HDF5DataGenerator:
         num_observables will always be ny from the model, since this is what is
         required for AMICI. num_timepoints is condition dependent
         """
+
         if petab.measurement_table_has_timepoint_specific_mappings(
-                self.measurement_df):
+                self.petab_problem.measurement_df):
             raise RuntimeError("Timepoint-specific overrides are not yet "
                                "supported.")
 
@@ -595,57 +512,62 @@ class HDF5DataGenerator:
         observable_id_to_index = {
             name: idx for idx, name in enumerate(self.observable_ids)}
 
+        measurement_df = self.petab_problem.measurement_df
+        condition_df = self.petab_problem.condition_df
+
         for sim_idx, (preeq_cond_idx, sim_cond_idx) \
                 in enumerate(self.condition_map):
             # print("Condition", sim_idx, (preeq_cond_idx, sim_cond_idx))
 
             row_filter = 1
-            row_filter &= self.measurement_df.simulationConditionId \
+            row_filter &= measurement_df.simulationConditionId \
                 == self.condition_ids[sim_cond_idx]
             if preeq_cond_idx == self.NO_PREEQ_CONDITION_IDX:
                 row_filter &= \
-                    self.measurement_df.preequilibrationConditionId.isnull()
+                    measurement_df[ptc.PREEQUILIBRATION_CONDITION_ID].isnull()
             else:
                 row_filter &= \
-                    self.measurement_df.preequilibrationConditionId \
+                    measurement_df[ptc.PREEQUILIBRATION_CONDITION_ID] \
                     == self.condition_ids[preeq_cond_idx]
-            cur_mes_df = self.measurement_df.loc[row_filter, :]
+            cur_mes_df = measurement_df.loc[row_filter, :]
             if not len(cur_mes_df):
                 raise AssertionError("No measurements for this condition: ",
                                      sim_idx, (preeq_cond_idx, sim_cond_idx))
 
             # get the required, possibly non-unique (replicates) timepoints
-            grp = cur_mes_df.groupby(['observableId', 'time']).size() \
+            grp = cur_mes_df.groupby([ptc.OBSERVABLE_ID, ptc.TIME]).size() \
                 .reset_index().rename(columns={0:'sum'}) \
-                .groupby(['time'])['sum'].agg(['max']).reset_index()
-            timepoints = np.sort(np.repeat(grp['time'], grp['max'])).tolist()
+                .groupby([ptc.TIME])['sum'].agg(['max']).reset_index()
+            timepoints = np.sort(np.repeat(grp[ptc.TIME], grp['max'])).tolist()
             mes = np.full(shape=(len(timepoints), self.ny),
                            fill_value=np.nan)
             sd = mes.copy()
 
             # write measurements from each row in measurementDf
             for index, row in cur_mes_df.iterrows():
-                observable_idx = observable_id_to_index[row.observableId]
+                observable_idx = observable_id_to_index[row[ptc.OBSERVABLE_ID]]
                 time_idx = timepoints.index(row.time)
                 while not np.isnan(mes[time_idx, observable_idx]):
                     time_idx += 1
                     if timepoints[time_idx] != row.time:
                         raise AssertionError(
                             "Replicate handling failed for "
-                            f'{row.simulationConditionId} - {row.observableId}'
-                            f' time {row.time}\n' + str(cur_mes_df))
-                mes[time_idx, observable_idx] = float(row['measurement'])
-                sigma = to_float_if_float(row['noiseParameters'])
+                            f'{row[ptc.SIMULATION_CONDITION_ID]} - {row[ptc.OBSERVABLE_ID]}'
+                            f' time {row[ptc.TIME]}\n' + str(cur_mes_df))
+                mes[time_idx, observable_idx] = float(row[ptc.MEASUREMENT])
+                sigma = to_float_if_float(row[ptc.NOISE_PARAMETERS])
                 if isinstance(sigma, float):
                     sd[time_idx, observable_idx] = sigma
 
-            self.f.create_dataset(name=f"/measurements/y/{sim_idx}",
+            # write to file
+            g = self.f.require_group("measurements")
+            g.create_dataset(name=f"y/{sim_idx}",
                                   data=mes, dtype='f8',
                                   compression=self.compression)
-            self.f.create_dataset(name=f"/measurements/ysigma/{sim_idx}",
+            g.create_dataset(name=f"ysigma/{sim_idx}",
                                   data=sd, dtype='f8',
                                   compression=self.compression)
-            self.f.create_dataset(name=f"/measurements/t/{sim_idx}",
+            g.create_dataset(name=f"t/{sim_idx}",
                                   data=timepoints, dtype='f8',
                                   compression=self.compression)
 
@@ -663,8 +585,8 @@ class HDF5DataGenerator:
             overrides = petab.split_parameter_replacement_list(
                 row.observableParameters)
             placeholders = petab.get_placeholders(
-                observables['observable_' + row.observableId]['formula'],
-                row.observableId, 'observable')
+                observables['observable_' + row[ptc.OBSERVABLE_ID]]['formula'],
+                row[ptc.OBSERVABLE_ID], 'observable')
             assert (len(overrides) == len(placeholders))
             for override, placeholder in zip(overrides, placeholders):
                 if isinstance(override, Number):
@@ -700,7 +622,7 @@ class HDF5DataGenerator:
         return observable_parameter_override_id_to_placeholder_id, \
                noise_parameter_override_id_to_placeholder_id
 
-    def generate_hierarchical_optimization_data(self, verbose=1):
+    def _generate_hierarchical_optimization_data(self, verbose=1):
         """
         Deal with offsets, proportionality factors and sigmas for hierarchical
         optimization
@@ -708,11 +630,12 @@ class HDF5DataGenerator:
         Generate the respective index lists and mappings
         """
 
-        if 'hierarchicalOptimization' not in self.parameter_df:
+        parameter_df = self.petab_problem.parameter_df
+        if 'hierarchicalOptimization' not in parameter_df:
             print(Fore.YELLOW + 'Missing hierarchicalOptimization column in '
                   'parameter table. Skipping.')
             return
-
+        # TODO
         observables = petab.get_observables(self.sbml_model, remove=False)
         sigmas = petab.get_sigmas(self.sbml_model, remove=False)
 
@@ -736,9 +659,9 @@ class HDF5DataGenerator:
         scaling_candidates = set()
         sigma_candidates = set()
 
-        hierarchical_candidates = self.parameter_df.index[
-            (self.parameter_df.estimate == 1)
-            & (self.parameter_df.hierarchicalOptimization == 1)]
+        hierarchical_candidates = parameter_df.index[
+            (parameter_df.estimate == 1)
+            & (parameter_df.hierarchicalOptimization == 1)]
 
         for optimization_parameter_id in hierarchical_candidates:
             # check which model parameter this one overrides
@@ -912,7 +835,7 @@ class HDF5DataGenerator:
                     row.noiseParameters)
             else:
                 raise ValueError(
-                    "type must be noise or observable, but got" + parameter_type)
+                    "type must be noise or observable, but got " + parameter_type)
 
             sim_cond_idx = \
                 condition_id_to_index[row.simulationConditionId]
@@ -1014,7 +937,7 @@ class HDF5DataGenerator:
                                shape=(len(use), 3),
                                dtype='<i4', data=use)
 
-    def copy_amici_options(self):
+    def _write_amici_options(self) -> None:
         """
         Write simulation options
         """
@@ -1048,7 +971,8 @@ class HDF5DataGenerator:
 
         # TODO not really meaningful anymore - remove?
         self.f.require_dataset(
-            '/amiciOptions/ts', shape=(len(self.unique_timepoints),), dtype="f8",
+            '/amiciOptions/ts', shape=(len(self.unique_timepoints),),
+            dtype="f8",
             data=self.unique_timepoints)
 
     def get_analytically_computed_optimization_parameter_indices(self):
@@ -1068,74 +992,34 @@ class HDF5DataGenerator:
 
         return list(set(indices))
 
-    def write_optimization_options(self):
-        """
-        Create groups and write some default optimization settings
-        """
-
-        # set common options
-        g = self.f.require_group('optimizationOptions')
-        g.attrs['optimizer'] = 0  # IpOpt
-        g.attrs['retryOptimization'] = 1
-        g.attrs['hierarchicalOptimization'] = 1
-        g.attrs['numStarts'] = 1
-
-        # set IpOpt options
-        g = self.f.require_group('optimizationOptions/ipopt')
-        g.attrs['max_iter'] = 100
-        g.attrs['hessian_approximation'] = np.string_("limited-memory")
-        g.attrs["limited_memory_update_type"] = np.string_("bfgs")
-        g.attrs["tol"] = 1e-9
-        g.attrs["acceptable_iter"] = 1
-        # set ridiculously high, so only the acceptable_* options below matter
-        g.attrs["acceptable_tol"] = 1e20
-        g.attrs["acceptable_obj_change_tol"] = 1e-12
-        g.attrs["watchdog_shortened_iter_trigger"] = 0
-
-        # set fmincon options
-        g = self.f.require_group('optimizationOptions/fmincon')
-        g.attrs['MaxIter'] = 100
-        g.attrs["TolX"] = 1e-8
-        g.attrs["TolFun"] = 0
-        g.attrs["MaxFunEvals"] = 1e7
-        g.attrs["algorithm"] = np.string_("interior-point")
-        g.attrs["GradObj"] = np.string_("on")
-        g.attrs["display"] = np.string_("iter")
-
-        # set CERES options
-        g = self.f.require_group('optimizationOptions/ceres')
-        g.attrs['max_num_iterations'] = 100
-
-        # set toms611/SUMSL options
-        g = self.f.require_group('optimizationOptions/toms611')
-        g.attrs['mxfcal'] = 1e8
-
-        self.write_bounds()
-        self.write_starting_points()
-
-    def write_bounds(self):
+    def _write_bounds(self):
         """
         Parameter bounds for optimizer
 
         Offset parameters are allowed to be negative
         """
-        optimized_par_df = \
-            self.parameter_df.loc[self.parameter_df.estimate == 1
-                                  & (~self.parameter_df.index.isin(
-                        self.amici_model.getFixedParameterIds())), :]
-        self.f.require_dataset('/parameters/lowerBound',
-                               shape=optimized_par_df.lowerBound.shape,
-                               data=optimized_par_df.lowerBound, dtype='f8')
-        self.f.require_dataset('/parameters/upperBound',
-                               shape=optimized_par_df.upperBound.shape,
-                               data=optimized_par_df.upperBound, dtype='f8')
+        lower_bound = np.array([petab.scale(
+            self.petab_problem.parameter_df.loc[par_id, ptc.LOWER_BOUND],
+            self.petab_problem.parameter_df.loc[par_id, ptc.PARAMETER_SCALE])
+                       for par_id in self.problem_parameter_ids])
+        upper_bound = np.array([petab.scale(
+            self.petab_problem.parameter_df.loc[par_id, ptc.LOWER_BOUND],
+            self.petab_problem.parameter_df.loc[par_id, ptc.PARAMETER_SCALE])
+                       for par_id in self.problem_parameter_ids])
 
-    def write_starting_points(self):
+        self.f.require_dataset('/parameters/lowerBound',
+                               shape=lower_bound.shape,
+                               data=lower_bound, dtype='f8')
+        self.f.require_dataset('/parameters/upperBound',
+                               shape=upper_bound.shape,
+                               data=upper_bound, dtype='f8')
+
+    def _write_starting_points(self):
         """
         Write a list of random starting points sampled as specified in PEtab
         file.
         """
-        num_params = self.f['/parameters/parameterNames'].shape[0]
+        num_params = len(self.problem_parameter_ids)
         num_starting_points = 100
         np.random.seed(0)
 
@@ -1145,40 +1029,21 @@ class HDF5DataGenerator:
 
         starting_points[:] = \
             self.petab_problem.sample_parameter_startpoints(
-                num_starting_points)
+                num_starting_points).T
 
         # Write nominal values for testing purposes
-        if 'nominalValue' in self.parameter_df:
-            self.f['/parameters/nominalValues'] = \
-                self.parameter_df.nominalValue[
-                    self.parameter_df.estimate == 1]
+        if 'nominalValue' in self.petab_problem.parameter_df:
+            self.f['/parameters/nominalValues'] = list(petab.map_scale(
+                self.petab_problem.parameter_df[ptc.NOMINAL_VALUE][
+                    self.problem_parameter_ids],
+                self.petab_problem.parameter_df[ptc.PARAMETER_SCALE][
+                    self.problem_parameter_ids]))
 
-
-def petab_scale_to_amici_scale(scale_str):
-    """Convert PEtab parameter scaling string to AMICI scaling integer"""
-
-    if scale_str == 'lin':
-        return amici.ParameterScaling_none
-    if scale_str == 'log':
-        return amici.ParameterScaling_ln
-    if scale_str == 'log10':
-        return amici.ParameterScaling_log10
-    raise ValueError("Invalid pscale " + scale_str)
-
-
-def get_global_name_for_local_parameter(sbml_model, needle_parameter_id):
-    for reaction in sbml_model.getListOfReactions():
-        kl = reaction.getKineticLaw()
-        for p in kl.getListOfParameters():
-            parameter_id = p.getId()
-            if parameter_id.endswith(needle_parameter_id):
-                return f'{reaction.getId()}_{parameter_id}'
-    return None
 
 
 def write_parameter_map(f: h5py.File, mapping_matrix: np.array,
                         override_matrix: np.array, num_model_parameters: int,
-                        compression=None):
+                        compression=None) -> None:
     """Write parameter mapping"""
     f.require_dataset(
         name='/parameters/parameterOverrides',
@@ -1199,44 +1064,58 @@ def write_parameter_map(f: h5py.File, mapping_matrix: np.array,
         data=mapping_matrix)
 
 
-def write_scale_map(f: h5py.File, parameter_scale_mapping: List[List[str]],
-                    parameter_df: pd.DataFrame, amici_model: amici.Model):
-    """Write parameter scale mapping to HDF5 dataset"""
 
-    # for simulation
-    # set parameter scaling for all parameters
-    pscale = np.zeros(shape=(len(parameter_scale_mapping),
-                             len(parameter_scale_mapping[0])))
-    for i, cond_scale_list in enumerate(parameter_scale_mapping):
-        for j, s in enumerate(cond_scale_list):
-            pscale[i, j] = petab_scale_to_amici_scale(s)
+def write_optimization_options(f: h5py.File) -> None:
+    """
+    Create groups and write some default optimization settings
+    """
 
-    f.require_dataset('/parameters/pscaleSimulation',
-                      shape=pscale.shape,
-                      dtype="<i4",
-                      data=pscale)
+    # set common options
+    g = f.require_group('optimizationOptions')
+    g.attrs['optimizer'] = 0  # IpOpt
+    g.attrs['retryOptimization'] = 1
+    g.attrs['hierarchicalOptimization'] = 1
+    g.attrs['numStarts'] = 1
 
-    # for cost function parameters
-    pscale = np.array([petab_scale_to_amici_scale(s)
-                       for s in parameter_df.parameterScale.values[
-                           (parameter_df.estimate == 1)
-                           & ~parameter_df.index.isin(
-                               amici_model.getFixedParameterIds())]])
-    f.require_dataset('/parameters/pscaleOptimization',
-                      shape=pscale.shape,
-                      dtype="<i4",
-                      data=pscale)
+    # set IpOpt options
+    g = f.require_group('optimizationOptions/ipopt')
+    g.attrs['max_iter'] = 100
+    g.attrs['hessian_approximation'] = np.string_("limited-memory")
+    g.attrs["limited_memory_update_type"] = np.string_("bfgs")
+    g.attrs["tol"] = 1e-9
+    g.attrs["acceptable_iter"] = 1
+    # set ridiculously high, so only the acceptable_* options below matter
+    g.attrs["acceptable_tol"] = 1e20
+    g.attrs["acceptable_obj_change_tol"] = 1e-12
+    g.attrs["watchdog_shortened_iter_trigger"] = 0
+
+    # set fmincon options
+    g = f.require_group('optimizationOptions/fmincon')
+    g.attrs['MaxIter'] = 100
+    g.attrs["TolX"] = 1e-8
+    g.attrs["TolFun"] = 0
+    g.attrs["MaxFunEvals"] = 1e7
+    g.attrs["algorithm"] = np.string_("interior-point")
+    g.attrs["GradObj"] = np.string_("on")
+    g.attrs["display"] = np.string_("iter")
+
+    # set CERES options
+    g = f.require_group('optimizationOptions/ceres')
+    g.attrs['max_num_iterations'] = 100
+
+    # set toms611/SUMSL options
+    g = f.require_group('optimizationOptions/toms611')
+    g.attrs['mxfcal'] = 1e8
+
+    # TODO mini-batch options
 
 
-def parse_cli_args():
+def parse_cli_args() -> None:
     """Parse command line arguments"""
 
     parser = argparse.ArgumentParser(
-        description='Create AMICI model and data for steadystate example.')
-
-    parser.add_argument('-s', '--sbml', dest='sbml_file_name',
-                        required=True,
-                        help='SBML model filename (PEtab format)')
+        description='Create HDF5 input file for parameter estimation with '
+                    'parPE.')
 
     parser.add_argument('-d', '--model-dir', dest='model_dir',
                         help='Model directory containing the python module')
@@ -1245,17 +1124,9 @@ def parse_cli_args():
                         required=True,
                         help='Name of the AMICI model module')
 
-    parser.add_argument('-m', '--measurements', dest='measurement_file_name',
+    parser.add_argument('-y', '--yaml', dest='petab_yaml',
                         required=True,
-                        help='Name of measurement table (PEtab format)')
-
-    parser.add_argument('-c', '--conditions', dest='condition_file_name',
-                        required=True,
-                        help='Condition table (PEtab format)')
-
-    parser.add_argument('-p', '--parameters', dest='parameter_file_name',
-                        required=True,
-                        help='Condition table (PEtab format)')
+                        help='PEtab problem yaml file')
 
     parser.add_argument('-o', dest='hdf5_file_name', default='data.h5',
                         help='Name of HDF5 file to generate')
@@ -1266,18 +1137,16 @@ def parse_cli_args():
 
 
 def main():
+    """Generate HDF5 file based on CLI options"""
     init_colorama(autoreset=True)
 
     args = parse_cli_args()
 
+    petab_problem = petab.Problem.from_yaml(args.petab_yaml)
+    amici_model = get_amici_model(model_name=args.model_name,
+                                  model_dir=args.model_dir)
     h5gen = HDF5DataGenerator(
-        args.sbml_file_name,
-        args.measurement_file_name,
-        args.condition_file_name,
-        args.parameter_file_name,
-        args.model_dir, args.model_name)
+        petab_problem=petab_problem,
+        amici_model=amici_model)
     h5gen.generate_file(args.hdf5_file_name)
 
-
-if __name__ == "__main__":
-    main()

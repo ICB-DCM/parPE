@@ -1,13 +1,59 @@
 import h5py
 import numpy as np
-
+from typing import Optional, Union, Iterable, List, Any
+import sys
+import importlib
 """
 TODO test    
     import tempfile
     tempfile.mktemp()
 """
 
-from .plotting import  correlation_coefficient
+from .plotting import correlation_coefficient
+
+
+def get_amici_model(model_name: str,
+                    model_dir: Optional[str] = None) -> 'amici.Model':
+    """Load AMICI model module with given name from given path and return a
+    model instance
+
+    Arguments:
+        model_name: Name of the model module
+        model_dir: Path to directory containing the AMICI model module
+
+    Returns:
+         The given model instance
+    """
+    sys.path.insert(0, model_dir)
+    model_module = importlib.import_module(model_name)
+
+    return model_module.getModel()
+
+
+def get_global_name_for_local_parameter(
+        sbml_model: 'libsbml.Model',
+        needle_parameter_id: str) -> Union[str, None]:
+    """Find a local SBML parameter in kinetic laws and return
+    {reaction_id}_{local_parameter_id}"""
+    for reaction in sbml_model.getListOfReactions():
+        kl = reaction.getKineticLaw()
+        for p in kl.getListOfParameters():
+            parameter_id = p.getId()
+            if parameter_id.endswith(needle_parameter_id):
+                return f'{reaction.getId()}_{parameter_id}'
+    return None
+
+
+def unique_ordered(seq: Iterable[Any]) -> List[Any]:
+    """
+    Make unique, preserving order of first occurrence
+
+    Arguments:
+        seq: any sequence
+    """
+    seen = set()
+    seen_add = seen.add
+    return [x for x in seq if not (x in seen or seen_add(x))]
 
 
 def getCostTrajectories(filename, starts = None):
