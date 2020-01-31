@@ -4,6 +4,7 @@
 
 #include <cassert>
 #include <cstdlib>
+#include <sstream>
 #include <utility>
 #include <unistd.h>
 #include <sys/stat.h>
@@ -474,10 +475,15 @@ std::vector<int> hdf5Read2DIntegerHyperslab(const H5::H5File &file,
     hsize_t count[] = {size0, size1};
     // printf("%lld %lld, %lld %lld, %lld %lld\n", dims[0], dims[1], offset0,
     // offset1, size0, size1);
-    assert(dims[0] >= offset0 && dims[0] >= size0 &&
-            "Offset larger than dataspace dimensions!");
-    assert(dims[1] >= offset1 && dims[1] >= size1 &&
-            "Offset larger than dataspace dimensions!");
+    if(offset0 >= dims[0] || size0 > dims[0] || offset1 >= dims[1]
+            || size1 > dims[1]) {
+        std::stringstream ss;
+        ss << "Offset larger than dataspace dimensions! " << "dims: " << dims[0]
+           << "," << dims[1] << " offsets: " << offset0 << "," << offset1
+           << " size: " << size0 << "," << size1;
+        printBacktrace();
+        throw HDF5Exception(ss.str());
+    }
 
     filespace.selectHyperslab(H5S_SELECT_SET, count, offset);
 
