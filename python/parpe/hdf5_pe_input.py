@@ -490,10 +490,6 @@ class HDF5DataGenerator:
 
         self.f.create_group("/measurements")
         self.observable_ids = self.amici_model.getObservableIds()
-        # trim observable_ TODO: should be done in amici import
-        self.observable_ids = [o[len('observable_'):]
-                               if o.startswith('observable_') else o
-                               for o in self.observable_ids]
         self.ny = self.amici_model.ny
         write_string_array(self.f, "/measurements/observableNames",
                            self.observable_ids)
@@ -571,21 +567,22 @@ class HDF5DataGenerator:
                                   data=timepoints, dtype='f8',
                                   compression=self.compression)
 
-    def get_parameter_override_id_to_placeholder_id(self, observables, sigmas):
+    def get_parameter_override_id_to_placeholder_id(self):
         # override -> [observable|sigma ids]
         observable_parameter_override_id_to_placeholder_id = {}
         noise_parameter_override_id_to_placeholder_id = {}
-
+        observable_df = self.petab_problem.observable_df
         # TODO: this seems to be redundant with the creation of the mapping
         #  tables later on
-        for _, row in self.measurement_df.iterrows():
+        for _, row in self.petab_problem.measurement_df.iterrows():
             # we trust that the number of overrides matches
 
             # observable parameters
             overrides = petab.split_parameter_replacement_list(
                 row.observableParameters)
             placeholders = petab.get_placeholders(
-                observables['observable_' + row[ptc.OBSERVABLE_ID]]['formula'],
+                observable_df.loc[row[ptc.OBSERVABLE_ID],
+                                  ptc.OBSERVABLE_FORMULA],
                 row[ptc.OBSERVABLE_ID], 'observable')
             assert (len(overrides) == len(placeholders))
             for override, placeholder in zip(overrides, placeholders):
@@ -605,7 +602,9 @@ class HDF5DataGenerator:
             overrides = petab.split_parameter_replacement_list(
                 row.noiseParameters)
             placeholders = petab.get_placeholders(
-                sigmas['observable_' + row.observableId], row.observableId,
+                observable_df.loc[row[ptc.OBSERVABLE_ID],
+                                  ptc.NOISE_FORMULA],
+                row.observableId,
                 'noise')
             assert (len(overrides) == len(placeholders))
             for override, placeholder in zip(overrides, placeholders):
@@ -635,22 +634,15 @@ class HDF5DataGenerator:
             print(Fore.YELLOW + 'Missing hierarchicalOptimization column in '
                   'parameter table. Skipping.')
             return
-        # TODO
-        observables = petab.get_observables(self.sbml_model, remove=False)
-        sigmas = petab.get_sigmas(self.sbml_model, remove=False)
 
         if verbose:
             print(Fore.CYAN + "Observables:")
-            print(Fore.CYAN, observables)
-            print()
-            print(Fore.CYAN + "Sigmas:")
-            print(Fore.CYAN, sigmas)
+            print(self.petab_problem.observable_df)
             print()
 
         observable_parameter_override_id_to_placeholder_id, \
         noise_parameter_override_id_to_placeholder_id = \
-            self.get_parameter_override_id_to_placeholder_id(observables,
-                                                             sigmas)
+            self.get_parameter_override_id_to_placeholder_id()
 
         # print(Fore.CYAN, observable_parameter_override_id_to_placeholder_id)
         # print(Fore.CYAN, noise_parameter_override_id_to_placeholder_id)
@@ -674,8 +666,8 @@ class HDF5DataGenerator:
                         optimization_parameter_id]
                 for placeholder_id in placeholder_ids:
                     observable_id = '_'.join(placeholder_id.split('_')[1:])
-                    observable_formula = \
-                        observables['observable_' + observable_id]['formula']
+                    observable_formula = self.petab_problem.observable_df \
+                        .loc[observable_id, ptc.OBSERVABLE_FORMULA]
 
                     """
                     print('optimization_parameter_id', optimization_parameter_id)
@@ -825,7 +817,7 @@ class HDF5DataGenerator:
         condition_map_list = [list(x) for x in self.condition_map]
 
         use = []
-        for index, row in self.measurement_df.iterrows():
+        for index, row in self.petab_problem.measurement_df.iterrows():
             # TODO : must handle sigmas separately
             if parameter_type == 'observable':
                 overrides = petab.split_parameter_replacement_list(
@@ -1003,7 +995,7 @@ class HDF5DataGenerator:
             self.petab_problem.parameter_df.loc[par_id, ptc.PARAMETER_SCALE])
                        for par_id in self.problem_parameter_ids])
         upper_bound = np.array([petab.scale(
-            self.petab_problem.parameter_df.loc[par_id, ptc.LOWER_BOUND],
+            self.petab_problem.parameter_df.loc[par_id, ptc.UPPER_BOUND],
             self.petab_problem.parameter_df.loc[par_id, ptc.PARAMETER_SCALE])
                        for par_id in self.problem_parameter_ids])
 

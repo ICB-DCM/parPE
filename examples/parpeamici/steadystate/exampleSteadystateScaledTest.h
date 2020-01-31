@@ -59,6 +59,8 @@ TEST_F(steadystateProblemTests, testSteadystate) {
     // verify steadystate
     auto model = getModel();
     model->setTimepoints(t);
+    model->setParameterById("observableParameter1_x1_scaled", 2.0);
+    model->setParameterById("observableParameter1_x2_offsetted", 3.0);
 
     auto solver = model->getSolver();
     auto rdata = amici::runAmiciSimulation(*solver, nullptr, *model);
@@ -75,6 +77,8 @@ TEST_F(steadystateProblemTests, testSteadystate) {
     rdata = amici::runAmiciSimulation(*solver, &edata, *model);
 
     EXPECT_EQ(rdata->status, AMICI_SUCCESS);
+    EXPECT_NEAR(1e-5, rdata->chi2, 1e-5);
+
     EXPECT_NEAR(parpe::getLogLikelihoodOffset(edata.nt() * edata.nytrue()),
                 rdata->llh, 1e-5);
 }
@@ -84,6 +88,9 @@ TEST_F(steadystateProblemTests, testSteadystateMultiCond) {
     auto modelNonOwning = model.get();
     auto p = model->getParameters();
     model->setTimepoints(t);
+    model->setParameterById("observableParameter1_x1_scaled", 2.0);
+    model->setParameterById("observableParameter1_x2_offsetted", 3.0);
+    model->setParametersByIdRegex("noiseParameter.*", 1.0);
     model->setInitialStates(x0);
     //model->setParameters(p);
 
