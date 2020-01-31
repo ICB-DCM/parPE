@@ -49,16 +49,15 @@ test -f simulate1.h5
 
 rm -rf example_steadystate_multi-test-optimize/
 ${MPIEXEC} ./example_steadystate_multi --mpi \
-  -o example_steadystate_multi-test-optimize/ ${HDF5_FILE} 2>&1 >> test.log
-(! grep ERR test.log)
-(! grep WRN test.log)
+  -o example_steadystate_multi-test-optimize/ ${HDF5_FILE} 2>&1 > test.log
+(grep "Solved To Acceptable Level" test.log)
 
 # Simulate along trajectory
 
 rm -f simulate2.h5
 ${MPIEXEC} ./example_steadystate_multi_simulator \
   example_steadystate_multi-test-optimize/_rank00000.h5 / simulate2.h5 / \
-  --along-trajectory --mpi 2>&1 >> test.log
+  --along-trajectory --mpi 2>&1 > test.log
 (! grep ERR test.log)
 (! grep WRN test.log)
 (! grep exception test.log)
@@ -70,7 +69,7 @@ test -f simulate2.h5
 rm -f simulate3.h5
 ${MPIEXEC} ./example_steadystate_multi_simulator \
   ${HDF5_FILE_TEST} / example_steadystate_multi-test-optimize/_rank00000.h5 / \
-  simulate3.h5 / --at-optimum --mpi
+  simulate3.h5 / --at-optimum --mpi  2>&1 > test.log
 h5dump -d /multistarts/0/ySim/3 simulate3.h5 # test dataset exists
 (! grep ERR test.log)
 (! grep WRN test.log)

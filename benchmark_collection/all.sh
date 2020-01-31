@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 # Import, build, and run all benchmark models
 
+set -e
+
 [[ -n "${BENCHMARK_COLLECTION}" ]] && model_dir="${BENCHMARK_COLLECTION}"
 
-all_models=$(ls -1d ${BENCHMARK_DIR}/*/)
+all_models=$(ls -1d ${model_dir}/*/)
 
 expected_to_work="
 Boehm_JProteomeRes2014
@@ -20,8 +22,8 @@ for MODEL in $expected_to_work; do
     printf ${MODEL}
     printf '=%.0s' {1..20}
     echo
-    echo ./import_and_run.sh ${BENCHMARK_DIR}/${MODEL}
-    ./import_and_run.sh ${BENCHMARK_DIR}/${MODEL}
+    echo ./import_and_run.sh ${model_dir}/${MODEL}
+    ./import_and_run.sh ${model_dir}/${MODEL}
     printf '=%.0s' {1..100}
     echo
 done

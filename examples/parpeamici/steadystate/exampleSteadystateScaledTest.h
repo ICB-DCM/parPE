@@ -86,11 +86,13 @@ TEST_F(steadystateProblemTests, testSteadystate) {
 TEST_F(steadystateProblemTests, testSteadystateMultiCond) {
     auto model = getModel();
     auto modelNonOwning = model.get();
-    auto p = model->getParameters();
-    model->setTimepoints(t);
+    // Set output parameters which are not part of amici model
     model->setParameterById("observableParameter1_x1_scaled", 2.0);
     model->setParameterById("observableParameter1_x2_offsetted", 3.0);
     model->setParametersByIdRegex("noiseParameter.*", 1.0);
+    auto p = model->getParameters();
+
+    model->setTimepoints(t);
     model->setInitialStates(x0);
     //model->setParameters(p);
 
