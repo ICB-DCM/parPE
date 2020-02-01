@@ -517,25 +517,14 @@ class HDF5DataGenerator:
                 in enumerate(self.condition_map):
             # print("Condition", sim_idx, (preeq_cond_idx, sim_cond_idx))
 
-            row_filter = 1
-            row_filter &= measurement_df.simulationConditionId \
-                == self.condition_ids[sim_cond_idx]
-            if preeq_cond_idx == self.NO_PREEQ_CONDITION_IDX:
-                row_filter &= \
-                    measurement_df[ptc.PREEQUILIBRATION_CONDITION_ID].isnull()
-            else:
-                row_filter &= \
-                    measurement_df[ptc.PREEQUILIBRATION_CONDITION_ID] \
-                    == self.condition_ids[preeq_cond_idx]
-            cur_mes_df = measurement_df.loc[row_filter, :]
-            if not len(cur_mes_df):
-                raise AssertionError("No measurements for this condition: ",
-                                     sim_idx, (preeq_cond_idx, sim_cond_idx))
+            cur_mes_df = self._get_measurements_for_condition(
+                sim_idx, preeq_cond_idx, sim_cond_idx)
 
             # get the required, possibly non-unique (replicates) timepoints
             grp = cur_mes_df.groupby([ptc.OBSERVABLE_ID, ptc.TIME]).size() \
                 .reset_index().rename(columns={0: 'sum'}) \
                 .groupby([ptc.TIME])['sum'].agg(['max']).reset_index()
+
             timepoints = np.sort(np.repeat(grp[ptc.TIME], grp['max'])).tolist()
             mes = np.full(shape=(len(timepoints), self.ny), fill_value=np.nan)
             sd = mes.copy()
@@ -559,15 +548,33 @@ class HDF5DataGenerator:
 
             # write to file
             g = self.f.require_group("measurements")
-            g.create_dataset(name=f"y/{sim_idx}",
-                                  data=mes, dtype='f8',
-                                  compression=self.compression)
-            g.create_dataset(name=f"ysigma/{sim_idx}",
-                                  data=sd, dtype='f8',
-                                  compression=self.compression)
-            g.create_dataset(name=f"t/{sim_idx}",
-                                  data=timepoints, dtype='f8',
-                                  compression=self.compression)
+            g.create_dataset(name=f"y/{sim_idx}", data=mes, dtype='f8',
+                             compression=self.compression)
+            g.create_dataset(name=f"ysigma/{sim_idx}", data=sd, dtype='f8',
+                             compression=self.compression)
+            g.create_dataset(name=f"t/{sim_idx}", data=timepoints, dtype='f8',
+                             compression=self.compression)
+
+    def _get_measurements_for_condition(self, sim_idx,
+                                        preeq_cond_idx, sim_cond_idx):
+        """Get subset of measurement table for the given condition"""
+        measurement_df = self.petab_problem.measurement_df
+
+        row_filter = measurement_df[ptc.SIMULATION_CONDITION_ID] \
+                     == self.condition_ids[sim_cond_idx]
+        if preeq_cond_idx == self.NO_PREEQ_CONDITION_IDX:
+            row_filter &= \
+                measurement_df[ptc.PREEQUILIBRATION_CONDITION_ID].isnull()
+        else:
+            row_filter &= \
+                measurement_df[ptc.PREEQUILIBRATION_CONDITION_ID] \
+                == self.condition_ids[preeq_cond_idx]
+        cur_mes_df = measurement_df.loc[row_filter, :]
+        if not len(cur_mes_df):
+            # Should have been filtered out before
+            raise AssertionError("No measurements for this condition: ",
+                                 sim_idx, (preeq_cond_idx, sim_cond_idx))
+        return cur_mes_df
 
     def _generate_hierarchical_optimization_data(self, verbose=1):
         """
@@ -602,38 +609,44 @@ class HDF5DataGenerator:
         # must call after _handle_proportionality_factors
         self.handle_offset_parameter(offset_candidates)
         self._handle_sigmas(sigma_candidates)
+        self._check_hierarchical_optimization_tables()
 
-        # check:
-        if '/scalingParametersMapToObservables' in self.f \
-                and '/sigmaParametersMapToObservables' in self.f:
-            scaling_map = self.f['/scalingParametersMapToObservables'][:]
-            sigma_map = self.f['/sigmaParametersMapToObservables'][:]
-            df = pd.DataFrame(data=dict(scaling_id=scaling_map[:, 0],
-                                        condition_id=scaling_map[:, 1],
-                                        observable_id=scaling_map[:, 2]))
-            df.set_index(['observable_id', 'condition_id'], inplace=True)
+    def _check_hierarchical_optimization_tables(self):
+        """Try spotting potential error in hierarchical optimization tables"""
 
-            df2 = pd.DataFrame(data=dict(sigma_id=sigma_map[:, 0],
-                                         condition_id=sigma_map[:, 1],
-                                         observable_id=sigma_map[:, 2]))
-            df2.set_index(['observable_id', 'condition_id'], inplace=True)
-            df = df.join(df2)
-            del df2
+        if '/scalingParametersMapToObservables' not in self.f:
+            return
+        if '/sigmaParametersMapToObservables' not in self.f:
+            return
 
-            # TODO: smarter check
-            if df.isnull().values.any():
-                print(Fore.YELLOW + "Couldn't verify that parameter selection "
-                                    "for hierarchical optimization is ok.")
-            else:
-                df_grouped = \
-                    df.groupby(['scaling_id', 'sigma_id']).size().reset_index()
-                # must be the same, otherwise one scaling is used with
-                # multiple sigma
-                if len(df_grouped) != len(df_grouped.scaling_id.unique()):
-                    raise AssertionError(
-                        "Scaling parameter selected for hierarchical "
-                        "optimization is used with multiple sigmas.")
-                # TODO: same check for offsets
+        scaling_map = self.f['/scalingParametersMapToObservables'][:]
+        sigma_map = self.f['/sigmaParametersMapToObservables'][:]
+        df = pd.DataFrame(data=dict(scaling_id=scaling_map[:, 0],
+                                    condition_id=scaling_map[:, 1],
+                                    observable_id=scaling_map[:, 2]))
+        df.set_index(['observable_id', 'condition_id'], inplace=True)
+
+        df2 = pd.DataFrame(data=dict(sigma_id=sigma_map[:, 0],
+                                     condition_id=sigma_map[:, 1],
+                                     observable_id=sigma_map[:, 2]))
+        df2.set_index(['observable_id', 'condition_id'], inplace=True)
+        df = df.join(df2)
+        del df2
+
+        # TODO: smarter check
+        if df.isnull().values.any():
+            print(Fore.YELLOW + "Couldn't verify that parameter selection "
+                                "for hierarchical optimization is ok.")
+        else:
+            df_grouped = \
+                df.groupby(['scaling_id', 'sigma_id']).size().reset_index()
+            # must be the same, otherwise one scaling is used with
+            # multiple sigma
+            if len(df_grouped) != len(df_grouped.scaling_id.unique()):
+                raise AssertionError(
+                    "Scaling parameter selected for hierarchical "
+                    "optimization is used with multiple sigmas.")
+            # TODO: same check for offsets
 
     def handle_offset_parameter(self, offset_candidates):
         """
@@ -904,6 +917,7 @@ class HDF5DataGenerator:
 
         # Write nominal values for testing purposes
         if 'nominalValue' in self.petab_problem.parameter_df:
+            # TODO: remove estimated=0, which should be part of mapping tables
             self.f['/parameters/nominalValues'] = list(petab.map_scale(
                 self.petab_problem.parameter_df[ptc.NOMINAL_VALUE][
                     self.problem_parameter_ids],

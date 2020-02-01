@@ -416,7 +416,7 @@ def main():
     sbml_file_name = "model_steadystate_scaled.sbml"
     measurement_file_name = 'example_data.tsv'
     condition_file_name = 'example_data_fixed.tsv'
-    parameter_file_name ='example_data_parameter.tsv'
+    parameter_file_name = 'example_data_parameter.tsv'
     observable_file_name = 'model_steasystate_observables.tsv'
     yaml_file_name = 'model_steasystate.yaml'
     yaml_file_name_test = 'model_steasystate_test.yaml'
