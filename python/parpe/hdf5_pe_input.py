@@ -17,11 +17,21 @@ from petab import C as ptc
 from petab import to_float_if_float
 
 from .hdf5 import write_string_array
-from .hierarchical_optimization import (get_candidates_for_hierarchical)
+from .hierarchical_optimization import (get_candidates_for_hierarchical,
+                                        get_analytical_parameter_table)
 from .misc import get_amici_model, unique_ordered
 
 # TODO: use logging
 # TODO: transpose all datasets?
+
+
+# For condition mapping table in HDF5 file: value indicating no
+# reference/preequilibration condition
+NO_PREEQ_CONDITION_IDX: int = -1
+
+# For parameter mapping table in HDF5 file: value indicating unmapped model
+# parameter in opt<->sim mapping
+UNMAPPED_PARAMETER: int = -1
 
 
 def requires_preequilibration(measurement_df: DataFrame) -> bool:
@@ -82,10 +92,10 @@ class HDF5DataGenerator:
         petab.lint_problem(self.petab_problem)
 
         # index for no reference/preequilibration condition
-        self.NO_PREEQ_CONDITION_IDX: int = -1
+        self.NO_PREEQ_CONDITION_IDX: int = NO_PREEQ_CONDITION_IDX
 
         # value for unmapped model parameter in opt<->sim mapping
-        self.UNMAPPED_PARAMETER: int = -1
+        self.UNMAPPED_PARAMETER: int = UNMAPPED_PARAMETER
 
         # hdf5 dataset compression
         self.compression = "gzip"
@@ -143,6 +153,9 @@ class HDF5DataGenerator:
                  *measurement_df[
                      ptc.PREEQUILIBRATION_CONDITION_ID].values])
         self.num_condition_vectors = len(self.condition_ids)
+
+        self.condition_id_to_index = {name: idx for idx, name in
+                                      enumerate(self.condition_ids)}
 
         # when using adjoint sensitivities, we cannot keep inf
         # -> consider late timepoint as steady-state
@@ -676,80 +689,14 @@ class HDF5DataGenerator:
                                data=offsets_for_hierarchical_indices)
 
         # find usages for the selected parameters
-        use = self._get_analytical_parameter_table(offset_candidates,
-                                                   'observable')
+        use = get_analytical_parameter_table(
+            offset_candidates, 'observable', self.condition_id_to_index,
+            self.petab_problem.measurement_df, self.observable_ids,
+            self.condition_map, self.NO_PREEQ_CONDITION_IDX)
 
         self.f.require_dataset("/offsetParametersMapToObservables",
                                shape=(len(use), 3),
                                dtype='<i4', data=use)
-
-    def _get_analytical_parameter_table(
-            self,
-            hierarchical_candidate_ids: list,
-            parameter_type: str) -> list:
-        """Generate (scalingIdx, conditionIdx, observableIdx) table for all
-        occurrences of the given parameter names.
-
-        Parameters:
-            hierarchical_candidate_ids: Ids of optimization parameters for
-                hierarchical optimization. This table depends on ordering of
-                this list.
-            parameter_type:
-                'observable' or 'noise'
-
-        Returns:
-            list of (scalingIdx, conditionIdx, observableIdx) tuples
-        """
-
-        condition_id_to_index = {name: idx for idx, name in
-                                 enumerate(self.condition_ids)}
-        # need list, not ndarray
-        condition_map_list = [list(x) for x in self.condition_map]
-
-        use = []
-        for index, row in self.petab_problem.measurement_df.iterrows():
-            # TODO: must handle sigmas separately
-            if parameter_type == 'observable':
-                overrides = petab.split_parameter_replacement_list(
-                    row.observableParameters)
-            elif parameter_type == 'noise':
-                overrides = petab.split_parameter_replacement_list(
-                    row.noiseParameters)
-            else:
-                raise ValueError("parameter_type must be 'noise' or "
-                                 f"'observable', but got {parameter_type}")
-
-            sim_cond_idx = \
-                condition_id_to_index[row.simulationConditionId]
-            preeq_cond_idx = self.NO_PREEQ_CONDITION_IDX
-            if not np.isnan(row.preequilibrationConditionId):
-                preeq_cond_idx = condition_id_to_index[
-                    row.preequilibrationConditionId]
-
-            for s in overrides:
-                # print(s, parametersForHierarchical)
-                try:
-                    scaling_idx = hierarchical_candidate_ids.index(s)
-                except ValueError:
-                    continue  # current parameter not in list
-
-                condition_idx = condition_map_list.index(
-                    [preeq_cond_idx, sim_cond_idx])
-                observable_idx = self.observable_ids.index(row.observableId)
-                tup = (scaling_idx, condition_idx, observable_idx)
-
-                # Don't add a new line for each timepoint
-                # We don't allow separate parameters for individual time-points
-                # (Can be implemented via different observables)
-                if tup not in use:
-                    use.append(tup)
-
-        if not len(use):
-            raise AssertionError("Candidates were: "
-                                 f"{hierarchical_candidate_ids} but nothing "
-                                 "usable found")
-
-        return use
 
     def _handle_proportionality_factors(self, scaling_candidates):
         """
@@ -777,8 +724,11 @@ class HDF5DataGenerator:
               % len(scalings_for_hierarchical_indices))
 
         # find usages for the selected parameters
-        use = self._get_analytical_parameter_table(scaling_candidates,
-                                                   'observable')
+        use = get_analytical_parameter_table(
+            scaling_candidates, 'observable', self.condition_id_to_index,
+            self.petab_problem.measurement_df, self.observable_ids,
+            self.condition_map, self.NO_PREEQ_CONDITION_IDX
+        )
 
         self.f.require_dataset("/scalingParametersMapToObservables",
                                shape=(len(use), 3),
@@ -815,7 +765,11 @@ class HDF5DataGenerator:
               % len(sigmas_for_hierarchical_indices))
 
         # find usages for the selected parameters
-        use = self._get_analytical_parameter_table(sigma_candidates, 'noise')
+        use = get_analytical_parameter_table(
+            sigma_candidates, 'noise', self.condition_id_to_index,
+            self.petab_problem.measurement_df, self.observable_ids,
+            self.condition_map, self.NO_PREEQ_CONDITION_IDX
+        )
 
         self.f.require_dataset("/sigmaParametersMapToObservables",
                                shape=(len(use), 3),

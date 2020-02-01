@@ -3,9 +3,13 @@
 https://academic.oup.com/bioinformatics/advance-article/doi/10.1093/bioinformatics/btz581/5538985
 """
 
+from typing import Tuple, Dict, List
+
 import pandas as pd
 import petab.C as ptc
 import sympy as sp
+from numpy import isnan
+from petab import split_parameter_replacement_list
 
 from .petab import get_parameter_override_id_to_placeholder_id
 
@@ -136,3 +140,76 @@ def get_candidates_for_hierarchical(
     return (list(offset_candidates),
             list(scaling_candidates),
             list(sigma_candidates))
+
+
+def get_analytical_parameter_table(
+        hierarchical_candidate_ids: list,
+        parameter_type: str,
+        condition_id_to_index: Dict[str, int],
+        measurement_df: pd.DataFrame,
+        observable_ids,
+        condition_map,
+        no_preeq_condition_idx: int
+) -> List[Tuple[int, int, int]]:
+    """Generate (scalingIdx, conditionIdx, observableIdx) table for all
+    occurrences of the given parameter names.
+
+    Parameters:
+        hierarchical_candidate_ids: Ids of optimization parameters for
+            hierarchical optimization. This table depends on ordering of
+            this list.
+        parameter_type:
+            'observable' or 'noise'
+
+    Returns:
+        list of (scalingIdx, conditionIdx, observableIdx) tuples
+    """
+
+    # need list, not ndarray
+    condition_map_list = [list(x) for x in condition_map]
+
+    if parameter_type == 'observable':
+        def _get_overrides():
+            return split_parameter_replacement_list(row.observableParameters)
+    elif parameter_type == 'noise':
+        def _get_overrides():
+            return split_parameter_replacement_list(row.noiseParameters)
+    else:
+        raise ValueError("parameter_type must be 'noise' or "
+                         f"'observable', but got {parameter_type}")
+
+    use = []
+    for _, row in measurement_df.iterrows():
+        overrides = _get_overrides()
+
+        sim_cond_idx = \
+            condition_id_to_index[row.simulationConditionId]
+        preeq_cond_idx = no_preeq_condition_idx
+        if not isnan(row.preequilibrationConditionId):
+            preeq_cond_idx = condition_id_to_index[
+                row.preequilibrationConditionId]
+
+        for s in overrides:
+            # print(s, parametersForHierarchical)
+            try:
+                candidate_idx = hierarchical_candidate_ids.index(s)
+            except ValueError:
+                continue  # current parameter not in list
+
+            condition_idx = condition_map_list.index(
+                [preeq_cond_idx, sim_cond_idx])
+            observable_idx = observable_ids.index(row.observableId)
+            tup = (candidate_idx, condition_idx, observable_idx)
+
+            # Don't add a new line for each timepoint
+            # We don't allow separate parameters for individual time-points
+            # (Can be implemented via different observables)
+            if tup not in use:
+                use.append(tup)
+
+    if not len(use):
+        raise AssertionError("Candidates were: "
+                             f"{hierarchical_candidate_ids} but nothing "
+                             "usable found")
+
+    return use
