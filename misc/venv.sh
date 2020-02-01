@@ -28,7 +28,7 @@ if [[ ! -d ${BUILD_DIR}/venv ]]; then
         source ${BUILD_DIR}/venv/bin/activate
     fi
 
-    pip3 install wheel
+    pip3 install wheel pytest
 
     # install AMICI
     cd ${PARPE_ROOT}/deps/AMICI/python/sdist

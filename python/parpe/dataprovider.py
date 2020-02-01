@@ -14,20 +14,20 @@ class DataProvider:
     def __init__(self, filename: str):
         self.filename = filename
 
-    def apply_solver_settings(self, solver: amici.Solver):
+    def apply_solver_settings(self, solver: 'amici.Solver'):
         """Apply settings to Solver"""
 
         amici.readSolverSettingsFromHDF5(
             self.filename, solver.get(), '/amiciOptions')
 
-    def apply_model_settings(self, model: amici.Model):
+    def apply_model_settings(self, model: 'amici.Model'):
         """Apply settings to Model"""
 
         amici.readModelDataFromHDF5(
             self.filename, model.get(), '/amiciOptions')
 
     def get_expdata_for_condition(
-            self, model: amici.Model, condition_idx: int):
+            self, model: 'amici.Model', condition_idx: int):
         """Get ExpData for the given simulation condition"""
 
         edata = amici.ExpData(model.get())
