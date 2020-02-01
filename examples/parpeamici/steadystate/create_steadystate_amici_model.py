@@ -93,7 +93,7 @@ def print_model_info(sbml_file):
                libsbml.formulaToL3String(reaction.getKineticLaw().getMath())))
 
 
-def create_data_tables(model, measurement_file, condition_df):
+def create_data_tables(model, condition_df):
     """Create synthetic data for parameter estimation
 
     - Simulate time-course for four different conditions
@@ -205,10 +205,7 @@ def create_data_tables(model, measurement_file, condition_df):
 
     print('Expected llh: ', expected_llh)
 
-    # write data frames to file
-    measurement_df.to_csv(measurement_file, sep='\t', index=False)
-
-    return true_parameters, expected_llh
+    return measurement_df, true_parameters, expected_llh
 
 
 def getReturnDataForCondition(model, solver, fixed_parameters,
@@ -371,13 +368,14 @@ def create_parameter_table(problem: petab.Problem,
 def create_test_data(measurement_file_name, parameter_file_name, yaml_config,
                      yaml_file_name_test, model_output_dir, model_name,
                      hdf5_file_name):
+    """Create some synthetic data to emulate a test set"""
 
-    # create test data
     test_measurement_file_name = \
         "-testset".join(os.path.splitext(measurement_file_name))
     test_parameter_file_name = \
         "-testset".join(os.path.splitext(parameter_file_name))
 
+    # measurements
     df = petab.get_measurement_df(measurement_file_name)
     df.loc[df.observableParameters == 'scaling_x1_common', 'measurement'] = \
         df.loc[df.observableParameters == 'scaling_x1_common', 'measurement'] \
@@ -387,6 +385,7 @@ def create_test_data(measurement_file_name, parameter_file_name, yaml_config,
         + "_test"
     petab.write_parameter_df(df, test_measurement_file_name)
 
+    # parameters
     df = petab.get_parameter_df(parameter_file_name)
     df.rename(index={'scaling_x1_common' : 'scaling_x1_common_test',
                      'offset_x2_batch-0': 'offset_x2_batch-0_test',
@@ -394,6 +393,7 @@ def create_test_data(measurement_file_name, parameter_file_name, yaml_config,
               inplace=True)
     petab.write_parameter_df(df, test_parameter_file_name)
 
+    # yaml
     yaml_config[ptc.PARAMETER_FILE] = test_parameter_file_name
     yaml_config[ptc.PROBLEMS][0][ptc.MEASUREMENT_FILES][0] = \
         test_measurement_file_name
@@ -468,29 +468,27 @@ def main():
     print()
     print("--- Creating data ---")
 
-    true_parameters, expected_llh = create_data_tables(
+    measurement_df, true_parameters, expected_llh = create_data_tables(
         model=model_module.getModel(),
-        measurement_file=measurement_file_name,
-        condition_df=condition_df,
-    )
-    # check for valid PEtab
-    pp = petab.Problem.from_files(
-        sbml_file=sbml_file_name,
-        condition_file=condition_file_name,
-        measurement_file=measurement_file_name)
+        condition_df=condition_df)
+
+    # assemble PEtab problem
+    pp = petab.Problem.from_files(sbml_file=sbml_file_name)
     pp.observable_df = observable_df
+    pp.measurement_df = measurement_df
+    pp.condition_df = condition_df
+    create_parameter_table(problem=pp, nominal_parameters=true_parameters)
 
-    create_parameter_table(
-        problem=pp,
-        nominal_parameters=true_parameters)
-
+    # check for valid PEtab
     petab.lint_problem(pp)
 
-    pp.to_files(sbml_file=sbml_file_name,
-                measurement_file=measurement_file_name,
+    # Save remaining tables
+    pp.to_files(measurement_file=measurement_file_name,
                 condition_file=condition_file_name,
                 observable_file=observable_file_name,
                 parameter_file=parameter_file_name)
+
+    # Create PEtab yaml file
     config = {
         'format_version': petab.__format_version__,
         'parameter_file': parameter_file_name,
@@ -511,8 +509,7 @@ def main():
     generate_hdf5_file(yaml_file=yaml_file_name,
                        model_output_dir=args.model_output_dir,
                        hdf5_file_name=args.hdf5_file_name,
-                       model_name=model_name
-    )
+                       model_name=model_name)
 
     create_test_data(measurement_file_name, parameter_file_name, config,
                      yaml_file_name_test, args.model_output_dir, model_name,
