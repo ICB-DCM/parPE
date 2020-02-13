@@ -4,7 +4,6 @@ on:
     branches:
       - develop
       - master
-      - dw_misc
 
   pull_request:
     branches:
@@ -29,9 +28,7 @@ jobs:
       run: |
         pip3 install --upgrade --user wheel \
           && pip3 install --upgrade --user setuptools
-    - run: pip3 install shyaml # petab
-    # TODO: currently we need ~develop~ fixes_dw
-    - run: pip3 install https://github.com/ICB-DCM/PEtab/archive/fixes_dw.zip
+    - run: pip3 install shyaml petab>=0.1.1
     - run: |
         echo ::add-path::${HOME}/.local/bin/
         echo ::add-path::${GITHUB_WORKSPACE}/tests/performance/
