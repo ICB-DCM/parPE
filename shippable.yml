@@ -28,7 +28,6 @@ build:
         - CPPUTEST_BUILD_DIR=${AMICI_PATH}/ThirdParty/cpputest-master/build/
         - cmake -DCMAKE_BUILD_TYPE=Debug -DENABLE_PYTHON=ON -DBUILD_TESTS=OFF -DCppUTest_DIR=${CPPUTEST_BUILD_DIR} .. && make -j12
 
-        #- cd $PARPE_BASE/ThirdParty && ./downloadPackages.sh
         #- cd $PARPE_BASE/ThirdParty && ./installCeres.sh
 
         - cd $PARPE_BASE && ThirdParty/installGoogleTest.sh
@@ -47,6 +46,11 @@ build:
         - cd $PARPE_BASE/build && CTEST_OUTPUT_ON_FAILURE=1 make parpe_coverage_cobertura
         - mkdir -p $PARPE_BASE/shippable/codecoverage && cp $PARPE_BASE/build/parpe_coverage_cobertura.xml $PARPE_BASE/shippable/codecoverage
 
+        # benchmark models
+        - sudo apt install bc
+        - cd $PARPE_BASE/benchmark_collection && git clone --depth 1 https://github.com/LeonardSchmiester/Benchmark-Models.git
+        - $PARPE_BASE/misc/run_in_venv.sh $PARPE_BASE/build/venv pip3 install shyaml
+        - BENCHMARK_COLLECTION="$(pwd)/Benchmark-Models/hackathon_contributions_new_data_format/" $PARPE_BASE/misc/run_in_venv.sh $PARPE_BASE/build/venv ./all.sh
 #    on_failure:
 #        - ls -R ${PARPE_BASE}
 

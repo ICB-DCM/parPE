@@ -18,11 +18,12 @@ estimation for an example model included in the the image.
 ### Generating parPE base docker image
 
 This will create the parPE base image *from parPE from github*
-(takes about 10'):
+(run from the top level directory of you local parPE git clone, 
+takes about 10'):
 
 ```shell
+git archive -v -o container/charliecloud/parpe_base/parpe.tar.gz --format=tar.gz HEAD
 cd container/charliecloud/parpe_base
-git archive -v -o parpe.tar.gz --format=tar.gz HEAD
 ch-build -t parpe .
 ```
 

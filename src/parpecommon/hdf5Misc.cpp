@@ -4,6 +4,8 @@
 
 #include <cassert>
 #include <cstdlib>
+#include <iostream>
+#include <sstream>
 #include <utility>
 #include <unistd.h>
 #include <sys/stat.h>
@@ -474,10 +476,15 @@ std::vector<int> hdf5Read2DIntegerHyperslab(const H5::H5File &file,
     hsize_t count[] = {size0, size1};
     // printf("%lld %lld, %lld %lld, %lld %lld\n", dims[0], dims[1], offset0,
     // offset1, size0, size1);
-    assert(dims[0] >= offset0 && dims[0] >= size0 &&
-            "Offset larger than dataspace dimensions!");
-    assert(dims[1] >= offset1 && dims[1] >= size1 &&
-            "Offset larger than dataspace dimensions!");
+    if(offset0 >= dims[0] || size0 > dims[0] || offset1 >= dims[1]
+            || size1 > dims[1]) {
+        std::stringstream ss;
+        ss << "Offset larger than dataspace dimensions! " << "dims: " << dims[0]
+           << "," << dims[1] << " offsets: " << offset0 << "," << offset1
+           << " size: " << size0 << "," << size1;
+        printBacktrace();
+        throw HDF5Exception(ss.str());
+    }
 
     filespace.selectHyperslab(H5S_SELECT_SET, count, offset);
 
@@ -632,7 +639,9 @@ void hdf5GetDatasetDimensions(hid_t file_id,
 
     const int nDimsActual = dataspace.getSimpleExtentNdims();
     if(nDimsActual != (signed)nDimsExpected)
-        throw(HDF5Exception("Dataset rank does not match nDims argument"));
+        throw(HDF5Exception("Dataset rank (" + std::to_string(nDimsActual)
+                            + ") does not match nDims argument ("
+                            + std::to_string(nDimsExpected) + ")"));
 
     hsize_t dims[nDimsExpected];
     dataspace.getSimpleExtentDims(dims, nullptr);
@@ -795,6 +804,60 @@ void hdf5EnsureGroupExists(const H5::H5File & file, const std::string &groupName
 bool hdf5DatasetExists(const H5::H5File &file, const std::string &datasetName)
 {
     return hdf5DatasetExists(file.getId(), datasetName.c_str());
+}
+
+std::vector<std::string> hdf5Read1dStringDataset(
+        H5::H5File const& file, const std::string &datasetPath)
+{
+    auto lock = hdf5MutexGetLock();
+    auto dataset = file.openDataSet(datasetPath);
+    auto filespace = dataset.getSpace();
+
+    const int ndims = filespace.getSimpleExtentNdims();
+    assert(ndims == 1 && "Only works for 1D arrays!");
+
+    auto dtype = dataset.getDataType();
+    auto native_type = H5Tget_native_type(dtype.getId(), H5T_DIR_DEFAULT);
+    H5::StrType tid1(0, H5T_VARIABLE);
+    if(!H5Tequal(native_type, tid1.getId()))
+        throw HDF5Exception("Data type mismatch");
+
+    hsize_t length;
+    filespace.getSimpleExtentDims(&length);
+    std::vector<char*> buffer(length);
+    dataset.read((void*)buffer.data(), dtype);
+
+    std::vector<std::string> strBuffer(buffer.size());
+    for(int i = 0; i < (int) buffer.size(); ++i) {
+        strBuffer[i] = buffer[i];
+    }
+    return strBuffer;
+}
+
+void hdf5Write1dStringDataset(
+        const H5::H5File &file, const std::string &parentPath,
+        const std::string &datasetPath, std::vector<std::string> const& buffer)
+{
+    auto lock = hdf5MutexGetLock();
+
+    const int dims = 1;
+    hsize_t dims0 = buffer.size();
+    H5::DataSpace sid1(dims, &dims0);
+
+    H5::StrType tid1(0, H5T_VARIABLE);
+    RELEASE_ASSERT(H5T_STRING == H5Tget_class(tid1.getId())
+            || !H5Tis_variable_str(tid1.getId()), "String type failure.");
+
+    hdf5EnsureGroupExists(file, parentPath);
+    auto dataset = file.createDataSet(parentPath + "/" + datasetPath,
+                                      tid1, sid1);
+
+    // we need character pointers
+    std::vector<const char *> charPtrBuffer(buffer.size());
+    for(int i = 0; i < (int) buffer.size(); ++i) {
+        charPtrBuffer[i] = buffer[i].c_str();
+    }
+    dataset.write((void*)charPtrBuffer.data(), tid1);
 }
 
 } // namespace parpe

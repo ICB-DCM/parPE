@@ -1,7 +1,7 @@
 #!/bin/bash
 # Build script for CI on shippable.com
-
-set -e
+set -euo pipefail
+set -x
 
 # build parPE
 mkdir -p build
