@@ -47,6 +47,7 @@ build:
         - mkdir -p $PARPE_BASE/shippable/codecoverage && cp $PARPE_BASE/build/parpe_coverage_cobertura.xml $PARPE_BASE/shippable/codecoverage
 
         # benchmark models
+        - sudo apt install bc
         - cd $PARPE_BASE/benchmark_collection && git clone --depth 1 https://github.com/LeonardSchmiester/Benchmark-Models.git
         - $PARPE_BASE/misc/run_in_venv.sh $PARPE_BASE/build/venv pip3 install shyaml
         - BENCHMARK_COLLECTION="$(pwd)/Benchmark-Models/hackathon_contributions_new_data_format/" $PARPE_BASE/misc/run_in_venv.sh $PARPE_BASE/build/venv ./all.sh
