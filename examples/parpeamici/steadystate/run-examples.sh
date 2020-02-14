@@ -16,9 +16,9 @@ grep docker /proc/1/cgroup -qa \
   && mpiexec --version | grep open-mpi \
   && MPIEXEC="${MPIEXEC} --oversubscribe --mca btl_vader_single_copy_mechanism none --mca btl ^openib -mca oob_tcp_if_include lo --mca btl_tcp_if_include lo --mca orte_base_help_aggregate 0"
 
-
 rm -f test.log
 
+###############################################################################
 # Run without MPI
 
 # Run gradient check
@@ -43,7 +43,7 @@ rm -f simulate1.h5
 h5dump -d /multistarts/0/yMes/3 simulate1.h5 # test dataset exists
 test -f simulate1.h5
 
-#
+###############################################################################
 # Run with MPI
 #
 
