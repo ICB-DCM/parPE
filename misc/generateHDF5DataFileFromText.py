@@ -303,8 +303,6 @@ class HDF5DataGenerator:
                 measurement_df=self.petab_problem.measurement_df
             )
 
-        print(self.parameter_mapping)
-
         amici_model_parameter_ids = self.amici_model.getParameterIds()
 
         # Merge and preeq and sim parameters, filter fixed parameters
@@ -337,7 +335,6 @@ class HDF5DataGenerator:
                     & (~self.parameter_df.index.isin(
                         self.amici_model.getFixedParameterIds()))
                     ])}
-        # print(optimization_parameter_name_to_index)
         self.optimization_parameter_name_to_index = \
             optimization_parameter_name_to_index
 

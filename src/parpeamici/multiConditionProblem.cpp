@@ -321,11 +321,28 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
      * and sensitivity options have been set already */
     auto edata = dataProvider->getExperimentalDataForCondition(conditionIdx);
 
-    /* In case of simulation failure, try rerunning with higher error tolerance
-     * for a total of maxNumTrials times */
-    constexpr int maxNumTrials = 6; // on failure, rerun simulation
-    // Error tolerance relaxation factor upon failure
-    constexpr double errorRelaxation = 1e2;
+    // TODO: extract class to handle tolerance relaxation
+
+    /*
+     * In case of simulation failure, try rerunning with a
+     * `errorRelaxation`-fold higher error tolerance for a total of
+     * `maxNumTrials` times (including the initial attempt).
+     */
+    constexpr int defaultMaxNumTrials = 6;
+    constexpr double defaultErrorRelaxation = 1e2;
+
+    int maxNumTrials = defaultMaxNumTrials;
+    double errorRelaxation = defaultErrorRelaxation;
+
+    // Set via environment variables?
+    if(auto env = std::getenv("PARPE_NUM_SIMULATION_TRIALS")) {
+        maxNumTrials = std::stoi(env);
+    }
+    if(auto env =
+            std::getenv("PARPE_INTEGRATION_TOLERANCE_RELAXATION_FACTOR")) {
+        errorRelaxation = std::stod(env);
+    }
+
     std::unique_ptr<amici::ReturnData> rdata;
 
     // redirect AMICI output to parPE logging
