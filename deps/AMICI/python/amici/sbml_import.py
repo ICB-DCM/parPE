@@ -6,9 +6,11 @@ import re
 import math
 import itertools as itt
 import warnings
+import logging
 from typing import Dict, Union, List, Callable, Any, Iterable
 
 from .ode_export import ODEExporter, ODEModel
+from .logging import get_logger, log_execution_time
 from . import has_clibs
 
 from sympy.logic.boolalg import BooleanTrue as spTrue
@@ -29,6 +31,10 @@ default_symbols = {
     'my': {},
     'llhy': {},
 }
+
+
+## python log manager
+logger = get_logger(__name__, logging.ERROR)
 
 
 class SbmlImporter:
@@ -176,7 +182,7 @@ class SbmlImporter:
                    constantParameters: List[str] = None,
                    sigmas: Dict[str, Union[str, float]] = None,
                    noise_distributions: Dict[str, str] = None,
-                   verbose: bool = False,
+                   verbose: Union[int, bool] = logging.ERROR,
                    assume_pow_positivity: bool = False,
                    compiler: str = None,
                    allow_reinit_fixpar_initcond: bool = True,
@@ -210,7 +216,8 @@ class SbmlImporter:
                 If nothing is passed
                 for some observable id, a normal model is assumed as default.
 
-            verbose: more verbose output if True
+            verbose: verbosity level for logging, True/False default to
+                logging.Error/logging.DEBUG
 
             assume_pow_positivity: if set to True, a special pow function is
                 used to avoid problems with state variables that may become
@@ -240,6 +247,8 @@ class SbmlImporter:
 
         if noise_distributions is None:
             noise_distributions = {}
+
+        logger.setLevel(verbose)
 
         self.reset_symbols()
         self.processSBML(constantParameters)
@@ -306,7 +315,7 @@ class SbmlImporter:
                                 'are currently not supported!')
 
         if hasattr(self.sbml, 'all_elements_from_plugins') \
-                and len(self.sbml.all_elements_from_plugins) > 0:
+                and self.sbml.all_elements_from_plugins.getSize() > 0:
             raise SBMLException('SBML extensions are currently not supported!')
 
         if len(self.sbml.getListOfEvents()) > 0:
@@ -358,6 +367,7 @@ class SbmlImporter:
         self.local_symbols['time'] = sp.Symbol('time', real=True)
         self.local_symbols['avogadro'] = sp.Symbol('avogadro', real=True)
 
+    @log_execution_time('processing SBML species', logger)
     def processSpecies(self):
         """Get species information from SBML model.
 
@@ -471,6 +481,7 @@ class SbmlImporter:
              for specie in species
         ])
 
+    @log_execution_time('processing SBML parameters', logger)
     def processParameters(self, constantParameters: List[str] = None):
         """Get parameter information from SBML model.
 
@@ -546,6 +557,7 @@ class SbmlImporter:
                 }
             )
 
+    @log_execution_time('processing SBML compartments', logger)
     def processCompartments(self):
         """Get compartment information, stoichiometric matrix and fluxes from
         SBML model.
@@ -577,8 +589,7 @@ class SbmlImporter:
                     locals=self.local_symbols
                 )
 
-
-
+    @log_execution_time('processing SBML reactions', logger)
     def processReactions(self):
         """Get reactions from SBML model.
 
@@ -703,6 +714,7 @@ class SbmlImporter:
                     ' not supported!'
                 )
 
+    @log_execution_time('processing SBML rules', logger)
     def processRules(self):
         """Process Rules defined in the SBML model.
 
@@ -784,7 +796,7 @@ class SbmlImporter:
         # rules
         for variable in assignments.keys():
             self.replaceInAllExpressions(
-                sp.sympify(variable, locals=self.local_symbols),
+                sp.Symbol(variable, real=True),
                 assignments[variable]
             )
         for comp, vol in zip(self.compartmentSymbols, self.compartmentVolume):
@@ -829,6 +841,7 @@ class SbmlImporter:
 
         self.replaceInAllExpressions(sbmlTimeSymbol, amiciTimeSymbol)
 
+    @log_execution_time('processing SBML observables', logger)
     def processObservables(self, observables: Dict[str, Dict[str, str]],
                            sigmas: Dict[str, Union[str, float]],
                            noise_distributions: Dict[str, str]):
@@ -890,16 +903,26 @@ class SbmlImporter:
                 )
                 repl = replaceLogAB(observables[observable]['formula'])
                 if repl != observables[observable]['formula']:
-                    print(
+                    warnings.warn(
                         f'Replaced "{observables[observable]["formula"]}" by '
                         f'"{repl}", assuming first argument to log() was the '
                         f'basis.'
                     )
                     observables[observable]['formula'] = repl
 
+            def replace_assignments(formula):
+                """Replace assignment rules in observables"""
+                formula = sp.sympify(formula, locals=self.local_symbols)
+                for s in formula.free_symbols:
+                    r = self.sbml.getAssignmentRuleByVariable(str(s))
+                    if r is not None:
+                        formula = formula.replace(s, sp.sympify(
+                            sbml.formulaToL3String(r.getMath()),
+                             locals=self.local_symbols))
+                return formula
+
             observableValues = sp.Matrix([
-                sp.sympify(observables[observable]['formula'],
-                           locals=self.local_symbols)
+                replace_assignments(observables[observable]['formula'])
                 for observable in observables
             ])
             observableNames = [
@@ -1006,7 +1029,6 @@ class SbmlImporter:
             if symbol in self.symbols:
                 self.symbols[symbol]['value'] = \
                     self.symbols[symbol]['value'].subs(old, new)
-
 
     def cleanReservedSymbols(self):
         """Remove all reserved symbols from self.symbols
@@ -1165,10 +1187,9 @@ def checkLibSBMLErrors(sbml_doc, show_warnings=False):
             if error.getSeverity() >= sbml.LIBSBML_SEV_ERROR \
                     or (show_warnings and
                         error.getSeverity() >= sbml.LIBSBML_SEV_WARNING):
-                category = error.getCategoryAsString()
-                severity = error.getSeverityAsString()
-                error_message = error.getMessage()
-                print(f'libSBML {severity} ({category}): {error_message}')
+                logger.error(f'libSBML {error.getCategoryAsString()} '
+                             f'({error.getSeverityAsString()}):'
+                             f' {error.getMessage()}')
 
     if num_error + num_fatal:
         raise SBMLException(
@@ -1340,54 +1361,54 @@ def assignmentRules2observables(sbml_model,
 
 def noise_distribution_to_cost_function(
         noise_distribution: str) -> Callable[[str], str]:
-    """
-    Parse cost string to a cost function definition amici can work with.
+    """Parse noise distribution string to a cost function definition amici can
+    work with.
 
     Arguments:
 
     noise_distribution: A code specifying a noise model. Can be any of
     [normal, log-normal, log10-normal, laplace, log-laplace, log10-laplace].
-    @type str
 
     Returns:
 
     A function that takes a strSymbol and then creates a cost function string
-    from it, which can be sympified.
+    (negative log-likelihood) from it, which can be sympified.
 
     Raises:
+        ValueError: in case of invalid ``noise_distribution``
     """
     if noise_distribution in ['normal', 'lin-normal']:
-        llhYString = lambda strSymbol: \
-            f'0.5*log(2*pi*sigma{strSymbol}**2) ' \
-            f'+ 0.5*(({strSymbol} - m{strSymbol}) ' \
-            f'/ sigma{strSymbol})**2'
+        nllh_y_string = lambda str_symbol: \
+            f'0.5*log(2*pi*sigma{str_symbol}**2) ' \
+            f'+ 0.5*(({str_symbol} - m{str_symbol}) ' \
+            f'/ sigma{str_symbol})**2'
     elif noise_distribution == 'log-normal':
-        llhYString = lambda strSymbol: \
-            f'0.5*log(2*pi*sigma{strSymbol}**2*m{strSymbol}**2) ' \
-            f'+ 0.5*((log({strSymbol}) - log(m{strSymbol})) ' \
-            f'/ sigma{strSymbol})**2'
+        nllh_y_string = lambda str_symbol: \
+            f'0.5*log(2*pi*sigma{str_symbol}**2*m{str_symbol}**2) ' \
+            f'+ 0.5*((log({str_symbol}) - log(m{str_symbol})) ' \
+            f'/ sigma{str_symbol})**2'
     elif noise_distribution == 'log10-normal':
-        llhYString = lambda strSymbol: \
-            f'0.5*log(2*pi*sigma{strSymbol}**2*m{strSymbol}**2) ' \
-            f'+ 0.5*((log({strSymbol}, 10) - log(m{strSymbol}, 10)) ' \
-            f'/ sigma{strSymbol})**2'
+        nllh_y_string = lambda str_symbol: \
+            f'0.5*log(2*pi*sigma{str_symbol}**2*m{str_symbol}**2) ' \
+            f'+ 0.5*((log({str_symbol}, 10) - log(m{str_symbol}, 10)) ' \
+            f'/ sigma{str_symbol})**2'
     elif noise_distribution in ['laplace', 'lin-laplace']:
-        llhYString = lambda strSymbol: \
-            f'log(2*sigma{strSymbol}) ' \
-            f'+ Abs({strSymbol} - m{strSymbol}) ' \
-            f'/ sigma{strSymbol}'
+        nllh_y_string = lambda str_symbol: \
+            f'log(2*sigma{str_symbol}) ' \
+            f'+ Abs({str_symbol} - m{str_symbol}) ' \
+            f'/ sigma{str_symbol}'
     elif noise_distribution == 'log-laplace':
-        llhYString = lambda strSymbol: \
-            f'log(2*sigma{strSymbol}*m{strSymbol}) ' \
-            f'+ Abs(log({strSymbol}) - log(m{strSymbol})) ' \
-            f'/ sigma{strSymbol}'
+        nllh_y_string = lambda str_symbol: \
+            f'log(2*sigma{str_symbol}*m{str_symbol}) ' \
+            f'+ Abs(log({str_symbol}) - log(m{str_symbol})) ' \
+            f'/ sigma{str_symbol}'
     elif noise_distribution == 'log10-laplace':
-        llhYString = lambda strSymbol: \
-            f'log(2*sigma{strSymbol}*m{strSymbol}) ' \
-            f'+ Abs(log({strSymbol}, 10) - log(m{strSymbol}, 10)) ' \
-            f'/ sigma{strSymbol}'
+        nllh_y_string = lambda str_symbol: \
+            f'log(2*sigma{str_symbol}*m{str_symbol}) ' \
+            f'+ Abs(log({str_symbol}, 10) - log(m{str_symbol}, 10)) ' \
+            f'/ sigma{str_symbol}'
     else:
         raise ValueError(
-            f"Cost type {cost_code} not reconized.")
+            f"Cost type {noise_distribution} not recognized.")
 
-    return llhYString
+    return nllh_y_string

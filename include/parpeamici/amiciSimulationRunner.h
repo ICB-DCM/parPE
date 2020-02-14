@@ -34,8 +34,8 @@ using LoadBalancerMaster= int;
 #endif
 
 /**
- * @brief The SimulationRunnerSimple class queues AMICI simulations, waits for the
- * results and calls a user-provided aggregation function
+ * @brief The AmiciSimulationRunner class queues AMICI simulations, waits for
+ * the results and calls a user-provided aggregation function
  */
 class AmiciSimulationRunner {
   public:

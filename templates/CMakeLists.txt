@@ -8,3 +8,6 @@ add_custom_target(templates
     main_simulate.cpp
     )
 
+set_target_properties(templates
+    PROPERTIES INCLUDE_DIRECTORIES
+    "${CMAKE_SOURCE_DIR}/include/;${CMAKE_SOURCE_DIR}/deps/AMICI/include/")

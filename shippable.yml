@@ -47,6 +47,9 @@ build:
         - cd $PARPE_BASE/build && CTEST_OUTPUT_ON_FAILURE=1 make parpe_coverage_cobertura
         - mkdir -p $PARPE_BASE/shippable/codecoverage && cp $PARPE_BASE/build/parpe_coverage_cobertura.xml $PARPE_BASE/shippable/codecoverage
 
+        # benchmark models
+        - cd $PARPE_BASE/benchmark_collection && git clone --depth 1 https://github.com/LeonardSchmiester/Benchmark-Models.git
+        - BENCHMARK_COLLECTION="$(pwd)/Benchmark-Models/hackathon_contributions_new_data_format/" ./all.sh
 #    on_failure:
 #        - ls -R ${PARPE_BASE}
 
