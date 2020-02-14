@@ -231,7 +231,8 @@ def getReturnDataForCondition(model, solver, fixed_parameters,
     synthetic_data[:, sigma_parameter_observable_idx] = \
         np.random.normal(loc=rdata['y'][:, sigma_parameter_observable_idx],
                          scale=dynamic_parameters[sigma_parameter_idx])
-
+    # due to noise, there may be negative measurements. we don't want them.
+    synthetic_data = np.abs(synthetic_data)
     print("\tMean abs. relative measurement error per observable:")
     print("\t",
           np.mean(np.abs((synthetic_data - rdata['y']) / rdata['y']), axis=0))

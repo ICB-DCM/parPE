@@ -9,6 +9,8 @@
 #ifdef PARPE_ENABLE_IPOPT
 #include <parpeoptimization/localOptimizationIpopt.h>
 
+using ::testing::NiceMock;
+
 TEST(multiStartOptimization, testMultiStartOptimization) {
     int numStarts = 10;
 
@@ -16,8 +18,8 @@ TEST(multiStartOptimization, testMultiStartOptimization) {
     // mock().expectNCalls(numStarts, "logFinish").ignoreOtherParameters();
     // mock().ignoreOtherCalls();
 
-    parpe::QuadraticOptimizationMultiStartProblem ms(numStarts, true);
-    parpe::MultiStartOptimization optimizer(ms);
+    NiceMock<parpe::QuadraticOptimizationMultiStartProblem> ms(numStarts, true);
+    NiceMock<parpe::MultiStartOptimization> optimizer(ms);
 
     optimizer.runMultiThreaded();
 
