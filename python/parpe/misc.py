@@ -3,6 +3,9 @@ import numpy as np
 from typing import Optional, Union, Iterable, List, Any
 import sys
 import importlib
+from petab.C import SIMULATION, MEASUREMENT
+
+
 """
 TODO test    
     import tempfile
@@ -164,7 +167,11 @@ def readSimulationsFromFile(filename):
 
     with h5py.File(filename, 'r') as f:
         for ms in f['/multistarts']:
-            llh[ms] = f[f'/multistarts/{ms}/llh'][:]
+            try:
+                llh[ms] = f[f'/multistarts/{ms}/llh'][:]
+            except OSError:
+                print(f'Getting the data for start {ms} failed.')
+                continue
             mes[ms] = []
             sim[ms] = []
             time[ms] = []
@@ -308,8 +315,10 @@ class ParameterEstimationResultFile:
     pass
 
 
-def simulation_to_df(mes_df, sim, result_file, start, label, observable_ids):
-    """Add simulation results as new column to PEtab measurement df"""
+def simulation_to_df(mes_df, sim, result_file, start, observable_ids):
+    """Put simulation results in new PEtab simulation df based on PEtab
+    measurement df
+    """
 
     with h5py.File(result_file, 'r') as f:
         condition_names = f['/inputData/fixedParameters/conditionNames'][:]
@@ -323,14 +332,15 @@ def simulation_to_df(mes_df, sim, result_file, start, label, observable_ids):
     for comb_idx, (preeq_idx, sim_idx) in enumerate(simulation_conditions)}
     obs_id_to_idx = {id_: idx for idx, id_ in enumerate(observable_ids)}
 
-    mes_df['simulation_' + label] = np.nan
+    mes_df[MEASUREMENT] = np.nan
+    mes_df = mes_df.rename(columns={MEASUREMENT: SIMULATION})
     time_tracker = {}
     for _, row in mes_df.iterrows():
         if np.isnan(row.preequilibrationConditionId):
             row.preequilibrationConditionId = -1
         condition_idx = cond_comb_to_idx[
             row.preequilibrationConditionId, row.simulationConditionId]
-        observable_idx = obs_id_to_idx['observable_' + row.observableId]
+        observable_idx = obs_id_to_idx[row.observableId]
         """ Replicate simulations will be identical, but lets consider them"""
         try:
             time_tracker[(condition_idx, observable_idx, row.time)] += 1
@@ -340,8 +350,8 @@ def simulation_to_df(mes_df, sim, result_file, start, label, observable_ids):
         time_idx = time_tracker[(condition_idx, observable_idx, row.time)]
 
         # time_idx = 0
-        mes_df.loc[row.name, 'simulation_' + label] = \
-        sim[start][condition_idx][time_idx, observable_idx]
+        mes_df.loc[row.name, SIMULATION] = \
+            sim[start][condition_idx][time_idx, observable_idx]
     return mes_df
 
 
