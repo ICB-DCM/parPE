@@ -1,5 +1,7 @@
 #!/bin/bash
-set -e
+# Install parPE inside docker
+set -euo pipefail
+set -x
 
 cd
 
@@ -13,19 +15,27 @@ export PARPE_BASE=$(pwd)
 
 # Install AMICI
 export AMICI_PATH=${PARPE_BASE}/deps/AMICI/
-cd "${AMICI_PATH}" && scripts/buildSuiteSparse.sh && scripts/buildSundials.sh && scripts/buildCpputest.sh #&& scripts/buildAmici.sh
+cd "${AMICI_PATH}" \
+  && scripts/buildSuiteSparse.sh \
+  && scripts/buildSundials.sh \
+  && scripts/buildCpputest.sh #&& scripts/buildAmici.sh
 mkdir -p "${AMICI_PATH}"/build && cd "${AMICI_PATH}"/build
 CPPUTEST_BUILD_DIR=${AMICI_PATH}/ThirdParty/cpputest-master/build/
-cmake -DCMAKE_BUILD_TYPE=Debug -DENABLE_PYTHON=ON -DBUILD_TESTS=OFF -DCppUTest_DIR="${CPPUTEST_BUILD_DIR}" .. && make -j12
+cmake \
+  -DCMAKE_BUILD_TYPE=Debug \
+  -DENABLE_PYTHON=ON \
+  -DBUILD_TESTS=OFF \
+  -DCppUTest_DIR="${CPPUTEST_BUILD_DIR}" \
+  .. && make -j12
 
-#- cd $PARPE_BASE/ThirdParty && ./downloadPackages.sh
 #- cd $PARPE_BASE/ThirdParty && ./installCeres.sh
 
 # For google-test for parPE tests
 cd "${PARPE_BASE}" && ThirdParty/installGoogleTest.sh
 
-# build parPE
+# install parPE python requirements
 pip install -r "${PARPE_BASE}"/python/requirements.txt
+# build parPE
 cd "${PARPE_BASE}"
 mkdir -p build
 cd build

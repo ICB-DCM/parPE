@@ -1,8 +1,8 @@
 #!/bin/bash
-# build parPE dependencies (run downloadPackages.sh before)
+# build parPE dependencies
 
-SCRIPT_PATH="`dirname \"$0\"`"
-SCRIPT_PATH="`( cd \"$SCRIPT_PATH\" && pwd )`"
+script_dir=$(dirname "$0")
+script_dir=$(cd "$script_dir" && pwd )
 
 # exit on error
 set -e

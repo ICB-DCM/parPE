@@ -1,29 +1,33 @@
 #!/bin/bash
-PARPE_ROOT="`dirname \"$0\"`"
-PARPE_ROOT="`( cd \"$PARPE_ROOT\" && pwd )`"
+parpe_root=$(dirname "$0")
+parpe_root=$(cd "$parpe_root" && pwd)
 
 set -e
 
 # Build amici
-AMICI_DIR=$PARPE_ROOT/deps/AMICI/
-cd $AMICI_DIR
+amici_dir=$parpe_root/deps/AMICI/
+cd "$amici_dir"
 scripts/buildAll.sh
 
-# build cpputest without memory leak detector
-$PARPE_ROOT/ThirdParty/installCpputest.sh
+# build ceres
+"$parpe_root"/ThirdParty/installCeres.sh
 
 # build parpe
-mkdir -p $PARPE_ROOT/build
-cd $PARPE_ROOT/build
+ceres_install_dir=${parpe_root}/ThirdParty/ceres-solver-1.13.0/build/install
+ceres_libs="$ceres_install_dir/lib/libceres.a;$(pkg-config --libs blas);cxsparse;lapack;cholmod;camd;colamd"
+ceres_inc="$ceres_install_dir/include/"
+ceres_inc="$ceres_inc;${parpe_root}/ThirdParty/eigen-eigen-67e894c6cd8f/build/install/include/eigen3/"
+parpe_build_dir="$parpe_root/build"
+mkdir -p "$parpe_build_dir"
+cd "$parpe_build_dir"
 CC=mpicc CXX=mpiCC cmake \
-      -DIPOPT_DIR=${PARPE_ROOT}/ThirdParty/Ipopt-3.12.12/install \
-      -DCERES_LIBRARIES="${PARPE_ROOT}/ThirdParty/ceres-solver-1.13.0/build/install/lib/libceres.a;`pkg-config --libs blas`;cxsparse;lapack;cholmod;camd;colamd" \
-      -DCERES_INCLUDE_DIRS="${PARPE_ROOT}/ThirdParty/ceres-solver-1.13.0/build/install/include/;${PARPE_ROOT}/ThirdParty/ceres-solver-1.13.0/build/install/include/ceres/internal/miniglog/;${PARPE_ROOT}/ThirdParty/eigen-eigen-67e894c6cd8f/build/install/include/eigen3/" \
+      -DIPOPT_DIR="${parpe_root}"/ThirdParty/Ipopt-3.12.12/install \
+      -DCERES_LIBRARIES="$ceres_libs" \
+      -DCERES_INCLUDE_DIRS="$ceres_inc" \
       -DMPI_INCLUDE_DIR=/usr/include/openmpi-x86_64/ \
       -DMPI_LIBRARY=/usr/lib64/openmpi/lib/libmpi_cxx.so \
-      -DCppUTest_DIR=${PARPE_ROOT}/deps/AMICI/ThirdParty/cpputest-master/build-noleakcheck/install/ \
       -DENABLE_SWIG=FALSE \
-      $PARPE_ROOT
+      "$parpe_root"
 make -j12
 
 # run tests
