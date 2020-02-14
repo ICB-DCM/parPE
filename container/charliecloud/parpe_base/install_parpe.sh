@@ -35,18 +35,31 @@ cd "${PARPE_BASE}" && ThirdParty/installGoogleTest.sh
 
 # install parPE python requirements
 pip install -r "${PARPE_BASE}"/python/requirements.txt
+
 # build parPE
 cd "${PARPE_BASE}"
 mkdir -p build
 cd build
+ceres_libs="/usr/lib/libceres.so"
+ceres_libs="$ceres_libs;/usr/lib/x86_64-linux-gnu/libglog.so"
+ceres_libs="$ceres_libs;/usr/lib/x86_64-linux-gnu/libgflags.so"
+
+# docker-specific MPI settings
+mpi_cmd="mpiexec;--allow-run-as-root;-n;4;--oversubscribe"
+mpi_cmd="$mpi_cmd;--mca;btl_vader_single_copy_mechanism;none"
+mpi_cmd="$mpi_cmd;--mca;btl;^openib"
+mpi_cmd="$mpi_cmd;--mca;oob_tcp_if_include;lo"
+mpi_cmd="$mpi_cmd;--mca;btl_tcp_if_include;lo;"
+mpi_cmd="$mpi_cmd;--mca;orte_base_help_aggregate;0"
+
 CC=mpicc CXX=mpiCC cmake \
       -DIPOPT_INCLUDE_DIRS=/usr/include/coin/ \
       -DIPOPT_LIBRARIES=/usr/lib/libipopt.so \
-      -DCERES_LIBRARIES="/usr/lib/libceres.so;/usr/lib/x86_64-linux-gnu/libglog.so;/usr/lib/x86_64-linux-gnu/libgflags.so" \
+      -DCERES_LIBRARIES="$ceres_libs" \
       -DCERES_INCLUDE_DIRS="/usr/include/;/usr/include/eigen3" \
       -DMPI_INCLUDE_DIRS=/usr/include/openmpi-x86_64/ \
       -DBUILD_TESTS=ON \
-      "-DTESTS_MPIEXEC_COMMAND=mpiexec;--allow-run-as-root;-n;4;--oversubscribe;--mca;btl_vader_single_copy_mechanism;none;--mca;btl;^openib;--mca;oob_tcp_if_include;lo;--mca;btl_tcp_if_include;lo;--mca;orte_base_help_aggregate;0" \
+      -DTESTS_MPIEXEC_COMMAND="$mpi_cmd" \
       ..
 make -j12 VERBOSE=1
 
