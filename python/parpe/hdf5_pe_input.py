@@ -312,7 +312,7 @@ class HDF5DataGenerator:
                 #     f"Preequilibration parameter map: {condition_map_preeq}")
                 # logger.debug(f"Simulation parameter map: {condition_map_sim}")
                 raise AssertionError(
-                    "Number of parameters for preequilbration "
+                    "Number of parameters for preequilibration "
                     "and simulation do not match.")
 
             # split into fixed and variable parameters:
@@ -574,7 +574,7 @@ class HDF5DataGenerator:
         measurement_df = self.petab_problem.measurement_df
 
         row_filter = measurement_df[ptc.SIMULATION_CONDITION_ID] \
-                     == self.condition_ids[sim_cond_idx]
+            == self.condition_ids[sim_cond_idx]
         if preeq_cond_idx == self.NO_PREEQ_CONDITION_IDX:
             row_filter &= \
                 measurement_df[ptc.PREEQUILIBRATION_CONDITION_ID].isnull()
@@ -986,4 +986,3 @@ def main():
         petab_problem=petab_problem,
         amici_model=amici_model)
     h5gen.generate_file(args.hdf5_file_name)
-
