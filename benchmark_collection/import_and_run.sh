@@ -70,7 +70,7 @@ $cmd  |& tee tmp.out
 
 # Check output
 NLLH=$(grep Likelihood tmp.out | tr -cd '[:print:]' | sed -r 's/.*Likelihood: (.*)\[.*/\1/')
-#rm tmp.out
+rm tmp.out
 REFERENCE_FILE="${AMICI_ROOT}/tests/benchmark-models/benchmark_models.yaml"
 REF=$(shyaml get-value "${MODEL_NAME}".llh < "$REFERENCE_FILE")
 ABS="define abs(i) {\\nif (i < 0) return (-i) \nreturn (i)\n}\n"
