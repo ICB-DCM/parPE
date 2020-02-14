@@ -1074,6 +1074,12 @@ std::vector<double> spliceParameters(const gsl::span<double const> reducedParame
             throw std::exception();
     }
 
+    RELEASE_ASSERT((unsigned) idxScaling == proportionalityFactorIndices.size(),
+                   "")
+    RELEASE_ASSERT((unsigned) idxOffset == offsetParameterIndices.size(), "")
+    RELEASE_ASSERT((unsigned) idxSigma == sigmaParameterIndices.size(), "")
+    RELEASE_ASSERT((unsigned) idxRegular == reducedParameters.size(), "")
+
     return fullParameters;
 }
 

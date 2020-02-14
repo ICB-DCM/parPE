@@ -639,7 +639,9 @@ void hdf5GetDatasetDimensions(hid_t file_id,
 
     const int nDimsActual = dataspace.getSimpleExtentNdims();
     if(nDimsActual != (signed)nDimsExpected)
-        throw(HDF5Exception("Dataset rank does not match nDims argument"));
+        throw(HDF5Exception("Dataset rank (" + std::to_string(nDimsActual)
+                            + ") does not match nDims argument ("
+                            + std::to_string(nDimsExpected) + ")"));
 
     hsize_t dims[nDimsExpected];
     dataspace.getSimpleExtentDims(dims, nullptr);

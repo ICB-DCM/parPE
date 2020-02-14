@@ -15,9 +15,9 @@ if [[ $# -lt 1 ]] || [[ $# -gt 1 ]]; then
 fi
 
 PETAB_MODEL_DIR=$1
-SCRIPT_PATH=$(get_abs_filename $(dirname $BASH_SOURCE))
+SCRIPT_PATH=$(get_abs_filename "$(dirname "$BASH_SOURCE")")
 PARPE_DIR=${SCRIPT_PATH}/..
-MODEL_NAME=$(basename ${PETAB_MODEL_DIR})
+MODEL_NAME=$(basename "${PETAB_MODEL_DIR}")
 AMICI_MODEL_DIR=${SCRIPT_PATH}/${MODEL_NAME}
 petab_yaml=${MODEL_NAME}.yaml
 if [[ -z "${AMICI_ROOT}" ]]
@@ -25,10 +25,10 @@ if [[ -z "${AMICI_ROOT}" ]]
 fi
 
 
-cd ${PETAB_MODEL_DIR}
+cd "${PETAB_MODEL_DIR}"
 
 echo "Running petablint on ${petab_yaml}..."
-petablint -v -y ${MODEL_NAME}.yaml
+petablint -v -y "${MODEL_NAME}".yaml
 
 # import AMICI model
 if [[ ! -d ${AMICI_MODEL_DIR} ]]; then
@@ -38,7 +38,7 @@ if [[ ! -d ${AMICI_MODEL_DIR} ]]; then
     ${CMD}
 fi
 
-cd ${SCRIPT_PATH}
+cd "${SCRIPT_PATH}"
 
 # parPE build
 if [[ ! -d parpe_${MODEL_NAME} ]]; then
@@ -55,7 +55,7 @@ CMD="parpe_petab_to_hdf5 \
     -d ${AMICI_MODEL_DIR} \
     -y ${PETAB_MODEL_DIR}/${MODEL_NAME}.yaml \
     -n ${MODEL_NAME}"
-echo $CMD
+echo "$CMD"
 $CMD
 
 echo ""
@@ -64,20 +64,22 @@ echo "parpe_${MODEL_NAME}/build/estimate_${MODEL_NAME} -o parpe_${MODEL_NAME}_re
 
 echo ""
 echo "Running simulation with nominal parameters..."
-parpe_${MODEL_NAME}/build/simulateNominal_${MODEL_NAME} parpe_${MODEL_NAME}/${MODEL_NAME}.h5 |& tee tmp.out
+cmd="parpe_${MODEL_NAME}/build/simulateNominal_${MODEL_NAME} parpe_${MODEL_NAME}/${MODEL_NAME}.h5"
+echo "$cmd"
+$cmd  |& tee tmp.out
 
 # Check output
-LLH=$(grep Likelihood tmp.out | tr -cd '[:print:]' | sed -r 's/.*Likelihood: (.*)\[.*/\1/')
-rm tmp.out
+NLLH=$(grep Likelihood tmp.out | tr -cd '[:print:]' | sed -r 's/.*Likelihood: (.*)\[.*/\1/')
+#rm tmp.out
 REFERENCE_FILE="${AMICI_ROOT}/tests/benchmark-models/benchmark_models.yaml"
-REF=$(shyaml get-value ${MODEL_NAME}.llh < $REFERENCE_FILE)
+REF=$(shyaml get-value "${MODEL_NAME}".llh < "$REFERENCE_FILE")
 ABS="define abs(i) {\\nif (i < 0) return (-i) \nreturn (i)\n}\n"
 
 # Do we match within tolerance?
 # LLH VS NLLH!
-if (( $(echo -e "${ABS}\nabs($LLH + $REF) < 0.001 * abs($REF)" | bc) )); then
-  echo "OKAY: Expected $REF, got $LLH"
+if (( $(echo -e "${ABS}\nabs($NLLH + $REF) < 0.001 * abs($REF)" | bc) )); then
+  echo "OKAY: Expected llh $REF, got nllh $NLLH"
 else
-  echo "FAILED: Expected $REF, got $LLH"
+  echo "FAILED: Expected llh $REF, got nllh $NLLH"
   exit 1
 fi

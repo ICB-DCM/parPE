@@ -460,9 +460,11 @@ void MultiConditionDataProviderHDF5::checkDataIntegrity() const {
 //    RELEASE_ASSERT(d2 == model->nytrue, "");
 //    RELEASE_ASSERT(d3 >= model->nt(), "");
 
-    parpe::hdf5GetDatasetDimensions(file.getId(), hdf5ConditionPath.c_str(),
-                                    2, &d1, &d2);
-    RELEASE_ASSERT(d1 == model->nk(), "");
+    if(model->nk()) {
+        parpe::hdf5GetDatasetDimensions(file.getId(), hdf5ConditionPath.c_str(),
+                                        2, &d1, &d2);
+        RELEASE_ASSERT(d1 == model->nk(), "");
+    }
 }
 
 
