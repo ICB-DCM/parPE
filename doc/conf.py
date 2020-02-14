@@ -57,8 +57,9 @@ extensions = [
     'sphinx.ext.todo',
     'breathe',
     'exhale',
-    'recommonmark',
-    'IPython.sphinxext.ipython_console_highlighting'
+    #'recommonmark',
+    'IPython.sphinxext.ipython_console_highlighting',
+    'm2r',
 ]
 
 # Add any paths that contain templates here, relative to this directory.

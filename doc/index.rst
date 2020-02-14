@@ -15,7 +15,7 @@ Welcome to parPE's documentation!
 
    usage
 
-   api/library_root
+   exhale_cpp_api/library_root
 
 
 Indices and tables
