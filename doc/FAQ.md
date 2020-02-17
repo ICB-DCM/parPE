@@ -17,4 +17,3 @@ AMICI Python module. Delete `build/venv` and `build/examples/parpeamici`
 and retry. If it still fails, make sure the correct AMICI source
 directory is used.
 
----

@@ -65,9 +65,9 @@ HierarchicalOptimizationWrapper::HierarchicalOptimizationWrapper(
 
 HierarchicalOptimizationWrapper::HierarchicalOptimizationWrapper(
         std::unique_ptr<AmiciSummedGradientFunction > fun,
-        std::unique_ptr<parpe::AnalyticalParameterProvider> scalingReader,
-        std::unique_ptr<parpe::AnalyticalParameterProvider> offsetReader,
-        std::unique_ptr<parpe::AnalyticalParameterProvider> sigmaReader,
+        std::unique_ptr<AnalyticalParameterProvider> scalingReader,
+        std::unique_ptr<AnalyticalParameterProvider> offsetReader,
+        std::unique_ptr<AnalyticalParameterProvider> sigmaReader,
         int numConditions, int numObservables,
         ErrorModel errorModel)
     : fun(std::move(fun)),

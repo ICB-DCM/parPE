@@ -8,7 +8,8 @@
 
 #include <gsl/gsl-lite.hpp>
 
-/** @file Interfaces for cost functions. */
+/** @file functions.h
+ * Interfaces for cost functions. */
 
 namespace parpe {
 

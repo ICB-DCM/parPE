@@ -38,3 +38,6 @@ python/test_*.png
 
 /benchmark_collection/*_*[0-9][0-9][0-9][0-9]/
 /benchmark_collection/parpe_*_*[0-9][0-9][0-9][0-9]/
+
+# breathe-generatd files
+doc/source/api/

@@ -17,7 +17,8 @@
 #include <memory>
 #include <cstdlib>
 
-/** @file Interfaces between AMICI model and parPE optimization problem */
+/** @file multiConditionProblem.h
+ *  Interfaces between AMICI model and parPE optimization problem */
 
 namespace parpe {
 
