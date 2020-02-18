@@ -91,6 +91,7 @@ StandaloneSimulator::run(const std::string& resultFile,
 
         auto wrappedFun = std::make_unique<AmiciSummedGradientFunction>(
           dataProvider, loadBalancer, nullptr);
+        wrappedFun->sendStates = true;
 
         hierarchical = HierarchicalOptimizationWrapper(
           std::move(wrappedFun),
@@ -271,8 +272,10 @@ StandaloneSimulator::run(const std::string& resultFile,
                    auto edata = dataProvider->getExperimentalDataForCondition(
                      conditionIdx);
                    rw.saveTimepoints(edata->getTimepoints(), conditionIdx);
-                   rw.saveStates(modelStates[conditionIdx], edata->nt(),
-                                 model->nx_rdata, conditionIdx);
+                   if(!modelStates[conditionIdx].empty()) {
+                       rw.saveStates(modelStates[conditionIdx], edata->nt(),
+                                     model->nx_rdata, conditionIdx);
+                   }
                    rw.saveMeasurements(edata->getObservedData(),
                                        edata->nt(),
                                        edata->nytrue(),

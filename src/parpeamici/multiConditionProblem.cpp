@@ -312,7 +312,8 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
         MultiConditionDataProvider const *dataProvider,
         OptimizationResultWriter *resultWriter,
         bool logLineSearch,
-        Logger* logger)
+        Logger* logger,
+        bool sendStates)
 {
     // wall time  on worker for current simulation
     WallTimer simulationTimer;
@@ -464,7 +465,7 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
                  > amici::SensitivityOrder::none)
                 ? rdata->sllh : std::vector<double>(),
                 rdata->y,
-                rdata->x,
+                sendStates ? rdata->x : std::vector<double>(),
                 rdata->status
     };
 }
@@ -477,7 +478,7 @@ FunctionEvaluationStatus getModelOutputs(
         bool logLineSearch,
         gsl::span<const double> parameters,
         std::vector<std::vector<double> > &modelOutput,
-        Logger *logger, double * /*cpuTime*/)
+        Logger *logger, double * /*cpuTime*/, bool sendStates)
 {
     int errors = 0;
 
@@ -515,7 +516,8 @@ FunctionEvaluationStatus getModelOutputs(
 #endif
         errors += simRunner.runSharedMemory(
                     [&](std::vector<char> &buffer, int jobId) {
-                messageHandler(dataProvider, resultWriter, logLineSearch, buffer, jobId);
+                messageHandler(dataProvider, resultWriter, logLineSearch,
+                               buffer, jobId, sendStates);
     });
 #ifdef PARPE_ENABLE_MPI
     }
@@ -529,7 +531,8 @@ FunctionEvaluationStatus getModelOutputs(
 void messageHandler(MultiConditionDataProvider *dataProvider,
                     OptimizationResultWriter *resultWriter,
                     bool logLineSearch,
-                    std::vector<char> &buffer, int jobId) {
+                    std::vector<char> &buffer, int jobId,
+                    bool sendStates) {
 
 #if QUEUE_WORKER_H_VERBOSE >= 2
     int mpiRank;
@@ -558,7 +561,7 @@ void messageHandler(MultiConditionDataProvider *dataProvider,
                       + "c" + std::to_string(conditionIdx));
         auto result = runAndLogSimulation(
                     *solver, *model, conditionIdx, jobId, dataProvider,
-                    resultWriter, logLineSearch, &logger);
+                    resultWriter, logLineSearch, &logger, sendStates);
         results[conditionIdx] = result;
     }
 
@@ -648,7 +651,7 @@ FunctionEvaluationStatus AmiciSummedGradientFunction::getModelOutputs(
     return parpe::getModelOutputs(dataProvider, loadBalancer,
                                   maxSimulationsPerPackage, resultWriter,
                                   logLineSearch, parameters, modelOutput,
-                                  logger, cpuTime);
+                                  logger, cpuTime, sendStates);
 }
 
 std::vector<std::vector<double> > AmiciSummedGradientFunction::getAllSigmas() const {
@@ -662,7 +665,7 @@ std::vector<std::vector<double> > AmiciSummedGradientFunction::getAllMeasurement
 
 void AmiciSummedGradientFunction::messageHandler(std::vector<char> &buffer, int jobId) const {
     parpe::messageHandler(dataProvider, resultWriter, logLineSearch, buffer,
-                          jobId);
+                          jobId, sendStates);
 }
 
 amici::ParameterScaling AmiciSummedGradientFunction::getParameterScaling(
