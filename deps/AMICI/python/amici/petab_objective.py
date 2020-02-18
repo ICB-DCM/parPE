@@ -415,6 +415,7 @@ def get_edata_for_condition(
     # find replicate numbers of time points
     timepoints_w_reps = _get_timepoints_with_replicates(
         df_for_condition=measurement_df)
+
     edata.setTimepoints(timepoints_w_reps)
 
     ##########################################################################
