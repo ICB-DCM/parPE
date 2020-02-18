@@ -17,11 +17,10 @@
 #include <vector>
 
 #include <boost/serialization/array.hpp>
-#include <boost/serialization/vector.hpp>
 #include <boost/serialization/map.hpp>
+#include <boost/serialization/vector.hpp>
 
 #include <gsl/gsl-lite.hpp>
-
 
 namespace parpe {
 
@@ -30,21 +29,24 @@ class JobData;
 class LoadBalancerMaster;
 #else
 // Workaround to allow building without MPI. Should be cleaned up.
-using LoadBalancerMaster= int;
+using LoadBalancerMaster = int;
 #endif
 
 /**
  * @brief The AmiciSimulationRunner class queues AMICI simulations, waits for
  * the results and calls a user-provided aggregation function
  */
-class AmiciSimulationRunner {
+class AmiciSimulationRunner
+{
   public:
-    using messageHandlerFunc = std::function<void (std::vector<char> &buffer, int jobId)>;
+    using messageHandlerFunc =
+      std::function<void(std::vector<char>& buffer, int jobId)>;
 
     /**
      * @brief Data to be sent to a worker to run a simulation
      */
-    struct AmiciWorkPackageSimple {
+    struct AmiciWorkPackageSimple
+    {
         AmiciWorkPackageSimple() = default;
         std::vector<double> optimizationParameters;
         amici::SensitivityOrder sensitivityOrder;
@@ -56,7 +58,8 @@ class AmiciSimulationRunner {
     /**
      * @brief Result from a single AMICI simulation
      */
-    struct AmiciResultPackageSimple {
+    struct AmiciResultPackageSimple
+    {
         AmiciResultPackageSimple() = default;
         double llh;
         double simulationTimeSeconds;
@@ -69,20 +72,22 @@ class AmiciSimulationRunner {
     using callbackJobFinishedType = std::function<void(JobData*, int)>;
 
     /** Type of function be called after all jobs are finished  */
-    using callbackAllFinishedType = std::function<int(std::vector<JobData> &)>;
+    using callbackAllFinishedType = std::function<int(std::vector<JobData>&)>;
 
     /**
      * @brief SimulationRunner
      * @param optimizationParameters
      * @param sensitivityOrder
      * @param conditionIndices
-     * @param callbackJobFinished Function which is called after any finished simulation.  May be nullptr.
-     * @param aggregate Function which is called after all simulations are completed. May be nullptr.
+     * @param callbackJobFinished Function which is called after any finished
+     * simulation.  May be nullptr.
+     * @param aggregate Function which is called after all simulations are
+     * completed. May be nullptr.
      * @param logPrefix
      */
-    AmiciSimulationRunner(const std::vector<double> &optimizationParameters,
+    AmiciSimulationRunner(const std::vector<double>& optimizationParameters,
                           amici::SensitivityOrder sensitivityOrder,
-                          const std::vector<int> &conditionIndices,
+                          const std::vector<int>& conditionIndices,
                           callbackJobFinishedType callbackJobFinished = nullptr,
                           callbackAllFinishedType aggregate = nullptr,
                           std::string logPrefix = "");
@@ -96,7 +101,8 @@ class AmiciSimulationRunner {
      * @param maxSimulationsPerPackage
      * @return
      */
-    int runDistributedMemory(LoadBalancerMaster *loadBalancer, const int maxSimulationsPerPackage = 1);
+    int runDistributedMemory(LoadBalancerMaster* loadBalancer,
+                             const int maxSimulationsPerPackage = 1);
 #endif
 
     /**
@@ -106,19 +112,20 @@ class AmiciSimulationRunner {
      * @param sequential Run sequential (not in parallel)
      * @return
      */
-    int runSharedMemory(const messageHandlerFunc& messageHandler, bool sequential = false);
+    int runSharedMemory(const messageHandlerFunc& messageHandler,
+                        bool sequential = false);
 
-
-private:
+  private:
 #ifdef PARPE_ENABLE_MPI
-    void queueSimulation(LoadBalancerMaster *loadBalancer,
-                         JobData *d,
-                         int *jobDone,
-                         pthread_cond_t *jobDoneChangedCondition,
-                         pthread_mutex_t *jobDoneChangedMutex,
-                         int jobIdx, const std::vector<double> &optimizationParameters,
+    void queueSimulation(LoadBalancerMaster* loadBalancer,
+                         JobData* d,
+                         int* jobDone,
+                         pthread_cond_t* jobDoneChangedCondition,
+                         pthread_mutex_t* jobDoneChangedMutex,
+                         int jobIdx,
+                         const std::vector<double>& optimizationParameters,
                          amici::SensitivityOrder sensitivityOrder,
-                         const std::vector<int> &conditionIndices);
+                         const std::vector<int>& conditionIndices);
 #endif
 
     std::vector<double> const& optimizationParameters;
@@ -131,32 +138,42 @@ private:
     std::string logPrefix;
 };
 
-void swap(AmiciSimulationRunner::AmiciResultPackageSimple& first, AmiciSimulationRunner::AmiciResultPackageSimple& second);
+void
+swap(AmiciSimulationRunner::AmiciResultPackageSimple& first,
+     AmiciSimulationRunner::AmiciResultPackageSimple& second);
 
-bool operator==(AmiciSimulationRunner::AmiciResultPackageSimple const& lhs,
-                AmiciSimulationRunner::AmiciResultPackageSimple const& rhs);
+bool
+operator==(AmiciSimulationRunner::AmiciResultPackageSimple const& lhs,
+           AmiciSimulationRunner::AmiciResultPackageSimple const& rhs);
 
 } // namespace parpe
-
 
 namespace boost {
 namespace serialization {
 
-template <class Archive>
-void serialize(Archive &ar, parpe::AmiciSimulationRunner::AmiciWorkPackageSimple &u, const unsigned int version) {
-    ar & u.optimizationParameters;
-    ar & u.sensitivityOrder;
-    ar & u.conditionIndices;
-    ar & u.logPrefix;
+template<class Archive>
+void
+serialize(Archive& ar,
+          parpe::AmiciSimulationRunner::AmiciWorkPackageSimple& u,
+          const unsigned int version)
+{
+    ar& u.optimizationParameters;
+    ar& u.sensitivityOrder;
+    ar& u.conditionIndices;
+    ar& u.logPrefix;
 }
 
-template <class Archive>
-void serialize(Archive &ar, parpe::AmiciSimulationRunner::AmiciResultPackageSimple &u, const unsigned int version) {
-    ar & u.llh;
-    ar & u.simulationTimeSeconds;
-    ar & u.gradient;
-    ar & u.modelOutput;
-    ar & u.status;
+template<class Archive>
+void
+serialize(Archive& ar,
+          parpe::AmiciSimulationRunner::AmiciResultPackageSimple& u,
+          const unsigned int version)
+{
+    ar& u.llh;
+    ar& u.simulationTimeSeconds;
+    ar& u.gradient;
+    ar& u.modelOutput;
+    ar& u.status;
 }
 
 } // namespace boost

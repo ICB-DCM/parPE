@@ -40,6 +40,7 @@ int StandaloneSimulator::run(const std::string& resultFile,
     rw.saveYMes = true;
     rw.saveYSim = true;
     rw.saveLlh = true;
+    rw.saveX = true;
 
     auto model = dataProvider->getModel();
     auto solver = dataProvider->getSolver();
