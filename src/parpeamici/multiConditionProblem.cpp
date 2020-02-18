@@ -464,6 +464,7 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
                  > amici::SensitivityOrder::none)
                 ? rdata->sllh : std::vector<double>(),
                 rdata->y,
+                rdata->x,
                 rdata->status
     };
 }

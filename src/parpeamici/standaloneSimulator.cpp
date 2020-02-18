@@ -123,7 +123,7 @@ StandaloneSimulator::run(const std::string& resultFile,
                            offsetDummy,
                            sigmaDummy);
         // get outputs, scale
-        // TODO need to pass aggreate function for writing
+        // TODO need to pass aggregate function for writing
     } else {
         // is already the correct length
         // parameters = optimizationParameters;
@@ -196,6 +196,8 @@ StandaloneSimulator::run(const std::string& resultFile,
                  simulationResults(dataIndices.size());
                std::vector<std::vector<double>> modelOutputs(
                  dataIndices.size());
+               std::vector<std::vector<double>> modelStates(
+                   dataIndices.size());
 
                // collect all model outputs
                for (auto& job : jobs) {
@@ -208,6 +210,9 @@ StandaloneSimulator::run(const std::string& resultFile,
                        swap(simulationResults[result.first], result.second);
                        modelOutputs[result.first] =
                          simulationResults[result.first].modelOutput;
+                       modelStates[result.first] =
+                           simulationResults[result.first].modelStates;
+
                    }
                }
 
@@ -266,6 +271,8 @@ StandaloneSimulator::run(const std::string& resultFile,
                    auto edata = dataProvider->getExperimentalDataForCondition(
                      conditionIdx);
                    rw.saveTimepoints(edata->getTimepoints(), conditionIdx);
+                   rw.saveStates(modelStates[conditionIdx], edata->nt(),
+                                 model->nx_rdata, conditionIdx);
                    rw.saveMeasurements(edata->getObservedData(),
                                        edata->nt(),
                                        edata->nytrue(),
@@ -381,6 +388,7 @@ StandaloneSimulator::runSimulation(int conditionIdx,
           ? rdata->sllh
           : std::vector<double>(),
         rdata->y,
+        rdata->x,
         rdata->status
     };
 }

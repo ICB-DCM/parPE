@@ -11,7 +11,8 @@
 TEST(simulationWorkerAmici, testSerializeResultPackageMessage) {
     parpe::AmiciSimulationRunner::AmiciResultPackageSimple
             results = { 1.1, 2.345, std::vector<double>(1.0, 2.0),
-                        std::vector<double>(3.0, 4.0), 10 };
+                        std::vector<double>(3.0, 4.0),
+                        std::vector<double>(1.0, 2.0), 10 };
 
     int msgSize = 0;
     auto buffer = std::unique_ptr<char[]>(
