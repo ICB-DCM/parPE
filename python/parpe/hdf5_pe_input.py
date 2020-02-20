@@ -468,7 +468,7 @@ class HDF5DataGenerator:
         condition_id_to_idx = {condition_id: idx for idx, condition_id
                                in enumerate(self.condition_ids)}
 
-        if simulations.shape[1] == 2:
+        if simulations.shape[1] == 1:
             # preeq always nan, we only need simulation condition id
             condition_map[:, 1] = \
                 list(condition_id_to_idx[condition_id]
