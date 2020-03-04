@@ -18,6 +18,7 @@ __pycache__/
 */swig/*_wrap.cpp
 /amici/examples/steadystate/model_steadystate_scaled
 /amici/examples/lucarelli/lucarelli_12/lucarelli_12/
+/activate
 
 # snakemake
 .snakemake/
