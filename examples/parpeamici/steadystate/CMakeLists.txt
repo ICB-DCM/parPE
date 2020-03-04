@@ -114,7 +114,9 @@ install(TARGETS ${PROJECT_NAME} EXPORT ParPETargets
 
 if(${BUILD_TESTS} AND ${PARPE_ENABLE_MPI})
     add_test (NAME ${PROJECT_NAME}
-        COMMAND pytest ${CMAKE_CURRENT_LIST_DIR}/test_steadystate.py
+        COMMAND ${CMAKE_SOURCE_DIR}/misc/run_in_venv.sh
+            ${CMAKE_BINARY_DIR}/venv
+            pytest ${CMAKE_CURRENT_LIST_DIR}/test_steadystate.py
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
         )
 endif()
