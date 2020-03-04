@@ -217,8 +217,16 @@ def plotTrajectoryFit(ymes: np.array,
     Arguments:
     ----------
     ymes: measured values nt x n_observable per condition
-    ymes: simulated values nt x n_observable per condition
+    ysim: simulated values nt x n_observable per condition
     """
+    if len(timepoints) != ymes.shape[0]:
+        raise ValueError("Number of timepoints does not match length of "
+                         f"measurements: {len(timepoints)} vs {ymes.shape[0]}")
+    if ymes.shape != ysim.shape:
+        raise ValueError(
+            "Simulations and measurement shapes do not match: "
+            f"{ysim.shape} != {ymes.shape}")
+
     fig, ax = plt.subplots()
     for iy in range(ysim.shape[1]):
         ax.plot(timepoints, ysim[:, iy],
