@@ -333,7 +333,7 @@ def simulation_to_df(mes_df, sim, result_file, start, observable_ids, input=Fals
     with h5py.File(result_file, 'r') as f:
         condition_names = f[input_path + '/fixedParameters/conditionNames'][:]
         simulation_conditions = f[input_path +
-                                  '/inputData/fixedParameters/simulationConditions'][
+                                  '/fixedParameters/simulationConditions'][
                                 :]
     cond_id_to_idx = {id_: idx for idx, id_ in enumerate(condition_names)}
     cond_comb_to_idx = {
