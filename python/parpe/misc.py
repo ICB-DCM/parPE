@@ -315,13 +315,23 @@ class ParameterEstimationResultFile:
     pass
 
 
-def simulation_to_df(mes_df, sim, result_file, start, observable_ids):
+def simulation_to_df(mes_df, sim, result_file, start, observable_ids, input=False):
     """Put simulation results in new PEtab simulation df based on PEtab
     measurement df
+    mes_df: petab measurement dataframe on which optimization was based
+    sim: simulation results obtained by readSimulationsFromFile()
+    result_file: HDF5-file with optimization results (or input HDF5-file)
+    start: start for which simulation results should be taken
+    observable_ids: observable ids which should be considered
+    input: set True if instead of HDF5 optimization file the HDF5 input file should
+        be used to get condition ids
     """
 
+    cond_names_path = '/inputData/fixedParameters/conditionNames'
+    if input:
+        cond_names_path = '/fixedParameters/conditionNames'
     with h5py.File(result_file, 'r') as f:
-        condition_names = f['/inputData/fixedParameters/conditionNames'][:]
+        condition_names = f[cond_names_path][:]
         simulation_conditions = f[
                                     '/inputData/fixedParameters/simulationConditions'][
                                 :]
