@@ -315,7 +315,7 @@ class ParameterEstimationResultFile:
     pass
 
 
-def simulation_to_df(mes_df, sim, result_file, start, observable_ids, input=False):
+def simulation_to_df(mes_df, sim, result_file, start, observable_ids, root_path: str = "/"):
     """Put simulation results in new PEtab simulation df based on PEtab
     measurement df
     mes_df: petab measurement dataframe on which optimization was based
