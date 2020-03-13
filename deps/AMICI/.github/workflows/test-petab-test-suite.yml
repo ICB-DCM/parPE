@@ -1,4 +1,4 @@
-name: Benchmark collection
+name: PEtab testsuite
 on:
   push:
     branches:
@@ -12,12 +12,15 @@ on:
 
 jobs:
   build:
-    name: Benchmark collection
+    name: PEtab testsuite
 
     runs-on: ubuntu-latest
 
+    env:
+      ENABLE_GCOV_COVERAGE: TRUE
+
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@master
       with:
         fetch-depth: 20
 
@@ -31,7 +34,7 @@ jobs:
       run: |
         pip3 install --upgrade --user wheel \
           && pip3 install --upgrade --user setuptools
-    - run: pip3 install pytest shyaml
+    - run: pip3 install pytest shyaml pytest-cov
     - run: |
         echo ::add-path::${HOME}/.local/bin/
         echo ::add-path::${GITHUB_WORKSPACE}/tests/performance/
@@ -46,9 +49,21 @@ jobs:
             install_sdist pip3 install -v --user \
             $(ls -t python/sdist/dist/amici-*.tar.gz | head -1)[petab]
 
-    # retrieve test models
-    - name: Download and test benchmark collection
+    - name: Run PEtab-related unit tests
       run: |
-        git clone --depth 1 https://github.com/benchmarking-initiative/Benchmark-Models-PEtab.git \
-          && export BENCHMARK_COLLECTION="$(pwd)/Benchmark-Models-PEtab/Benchmark-Models/" \
-          && AMICI_PARALLEL_COMPILE=2 tests/benchmark-models/test_benchmark_collection.sh
+        pytest --cov-report=xml --cov=./ tests/testMisc.py
+
+    # retrieve test models
+    - name: Download and run petab test suite
+      run: |
+        git clone --depth 1 https://github.com/petab-dev/petab_test_suite \
+          && cd petab_test_suite; pip3 install -e .; cd .. \
+          && AMICI_PARALLEL_COMPILE=2 pytest -v --cov-report=xml --cov-append --cov=./ tests/petab_test_suite/
+
+    - name: Codecov
+      uses: codecov/codecov-action@v1.0.6
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        file: ./coverage.xml
+        flags: python
+        fail_ci_if_error: true
