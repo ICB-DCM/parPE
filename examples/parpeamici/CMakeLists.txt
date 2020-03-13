@@ -7,9 +7,16 @@ add_custom_command(
     COMMENT "Setting up virtual environment..."
     COMMAND sh -c "${CMAKE_SOURCE_DIR}/misc/venv.sh ${CMAKE_BINARY_DIR}"
     SOURCES ${CMAKE_SOURCE_DIR}/misc/venv.sh)
-# for manual invocation
+
+if(${BUILD_TESTS})
+    add_test (
+        NAME "parpe_python_package_tests"
+        COMMAND ${CMAKE_SOURCE_DIR}/misc/run_in_venv.sh
+            ${CMAKE_BINARY_DIR}/venv
+            pytest ${CMAKE_SOURCE_DIR}/python
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        )
+endif()
 
 
 add_subdirectory(steadystate)
-#add_subdirectory(lucarelli)
-#add_subdirectory(raia)

@@ -1,5 +1,11 @@
 from setuptools import setup, find_packages
 
+ENTRY_POINTS = {
+    'console_scripts': [
+        'parpe_petab_to_hdf5 = parpe.hdf5_pe_input:main',
+    ]
+}
+
 setup(
     name='parpe',
     version='0.0.0',
@@ -11,11 +17,12 @@ setup(
     install_requires=['numpy',
                       'termcolor',
                       'colorama',
-                      'petab>=0.0.0a17',
-                      'amici>=0.10.16',
+                      'petab>=0.1.4',
+                      'amici>=0.10.19',
                       'h5py',
                       'python-libsbml>=5.17.0',
                       'jinja2',
                       'snakemake'
                       ],
+    entry_points=ENTRY_POINTS,
 )

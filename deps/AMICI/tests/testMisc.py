@@ -111,13 +111,6 @@ class TestAmiciMisc(unittest.TestCase):
     def test_constant_species_to_parameters(self):
         """test conversion from species to constant parameters"""
 
-        try:
-            # skip that if PEtab is not installed which causes the import
-            # to fail
-            from amici.petab_import import constant_species_to_parameters
-        except ModuleNotFoundError:
-            return
-
         document = libsbml.SBMLDocument(3, 1)
         model = document.createModel()
         model.setTimeUnits("second")
@@ -145,13 +138,18 @@ class TestAmiciMisc(unittest.TestCase):
             species_ref = r.createModifier()
             species_ref.setSpecies(name)
 
-        constant_species_to_parameters(model)
+        try:
+            from amici.petab_import import constant_species_to_parameters
 
-        assert len(list(model.getListOfParameters())) == 1
-        assert len(list(model.getListOfSpecies())) == 0
-        assert len(list(r.getListOfReactants())) == 0
-        assert len(list(r.getListOfProducts())) == 0
-        assert len(list(r.getListOfModifiers())) == 0
+            constant_species_to_parameters(model)
+
+            assert len(list(model.getListOfParameters())) == 1
+            assert len(list(model.getListOfSpecies())) == 0
+            assert len(list(r.getListOfReactants())) == 0
+            assert len(list(r.getListOfProducts())) == 0
+            assert len(list(r.getListOfModifiers())) == 0
+        except ModuleNotFoundError:
+            pass
 
     def test_hill_function_dwdx(self):
         """Kinetic laws with Hill functions, may lead to NaNs in the Jacobian

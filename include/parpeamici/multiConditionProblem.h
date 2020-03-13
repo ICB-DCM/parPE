@@ -17,7 +17,8 @@
 #include <memory>
 #include <cstdlib>
 
-/** @file Interfaces between AMICI model and parPE optimization problem */
+/** @file multiConditionProblem.h
+ *  Interfaces between AMICI model and parPE optimization problem */
 
 namespace parpe {
 
@@ -45,7 +46,8 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(amici::Solve
         const MultiConditionDataProvider *dataProvider,
         OptimizationResultWriter *resultWriter,
         bool logLineSearch,
-        Logger *logger);
+        Logger *logger,
+        bool sendStates = false);
 
 /**
  * @brief Run simulations (no gradient) with given parameters and collect
@@ -71,7 +73,7 @@ FunctionEvaluationStatus getModelOutputs(
         bool logLineSearch,
         gsl::span<const double> parameters,
         std::vector<std::vector<double> > &modelOutput,
-        Logger *logger, double *cpuTime);
+        Logger *logger, double *cpuTime, bool sendStates);
 
 /**
  * @brief Callback function for LoadBalancer
@@ -84,7 +86,7 @@ FunctionEvaluationStatus getModelOutputs(
 void messageHandler(MultiConditionDataProvider *dataProvider,
                     OptimizationResultWriter *resultWriter,
                     bool logLineSearch,
-                    std::vector<char> &buffer, int jobId);
+                    std::vector<char> &buffer, int jobId, bool sendStates);
 
 /**
  * @brief The AmiciSummedGradientFunction class represents a cost function
@@ -160,6 +162,9 @@ public:
     virtual void messageHandler(std::vector<char> &buffer, int jobId) const;
 
     virtual amici::ParameterScaling getParameterScaling(int parameterIndex) const;
+
+    /** Include model states in result package */
+    bool sendStates = false;
 
 protected:// for testing
     AmiciSummedGradientFunction() = default;
@@ -276,7 +281,6 @@ class MultiConditionProblem
     std::unique_ptr<OptimizationReporter> getReporter() const override;
 
     std::vector<int> getTrainingData() const override;
-
 protected:
     //TODO std::unique_ptr<OptimizationProblem> validationProblem;
 

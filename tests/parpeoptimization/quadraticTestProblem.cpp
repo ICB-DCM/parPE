@@ -8,12 +8,14 @@
 #include <cmath>
 #include <cstdio>
 
+using ::testing::NiceMock;
+
 namespace parpe {
 
 QuadraticTestProblem::QuadraticTestProblem(std::unique_ptr<Logger> logger)
     : OptimizationProblem(
           std::unique_ptr<GradientFunction>(
-              new QuadraticGradientFunctionMock()), std::move(logger)) {
+              new NiceMock<QuadraticGradientFunctionMock>()), std::move(logger)) {
 
     auto options = getOptimizationOptions();
     options.maxOptimizerIterations = 12;
@@ -21,7 +23,7 @@ QuadraticTestProblem::QuadraticTestProblem(std::unique_ptr<Logger> logger)
     setOptimizationOptions(options);
     // will keep ref, but will be passed as unique pointer, so getReporter
     // must only be called once
-    reporter = new OptimizationReporterMock(costFun.get(),
+    reporter = new NiceMock<OptimizationReporterMock>(costFun.get(),
                                             std::make_unique<Logger>());
 }
 

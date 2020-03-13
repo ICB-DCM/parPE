@@ -18,11 +18,6 @@ if [ ! -d "mtocpp-master" ]; then
     fi
 fi
 
-# make py_filter available
-PATH=${AMICI_PATH}/scripts:$PATH
-
-echo $PATH
-
 cd ${AMICI_PATH}
 MTOC_CONFIG_PATH=${AMICI_PATH}/matlab/mtoc/config
 # generate filter
@@ -73,6 +68,9 @@ mv ${DOXY_WARNING_FILE}_tmp ${DOXY_WARNING_FILE}
 
 # suppress doxygen warning about unresolved external links (problem unclear)
 grep -v "warning: unable to resolve reference to \`https" ${DOXY_WARNING_FILE} > ${DOXY_WARNING_FILE}_tmp
+mv ${DOXY_WARNING_FILE}_tmp ${DOXY_WARNING_FILE}
+
+grep -v "error: Problem running ghostscript gs -q -g146x60 -r384x384x -sDEVICE=ppmraw -sOutputFile=_form0.pnm -dNOPAUSE -dBATCH -- _form0.ps. Check your installation!" ${DOXY_WARNING_FILE} > ${DOXY_WARNING_FILE}_tmp
 mv ${DOXY_WARNING_FILE}_tmp ${DOXY_WARNING_FILE}
 
 # check if warnings log was created

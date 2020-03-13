@@ -61,3 +61,10 @@ Run the created executable with the `-h`/`--help` argument.
   
   Note: These variables have no effect in case of shared-memory (non-MPI) execution
    
+- **PARPE_NUM_SIMULATION_TRIALS** (integer) and
+  **PARPE_INTEGRATION_TOLERANCE_RELAXATION_FACTOR** (float)
+
+  In case of simulation failure, parPE try rerunning an AMICI simulation with a
+  `PARPE_INTEGRATION_TOLERANCE_RELAXATION_FACTOR`-fold higher error tolerance
+  for a total of `PARPE_NUM_SIMULATION_TRIALS` times (including the initial
+  attempt).

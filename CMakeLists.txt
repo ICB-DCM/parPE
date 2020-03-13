@@ -93,7 +93,8 @@ if(${BUILD_TESTS})
     include (CTest)
 
     # --allow-run-as-root is required for running on shippable systems
-    set(TESTS_MPIEXEC_COMMAND mpiexec --allow-run-as-root -n 4 CACHE STRING "")
+    set(TESTS_MPIEXEC_COMMAND
+        mpiexec --allow-run-as-root --oversubscribe -n 4 CACHE STRING "")
 
     # googletest
     add_definitions(-DGTEST_LANGUAGE_CXX11)

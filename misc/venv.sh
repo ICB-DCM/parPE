@@ -28,7 +28,7 @@ if [[ ! -d ${BUILD_DIR}/venv ]]; then
         source ${BUILD_DIR}/venv/bin/activate
     fi
 
-    pip3 install wheel
+    pip3 install wheel pytest
 
     # install AMICI
     cd ${PARPE_ROOT}/deps/AMICI/python/sdist
@@ -38,5 +38,4 @@ if [[ ! -d ${BUILD_DIR}/venv ]]; then
     cd ${PARPE_ROOT}/python
     pip3 install -e .
     #pip3 install https://github.com/ICB-DCM/PEtab/archive/develop.zip
-    pip3 install -U petab==0.0.0a17
 fi
