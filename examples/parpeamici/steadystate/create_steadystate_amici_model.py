@@ -114,11 +114,11 @@ def create_data_tables(model, condition_df):
     observable_ids = list(model.getObservableIds())
 
     sigma_parameter_observable_idx = \
-        observable_ids.index('x1withsigma')
+        observable_ids.index('obs_x1withsigma')
     model_offset_parameter_idx = \
-        parameter_ids.index('observableParameter1_x2_offsetted')
+        parameter_ids.index('observableParameter1_obs_x2_offsetted')
     sigma_parameter_idx = \
-        parameter_ids.index('noiseParameter1_x1withsigma')
+        parameter_ids.index('noiseParameter1_obs_x1withsigma')
 
     # set true parameters
     default_parameters = np.array(model.getParameters())
@@ -131,20 +131,20 @@ def create_data_tables(model, condition_df):
     true_parameters = {pid: val for pid, val in zip(model.getParameterIds(),
                                                     default_parameters)}
     # output parameters don't have default values from SBML mdoel
-    true_parameters['observableParameter1_x1_scaled'] = 2.0
-    true_parameters['noiseParameter1_x1withsigma'] = 0.2
-    true_parameters['noiseParameter1_x1_scaled'] = 0.2
-    true_parameters['noiseParameter1_x2'] = 0.2
-    true_parameters['noiseParameter1_x1'] = 0.2
-    true_parameters['noiseParameter1_x2_offsetted'] = 0.2
-    true_parameters['noiseParameter1_x3'] = 0.2
-    true_parameters['observableParameter1_x2_offsetted'] = 3.0
+    true_parameters['observableParameter1_obs_x1_scaled'] = 2.0
+    true_parameters['noiseParameter1_obs_x1withsigma'] = 0.2
+    true_parameters['noiseParameter1_obs_x1_scaled'] = 0.2
+    true_parameters['noiseParameter1_obs_x2'] = 0.2
+    true_parameters['noiseParameter1_obs_x1'] = 0.2
+    true_parameters['noiseParameter1_obs_x2_offsetted'] = 0.2
+    true_parameters['noiseParameter1_obs_x3'] = 0.2
+    true_parameters['observableParameter1_obs_x2_offsetted'] = 3.0
 
     true_parameters['scaling_x1_common'] = \
-        true_parameters['observableParameter1_x1_scaled']
+        true_parameters['observableParameter1_obs_x1_scaled']
     # extend to optimization parameter vector: add second offset parameter
-    true_parameters['offset_x2_batch-0'] = offset_batch_1
-    true_parameters['offset_x2_batch-1'] = offset_batch_2
+    true_parameters['offset_x2_batch_0'] = offset_batch_1
+    true_parameters['offset_x2_batch_1'] = offset_batch_2
     true_parameters['x1withsigma_sigma'] = sigma_parameter
 
     print('True parameters:\t%s' % true_parameters)
@@ -231,7 +231,8 @@ def getReturnDataForCondition(model, solver, fixed_parameters,
     synthetic_data[:, sigma_parameter_observable_idx] = \
         np.random.normal(loc=rdata['y'][:, sigma_parameter_observable_idx],
                          scale=dynamic_parameters[sigma_parameter_idx])
-
+    # due to noise, there may be negative measurements. we don't want them.
+    synthetic_data = np.abs(synthetic_data)
     print("\tMean abs. relative measurement error per observable:")
     print("\t",
           np.mean(np.abs((synthetic_data - rdata['y']) / rdata['y']), axis=0))
@@ -258,11 +259,11 @@ def append_measurements_for_condition(
         scaling_parameter = ['']
         noise_parameter = sigmay[:, iy]
 
-        if observable_id == 'x1_scaled':
+        if observable_id == 'obs_x1_scaled':
             scaling_parameter = ['scaling_x1_common']
-        elif observable_id == 'x2_offsetted':
-            scaling_parameter = ['offset_x2_batch-%d' % batch_id]
-        elif observable_id == 'x1withsigma':
+        elif observable_id == 'obs_x2_offsetted':
+            scaling_parameter = ['offset_x2_batch_%d' % batch_id]
+        elif observable_id == 'obs_x1withsigma':
             noise_parameter = ['x1withsigma_sigma'] * model.nt()
 
         measurement_df = measurement_df.append(pd.DataFrame(
@@ -337,12 +338,18 @@ def create_parameter_table(problem: petab.Problem,
                            nominal_parameters):
     """Create PEtab parameter table"""
 
-    df = problem.create_parameter_df(include_optional=True, lower_bound=1e-3,
-                                     upper_bound=1e5)
+    # FIXME
+    #df = problem.create_parameter_df(include_optional=True, lower_bound=1e-3,
+    #                                 upper_bound=1e5)
+    df = petab.create_parameter_df(
+        problem.sbml_model, problem.condition_df,
+        problem.observable_df, problem.measurement_df,
+        include_optional=True, lower_bound=1e-3, upper_bound=1e5)
+
     df['hierarchicalOptimization'] = 0
     df.loc['scaling_x1_common', 'hierarchicalOptimization'] = 1
-    df.loc['offset_x2_batch-0', 'hierarchicalOptimization'] = 1
-    df.loc['offset_x2_batch-1', 'hierarchicalOptimization'] = 1
+    df.loc['offset_x2_batch_0', 'hierarchicalOptimization'] = 1
+    df.loc['offset_x2_batch_1', 'hierarchicalOptimization'] = 1
     df.loc['x1withsigma_sigma', 'hierarchicalOptimization'] = 1
     #df.parameterScale = 'lin'
     #df.estimate = 0
@@ -388,8 +395,8 @@ def create_test_data(measurement_file_name, parameter_file_name, yaml_config,
     # parameters
     df = petab.get_parameter_df(parameter_file_name)
     df.rename(index={'scaling_x1_common' : 'scaling_x1_common_test',
-                     'offset_x2_batch-0': 'offset_x2_batch-0_test',
-                     'offset_x2_batch-1': 'offset_x2_batch-1_test'},
+                     'offset_x2_batch_0': 'offset_x2_batch_0_test',
+                     'offset_x2_batch_1': 'offset_x2_batch_1_test'},
               inplace=True)
     petab.write_parameter_df(df, test_parameter_file_name)
 
@@ -437,8 +444,8 @@ def main():
 
     # create condition table
     condition_df = pd.DataFrame(data={
-        ptc.CONDITION_ID: ["condition-0", "condition-1",
-                           "condition-2", "condition-3"],
+        ptc.CONDITION_ID: ["condition_0", "condition_1",
+                           "condition_2", "condition_3"],
         "k0": [1, 1.1, 1.2, 1.3]
     })
     condition_df.set_index([ptc.CONDITION_ID], inplace=True)
@@ -446,14 +453,17 @@ def main():
     # create observables
     observable_df = pd.DataFrame(data={
         ptc.OBSERVABLE_ID:
-            ["x1", "x2", "x3", "x1_scaled", "x2_offsetted", "x1withsigma"],
+            ["obs_x1", "obs_x2", "obs_x3",
+             "obs_x1_scaled", "obs_x2_offsetted", "obs_x1withsigma"],
         ptc.OBSERVABLE_FORMULA:
-            ["x1", "x2", "x3", "observableParameter1_x1_scaled * x1",
-             "observableParameter1_x2_offsetted + x2", "x1"],
+            ["x1", "x2", "x3", "observableParameter1_obs_x1_scaled * x1",
+             "observableParameter1_obs_x2_offsetted + x2", "x1"],
         ptc.NOISE_FORMULA:
-            ["noiseParameter1_x1", "noiseParameter1_x2", "noiseParameter1_x3",
-             "noiseParameter1_x1_scaled",
-             "noiseParameter1_x2_offsetted", "noiseParameter1_x1withsigma"],
+            ["noiseParameter1_obs_x1", "noiseParameter1_obs_x2",
+             "noiseParameter1_obs_x3",
+             "noiseParameter1_obs_x1_scaled",
+             "noiseParameter1_obs_x2_offsetted",
+             "noiseParameter1_obs_x1withsigma"],
     })
     observable_df.set_index([ptc.OBSERVABLE_ID], inplace=True)
 

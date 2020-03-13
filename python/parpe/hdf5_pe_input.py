@@ -13,6 +13,7 @@ from amici.petab_objective import subset_dict
 from colorama import Fore
 from colorama import init as init_colorama
 from pandas import DataFrame
+# noinspection PyPep8Naming
 from petab import C as ptc
 from petab import to_float_if_float
 
@@ -256,12 +257,10 @@ class HDF5DataGenerator:
         """
 
         # get list of tuple of parameters dicts for all conditions
+
         self.parameter_mapping = self.petab_problem \
             .get_optimization_to_simulation_parameter_mapping(
-                warn_unmapped=False)
-        self.parameter_scale_mapping = self.petab_problem\
-            .get_optimization_to_simulation_scale_mapping(
-                mapping_par_opt_to_par_sim=self.parameter_mapping)
+                warn_unmapped=False, scaled_parameters=False)
 
         variable_par_ids = self.amici_model.getParameterIds()
         fixed_par_ids = self.amici_model.getFixedParameterIds()
@@ -296,10 +295,9 @@ class HDF5DataGenerator:
 
         # Merge and preeq and sim parameters, filter fixed parameters
         for condition_idx, \
-            ((condition_map_preeq, condition_map_sim),
-             (condition_scale_map_preeq, condition_scale_map_sim)) \
-                in enumerate(zip(self.parameter_mapping,
-                                 self.parameter_scale_mapping)):
+            (condition_map_preeq, condition_map_sim,
+             condition_scale_map_preeq, condition_scale_map_sim) \
+                in enumerate(self.parameter_mapping):
 
             if len(condition_map_preeq) != len(condition_scale_map_preeq) \
                     or len(condition_map_sim) != len(condition_scale_map_sim):
@@ -316,6 +314,8 @@ class HDF5DataGenerator:
                     "and simulation do not match.")
 
             # split into fixed and variable parameters:
+            condition_map_preeq_var = condition_scale_map_preeq_var = None
+            condition_map_preeq_fix = None
             if condition_map_preeq:
                 condition_map_preeq_var, condition_map_preeq_fix = \
                     subset_dict(condition_map_preeq, variable_par_ids,
@@ -468,7 +468,7 @@ class HDF5DataGenerator:
         condition_id_to_idx = {condition_id: idx for idx, condition_id
                                in enumerate(self.condition_ids)}
 
-        if simulations.shape[1] == 2:
+        if simulations.shape[1] == 1:
             # preeq always nan, we only need simulation condition id
             condition_map[:, 1] = \
                 list(condition_id_to_idx[condition_id]

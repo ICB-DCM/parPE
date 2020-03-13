@@ -37,10 +37,11 @@ TEST(simulationResultWriter, testResultWriter) {
     EXPECT_TRUE(measurements.size() == (unsigned) nytrue * timepoints.size());
     edata.setObservedData(measurements);
 
-    amici::ReturnData rdata(timepoints, 0, 1, nx, nx, nx, nytrue, nytrue, 0, 0,
-                            0, 0, 0, 0, timepoints.size(), 0,
-                            std::vector<amici::ParameterScaling>(), amici::SecondOrderMode::none,
-                            amici::SensitivityOrder::none, amici::SensitivityMethod::none);
+    amici::ReturnData rdata(
+        timepoints, 0, 1, nx, nx, nx, nytrue, nytrue, 0, 0, 0, 0, 0, 0,
+        timepoints.size(), 0, 0, std::vector<amici::ParameterScaling>(),
+        amici::SecondOrderMode::none, amici::SensitivityOrder::none,
+        amici::SensitivityMethod::none);
     std::iota(rdata.x.begin(), rdata.x.end(), 0);
     rdata.llh = 1.2345;
     rdata.y.resize(measurements.size());

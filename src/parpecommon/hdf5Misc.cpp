@@ -792,7 +792,7 @@ H5::H5File hdf5OpenForReading(const std::string &hdf5Filename)
         H5Ewalk2(H5E_DEFAULT, H5E_WALK_DOWNWARD, hdf5ErrorStackWalker_cb,
                  nullptr);
         H5_RESTORE_ERROR_HANDLER;
-        throw(HDF5Exception());
+        throw(HDF5Exception("Unable to open HDF5 file " + hdf5Filename));
     }
 }
 

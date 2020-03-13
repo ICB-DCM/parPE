@@ -13,9 +13,9 @@ Borghans_BiophysChem1997
 Elowitz_Nature2000
 Chen_MSB2009
 Fujita_SciSignal2010
-Sneyd_PNAS2002"
-# Schwen_PONE2014 Zheng_PNAS2012 TODO: shadowing observables
-
+Sneyd_PNAS2002
+Zheng_PNAS2012"
+#Schwen_PONE2014
 
 for MODEL in $expected_to_work; do
   printf '=%.0s' {1..20}

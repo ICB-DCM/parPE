@@ -76,7 +76,7 @@ def get_observable_placeholders_by_observable(
         Dictionary mapping observable ID to list of placeholder parameters
     """
 
-    return {obs_id: petab.get_placeholders(formula, obs_id, 'observable')
+    return {obs_id: petab.get_formula_placeholders(formula, obs_id, 'observable')
             for obs_id, formula
             in zip(observable_df.index, observable_df[ptc.OBSERVABLE_FORMULA])}
 
@@ -92,6 +92,6 @@ def get_noise_placeholders_by_observable(
         Dictionary mapping observable ID to list of placeholder parameters
     """
 
-    return {obs_id: petab.get_placeholders(formula, obs_id, 'noise')
+    return {obs_id: petab.get_formula_placeholders(formula, obs_id, 'noise')
             for obs_id, formula
             in zip(observable_df.index, observable_df[ptc.NOISE_FORMULA])}
