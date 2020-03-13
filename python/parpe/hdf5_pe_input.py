@@ -341,6 +341,7 @@ class HDF5DataGenerator:
             # mapping for each model parameter
             for model_parameter_idx, model_parameter_id \
                     in enumerate(variable_par_ids):
+                # TODO: requires special handling of initial concentrations
                 mapped_parameter = condition_map_sim[model_parameter_id]
                 mapped_parameter = to_float_if_float(mapped_parameter)
                 try:
@@ -525,6 +526,8 @@ class HDF5DataGenerator:
             name: idx for idx, name in enumerate(self.observable_ids)}
 
         measurement_df = self.petab_problem.measurement_df
+        if ptc.NOISE_PARAMETERS not in measurement_df:
+            measurement_df[ptc.NOISE_PARAMETERS] = np.nan
 
         for sim_idx, (preeq_cond_idx, sim_cond_idx) \
                 in enumerate(self.condition_map):
@@ -575,13 +578,14 @@ class HDF5DataGenerator:
 
         row_filter = measurement_df[ptc.SIMULATION_CONDITION_ID] \
             == self.condition_ids[sim_cond_idx]
-        if preeq_cond_idx == self.NO_PREEQ_CONDITION_IDX:
-            row_filter &= \
-                measurement_df[ptc.PREEQUILIBRATION_CONDITION_ID].isnull()
-        else:
-            row_filter &= \
-                measurement_df[ptc.PREEQUILIBRATION_CONDITION_ID] \
-                == self.condition_ids[preeq_cond_idx]
+        if ptc.PREEQUILIBRATION_CONDITION_ID in measurement_df:
+            if preeq_cond_idx == self.NO_PREEQ_CONDITION_IDX:
+                row_filter &= \
+                    measurement_df[ptc.PREEQUILIBRATION_CONDITION_ID].isnull()
+            else:
+                row_filter &= \
+                    measurement_df[ptc.PREEQUILIBRATION_CONDITION_ID] \
+                    == self.condition_ids[preeq_cond_idx]
         cur_mes_df = measurement_df.loc[row_filter, :]
         if not len(cur_mes_df):
             # Should have been filtered out before
