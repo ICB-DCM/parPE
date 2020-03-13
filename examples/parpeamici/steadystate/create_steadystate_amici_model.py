@@ -338,8 +338,14 @@ def create_parameter_table(problem: petab.Problem,
                            nominal_parameters):
     """Create PEtab parameter table"""
 
-    df = problem.create_parameter_df(include_optional=True, lower_bound=1e-3,
-                                     upper_bound=1e5)
+    # FIXME
+    #df = problem.create_parameter_df(include_optional=True, lower_bound=1e-3,
+    #                                 upper_bound=1e5)
+    df = petab.create_parameter_df(
+        problem.sbml_model, problem.condition_df,
+        problem.observable_df, problem.measurement_df,
+        include_optional=True, lower_bound=1e-3, upper_bound=1e5)
+
     df['hierarchicalOptimization'] = 0
     df.loc['scaling_x1_common', 'hierarchicalOptimization'] = 1
     df.loc['offset_x2_batch_0', 'hierarchicalOptimization'] = 1
