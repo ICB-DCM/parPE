@@ -104,11 +104,6 @@ MultiConditionDataProviderHDF5::mapSimulationToOptimizationGradientAddMultiply(i
                                             scaleSim[i], scaleOpt[mapping[i]]);
             optimization[mapping[i]] += coefficient * newGrad;
         }
-        else if(not std::isnan(simulation[i]) && simulation[i] != 0.0)
-            logmessage(LOGLVL_ERROR,
-                       "Gradient w.r.t. unmapped parameter expected to be 0.0, "
-                       "but is %e for parameter %d (%s)", simulation[i], i,
-                       model->getParameterIds()[i].c_str());
     }
 }
 
