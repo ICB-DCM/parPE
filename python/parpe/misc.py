@@ -315,21 +315,29 @@ class ParameterEstimationResultFile:
     pass
 
 
-def simulation_to_df(mes_df, sim, result_file, start, observable_ids):
+def simulation_to_df(mes_df, sim, result_file, start, observable_ids,
+                     root_path: str = "/"):
     """Put simulation results in new PEtab simulation df based on PEtab
     measurement df
+    mes_df: petab measurement dataframe on which optimization was based
+    sim: simulation results obtained by readSimulationsFromFile()
+    result_file: HDF5-file with optimization results (or input HDF5-file)
+    start: start for which simulation results should be taken
+    observable_ids: observable ids which should be considered
+    root_path: root path to where group fixedParameters is saved in HDF5file
     """
 
     with h5py.File(result_file, 'r') as f:
-        condition_names = f['/inputData/fixedParameters/conditionNames'][:]
-        simulation_conditions = f[
-                                    '/inputData/fixedParameters/simulationConditions'][
+        condition_names = f[root_path + 'fixedParameters/conditionNames'][:]
+        simulation_conditions = f[root_path +
+                                  'fixedParameters/simulationConditions'][
                                 :]
     cond_id_to_idx = {id_: idx for idx, id_ in enumerate(condition_names)}
     cond_comb_to_idx = {
-    (condition_names[preeq_idx] if not np.isnan(preeq_idx) and preeq_idx >= 0 else -1.0,
-     condition_names[sim_idx] if sim_idx >= 0 else -1.0): comb_idx
-    for comb_idx, (preeq_idx, sim_idx) in enumerate(simulation_conditions)}
+        (condition_names[preeq_idx] if not np.isnan(
+            preeq_idx) and preeq_idx >= 0 else -1.0,
+         condition_names[sim_idx] if sim_idx >= 0 else -1.0): comb_idx
+        for comb_idx, (preeq_idx, sim_idx) in enumerate(simulation_conditions)}
     obs_id_to_idx = {id_: idx for idx, id_ in enumerate(observable_ids)}
 
     mes_df[MEASUREMENT] = np.nan
