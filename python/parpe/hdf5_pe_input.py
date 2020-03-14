@@ -305,7 +305,8 @@ class HDF5DataGenerator:
                 in enumerate(self.parameter_mapping):
 
             preeq_cond_idx, sim_cond_idx = self.condition_map[condition_idx]
-            preeq_cond_id = self.condition_ids[preeq_cond_idx]
+            preeq_cond_id = self.condition_ids[preeq_cond_idx] \
+                if preeq_cond_idx != NO_PREEQ_CONDITION_IDX else None
             sim_cond_id = self.condition_ids[sim_cond_idx]
             print(preeq_cond_idx, preeq_cond_id, sim_cond_idx, sim_cond_id)
 
@@ -348,23 +349,29 @@ class HDF5DataGenerator:
                         scale_map[init_par_id] = ptc.LIN
                     else:
                         # parametric initial state
-                        #try:
-                        # try find in mapping
-                        par_map[init_par_id] = par_map[value]
-                        scale_map[init_par_id] = scale_map[value]
-                        # except KeyError:
-                        #     # otherwise look up in parameter table
-                        #     par_map[init_par_id] = problem_parameters[value]
-                        #     if (scaled_parameters is False
-                        #             or PARAMETER_SCALE
-                        #             not in petab_problem.parameter_df
-                        #             or not petab_problem.parameter_df.loc[
-                        #                 value, PARAMETER_SCALE]):
-                        #         scale_map[init_par_id] = LIN
-                        #     else:
-                        #         scale_map[init_par_id] = \
-                        #             petab_problem.parameter_df.loc[
-                        #                 value, PARAMETER_SCALE]
+                        try:
+                            # try find in mapping
+                            par_map[init_par_id] = par_map[value]
+                            scale_map[init_par_id] = scale_map[value]
+                        except KeyError:
+                            # otherwise look up in parameter table
+                            if (self.petab_problem.parameter_df.loc[
+                                        value, ptc.ESTIMATE] == 0):
+                                par_map[init_par_id] = \
+                                    self.petab_problem.parameter_df.loc[
+                                        value, ptc.NOMINAL_VALUE]
+                            else:
+                                par_map[init_par_id] = value
+
+                            if (ptc.PARAMETER_SCALE
+                                    not in self.petab_problem.parameter_df
+                                    or not self.petab_problem.parameter_df.loc[
+                                        value, ptc.PARAMETER_SCALE]):
+                                scale_map[init_par_id] = ptc.LIN
+                            else:
+                                scale_map[init_par_id] = \
+                                    self.petab_problem.parameter_df.loc[
+                                        value, ptc.PARAMETER_SCALE]
 
                 for species_id in species_in_condition_table:
                     # for preequilibration
@@ -418,6 +425,7 @@ class HDF5DataGenerator:
                     condition_scale_map_preeq_var, condition_scale_map_sim_var,
                     condition_idx)
 
+            print(self.problem_parameter_ids)
             # mapping for each model parameter
             for model_parameter_idx, model_parameter_id \
                     in enumerate(variable_par_ids):
