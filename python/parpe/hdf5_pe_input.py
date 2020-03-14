@@ -304,6 +304,11 @@ class HDF5DataGenerator:
              condition_scale_map_preeq, condition_scale_map_sim) \
                 in enumerate(self.parameter_mapping):
 
+            preeq_cond_idx, sim_cond_idx = self.condition_map[condition_idx]
+            preeq_cond_id = self.condition_ids[preeq_cond_idx]
+            sim_cond_id = self.condition_ids[sim_cond_idx]
+            print(preeq_cond_idx, preeq_cond_id, sim_cond_idx, sim_cond_id)
+
             if len(condition_map_preeq) != len(condition_scale_map_preeq) \
                     or len(condition_map_sim) != len(condition_scale_map_sim):
                 raise AssertionError(
@@ -318,18 +323,13 @@ class HDF5DataGenerator:
                     "Number of parameters for preequilibration "
                     "and simulation do not match.")
 
-            preeq_cond_idx, sim_cond_idx = self.condition_map[condition_idx]
-            preeq_cond_id = self.condition_ids[preeq_cond_idx]
-            sim_cond_id = self.condition_ids[sim_cond_idx]
-            print(preeq_cond_idx, preeq_cond_id, sim_cond_idx, sim_cond_id)
-
             # TODO: requires special handling of initial concentrations
             if species_in_condition_table:
                 # set indicator fixed parameter for preeq
                 # (we expect here, that this parameter was added during AMICI
                 # model import and that it was not added by the user with a
                 # different meaning...)
-                if condition_map_preeq:
+                if preeq_cond_idx != NO_PREEQ_CONDITION_IDX:
                     condition_map_preeq[PREEQ_INDICATOR_ID] = 1.0
                     condition_scale_map_preeq[PREEQ_INDICATOR_ID] = ptc.LIN
 
@@ -370,17 +370,19 @@ class HDF5DataGenerator:
                     # for preequilibration
                     init_par_id = f'initial_{species_id}_preeq'
 
-                    if preeq_cond_id:
-                        _set_initial_concentration(
-                            preeq_cond_id, species_id, init_par_id,
-                            condition_map_preeq,
-                            condition_scale_map_preeq)
-                        self.f['/fixedParameters/simulationConditions'][condition_idx, 2] = 1
                     # need to set dummy value for preeq parameter anyways, as it
                     #  is expected below (set to 0, not nan, because will be
                     #  multiplied with indicator variable in initial assignment)
                     condition_map_sim[init_par_id] = 0.0
                     condition_scale_map_sim[init_par_id] = ptc.LIN
+
+                    if preeq_cond_idx != NO_PREEQ_CONDITION_IDX:
+                        _set_initial_concentration(
+                            preeq_cond_id, species_id, init_par_id,
+                            condition_map_preeq,
+                            condition_scale_map_preeq)
+                        # enable state reinitialization
+                        self.f['/fixedParameters/simulationConditions'][condition_idx, 2] = 1
 
                     # for simulation
                     init_par_id = f'initial_{species_id}_sim'
@@ -388,7 +390,9 @@ class HDF5DataGenerator:
                         sim_cond_id, species_id, init_par_id,
                         condition_map_sim,
                         condition_scale_map_sim)
+
             print(condition_map_preeq, condition_map_sim)
+
             # split into fixed and variable parameters:
             condition_map_preeq_var = condition_scale_map_preeq_var = None
             condition_map_preeq_fix = None
@@ -866,6 +870,7 @@ class HDF5DataGenerator:
         g = self.f.require_group("/amiciOptions")
         g.attrs['sensi'] = amici.SensitivityOrder_first
         g.attrs['sensi_meth'] = amici.SensitivityMethod_adjoint
+        # TODO PEtab support: get from file
         g.attrs['tstart'] = 0.0
         g.attrs['atol'] = 1e-14
         g.attrs['interpType'] = amici.InterpolationType_hermite
