@@ -48,12 +48,12 @@ build:
 
         # PEtab test suite
         - $PARPE_BASE/misc/run_in_venv.sh $PARPE_BASE/build/venv pip3 install pytest-xdist
+        - cd $PARPE_BASE/ && git clone --depth 1 https://github.com/PEtab-dev/petab_test_suite.git && $PARPE_BASE/misc/run_in_venv.sh $PARPE_BASE/build/venv pip3 install -e petab_test_suite
         - $PARPE_BASE/misc/run_in_venv.sh $PARPE_BASE/build/venv pytest -v -n 2 $PARPE_BASE/tests/petab-test-suite
 
         # benchmark models
         - sudo apt install bc
         - cd $PARPE_BASE/benchmark_collection && git clone --depth 1 https://github.com/Benchmarking-Initiative/Benchmark-Models-PEtab.git
-        - cd $PARPE_BASE/ && git clone --depth 1 https://github.com/PEtab-dev/petab_test_suite.git && $PARPE_BASE/misc/run_in_venv.sh $PARPE_BASE/build/venv pip3 install -e petab_test_suite
         - $PARPE_BASE/misc/run_in_venv.sh $PARPE_BASE/build/venv pip3 install shyaml
         - AMICI_PARALLEL_COMPILE=4 BENCHMARK_COLLECTION="$(pwd)/Benchmark-Models-PEtab/Benchmark-Models/" $PARPE_BASE/misc/run_in_venv.sh $PARPE_BASE/build/venv ./all.sh
 #    on_failure:
