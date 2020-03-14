@@ -46,11 +46,16 @@ build:
         - cd $PARPE_BASE/build && CTEST_OUTPUT_ON_FAILURE=1 make parpe_coverage_cobertura
         - mkdir -p $PARPE_BASE/shippable/codecoverage && cp $PARPE_BASE/build/parpe_coverage_cobertura.xml $PARPE_BASE/shippable/codecoverage
 
+        # PEtab test suite
+        - $PARPE_BASE/misc/run_in_venv.sh $PARPE_BASE/build/venv pip3 install pytest-xdist
+        - cd $PARPE_BASE/ && git clone --depth 1 https://github.com/PEtab-dev/petab_test_suite.git && $PARPE_BASE/misc/run_in_venv.sh $PARPE_BASE/build/venv pip3 install -e petab_test_suite
+        - $PARPE_BASE/misc/run_in_venv.sh $PARPE_BASE/build/venv pytest -v -n 2 $PARPE_BASE/tests/petab-test-suite
+
         # benchmark models
         - sudo apt install bc
         - cd $PARPE_BASE/benchmark_collection && git clone --depth 1 https://github.com/Benchmarking-Initiative/Benchmark-Models-PEtab.git
         - $PARPE_BASE/misc/run_in_venv.sh $PARPE_BASE/build/venv pip3 install shyaml
-        - BENCHMARK_COLLECTION="$(pwd)/Benchmark-Models-PEtab/Benchmark-Models/" $PARPE_BASE/misc/run_in_venv.sh $PARPE_BASE/build/venv ./all.sh
+        - AMICI_PARALLEL_COMPILE=4 BENCHMARK_COLLECTION="$(pwd)/Benchmark-Models-PEtab/Benchmark-Models/" $PARPE_BASE/misc/run_in_venv.sh $PARPE_BASE/build/venv ./all.sh
 #    on_failure:
 #        - ls -R ${PARPE_BASE}
 
