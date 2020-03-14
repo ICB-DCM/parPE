@@ -7,6 +7,7 @@ import re
 import shutil
 import subprocess
 import sys
+from typing import List, Union
 
 import petabtests
 import pytest
@@ -20,7 +21,7 @@ stream_handler = logging.StreamHandler()
 logger.addHandler(stream_handler)
 
 
-def test_case(case):
+def test_case(case: Union[int, str]) -> None:
     """Wrapper for _test_case for handling test outcomes"""
     try:
         _test_case(case)
@@ -35,7 +36,10 @@ def test_case(case):
             raise e
 
 
-def check_run(cmd):
+def check_run(cmd: List[str]) -> subprocess.CompletedProcess:
+    """Run a given external command, verify 0-return code, print output on
+    failure and raise or return CompletedProcess"""
+
     ret = subprocess.run(cmd, check=False, stdout=subprocess.PIPE,
                          stderr=subprocess.STDOUT, encoding='utf-8')
     if ret.returncode != 0:
@@ -46,7 +50,7 @@ def check_run(cmd):
     return ret
 
 
-def _test_case(case):
+def _test_case(case: Union[int, str]) -> None:
     """Run a single PEtab test suite case"""
 
     case = petabtests.test_id_str(case)
@@ -105,7 +109,7 @@ def _test_case(case):
     # FIXME 0007, 0009, 0011, 0010, 0013
 
 
-def run():
+def run() -> None:
     """Run the full PEtab test suite"""
 
     n_success = 0
