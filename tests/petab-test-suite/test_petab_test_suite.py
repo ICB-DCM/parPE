@@ -57,6 +57,8 @@ def _test_case(case: Union[int, str]) -> None:
     logger.debug(f"Case {case}")
 
     # Ignore some that are not supported by AMICI
+    #  0012 compartments
+    #  0009 newton failure preeq
     if case in ['0012']:
         raise NotImplementedError(case)
 
@@ -70,19 +72,19 @@ def _test_case(case: Union[int, str]) -> None:
     hdf5_input = os.path.join(parpe_model_dir, 'input.h5')
     hdf5_output = os.path.join(parpe_model_dir, 'out.h5')
 
-    # create amici model from PEtab
-    cmd = ['amici_import_petab', '-y', yaml_file, '-o', amici_model_dir,
-           '-n', model_name]
-    check_run(cmd)
-
-    # must not exist when calling setup_amici_model.sh
-    if os.path.isdir(parpe_model_dir):
-        shutil.rmtree(parpe_model_dir)
-
-    # set up for parPE
-    cmd = [os.path.join(parpe_dir, 'misc', 'setup_amici_model.sh'),
-           amici_model_dir, parpe_model_dir]
-    check_run(cmd)
+    # # create amici model from PEtab
+    # cmd = ['amici_import_petab', '-y', yaml_file, '-o', amici_model_dir,
+    #        '-n', model_name]
+    # check_run(cmd)
+    #
+    # # must not exist when calling setup_amici_model.sh
+    # if os.path.isdir(parpe_model_dir):
+    #     shutil.rmtree(parpe_model_dir)
+    #
+    # # set up for parPE
+    # cmd = [os.path.join(parpe_dir, 'misc', 'setup_amici_model.sh'),
+    #        amici_model_dir, parpe_model_dir]
+    # check_run(cmd)
 
     # create input hdf5 file
     cmd = ['parpe_petab_to_hdf5',
@@ -95,7 +97,7 @@ def _test_case(case: Union[int, str]) -> None:
                         f'simulateNominal_{model_name}'),
            hdf5_input, hdf5_output]
     ret = check_run(cmd)
-
+    print(' '.join(cmd))
     # check output
     g = re.search(r'Likelihood: (\d+\.\d+)', ret.stdout).group(0)
     llh_actual = - float(g.split(' ')[1])
@@ -103,12 +105,11 @@ def _test_case(case: Union[int, str]) -> None:
     solution = petabtests.load_solution(case)
 
     gt_llh = solution[petabtests.LLH]
-    assert llh_actual == pytest.approx(gt_llh)
+    assert llh_actual == pytest.approx(gt_llh,
+                                       rel=solution[petabtests.TOL_LLH])
 
     # FIXME
-    #  0009 newton failure preeq
     #  0011 init conc condition table
-    #  0010 partial preeq - state reinit
     #  0013 parametric init conc condition table
 
 

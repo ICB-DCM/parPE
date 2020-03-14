@@ -349,7 +349,7 @@ class MultiConditionDataProviderHDF5 : public MultiConditionDataProvider {
 
     void getSimAndPreeqConditions(const int simulationIdx,
                                   int &preequilibrationConditionIdx,
-                                  int &simulationConditionIdx) const;
+                                  int &simulationConditionIdx, bool &reinitializeFixedParameterInitialStates) const;
 
     /**
      * @brief Get the identifier of the used HDF5 file. Does not reopen. Do not close file.
