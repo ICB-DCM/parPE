@@ -56,7 +56,7 @@ def _test_case(case: Union[int, str]) -> None:
     case = petabtests.test_id_str(case)
     logger.debug(f"Case {case}")
 
-    # Ignore some
+    # Ignore some that are not supported by AMICI
     if case in ['0012']:
         raise NotImplementedError(case)
 
@@ -97,16 +97,19 @@ def _test_case(case: Union[int, str]) -> None:
     ret = check_run(cmd)
 
     # check output
-    print(ret.stdout)
     g = re.search(r'Likelihood: (\d+\.\d+)', ret.stdout).group(0)
     llh_actual = - float(g.split(' ')[1])
-    print(llh_actual)
+    print("Actual llh:", llh_actual)
     solution = petabtests.load_solution(case)
 
     gt_llh = solution[petabtests.LLH]
     assert llh_actual == pytest.approx(gt_llh)
 
-    # FIXME 0007, 0009, 0011, 0010, 0013
+    # FIXME
+    #  0009 newton failure preeq
+    #  0011 init conc condition table
+    #  0010 partial preeq - state reinit
+    #  0013 parametric init conc condition table
 
 
 def run() -> None:
