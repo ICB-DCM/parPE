@@ -5,6 +5,7 @@ CMakeLists.txt.user
 /ThirdParty/*
 /doc/Doxyfile
 /doc/doxy/*
+/doc/exhale_cpp_api/
 .project
 .pydevproject
 .idea/*

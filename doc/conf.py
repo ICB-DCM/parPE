@@ -1,8 +1,8 @@
 # Configuration file for the Sphinx documentation builder.
-#
-# This file only contains a selection of the most common options. For a full
-# list see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
+
+import os
+import subprocess
 
 # -- Path setup --------------------------------------------------------------
 
@@ -10,7 +10,6 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-import os
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
 
@@ -19,6 +18,8 @@ import os
 # WARNING: Pygments lexer name 'markdown' is not known
 from recommonmark.transform import AutoStructify
 github_doc_root = 'https://github.com/ICB_DCM/parPE/tree/master/doc/'
+
+
 def setup(app):
     app.add_config_value('recommonmark_config', {
             'url_resolver': lambda url: github_doc_root + url,
@@ -117,3 +118,10 @@ exhale_args = {
 highlight_language = 'cpp'
 
 html_logo = 'logo/parPE.png'
+
+
+# -- RTD custom build --------------------------------------------------------
+
+# only execute those commands when running from RTD
+if on_rtd:
+    subprocess.run(['doxygen'])
