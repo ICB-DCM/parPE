@@ -152,4 +152,4 @@ if on_rtd:
                     fout.write(line.replace(needle, replacement))
 
     print("Generating Doxygen docs")
-    subprocess.run(['doxygen'], cwd=doc_dir)
+    subprocess.run(['doxygen'], cwd=doc_dir, check=True)
