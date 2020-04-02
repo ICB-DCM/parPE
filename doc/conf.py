@@ -124,4 +124,16 @@ html_logo = 'logo/parPE.png'
 
 # only execute those commands when running from RTD
 if on_rtd:
-    subprocess.run(['doxygen'])
+    parpe_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    doc_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+    # need cmake to update doxyfile
+    subprocess.run(['cmake', '-B' 'build', '-DBUILD_EXAMPLES=OFF',
+                    '-DPARPE_ENABLE_CERES=OFF', '-DPARPE_ENABLE_DLIB=OFF',
+                    '-DPARPE_ENABLE_FSQP=OFF', '-DPARPE_ENABLE_IPOPT=OFF',
+                    '-DPARPE_ENABLE_MPI=OFF', '-DPARPE_ENABLE_TOMS611=OFF',
+                    #f'-DAmici_DIR={parpe_dir}/deps/AMICI'
+                    ],
+                   cwd=parpe_dir)
+
+    subprocess.run(['doxygen'], cwd=doc_dir)
