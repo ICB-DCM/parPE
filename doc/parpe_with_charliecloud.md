@@ -18,10 +18,10 @@ estimation for an example model included in the the image.
 ### Generating parPE base docker image
 
 This will create the parPE base image *from parPE from github*
-(run from the top level directory of you local parPE git clone, 
+(run from the top level directory of your local parPE git clone, 
 takes about 10'):
 
-```shell
+```shell script
 git archive -v -o container/charliecloud/parpe_base/parpe.tar.gz --format=tar.gz HEAD
 cd container/charliecloud/parpe_base
 ch-build -t parpe .
@@ -29,7 +29,7 @@ ch-build -t parpe .
 
 Export image to charliecloud archive in the current directory:
 
-```shell
+```shell script
 ch-docker2tar parpe:latest .
 ```
 
@@ -38,14 +38,14 @@ ch-docker2tar parpe:latest .
 Instead of building the docker image yourself, you can download a Ubuntu-based
 parPE image from [dockerhub](https://hub.docker.com/r/dweindl/parpe) using:
 
-```shell
+```shell script
 docker pull dweindl/parpe:latest
 ```
 
 **Developer note:**
 To update the image on dockerhub, run:
 
-```shell 
+```shell script
 sudo docker images # check for IMAGE ID
 sudo docker tag $IMAGE_ID dweindl/parpe:latest
 sudo docker push dweindl/parpe:latest 
@@ -65,7 +65,7 @@ Start an interactive session. With SLURM, e.g.
 
 On the compute node:
 
-``` shell
+```shell script
 CHARLIE_DEST_DIR=/var/tmp
 CHARLIE_TAR=parpe\:latest.tar.gz
 OUTPUT_DIR=parpe_test # where results will be written to
@@ -85,12 +85,14 @@ The results will be written to `${OUTPUT_DIR}`.
 1. Generate / fetch a parPE docker image as described above
 
 1. Generate charliecloud image (potentially requires `sudo`)
- 
-    `ch-docker2tar parpe:latest .`
-
+    
+    ```shell script
+    ch-docker2tar parpe:latest .
+   ```
+   
 1. Extract charliecloud image (adapt paths as needed)
 
-    ```shell
+    ```shell script
     CHARLIE_DEST_DIR=/var/tmp
     CHARLIE_TAR=parpe\:latest.tar.gz
     ch-tar2dir "${CHARLIE_TAR}" "${CHARLIE_DEST_DIR}"
@@ -100,7 +102,7 @@ The results will be written to `${OUTPUT_DIR}`.
 
    For testing you can download an example model via:
 
-    ```shell
+    ```shell script
     wget "https://raw.githubusercontent.com/LeonardSchmiester/Benchmark-Models/hackathon/hackathon_contributions_new_data_format/Zheng_PNAS2012/model_Zheng_PNAS2012.xml"
     wget "https://raw.githubusercontent.com/LeonardSchmiester/Benchmark-Models/hackathon/hackathon_contributions_new_data_format/Zheng_PNAS2012/measurementData_Zheng_PNAS2012.tsv"
     wget "https://raw.githubusercontent.com/LeonardSchmiester/Benchmark-Models/hackathon/hackathon_contributions_new_data_format/Zheng_PNAS2012/experimentalCondition_Zheng_PNAS2012.tsv"
@@ -111,7 +113,7 @@ The results will be written to `${OUTPUT_DIR}`.
 
     For the example files above, run:
     
-    ```shell
+    ```shell script
     cat > parpe_optimize_petab.yaml << EOF
    petab:
         sbml_file: 'model_Zheng_PNAS2012.xml'
@@ -128,7 +130,7 @@ The results will be written to `${OUTPUT_DIR}`.
 
 1. Run the Snakemake workflow, e.g. as
 
-    ```shell
+    ```shell script
     PETAB_DIR=Zheng_PNAS2012 # where results will be written to
     SNAKEMAKE_CONFIG=/mnt/parpe_optimize_petab.yaml
     mkdir -p "${PETAB_DIR}"

@@ -11,7 +11,7 @@
 
 The *parPE* library provides functionality for solving large-scale parameter
 optimization problems requiring up to thousands of simulations per objective
-function evaluation on HPC systems.
+function evaluation on high performance computing (HPC) systems.
 
 parPE offers easy integration with
 [AMICI](https://github.com/ICB-DCM/AMICI)-generated ordinary differential
@@ -61,19 +61,18 @@ For full functionality, parPE requires the following libraries:
 * Python >= 3.6, including header files
 
 On Debian-based systems, dependencies can be installed via:
-```
-sudo apt-get install build-essential gfortran libmpich-dev libblas-dev \
-    libhdf5-dev cmake libceres-dev coinor-libipopt-dev libcpputest-dev \
-    libboost-serialization-dev libpython-dev
+```shell script
+sudo apt-get install build-essential cmake cmake-curses-gui \
+    coinor-libipopt-dev curl gfortran \
+    libblas-dev libboost-serialization-dev libceres-dev libcpputest-dev \
+    libmpich-dev libhdf5-dev libpython3-dev python3-pip
 ```
 
 Scripts to fetch and build the remaining dependencies are provided in
 `/ThirdParty/`:
 
-```
-cd ThirdParty
-./downloadPackages.sh
-./installDeps.sh
+```shell script
+ThirdParty/installDeps.sh
 ```
 
 NOTE: When using `ThirdParty/installIpopt.sh` to build Ipopt, follow the
@@ -86,8 +85,8 @@ usable. Afterwards, (re)run `ThirdParty/installIpopt.sh`.
 
 After having taken care of the dependencies listed above, parPE can be built:
 
-```
-./build.sh
+```shell script
+./buildAll.sh
 ```
 
 Other sample build scripts are provided as `/build*.sh`.
@@ -97,11 +96,16 @@ Other sample build scripts are provided as `/build*.sh`.
 * GCC 8.3.0
 * Intel icpc (ICC) 17.0.6
 
+## Docker
+
+There is a Dockerfile available in `container/charliecloud/` and images
+can be found on [dockerhub](https://hub.docker.com/r/dweindl/parpe/).
 
 ## Documentation & further information
 
-Some high-level documentation is provided in [`doc/`](doc/) and among 
-[Github issues](https://github.com/ICB-DCM/parPE/issues). No extensive
+Some high-level documentation is available at
+[https://parpe.readthedocs.io/en/latest/](https://parpe.readthedocs.io/en/latest/)
+and among [Github issues](https://github.com/ICB-DCM/parPE/issues). No extensive
 full-text documentation is available for the C++ interface yet. For usage of
 the C++ interface see [`examples/`](examples/) and `*/tests`.
 
