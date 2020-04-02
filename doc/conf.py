@@ -148,7 +148,7 @@ if on_rtd:
     with open(os.path.join(doc_dir, "Doxyfile.in"), "rt") as fin:
         with open(os.path.join(doc_dir, "Doxyfile"), "wt") as fout:
             for line in fin:
-                for needle, replacement in replacements:
+                for needle, replacement in replacements.items():
                     fout.write(line.replace(replacement, replacement))
 
     print("Generating Doxygen docs")
