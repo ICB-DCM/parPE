@@ -124,6 +124,7 @@ The results will be written to `${OUTPUT_DIR}`.
     model_name: 'Zheng_PNAS2012'
     amici_build_dir: '/root/parPE/deps/AMICI/build'
     amici_src_dir: '/root/parPE/deps/AMICI/'
+   parpe_src_dir: '/root/parPE/'
     parpe_build_dir: '/root/parPE/build/'
     EOF
     ```
