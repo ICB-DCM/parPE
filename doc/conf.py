@@ -127,13 +127,25 @@ if on_rtd:
     parpe_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     doc_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-    # need cmake to update doxyfile
-    subprocess.run(['cmake', '-B' 'build', '-DBUILD_EXAMPLES=OFF',
-                    '-DPARPE_ENABLE_CERES=OFF', '-DPARPE_ENABLE_DLIB=OFF',
-                    '-DPARPE_ENABLE_FSQP=OFF', '-DPARPE_ENABLE_IPOPT=OFF',
-                    '-DPARPE_ENABLE_MPI=OFF', '-DPARPE_ENABLE_TOMS611=OFF',
-                    #f'-DAmici_DIR={parpe_dir}/deps/AMICI'
-                    ],
-                   cwd=parpe_dir)
+    # # need cmake to update doxyfile
+    # subprocess.run(['cmake', '-B' 'build', '-DBUILD_EXAMPLES=OFF',
+    #                 '-DPARPE_ENABLE_CERES=OFF', '-DPARPE_ENABLE_DLIB=OFF',
+    #                 '-DPARPE_ENABLE_FSQP=OFF', '-DPARPE_ENABLE_IPOPT=OFF',
+    #                 '-DPARPE_ENABLE_MPI=OFF', '-DPARPE_ENABLE_TOMS611=OFF',
+    #                 #f'-DAmici_DIR={parpe_dir}/deps/AMICI'
+    #                 ],
+    #                cwd=parpe_dir)
+
+    # FIXME: workaround until we have cmake on rtd:
+    #  https://github.com/readthedocs/readthedocs-docker-images/issues/127
+    replacements = {
+        "@GIT_VERSION@": "",
+        "@CMAKE_CURRENT_LIST_DIR@": parpe_dir
+    }
+    with open(os.path.join(doc_dir, "Doxyfile.in"), "rt") as fin:
+        with open(os.path.join(doc_dir, "Doxyfile"), "wt") as fout:
+            for line in fin:
+                for needle, replacement in replacements:
+                    fout.write(line.replace(replacement, replacement))
 
     subprocess.run(['doxygen'], cwd=doc_dir)
