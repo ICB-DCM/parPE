@@ -108,6 +108,8 @@ exhale_args = {
     # "treeViewIsBootstrap": True,
     #"exhaleExecutesDoxygen": True,
     #    "exhaleDoxygenStdin":    "INPUT = ../include"
+    "afterTitleDescription":
+              "parPE C++ and Python library functions",
     "verboseBuild": False,
 }
 

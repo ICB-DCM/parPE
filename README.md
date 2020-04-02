@@ -2,7 +2,7 @@
 <img src="https://api.shippable.com/projects/59463d3e8993d7070010407b/badge?branch=master" alt="Run Status"></a>
 <a href="https://app.shippable.com/github/dweindl/parPE">
 <img src="https://api.shippable.com/projects/59463d3e8993d7070010407b/coverageBadge?branch=master" alt="Coverage Badge"></a>
-<a href="https://www.codacy.com?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=ICB-DCM/parPE&amp;utm_campaign=Badge_Grade">
+<a href="https://www.codacy.com?utm_source=github.com&utm_medium=referral&utm_content=ICB-DCM/parPE&utm_campaign=Badge_Grade">
 <img src="https://api.codacy.com/project/badge/Grade/1f1ee5a0d90d431499f200a148fb7fdc" alt="Codacy Badge"></a>
 <a href="https://doi.org/10.5281/zenodo.3478612">
 <img src="https://zenodo.org/badge/DOI/10.5281/zenodo.3478612.svg" alt="DOI"></a>
@@ -26,7 +26,7 @@ parPE offers the following features:
   (multi-start local optimization)
 * simple integration with [SBML](http://sbml.org/) models via
   [AMICI](https://github.com/ICB-DCM/AMICI) and
-  [PEtab](https://github.com/ICB-DCM/PEtab)
+  [PEtab](https://github.com/PEtab-dev/PEtab)
 * interfaces to [Ipopt](http://www.coin-or.org/Ipopt/),
   [Ceres](http://ceres-solver.org/),
   [FFSQP](https://www.isr.umd.edu/news/news_story.php?id=4088) and
@@ -61,7 +61,7 @@ For full functionality, parPE requires the following libraries:
 * Python >= 3.6, including header files
 
 On Debian-based systems, dependencies can be installed via:
-```shell script
+```shell
 sudo apt-get install build-essential cmake cmake-curses-gui \
     coinor-libipopt-dev curl gfortran \
     libblas-dev libboost-serialization-dev libceres-dev libcpputest-dev \
@@ -71,7 +71,7 @@ sudo apt-get install build-essential cmake cmake-curses-gui \
 Scripts to fetch and build the remaining dependencies are provided in
 `/ThirdParty/`:
 
-```shell script
+```shell
 ThirdParty/installDeps.sh
 ```
 
@@ -85,7 +85,7 @@ usable. Afterwards, (re)run `ThirdParty/installIpopt.sh`.
 
 After having taken care of the dependencies listed above, parPE can be built:
 
-```shell script
+```shell
 ./buildAll.sh
 ```
 
