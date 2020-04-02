@@ -1,11 +1,11 @@
 <a href="https://app.shippable.com/github/dweindl/parPE">
-  <img src="https://api.shippable.com/projects/59463d3e8993d7070010407b/badge?branch=master" alt="Run Status"></a>
+<img src="https://api.shippable.com/projects/59463d3e8993d7070010407b/badge?branch=master" alt="Run Status"></a>
 <a href="https://app.shippable.com/github/dweindl/parPE">
-  <img src="https://api.shippable.com/projects/59463d3e8993d7070010407b/coverageBadge?branch=master" alt="Coverage Badge"></a>
+<img src="https://api.shippable.com/projects/59463d3e8993d7070010407b/coverageBadge?branch=master" alt="Coverage Badge"></a>
 <a href="https://www.codacy.com?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=ICB-DCM/parPE&amp;utm_campaign=Badge_Grade">
-  <img src="https://api.codacy.com/project/badge/Grade/1f1ee5a0d90d431499f200a148fb7fdc" alt="Codacy Badge"></a>
+<img src="https://api.codacy.com/project/badge/Grade/1f1ee5a0d90d431499f200a148fb7fdc" alt="Codacy Badge"></a>
 <a href="https://doi.org/10.5281/zenodo.3478612">
-  <img src="https://zenodo.org/badge/DOI/10.5281/zenodo.3478612.svg" alt="DOI"></a>
+<img src="https://zenodo.org/badge/DOI/10.5281/zenodo.3478612.svg" alt="DOI"></a>
 
 # parPE
 
