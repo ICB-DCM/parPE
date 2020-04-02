@@ -125,7 +125,10 @@ html_logo = 'logo/parPE.png'
 # only execute those commands when running from RTD
 if on_rtd:
     parpe_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    doc_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    doc_dir = os.path.dirname(os.path.abspath(__file__))
+
+    print("Running in", os.getcwd())
+    print("Generating Doxyfile")
 
     # # need cmake to update doxyfile
     # subprocess.run(['cmake', '-B' 'build', '-DBUILD_EXAMPLES=OFF',
@@ -148,4 +151,5 @@ if on_rtd:
                 for needle, replacement in replacements:
                     fout.write(line.replace(replacement, replacement))
 
+    print("Generating Doxygen docs")
     subprocess.run(['doxygen'], cwd=doc_dir)
