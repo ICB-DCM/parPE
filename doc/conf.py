@@ -69,8 +69,8 @@ templates_path = ['_templates']
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = []
-
+exclude_patterns = ['logo/LICENSE.md', 'README.md']
+source_suffix = ['.rst', '.md']
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -108,6 +108,8 @@ exhale_args = {
     # "treeViewIsBootstrap": True,
     #"exhaleExecutesDoxygen": True,
     #    "exhaleDoxygenStdin":    "INPUT = ../include"
+    "afterTitleDescription":
+              "parPE C++ and Python library functions",
     "verboseBuild": False,
 }
 
