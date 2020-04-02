@@ -4,8 +4,9 @@
 script_dir=$(dirname "$0")
 script_dir=$(cd "$script_dir" && pwd )
 
-# exit on error
-set -e
+set -euo pipefail
+
+cd "$script_dir"
 
 ../deps/AMICI/scripts/buildAll.sh
 
