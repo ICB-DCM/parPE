@@ -149,7 +149,7 @@ if on_rtd:
         with open(os.path.join(doc_dir, "Doxyfile"), "wt") as fout:
             for line in fin:
                 for needle, replacement in replacements.items():
-                    fout.write(line.replace(replacement, replacement))
+                    fout.write(line.replace(needle, replacement))
 
     print("Generating Doxygen docs")
     subprocess.run(['doxygen'], cwd=doc_dir)
