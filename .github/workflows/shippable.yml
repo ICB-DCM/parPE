@@ -30,8 +30,10 @@ jobs:
         CPPUTEST_BUILD_DIR=${AMICI_PATH}/ThirdParty/cpputest-master/build/ \
           && cmake -S ${AMICI_PATH} -B ${AMICI_PATH}/build \
             -DCMAKE_BUILD_TYPE=Debug \
-            -DENABLE_PYTHON=ON -DBUILD_TESTS=OFF \
-            -DCppUTest_DIR=${CPPUTEST_BUILD_DIR} .. && make -j12
+            -DENABLE_PYTHON=ON \
+            -DBUILD_TESTS=OFF \
+            -DCppUTest_DIR=${CPPUTEST_BUILD_DIR} \
+          && make -j12
 
       #- cd $PARPE_BASE/ThirdParty && ./installCeres.sh
 
@@ -48,8 +50,8 @@ jobs:
 
     - name: valgrind
       run: |
-        CTEST_OUTPUT_ON_FAILURE=1 \
-          make ExperimentalMemCheck; \
+        cd ${PARPE_BUILD} \
+          && CTEST_OUTPUT_ON_FAILURE=1 make ExperimentalMemCheck; \
           cat Testing/Temporary/MemoryChecker.*.log
 
     - name: coverage report
@@ -59,15 +61,20 @@ jobs:
 
     - run: |
         mkdir -p $PARPE_BASE/shippable/codecoverage \
-          && cp $PARPE_BASE/build/parpe_coverage_cobertura.xml $PARPE_BASE/shippable/codecoverage
+          && cp $PARPE_BASE/build/parpe_coverage_cobertura.xml \
+            $PARPE_BASE/shippable/codecoverage
 
       # PEtab test suite
-    - run: $PARPE_BASE/misc/run_in_venv.sh $PARPE_BASE/build/venv pip3 install pytest-xdist
-    - run: cd $PARPE_BASE/ && git clone --depth 1 https://github.com/PEtab-dev/petab_test_suite.git && $PARPE_BASE/misc/run_in_venv.sh $PARPE_BASE/build/venv pip3 install -e petab_test_suite
-    - run: $PARPE_BASE/misc/run_in_venv.sh $PARPE_BASE/build/venv pytest -v -n 2 $PARPE_BASE/tests/petab-test-suite
+    - run: |
+        $PARPE_BASE/misc/run_in_venv.sh $PARPE_BASE/build/venv pip3 install pytest-xdist
+    - run: |
+        cd $PARPE_BASE/ && git clone --depth 1 https://github.com/PEtab-dev/petab_test_suite.git && $PARPE_BASE/misc/run_in_venv.sh $PARPE_BASE/build/venv pip3 install -e petab_test_suite
+    - run: |
+        $PARPE_BASE/misc/run_in_venv.sh $PARPE_BASE/build/venv pytest -v -n 2 $PARPE_BASE/tests/petab-test-suite
 
       # benchmark models
-    - run: sudo apt install bc
+    - run: |
+        sudo apt install bc
     - run: cd $PARPE_BASE/benchmark_collection && git clone --depth 1 https://github.com/Benchmarking-Initiative/Benchmark-Models-PEtab.git
     - run: $PARPE_BASE/misc/run_in_venv.sh $PARPE_BASE/build/venv pip3 install shyaml
     - run: AMICI_PARALLEL_COMPILE=4 BENCHMARK_COLLECTION="$(pwd)/Benchmark-Models-PEtab/Benchmark-Models/" $PARPE_BASE/misc/run_in_venv.sh $PARPE_BASE/build/venv ./all.sh
