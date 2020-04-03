@@ -9,6 +9,8 @@
 #include <streambuf>
 #include <fcntl.h> // O_WRONLY
 #include <cassert>
+#include <algorithm>
+#include <random>
 
 #include <gtest/gtest.h>
 
@@ -53,7 +55,11 @@ void checkEqualArray(const double *expected, const double *actual, int length,
 }
 
 int randInt(int min, int max) {
-    return min + rand() / (double) RAND_MAX * (max - min);
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dis(min, max);
+
+    return dis(gen);
 }
 
 std::string captureStreamToString(const std::function<void()>& f,
