@@ -147,12 +147,13 @@ void printlogmessage(loglevel lvl, const char *message)
     }
 
     // Timestamp
-    time_t timer;
-    time(&timer);
-    struct tm* tm_info;
-    tm_info = localtime(&timer);
+    time_t current_time;
+    struct tm local_time;
+    time(&current_time);
+    localtime_r(&current_time, &local_time);
     char dateBuffer[50];
-    strftime(dateBuffer, 25, "[%Y-%m-%d %H:%M:%S] ", tm_info);
+    strftime(dateBuffer, 25, "[%Y-%m-%d %H:%M:%S] ", &local_time);
+
     fputs(dateBuffer, stdout);
 
     printf("[%s] ", loglevelShortStr[static_cast<int>(lvl)]);
