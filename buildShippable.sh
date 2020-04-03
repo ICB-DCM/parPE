@@ -33,9 +33,4 @@ build-wrapper-linux-x86-64 --out-dir bw-output \
 
 # submit to sonarcloud
 sonar-scanner \
-  -Dsonar.organization=icb-dcm \
-  -Dsonar.projectKey=ICB-DCM_parPE \
-  -Dsonar.sources="${src_dir}" \
-  -Dsonar.host.url=https://sonarcloud.io \
-  -Dsonar.cfamily.build-wrapper-output=bw-output \
-  -Dsonar.login=45879b85332d963bf3ead20399bf5bd2c925c156
+  -Dsonar.cfamily.build-wrapper-output=bw-output
