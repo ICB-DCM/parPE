@@ -64,7 +64,7 @@ jobs:
             -DCERES_LIBRARIES="/usr/lib/libceres.so;/usr/lib/x86_64-linux-gnu/libglog.so;/usr/lib/x86_64-linux-gnu/libgflags.so" \
             -DCERES_INCLUDE_DIRS="/usr/include/;/usr/include/eigen3" \
             -DMPI_INCLUDE_DIRS=/usr/include/openmpi-x86_64/ \
-            -DGCOVR_REPORT=TRUE \
+            -DGCOV_REPORT=TRUE \
             -DBUILD_TESTS=TRUE
 
     - name: Build parPE
