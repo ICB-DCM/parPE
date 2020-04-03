@@ -33,7 +33,7 @@ jobs:
             -DENABLE_PYTHON=ON \
             -DBUILD_TESTS=OFF \
             -DCppUTest_DIR=${CPPUTEST_BUILD_DIR} \
-            -S ${AMICI_PATH} -B ${AMICI_PATH}/build \
+            -B ${AMICI_PATH} -S ${AMICI_PATH}/build \
           && make -j12
 
       #- cd $PARPE_BASE/ThirdParty && ./installCeres.sh
