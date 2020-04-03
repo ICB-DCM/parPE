@@ -40,6 +40,8 @@ public:
                              bool overwrite,
                              std::string rootPath);
 
+    OptimizationResultWriter& operator=(const OptimizationResultWriter& other) = delete;
+
     OptimizationResultWriter(OptimizationResultWriter const& other);
 
     virtual ~OptimizationResultWriter() = default;
