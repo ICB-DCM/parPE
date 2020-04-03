@@ -33,4 +33,5 @@ build-wrapper-linux-x86-64 --out-dir bw-output \
 
 # submit to sonarcloud
 sonar-scanner \
-  -Dsonar.cfamily.build-wrapper-output=bw-output
+  -Dsonar.cfamily.build-wrapper-output=bw-output \
+  -Dsonar.projectVersion="$(git describe --abbrev=4 --dirty=-dirty --always --tags | tr -d '\n')"
