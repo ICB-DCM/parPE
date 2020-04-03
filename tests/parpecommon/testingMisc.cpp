@@ -46,6 +46,10 @@ void checkEqualArray(const double *expected, const double *actual, int length,
         return;
 
     EXPECT_TRUE(expected && actual);
+    if(!(expected && actual)) {
+        // in case EXPECT_TRUE does not exit
+        return;
+    }
 
     for(int i = 0; i < length; ++i)
     {
