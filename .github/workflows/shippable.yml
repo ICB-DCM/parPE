@@ -16,6 +16,8 @@ jobs:
     - name: info
       run: lsb_release -a && printenv
 
+    - run: cmake --help
+    - run: cmake --version
       # Build dependencies
 
     - name: Install AMICI deps
@@ -33,7 +35,7 @@ jobs:
             -DENABLE_PYTHON=ON \
             -DBUILD_TESTS=OFF \
             -DCppUTest_DIR=${CPPUTEST_BUILD_DIR} \
-            -B ${AMICI_PATH} -S ${AMICI_PATH}/build \
+            -B ${AMICI_PATH} -S ${AMICI_PATH} \
           && make -j12
 
       #- cd $PARPE_BASE/ThirdParty && ./installCeres.sh
@@ -68,15 +70,22 @@ jobs:
 
     - name: PEtab test suite --- requirements
       run: |
-        $PARPE_BASE/misc/run_in_venv.sh $PARPE_BASE/build/venv pip3 install pytest-xdist
+        $PARPE_BASE/misc/run_in_venv.sh $PARPE_BASE/build/venv \
+          pip3 install pytest-xdist
 
     - name: PEtab test suite --- repository
+      env:
+        PETAB_TEST_URL: https://github.com/PEtab-dev/petab_test_suite.git
       run: |
-        cd $PARPE_BASE/ && git clone --depth 1 https://github.com/PEtab-dev/petab_test_suite.git && $PARPE_BASE/misc/run_in_venv.sh $PARPE_BASE/build/venv pip3 install -e petab_test_suite
+        cd $PARPE_BASE/ \
+          && git clone --depth 1 $PETAB_TEST_URL \
+          && $PARPE_BASE/misc/run_in_venv.sh $PARPE_BASE/build/venv \
+            pip3 install -e petab_test_suite
 
     - name: PEtab test suite --- tests
       run: |
-        $PARPE_BASE/misc/run_in_venv.sh $PARPE_BASE/build/venv pytest -v -n 2 $PARPE_BASE/tests/petab-test-suite
+        $PARPE_BASE/misc/run_in_venv.sh $PARPE_BASE/build/venv \
+          pytest -v -n 2 $PARPE_BASE/tests/petab-test-suite
 
 
     - name: Benchmark models --- requirements
@@ -93,4 +102,7 @@ jobs:
           && git clone --depth 1 $BM_REPO_URL
 
     - name: Benchmark models --- tests
-      run: AMICI_PARALLEL_COMPILE=4 BENCHMARK_COLLECTION="$(pwd)/Benchmark-Models-PEtab/Benchmark-Models/" $PARPE_BASE/misc/run_in_venv.sh $PARPE_BASE/build/venv ./all.sh
+      run: |
+        AMICI_PARALLEL_COMPILE=4 \
+        BENCHMARK_COLLECTION="$(pwd)/Benchmark-Models-PEtab/Benchmark-Models/" \
+        $PARPE_BASE/misc/run_in_venv.sh $PARPE_BASE/build/venv ./all.sh
