@@ -1,12 +1,12 @@
 # https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions
 # https://help.github.com/en/actions/configuring-and-managing-workflows/using-environment-variables
-name: Shippable workflow
+name: Test benchmark collection models
 on: [push]
 jobs:
   container:
     runs-on: ubuntu-latest
     container: dweindl/parpeci:1511078
-    name: Ship
+    name: benchmark models
     steps:
     - uses: actions/checkout@master
 
@@ -17,34 +17,23 @@ jobs:
     - name: info
       run: lsb_release -a && printenv
 
-    - run: cmake --help
-    - run: cmake --version
       # Build dependencies
 
     - name: Install AMICI deps
       run: |
         cd $AMICI_PATH \
           && scripts/buildSuiteSparse.sh \
-          && scripts/buildSundials.sh \
-          && scripts/buildCpputest.sh #&& scripts/buildAmici.sh
+          && scripts/buildSundials.sh
 
     - name: Install AMICI
       run: |
-        set -x && CPPUTEST_BUILD_DIR=${AMICI_PATH}/ThirdParty/cpputest-master/build/ \
-          && cmake -S ${AMICI_PATH} -B ${AMICI_PATH}/build \
+         cmake -S ${AMICI_PATH} -B ${AMICI_PATH}/build \
             -DCMAKE_BUILD_TYPE=Debug \
             -DENABLE_PYTHON=ON \
             -DBUILD_TESTS=OFF \
           && cmake --build "${AMICI_PATH}/build" --parallel -- VERBOSE=1
-      # TODO why not used in amici: -DCppUTest_DIR=${CPPUTEST_BUILD_DIR} \
-      #- cd $PARPE_BASE/ThirdParty && ./installCeres.sh
-
-    - name: Install google test
-      run: ThirdParty/installGoogleTest.sh
 
     - name: build parPE
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         pip install -r ${PARPE_BASE}/python/requirements.txt \
 
@@ -62,41 +51,7 @@ jobs:
                ..
 
     - run: |
-        echo setup sonar cloud \
-          && export SONAR_SCANNER_VERSION=4.2.0.1873 \
-          && export SONAR_SCANNER_HOME=/root/.sonar/sonar-scanner-$SONAR_SCANNER_VERSION-linux \
-          && export PATH=$SONAR_SCANNER_HOME/bin:$PATH \
-          && export SONAR_SCANNER_OPTS="-server" \
-          && export PATH=/root/.sonar/build-wrapper-linux-x86:$PATH \
-        && echo build parpe \
-          && build-wrapper-linux-x86-64 --out-dir bw-output \
-              cmake --build "${PARPE_BUILD}" --parallel \
-                -- VERBOSE=1 \
-        && echo submit to sonarcloud \
-          && sonar-scanner \
-             -Dsonar.cfamily.build-wrapper-output=bw-output \
-             -Dsonar.projectVersion="$(git describe --abbrev=4 --dirty=-dirty --always --tags | tr -d '\n')"
-
-
-    - name: run tests
-      run: cd ${PARPE_BUILD} && CTEST_OUTPUT_ON_FAILURE=1 make test
-
-    - name: valgrind
-      run: |
-        cd ${PARPE_BUILD} \
-          && CTEST_OUTPUT_ON_FAILURE=1 make ExperimentalMemCheck; \
-          cat Testing/Temporary/MemoryChecker.*.log
-
-    - name: coverage report
-      run: |
-        cd ${PARPE_BUILD} \
-          && CTEST_OUTPUT_ON_FAILURE=1 make parpe_coverage_cobertura
-
-    - run: |
-        mkdir -p $PARPE_BASE/shippable/codecoverage \
-          && cp $PARPE_BASE/build/parpe_coverage_cobertura.xml \
-            $PARPE_BASE/shippable/codecoverage
-
+        cmake --build "${PARPE_BUILD}" --parallel -- VERBOSE=1
 
     - name: PEtab test suite --- requirements
       run: |
