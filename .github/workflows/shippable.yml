@@ -1,4 +1,5 @@
-# https://github.com/marketplace/actions/publish-docker
+# https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions
+# https://help.github.com/en/actions/configuring-and-managing-workflows/using-environment-variables
 name: Shippable workflow
 on: [push]
 jobs:
@@ -30,7 +31,7 @@ jobs:
     - name: Install AMICI
       run: |
         set -x && CPPUTEST_BUILD_DIR=${AMICI_PATH}/ThirdParty/cpputest-master/build/ \
-          && cmake -S ${AMICI_PATH} -S ${AMICI_PATH}/build \
+          && cmake -S ${AMICI_PATH} -B ${AMICI_PATH}/build \
             -DCMAKE_BUILD_TYPE=Debug \
             -DENABLE_PYTHON=ON \
             -DBUILD_TESTS=OFF \
