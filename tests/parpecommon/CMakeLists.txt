@@ -1,7 +1,5 @@
 project(unittests_common)
 
-add_test(NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME})
-
 set(SRC_LIST
     main.cpp
     commonTests.h
@@ -18,3 +16,5 @@ target_link_libraries(${PROJECT_NAME}
     parpecommon
     ${GCOV_LIBRARY}
 )
+
+gtest_discover_tests(${PROJECT_NAME})
