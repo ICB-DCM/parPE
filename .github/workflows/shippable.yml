@@ -24,12 +24,12 @@ jobs:
           && scripts/buildSuiteSparse.sh \
           && scripts/buildSundials.sh \
           && scripts/buildCpputest.sh #&& scripts/buildAmici.sh
-          &&
+
     - name: Install AMICI
       run: |
-        mkdir -p ${AMICI_PATH}/build && cd ${AMICI_PATH}/build \
-          && CPPUTEST_BUILD_DIR=${AMICI_PATH}/ThirdParty/cpputest-master/build/ \
-          && cmake -DCMAKE_BUILD_TYPE=Debug \
+        CPPUTEST_BUILD_DIR=${AMICI_PATH}/ThirdParty/cpputest-master/build/ \
+          && cmake -S${AMICI_PATH} -B${AMICI_PATH}/build \
+            -DCMAKE_BUILD_TYPE=Debug \
             -DENABLE_PYTHON=ON -DBUILD_TESTS=OFF \
             -DCppUTest_DIR=${CPPUTEST_BUILD_DIR} .. && make -j12
 
