@@ -27,7 +27,7 @@ jobs:
 
     - name: Install AMICI
       run: |
-        CPPUTEST_BUILD_DIR=${AMICI_PATH}/ThirdParty/cpputest-master/build/ \
+        set -x && CPPUTEST_BUILD_DIR=${AMICI_PATH}/ThirdParty/cpputest-master/build/ \
           && cmake \
             -DCMAKE_BUILD_TYPE=Debug \
             -DENABLE_PYTHON=ON \
@@ -69,19 +69,28 @@ jobs:
     - name: PEtab test suite --- requirements
       run: |
         $PARPE_BASE/misc/run_in_venv.sh $PARPE_BASE/build/venv pip3 install pytest-xdist
+
     - name: PEtab test suite --- repository
       run: |
         cd $PARPE_BASE/ && git clone --depth 1 https://github.com/PEtab-dev/petab_test_suite.git && $PARPE_BASE/misc/run_in_venv.sh $PARPE_BASE/build/venv pip3 install -e petab_test_suite
+
     - name: PEtab test suite --- tests
       run: |
         $PARPE_BASE/misc/run_in_venv.sh $PARPE_BASE/build/venv pytest -v -n 2 $PARPE_BASE/tests/petab-test-suite
 
+
     - name: Benchmark models --- requirements
       run: |
-        sudo apt install bc
+        sudo apt install bc \
+          && $PARPE_BASE/misc/run_in_venv.sh $PARPE_BASE/build/venv \
+              pip3 install shyaml
+
     - name: Benchmark models --- repository
-      run: cd $PARPE_BASE/benchmark_collection && git clone --depth 1 https://github.com/Benchmarking-Initiative/Benchmark-Models-PEtab.git
-    - name: Benchmark models --- requirements
-      run: $PARPE_BASE/misc/run_in_venv.sh $PARPE_BASE/build/venv pip3 install shyaml
+      env:
+        BM_REPO_URL: https://github.com/Benchmarking-Initiative/Benchmark-Models-PEtab.git
+      run: |
+        cd $PARPE_BASE/benchmark_collection \
+          && git clone --depth 1 $BM_REPO_URL
+
     - name: Benchmark models --- tests
       run: AMICI_PARALLEL_COMPILE=4 BENCHMARK_COLLECTION="$(pwd)/Benchmark-Models-PEtab/Benchmark-Models/" $PARPE_BASE/misc/run_in_venv.sh $PARPE_BASE/build/venv ./all.sh
