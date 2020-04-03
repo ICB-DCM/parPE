@@ -1,5 +1,5 @@
 # https://github.com/marketplace/actions/publish-docker
-name: Test
+name: Shippable workflow
 on: [push]
 jobs:
   container:
@@ -8,10 +8,8 @@ jobs:
     name: Ship
     steps:
 
-    - name: set paths
-      run: |
-        echo "::set-env name=PARPE_BASE::$(pwd)" \
-          && echo "::set-env name=AMICI_PATH::$PARPE_BASE/deps/AMICI/"
+    - run: echo "::set-env name=PARPE_BASE::$(pwd)"
+    - run: echo "::set-env name=AMICI_PATH::$PARPE_BASE/deps/AMICI/"
 
     - name: info
       run: lsb_release -a && printenv
@@ -36,12 +34,12 @@ jobs:
       #- cd $PARPE_BASE/ThirdParty && ./installCeres.sh
 
     - name: Install google test
-      run: cd $PARPE_BASE && ThirdParty/installGoogleTest.sh
+      run: ThirdParty/installGoogleTest.sh
 
     - name: build parPE
       run: |
-        pip install -r $PARPE_BASE/python/requirements.txt \
-        && cd $PARPE_BASE && ./buildShippable.sh
+        pip install -r ${PARPE_BASE}/python/requirements.txt \
+          && ./buildShippable.sh
 
     - name: run tests
       run: cd $PARPE_BASE/build && CTEST_OUTPUT_ON_FAILURE=1 make test
