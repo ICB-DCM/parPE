@@ -45,6 +45,8 @@ jobs:
     - name: Install parPE Python deps
       run: |
         pip install -r ${PARPE_BASE}/python/requirements.txt \
+        && $PARPE_BASE/misc/run_in_venv.sh $PARPE_BASE/build/venv \
+          pip install pytest-cov
 
     - name: Configure parPE
       run: |
@@ -76,6 +78,14 @@ jobs:
           && sonar-scanner \
              -Dsonar.cfamily.build-wrapper-output=bw-output \
              -Dsonar.projectVersion="$(git describe --abbrev=4 --dirty=-dirty --always --tags | tr -d '\n')"
+
+    - name: Run parPE python unittests
+      run: |
+        $PARPE_BASE/misc/run_in_venv.sh $PARPE_BASE/build/venv \
+          pytest \
+            --cov-report=xml:$PARPE_BUILD/coverage_py.yml \
+            --cov=./ \
+            $PARPE_BASE/python/tests/
 
     - name: Run CTEST
       run: cd ${PARPE_BUILD} && CTEST_OUTPUT_ON_FAILURE=1 make test
