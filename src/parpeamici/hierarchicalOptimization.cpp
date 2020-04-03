@@ -108,12 +108,15 @@ void HierarchicalOptimizationWrapper::init() {
                                   this->sigmaParameterIndices.end()), "");
 
     if(fun) {
-        std::cout<<"HierarchicalOptimizationWrapper parameters: "
-                <<fun->numParameters()<<" total, "
-               <<numParameters()<< " numerical, "
-              <<proportionalityFactorIndices.size()<<" proportionality, "
-             <<offsetParameterIndices.size()<<" offset, "
-            <<sigmaParameterIndices.size()<<" sigma\n";
+        std::stringstream ss;
+        ss<<"HierarchicalOptimizationWrapper parameters: "
+           <<fun->numParameters()<<" total, "
+           <<numParameters()<< " numerical, "
+           <<proportionalityFactorIndices.size()<<" proportionality, "
+           <<offsetParameterIndices.size()<<" offset, "
+           <<sigmaParameterIndices.size()<<" sigma\n";
+        Logger logger;
+        logger.logmessage(LOGLVL_DEBUG, ss.str());
     }
 }
 
@@ -189,9 +192,14 @@ HierarchicalOptimizationWrapper::evaluate(
     // needs scaled outputs
     auto sigmas = computeAnalyticalSigmas(measurements, modelOutput);
 
-    std::cout<<"scalings "<<scalings<<std::endl;
-    std::cout<<"sigmas "<<sigmas<<std::endl;
-
+    if(logger) {
+        std::stringstream ss;
+        ss<<"scalings "<<scalings;
+        logger->logmessage(LOGLVL_DEBUG, ss.str());
+        ss.str(std::string());
+        ss<<"sigmas "<<sigmas;
+        logger->logmessage(LOGLVL_DEBUG, ss.str());
+    }
     // splice parameter vector we get from optimizer with analytically
     // computed parameters
     fullParameters = spliceParameters(
@@ -1167,7 +1175,7 @@ HierarchicalOptimizationReporter::HierarchicalOptimizationReporter(
 
 FunctionEvaluationStatus HierarchicalOptimizationReporter::evaluate(
         gsl::span<const double> parameters,
-        double &fval, gsl::span<double> gradient, Logger */*logger*/,
+        double &fval, gsl::span<double> gradient, Logger *logger,
         double *cpuTime) const
 {
     double myCpuTimeSec = 0.0;
@@ -1184,7 +1192,7 @@ FunctionEvaluationStatus HierarchicalOptimizationReporter::evaluate(
             cachedStatus = hierarchicalWrapper->evaluate(
                         parameters, cachedCost, cachedGradient,
                         cachedFullParameters, cachedFullGradient,
-                        this->logger.get(), &myCpuTimeSec);
+                        logger ? logger : this->logger.get(), &myCpuTimeSec);
             haveCachedCost = true;
             haveCachedGradient = true;
         }
@@ -1198,7 +1206,7 @@ FunctionEvaluationStatus HierarchicalOptimizationReporter::evaluate(
             cachedStatus = hierarchicalWrapper->evaluate(
                         parameters, cachedCost, gsl::span<double>(),
                         cachedFullParameters, cachedFullGradient,
-                        this->logger.get(), &myCpuTimeSec);
+                        logger ? logger : this->logger.get(), &myCpuTimeSec);
             haveCachedCost = true;
             haveCachedGradient = false;
         }
@@ -1304,7 +1312,6 @@ bool HierarchicalOptimizationReporter::iterationFinished(
     ++numIterations;
 
     logger->setPrefix(defaultLoggerPrefix + "i" + std::to_string(numIterations));
-
     cpuTimeIterationSec = 0.0;
 
     return false;

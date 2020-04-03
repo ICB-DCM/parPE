@@ -54,14 +54,6 @@ int OptimizationApplication::init(int argc, char **argv) {
     initHDF5Mutex();
 
     status = parseCliOptionsPostMpiInit(argc, argv);
-    if(status)
-        return status;
-
-    // Seed random number generator
-    //    srand(1337);
-    unsigned int seed = time(nullptr);
-    logmessage(LOGLVL_DEBUG, "Seeding RNG with %u", seed);
-    srand(seed); // TODO to CLI
 
     return status;
 }
