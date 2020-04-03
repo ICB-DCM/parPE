@@ -67,7 +67,8 @@ jobs:
             -DGCOVR_REPORT=TRUE \
             -DBUILD_TESTS=TRUE
 
-    - name: Build parPE and run sonar-scanner
+    - name: Build parPE
+      # with sonar build wrapper
       run: |
         build-wrapper-linux-x86-64 --out-dir bw-output \
           cmake --build "${PARPE_BUILD}" --parallel -- VERBOSE=1
@@ -78,17 +79,19 @@ jobs:
           pip install pytest-cov \
         && $PARPE_BASE/misc/run_in_venv.sh $PARPE_BASE/build/venv \
           pytest \
-            --cov-report=xml:$PARPE_BUILD/coverage_py.yml \
+            --cov-report=xml:$PARPE_BUILD/coverage_py.xml \
             --cov=./ \
             $PARPE_BASE/python/tests/
 
-    - name: Run CTEST
-      run: cd ${PARPE_BUILD} && CTEST_OUTPUT_ON_FAILURE=1 make test
+    # Redundant with parpe_coverage_cobertura
+    #- name: Run CTEST
+    #  run: cd ${PARPE_BUILD} && CTEST_OUTPUT_ON_FAILURE=1 make test
 
     - name: Create coverage report
       run: |
         cd ${PARPE_BUILD} \
-          && CTEST_OUTPUT_ON_FAILURE=1 make parpe_coverage_cobertura
+          && CTEST_OUTPUT_ON_FAILURE=1 make parpe_coverage \
+          && make ExperimentalCoverage
 
     - name: Run sonar-scanner
       env:
