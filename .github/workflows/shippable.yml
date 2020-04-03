@@ -43,6 +43,8 @@ jobs:
       run: ThirdParty/installGoogleTest.sh
 
     - name: build parPE
+      env:
+        GITHUB_TOKEN: {{ secrets.GITHUB_TOKEN }}
       run: |
         pip install -r ${PARPE_BASE}/python/requirements.txt \
           && ./buildShippable.sh
