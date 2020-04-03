@@ -14,6 +14,16 @@ jobs:
     - run: echo "::set-env name=PARPE_BUILD::${PARPE_BASE}/build"
     - run: echo "::set-env name=AMICI_PATH::${PARPE_BASE}/deps/AMICI/"
 
+    # sonar cloud
+    - run: echo "::set-env name=SONAR_SCANNER_VERSION::4.2.0.1873"
+    - run: echo "::set-env name=SONAR_SCANNER_HOME::/root/.sonar/sonar-scanner-$SONAR_SCANNER_VERSION-linux"
+    - run: echo "::set-env name=SONAR_SCANNER_OPTS::-server"
+    - run: echo "::set-env name=SONAR_SCANNER_VERSION::4.2.0.1873"
+    - run: echo "::set-env name=SONAR_SCANNER_VERSION::4.2.0.1873"
+    - run: echo "::set-env name=SONAR_SCANNER_VERSION::4.2.0.1873"
+    - run: echo "::add-path::${SONAR_SCANNER_HOME}/bin"
+    - run: echo "::add-path::/root/.sonar/build-wrapper-linux-x86"
+
     - name: info
       run: lsb_release -a && printenv
 
@@ -48,34 +58,22 @@ jobs:
 
     - name: Configure parPE
       run: |
-        CC=mpicc CXX=mpiCC cmake \
-               -S"${PARPE_BASE}" \
-               -B"${PARPE_BUILD}" \
-               -DIPOPT_INCLUDE_DIRS=/usr/include/coin/ \
-               -DIPOPT_LIBRARIES=/usr/lib/libipopt.so \
-               -DCERES_LIBRARIES="/usr/lib/libceres.so;/usr/lib/x86_64-linux-gnu/libglog.so;/usr/lib/x86_64-linux-gnu/libgflags.so" \
-               -DCERES_INCLUDE_DIRS="/usr/include/;/usr/include/eigen3" \
-               -DMPI_INCLUDE_DIRS=/usr/include/openmpi-x86_64/ \
-               -DGCOVR_REPORT=TRUE \
-               -DBUILD_TESTS=TRUE
+        CC=mpicc CXX=mpiCC \
+          cmake \
+            -S"${PARPE_BASE}" \
+            -B"${PARPE_BUILD}" \
+            -DIPOPT_INCLUDE_DIRS=/usr/include/coin/ \
+            -DIPOPT_LIBRARIES=/usr/lib/libipopt.so \
+            -DCERES_LIBRARIES="/usr/lib/libceres.so;/usr/lib/x86_64-linux-gnu/libglog.so;/usr/lib/x86_64-linux-gnu/libgflags.so" \
+            -DCERES_INCLUDE_DIRS="/usr/include/;/usr/include/eigen3" \
+            -DMPI_INCLUDE_DIRS=/usr/include/openmpi-x86_64/ \
+            -DGCOVR_REPORT=TRUE \
+            -DBUILD_TESTS=TRUE
 
     - name: Build parPE and run sonar-scanner
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        echo setup sonar cloud \
-          && export SONAR_SCANNER_VERSION=4.2.0.1873 \
-          && export SONAR_SCANNER_HOME=/root/.sonar/sonar-scanner-$SONAR_SCANNER_VERSION-linux \
-          && export PATH=$SONAR_SCANNER_HOME/bin:$PATH \
-          && export SONAR_SCANNER_OPTS="-server" \
-          && export PATH=/root/.sonar/build-wrapper-linux-x86:$PATH \
-        && echo build parpe \
-          && build-wrapper-linux-x86-64 --out-dir bw-output \
-              cmake --build "${PARPE_BUILD}" --parallel -- VERBOSE=1 \
-        && echo submit to sonarcloud \
-          && sonar-scanner \
-             -Dsonar.cfamily.build-wrapper-output=bw-output \
-             -Dsonar.projectVersion="$(git describe --abbrev=4 --dirty=-dirty --always --tags | tr -d '\n')"
+        build-wrapper-linux-x86-64 --out-dir bw-output \
+          cmake --build "${PARPE_BUILD}" --parallel -- VERBOSE=1
 
     - name: Run parPE python unittests
       run: |
@@ -95,11 +93,13 @@ jobs:
         cd ${PARPE_BUILD} \
           && CTEST_OUTPUT_ON_FAILURE=1 make parpe_coverage_cobertura
 
-    - name: Upload coverage report
+    - name: Run sonar-scanner
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        mkdir -p $PARPE_BASE/shippable/codecoverage \
-          && cp $PARPE_BASE/build/parpe_coverage_cobertura.xml \
-            $PARPE_BASE/shippable/codecoverage
+        sonar-scanner \
+         -Dsonar.cfamily.build-wrapper-output=bw-output \
+         -Dsonar.projectVersion="$(git describe --abbrev=4 --dirty=-dirty --always --tags | tr -d '\n')"
 
     - name: Run valgrind
       run: |
