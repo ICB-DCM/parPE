@@ -7,6 +7,7 @@ jobs:
     container: dweindl/parpeci:892872
     name: Ship
     steps:
+    - uses: actions/checkout@master
     - run: pwd && ls -l
     - run: echo "::set-env name=PARPE_BASE::$(pwd)"
     - run: echo "::set-env name=AMICI_PATH::$PARPE_BASE/deps/AMICI/"
