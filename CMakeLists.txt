@@ -1,5 +1,5 @@
-cmake_minimum_required(VERSION 3.7)
-cmake_policy(VERSION 3.7)
+cmake_minimum_required(VERSION 3.10) # for GoogleTest
+cmake_policy(VERSION 3.10)
 
 if(POLICY CMP0074)
   # Use package_ROOT environment variables
