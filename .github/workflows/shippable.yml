@@ -1,12 +1,12 @@
 # https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions
 # https://help.github.com/en/actions/configuring-and-managing-workflows/using-environment-variables
-name: Shippable workflow
+name: parPE tests
 on: [push]
 jobs:
   container:
     runs-on: ubuntu-latest
     container: dweindl/parpeci:1511078
-    name: Ship
+    name: parPE tests
     steps:
     - uses: actions/checkout@master
 
@@ -31,20 +31,23 @@ jobs:
       # CPPUTEST_BUILD_DIR=${AMICI_PATH}/ThirdParty/cpputest-master/build/
       # -DCppUTest_DIR=${CPPUTEST_BUILD_DIR}
       run: |
-        cmake -S ${AMICI_PATH} -B ${AMICI_PATH}/build \
-            -DCMAKE_BUILD_TYPE=Debug \
-            -DENABLE_PYTHON=ON \
-            -DBUILD_TESTS=OFF \
+        cmake \
+          -S ${AMICI_PATH} \
+          -B ${AMICI_PATH}/build \
+          -DCMAKE_BUILD_TYPE=Debug \
+          -DENABLE_PYTHON=ON \
+          -DBUILD_TESTS=OFF \
           && cmake --build "${AMICI_PATH}/build" --parallel -- VERBOSE=1
 
     - name: Install google test
       run: ThirdParty/installGoogleTest.sh
 
-    - name: build parPE
+    - name: Install parPE Python deps
       run: |
         pip install -r ${PARPE_BASE}/python/requirements.txt \
 
-    - run: |
+    - name: Configure parPE
+      run: |
         CC=mpicc CXX=mpiCC cmake \
                -S"${PARPE_BASE}" \
                -B"${PARPE_BUILD}" \
@@ -56,7 +59,7 @@ jobs:
                -DGCOVR_REPORT=TRUE \
                -DBUILD_TESTS=TRUE
 
-    - name: bla
+    - name: Build parPE and run sonar-scanner
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
@@ -68,29 +71,28 @@ jobs:
           && export PATH=/root/.sonar/build-wrapper-linux-x86:$PATH \
         && echo build parpe \
           && build-wrapper-linux-x86-64 --out-dir bw-output \
-              cmake --build "${PARPE_BUILD}" --parallel \
-                -- VERBOSE=1 \
+              cmake --build "${PARPE_BUILD}" --parallel -- VERBOSE=1 \
         && echo submit to sonarcloud \
           && sonar-scanner \
              -Dsonar.cfamily.build-wrapper-output=bw-output \
              -Dsonar.projectVersion="$(git describe --abbrev=4 --dirty=-dirty --always --tags | tr -d '\n')"
 
-
-    - name: run tests
+    - name: Run CTEST
       run: cd ${PARPE_BUILD} && CTEST_OUTPUT_ON_FAILURE=1 make test
 
-    - name: valgrind
+    - name: Run valgrind
       run: |
         cd ${PARPE_BUILD} \
-          && CTEST_OUTPUT_ON_FAILURE=1 make ExperimentalMemCheck; \
-          cat Testing/Temporary/MemoryChecker.*.log
+          && CTEST_OUTPUT_ON_FAILURE=1 make ExperimentalMemCheck \
+          || cat Testing/Temporary/MemoryChecker.*.log && false
 
-    - name: coverage report
+    - name: Create coverage report
       run: |
         cd ${PARPE_BUILD} \
           && CTEST_OUTPUT_ON_FAILURE=1 make parpe_coverage_cobertura
 
-    - run: |
+    - name: Upload coverage report
+      run: |
         mkdir -p $PARPE_BASE/shippable/codecoverage \
           && cp $PARPE_BASE/build/parpe_coverage_cobertura.xml \
             $PARPE_BASE/shippable/codecoverage
