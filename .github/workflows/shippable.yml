@@ -41,8 +41,6 @@ jobs:
       run: ThirdParty/installGoogleTest.sh
 
     - name: build parPE
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         pip install -r ${PARPE_BASE}/python/requirements.txt \
 
@@ -58,7 +56,10 @@ jobs:
                -DGCOVR_REPORT=TRUE \
                -DBUILD_TESTS=TRUE
 
-    - run: |
+    - name: bla
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
         echo setup sonar cloud \
           && export SONAR_SCANNER_VERSION=4.2.0.1873 \
           && export SONAR_SCANNER_HOME=/root/.sonar/sonar-scanner-$SONAR_SCANNER_VERSION-linux \
