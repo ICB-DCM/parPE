@@ -8,9 +8,10 @@ jobs:
     name: Ship
     steps:
     - uses: actions/checkout@master
-    - run: pwd && ls -l
+
     - run: echo "::set-env name=PARPE_BASE::$(pwd)"
-    - run: echo "::set-env name=AMICI_PATH::$PARPE_BASE/deps/AMICI/"
+    - run: echo "::set-env name=PARPE_BUILD::${PARPE_BASE}/build"
+    - run: echo "::set-env name=AMICI_PATH::${PARPE_BASE}/deps/AMICI/"
 
     - name: info
       run: lsb_release -a && printenv
@@ -27,7 +28,7 @@ jobs:
     - name: Install AMICI
       run: |
         CPPUTEST_BUILD_DIR=${AMICI_PATH}/ThirdParty/cpputest-master/build/ \
-          && cmake -S${AMICI_PATH} -B${AMICI_PATH}/build \
+          && cmake -S ${AMICI_PATH} -B ${AMICI_PATH}/build \
             -DCMAKE_BUILD_TYPE=Debug \
             -DENABLE_PYTHON=ON -DBUILD_TESTS=OFF \
             -DCppUTest_DIR=${CPPUTEST_BUILD_DIR} .. && make -j12
@@ -43,15 +44,22 @@ jobs:
           && ./buildShippable.sh
 
     - name: run tests
-      run: cd $PARPE_BASE/build && CTEST_OUTPUT_ON_FAILURE=1 make test
+      run: cd ${PARPE_BUILD} && CTEST_OUTPUT_ON_FAILURE=1 make test
 
     - name: valgrind
-      run: CTEST_OUTPUT_ON_FAILURE=1 make ExperimentalMemCheck; cat Testing/Temporary/MemoryChecker.*.log
+      run: |
+        CTEST_OUTPUT_ON_FAILURE=1 \
+          make ExperimentalMemCheck; \
+          cat Testing/Temporary/MemoryChecker.*.log
 
     - name: coverage report
-      run: cd $PARPE_BASE/build && CTEST_OUTPUT_ON_FAILURE=1 make parpe_coverage_cobertura
+      run: |
+        cd ${PARPE_BUILD} \
+          && CTEST_OUTPUT_ON_FAILURE=1 make parpe_coverage_cobertura
 
-    - run: mkdir -p $PARPE_BASE/shippable/codecoverage && cp $PARPE_BASE/build/parpe_coverage_cobertura.xml $PARPE_BASE/shippable/codecoverage
+    - run: |
+        mkdir -p $PARPE_BASE/shippable/codecoverage \
+          && cp $PARPE_BASE/build/parpe_coverage_cobertura.xml $PARPE_BASE/shippable/codecoverage
 
       # PEtab test suite
     - run: $PARPE_BASE/misc/run_in_venv.sh $PARPE_BASE/build/venv pip3 install pytest-xdist
