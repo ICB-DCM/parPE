@@ -55,13 +55,23 @@ struct JobData {
  */
 class LoadBalancerMaster {
   public:
+    LoadBalancerMaster() = default;
+
+    LoadBalancerMaster(LoadBalancerMaster& other) = delete;
+
+    LoadBalancerMaster& operator=(const LoadBalancerMaster& other) = delete;
+
+    LoadBalancerMaster(LoadBalancerMaster &&other) noexcept = delete;
+
+    LoadBalancerMaster const & operator=(LoadBalancerMaster &&fp) = delete;
+
+    ~LoadBalancerMaster();
+
     /**
      * @brief Start the load balancer using all available MPI processes.
      * Requires MPI to be initialized.
      */
     void run();
-
-    ~LoadBalancerMaster();
 
 #ifndef QUEUE_MASTER_TEST
     static void assertMpiActive();
@@ -100,18 +110,16 @@ class LoadBalancerMaster {
     /**
      * @brief Thread entry point. This is run from run()
      * @param `this`
-     * @return 0, always
+     * @return nullptr, always
      */
     static void *threadEntryPoint(void *vpLoadBalancerMaster);
 
     /**
      * @brief Main function of the load balancer thread.
      *
-     * Called from threadEntryPoint.
-     *
-     * @return nullptr
+     * Called from threadEntryPoint. Will never return.
      */
-    void *loadBalancerThreadRun();
+    void loadBalancerThreadRun();
 
     /**
      * @brief Frees all send buffers after respective MPI messages have been
