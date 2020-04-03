@@ -151,6 +151,17 @@ public:
         mutex->unlock();
     }
 
+    InverseUniqueLock(InverseUniqueLock& other) = delete;
+
+    InverseUniqueLock& operator=(const InverseUniqueLock& other) = delete;
+
+    InverseUniqueLock(InverseUniqueLock &&other) noexcept {
+        mutex = other.mutex;
+        other.mutex = nullptr;
+    }
+
+    InverseUniqueLock const & operator=(InverseUniqueLock &&fp) = delete;
+
     ~InverseUniqueLock()
     {
         mutex->lock();
