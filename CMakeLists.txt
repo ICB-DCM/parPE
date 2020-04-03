@@ -129,7 +129,7 @@ if(${BUILD_TESTS})
             APPEND_COVERAGE_COMPILER_FLAGS()
             setup_target_for_coverage(
                 NAME ${PROJECT_NAME}_coverage
-                EXECUTABLE ctest -R unittests
+                EXECUTABLE ctest
                 DEPENDENCIES ${COVERAGE_DEPENDENCIES})
         else()
             message("Not creating coverage report, because compiler is not GCC but ${CMAKE_CXX_COMPILER_ID}.")
