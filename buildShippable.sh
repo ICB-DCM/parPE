@@ -18,6 +18,12 @@ CC=mpicc CXX=mpiCC cmake \
       -DBUILD_TESTS=TRUE \
       ..
 
+export SONAR_SCANNER_VERSION=4.2.0.1873
+export SONAR_SCANNER_HOME=/root/.sonar/sonar-scanner-$SONAR_SCANNER_VERSION-linux
+export PATH=$SONAR_SCANNER_HOME/bin:$PATH
+export SONAR_SCANNER_OPTS="-server"
+export PATH=/root/.sonar/build-wrapper-linux-x86:$PATH
+
 build-wrapper-linux-x86-64 --out-dir bw-output cmake --build "${build_dir}" -j12 -- VERBOSE=1
 
 sonar-scanner \
