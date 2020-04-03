@@ -47,8 +47,7 @@ jobs:
                -DCERES_INCLUDE_DIRS="/usr/include/;/usr/include/eigen3" \
                -DMPI_INCLUDE_DIRS=/usr/include/openmpi-x86_64/ \
                -DGCOVR_REPORT=TRUE \
-               -DBUILD_TESTS=TRUE \
-               ..
+               -DBUILD_TESTS=FALSE
 
     - run: |
         cmake --build "${PARPE_BUILD}" --parallel -- VERBOSE=1
