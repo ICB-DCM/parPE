@@ -82,3 +82,178 @@
    ...
 }
 
+
+{
+   <H5dont_atexit>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   ...
+   fun:H5dont_atexit
+   ...
+}
+
+{
+   <H5CX_push>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   ...
+   fun:H5CX_push
+   ...
+}
+
+{
+   <??>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   fun:strdup
+   obj:*
+   fun:call_init.part.0
+   fun:call_init
+   fun:_dl_init
+   fun:dl_open_worker
+   fun:_dl_catch_exception
+   fun:_dl_open
+   fun:dlopen_doit
+   fun:_dl_catch_exception
+   fun:_dl_catch_error
+   fun:_dlerror_run
+}
+
+{
+   <??>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   ...
+   fun:openaux
+   ...
+}
+
+{
+   <??>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   ...
+   fun:mca_base_component_repository_open
+}
+
+{
+   <H5Iget_type>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   ...
+   fun:_ZN2H58PropList11getConstantEv
+   ...
+}
+
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   ...
+   obj:*libgomp.so.*
+   ...
+}
+
+{
+   <pmix_ptl_base_process_msg>
+   Memcheck:Cond
+   ...
+   fun:event_base_loop
+   ...
+}
+
+{
+   <pmix_ptl_base_process_msg>
+   Memcheck:Leak
+   ...
+   fun:event_base_loop
+   ...
+}
+
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   ...
+   fun:hwloc_topology_init
+}
+
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   ...
+   fun:hwloc_topology_destroy
+}
+
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   ...
+   fun:opal_hwloc_base_get_topology
+}
+
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:calloc
+   fun:_dl_check_map_versions
+   fun:dl_open_worker
+   fun:_dl_catch_exception
+   fun:_dl_open
+   fun:dlopen_doit
+   fun:_dl_catch_exception
+   fun:_dl_catch_error
+   fun:_dlerror_run
+   ...
+}
+
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   ...
+   fun:_ZN5boost13serialization9singletonINS_*
+   ...
+}
+
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   ...
+   obj:/usr/lib/x86_64-linux-gnu/libboost_serialization.so.*
+   ...
+}
+
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   ...
+   fun:_dlerror_run
+   ...
+}
+
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   ...
+   fun:opal_shmem_base_select
+}
+
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   ...
+   fun:orte_submit_init
+}
