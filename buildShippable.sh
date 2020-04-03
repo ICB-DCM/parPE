@@ -4,8 +4,10 @@ set -euo pipefail
 set -x
 
 # build parPE
+src_dir="$(pwd)"
 build_dir="$(pwd)/build"
 CC=mpicc CXX=mpiCC cmake \
+      -S"${src_dir}" \
       -B"${build_dir}" \
       -DIPOPT_INCLUDE_DIRS=/usr/include/coin/ \
       -DIPOPT_LIBRARIES=/usr/lib/libipopt.so \
@@ -21,7 +23,7 @@ build-wrapper-linux-x86-64 --out-dir bw-output cmake --build "${build_dir}" -j12
 sonar-scanner \
   -Dsonar.organization=icb-dcm \
   -Dsonar.projectKey=ICB-DCM_parPE \
-  -Dsonar.sources=. \
+  -Dsonar.sources="${src_dir}" \
   -Dsonar.host.url=https://sonarcloud.io \
   -Dsonar.cfamily.build-wrapper-output=bw-output \
   -Dsonar.login=45879b85332d963bf3ead20399bf5bd2c925c156
