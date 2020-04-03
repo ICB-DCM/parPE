@@ -9,14 +9,12 @@ jobs:
     steps:
 
     - name: set paths
-      run:
-        - echo "::set-env name=PARPE_BASE::$(pwd)"
-        - echo "::set-env name=AMICI_PATH::$PARPE_BASE/deps/AMICI/"
+      run: |
+        echo "::set-env name=PARPE_BASE::$(pwd)" \
+          && echo "::set-env name=AMICI_PATH::$PARPE_BASE/deps/AMICI/"
 
     - name: info
-      run:
-        - lsb_release -a
-        - printenv
+      run: lsb_release -a && printenv
 
       # Build dependencies
 
