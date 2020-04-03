@@ -44,9 +44,7 @@ jobs:
 
     - name: Install parPE Python deps
       run: |
-        pip install -r ${PARPE_BASE}/python/requirements.txt \
-        && $PARPE_BASE/misc/run_in_venv.sh $PARPE_BASE/build/venv \
-          pip install pytest-cov
+        pip install -r ${PARPE_BASE}/python/requirements.txt
 
     - name: Configure parPE
       run: |
@@ -82,6 +80,8 @@ jobs:
     - name: Run parPE python unittests
       run: |
         $PARPE_BASE/misc/run_in_venv.sh $PARPE_BASE/build/venv \
+          pip install pytest-cov \
+        && $PARPE_BASE/misc/run_in_venv.sh $PARPE_BASE/build/venv \
           pytest \
             --cov-report=xml:$PARPE_BUILD/coverage_py.yml \
             --cov=./ \
@@ -89,12 +89,6 @@ jobs:
 
     - name: Run CTEST
       run: cd ${PARPE_BUILD} && CTEST_OUTPUT_ON_FAILURE=1 make test
-
-    - name: Run valgrind
-      run: |
-        cd ${PARPE_BUILD} \
-          && CTEST_OUTPUT_ON_FAILURE=1 make ExperimentalMemCheck \
-          || cat Testing/Temporary/MemoryChecker.*.log && false
 
     - name: Create coverage report
       run: |
@@ -106,3 +100,9 @@ jobs:
         mkdir -p $PARPE_BASE/shippable/codecoverage \
           && cp $PARPE_BASE/build/parpe_coverage_cobertura.xml \
             $PARPE_BASE/shippable/codecoverage
+
+    - name: Run valgrind
+      run: |
+        cd ${PARPE_BUILD} \
+          && CTEST_OUTPUT_ON_FAILURE=1 make ExperimentalMemCheck \
+          || cat Testing/Temporary/MemoryChecker.*.log && false
