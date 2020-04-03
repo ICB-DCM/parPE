@@ -4,7 +4,7 @@ on: [push]
 jobs:
   container:
     runs-on: ubuntu-latest
-    container: dweindl/parpeci:latest
+    container: dweindl/parpeci:892872
     name: Ship
     steps:
 
