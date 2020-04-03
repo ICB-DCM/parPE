@@ -15,10 +15,7 @@ jobs:
     - run: echo "::set-env name=PARPE_BUILD::${PARPE_BASE}/build"
     - run: echo "::set-env name=AMICI_PATH::${PARPE_BASE}/deps/AMICI/"
 
-    - name: info
-      run: lsb_release -a && printenv
-
-      # Build dependencies
+    # Build dependencies
 
     - name: Install AMICI deps
       run: |

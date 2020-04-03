@@ -18,13 +18,10 @@ jobs:
     - run: echo "::set-env name=SONAR_SCANNER_VERSION::4.2.0.1873"
     - run: echo "::set-env name=SONAR_SCANNER_HOME::/root/.sonar/sonar-scanner-$SONAR_SCANNER_VERSION-linux"
     - run: echo "::set-env name=SONAR_SCANNER_OPTS::-server"
-    - run: echo "::set-env name=SONAR_SCANNER_VERSION::4.2.0.1873"
-    - run: echo "::set-env name=SONAR_SCANNER_VERSION::4.2.0.1873"
-    - run: echo "::set-env name=SONAR_SCANNER_VERSION::4.2.0.1873"
     - run: echo "::add-path::${SONAR_SCANNER_HOME}/bin"
     - run: echo "::add-path::/root/.sonar/build-wrapper-linux-x86"
 
-    - name: info
+    - name: Info
       run: lsb_release -a && printenv
 
       # Build dependencies
