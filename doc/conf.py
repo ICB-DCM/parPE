@@ -1,8 +1,8 @@
 # Configuration file for the Sphinx documentation builder.
-#
-# This file only contains a selection of the most common options. For a full
-# list see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
+
+import os
+import subprocess
 
 # -- Path setup --------------------------------------------------------------
 
@@ -10,7 +10,6 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-import os
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
 
@@ -19,6 +18,8 @@ import os
 # WARNING: Pygments lexer name 'markdown' is not known
 from recommonmark.transform import AutoStructify
 github_doc_root = 'https://github.com/ICB_DCM/parPE/tree/master/doc/'
+
+
 def setup(app):
     app.add_config_value('recommonmark_config', {
             'url_resolver': lambda url: github_doc_root + url,
@@ -68,8 +69,8 @@ templates_path = ['_templates']
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = []
-
+exclude_patterns = ['logo/LICENSE.md', 'README.md']
+source_suffix = ['.rst', '.md']
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -107,6 +108,8 @@ exhale_args = {
     # "treeViewIsBootstrap": True,
     #"exhaleExecutesDoxygen": True,
     #    "exhaleDoxygenStdin":    "INPUT = ../include"
+    "afterTitleDescription":
+              "parPE C++ and Python library functions",
     "verboseBuild": False,
 }
 
@@ -117,3 +120,38 @@ exhale_args = {
 highlight_language = 'cpp'
 
 html_logo = 'logo/parPE.png'
+
+
+# -- RTD custom build --------------------------------------------------------
+
+# only execute those commands when running from RTD
+if on_rtd:
+    parpe_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    doc_dir = os.path.dirname(os.path.abspath(__file__))
+
+    print("Running in", os.getcwd())
+    print("Generating Doxyfile")
+
+    # # need cmake to update doxyfile
+    # subprocess.run(['cmake', '-B' 'build', '-DBUILD_EXAMPLES=OFF',
+    #                 '-DPARPE_ENABLE_CERES=OFF', '-DPARPE_ENABLE_DLIB=OFF',
+    #                 '-DPARPE_ENABLE_FSQP=OFF', '-DPARPE_ENABLE_IPOPT=OFF',
+    #                 '-DPARPE_ENABLE_MPI=OFF', '-DPARPE_ENABLE_TOMS611=OFF',
+    #                 #f'-DAmici_DIR={parpe_dir}/deps/AMICI'
+    #                 ],
+    #                cwd=parpe_dir)
+
+    # FIXME: workaround until we have cmake on rtd:
+    #  https://github.com/readthedocs/readthedocs-docker-images/issues/127
+    replacements = {
+        "@GIT_VERSION@": "",
+        "@CMAKE_CURRENT_LIST_DIR@": parpe_dir
+    }
+    with open(os.path.join(doc_dir, "Doxyfile.in"), "rt") as fin:
+        with open(os.path.join(doc_dir, "Doxyfile"), "wt") as fout:
+            for line in fin:
+                for needle, replacement in replacements.items():
+                    fout.write(line.replace(needle, replacement))
+
+    print("Generating Doxygen docs")
+    subprocess.run(['doxygen'], cwd=doc_dir, check=True)

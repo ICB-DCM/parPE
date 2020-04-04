@@ -10,7 +10,7 @@ Welcome to parPE's documentation!
    :maxdepth: 3
    :caption: Contents:
 
-   README <readme_link>
+   About parPE <readme_link>
    FAQ.md
 
    usage

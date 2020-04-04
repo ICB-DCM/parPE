@@ -1,5 +1,5 @@
-cmake_minimum_required(VERSION 3.7)
-cmake_policy(VERSION 3.7)
+cmake_minimum_required(VERSION 3.10) # for GoogleTest
+cmake_policy(VERSION 3.10)
 
 if(POLICY CMP0074)
   # Use package_ROOT environment variables
@@ -129,7 +129,7 @@ if(${BUILD_TESTS})
             APPEND_COVERAGE_COMPILER_FLAGS()
             setup_target_for_coverage(
                 NAME ${PROJECT_NAME}_coverage
-                EXECUTABLE ctest -R unittests
+                EXECUTABLE ctest
                 DEPENDENCIES ${COVERAGE_DEPENDENCIES})
         else()
             message("Not creating coverage report, because compiler is not GCC but ${CMAKE_CXX_COMPILER_ID}.")

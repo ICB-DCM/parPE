@@ -5,6 +5,7 @@ CMakeLists.txt.user
 /ThirdParty/*
 /doc/Doxyfile
 /doc/doxy/*
+/doc/exhale_cpp_api/
 .project
 .pydevproject
 .idea/*
@@ -42,3 +43,5 @@ python/test_*.png
 
 # breathe-generatd files
 doc/source/api/
+
+test_*.png

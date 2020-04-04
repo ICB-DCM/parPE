@@ -62,10 +62,11 @@ void LoadBalancerMaster::assertMpiActive() {
 
 void *LoadBalancerMaster::threadEntryPoint(void *vpLoadBalancerMaster) {
     auto master = static_cast<LoadBalancerMaster *>(vpLoadBalancerMaster);
-    return master->loadBalancerThreadRun();
+    master->loadBalancerThreadRun();
+    return nullptr;
 }
 
-void *LoadBalancerMaster::loadBalancerThreadRun() {
+void LoadBalancerMaster::loadBalancerThreadRun() {
 
     // dispatch queued work packages
     while (true) {
@@ -80,8 +81,6 @@ void *LoadBalancerMaster::loadBalancerThreadRun() {
 
         freeEmptiedSendBuffers();
     };
-
-    return nullptr;
 }
 
 void LoadBalancerMaster::freeEmptiedSendBuffers() {

@@ -104,11 +104,6 @@ MultiConditionDataProviderHDF5::mapSimulationToOptimizationGradientAddMultiply(i
                                             scaleSim[i], scaleOpt[mapping[i]]);
             optimization[mapping[i]] += coefficient * newGrad;
         }
-        else if(not std::isnan(simulation[i]) && simulation[i] != 0.0)
-            logmessage(LOGLVL_ERROR,
-                       "Gradient w.r.t. unmapped parameter expected to be 0.0, "
-                       "but is %e for parameter %d (%s)", simulation[i], i,
-                       model->getParameterIds()[i].c_str());
     }
 }
 
@@ -200,7 +195,8 @@ void MultiConditionDataProviderHDF5::updateFixedSimulationParameters(
 
     // TODO cache
     int conditionIdxPreeq, conditionIdxSim;
-    getSimAndPreeqConditions(simulationIdx, conditionIdxPreeq, conditionIdxSim);
+    getSimAndPreeqConditions(simulationIdx, conditionIdxPreeq, conditionIdxSim,
+                             edata.reinitializeFixedParameterInitialStates);
 
     if(conditionIdxPreeq >= 0) {
         // -1 means no preequilibration
@@ -211,7 +207,6 @@ void MultiConditionDataProviderHDF5::updateFixedSimulationParameters(
     } else {
         edata.fixedParametersPreequilibration.resize(0);
     }
-
     readFixedSimulationParameters(conditionIdxSim, edata.fixedParameters);
 }
 
@@ -384,12 +379,13 @@ void MultiConditionDataProviderHDF5::copyInputData(H5::H5File const& target)
 
 void MultiConditionDataProviderHDF5::getSimAndPreeqConditions(
         const int simulationIdx, int &preequilibrationConditionIdx,
-        int &simulationConditionIdx) const
+        int &simulationConditionIdx, bool &reinitializeFixedParameterInitialStates) const
 {
     auto tmp = hdf5Read2DIntegerHyperslab(file, hdf5ReferenceConditionPath,
-                                          1, 2, simulationIdx, 0);
+                                          1, 3, simulationIdx, 0);
     preequilibrationConditionIdx = tmp[0];
     simulationConditionIdx = tmp[1];
+    reinitializeFixedParameterInitialStates = tmp[2];
 }
 
 hid_t MultiConditionDataProviderHDF5::getHdf5FileId() const { return file.getId(); }

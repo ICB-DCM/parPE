@@ -143,8 +143,8 @@ public:
     std::vector<double> computeAnalyticalOffsets(const std::vector<std::vector<double> > &measurements,
                                                  std::vector <std::vector<double>>& modelOutputsUnscaled) const;
 
-    std::vector<double> computeAnalyticalSigmas( std::vector<std::vector<double> > const& measurements,
-                                                 std::vector <std::vector<double>>& modelOutputsScaled) const;
+    std::vector<double> computeAnalyticalSigmas(std::vector<std::vector<double> > const& measurements,
+                                                 const std::vector<std::vector<double> > &modelOutputsScaled) const;
 
     void applyOptimalOffsets(std::vector<double> const& offsetParameters,
                              std::vector<std::vector<double> > &modelOutputs) const;

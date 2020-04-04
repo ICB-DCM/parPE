@@ -9,15 +9,15 @@ make_opts=${MAKEOPTS-}
 cd "$script_dir"
 
 cblas_url="http://www.netlib.org/blas/blast-forum/cblas.tgz"
-cblas_archive=cblas.tgz
-cblas_dir=$script_dir/CBLAS
+cblas_archive="cblas.tgz"
+cblas_dir="${script_dir}/CBLAS"
 
-if [[ ! -d ${cblas_dir} ]]; then
-    if [[ ! -f ${cblas_archive} ]]
-        then wget -O $cblas_archive ${cblas_url}
+if [[ ! -d "${cblas_dir}" ]]; then
+    if [[ ! -f "${cblas_archive}" ]]
+        then wget -O "${cblas_archive}" "${cblas_url}"
     fi
 
-    tar -xzf ${cblas_archive}
+    tar -xzf "${cblas_archive}"
 fi
 
 cd "$cblas_dir"

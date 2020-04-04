@@ -8,6 +8,7 @@ import h5py
 import numpy as np
 import pandas as pd
 import petab
+from amici.petab_import import PREEQ_INDICATOR_ID
 from amici.petab_import import petab_scale_to_amici_scale
 from amici.petab_objective import subset_dict
 from colorama import Fore
@@ -257,7 +258,6 @@ class HDF5DataGenerator:
         """
 
         # get list of tuple of parameters dicts for all conditions
-
         self.parameter_mapping = self.petab_problem \
             .get_optimization_to_simulation_parameter_mapping(
                 warn_unmapped=False, scaled_parameters=False)
@@ -293,11 +293,22 @@ class HDF5DataGenerator:
             shape=(self.nk, self.num_condition_vectors),
             fill_value=np.nan)
 
+        # For handling initial states
+        species_in_condition_table = [
+            col for col in self.petab_problem.condition_df
+            if self.petab_problem.sbml_model.getSpecies(col) is not None]
+
         # Merge and preeq and sim parameters, filter fixed parameters
         for condition_idx, \
             (condition_map_preeq, condition_map_sim,
              condition_scale_map_preeq, condition_scale_map_sim) \
                 in enumerate(self.parameter_mapping):
+
+            preeq_cond_idx, sim_cond_idx = self.condition_map[condition_idx]
+            preeq_cond_id = self.condition_ids[preeq_cond_idx] \
+                if preeq_cond_idx != NO_PREEQ_CONDITION_IDX else None
+            sim_cond_id = self.condition_ids[sim_cond_idx]
+            print(preeq_cond_idx, preeq_cond_id, sim_cond_idx, sim_cond_id)
 
             if len(condition_map_preeq) != len(condition_scale_map_preeq) \
                     or len(condition_map_sim) != len(condition_scale_map_sim):
@@ -312,6 +323,82 @@ class HDF5DataGenerator:
                 raise AssertionError(
                     "Number of parameters for preequilibration "
                     "and simulation do not match.")
+
+            # TODO: requires special handling of initial concentrations
+            if species_in_condition_table:
+                # set indicator fixed parameter for preeq
+                # (we expect here, that this parameter was added during AMICI
+                # model import and that it was not added by the user with a
+                # different meaning...)
+                if preeq_cond_idx != NO_PREEQ_CONDITION_IDX:
+                    condition_map_preeq[PREEQ_INDICATOR_ID] = 1.0
+                    condition_scale_map_preeq[PREEQ_INDICATOR_ID] = ptc.LIN
+
+                condition_map_sim[PREEQ_INDICATOR_ID] = 0.0
+                condition_scale_map_sim[PREEQ_INDICATOR_ID] = ptc.LIN
+
+                def _set_initial_concentration(condition_id, species_id,
+                                               init_par_id,
+                                               par_map, scale_map):
+                    value = petab.to_float_if_float(
+                        self.petab_problem.condition_df.loc[
+                            condition_id, species_id])
+                    if isinstance(value, float):
+                        # numeric initial state
+                        par_map[init_par_id] = value
+                        scale_map[init_par_id] = ptc.LIN
+                    else:
+                        # parametric initial state
+                        try:
+                            # try find in mapping
+                            par_map[init_par_id] = par_map[value]
+                            scale_map[init_par_id] = scale_map[value]
+                        except KeyError:
+                            # otherwise look up in parameter table
+                            if (self.petab_problem.parameter_df.loc[
+                                        value, ptc.ESTIMATE] == 0):
+                                par_map[init_par_id] = \
+                                    self.petab_problem.parameter_df.loc[
+                                        value, ptc.NOMINAL_VALUE]
+                            else:
+                                par_map[init_par_id] = value
+
+                            if (ptc.PARAMETER_SCALE
+                                    not in self.petab_problem.parameter_df
+                                    or not self.petab_problem.parameter_df.loc[
+                                        value, ptc.PARAMETER_SCALE]):
+                                scale_map[init_par_id] = ptc.LIN
+                            else:
+                                scale_map[init_par_id] = \
+                                    self.petab_problem.parameter_df.loc[
+                                        value, ptc.PARAMETER_SCALE]
+
+                for species_id in species_in_condition_table:
+                    # for preequilibration
+                    init_par_id = f'initial_{species_id}_preeq'
+
+                    # need to set dummy value for preeq parameter anyways, as it
+                    #  is expected below (set to 0, not nan, because will be
+                    #  multiplied with indicator variable in initial assignment)
+                    condition_map_sim[init_par_id] = 0.0
+                    condition_scale_map_sim[init_par_id] = ptc.LIN
+
+                    if preeq_cond_idx != NO_PREEQ_CONDITION_IDX:
+                        _set_initial_concentration(
+                            preeq_cond_id, species_id, init_par_id,
+                            condition_map_preeq,
+                            condition_scale_map_preeq)
+                        # enable state reinitialization
+                        self.f['/fixedParameters/simulationConditions'][condition_idx, 2] = 1
+
+                    # for simulation
+                    init_par_id = f'initial_{species_id}_sim'
+                    _set_initial_concentration(
+                        sim_cond_id, species_id, init_par_id,
+                        condition_map_sim,
+                        condition_scale_map_sim)
+
+            print(condition_map_preeq, condition_map_sim)
 
             # split into fixed and variable parameters:
             condition_map_preeq_var = condition_scale_map_preeq_var = None
@@ -338,6 +425,7 @@ class HDF5DataGenerator:
                     condition_scale_map_preeq_var, condition_scale_map_sim_var,
                     condition_idx)
 
+            print(self.problem_parameter_ids)
             # mapping for each model parameter
             for model_parameter_idx, model_parameter_id \
                     in enumerate(variable_par_ids):
@@ -486,9 +574,14 @@ class HDF5DataGenerator:
               len(simulations))
 
         self.condition_map = condition_map
+
+        # append third column for state reinitialization
+        _condition_map = np.zeros((condition_map.shape[0],
+                                  condition_map.shape[1] + 1),)
+        _condition_map[:, :-1] = condition_map
         self.f.create_dataset("/fixedParameters/simulationConditions",
                               dtype="<i4",
-                              data=condition_map)
+                              data=_condition_map)
 
     def _generate_measurement_matrices(self):
         """
@@ -525,6 +618,8 @@ class HDF5DataGenerator:
             name: idx for idx, name in enumerate(self.observable_ids)}
 
         measurement_df = self.petab_problem.measurement_df
+        if ptc.NOISE_PARAMETERS not in measurement_df:
+            measurement_df[ptc.NOISE_PARAMETERS] = np.nan
 
         for sim_idx, (preeq_cond_idx, sim_cond_idx) \
                 in enumerate(self.condition_map):
@@ -575,13 +670,14 @@ class HDF5DataGenerator:
 
         row_filter = measurement_df[ptc.SIMULATION_CONDITION_ID] \
             == self.condition_ids[sim_cond_idx]
-        if preeq_cond_idx == self.NO_PREEQ_CONDITION_IDX:
-            row_filter &= \
-                measurement_df[ptc.PREEQUILIBRATION_CONDITION_ID].isnull()
-        else:
-            row_filter &= \
-                measurement_df[ptc.PREEQUILIBRATION_CONDITION_ID] \
-                == self.condition_ids[preeq_cond_idx]
+        if ptc.PREEQUILIBRATION_CONDITION_ID in measurement_df:
+            if preeq_cond_idx == self.NO_PREEQ_CONDITION_IDX:
+                row_filter &= \
+                    measurement_df[ptc.PREEQUILIBRATION_CONDITION_ID].isnull()
+            else:
+                row_filter &= \
+                    measurement_df[ptc.PREEQUILIBRATION_CONDITION_ID] \
+                    == self.condition_ids[preeq_cond_idx]
         cur_mes_df = measurement_df.loc[row_filter, :]
         if not len(cur_mes_df):
             # Should have been filtered out before
@@ -782,6 +878,7 @@ class HDF5DataGenerator:
         g = self.f.require_group("/amiciOptions")
         g.attrs['sensi'] = amici.SensitivityOrder_first
         g.attrs['sensi_meth'] = amici.SensitivityMethod_adjoint
+        # TODO PEtab support: get from file
         g.attrs['tstart'] = 0.0
         g.attrs['atol'] = 1e-14
         g.attrs['interpType'] = amici.InterpolationType_hermite
@@ -797,6 +894,11 @@ class HDF5DataGenerator:
         g.attrs['ordering'] = 0
         g.attrs['rtol'] = 1e-6
         g.attrs['stldet'] = 1
+
+        # Required to handle parametric initial concentrations where newton
+        # solver would fail with KLU error
+        g.attrs['steadyStateSensitivityMode'] = \
+            amici.SteadyStateSensitivityMode_simulationFSA
 
         num_model_parameters = \
             self.f['/parameters/modelParameterNames'].shape[0]

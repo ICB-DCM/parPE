@@ -1,24 +1,24 @@
 #!/bin/bash
 # Download and build googletest
 
-set -e
+set -euo pipefail
 
-SCRIPT_PATH="`dirname \"$0\"`"
-SCRIPT_PATH="`( cd \"$SCRIPT_PATH\" && pwd )`"
+script_path="$(dirname "$0")"
+script_path="$(cd "${script_path}" && pwd)"
 
-cd ${SCRIPT_PATH}
+cd "${script_path}"
 
-if [[ ! -d googletest ]]; then
+if [[ ! -d "googletest" ]]; then
   echo "googletest/ does not exist"
-  if [[ ! -f googletest.zip ]]; then
+  if [[ ! -f "googletest.zip" ]]; then
     echo "Downloading googletest..."
-    wget https://github.com/google/googletest/archive/master.zip -O googletest.zip
+    wget "https://github.com/google/googletest/archive/master.zip" -O "googletest.zip"
   fi
 
   echo "Unpacking and building googletest..."
-  unzip googletest
-  mv googletest-master googletest
-  cd googletest
+  unzip "googletest"
+  mv "googletest-master" "googletest"
+  cd "googletest"
   mkdir -p build
   cd build
   cmake ..
