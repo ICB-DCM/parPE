@@ -76,6 +76,8 @@ hid_t hdf5CreateFile(const char *filename,
 
 H5::H5File hdf5OpenForReading(std::string const& hdf5Filename);
 
+H5::H5File hdf5OpenForAppending(const std::string &hdf5Filename);
+
 void closeHDF5File(hid_t file_id);
 
 void hdf5CreateExtendableDouble2DArray(hid_t file_id, const char *datasetPath,
