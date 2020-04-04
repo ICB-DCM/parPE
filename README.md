@@ -1,7 +1,11 @@
-<a href="https://app.shippable.com/github/dweindl/parPE">
-<img src="https://api.shippable.com/projects/59463d3e8993d7070010407b/badge?branch=master" alt="Run Status"></a>
-<a href="https://app.shippable.com/github/dweindl/parPE">
-<img src="https://api.shippable.com/projects/59463d3e8993d7070010407b/coverageBadge?branch=master" alt="Coverage Badge"></a>
+<a href="https://github.com/ICB-DCM/parPE/actions?query=workflow%3A%22parPE+tests%22">
+<img src="https://github.com/ICB-DCM/parPE/workflows/parPE%20tests/badge.svg?branch=master" alt="parPE tests"></a>
+<a href="https://sonarcloud.io/dashboard?id=ICB-DCM_parPE">
+<img src="https://sonarcloud.io/api/project_badges/measure?project=ICB-DCM_parPE&metric=coverage" alt="Coverage"></a>
+<a href="https://github.com/ICB-DCM/parPE/actions?query=workflow%3A%22PEtab+test+suite%22">
+<img src="https://github.com/ICB-DCM/parPE/workflows/PEtab%20test%20suite/badge.svg" alt="PEtab test suite"></a>
+<a href="https://github.com/ICB-DCM/parPE/actions?query=workflow%3A%22Deploy+to+dockerhub%22">
+<img src="https://github.com/ICB-DCM/parPE/workflows/Deploy%20to%20dockerhub/badge.svg" alt="Deploy to dockerhub"></a>
 <a href="https://doi.org/10.5281/zenodo.3478612">
 <img src="https://zenodo.org/badge/DOI/10.5281/zenodo.3478612.svg" alt="DOI"></a>
 
