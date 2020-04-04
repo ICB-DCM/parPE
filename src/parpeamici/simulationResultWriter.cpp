@@ -23,19 +23,7 @@ SimulationResultWriter::SimulationResultWriter(const std::string &hdf5FileName,
                                                std::string rootPath)
     : rootPath(std::move(rootPath))
 {
-    auto lock = hdf5MutexGetLock();
-
-    H5_SAVE_ERROR_HANDLER;
-
-    // Open for append or create
-    try {
-        file = H5::H5File(hdf5FileName, H5F_ACC_RDWR);
-    } catch (H5::FileIException const&) {
-        // create if doesn't exist
-        file = H5::H5File(hdf5FileName, H5F_ACC_EXCL);
-    }
-    H5_RESTORE_ERROR_HANDLER;
-
+    file = hdf5OpenForAppending(hdf5FileName);
     updatePaths();
 }
 

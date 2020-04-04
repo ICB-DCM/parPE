@@ -662,6 +662,20 @@ runSimulationTasks(StandaloneSimulator& sim,
                    std::string const& resultPath,
                    LoadBalancerMaster* loadBalancer)
 {
+    auto lock = hdf5MutexGetLock();
+    H5::H5File conditionFile = hdf5OpenForReading(conditionFileName);
+    H5::H5File resultFile = hdf5OpenForAppending(resultFileName);
+
+    std::vector<std::string> datasetsToCopy {"/inputData"};
+    for (auto& datasetToCopy : datasetsToCopy) {
+        auto source = conditionFilePath + datasetToCopy;
+        auto dest = resultPath + "/" + datasetToCopy;
+        H5Ocopy(conditionFile.getId(), source.c_str(),
+                resultFile.getId(), dest.c_str(),
+                H5P_DEFAULT, H5P_DEFAULT);
+    }
+    lock.unlock();
+
 
     if (simulationMode == "--at-optimum") {
         return parpe::runFinalParameters(sim,

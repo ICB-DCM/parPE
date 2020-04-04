@@ -796,6 +796,26 @@ H5::H5File hdf5OpenForReading(const std::string &hdf5Filename)
     }
 }
 
+H5::H5File hdf5OpenForAppending(const std::string &hdf5Filename)
+{
+    auto lock = hdf5MutexGetLock();
+
+    H5::H5File file;
+    H5_SAVE_ERROR_HANDLER;
+
+    // Open for append or create
+    try {
+        file = H5::H5File(hdf5Filename, H5F_ACC_RDWR);
+    } catch (H5::FileIException const&) {
+        // create if doesn't exist
+        file = H5::H5File(hdf5Filename, H5F_ACC_EXCL);
+    }
+    H5_RESTORE_ERROR_HANDLER;
+
+    return file;
+}
+
+
 void hdf5EnsureGroupExists(const H5::H5File & file, const std::string &groupName)
 {
     hdf5EnsureGroupExists(file.getId(), groupName);
