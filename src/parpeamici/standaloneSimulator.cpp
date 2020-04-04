@@ -259,6 +259,11 @@ StandaloneSimulator::run(const std::string& resultFile,
                                             resultPath,
                                             "observableIds",
                                             model->getObservableIds());
+                   hdf5Write1dStringDataset(resultFileH5,
+                                            resultPath,
+                                            "parameterIds",
+                                            model->getParameterIds());
+
                }
                // compute llh
                for (int conditionIdx = 0;
