@@ -17,6 +17,8 @@
 #include <cxxabi.h> // __cxa_demangle
 #include <sstream>
 #include <cstdlib> // getenv
+#include <algorithm>
+#include <random>
 
 #include <pthread.h>
 
@@ -155,7 +157,10 @@ std::string getBacktrace(int nMaxFrames)
 }
 
 double randDouble(double min, double max) {
-    return min + rand() / static_cast<double>(RAND_MAX) * (max - min);
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<> dis(min, max);
+    return dis(gen);
 }
 
 void fillArrayRandomDoubleIndividualInterval(gsl::span<const double> min,
@@ -170,8 +175,12 @@ void fillArrayRandomDoubleIndividualInterval(gsl::span<const double> min,
 
 void fillArrayRandomDoubleSameInterval(double min, double max,
                                        gsl::span<double> buffer) {
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<> dis(min, max);
+
     for (gsl::span<double>::index_type i = 0; i < buffer.size(); ++i)
-        buffer[i] = randDouble(min, max);
+        buffer[i] = dis(gen);
 }
 
 

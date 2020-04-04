@@ -347,7 +347,7 @@ std::vector<double> HierarchicalOptimizationWrapper::computeAnalyticalOffsets(
 
 std::vector<double> HierarchicalOptimizationWrapper::computeAnalyticalSigmas(
         const std::vector<std::vector<double> > &measurements,
-        std::vector<std::vector<double> > &modelOutputsScaled) const
+        std::vector<std::vector<double> > const &modelOutputsScaled) const
 {
     int numSigmas = sigmaParameterIndices.size();
     std::vector<double> sigmas(numSigmas);
