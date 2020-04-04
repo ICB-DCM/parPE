@@ -15,6 +15,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 include(BuildType) # Ensure CMAKE_BUILD_TYPE is always set
 include(BuildOptimized)
+include(CTest)
 
 set(CMAKE_DEBUG_POSTFIX "-dbg")
 # -D_GNU_SOURCE for pthread recursive mutex
@@ -100,7 +101,6 @@ set(GSL_INCLUDE_DIRS "${CMAKE_SOURCE_DIR}/ThirdParty/gsl")
 # Build tests?
 if(${BUILD_TESTING})
     enable_testing()
-    include (CTest)
 
     # --allow-run-as-root is required for running on shippable systems
     set(TESTS_MPIEXEC_COMMAND

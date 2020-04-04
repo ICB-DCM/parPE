@@ -112,7 +112,7 @@ install(TARGETS ${PROJECT_NAME} EXPORT ParPETargets
     INCLUDES DESTINATION include
     )
 
-if(${BUILD_TESTING} AND ${PARPE_ENABLE_MPI})
+if("${BUILD_TESTING}" AND ${PARPE_ENABLE_MPI})
     add_test (NAME ${PROJECT_NAME}
         COMMAND ${CMAKE_SOURCE_DIR}/misc/run_in_venv.sh
             ${CMAKE_BINARY_DIR}/venv

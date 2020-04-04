@@ -58,7 +58,7 @@ CC=mpicc CXX=mpiCC cmake \
       -DCERES_LIBRARIES="$ceres_libs" \
       -DCERES_INCLUDE_DIRS="/usr/include/;/usr/include/eigen3" \
       -DMPI_INCLUDE_DIRS=/usr/include/openmpi-x86_64/ \
-      -DBUILD_TESTS=ON \
+      -DBUILD_TESTING=ON \
       -DTESTS_MPIEXEC_COMMAND="$mpi_cmd" \
       ..
 make -j12 VERBOSE=1
