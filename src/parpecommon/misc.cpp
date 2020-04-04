@@ -265,26 +265,6 @@ double WallTimer::getTotal()
     return duration.count();
 }
 
-bool launchedWithMpi()
-{
-    if(std::getenv("OMPI_COMM_WORLD_SIZE"))
-        return true; // OpenMPI
-    if(std::getenv("MP_PROCS") && atoi(std::getenv("MP_PROCS")) > 1)
-        return true;
-    if(std::getenv("PMI_RANK"))
-        return true; // INTEL MPI / Hydra
-
-    return false;
-}
-
-void initMpiIfNeeded(int *argc, char ***argv)
-{
-#ifdef PARPE_ENABLE_MPI
-    if(parpe::launchedWithMpi())
-        MPI_Init(argc, argv);
-#endif
-}
-
 void finalizeMpiIfNeeded()
 {
 #ifdef PARPE_ENABLE_MPI
