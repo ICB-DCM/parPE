@@ -145,6 +145,7 @@ void swap(AmiciSimulationRunner::AmiciResultPackageSimple &first, AmiciSimulatio
     swap(first.simulationTimeSeconds, second.simulationTimeSeconds);
     swap(first.gradient, second.gradient);
     swap(first.modelOutput, second.modelOutput);
+    swap(first.modelStates, second.modelStates);
     swap(first.status, second.status);
 }
 
@@ -153,6 +154,7 @@ bool operator==(const AmiciSimulationRunner::AmiciResultPackageSimple &lhs, cons
             && lhs.status == rhs.status
             && lhs.gradient == rhs.gradient
             && lhs.modelOutput == rhs.modelOutput
+            && lhs.modelStates == rhs.modelStates
             && lhs.simulationTimeSeconds == rhs.simulationTimeSeconds;
 }
 

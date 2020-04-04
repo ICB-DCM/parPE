@@ -18,32 +18,38 @@ estimation for an example model included in the the image.
 ### Generating parPE base docker image
 
 This will create the parPE base image *from parPE from github*
-(takes about 10'):
+(run from the top level directory of your local parPE git clone, 
+takes about 10'):
 
-    cd container/charliecloud/parpe_base
-    git archive -v -o parpe.tar.gz --format=tar.gz HEAD
-    ch-build -t parpe .
+```shell
+git archive -v -o container/charliecloud/parpe_base/parpe.tar.gz --format=tar.gz HEAD
+cd container/charliecloud/parpe_base
+ch-build -t parpe .
+```
 
 Export image to charliecloud archive in the current directory:
 
-    ch-docker2tar parpe:latest .
-
+```shell
+ch-docker2tar parpe:latest .
+```
 
 ### Using a provided docker image
 
 Instead of building the docker image yourself, you can download a Ubuntu-based
 parPE image from [dockerhub](https://hub.docker.com/r/dweindl/parpe) using:
 
-    docker pull dweindl/parpe:latest
+```shell
+docker pull dweindl/parpe:latest
+```
 
 **Developer note:**
 To update the image on dockerhub, run:
 
-    sudo docker images # check for IMAGE ID
-    sudo docker tag $IMAGE_ID dweindl/parpe:latest
-    sudo docker push dweindl/parpe:latest 
-
-(TODO: auto-deploy after CI)
+```shell
+sudo docker images # check for IMAGE ID
+sudo docker tag $IMAGE_ID dweindl/parpe:latest
+sudo docker push dweindl/parpe:latest 
+```
 
 ## Running the example model
 
@@ -59,15 +65,17 @@ Start an interactive session. With SLURM, e.g.
 
 On the compute node:
 
-    CHARLIE_DEST_DIR=/var/tmp
-    CHARLIE_TAR=parpe\:latest.tar.gz
-    OUTPUT_DIR=parpe_test # where results will be written to
-    ch-tar2dir "${CHARLIE_TAR}" "${CHARLIE_DEST_DIR}"
-    mkdir -p "${OUTPUT_DIR}"
-    ch-run -b "${OUTPUT_DIR}":/mnt/ "${CHARLIE_DEST_DIR}"/parpe\:latest/ -- \
-        mpirun /root/parPE/build/examples/parpeamici/steadystate/example_steadystate_multi \
-        -o /mnt/pe-results/ \
-        /root/parPE/build/examples/parpeamici/steadystate/steadystate_scaled-prefix/src/steadystate_scaled/example_data.h5
+```shell
+CHARLIE_DEST_DIR=/var/tmp
+CHARLIE_TAR=parpe\:latest.tar.gz
+OUTPUT_DIR=parpe_test # where results will be written to
+ch-tar2dir "${CHARLIE_TAR}" "${CHARLIE_DEST_DIR}"
+mkdir -p "${OUTPUT_DIR}"
+ch-run -b "${OUTPUT_DIR}":/mnt/ "${CHARLIE_DEST_DIR}"/parpe\:latest/ -- \
+    mpirun /root/parPE/build/examples/parpeamici/steadystate/example_steadystate_multi \
+    -o /mnt/pe-results/ \
+    /root/parPE/build/examples/parpeamici/steadystate/steadystate_scaled-prefix/src/steadystate_scaled/example_data.h5
+```
 
 The results will be written to `${OUTPUT_DIR}`.
 
@@ -77,12 +85,14 @@ The results will be written to `${OUTPUT_DIR}`.
 1. Generate / fetch a parPE docker image as described above
 
 1. Generate charliecloud image (potentially requires `sudo`)
- 
-    `ch-docker2tar parpe:latest .`
-
+    
+    ```shell
+    ch-docker2tar parpe:latest .
+   ```
+   
 1. Extract charliecloud image (adapt paths as needed)
 
-    ```
+    ```shell
     CHARLIE_DEST_DIR=/var/tmp
     CHARLIE_TAR=parpe\:latest.tar.gz
     ch-tar2dir "${CHARLIE_TAR}" "${CHARLIE_DEST_DIR}"
@@ -92,7 +102,7 @@ The results will be written to `${OUTPUT_DIR}`.
 
    For testing you can download an example model via:
 
-    ```    
+    ```shell
     wget "https://raw.githubusercontent.com/LeonardSchmiester/Benchmark-Models/hackathon/hackathon_contributions_new_data_format/Zheng_PNAS2012/model_Zheng_PNAS2012.xml"
     wget "https://raw.githubusercontent.com/LeonardSchmiester/Benchmark-Models/hackathon/hackathon_contributions_new_data_format/Zheng_PNAS2012/measurementData_Zheng_PNAS2012.tsv"
     wget "https://raw.githubusercontent.com/LeonardSchmiester/Benchmark-Models/hackathon/hackathon_contributions_new_data_format/Zheng_PNAS2012/experimentalCondition_Zheng_PNAS2012.tsv"
@@ -103,7 +113,7 @@ The results will be written to `${OUTPUT_DIR}`.
 
     For the example files above, run:
     
-    ```
+    ```shell
     cat > parpe_optimize_petab.yaml << EOF
    petab:
         sbml_file: 'model_Zheng_PNAS2012.xml'
@@ -114,13 +124,14 @@ The results will be written to `${OUTPUT_DIR}`.
     model_name: 'Zheng_PNAS2012'
     amici_build_dir: '/root/parPE/deps/AMICI/build'
     amici_src_dir: '/root/parPE/deps/AMICI/'
+   parpe_src_dir: '/root/parPE/'
     parpe_build_dir: '/root/parPE/build/'
     EOF
     ```
 
 1. Run the Snakemake workflow, e.g. as
 
-    ```    
+    ```shell
     PETAB_DIR=Zheng_PNAS2012 # where results will be written to
     SNAKEMAKE_CONFIG=/mnt/parpe_optimize_petab.yaml
     mkdir -p "${PETAB_DIR}"

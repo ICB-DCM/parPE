@@ -48,6 +48,8 @@ MultiConditionDataProviderHDF5::MultiConditionDataProviderHDF5(
     hdf5ParameterOverridesPath = rootPath
             + "/parameters/parameterOverrides";
 
+    checkDataIntegrity();
+
     amici::hdf5::readModelDataFromHDF5(file, *this->model, hdf5AmiciOptionPath);
 }
 
@@ -102,11 +104,6 @@ MultiConditionDataProviderHDF5::mapSimulationToOptimizationGradientAddMultiply(i
                                             scaleSim[i], scaleOpt[mapping[i]]);
             optimization[mapping[i]] += coefficient * newGrad;
         }
-        else if(not std::isnan(simulation[i]) && simulation[i] != 0.0)
-            logmessage(LOGLVL_ERROR,
-                       "Gradient w.r.t. unmapped parameter expected to be 0.0, "
-                       "but is %e for parameter %d (%s)", simulation[i], i,
-                       model->getParameterIds()[i].c_str());
     }
 }
 
@@ -198,7 +195,8 @@ void MultiConditionDataProviderHDF5::updateFixedSimulationParameters(
 
     // TODO cache
     int conditionIdxPreeq, conditionIdxSim;
-    getSimAndPreeqConditions(simulationIdx, conditionIdxPreeq, conditionIdxSim);
+    getSimAndPreeqConditions(simulationIdx, conditionIdxPreeq, conditionIdxSim,
+                             edata.reinitializeFixedParameterInitialStates);
 
     if(conditionIdxPreeq >= 0) {
         // -1 means no preequilibration
@@ -209,7 +207,6 @@ void MultiConditionDataProviderHDF5::updateFixedSimulationParameters(
     } else {
         edata.fixedParametersPreequilibration.resize(0);
     }
-
     readFixedSimulationParameters(conditionIdxSim, edata.fixedParameters);
 }
 
@@ -382,12 +379,13 @@ void MultiConditionDataProviderHDF5::copyInputData(H5::H5File const& target)
 
 void MultiConditionDataProviderHDF5::getSimAndPreeqConditions(
         const int simulationIdx, int &preequilibrationConditionIdx,
-        int &simulationConditionIdx) const
+        int &simulationConditionIdx, bool &reinitializeFixedParameterInitialStates) const
 {
     auto tmp = hdf5Read2DIntegerHyperslab(file, hdf5ReferenceConditionPath,
-                                          1, 2, simulationIdx, 0);
+                                          1, 3, simulationIdx, 0);
     preequilibrationConditionIdx = tmp[0];
     simulationConditionIdx = tmp[1];
+    reinitializeFixedParameterInitialStates = tmp[2];
 }
 
 hid_t MultiConditionDataProviderHDF5::getHdf5FileId() const { return file.getId(); }
@@ -414,9 +412,30 @@ hid_t MultiConditionDataProviderHDF5::getHdf5FileId() const { return file.getId(
 
 
 void MultiConditionDataProviderHDF5::checkDataIntegrity() const {
-    //int numConditions = getNumberOfSimulationConditions();
+    // check matching IDs
+    std::string modelParameterIdsPath = rootPath + "/model/parameterIds";
+    auto dataParameterIds = hdf5Read1dStringDataset(file,
+                                                    modelParameterIdsPath);
+    auto modelParameterIds = this->model->getParameterIds();
+    RELEASE_ASSERT(dataParameterIds == modelParameterIds,
+                   "Parameter IDs do not match.");
 
-    auto model = getModel();
+    std::string speciesIdsPath = rootPath + "/model/stateIds";
+    auto dataSpeciesIds = hdf5Read1dStringDataset(file, speciesIdsPath);
+    RELEASE_ASSERT(dataSpeciesIds == model->getStateIds(),
+                   "State IDs do not match.");
+
+    std::string fixedParIdsPath = rootPath + "/model/fixedParameterIds";
+    auto fixedParIds = hdf5Read1dStringDataset(file, fixedParIdsPath);
+    RELEASE_ASSERT(fixedParIds == model->getFixedParameterIds(),
+                   "Fixed parameter IDs do not match.");
+
+    std::string observableIdsPath = rootPath + "/model/observableIds";
+    auto observableIds = hdf5Read1dStringDataset(file, observableIdsPath);
+    RELEASE_ASSERT(observableIds == model->getObservableIds(),
+                   "Observable IDs do not match.");
+
+    //int numConditions = getNumberOfSimulationConditions();
 
     int d1, d2;//, d3;
 
@@ -437,9 +456,11 @@ void MultiConditionDataProviderHDF5::checkDataIntegrity() const {
 //    RELEASE_ASSERT(d2 == model->nytrue, "");
 //    RELEASE_ASSERT(d3 >= model->nt(), "");
 
-    parpe::hdf5GetDatasetDimensions(file.getId(), hdf5ConditionPath.c_str(),
-                                    2, &d1, &d2);
-    RELEASE_ASSERT(d1 == model->nk(), "");
+    if(model->nk()) {
+        parpe::hdf5GetDatasetDimensions(file.getId(), hdf5ConditionPath.c_str(),
+                                        2, &d1, &d2);
+        RELEASE_ASSERT(d1 == model->nk(), "");
+    }
 }
 
 

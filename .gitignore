@@ -5,6 +5,7 @@ CMakeLists.txt.user
 /ThirdParty/*
 /doc/Doxyfile
 /doc/doxy/*
+/doc/exhale_cpp_api/
 .project
 .pydevproject
 .idea/*
@@ -18,6 +19,7 @@ __pycache__/
 */swig/*_wrap.cpp
 /amici/examples/steadystate/model_steadystate_scaled
 /amici/examples/lucarelli/lucarelli_12/lucarelli_12/
+/activate
 
 # snakemake
 .snakemake/
@@ -38,3 +40,8 @@ python/test_*.png
 
 /benchmark_collection/*_*[0-9][0-9][0-9][0-9]/
 /benchmark_collection/parpe_*_*[0-9][0-9][0-9][0-9]/
+
+# breathe-generatd files
+doc/source/api/
+
+test_*.png

@@ -2,8 +2,6 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 project(unittests_optimization)
 
-add_test (NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME} -c)
-
 set(SRC_LIST_CPP
     main.cpp
     ../parpecommon/testingMisc.cpp
@@ -34,3 +32,5 @@ endif(${PARPE_ENABLE_TOMS611})
 if(${PARPE_ENABLE_FSQP})
     target_link_libraries(${PROJECT_NAME} fsqp)
 endif(${PARPE_ENABLE_FSQP})
+
+gtest_discover_tests(${PROJECT_NAME})

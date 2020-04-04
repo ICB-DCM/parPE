@@ -3,17 +3,28 @@
 # Build libamici
 #
 set -e
-CMAKE=${CMAKE:-cmake}
-MAKE=${MAKE:-make}
+cmake=${CMAKE:-cmake}
+make=${MAKE:-make}
 
-SCRIPT_PATH=$(dirname $BASH_SOURCE)
-AMICI_PATH=$(cd $SCRIPT_PATH/.. && pwd)
+script_path=$(dirname "$BASH_SOURCE")
+amici_path=$(cd "$script_path/.." && pwd)
 
-mkdir -p ${AMICI_PATH}/build
-cd ${AMICI_PATH}/build
-CPPUTEST_BUILD_DIR=${AMICI_PATH}/ThirdParty/cpputest-master/build/
-CppUTest_DIR=${CPPUTEST_BUILD_DIR} ${CMAKE} -DCMAKE_BUILD_TYPE=Debug ..
-${MAKE}
+mkdir -p "${amici_path}/build"
+cd "${amici_path}/build"
 
-${MAKE} python-sdist
+cpputest_build_dir="${amici_path}"/ThirdParty/cpputest-master/build/
+
+if [[ $TRAVIS = true ]]; then
+  # Running on CI server
+  build_type="Debug"
+else
+  build_type="RelWithDebInfo"
+fi
+
+CppUTest_DIR=${cpputest_build_dir} \
+  ${cmake} -DCMAKE_BUILD_TYPE=$build_type -DPython3_EXECUTABLE="$(command -v python3)" ..
+
+${make}
+
+${make} python-sdist
 set -x

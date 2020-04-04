@@ -1,5 +1,7 @@
 #!/bin/bash
-set -e
+# Install parPE inside docker
+set -euo pipefail
+set -x
 
 cd
 
@@ -13,30 +15,51 @@ export PARPE_BASE=$(pwd)
 
 # Install AMICI
 export AMICI_PATH=${PARPE_BASE}/deps/AMICI/
-cd "${AMICI_PATH}" && scripts/buildSuiteSparse.sh && scripts/buildSundials.sh && scripts/buildCpputest.sh #&& scripts/buildAmici.sh
+cd "${AMICI_PATH}" \
+  && scripts/buildSuiteSparse.sh \
+  && scripts/buildSundials.sh \
+  && scripts/buildCpputest.sh #&& scripts/buildAmici.sh
 mkdir -p "${AMICI_PATH}"/build && cd "${AMICI_PATH}"/build
 CPPUTEST_BUILD_DIR=${AMICI_PATH}/ThirdParty/cpputest-master/build/
-cmake -DCMAKE_BUILD_TYPE=Debug -DENABLE_PYTHON=ON -DBUILD_TESTS=OFF -DCppUTest_DIR="${CPPUTEST_BUILD_DIR}" .. && make -j12
+cmake \
+  -DCMAKE_BUILD_TYPE=Debug \
+  -DENABLE_PYTHON=ON \
+  -DBUILD_TESTS=OFF \
+  -DCppUTest_DIR="${CPPUTEST_BUILD_DIR}" \
+  .. && make -j12
 
-#- cd $PARPE_BASE/ThirdParty && ./downloadPackages.sh
 #- cd $PARPE_BASE/ThirdParty && ./installCeres.sh
 
 # For google-test for parPE tests
 cd "${PARPE_BASE}" && ThirdParty/installGoogleTest.sh
 
-# build parPE
+# install parPE python requirements
 pip install -r "${PARPE_BASE}"/python/requirements.txt
+
+# build parPE
 cd "${PARPE_BASE}"
 mkdir -p build
 cd build
+ceres_libs="/usr/lib/libceres.so"
+ceres_libs="$ceres_libs;/usr/lib/x86_64-linux-gnu/libglog.so"
+ceres_libs="$ceres_libs;/usr/lib/x86_64-linux-gnu/libgflags.so"
+
+# docker-specific MPI settings
+mpi_cmd="mpiexec;--allow-run-as-root;-n;4;--oversubscribe"
+mpi_cmd="$mpi_cmd;--mca;btl_vader_single_copy_mechanism;none"
+mpi_cmd="$mpi_cmd;--mca;btl;^openib"
+mpi_cmd="$mpi_cmd;--mca;oob_tcp_if_include;lo"
+mpi_cmd="$mpi_cmd;--mca;btl_tcp_if_include;lo;"
+mpi_cmd="$mpi_cmd;--mca;orte_base_help_aggregate;0"
+
 CC=mpicc CXX=mpiCC cmake \
       -DIPOPT_INCLUDE_DIRS=/usr/include/coin/ \
       -DIPOPT_LIBRARIES=/usr/lib/libipopt.so \
-      -DCERES_LIBRARIES="/usr/lib/libceres.so;/usr/lib/x86_64-linux-gnu/libglog.so;/usr/lib/x86_64-linux-gnu/libgflags.so" \
+      -DCERES_LIBRARIES="$ceres_libs" \
       -DCERES_INCLUDE_DIRS="/usr/include/;/usr/include/eigen3" \
       -DMPI_INCLUDE_DIRS=/usr/include/openmpi-x86_64/ \
-      -DBUILD_TESTS=ON \
-      "-DTESTS_MPIEXEC_COMMAND=mpiexec;--allow-run-as-root;-n;4;--oversubscribe;--mca;btl_vader_single_copy_mechanism;none;--mca;btl;^openib;--mca;oob_tcp_if_include;lo;--mca;btl_tcp_if_include;lo;--mca;orte_base_help_aggregate;0" \
+      -DBUILD_TESTING=ON \
+      -DTESTS_MPIEXEC_COMMAND="$mpi_cmd" \
       ..
 make -j12 VERBOSE=1
 

@@ -20,3 +20,13 @@ Contents in order of assumed relevance:
 - Doxyfile.in: Configuration file for doxygen C++ documentation generation
 
 - gfx/: Graphics for the documentation
+
+
+# Building documentation
+
+To build doxygen documentation run `doxygen` inside the `doc` directory.
+
+To build the sphinx documentation after having built the doxygen documentation,
+run `make html` from inside the `build/venv/` python environment. 
+
+View the result with `firefox build/html/index.html`.

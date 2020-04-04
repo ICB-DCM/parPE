@@ -1,0 +1,112 @@
+# https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions
+# https://help.github.com/en/actions/configuring-and-managing-workflows/using-environment-variables
+name: parPE tests
+on: [push]
+jobs:
+  container:
+    runs-on: ubuntu-latest
+    container: dweindl/parpeci:1511078
+    name: parPE tests
+    steps:
+    - uses: actions/checkout@master
+      with:
+        fetch-depth: 42
+
+
+    - run: echo "::set-env name=PARPE_BASE::$(pwd)"
+    - run: echo "::set-env name=PARPE_BUILD::${PARPE_BASE}/build"
+    - run: echo "::set-env name=AMICI_PATH::${PARPE_BASE}/deps/AMICI/"
+
+    # sonar cloud
+    - run: echo "::set-env name=SONAR_SCANNER_VERSION::4.2.0.1873"
+    - run: echo "::set-env name=SONAR_SCANNER_HOME::/root/.sonar/sonar-scanner-$SONAR_SCANNER_VERSION-linux"
+    - run: echo "::set-env name=SONAR_SCANNER_OPTS::-server"
+    - run: echo "::add-path::${SONAR_SCANNER_HOME}/bin"
+    - run: echo "::add-path::/root/.sonar/build-wrapper-linux-x86"
+
+    - name: Info
+      run: lsb_release -a && printenv
+
+      # Build dependencies
+
+    - name: Install AMICI deps
+      run: |
+        cd $AMICI_PATH \
+          && scripts/buildSuiteSparse.sh \
+          && scripts/buildSundials.sh \
+          && scripts/buildCpputest.sh #&& scripts/buildAmici.sh
+
+    - name: Install AMICI
+      # with tests:
+      # CPPUTEST_BUILD_DIR=${AMICI_PATH}/ThirdParty/cpputest-master/build/
+      # -DCppUTest_DIR=${CPPUTEST_BUILD_DIR}
+      run: |
+        cmake \
+          -S ${AMICI_PATH} \
+          -B ${AMICI_PATH}/build \
+          -DCMAKE_BUILD_TYPE=Debug \
+          -DENABLE_PYTHON=ON \
+          -DBUILD_TESTS=OFF \
+          && cmake --build "${AMICI_PATH}/build" --parallel -- VERBOSE=1
+
+    - name: Install google test
+      run: ThirdParty/installGoogleTest.sh
+
+    - name: Install parPE Python deps
+      run: |
+        pip install -r ${PARPE_BASE}/python/requirements.txt
+
+    - name: Configure parPE
+      run: |
+        CC=mpicc CXX=mpiCC \
+          cmake \
+            -S"${PARPE_BASE}" \
+            -B"${PARPE_BUILD}" \
+            -DIPOPT_INCLUDE_DIRS=/usr/include/coin/ \
+            -DIPOPT_LIBRARIES=/usr/lib/libipopt.so \
+            -DCERES_LIBRARIES="/usr/lib/libceres.so;/usr/lib/x86_64-linux-gnu/libglog.so;/usr/lib/x86_64-linux-gnu/libgflags.so" \
+            -DCERES_INCLUDE_DIRS="/usr/include/;/usr/include/eigen3" \
+            -DMPI_INCLUDE_DIRS=/usr/include/openmpi-x86_64/ \
+            -DGCOV_REPORT=TRUE \
+            -DBUILD_TESTING=TRUE
+
+    - name: Build parPE
+      # with sonar build wrapper
+      run: |
+        build-wrapper-linux-x86-64 --out-dir bw-output \
+          cmake --build "${PARPE_BUILD}" --parallel -- VERBOSE=1
+
+    - name: Run parPE python unittests
+      run: |
+        $PARPE_BASE/misc/run_in_venv.sh $PARPE_BASE/build/venv \
+          pip install pytest-cov \
+        && $PARPE_BASE/misc/run_in_venv.sh $PARPE_BASE/build/venv \
+          pytest \
+            --cov-report=xml:$PARPE_BUILD/coverage_py.xml \
+            --cov=./ \
+            $PARPE_BASE/python/tests/
+
+    # Redundant with parpe_coverage_cobertura
+    #- name: Run CTEST
+    #  run: cd ${PARPE_BUILD} && CTEST_OUTPUT_ON_FAILURE=1 make test
+
+    - name: Create coverage report
+      run: |
+        cd ${PARPE_BUILD} \
+          && CTEST_OUTPUT_ON_FAILURE=1 make parpe_coverage \
+          && make ExperimentalCoverage
+
+    - name: Run sonar-scanner
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        sonar-scanner \
+         -Dsonar.cfamily.build-wrapper-output=bw-output \
+         -Dsonar.projectVersion="$(git describe --abbrev=4 --dirty=-dirty --always --tags | tr -d '\n')"
+
+    - name: Run valgrind
+      run: |
+        cd ${PARPE_BUILD} \
+          && if (CTEST_OUTPUT_ON_FAILURE=1 make ExperimentalMemCheck); \
+              then cat Testing/Temporary/MemoryChecker.*.log; \
+              else cat Testing/Temporary/MemoryChecker.*.log; exit 1; fi

@@ -166,6 +166,13 @@ std::unique_ptr<ExpData> readSimulationExpData(std::string const& hdf5Filename,
         edata->setTimepoints(getDoubleDataset1D(file, hdf5Root + "/ts"));
     }
 
+    if(attributeExists(file,  hdf5Root,
+                        "/reinitializeFixedParameterInitialStates")) {
+        edata->reinitializeFixedParameterInitialStates = static_cast<bool>(
+            getIntScalarAttribute(file, hdf5Root,
+                                  "/reinitializeFixedParameterInitialStates"));
+    }
+
     return edata;
 }
 
@@ -213,6 +220,11 @@ void writeSimulationExpData(const ExpData &edata, H5::H5File const& file,
         createAndWriteDouble2DDataset(file, hdf5Location + "/Sigma_Z",
                                       edata.getObservedEventsStdDev(),
                                       edata.nmaxevent(), edata.nztrue());
+
+    int int_attr = edata.reinitializeFixedParameterInitialStates;
+    H5LTset_attribute_int(file.getId(), hdf5Location.c_str(),
+                          "reinitializeFixedParameterInitialStates",
+                          &int_attr, 1);
 }
 
 void writeReturnData(const ReturnData &rdata, H5::H5File const& file, const std::string &hdf5Location)
@@ -372,10 +384,10 @@ void writeReturnDataDiagnosis(const ReturnData &rdata,
 
     H5LTset_attribute_double(file.getId(), hdf5Location.c_str(),
                              "cpu_time", &rdata.cpu_time, 1);
-    
+
     H5LTset_attribute_double(file.getId(), hdf5Location.c_str(),
                              "cpu_timeB", &rdata.cpu_timeB, 1);
-    
+
     if (!rdata.J.empty())
         createAndWriteDouble2DDataset(file, hdf5Location + "/J", rdata.J,
                                       rdata.nx, rdata.nx);
@@ -499,6 +511,136 @@ bool attributeExists(H5::H5Object const& object,
     int result = H5Aexists(object.getId(), attributeName.c_str());
     AMICI_H5_RESTORE_ERROR_HANDLER;
     return result > 0;
+}
+
+void writeSolverSettingsToHDF5(Solver const& solver,
+                              std::string const& hdf5Filename,
+                              std::string const& hdf5Location) {
+    auto file = createOrOpenForWriting(hdf5Filename);
+    
+    writeSolverSettingsToHDF5(solver, file, hdf5Location);
+}
+
+void writeSolverSettingsToHDF5(Solver const& solver,
+                              H5::H5File const& file,
+                              const std::string& hdf5Location) {
+    if(!locationExists(file, hdf5Location))
+        createGroup(file, hdf5Location);
+    
+    double dbuffer;
+    int ibuffer;
+    
+    dbuffer = solver.getAbsoluteTolerance();
+    H5LTset_attribute_double(file.getId(), hdf5Location.c_str(),
+                             "atol", &dbuffer, 1);
+    
+    dbuffer = solver.getRelativeTolerance();
+    H5LTset_attribute_double(file.getId(), hdf5Location.c_str(),
+                             "rtol", &dbuffer, 1);
+    
+    dbuffer = solver.getAbsoluteToleranceFSA();
+    H5LTset_attribute_double(file.getId(), hdf5Location.c_str(),
+                             "atol_fsa", &dbuffer, 1);
+    
+    dbuffer = solver.getRelativeToleranceFSA();
+    H5LTset_attribute_double(file.getId(), hdf5Location.c_str(),
+                             "rtol_fsa", &dbuffer, 1);
+    
+    dbuffer = solver.getAbsoluteToleranceB();
+    H5LTset_attribute_double(file.getId(), hdf5Location.c_str(),
+                             "atolB", &dbuffer, 1);
+    
+    dbuffer = solver.getRelativeToleranceB();
+    H5LTset_attribute_double(file.getId(), hdf5Location.c_str(),
+                             "rtolB", &dbuffer, 1);
+    
+    dbuffer = solver.getAbsoluteToleranceQuadratures();
+    H5LTset_attribute_double(file.getId(), hdf5Location.c_str(),
+                             "quad_atol", &dbuffer, 1);
+    
+    dbuffer = solver.getRelativeToleranceQuadratures();
+    H5LTset_attribute_double(file.getId(), hdf5Location.c_str(),
+                             "quad_rtol", &dbuffer, 1);
+
+    dbuffer = solver.getAbsoluteToleranceSteadyState();
+    H5LTset_attribute_double(file.getId(), hdf5Location.c_str(),
+                             "ss_atol", &dbuffer, 1);
+    
+    dbuffer = solver.getRelativeToleranceSteadyState();
+    H5LTset_attribute_double(file.getId(), hdf5Location.c_str(),
+                             "ss_rtol", &dbuffer, 1);
+    
+    dbuffer = solver.getAbsoluteToleranceSteadyStateSensi();
+    H5LTset_attribute_double(file.getId(), hdf5Location.c_str(),
+                             "ss_atol_sensi", &dbuffer, 1);
+    
+    dbuffer = solver.getRelativeToleranceSteadyStateSensi();
+    H5LTset_attribute_double(file.getId(), hdf5Location.c_str(),
+                             "ss_rtol_sensi", &dbuffer, 1);
+    
+    ibuffer = static_cast<int>(solver.getMaxSteps());
+    H5LTset_attribute_int(file.getId(), hdf5Location.c_str(),
+                          "maxsteps", &ibuffer, 1);
+    
+    ibuffer = static_cast<int>(solver.getMaxStepsBackwardProblem());
+    H5LTset_attribute_int(file.getId(), hdf5Location.c_str(),
+                          "maxstepsB", &ibuffer, 1);
+    
+    ibuffer = static_cast<int>(solver.getLinearMultistepMethod());
+    H5LTset_attribute_int(file.getId(), hdf5Location.c_str(),
+                          "lmm", &ibuffer, 1);
+    
+    ibuffer = static_cast<int>(solver.getNonlinearSolverIteration());
+    H5LTset_attribute_int(file.getId(), hdf5Location.c_str(),
+                          "iter", &ibuffer, 1);
+    
+    ibuffer = static_cast<int>(solver.getStabilityLimitFlag());
+    H5LTset_attribute_int(file.getId(), hdf5Location.c_str(),
+                          "stldet", &ibuffer, 1);
+    
+    ibuffer = static_cast<int>(solver.getStateOrdering());
+    H5LTset_attribute_int(file.getId(), hdf5Location.c_str(),
+                          "ordering", &ibuffer, 1);
+    
+    ibuffer = static_cast<int>(solver.getInterpolationType());
+    H5LTset_attribute_int(file.getId(), hdf5Location.c_str(),
+                          "interpType", &ibuffer, 1);
+    
+    ibuffer = static_cast<int>(solver.getSensitivityMethod());
+    H5LTset_attribute_int(file.getId(), hdf5Location.c_str(),
+                          "sensi_meth", &ibuffer, 1);
+    
+    ibuffer = static_cast<int>(solver.getSensitivityOrder());
+    H5LTset_attribute_int(file.getId(), hdf5Location.c_str(),
+                          "sensi", &ibuffer, 1);
+    
+    ibuffer = static_cast<int>(solver.getNewtonMaxSteps());
+    H5LTset_attribute_int(file.getId(), hdf5Location.c_str(),
+                          "newton_maxsteps", &ibuffer, 1);
+    
+    ibuffer = static_cast<int>(solver.getPreequilibration());
+    H5LTset_attribute_int(file.getId(), hdf5Location.c_str(),
+                          "newton_preeq", &ibuffer, 1);
+    
+    ibuffer = static_cast<int>(solver.getNewtonDampingFactorMode());
+    H5LTset_attribute_int(file.getId(), hdf5Location.c_str(),
+                          "newton_damping_factor_mode", &ibuffer, 1);
+    
+    dbuffer = solver.getNewtonDampingFactorLowerBound();
+    H5LTset_attribute_double(file.getId(), hdf5Location.c_str(),
+                             "newton_damping_factor_lower_bound", &dbuffer, 1);
+    
+    ibuffer = static_cast<int>(solver.getNewtonMaxLinearSteps());
+    H5LTset_attribute_int(file.getId(), hdf5Location.c_str(),
+                          "newton_maxlinsteps", &ibuffer, 1);
+    
+    ibuffer = static_cast<int>(solver.getLinearSolver());
+    H5LTset_attribute_int(file.getId(), hdf5Location.c_str(),
+                          "linsol", &ibuffer, 1);
+    
+    ibuffer = static_cast<int>(solver.getInternalSensitivityMethod());
+    H5LTset_attribute_int(file.getId(), hdf5Location.c_str(),
+                          "ism", &ibuffer, 1);
 }
 
 void readSolverSettingsFromHDF5(H5::H5File const& file, Solver &solver,

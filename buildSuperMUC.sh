@@ -27,7 +27,7 @@ cmake -DCMAKE_BUILD_TYPE=Release \
         -DBLAS=MKL \
         -DBLAS_LIBRARIES="${MKL_LIB}" \
         -DBLAS_INCLUDE_DIRS="${MKL_INCDIR}" \
-	-DBUILD_TESTS=OFF \
+	-DBUILD_TESTING=OFF \
         ..
 make ${MAKE_OPTS} amici
 

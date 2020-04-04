@@ -76,6 +76,8 @@ hid_t hdf5CreateFile(const char *filename,
 
 H5::H5File hdf5OpenForReading(std::string const& hdf5Filename);
 
+H5::H5File hdf5OpenForAppending(const std::string &hdf5Filename);
+
 void closeHDF5File(hid_t file_id);
 
 void hdf5CreateExtendableDouble2DArray(hid_t file_id, const char *datasetPath,
@@ -155,6 +157,13 @@ bool hdf5AttributeExists(hid_t fileId, const char *datasetPath,
 void hdf5WriteStringAttribute(hid_t fileId, const char *datasetPath,
                              const char *attributeName,
                              const char *attributeValue);
+
+std::vector<std::string> hdf5Read1dStringDataset(
+        const H5::H5File &file, std::string const& datasetPath);
+
+void hdf5Write1dStringDataset(
+        const H5::H5File &file, std::string const& parentPath,
+        std::string const& datasetPath, std::vector<std::string> const& buffer);
 
 } // namespace parpe
 #endif

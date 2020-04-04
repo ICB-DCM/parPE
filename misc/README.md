@@ -12,11 +12,6 @@
 
   Extract multi start results from parameter estimation result files.
 
-- generateHDF5DataFileFromText.py
-
-  Create HDF5 input file for parPE parameter estimation from a set of PEtab
-  files
-  
 - mergeResultFiles.py
 
   Merge content of parPE parameter estimation result files

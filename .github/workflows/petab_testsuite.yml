@@ -1,0 +1,77 @@
+# https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions
+# https://help.github.com/en/actions/configuring-and-managing-workflows/using-environment-variables
+
+name: PEtab test suite
+on: [push]
+jobs:
+  container:
+    runs-on: ubuntu-latest
+    container: dweindl/parpeci:1511078
+    name: PEtab test suite
+    steps:
+    - uses: actions/checkout@master
+
+    - run: echo "::set-env name=PARPE_BASE::$(pwd)"
+    - run: echo "::set-env name=PARPE_BUILD::${PARPE_BASE}/build"
+    - run: echo "::set-env name=AMICI_PATH::${PARPE_BASE}/deps/AMICI/"
+
+    # Build dependencies
+
+    - name: Install AMICI deps
+      run: |
+        cd $AMICI_PATH \
+          && scripts/buildSuiteSparse.sh \
+          && scripts/buildSundials.sh
+
+    - name: Install AMICI
+      run: |
+        cmake \
+            -S ${AMICI_PATH} \
+            -B ${AMICI_PATH}/build \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DENABLE_PYTHON=ON \
+            -DBUILD_TESTS=OFF \
+          && cmake --build "${AMICI_PATH}/build" --parallel -- VERBOSE=1
+
+    - name: Install parPE Python deps
+      run: |
+        pip install -r ${PARPE_BASE}/python/requirements.txt
+
+    - name: Configure parpe
+      run: |
+        CC=mpicc CXX=mpiCC \
+          cmake \
+          -S"${PARPE_BASE}" \
+          -B"${PARPE_BUILD}" \
+          -DIPOPT_INCLUDE_DIRS=/usr/include/coin/ \
+          -DIPOPT_LIBRARIES=/usr/lib/libipopt.so \
+          -DCERES_LIBRARIES="/usr/lib/libceres.so;/usr/lib/x86_64-linux-gnu/libglog.so;/usr/lib/x86_64-linux-gnu/libgflags.so" \
+          -DCERES_INCLUDE_DIRS="/usr/include/;/usr/include/eigen3" \
+          -DMPI_INCLUDE_DIRS=/usr/include/openmpi-x86_64/ \
+          -DGCOVR_REPORT=TRUE \
+          -DBUILD_TESTING=FALSE
+
+    - name: Build parPE
+      run: |
+        cmake --build "${PARPE_BUILD}" --parallel -- VERBOSE=1
+
+    # Actual PEtab test suite
+
+    - name: PEtab test suite --- requirements
+      run: |
+        $PARPE_BASE/misc/run_in_venv.sh $PARPE_BASE/build/venv \
+          pip3 install pytest-xdist
+
+    - name: PEtab test suite --- repository
+      env:
+        PETAB_TEST_URL: https://github.com/PEtab-dev/petab_test_suite.git
+      run: |
+        cd $PARPE_BASE/ \
+          && git clone --depth 1 $PETAB_TEST_URL \
+          && $PARPE_BASE/misc/run_in_venv.sh $PARPE_BASE/build/venv \
+            pip3 install -e petab_test_suite
+
+    - name: PEtab test suite --- tests
+      run: |
+        $PARPE_BASE/misc/run_in_venv.sh $PARPE_BASE/build/venv \
+          pytest -v -n 2 $PARPE_BASE/tests/petab-test-suite

@@ -2,83 +2,59 @@
 
 """Create AMICI model and synthetic data for steadystate example"""
 
-import amici
+import argparse
+import importlib
 import os
 import subprocess
+import sys
+
+import amici
+import h5py
+import libsbml
 import numpy as np
 import pandas as pd
-import sys
-import argparse
-import h5py
 import petab
-import libsbml
-import importlib
+import petab.C as ptc
+import yaml
 
 
 def parse_cli_args():
     """Parse command line arguments"""
 
     parser = argparse.ArgumentParser(
-        description='Create AMICI model and data for steadystate example.')
-
-    parser.add_argument('-s', '--sbml', dest='sbml_file_name',
-                        default='model_steadystate_scaled.sbml',
-                        help='SBML model filename')
+        description='Create AMICI model PEtab files for steadystate example.')
 
     parser.add_argument('-o', '--model-output-dir', dest='model_output_dir',
                         default='model_steadystate_scaled',
-                        help='Name of the model directory to be created')
-
-    parser.add_argument('-m', '--measurements', dest='measurement_file_name',
-                        default='example_data.tsv',
-                        help='Name of measurement table to be generated')
-
-    parser.add_argument('-c', '--conditions', dest='condition_file_name',
-                        default='example_data_fixed.tsv',
-                        help='Name of conditions table to generate')
+                        help='Name of the AMICI model directory to be created')
 
     parser.add_argument('-f', dest='hdf5_file_name',
                         default='example_data.h5',
                         help='Name of HDF5 file to generate')
 
-    parser.add_argument('-p', dest='parameter_file_name',
-                        default='example_data_parameter.tsv',
-                        help='Name of parameter table to be created')
+    parser.add_argument('-p', dest='petab_dir',
+                        default='steadstate_petab',
+                        help='Directory to write PEtab files to')
 
     args = parser.parse_args()
 
     return args
 
 
-def create_module(sbml_model_file, model_name, model_output_dir):
-    """Create Python module from SBML model
+def create_module(sbml_model_file, model_name, model_output_dir, condition_df,
+                  observable_df):
+    """Create AMICI Python module from SBML model
 
     Arguments:
         sbml_model_file: SBML file
         model_name: Name of the model
         model_output_dir: Directory for model code
-
-    Returns:
-        list of parameters,
-        dictionary with observables (id: formula)
     """
 
-    sbml_importer = amici.SbmlImporter(sbml_model_file)
-    sbml_model = sbml_importer.sbml
-
-    observables = petab.get_observables(sbml_model, remove=True)
-    sigmas = petab.get_sigmas(sbml_model, remove=True)
-    fixed_parameters = ['k0']
-
-    sbml_importer.sbml2amici(
-        modelName=model_name,
-        output_dir=model_output_dir,
-        observables=observables,
-        constantParameters=fixed_parameters,
-        sigmas=sigmas
-    )
-
-    return fixed_parameters, observables
+    from amici.petab_import import import_model
+    import_model(sbml_model=sbml_model_file, observable_table=observable_df,
+                 model_name=model_name, model_output_dir=model_output_dir,
+                 verbose=True, condition_table=condition_df)
 
 
 def print_model_info(sbml_file):
@@ -117,8 +93,7 @@ def print_model_info(sbml_file):
                libsbml.formulaToL3String(reaction.getKineticLaw().getMath())))
 
 
-def create_data_tables(model, fixed_parameters,
-                       measurement_file, fixed_parameter_file):
+def create_data_tables(model, condition_df):
     """Create synthetic data for parameter estimation
 
     - Simulate time-course for four different conditions
@@ -139,11 +114,11 @@ def create_data_tables(model, fixed_parameters,
     observable_ids = list(model.getObservableIds())
 
     sigma_parameter_observable_idx = \
-        observable_ids.index('observable_x1withsigma')
+        observable_ids.index('obs_x1withsigma')
     model_offset_parameter_idx = \
-        parameter_ids.index('observableParameter1_x2_offsetted')
+        parameter_ids.index('observableParameter1_obs_x2_offsetted')
     sigma_parameter_idx = \
-        parameter_ids.index('noiseParameter1_x1withsigma')
+        parameter_ids.index('noiseParameter1_obs_x1withsigma')
 
     # set true parameters
     default_parameters = np.array(model.getParameters())
@@ -153,12 +128,23 @@ def create_data_tables(model, fixed_parameters,
         print(f'\t{p}: {val}')
     print()
 
-    true_parameters = {pid: val for pid, val in zip(model.getParameterIds(), default_parameters)}
+    true_parameters = {pid: val for pid, val in zip(model.getParameterIds(),
+                                                    default_parameters)}
+    # output parameters don't have default values from SBML mdoel
+    true_parameters['observableParameter1_obs_x1_scaled'] = 2.0
+    true_parameters['noiseParameter1_obs_x1withsigma'] = 0.2
+    true_parameters['noiseParameter1_obs_x1_scaled'] = 0.2
+    true_parameters['noiseParameter1_obs_x2'] = 0.2
+    true_parameters['noiseParameter1_obs_x1'] = 0.2
+    true_parameters['noiseParameter1_obs_x2_offsetted'] = 0.2
+    true_parameters['noiseParameter1_obs_x3'] = 0.2
+    true_parameters['observableParameter1_obs_x2_offsetted'] = 3.0
+
     true_parameters['scaling_x1_common'] = \
-        true_parameters['observableParameter1_x1_scaled']
+        true_parameters['observableParameter1_obs_x1_scaled']
     # extend to optimization parameter vector: add second offset parameter
-    true_parameters['offset_x2_batch-0'] = offset_batch_1
-    true_parameters['offset_x2_batch-1'] = offset_batch_2
+    true_parameters['offset_x2_batch_0'] = offset_batch_1
+    true_parameters['offset_x2_batch_1'] = offset_batch_2
     true_parameters['x1withsigma_sigma'] = sigma_parameter
 
     print('True parameters:\t%s' % true_parameters)
@@ -170,13 +156,6 @@ def create_data_tables(model, fixed_parameters,
     # setup solver
     solver = model.getSolver()
     solver.setMaxSteps(10000)
-
-    # generate four condition-vectors
-    condition_df = petab.create_condition_df(fixed_parameters)
-    condition_df.loc['condition-0'] = model.getFixedParameters()
-    condition_df.loc['condition-1'] = np.array(model.getFixedParameters()) * 1.1
-    condition_df.loc['condition-2'] = np.array(model.getFixedParameters()) * 1.2
-    condition_df.loc['condition-3'] = np.array(model.getFixedParameters()) * 1.3
 
     print(condition_df)
     measurement_df = petab.create_measurement_df()
@@ -226,11 +205,7 @@ def create_data_tables(model, fixed_parameters,
 
     print('Expected llh: ', expected_llh)
 
-    # write data frames to file
-    measurement_df.to_csv(measurement_file, sep='\t', index=False)
-    condition_df.to_csv(fixed_parameter_file, sep='\t', index=True)
-
-    return true_parameters, expected_llh
+    return measurement_df, true_parameters, expected_llh
 
 
 def getReturnDataForCondition(model, solver, fixed_parameters,
@@ -256,7 +231,8 @@ def getReturnDataForCondition(model, solver, fixed_parameters,
     synthetic_data[:, sigma_parameter_observable_idx] = \
         np.random.normal(loc=rdata['y'][:, sigma_parameter_observable_idx],
                          scale=dynamic_parameters[sigma_parameter_idx])
-
+    # due to noise, there may be negative measurements. we don't want them.
+    synthetic_data = np.abs(synthetic_data)
     print("\tMean abs. relative measurement error per observable:")
     print("\t",
           np.mean(np.abs((synthetic_data - rdata['y']) / rdata['y']), axis=0))
@@ -283,27 +259,26 @@ def append_measurements_for_condition(
         scaling_parameter = ['']
         noise_parameter = sigmay[:, iy]
 
-        if observable_id == 'observable_x1_scaled':
+        if observable_id == 'obs_x1_scaled':
             scaling_parameter = ['scaling_x1_common']
-        elif observable_id == 'observable_x2_offsetted':
-            scaling_parameter = ['offset_x2_batch-%d' % batch_id]
-        elif observable_id == 'observable_x1withsigma':
+        elif observable_id == 'obs_x2_offsetted':
+            scaling_parameter = ['offset_x2_batch_%d' % batch_id]
+        elif observable_id == 'obs_x1withsigma':
             noise_parameter = ['x1withsigma_sigma'] * model.nt()
 
         measurement_df = measurement_df.append(pd.DataFrame(
-            {'observableId': [observable_id[len('observable_'):]] * model.nt(),
-             'simulationConditionId': [condition_id] * model.nt(),
-             'time': np.array(model.getTimepoints()),
-             'measurement': rdata['y'][:, iy],
-             'observableParameters': scaling_parameter * model.nt(),
-             'noiseParameters': noise_parameter
+            {ptc.OBSERVABLE_ID: [observable_id] * model.nt(),
+             ptc.SIMULATION_CONDITION_ID: [condition_id] * model.nt(),
+             ptc.TIME: np.array(model.getTimepoints()),
+             ptc.MEASUREMENT: rdata['y'][:, iy],
+             ptc.OBSERVABLE_PARAMETERS: scaling_parameter * model.nt(),
+             ptc.NOISE_PARAMETERS: noise_parameter
              }), ignore_index=True, sort=False)
     return measurement_df
 
 
-def generate_hdf5_file(sbml_file_name, model_output_dir, measurement_file_name,
-                       condition_file_name, hdf5_file_name,
-                       parameter_file_name, model_name):
+def generate_hdf5_file(yaml_file, model_output_dir,
+                       hdf5_file_name, model_name):
 
     cmd = f"bash -c 'if [[ -f {hdf5_file_name} ]]; then "\
         f"cp {hdf5_file_name} {hdf5_file_name}.bak; fi'"
@@ -311,17 +286,12 @@ def generate_hdf5_file(sbml_file_name, model_output_dir, measurement_file_name,
     print(out.decode('utf-8'))
 
     # convert to HDF5
-    script_file = os.path.join(os.path.split(os.path.abspath(__file__))[0],
-                               '..', '..', '..', 'misc',
-                               'generateHDF5DataFileFromText.py')
+    script_file = 'parpe_petab_to_hdf5'
     cmd = [script_file,
            '-o', hdf5_file_name,
-           '-s', sbml_file_name,
            '-d', model_output_dir,
-           '-m', measurement_file_name,
-           '-c', condition_file_name,
            '-n', model_name,
-           '-p', parameter_file_name]
+           '-y', yaml_file]
     print("Running: ", ' '.join(cmd))
     out = subprocess.run(cmd, stdout=subprocess.PIPE,
                          stderr=subprocess.STDOUT)
@@ -365,42 +335,84 @@ def write_starting_points(hdf5_file_name, true_parameters):
 
 
 def create_parameter_table(problem: petab.Problem,
-                           parameter_file, nominal_parameters):
+                           nominal_parameters):
     """Create PEtab parameter table"""
 
-    df = problem.create_parameter_df(lower_bound=-3,
-                                     upper_bound=5)
-    # TODO: move to peTAB
+    # FIXME
+    #df = problem.create_parameter_df(include_optional=True, lower_bound=1e-3,
+    #                                 upper_bound=1e5)
+    df = petab.create_parameter_df(
+        problem.sbml_model, problem.condition_df,
+        problem.observable_df, problem.measurement_df,
+        include_optional=True, lower_bound=1e-3, upper_bound=1e5)
+
     df['hierarchicalOptimization'] = 0
     df.loc['scaling_x1_common', 'hierarchicalOptimization'] = 1
-    df.loc['offset_x2_batch-0', 'hierarchicalOptimization'] = 1
-    df.loc['offset_x2_batch-1', 'hierarchicalOptimization'] = 1
+    df.loc['offset_x2_batch_0', 'hierarchicalOptimization'] = 1
+    df.loc['offset_x2_batch_1', 'hierarchicalOptimization'] = 1
     df.loc['x1withsigma_sigma', 'hierarchicalOptimization'] = 1
     #df.parameterScale = 'lin'
     #df.estimate = 0
 
-    print(nominal_parameters)
-
     for pid, val in nominal_parameters.items():
         if pid in df.index:
-            df.loc[pid, 'nominalValue'] = val
-            df.loc[pid, 'parameterScale'] = 'log10'
-            df.loc[pid, 'estimate'] = 1
+            df.loc[pid, ptc.NOMINAL_VALUE] = val
+            df.loc[pid, ptc.PARAMETER_SCALE] = ptc.LOG10
+            df.loc[pid, ptc.ESTIMATE] = 1
         elif pid.startswith('noiseParameter') \
-            or pid.startswith('observableParameter'):
+                or pid.startswith('observableParameter'):
             continue
         else:
             print("extra parameter", pid, val)
 
     # offsets can be negative: adapt scaling and bounds:
     offsets = df.index.str.startswith('offset_')
-    df.loc[offsets, 'parameterScale'] = 'lin'
-    df.loc[offsets, 'lowerBound'] = np.power(10.0, df.loc[offsets, 'lowerBound'])
-    df.loc[offsets, 'upperBound'] = np.power(10.0, df.loc[offsets, 'upperBound'])
+    df.loc[offsets, ptc.PARAMETER_SCALE] = ptc.LIN
 
     problem.parameter_df = df
 
-    df.to_csv(parameter_file, sep="\t", index=True)
+
+def create_test_data(measurement_file_name, parameter_file_name, yaml_config,
+                     yaml_file_name_test, model_output_dir, model_name,
+                     hdf5_file_name):
+    """Create some synthetic data to emulate a test set"""
+
+    test_measurement_file_name = \
+        "-testset".join(os.path.splitext(measurement_file_name))
+    test_parameter_file_name = \
+        "-testset".join(os.path.splitext(parameter_file_name))
+
+    # measurements
+    df = petab.get_measurement_df(measurement_file_name)
+    df.loc[df.observableParameters == 'scaling_x1_common', 'measurement'] = \
+        df.loc[df.observableParameters == 'scaling_x1_common', 'measurement'] \
+        * 2.0
+    df.loc[~df.observableParameters.isnull(), 'observableParameters'] = \
+        df.loc[~df.observableParameters.isnull(), 'observableParameters'] \
+        + "_test"
+    petab.write_parameter_df(df, test_measurement_file_name)
+
+    # parameters
+    df = petab.get_parameter_df(parameter_file_name)
+    df.rename(index={'scaling_x1_common' : 'scaling_x1_common_test',
+                     'offset_x2_batch_0': 'offset_x2_batch_0_test',
+                     'offset_x2_batch_1': 'offset_x2_batch_1_test'},
+              inplace=True)
+    petab.write_parameter_df(df, test_parameter_file_name)
+
+    # yaml
+    yaml_config[ptc.PARAMETER_FILE] = test_parameter_file_name
+    yaml_config[ptc.PROBLEMS][0][ptc.MEASUREMENT_FILES][0] = \
+        test_measurement_file_name
+    with open(yaml_file_name_test, 'w') as outfile:
+        yaml.dump(yaml_config, outfile, default_flow_style=False)
+
+    generate_hdf5_file(
+        yaml_file=yaml_file_name_test,
+        model_output_dir=model_output_dir,
+        hdf5_file_name="-testset".join(os.path.splitext(hdf5_file_name)),
+        model_name=model_name
+    )
 
 
 def main():
@@ -408,26 +420,56 @@ def main():
 
     script_path = os.path.split(os.path.abspath(__file__))[0]
     model_name = 'model_steadystate_scaled'
+    sbml_file_name = "model_steadystate_scaled.sbml"
+    measurement_file_name = 'example_data.tsv'
+    condition_file_name = 'example_data_fixed.tsv'
+    parameter_file_name = 'example_data_parameter.tsv'
+    observable_file_name = 'model_steasystate_observables.tsv'
+    yaml_file_name = 'model_steasystate.yaml'
+    yaml_file_name_test = 'model_steasystate_test.yaml'
 
     print(f'{__file__} running in {os.getcwd()}')
-    print(f'Processing model {args.sbml_file_name}')
+    print(f'Processing model {sbml_file_name}')
 
     # Create sbml model from scratch
-    cmd = f'bash -c "{script_path}/createSteadystateExampleSBML.py > {args.sbml_file_name}"'
+    cmd = f'bash -c "{script_path}/createSteadystateExampleSBML.py '\
+          f'> {sbml_file_name}"'
     print(cmd)
     out = subprocess.check_output(cmd, shell=True)
     print(out.decode('utf-8'))
     print()
 
-    print_model_info(args.sbml_file_name)
+    print_model_info(sbml_file_name)
     print()
 
-    fixed_parameters, observables = create_module(
-        args.sbml_file_name, model_name, args.model_output_dir)
+    # create condition table
+    condition_df = pd.DataFrame(data={
+        ptc.CONDITION_ID: ["condition_0", "condition_1",
+                           "condition_2", "condition_3"],
+        "k0": [1, 1.1, 1.2, 1.3]
+    })
+    condition_df.set_index([ptc.CONDITION_ID], inplace=True)
 
-    print('Observables:', observables)
-    print('Fixed parameters', fixed_parameters)
-    print()
+    # create observables
+    observable_df = pd.DataFrame(data={
+        ptc.OBSERVABLE_ID:
+            ["obs_x1", "obs_x2", "obs_x3",
+             "obs_x1_scaled", "obs_x2_offsetted", "obs_x1withsigma"],
+        ptc.OBSERVABLE_FORMULA:
+            ["x1", "x2", "x3", "observableParameter1_obs_x1_scaled * x1",
+             "observableParameter1_obs_x2_offsetted + x2", "x1"],
+        ptc.NOISE_FORMULA:
+            ["noiseParameter1_obs_x1", "noiseParameter1_obs_x2",
+             "noiseParameter1_obs_x3",
+             "noiseParameter1_obs_x1_scaled",
+             "noiseParameter1_obs_x2_offsetted",
+             "noiseParameter1_obs_x1withsigma"],
+    })
+    observable_df.set_index([ptc.OBSERVABLE_ID], inplace=True)
+
+    create_module(sbml_model_file=sbml_file_name, model_name=model_name,
+                  model_output_dir=args.model_output_dir,
+                  observable_df=observable_df, condition_df=condition_df)
 
     # load model
     sys.path.insert(0, args.model_output_dir)
@@ -435,65 +477,53 @@ def main():
 
     print()
     print("--- Creating data ---")
-    true_parameters, expected_llh = create_data_tables(
+
+    measurement_df, true_parameters, expected_llh = create_data_tables(
         model=model_module.getModel(),
-        measurement_file=args.measurement_file_name,
-        fixed_parameter_file=args.condition_file_name,
-        fixed_parameters=fixed_parameters
-    )
+        condition_df=condition_df)
+
+    # assemble PEtab problem
+    pp = petab.Problem.from_files(sbml_file=sbml_file_name)
+    pp.observable_df = observable_df
+    pp.measurement_df = measurement_df
+    pp.condition_df = condition_df
+    create_parameter_table(problem=pp, nominal_parameters=true_parameters)
 
     # check for valid PEtab
-    pp = petab.Problem.from_files(
-        sbml_file=args.sbml_file_name,
-        condition_file=args.condition_file_name,
-        measurement_file=args.measurement_file_name)
-
-    create_parameter_table(
-        problem=pp,
-        parameter_file=args.parameter_file_name,
-        nominal_parameters=true_parameters)
-
     petab.lint_problem(pp)
 
-    # create training data
-    generate_hdf5_file(
-        sbml_file_name=args.sbml_file_name,
-        model_output_dir=args.model_output_dir,
-        measurement_file_name=args.measurement_file_name,
-        condition_file_name=args.condition_file_name,
-        hdf5_file_name=args.hdf5_file_name,
-        parameter_file_name=args.parameter_file_name,
-        model_name=model_name
-    )
+    # Save remaining tables
+    pp.to_files(measurement_file=measurement_file_name,
+                condition_file=condition_file_name,
+                observable_file=observable_file_name,
+                parameter_file=parameter_file_name)
 
-    # create test data
-    args.test_measurement_file_name = \
-        "-testset".join(os.path.splitext(args.measurement_file_name))
-    args.test_parameter_file_name = \
-        "-testset".join(os.path.splitext(args.parameter_file_name))
-    df = petab.get_measurement_df(args.measurement_file_name)
-    df.loc[df.observableParameters == 'scaling_x1_common', 'measurement'] = \
-        df.loc[df.observableParameters == 'scaling_x1_common', 'measurement'] \
-        * 2.0
-    df.loc[~df.observableParameters.isnull(), 'observableParameters'] = \
-        df.loc[~df.observableParameters.isnull(), 'observableParameters'] \
-        + "_test"
-    df.to_csv(args.test_measurement_file_name, sep='\t', index=False)
-    df = petab.get_parameter_df(args.parameter_file_name)
-    df.rename(index={'scaling_x1_common' : 'scaling_x1_common_test',
-                     'offset_x2_batch-0': 'offset_x2_batch-0_test',
-                     'offset_x2_batch-1': 'offset_x2_batch-1_test'},
-              inplace=True)
-    df.to_csv(args.test_parameter_file_name, sep='\t')
-    generate_hdf5_file(
-        sbml_file_name=args.sbml_file_name,
-        model_output_dir=args.model_output_dir,
-        measurement_file_name=args.test_measurement_file_name,
-        condition_file_name=args.condition_file_name,
-        hdf5_file_name="-testset".join(os.path.splitext(args.hdf5_file_name)),
-        parameter_file_name=args.test_parameter_file_name,
-        model_name=model_name
-    )
+    # Create PEtab yaml file
+    config = {
+        'format_version': petab.__format_version__,
+        'parameter_file': parameter_file_name,
+        'problems': [
+            {
+                ptc.SBML_FILES: [sbml_file_name],
+                ptc.CONDITION_FILES: [condition_file_name],
+                ptc.MEASUREMENT_FILES: [measurement_file_name],
+                ptc.OBSERVABLE_FILES: [observable_file_name],
+            },
+        ]
+    }
+    petab.validate(config)#, path_prefix=model_dir)
+    with open(yaml_file_name, 'w') as outfile:
+        yaml.dump(config, outfile, default_flow_style=False)
+
+    # create training data
+    generate_hdf5_file(yaml_file=yaml_file_name,
+                       model_output_dir=args.model_output_dir,
+                       hdf5_file_name=args.hdf5_file_name,
+                       model_name=model_name)
+
+    create_test_data(measurement_file_name, parameter_file_name, config,
+                     yaml_file_name_test, args.model_output_dir, model_name,
+                     args.hdf5_file_name)
 
     save_expected_results(args.hdf5_file_name, true_parameters, expected_llh)
 

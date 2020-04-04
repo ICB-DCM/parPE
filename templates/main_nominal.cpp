@@ -19,14 +19,20 @@ int main(int argc, char **argv) {
 #endif
 
     std::string inFileArgument = "";
+    std::string outFileArgument = "";
 
     // Check command line arguments
-    if (argc != 2) {
-        fprintf(stderr, "Error: must provide HDF5 input file as first and only "
-                        "argument.\n");
-        return 1;
-    } else {
+    if (argc == 2) {
         inFileArgument = argv[1];
+    } else if (argc == 3) {
+        inFileArgument = argv[1];
+        outFileArgument = argv[2];
+    } else {
+        std::stringstream ss;
+        ss << "Error: USAGE: "<< argv[0]
+           << " HDF5_INPUT_FILE [HDF5_OUTPUT_FILE]\n";
+        fprintf(stderr, "%s", ss.str().c_str());
+        return 1;
     }
 
 
@@ -38,7 +44,14 @@ int main(int argc, char **argv) {
     MultiConditionDataProviderHDF5 dataProvider(getModel(), inFileArgument);
     auto options = OptimizationOptions::fromHDF5(dataProvider.getHdf5FileId());
 
-    MultiConditionProblem problem {&dataProvider};
+    std::unique_ptr<OptimizationResultWriter> rw;
+    if(!outFileArgument.empty()) {
+        rw = std::make_unique<OptimizationResultWriter>(
+            outFileArgument, true, "/");
+    }
+
+    MultiConditionProblem problem { &dataProvider, nullptr, nullptr,
+                                  std::move(rw)};
 
     // Read nominal parameters
     auto optimizationParams = amici::hdf5::getDoubleDataset1D(

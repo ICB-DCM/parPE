@@ -1,6 +1,6 @@
 from jinja2 import Template, Environment, PackageLoader
 
-env = Environment(loader=PackageLoader('parpe', 'templates'))
+env = Environment(loader=PackageLoader('parpe', 'templates'), autoescape=True)
 
 
 def create_job_file():

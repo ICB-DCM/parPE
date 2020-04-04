@@ -1,7 +1,7 @@
 # Steady-state model example
 
 # This requires python to generate the model code from SBML
-find_package(PythonInterp 3.6)
+find_package(PythonInterp 3.7)
 
 # Generate model code and data; build model
 include(ExternalProject)
@@ -22,7 +22,9 @@ ExternalProject_Add(
 # Rebuild if amici files are updated
 ExternalProject_Add_StepDependencies(${MODEL_NAME} download
     recreateExampleData.sh
-    ${CMAKE_SOURCE_DIR}/misc/generateHDF5DataFileFromText.py)
+    ${CMAKE_SOURCE_DIR}/python/parpe/hdf5_pe_input.py
+    ${CMAKE_SOURCE_DIR}/examples/parpeamici/steadystate/create_steadystate_amici_model.py
+    ${CMAKE_SOURCE_DIR}/examples/parpeamici/steadystate/createSteadystateExampleSBML.py)
 ExternalProject_Add_StepDependencies(${MODEL_NAME} build parpeamici)
 ExternalProject_Add_StepDependencies(${MODEL_NAME} download setup_venv)
 
@@ -110,10 +112,12 @@ install(TARGETS ${PROJECT_NAME} EXPORT ParPETargets
     INCLUDES DESTINATION include
     )
 
-if(${BUILD_TESTS} AND ${PARPE_ENABLE_MPI})
+if("${BUILD_TESTING}" AND ${PARPE_ENABLE_MPI})
     add_test (NAME ${PROJECT_NAME}
-        COMMAND ${CMAKE_CURRENT_LIST_DIR}/run-examples.sh
-        ${SOURCE_DIR}/example_data.h5 ${SOURCE_DIR}/example_data-testset.h5
+        COMMAND ${CMAKE_SOURCE_DIR}/misc/run_in_venv.sh
+            ${CMAKE_BINARY_DIR}/venv
+            pytest ${CMAKE_CURRENT_LIST_DIR}/test_steadystate.py
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
         )
 endif()
 # /example_steadystate_multi executable
@@ -137,7 +141,7 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 
-if(${BUILD_TESTS})
+if(${BUILD_TESTING})
 #    add_test (NAME ${PROJECT_NAME}
 #        COMMAND ${TESTS_MPIEXEC_COMMAND} ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME} -o ${PROJECT_NAME}-testresults ${CMAKE_CURRENT_LIST_DIR}/data.h5
 #        )
@@ -145,7 +149,7 @@ endif()
 # /example_steadystate_multi executable_simulator
 
 
-if(${BUILD_TESTS})
+if(${BUILD_TESTING})
     project(test_steadystate)
 
     add_test (NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME} -c)

@@ -1,5 +1,10 @@
 import h5py
 import numpy as np
+from typing import Optional, Union, Iterable, List, Any
+import sys
+import importlib
+from petab.C import SIMULATION, MEASUREMENT
+
 
 """
 TODO test    
@@ -7,7 +12,51 @@ TODO test
     tempfile.mktemp()
 """
 
-from .plotting import  correlation_coefficient
+from .plotting import correlation_coefficient
+
+
+def get_amici_model(model_name: str,
+                    model_dir: Optional[str] = None) -> 'amici.Model':
+    """Load AMICI model module with given name from given path and return a
+    model instance
+
+    Arguments:
+        model_name: Name of the model module
+        model_dir: Path to directory containing the AMICI model module
+
+    Returns:
+         The given model instance
+    """
+    sys.path.insert(0, model_dir)
+    model_module = importlib.import_module(model_name)
+
+    return model_module.getModel()
+
+
+def get_global_name_for_local_parameter(
+        sbml_model: 'libsbml.Model',
+        needle_parameter_id: str) -> Union[str, None]:
+    """Find a local SBML parameter in kinetic laws and return
+    {reaction_id}_{local_parameter_id}"""
+    for reaction in sbml_model.getListOfReactions():
+        kl = reaction.getKineticLaw()
+        for p in kl.getListOfParameters():
+            parameter_id = p.getId()
+            if parameter_id.endswith(needle_parameter_id):
+                return f'{reaction.getId()}_{parameter_id}'
+    return None
+
+
+def unique_ordered(seq: Iterable[Any]) -> List[Any]:
+    """
+    Make unique, preserving order of first occurrence
+
+    Arguments:
+        seq: any sequence
+    """
+    seen = set()
+    seen_add = seen.add
+    return [x for x in seq if not (x in seen or seen_add(x))]
 
 
 def getCostTrajectories(filename, starts = None):
@@ -118,7 +167,11 @@ def readSimulationsFromFile(filename):
 
     with h5py.File(filename, 'r') as f:
         for ms in f['/multistarts']:
-            llh[ms] = f[f'/multistarts/{ms}/llh'][:]
+            try:
+                llh[ms] = f[f'/multistarts/{ms}/llh'][:]
+            except OSError:
+                print(f'Getting the data for start {ms} failed.')
+                continue
             mes[ms] = []
             sim[ms] = []
             time[ms] = []
@@ -262,29 +315,40 @@ class ParameterEstimationResultFile:
     pass
 
 
-def simulation_to_df(mes_df, sim, result_file, start, label, observable_ids):
-    """Add simulation results as new column to PEtab measurement df"""
+def simulation_to_df(mes_df, sim, result_file, start, observable_ids,
+                     root_path: str = "/"):
+    """Put simulation results in new PEtab simulation df based on PEtab
+    measurement df
+    mes_df: petab measurement dataframe on which optimization was based
+    sim: simulation results obtained by readSimulationsFromFile()
+    result_file: HDF5-file with optimization results (or input HDF5-file)
+    start: start for which simulation results should be taken
+    observable_ids: observable ids which should be considered
+    root_path: root path to where group fixedParameters is saved in HDF5file
+    """
 
     with h5py.File(result_file, 'r') as f:
-        condition_names = f['/inputData/fixedParameters/conditionNames'][:]
-        simulation_conditions = f[
-                                    '/inputData/fixedParameters/simulationConditions'][
+        condition_names = f[root_path + 'fixedParameters/conditionNames'][:]
+        simulation_conditions = f[root_path +
+                                  'fixedParameters/simulationConditions'][
                                 :]
     cond_id_to_idx = {id_: idx for idx, id_ in enumerate(condition_names)}
     cond_comb_to_idx = {
-    (condition_names[preeq_idx] if not np.isnan(preeq_idx) and preeq_idx >= 0 else -1.0,
-     condition_names[sim_idx] if sim_idx >= 0 else -1.0): comb_idx
-    for comb_idx, (preeq_idx, sim_idx) in enumerate(simulation_conditions)}
+        (condition_names[preeq_idx] if not np.isnan(
+            preeq_idx) and preeq_idx >= 0 else -1.0,
+         condition_names[sim_idx] if sim_idx >= 0 else -1.0): comb_idx
+        for comb_idx, (preeq_idx, sim_idx) in enumerate(simulation_conditions)}
     obs_id_to_idx = {id_: idx for idx, id_ in enumerate(observable_ids)}
 
-    mes_df['simulation_' + label] = np.nan
+    mes_df[MEASUREMENT] = np.nan
+    mes_df = mes_df.rename(columns={MEASUREMENT: SIMULATION})
     time_tracker = {}
     for _, row in mes_df.iterrows():
         if np.isnan(row.preequilibrationConditionId):
             row.preequilibrationConditionId = -1
         condition_idx = cond_comb_to_idx[
             row.preequilibrationConditionId, row.simulationConditionId]
-        observable_idx = obs_id_to_idx['observable_' + row.observableId]
+        observable_idx = obs_id_to_idx[row.observableId]
         """ Replicate simulations will be identical, but lets consider them"""
         try:
             time_tracker[(condition_idx, observable_idx, row.time)] += 1
@@ -294,8 +358,8 @@ def simulation_to_df(mes_df, sim, result_file, start, label, observable_ids):
         time_idx = time_tracker[(condition_idx, observable_idx, row.time)]
 
         # time_idx = 0
-        mes_df.loc[row.name, 'simulation_' + label] = \
-        sim[start][condition_idx][time_idx, observable_idx]
+        mes_df.loc[row.name, SIMULATION] = \
+            sim[start][condition_idx][time_idx, observable_idx]
     return mes_df
 
 

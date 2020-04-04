@@ -4,7 +4,6 @@ on:
     branches:
       - develop
       - master
-      - feature_sparse_quadratures
 
   pull_request:
     branches:
@@ -12,6 +11,7 @@ on:
 
 jobs:
   build:
+    name: Performance test
 
     runs-on: ubuntu-latest
 
@@ -23,7 +23,8 @@ jobs:
     # install dependencies
     - name: apt
       run: |
-        sudo apt-get install -y swig3.0 libatlas-base-dev \
+        sudo apt-get update \
+          && sudo apt-get install -y swig3.0 libatlas-base-dev \
           && sudo ln -s /usr/bin/swig3.0 /usr/bin/swig
     - name: pip
       run: |
@@ -52,11 +53,10 @@ jobs:
       run: |
         cd CS_Signalling_ERBB_RAS_AKT \
           && check_time.sh \
-          petab_import amici_import_petab.py -v \
-            -s 'PEtab/CS_Signalling_ERBB_RAS_AKT_petab.xml' \
-            -c 'PEtab/conditions_petab.tsv' \
-            -m 'PEtab/measurements_petab.tsv' \
-            -p 'PEtab/parameters_petab.tsv' --no-compile
+          petab_import amici_import_petab -v \
+            -n 'CS_Signalling_ERBB_RAS_AKT_petab' \
+            -y 'FroehlichKes2018/PEtab/FroehlichKes2018.yaml' \
+            --no-compile
 
     # install model package
     - name: Install test model

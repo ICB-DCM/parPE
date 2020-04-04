@@ -65,9 +65,9 @@ HierarchicalOptimizationWrapper::HierarchicalOptimizationWrapper(
 
 HierarchicalOptimizationWrapper::HierarchicalOptimizationWrapper(
         std::unique_ptr<AmiciSummedGradientFunction > fun,
-        std::unique_ptr<parpe::AnalyticalParameterProvider> scalingReader,
-        std::unique_ptr<parpe::AnalyticalParameterProvider> offsetReader,
-        std::unique_ptr<parpe::AnalyticalParameterProvider> sigmaReader,
+        std::unique_ptr<AnalyticalParameterProvider> scalingReader,
+        std::unique_ptr<AnalyticalParameterProvider> offsetReader,
+        std::unique_ptr<AnalyticalParameterProvider> sigmaReader,
         int numConditions, int numObservables,
         ErrorModel errorModel)
     : fun(std::move(fun)),
@@ -108,12 +108,15 @@ void HierarchicalOptimizationWrapper::init() {
                                   this->sigmaParameterIndices.end()), "");
 
     if(fun) {
-        std::cout<<"HierarchicalOptimizationWrapper parameters: "
-                <<fun->numParameters()<<" total, "
-               <<numParameters()<< " numerical, "
-              <<proportionalityFactorIndices.size()<<" proportionality, "
-             <<offsetParameterIndices.size()<<" offset, "
-            <<sigmaParameterIndices.size()<<" sigma\n";
+        std::stringstream ss;
+        ss<<"HierarchicalOptimizationWrapper parameters: "
+           <<fun->numParameters()<<" total, "
+           <<numParameters()<< " numerical, "
+           <<proportionalityFactorIndices.size()<<" proportionality, "
+           <<offsetParameterIndices.size()<<" offset, "
+           <<sigmaParameterIndices.size()<<" sigma\n";
+        Logger logger;
+        logger.logmessage(LOGLVL_DEBUG, ss.str());
     }
 }
 
@@ -189,9 +192,14 @@ HierarchicalOptimizationWrapper::evaluate(
     // needs scaled outputs
     auto sigmas = computeAnalyticalSigmas(measurements, modelOutput);
 
-    std::cout<<"scalings "<<scalings<<std::endl;
-    std::cout<<"sigmas "<<sigmas<<std::endl;
-
+    if(logger) {
+        std::stringstream ss;
+        ss<<"scalings "<<scalings;
+        logger->logmessage(LOGLVL_DEBUG, ss.str());
+        ss.str(std::string());
+        ss<<"sigmas "<<sigmas;
+        logger->logmessage(LOGLVL_DEBUG, ss.str());
+    }
     // splice parameter vector we get from optimizer with analytically
     // computed parameters
     fullParameters = spliceParameters(
@@ -339,7 +347,7 @@ std::vector<double> HierarchicalOptimizationWrapper::computeAnalyticalOffsets(
 
 std::vector<double> HierarchicalOptimizationWrapper::computeAnalyticalSigmas(
         const std::vector<std::vector<double> > &measurements,
-        std::vector<std::vector<double> > &modelOutputsScaled) const
+        std::vector<std::vector<double> > const &modelOutputsScaled) const
 {
     int numSigmas = sigmaParameterIndices.size();
     std::vector<double> sigmas(numSigmas);
@@ -861,21 +869,22 @@ double computeAnalyticalScalings(
                      "thus, not used. Setting scaling parameter to 1.0.");
         return 1.0;
     }
-
     double scaling = enumerator / denominator;
-    constexpr double upper_bound = 1e10;
 
-    // too large values of scaling parameters cause problems in backwards
-    // integration for adjoint sensitivities
-    if(upper_bound > scaling)
-        return scaling;
+    return scaling;
+//    constexpr double upper_bound = 1e10;
 
-    logmessage(LOGLVL_WARNING,
-               "In computeAnalyticalScalings: force-bounding scaling parameter "
-               + std::to_string(scalingIdx) + " which was "
-               + std::to_string(scaling) + " to "
-               + std::to_string(upper_bound));
-    return upper_bound;
+//    // too large values of scaling parameters cause problems in backwards
+//    // integration for adjoint sensitivities
+//    if(upper_bound > scaling)
+//        return scaling;
+
+//    logmessage(LOGLVL_WARNING,
+//               "In computeAnalyticalScalings: force-bounding scaling parameter "
+//               + std::to_string(scalingIdx) + " which was "
+//               + std::to_string(scaling) + " to "
+//               + std::to_string(upper_bound));
+//    return upper_bound;
 }
 
 
@@ -1073,6 +1082,12 @@ std::vector<double> spliceParameters(const gsl::span<double const> reducedParame
             throw std::exception();
     }
 
+    RELEASE_ASSERT((unsigned) idxScaling == proportionalityFactorIndices.size(),
+                   "")
+    RELEASE_ASSERT((unsigned) idxOffset == offsetParameterIndices.size(), "")
+    RELEASE_ASSERT((unsigned) idxSigma == sigmaParameterIndices.size(), "")
+    RELEASE_ASSERT((unsigned) idxRegular == reducedParameters.size(), "")
+
     return fullParameters;
 }
 
@@ -1160,7 +1175,7 @@ HierarchicalOptimizationReporter::HierarchicalOptimizationReporter(
 
 FunctionEvaluationStatus HierarchicalOptimizationReporter::evaluate(
         gsl::span<const double> parameters,
-        double &fval, gsl::span<double> gradient, Logger */*logger*/,
+        double &fval, gsl::span<double> gradient, Logger *logger,
         double *cpuTime) const
 {
     double myCpuTimeSec = 0.0;
@@ -1177,7 +1192,7 @@ FunctionEvaluationStatus HierarchicalOptimizationReporter::evaluate(
             cachedStatus = hierarchicalWrapper->evaluate(
                         parameters, cachedCost, cachedGradient,
                         cachedFullParameters, cachedFullGradient,
-                        this->logger.get(), &myCpuTimeSec);
+                        logger ? logger : this->logger.get(), &myCpuTimeSec);
             haveCachedCost = true;
             haveCachedGradient = true;
         }
@@ -1191,7 +1206,7 @@ FunctionEvaluationStatus HierarchicalOptimizationReporter::evaluate(
             cachedStatus = hierarchicalWrapper->evaluate(
                         parameters, cachedCost, gsl::span<double>(),
                         cachedFullParameters, cachedFullGradient,
-                        this->logger.get(), &myCpuTimeSec);
+                        logger ? logger : this->logger.get(), &myCpuTimeSec);
             haveCachedCost = true;
             haveCachedGradient = false;
         }
@@ -1297,7 +1312,6 @@ bool HierarchicalOptimizationReporter::iterationFinished(
     ++numIterations;
 
     logger->setPrefix(defaultLoggerPrefix + "i" + std::to_string(numIterations));
-
     cpuTimeIterationSec = 0.0;
 
     return false;
