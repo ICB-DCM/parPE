@@ -104,5 +104,6 @@ jobs:
     - name: Run valgrind
       run: |
         cd ${PARPE_BUILD} \
-          && CTEST_OUTPUT_ON_FAILURE=1 make ExperimentalMemCheck \
-          || cat Testing/Temporary/MemoryChecker.*.log && false
+          && if (CTEST_OUTPUT_ON_FAILURE=1 make ExperimentalMemCheck); \
+              then cat Testing/Temporary/MemoryChecker.*.log; \
+              else cat Testing/Temporary/MemoryChecker.*.log; exit 1; fi
