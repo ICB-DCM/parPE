@@ -287,3 +287,16 @@
    fun:exit
    fun:(below main)
 }
+
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Addr1
+   fun:check_free
+   fun:free_key_mem
+   fun:__dlerror_main_freeres
+   fun:__libc_freeres
+   fun:_vgnU_freeres
+   fun:__run_exit_handlers
+   fun:exit
+   fun:(below main)
+}
