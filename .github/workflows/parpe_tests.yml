@@ -9,9 +9,7 @@ jobs:
     name: parPE tests
     steps:
     - uses: actions/checkout@master
-      with:
-        fetch-depth: 42
-
+    - run: git fetch --prune --unshallow
 
     - run: echo "::set-env name=PARPE_BASE::$(pwd)"
     - run: echo "::set-env name=PARPE_BUILD::${PARPE_BASE}/build"
