@@ -112,7 +112,7 @@ install(TARGETS ${PROJECT_NAME} EXPORT ParPETargets
     INCLUDES DESTINATION include
     )
 
-if(${BUILD_TESTS} AND ${PARPE_ENABLE_MPI})
+if(${BUILD_TESTING} AND ${PARPE_ENABLE_MPI})
     add_test (NAME ${PROJECT_NAME}
         COMMAND ${CMAKE_SOURCE_DIR}/misc/run_in_venv.sh
             ${CMAKE_BINARY_DIR}/venv
@@ -141,7 +141,7 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 
-if(${BUILD_TESTS})
+if(${BUILD_TESTING})
 #    add_test (NAME ${PROJECT_NAME}
 #        COMMAND ${TESTS_MPIEXEC_COMMAND} ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME} -o ${PROJECT_NAME}-testresults ${CMAKE_CURRENT_LIST_DIR}/data.h5
 #        )
@@ -149,7 +149,7 @@ endif()
 # /example_steadystate_multi executable_simulator
 
 
-if(${BUILD_TESTS})
+if(${BUILD_TESTING})
     project(test_steadystate)
 
     add_test (NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME} -c)

@@ -48,7 +48,7 @@ jobs:
           -DCERES_INCLUDE_DIRS="/usr/include/;/usr/include/eigen3" \
           -DMPI_INCLUDE_DIRS=/usr/include/openmpi-x86_64/ \
           -DGCOVR_REPORT=TRUE \
-          -DBUILD_TESTS=FALSE
+          -DBUILD_TESTING=FALSE
 
     - name: Build parPE
       run: |
