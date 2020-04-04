@@ -561,8 +561,8 @@ std::vector<int>
 AnalyticalParameterHdf5Reader::getOptimizationParameterIndices() const {
     auto lock = hdf5MutexGetLock();
     std::vector<int> analyticalParameterIndices;
-    H5_SAVE_ERROR_HANDLER; // don't show error if dataset is missing
-    try {
+
+    if(file.nameExists(analyticalParameterIndicesPath)) {
         auto dataset = file.openDataSet(analyticalParameterIndicesPath);
         auto dataspace = dataset.getSpace();
 
@@ -576,11 +576,7 @@ AnalyticalParameterHdf5Reader::getOptimizationParameterIndices() const {
         analyticalParameterIndices.resize(numScalings);
         dataset.read(analyticalParameterIndices.data(),
                      H5::PredType::NATIVE_INT);
-    } catch (H5::FileIException&) {
-        // we just return an empty list
     }
-    H5_RESTORE_ERROR_HANDLER;
-
     return analyticalParameterIndices;
 }
 
@@ -589,8 +585,7 @@ int AnalyticalParameterHdf5Reader::getNumAnalyticalParameters() const
     hsize_t numAnalyticalParameters = 0;
     auto lock = hdf5MutexGetLock();
 
-    H5_SAVE_ERROR_HANDLER; // don't show error if dataset is missing
-    try {
+    if(file.nameExists(analyticalParameterIndicesPath)) {
         auto dataset = file.openDataSet(analyticalParameterIndicesPath);
         auto dataspace = dataset.getSpace();
         auto ndims = dataspace.getSimpleExtentNdims();
@@ -598,10 +593,7 @@ int AnalyticalParameterHdf5Reader::getNumAnalyticalParameters() const
             throw ParPEException(
                     "Invalid dimension in getOptimizationParameterIndices.");
         dataspace.getSimpleExtentDims(&numAnalyticalParameters);
-    } catch (H5::FileIException&) {
-        // 0
     }
-    H5_RESTORE_ERROR_HANDLER;
 
     return numAnalyticalParameters;
 }
