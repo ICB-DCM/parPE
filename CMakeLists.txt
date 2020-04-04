@@ -44,7 +44,6 @@ split_version(${PARPE_VERSION} libname major minor patch)
 
 
 # <Build options>
-set(BUILD_TESTS FALSE CACHE BOOL "Build tests? (requires googletest)")
 set(BUILD_EXAMPLES TRUE CACHE BOOL "Build examples?")
 set(BUILD_DOCS FALSE CACHE BOOL "Generate documentation?")
 set(BUILD_PYTHON_MODULE FALSE CACHE BOOL "Build Python module?")
@@ -99,7 +98,7 @@ set(HDF5_LIBRARIES
 set(GSL_INCLUDE_DIRS "${CMAKE_SOURCE_DIR}/ThirdParty/gsl")
 
 # Build tests?
-if(${BUILD_TESTS})
+if(${BUILD_TESTING})
     enable_testing()
     include (CTest)
 
@@ -121,7 +120,7 @@ if(${BUILD_TESTS})
     else ()
         message(FATAL_ERROR "No googletest src dir found - set GOOGLETEST_DIR "
             "or run ../ThirdParty/installGoogleTest.sh to enable!"
-            " (Or disable building tests with BUILD_TESTS=OFF)")
+            " (Or disable building tests with BUILD_TESTING=OFF)")
     endif ()
     include_directories(${GTestSrc} "${GTestSrc}/include"
         ${GMockSrc} "${GMockSrc}/include")
@@ -173,7 +172,7 @@ if(${BUILD_TESTS})
         endif()
     endif()
     # </Coverage>
-endif(${BUILD_TESTS})
+endif(${BUILD_TESTING})
 
 
 # <Documentation (doxygen)>
@@ -211,7 +210,7 @@ add_subdirectory(templates)
 
 add_subdirectory(src)
 
-if(${BUILD_TESTS})
+if(${BUILD_TESTING})
     add_subdirectory(tests)
 endif()
 
