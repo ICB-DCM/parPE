@@ -300,3 +300,12 @@
    fun:exit
    fun:(below main)
 }
+
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Addr8
+   ...
+   obj:*/libevent-2.1.so*
+   fun:event_base_loop
+   ...
+}
