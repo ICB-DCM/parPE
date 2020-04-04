@@ -42,6 +42,7 @@ StandaloneSimulator::run(const std::string& resultFile,
     rw.saveYMes = true;
     rw.saveYSim = true;
     rw.saveLlh = true;
+    rw.save_parameters_ = true;
     rw.saveX = true;
 
     auto model = dataProvider->getModel();
@@ -133,7 +134,7 @@ StandaloneSimulator::run(const std::string& resultFile,
         hdf5EnsureGroupExists(resultFileH5.getId(), resultPath.c_str());
         auto lock = hdf5MutexGetLock();
         amici::hdf5::createAndWriteDouble1DDataset(
-          resultFileH5, resultPath + "/parameters", parameters);
+          resultFileH5, resultPath + "/problemParameters", parameters);
     }
 
     RELEASE_ASSERT(
@@ -149,7 +150,6 @@ StandaloneSimulator::run(const std::string& resultFile,
     int errors = 0;
     std::cout << "Starting simulation. Number of conditions: "
               << dataProvider->getNumberOfSimulationConditions() << std::endl;
-
     auto jobFinished =
       [&](
         JobData* job,
@@ -171,6 +171,7 @@ StandaloneSimulator::run(const std::string& resultFile,
                                auto edata =
                                  dataProvider->getExperimentalDataForCondition(
                                    conditionIdx);
+
                                rw.saveTimepoints(edata->getTimepoints(),
                                                  conditionIdx);
                                rw.saveMeasurements(edata->getObservedData(),
@@ -182,6 +183,11 @@ StandaloneSimulator::run(const std::string& resultFile,
                                                    model->nytrue,
                                                    conditionIdx);
                                rw.saveLikelihood(result.second.llh,
+                                                 conditionIdx);
+
+                               // to save simulation parameters
+                               dataProvider->updateSimulationParametersAndScale(conditionIdx, parameters, *model);
+                               rw.saveParameters(model->getParameters(),
                                                  conditionIdx);
                            }
       };
@@ -250,7 +256,7 @@ StandaloneSimulator::run(const std::string& resultFile,
                {
                    auto lock = hdf5MutexGetLock();
                    amici::hdf5::createAndWriteDouble1DDataset(
-                     resultFileH5, resultPath + "/parameters", parameters);
+                     resultFileH5, resultPath + "/problemParameters", parameters);
                    hdf5Write1dStringDataset(resultFileH5,
                                             resultPath,
                                             "stateIds",
@@ -290,6 +296,13 @@ StandaloneSimulator::run(const std::string& resultFile,
                                        model->nytrue,
                                        conditionIdx);
                    rw.saveLikelihood(llh, conditionIdx);
+
+                   // to save simulation parameters
+                   dataProvider->updateSimulationParametersAndScale(
+                       conditionIdx, parameters, *model);
+                   rw.saveParameters(model->getParameters(),
+                                     conditionIdx);
+
                }
                return 0;
     };
@@ -662,20 +675,21 @@ runSimulationTasks(StandaloneSimulator& sim,
                    std::string const& resultPath,
                    LoadBalancerMaster* loadBalancer)
 {
-    auto lock = hdf5MutexGetLock();
-    H5::H5File conditionFile = hdf5OpenForReading(conditionFileName);
-    H5::H5File resultFile = hdf5OpenForAppending(resultFileName);
+    {
+        // copy input data
+        auto lock = hdf5MutexGetLock();
+        H5::H5File conditionFile = hdf5OpenForReading(conditionFileName);
+        H5::H5File resultFile = hdf5OpenForAppending(resultFileName);
 
-    std::vector<std::string> datasetsToCopy {"/inputData"};
-    for (auto& datasetToCopy : datasetsToCopy) {
-        auto source = conditionFilePath + datasetToCopy;
-        auto dest = resultPath + "/" + datasetToCopy;
-        H5Ocopy(conditionFile.getId(), source.c_str(),
-                resultFile.getId(), dest.c_str(),
-                H5P_DEFAULT, H5P_DEFAULT);
+        std::vector<std::string> datasetsToCopy {"/inputData"};
+        for (auto const& datasetToCopy : datasetsToCopy) {
+            auto source = conditionFilePath + datasetToCopy;
+            auto dest = resultPath + "/" + datasetToCopy;
+            H5Ocopy(conditionFile.getId(), source.c_str(),
+                    resultFile.getId(), dest.c_str(),
+                    H5P_DEFAULT, H5P_DEFAULT);
+        }
     }
-    lock.unlock();
-
 
     if (simulationMode == "--at-optimum") {
         return parpe::runFinalParameters(sim,

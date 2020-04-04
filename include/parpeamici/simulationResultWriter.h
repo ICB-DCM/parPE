@@ -88,6 +88,9 @@ public:
     void saveStates(gsl::span<const double> states, int nt, int nx,
                     int simulationIdx) const;
 
+    void saveParameters(gsl::span<const double> parameters,
+                    int simulationIdx) const;
+
     void saveLikelihood(double llh, int simulationIdx) const;
 
     H5::H5File reopenFile();
@@ -97,7 +100,7 @@ public:
 //    bool saveSllh = false;
     bool saveYSim = false;
     bool saveYMes = false;
-//    bool saveP = false;
+    bool save_parameters_ = false;
 //    bool saveK = false;
 
     std::string yMesPath;
@@ -105,6 +108,7 @@ public:
     std::string xPath;
     std::string llhPath;
     std::string timePath;
+    std::string parametersPath;
 
 private:
     void updatePaths();

@@ -48,6 +48,8 @@ void SimulationResultWriter::createDatasets(hsize_t numSimulations)
         hdf5EnsureGroupExists(file, yMesPath);
     if(saveYSim)
         hdf5EnsureGroupExists(file, ySimPath);
+    if(save_parameters_)
+        hdf5EnsureGroupExists(file, parametersPath);
 
     // Individual datasets will be created per condition, since we need
     // condition-specific number of timepoints
@@ -82,7 +84,7 @@ void SimulationResultWriter::saveSimulationResults(
     saveModelOutputs(rdata->y,  edata->nt(), edata->nytrue(), simulationIdx);
     saveStates(rdata->x, rdata->nt, rdata->nx, simulationIdx);
     saveLikelihood(rdata->llh, simulationIdx);
-
+    // TODO: model or edata? saveParameters(edata->parameters)
     auto lock = parpe::hdf5MutexGetLock();
 
     file.flush(H5F_SCOPE_LOCAL);
@@ -184,6 +186,24 @@ void SimulationResultWriter::saveStates(
     dataset.write(states.data(), H5::PredType::NATIVE_DOUBLE);
 }
 
+void SimulationResultWriter::saveParameters(gsl::span<const double> parameters, int simulationIdx) const
+{
+    if(parameters.empty())
+        return;
+
+    auto lock = parpe::hdf5MutexGetLock();
+
+    // Create dataset
+    constexpr int rank = 1;
+    hsize_t dims[rank] = {static_cast<hsize_t>(parameters.size())};
+    H5::DataSpace dataspace(rank, dims);
+    auto dataset = file.createDataSet(
+        parametersPath + "/" + std::to_string(simulationIdx),
+        H5::PredType::NATIVE_DOUBLE, dataspace);
+
+    dataset.write(parameters.data(), H5::PredType::NATIVE_DOUBLE);
+}
+
 
 void SimulationResultWriter::saveLikelihood(double llh, int simulationIdx) const
 {
@@ -222,6 +242,8 @@ void SimulationResultWriter::updatePaths()
     xPath = rootPath + "/x";
     llhPath  = rootPath + "/llh";
     timePath  = rootPath + "/t";
+    parametersPath  = rootPath + "/parameters";
+
 }
 
 
