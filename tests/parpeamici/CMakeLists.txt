@@ -1,7 +1,5 @@
 project(unittests_amici)
 
-add_test (NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME} -c)
-
 set(SRC_LIST_CPP
     main.cpp
     ../parpecommon/testingMisc.cpp
@@ -31,3 +29,5 @@ target_link_libraries(${PROJECT_NAME}
     parpeamici
     ${GCOV_LIBRARY}
 )
+
+gtest_discover_tests(${PROJECT_NAME})

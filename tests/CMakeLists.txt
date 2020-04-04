@@ -1,3 +1,5 @@
+include(GoogleTest)
+
 add_subdirectory(parpecommon)
 
 if(${PARPE_ENABLE_MPI})
