@@ -6,7 +6,7 @@
 #include <vector>
 #include <functional>
 
-#define MPI_TAG_EXIT_SIGNAL 0
+constexpr int MPI_TAG_EXIT_SIGNAL = 0;
 
 namespace parpe {
 

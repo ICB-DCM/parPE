@@ -10,6 +10,7 @@
 
 namespace parpe {
 
+using namespace Ipopt;
 
 LocalOptimizationIpoptTNLP::LocalOptimizationIpoptTNLP(OptimizationProblem &problem, OptimizationReporter &reporter)
     : problem(problem), reporter(reporter)
