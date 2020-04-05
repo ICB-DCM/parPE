@@ -4,13 +4,13 @@
 Expects to be run from within the steadystate example build directory
 """
 
-import sys
 import contextlib
-import subprocess
 import os
 import shutil
+import subprocess
 
 
+# General setup
 script_path = os.path.dirname(os.path.abspath(__name__))
 # test executables are expected in working directory
 cwd = os.getcwd()
@@ -31,8 +31,8 @@ with contextlib.suppress(subprocess.CalledProcessError):
     subprocess.run('grep docker /proc/1/cgroup -qa', shell=True, check=True)
     MPIEXEC.append("--allow-run-as-root")
 
-    # If we are running in docker, we generally don't have SYS_PTRACE permissions
-    # and thus, cannot use vader. Also disable Infiniband.
+    # If we are running in docker, we generally don't have SYS_PTRACE
+    #  permissions  and thus, cannot use vader. Also disable Infiniband.
     subprocess.run('mpiexec --version | grep open-mpi', shell=True, check=True)
     MPIEXEC.extend(["--oversubscribe",
                     "--mca", "btl_vader_single_copy_mechanism", "none",
@@ -43,6 +43,8 @@ with contextlib.suppress(subprocess.CalledProcessError):
 
 
 def test_nompi_gradient_check():
+    """Test gradient check without MPI"""
+
     outdir = 'example_steadystate_multi-test-gradient'
     shutil.rmtree(outdir, ignore_errors=True)
     ret = subprocess.run(f'{optim_exe} -t gradient_check'
@@ -53,9 +55,11 @@ def test_nompi_gradient_check():
 
 
 def test_nompi_optimization():
-    """Run optimization with default settings"""
+    """Run optimization and simulation without MPI with default settings"""
+
     outdir = 'example_steadystate_multi-test-optimize'
     shutil.rmtree(outdir, ignore_errors=True)
+
     ret = subprocess.run([optim_exe, '-o', outdir + '/', HDF5_FILE],
                          capture_output=True,
                          check=True, encoding="utf-8")
@@ -80,8 +84,9 @@ def test_nompi_optimization():
 
 
 def test_mpi_optimization():
+    """Test optimization and simulation with MPI"""
+
     # Run optimization with default settings
-    """Run optimization with default settings"""
     outdir = 'example_steadystate_multi-test-optimize'
     shutil.rmtree(outdir, ignore_errors=True)
     cmd = [*MPIEXEC, optim_exe, '--mpi', '-o', outdir + '/', HDF5_FILE]
@@ -99,6 +104,7 @@ def test_mpi_optimization():
            '--along-trajectory', '--mpi']
     ret = subprocess.run(cmd, capture_output=True,
                          check=True, encoding="utf-8")
+
     assert os.path.isfile(sim_file)
     assert '[ERR]' not in ret.stdout
     assert '[WRN]' not in ret.stdout
