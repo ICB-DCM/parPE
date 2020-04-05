@@ -120,23 +120,21 @@ LocalOptimizationIpoptTNLP::eval_g(Index /*n*/,
                                    Index /*m*/,
                                    Number* /*g*/)
 {
-
-    assert(false && "no constraints, should never get here");
-
-    return false;
+    throw std::runtime_error("no constraints, should never get here");
 }
 
 bool
 LocalOptimizationIpoptTNLP::eval_jac_g(Index /*n*/,
                                        const Number* /*x*/,
                                        bool /*new_x*/,
-                                       Index /*m*/,
+                                       Index m,
                                        Index /*nele_jac*/,
                                        Index* /*iRow*/,
                                        Index* /*jCol*/,
                                        Number* /*values*/)
 {
     // no constraints, nothing to do here, but will be called once
+    Expects(m == 0); // while constraints not implemented
     return true;
 }
 

@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <random>
 
+#include <gsl/gsl-lite.hpp>
 #include <gtest/gtest.h>
 
 namespace parpe {
@@ -92,10 +93,10 @@ std::string captureStreamToString(const std::function<void()>& f,
         std::abort();
 
     int newStreamFd = open(tempFileName, O_CREAT | O_WRONLY, S_IRWXU);
-    assert(newStreamFd >= 0);
+    Expects(newStreamFd >= 0);
 
     int oldStreamFd = dup(captureStreamFd);
-    assert(oldStreamFd >= 0);
+    Expects(oldStreamFd >= 0);
     fflush(captureStream);
 
     dup2(newStreamFd, captureStreamFd); // replace original fd by tmp file

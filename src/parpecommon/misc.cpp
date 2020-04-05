@@ -59,7 +59,7 @@ void createDirectoryIfNotExists(char *dirName) {
  * @return 0 on success, -1 otherwise
  */
 int mkpath(char *file_path, mode_t mode) {
-    assert(file_path && *file_path);
+    Expects(file_path && *file_path);
 
     for (char *p = strchr(file_path + 1, '/'); p; p = strchr(p + 1, '/')) {
         *p = '\0';

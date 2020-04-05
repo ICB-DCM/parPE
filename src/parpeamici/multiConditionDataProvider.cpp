@@ -510,9 +510,9 @@ MultiConditionDataProviderHDF5::checkDataIntegrity() const
 
     auto lock = hdf5MutexGetLock();
 
-    assert(
+    Ensures(
       H5Lexists(file_.getId(), hdf5_measurement_path_.c_str(), H5P_DEFAULT));
-    assert(H5Lexists(
+    Ensures(H5Lexists(
       file_.getId(), hdf5_measurement_sigma_path_.c_str(), H5P_DEFAULT));
 
     //    parpe::hdf5GetDatasetDimensions(file.getId(),
