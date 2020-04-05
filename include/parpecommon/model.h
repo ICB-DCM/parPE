@@ -63,7 +63,7 @@ public:
 class LinearModelMSE : public SummedGradientFunction<int>
 {
 public:
-    LinearModelMSE(int numParameters)
+  explicit LinearModelMSE(int numParameters)
         :numParameters_(numParameters) {}
 
     // SummedGradientFunction

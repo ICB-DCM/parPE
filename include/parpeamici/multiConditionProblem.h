@@ -249,7 +249,7 @@ class MultiConditionProblem
   public:
     MultiConditionProblem() = default;
 
-    MultiConditionProblem(MultiConditionDataProvider *dp);
+    explicit MultiConditionProblem(MultiConditionDataProvider *dp);
 
     MultiConditionProblem(
             MultiConditionDataProvider *dp,
