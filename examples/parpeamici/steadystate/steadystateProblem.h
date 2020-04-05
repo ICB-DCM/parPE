@@ -43,7 +43,7 @@ private:
 
 class ExampleSteadystateProblem : public parpe::OptimizationProblem {
   public:
-    ExampleSteadystateProblem(std::string const& dataFileName);
+    explicit ExampleSteadystateProblem(std::string const& dataFileName);
 
     void fillInitialParameters(gsl::span<double> buffer) const override;
     void fillParametersMin(gsl::span<double> buffer) const override;

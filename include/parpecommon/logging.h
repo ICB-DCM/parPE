@@ -51,7 +51,7 @@ void warning(const char *message);
 class Logger {
 public:
     Logger() = default;
-    Logger(std::string prefix);
+    explicit Logger(std::string prefix);
 
     std::unique_ptr<Logger> getChild(std::string const& appendedPrefix) const;
 

@@ -24,10 +24,6 @@
 - parPE.R
 
   (Outdated) example for plotting parPE parameter estimation results in R 
-
-- runExamples.sh
-
-  Run parPE examples for testing
   
 - run_in_venv.sh
 

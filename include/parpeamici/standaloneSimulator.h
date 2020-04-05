@@ -25,7 +25,7 @@ namespace parpe {
 class StandaloneSimulator
 {
   public:
-    StandaloneSimulator(MultiConditionDataProvider* dp);
+    explicit StandaloneSimulator(MultiConditionDataProvider* dp);
 
     /**
      * @brief Run simulations for the given parameter and write results to an

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # build parPE dependencies
 
 script_dir=$(dirname "$0")

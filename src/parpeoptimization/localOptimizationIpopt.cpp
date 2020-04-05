@@ -330,7 +330,7 @@ const std::vector<std::string> dblOpts = {
 extern volatile sig_atomic_t caughtTerminationSignal;
 #endif
 
-static_assert(sizeof(double) == sizeof(Number),
+static_assert(sizeof(double) == sizeof(Ipopt::Number),
               "Sizeof IpOpt::Number != sizeof double");
 
 
