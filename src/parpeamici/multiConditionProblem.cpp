@@ -488,7 +488,7 @@ FunctionEvaluationStatus getModelOutputs(
     modelOutput.resize(dataIndices.size());
     auto parameterVector = std::vector<double>(parameters.begin(),
                                                parameters.end());
-    auto jobFinished = [&](JobData *job, int /*dataIdx*/) { // jobFinished
+    auto jobFinished = [&errors, &modelOutput](JobData *job, int /*dataIdx*/) {
         // deserialize
         auto results =
                 amici::deserializeFromChar<AmiciSummedGradientFunction::ResultMap> (
@@ -500,6 +500,7 @@ FunctionEvaluationStatus getModelOutputs(
             modelOutput[result.first] = result.second.modelOutput;
         }
     };
+
     AmiciSimulationRunner simRunner(parameterVector,
                                     amici::SensitivityOrder::none,
                                     dataIndices,
@@ -515,7 +516,7 @@ FunctionEvaluationStatus getModelOutputs(
     } else {
 #endif
         errors += simRunner.runSharedMemory(
-                    [&](std::vector<char> &buffer, int jobId) {
+                    [&dataProvider, &resultWriter, logLineSearch, &sendStates](std::vector<char> &buffer, int jobId) {
                 messageHandler(dataProvider, resultWriter, logLineSearch,
                                buffer, jobId, sendStates);
     });
@@ -694,8 +695,9 @@ int AmiciSummedGradientFunction::runSimulations(
                 ? amici::SensitivityOrder::first
                 : amici::SensitivityOrder::none,
                 dataIndices,
-                [&](JobData *job, int /*jobIdx*/) {
-        errors += aggregateLikelihood(*job,
+                [&nllh, &objectiveFunctionGradient, &simulationTimeSec,
+         &optimizationParameters, &errors, this](JobData *job, int /*jobIdx*/) {
+            errors += this->aggregateLikelihood(*job,
                                       nllh,
                                       objectiveFunctionGradient,
                                       simulationTimeSec,
@@ -715,8 +717,8 @@ int AmiciSummedGradientFunction::runSimulations(
     } else {
 #endif
         errors += simRunner.runSharedMemory(
-                    [&](std::vector<char> &buffer, int jobId) {
-                messageHandler(buffer, jobId);
+                    [this](std::vector<char> &buffer, int jobId) {
+                this->messageHandler(buffer, jobId);
     });
 #ifdef PARPE_ENABLE_MPI
     }
