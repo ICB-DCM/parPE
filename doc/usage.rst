@@ -11,4 +11,3 @@ Usage
    petab_model_import.md
    snakemake_workflow.md
    standaloneSimulator.md
-   dataFormatForHDF5generation.md
