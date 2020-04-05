@@ -82,13 +82,12 @@ int mkpathConstChar(const char *file_path, mode_t mode) {
 }
 
 void strFormatCurrentLocaltime(gsl::span<char> buffer, const char *format) {
-    time_t timer;
-    time(&timer);
+    time_t current_time;
+    struct tm local_time;
+    time(&current_time);
+    localtime_r(&current_time, &local_time);
 
-    struct tm *tm_info;
-    tm_info = localtime(&timer);
-
-    strftime(buffer.data(), buffer.size(), format, tm_info);
+    strftime(buffer.data(), buffer.size(), format, &local_time);
 }
 
 void runInParallelAndWaitForFinish(void *(*function)(void *), void **args,
