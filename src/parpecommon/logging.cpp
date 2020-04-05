@@ -176,7 +176,7 @@ void printlogmessage(loglevel lvl, const char *message)
     printf("[%*d:%lu/%s] ", 1 + static_cast<int>(log10(mpiCommSize)),
            mpiRank, pthread_self(), procName );
     printf("%s", message);
-    printf(ANSI_COLOR_RESET "\n");
+    printf("%s\n", ANSI_COLOR_RESET);
 
     switch (lvl) {
     case LOGLVL_CRITICAL:
