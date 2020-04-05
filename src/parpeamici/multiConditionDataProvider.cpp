@@ -208,14 +208,6 @@ MultiConditionDataProviderHDF5::getParameterScaleSim(
     return static_cast<amici::ParameterScaling>(res);
 }
 
-/**
- * @brief Update the contstants in AMICI ExpData object. Reads a slab for the
- * given simulation from fixed parameters matrix.
- *
- * @param simulationIdx Index of the experimental condition for which the
- * parameters should be taken.
- * @param edata The object to be updated.
- */
 void
 MultiConditionDataProviderHDF5::updateFixedSimulationParameters(
   int simulationIdx,

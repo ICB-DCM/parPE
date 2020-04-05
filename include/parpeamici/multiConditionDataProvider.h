@@ -31,6 +31,12 @@ class MultiConditionDataProvider
      */
     virtual int getNumberOfSimulationConditions() const = 0;
 
+    /**
+     * @brief Get mapping vector simulation_parameter_idx ->
+     * optimization_parameter_idx for the given condition index.
+     * @param conditionIdx
+     * @return Mapping vector
+     */
     virtual std::vector<int> getSimulationToOptimizationParameterMapping(
       int conditionIdx) const = 0;
 
@@ -51,7 +57,7 @@ class MultiConditionDataProvider
     /**
      * @brief Get the parameter scale for the given optimization parameter
      * @param simulationIdx
-     * @return
+     * @return Parameter scale
      */
     virtual amici::ParameterScaling getParameterScaleOpt(
       int parameterIdx) const = 0;
@@ -102,6 +108,12 @@ class MultiConditionDataProvider
     virtual std::unique_ptr<amici::Solver> getSolver() const = 0;
 };
 
+
+/**
+ * @brief In-memory data.
+ *
+ * !!Very limited implementation, currently only for testing!!
+ */
 class MultiConditionDataProviderDefault : public MultiConditionDataProvider
 {
   public:
@@ -189,6 +201,7 @@ class MultiConditionDataProviderDefault : public MultiConditionDataProvider
  *
  * This class assumes a certain layout of the underlying HDF5 file. Der dataset
  * names can be modified in hdf5*Path members.
+ *
  * Required dimensions:
  * * hdf5MeasurementPath, hdf5MeasurementSigmaPath: numObservables x
  * numConditions
@@ -232,13 +245,6 @@ class MultiConditionDataProviderHDF5 : public MultiConditionDataProvider
       delete;
 
     virtual ~MultiConditionDataProviderHDF5() override = default;
-
-    /**
-     * @brief
-     * @param hdf5Filename Filename from where to read data
-     */
-
-    void openHdf5File(const std::string& hdf5Filename);
 
     /**
      * @brief Get the number of simulations required for objective function
@@ -308,18 +314,14 @@ class MultiConditionDataProviderHDF5 : public MultiConditionDataProvider
       int conditionIdx) const;
 
     /**
-     * @brief getOptimizationParametersLowerBounds Get lower parameter bounds
-     * NOTE: Currently the same bounds are assumed for kinetic parameters and
-     * scaling parameters, ...
-     * @param dataPath (not yet used)
+     * @brief Writes lower parameter bounds into the provided buffer
      * @param buffer allocated memory to write parameter bounds
      */
     virtual void getOptimizationParametersLowerBounds(
       gsl::span<double> buffer) const;
 
     /**
-     * @brief getOptimizationParametersUpperBounds Get upper parameter bounds
-     * @param dataPath (not yet used)
+     * @brief Writes upper parameter bounds into the provided buffer
      * @param buffer allocated memory to write parameter bounds
      */
     virtual void getOptimizationParametersUpperBounds(
@@ -368,8 +370,17 @@ class MultiConditionDataProviderHDF5 : public MultiConditionDataProvider
     hid_t getHdf5FileId() const;
 
   protected:
+    /**
+     * @brief Update the contstants in AMICI ExpData object. Reads a slab for the
+     * given simulation from fixed parameters matrix.
+     *
+     * @param simulationIdx Index of the experimental condition for which the
+     * parameters should be taken.
+     * @param edata The object to be updated.
+     */
     void updateFixedSimulationParameters(int conditionIdx,
                                          amici::ExpData& edata) const;
+
 
     /**
      * @brief The model for which the data is to be read
