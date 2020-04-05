@@ -277,15 +277,15 @@ MultiConditionDataProviderHDF5::readFixedSimulationParameters(
                              "unable to read data");
 }
 
-std::unique_ptr<amici::ExpData>
-MultiConditionDataProviderHDF5::getExperimentalDataForCondition(
-  int simulationIdx) const
-{
+std::unique_ptr<amici::ExpData> MultiConditionDataProviderHDF5::getExperimentalDataForCondition(
+        int simulationIdx) const {
     auto edata = std::make_unique<amici::ExpData>(*model_);
 
     auto lock = hdf5MutexGetLock();
-    edata->setTimepoints(amici::hdf5::getDoubleDataset1D(
-      file_, root_path_ + "/measurements/t/" + std::to_string(simulationIdx)));
+    edata->setTimepoints(
+                amici::hdf5::getDoubleDataset1D(
+                    file_, root_path_ + "/measurements/t/"
+                    + std::to_string(simulationIdx)));
     edata->setObservedData(getMeasurementForSimulationIndex(simulationIdx));
     edata->setObservedDataStdDev(getSigmaForSimulationIndex(simulationIdx));
     updateFixedSimulationParameters(simulationIdx, *edata);

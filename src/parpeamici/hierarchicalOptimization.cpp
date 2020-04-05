@@ -1010,20 +1010,19 @@ spliceParameters(const gsl::span<double const> reducedParameters,
             throw std::exception();
     }
 
-    Ensures((unsigned)idxScaling == proportionalityFactorIndices.size());
-    Ensures((unsigned)idxOffset == offsetParameterIndices.size());
-    Ensures((unsigned)idxSigma == sigmaParameterIndices.size());
-    Ensures((unsigned)idxRegular == reducedParameters.size());
+    Ensures((unsigned) idxScaling == proportionalityFactorIndices.size());
+    Ensures((unsigned) idxOffset == offsetParameterIndices.size());
+    Ensures((unsigned) idxSigma == sigmaParameterIndices.size());
+    Ensures((unsigned) idxRegular == reducedParameters.size());
 
     return fullParameters;
 }
 
-double
-computeNegLogLikelihood(
-  std::vector<std::vector<double>> const& measurements,
-  std::vector<std::vector<double>> const& modelOutputsScaled,
-  std::vector<std::vector<double>> const& sigmas)
-{
+
+double computeNegLogLikelihood(
+        std::vector<std::vector<double>> const& measurements,
+        std::vector<std::vector<double>> const& modelOutputsScaled,
+        std::vector<std::vector<double>> const& sigmas) {
     Expects(measurements.size() == modelOutputsScaled.size());
 
     double nllh = 0.0;
@@ -1045,6 +1044,7 @@ computeNegLogLikelihood(std::vector<double> const& measurements,
                         std::vector<double> const& modelOutputsScaled,
                         std::vector<double> const& sigmas)
 {
+
     // measurement/simulation output dimension mismatch
     Expects(measurements.size() == modelOutputsScaled.size());
 
