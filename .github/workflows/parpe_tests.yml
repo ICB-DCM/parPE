@@ -81,7 +81,7 @@ jobs:
         && $PARPE_BASE/misc/run_in_venv.sh $PARPE_BASE/build/venv \
           pytest \
             --cov-report=xml:$PARPE_BUILD/coverage_py.xml \
-            --cov=./ \
+            --cov=parpe --cov-append \
             $PARPE_BASE/python/tests/
 
     # Redundant with parpe_coverage_cobertura
