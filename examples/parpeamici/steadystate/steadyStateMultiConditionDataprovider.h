@@ -23,13 +23,12 @@ class SteadyStateMultiConditionDataProvider
                                           const std::string &hdf5Filename,
                                           const std::string &rootPath = "");
 
-    std::unique_ptr<amici::Model> getModel() const override;
     std::unique_ptr<amici::Solver> getSolver() const override;
 
     ~SteadyStateMultiConditionDataProvider() override = default;
 
 private:
-    void setupModelAndSolver(amici::Model& model, amici::Solver& solver) const;
+    void setupModelAndSolver() const;
 
     std::unique_ptr<amici::Solver> solver_;
 

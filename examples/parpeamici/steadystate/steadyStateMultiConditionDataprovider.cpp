@@ -10,15 +10,11 @@ SteadyStateMultiConditionDataProvider::SteadyStateMultiConditionDataProvider(
         std::string const& hdf5Filename,
         std::string const& rootPath)
     : MultiConditionDataProviderHDF5(std::move(model), hdf5Filename, rootPath),
-      solver_(model_->getSolver())
+      solver_(getModel()->getSolver())
 {
-    setupModelAndSolver(*model_, *solver_);
+    setupModelAndSolver();
 }
 
-std::unique_ptr<amici::Model> SteadyStateMultiConditionDataProvider::getModel() const
-{
-    return std::unique_ptr<amici::Model>(model_->clone());
-}
 
 std::unique_ptr<amici::Solver> SteadyStateMultiConditionDataProvider::getSolver() const
 {
@@ -26,14 +22,14 @@ std::unique_ptr<amici::Solver> SteadyStateMultiConditionDataProvider::getSolver(
 }
 
 
-void SteadyStateMultiConditionDataProvider::setupModelAndSolver(amici::Model &model, amici::Solver &solver) const {
+void SteadyStateMultiConditionDataProvider::setupModelAndSolver() const {
     // calculate sensitivities for all parameters
-    model.requireSensitivitiesForAllParameters();
+    //model.requireSensitivitiesForAllParameters();
 
-    solver.setSensitivityOrder(amici::SensitivityOrder::first);
-    solver.setSensitivityMethod(amici::SensitivityMethod::adjoint);
-    solver.setMaxSteps(10000);
-    solver.setNewtonMaxLinearSteps(100);
-    solver.setNewtonMaxSteps(40);
+    solver_->setSensitivityOrder(amici::SensitivityOrder::first);
+    solver_->setSensitivityMethod(amici::SensitivityMethod::adjoint);
+    solver_->setMaxSteps(10000);
+    solver_->setNewtonMaxLinearSteps(100);
+    solver_->setNewtonMaxSteps(40);
 }
 
