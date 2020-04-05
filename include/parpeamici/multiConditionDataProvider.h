@@ -142,8 +142,7 @@ class MultiConditionDataProviderDefault : public MultiConditionDataProvider {
     virtual amici::ParameterScaling getParameterScaleSim(int simulationIdx,
             int optimizationParameterIndex) const override;
 
-    virtual std::vector<amici::ParameterScaling> getParameterScaleSim(
-            int simulationIdx) const override;
+    virtual std::vector<amici::ParameterScaling> getParameterScaleSim(int) const override;
 
     virtual void updateSimulationParametersAndScale(
             int conditionIndex,
@@ -173,11 +172,11 @@ class MultiConditionDataProviderDefault : public MultiConditionDataProvider {
     virtual std::unique_ptr<amici::Solver> getSolver() const override;
 
     // TODO private
-    std::vector<amici::ExpData> edata;
+    std::vector<amici::ExpData> edata_;
 
 private:
     std::unique_ptr<amici::Model> model_;
-    std::unique_ptr<amici::Solver> solver;
+    std::unique_ptr<amici::Solver> solver_;
 };
 
 
@@ -349,10 +348,12 @@ class MultiConditionDataProviderHDF5 : public MultiConditionDataProvider {
 
     void getSimAndPreeqConditions(const int simulationIdx,
                                   int &preequilibrationConditionIdx,
-                                  int &simulationConditionIdx, bool &reinitializeFixedParameterInitialStates) const;
+                                  int &simulationConditionIdx,
+                                  bool &reinitializeFixedParameterInitialStates) const;
 
     /**
-     * @brief Get the identifier of the used HDF5 file. Does not reopen. Do not close file.
+     * @brief Get the identifier of the used HDF5 file. Does not reopen.
+     * Does not close file.
      * @return The file ID
      */
     hid_t getHdf5FileId() const;
@@ -364,32 +365,32 @@ protected:
     /**
      * @brief The model for which the data is to be read
      */
-    std::unique_ptr<amici::Model> model;
+    std::unique_ptr<amici::Model> model_;
 
     /**
      * @brief Absolute paths in the HDF5 file to the datasets
      * from which the respective data is to be read
      */
-    std::string rootPath = "/";
-    std::string hdf5MeasurementPath;
-    std::string hdf5MeasurementSigmaPath;
-    std::string hdf5ConditionPath;
-    std::string hdf5ReferenceConditionPath;
-    std::string hdf5AmiciOptionPath;
-    std::string hdf5ParameterPath;
-    std::string hdf5ParameterMinPath;
-    std::string hdf5ParameterMaxPath;
-    std::string hdf5ParameterScaleSimulationPath;
-    std::string hdf5ParameterScaleOptimizationPath;
-    std::string hdf5SimulationToOptimizationParameterMappingPath;
-    std::string hdf5ParameterOverridesPath;
+    std::string root_path_ = "/";
+    std::string hdf5_measurement_path_;
+    std::string hdf5_measurement_sigma_path_;
+    std::string hdf5_condition_path_;
+    std::string hdf5_reference_condition_path_;
+    std::string hdf5_amici_options_path_;
+    std::string hdf5_parameter_path_;
+    std::string hdf5_parameter_min_path_;
+    std::string hdf5_parameter_max_path_;
+    std::string hdf5_parameter_scale_simulation_path_;
+    std::string hdf5_parameter_scale_optimization_path_;
+    std::string hdf5_simulation_to_optimization_parameter_mapping_path_;
+    std::string hdf5_parameter_overrides_path;
 
     /**
      * @brief HDF5 file handles for C++ and C API
      */
-    H5::H5File file;
+    H5::H5File file_;
 
-    std::unique_ptr<OptimizationOptions> optimizationOptions;
+    std::unique_ptr<OptimizationOptions> optimization_options_;
 };
 
 
