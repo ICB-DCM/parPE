@@ -48,4 +48,4 @@ CC=mpicc CXX=mpiCC \
         -DParPE_DIR="${script_path}/../build"
 
 echo "Building ..."
-make ${MAKE_OPTS}
+cmake --build "${output_dir}/build" -- VERBOSE=1
