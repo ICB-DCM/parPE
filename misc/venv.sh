@@ -2,6 +2,7 @@
 #
 # Setup virtual environment for building/testing parPE
 #
+set -euo pipefail
 
 script_path=$(dirname "$BASH_SOURCE")
 parpe_root=$(cd "${script_path}/.." && pwd)
@@ -14,6 +15,7 @@ venv_dir="${build_dir}/venv"
 # NOTE: Must remove folder if AMICI is updated
 if [[ ! -d "${venv_dir}" ]]; then
     # create venv
+    set +e
     python3 -m venv "${venv_dir}" 2>/dev/null
     # in case this fails (usually due to missing ensurepip), try getting pip
     # manually

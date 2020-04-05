@@ -1,4 +1,6 @@
-#!/bin/bash
+#!/usr/bin/env bash
+# Install Ceres solver and Eigen lib
+
 set -euo pipefail
 set -x
 script_dir=$(dirname "$0")

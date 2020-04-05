@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Run a given command in the given Python virtual environment
 
-set -e
+set -euo pipefail
 
 # invalid options:
 if [[ $# -lt 2 ]]; then
@@ -10,5 +10,5 @@ if [[ $# -lt 2 ]]; then
     exit 1;
 fi
 
-source $1/bin/activate
+source "$1/bin/activate"
 "${@:2}"

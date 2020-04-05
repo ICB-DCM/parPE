@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # build DLIB
 
 set -euo pipefail
