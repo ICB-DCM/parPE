@@ -30,7 +30,7 @@ class SteadyStateMultiConditionDataProvider
 private:
     void setupModelAndSolver(amici::Model& model, amici::Solver& solver) const;
 
-    std::unique_ptr<amici::Solver> solver;
+    std::unique_ptr<amici::Solver> solver_;
 
 };
 

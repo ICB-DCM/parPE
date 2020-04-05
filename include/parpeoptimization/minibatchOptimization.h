@@ -64,7 +64,7 @@ public:
 
     /** mini batch cost function */
     SummedGradientFunction<T>* getGradientFunction() const {
-        auto summedGradientFunction = dynamic_cast<SummedGradientFunction<T>*>(costFun.get());
+        auto summedGradientFunction = dynamic_cast<SummedGradientFunction<T>*>(cost_fun_.get());
         RELEASE_ASSERT(summedGradientFunction, "");
         return summedGradientFunction;
     }
@@ -438,8 +438,8 @@ public:
 
         if (reporter) {
             reporter->starting(initialParameters);
-            reporter->resultWriter->setLoggingEachFunctionEvaluation(false, true);
-            reporter->resultWriter->setLoggingEachIteration(false);
+            reporter->result_writer_->setLoggingEachFunctionEvaluation(false, true);
+            reporter->result_writer_->setLoggingEachIteration(false);
         }
 
         for (int epoch = 0; epoch < maxEpochs; ++epoch) {
@@ -521,7 +521,7 @@ public:
                                       OptimizationReporter *reporter) const {
         if (reporter) {
             reporter->beforeCostFunctionCall(parameters);
-            reporter->logger->setPrefix(logger->getPrefix());
+            reporter->logger_->setPrefix(logger->getPrefix());
         }
 
         double cpuTime = 0.0;
@@ -534,8 +534,8 @@ public:
             g /= batchSize;
 
         if (reporter) {
-            reporter->cpuTimeIterationSec += cpuTime;
-            reporter->cpuTimeTotalSec += cpuTime;
+            reporter->cpu_time_iteration_sec_ += cpuTime;
+            reporter->cpu_time_total_sec_ += cpuTime;
             reporter->afterCostFunctionCall(parameters, cost, gradient);
         }
 
@@ -606,7 +606,7 @@ public:
 
         if (reporter) {
             reporter->beforeCostFunctionCall(parameters);
-            reporter->logger->setPrefix(logger->getPrefix());
+            reporter->logger_->setPrefix(logger->getPrefix());
         }
 
         // debug output

@@ -74,7 +74,7 @@ class MyCeresFirstOrderFunction : public ceres::FirstOrderFunction {
   public:
     MyCeresFirstOrderFunction(OptimizationProblem *problem, OptimizationReporter *reporter)
         : problem(problem), reporter(reporter) {
-        numParameters = problem->costFun->numParameters();
+        numParameters = problem->cost_fun_->numParameters();
 
         // bounds are not natively supported by CERES; a naive check is currently implemented which fails function evaluation if parameters are out of bounds
         parametersMin.resize(numParameters);
@@ -171,7 +171,7 @@ std::tuple<int, double, std::vector<double> > OptimizerCeres::optimize(Optimizat
     google::AddLogSink(&log);
 #endif
 
-    std::vector<double> parameters(problem->costFun->numParameters());
+    std::vector<double> parameters(problem->cost_fun_->numParameters());
     problem->fillInitialParameters(parameters);
 
     auto reporter = problem->getReporter();

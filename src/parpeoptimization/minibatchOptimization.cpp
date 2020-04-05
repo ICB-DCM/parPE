@@ -103,7 +103,7 @@ std::tuple<int, double, std::vector<double> > runMinibatchOptimization(Minibatch
     auto data = problem->getTrainingData();
 
     return minibatchOptimizer->optimize(*costFun, data, initialParameters, lowerParameterBounds, upperParameterBounds,
-                                        problem->getReporter().get(), problem->logger.get());
+                                        problem->getReporter().get(), problem->logger_.get());
 }
 
 

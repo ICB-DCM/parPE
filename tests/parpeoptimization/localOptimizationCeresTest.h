@@ -39,7 +39,7 @@ TEST(localOptimizationCeres, testOptimization) {
     // Needed to run on shippable.com
     auto params = std::get<2>(result);
     double optimalCost = NAN;
-    problem.costFun->evaluate(params, optimalCost, gsl::span<double>());
+    problem.cost_fun_->evaluate(params, optimalCost, gsl::span<double>());
     EXPECT_NEAR(42.0, optimalCost, 1e-6);
 }
 
@@ -57,10 +57,10 @@ TEST(localOptimizationCeres, testReporterCalled) {
     problem.setOptimizationOptions(o);
 
     EXPECT_CALL(*problem.reporter, starting(_));
-    EXPECT_CALL(*dynamic_cast<parpe::QuadraticGradientFunctionMock *>(problem.costFun.get()),
+    EXPECT_CALL(*dynamic_cast<parpe::QuadraticGradientFunctionMock *>(problem.cost_fun_.get()),
                 numParameters()).Times(3);
     EXPECT_CALL(*problem.reporter, beforeCostFunctionCall(_)).Times(1 + o.maxOptimizerIterations);
-    EXPECT_CALL(*dynamic_cast<parpe::QuadraticGradientFunctionMock *>(problem.costFun.get()),
+    EXPECT_CALL(*dynamic_cast<parpe::QuadraticGradientFunctionMock *>(problem.cost_fun_.get()),
                 evaluate_impl(_, _, Ne(gsl::span<const double>()), _, _)).Times(1 + o.maxOptimizerIterations);
     EXPECT_CALL(*problem.reporter, iterationFinished(_, _, _)).Times(1 + o.maxOptimizerIterations);
     EXPECT_CALL(*problem.reporter, afterCostFunctionCall(_, _, _)).Times(1 + o.maxOptimizerIterations);

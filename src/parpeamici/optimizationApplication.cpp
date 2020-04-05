@@ -250,13 +250,13 @@ void OptimizationApplication::runWorker() {
     LoadBalancerWorker lbw;
     lbw.run([this](std::vector<char> &buffer, int jobId) {
         // TODO: this is so damn ugly
-        auto sgf = dynamic_cast<SummedGradientFunctionGradientFunctionAdapter<int>*>(problem->costFun.get());
+        auto sgf = dynamic_cast<SummedGradientFunctionGradientFunctionAdapter<int>*>(problem->cost_fun_.get());
         if(sgf) {
             // non-hierarchical
             dynamic_cast<AmiciSummedGradientFunction*>(sgf->getWrappedFunction())->messageHandler(buffer, jobId);
         } else {
             // hierarchical
-            auto hierarch = dynamic_cast<HierarchicalOptimizationWrapper *>(problem->costFun.get());
+            auto hierarch = dynamic_cast<HierarchicalOptimizationWrapper *>(problem->cost_fun_.get());
             RELEASE_ASSERT(hierarch, "");
             hierarch->fun->messageHandler(buffer, jobId);
         }

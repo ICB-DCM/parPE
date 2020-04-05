@@ -58,7 +58,7 @@ int main(int argc, char **argv) {
             lbm.run();
 
             ExampleSteadystateProblem problem {dataFileName};
-            problem.costFun.reset(new ExampleSteadystateGradientFunctionParallel(&lbm, dataFileName));
+            problem.cost_fun_.reset(new ExampleSteadystateGradientFunctionParallel(&lbm, dataFileName));
 
             status = parpe::getLocalOptimum(&problem);
 

@@ -75,20 +75,22 @@ int mkpath(char *file_path, mode_t mode) {
 }
 
 int mkpathConstChar(const char *file_path, mode_t mode) {
-    assert(file_path && *file_path);
+    Expects(file_path && *file_path);
     char tmp[strlen(file_path) + 1];
-    strcpy(tmp, file_path);
+
+    strncpy(tmp, file_path, sizeof(tmp) -1);
+    tmp[sizeof(tmp) - 1] = '\0';
+
     return mkpath(tmp, mode);
 }
 
 void strFormatCurrentLocaltime(gsl::span<char> buffer, const char *format) {
-    time_t timer;
-    time(&timer);
+    time_t current_time;
+    struct tm local_time;
+    time(&current_time);
+    localtime_r(&current_time, &local_time);
 
-    struct tm *tm_info;
-    tm_info = localtime(&timer);
-
-    strftime(buffer.data(), buffer.size(), format, tm_info);
+    strftime(buffer.data(), buffer.size(), format, &local_time);
 }
 
 void runInParallelAndWaitForFinish(void *(*function)(void *), void **args,
