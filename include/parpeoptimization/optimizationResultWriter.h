@@ -19,17 +19,17 @@ class OptimizationResultWriter {
 public:
     /**
      * @brief Write to pre-opened HDF5 file (will be re-opened)
-     * @param problem
-     * @param file_id
+     * @param file
+     * @param rootPath
      */
     OptimizationResultWriter(const H5::H5File &file,
                              std::string rootPath);
 
     /**
      * @brief Open HDF5 file and write there
-     * @param problem
      * @param filename Name of the result file
      * @param overwrite Overwrite output file if already exists
+     * @param rootPath
      */
     OptimizationResultWriter(const std::string &filename,
                              bool overwrite,
@@ -48,7 +48,7 @@ public:
      * @param objectiveFunctionValue  f(x)
      * @param objectiveFunctionGradient f'(x) or NULL
      * @param numFunctionCalls Number of times the objective function has been
-     * called (f(x) and f'(x) are counter individually (?))
+     * called (f(x) and f'(x) are counted individually (?))
      * @param timeElapsedInSeconds CPU time for the last objective function
      * evaluation (wall time)
      */
