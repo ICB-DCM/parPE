@@ -50,7 +50,12 @@ bool LocalOptimizationIpoptTNLP::get_starting_point(Index n, bool init_x,
                                                     Number * /*z_L*/, Number * /*z_U*/,
                                                     Index  /*m*/, bool init_lambda,
                                                     Number * /*lambda*/) {
-    /* this function is called twice by IpOpt which is a problem if problem->fillInitialParameters provides random parameters, therefore initial point needs to be stored */
+    Expects(init_z == false);
+    Expects(init_lambda == false);
+
+    /* this function is called twice by IpOpt which is a problem if
+     * problem->fillInitialParameters provides random parameters, therefore
+     * initial point needs to be stored */
 
     if (init_x) {
         if(initialParameters.empty()) {
@@ -61,9 +66,6 @@ bool LocalOptimizationIpoptTNLP::get_starting_point(Index n, bool init_x,
         }
         std::copy(initialParameters.begin(), initialParameters.end(), x);
     }
-
-    RELEASE_ASSERT(init_z == false, "");
-    RELEASE_ASSERT(init_lambda == false, "");
 
     return true;
 }

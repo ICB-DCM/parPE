@@ -411,7 +411,7 @@ std::tuple<int, double, std::vector<double> > OptimizerIpOpt::optimize(Optimizat
             // app->Jnlst()->AddJournal();
 
             status = app->Initialize();
-            RELEASE_ASSERT(status == Solve_Succeeded, "");
+            Expects(status == Solve_Succeeded);
             status = app->OptimizeTNLP(mynlp);
 
             if(status == Invalid_Number_Detected) {

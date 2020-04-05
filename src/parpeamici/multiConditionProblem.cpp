@@ -70,20 +70,20 @@ MultiConditionProblem::MultiConditionProblem(
 
 void MultiConditionProblem::fillParametersMin(gsl::span<double> buffer) const
 {
-    RELEASE_ASSERT(buffer.size() == parametersMin.size(), "");
+    Expects(buffer.size() == parametersMin.size());
     std::copy(parametersMin.begin(), parametersMin.end(), buffer.begin());
 }
 
 void MultiConditionProblem::fillParametersMax(gsl::span<double> buffer) const
 {
-    RELEASE_ASSERT(buffer.size() == parametersMax.size(), "");
+    Expects(buffer.size() == parametersMax.size());
     std::copy(parametersMax.begin(), parametersMax.end(), buffer.begin());
 }
 
 void MultiConditionProblem::fillInitialParameters(gsl::span<double> buffer) const
 {
     if(!startingPoint.empty()) {
-        RELEASE_ASSERT(buffer.size() == startingPoint.size(), "");
+        Expects(buffer.size() == startingPoint.size());
         std::copy(startingPoint.begin(), startingPoint.end(), buffer.begin());
     } else {
         OptimizationProblem::fillInitialParameters(buffer);
@@ -173,7 +173,7 @@ std::unique_ptr<OptimizationProblem> MultiConditionProblemMultiStartOptimization
         int multiStartIndex) const {
     // generate new OptimizationProblem with data from dp
 
-    RELEASE_ASSERT(data_provider_ != nullptr, "");
+    Expects(data_provider_ != nullptr);
 
     std::unique_ptr<MultiConditionProblem> problem;
 

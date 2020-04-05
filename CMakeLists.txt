@@ -97,6 +97,9 @@ set(HDF5_LIBRARIES
 
 # Guidelines Support Library (GSL-lite) directory
 set(GSL_INCLUDE_DIRS "${CMAKE_SOURCE_DIR}/ThirdParty/gsl")
+# Throw on contract violation instead of terminate to get more meaningful
+#  message
+add_definitions(-Dgsl_CONFIG_CONTRACT_VIOLATION_THROWS)
 
 # Build tests?
 if(${BUILD_TESTING})

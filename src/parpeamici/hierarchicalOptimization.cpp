@@ -92,20 +92,18 @@ void HierarchicalOptimizationWrapper::init() {
      * scalingFactorIdx in mapping table -> difficult) */
     proportionalityFactorIndices =
             this->scalingReader->getOptimizationParameterIndices();
-    RELEASE_ASSERT(
-                std::is_sorted(this->proportionalityFactorIndices.begin(),
-                               this->proportionalityFactorIndices.end()), "");
+    Expects(std::is_sorted(this->proportionalityFactorIndices.begin(),
+                           this->proportionalityFactorIndices.end()));
 
     offsetParameterIndices =
             this->offsetReader->getOptimizationParameterIndices();
-    RELEASE_ASSERT(
-                std::is_sorted(this->offsetParameterIndices.begin(),
-                               this->offsetParameterIndices.end()), "");
+    Expects(std::is_sorted(this->offsetParameterIndices.begin(),
+                           this->offsetParameterIndices.end()));
 
     sigmaParameterIndices =
             this->sigmaReader->getOptimizationParameterIndices();
-    RELEASE_ASSERT(std::is_sorted(this->sigmaParameterIndices.begin(),
-                                  this->sigmaParameterIndices.end()), "");
+    Expects(std::is_sorted(this->sigmaParameterIndices.begin(),
+                           this->sigmaParameterIndices.end()));
 
     if(fun) {
         std::stringstream ss;
@@ -152,8 +150,7 @@ HierarchicalOptimizationWrapper::evaluate(
                              + " does not match numParameters "
                              + std::to_string(numParameters()));
     }
-    RELEASE_ASSERT(gradient.empty()
-                   || gradient.size() == reducedParameters.size(), "");
+    Expects(gradient.empty() || gradient.size() == reducedParameters.size());
 
     if(numProportionalityFactors() == 0
             && numOffsetParameters() == 0
@@ -404,17 +401,16 @@ void HierarchicalOptimizationWrapper::fillInAnalyticalSigmas(
 
             for(auto const observableIdx: dependentObservables) {
 
-                RELEASE_ASSERT(observableIdx < numObservables, "");
+                Expects(observableIdx < numObservables);
 
                 for(int timeIdx = 0; timeIdx < numTimepoints; ++timeIdx) {
                     // NOTE: this must be in sync with data ordering in AMICI
                     // (assumes row-major)
-                    RELEASE_ASSERT(
-                                std::isnan(
-                                    allSigmas[conditionIdx][observableIdx + timeIdx * numObservables]),
-                            "Expected NaN value for sigma parameters being "
-                            "estimated, but got non-NAN.");
-                    allSigmas[conditionIdx][observableIdx + timeIdx * numObservables] = sigmaParameterValue;
+                    // Expecting NaN value for sigma parameters being estimated,
+                    // but got non-NAN.
+                    int flat_index = observableIdx + timeIdx * numObservables;
+                    Expects(std::isnan(allSigmas[conditionIdx][flat_index]));
+                    allSigmas[conditionIdx][flat_index] = sigmaParameterValue;
                 }
             }
         }
@@ -764,11 +760,9 @@ void fillFilteredParams(std::vector<double> const& valuesToFilter,
             ++resultIdx;
         }
     }
-    RELEASE_ASSERT(nextFilterIdx == sortedIndicesToExclude.size(), "");
-    RELEASE_ASSERT(resultIdx ==
-                   (unsigned) valuesToFilter.size()
-                   - sortedIndicesToExclude.size(),
-                   "");
+    Ensures(nextFilterIdx == sortedIndicesToExclude.size());
+    Ensures(resultIdx == (unsigned) valuesToFilter.size()
+                             - sortedIndicesToExclude.size());
 }
 
 double getDefaultScalingFactor(amici::ParameterScaling scaling)
@@ -1069,16 +1063,15 @@ std::vector<double> spliceParameters(const gsl::span<double const> reducedParame
                 && sigmaParameterIndices[idxSigma] == i)
             fullParameters[i] = sigmaParameters.at(idxSigma++);
         else if((unsigned)idxRegular < reducedParameters.size())
-            fullParameters[i] = reducedParameters.at(idxRegular++);
+            fullParameters[i] = reducedParameters[idxRegular++];
         else
             throw std::exception();
     }
 
-    RELEASE_ASSERT((unsigned) idxScaling == proportionalityFactorIndices.size(),
-                   "")
-    RELEASE_ASSERT((unsigned) idxOffset == offsetParameterIndices.size(), "")
-    RELEASE_ASSERT((unsigned) idxSigma == sigmaParameterIndices.size(), "")
-    RELEASE_ASSERT((unsigned) idxRegular == reducedParameters.size(), "")
+    Ensures((unsigned) idxScaling == proportionalityFactorIndices.size());
+    Ensures((unsigned) idxOffset == offsetParameterIndices.size());
+    Ensures((unsigned) idxSigma == sigmaParameterIndices.size());
+    Ensures((unsigned) idxRegular == reducedParameters.size());
 
     return fullParameters;
 }
@@ -1088,7 +1081,7 @@ double computeNegLogLikelihood(
         std::vector<std::vector<double>> const& measurements,
         std::vector<std::vector<double>> const& modelOutputsScaled,
         std::vector<std::vector<double>> const& sigmas) {
-    RELEASE_ASSERT(measurements.size() == modelOutputsScaled.size(), "");
+    Expects(measurements.size() == modelOutputsScaled.size());
 
     double nllh = 0.0;
 
@@ -1107,10 +1100,10 @@ double computeNegLogLikelihood(
 double computeNegLogLikelihood(std::vector<double> const& measurements,
                                std::vector<double> const& modelOutputsScaled,
                                std::vector<double> const& sigmas) {
-    double nllh = 0.0;
+    // measurement/simulation output dimension mismatch
+    Expects(measurements.size() == modelOutputsScaled.size());
 
-    RELEASE_ASSERT(measurements.size() == modelOutputsScaled.size(),
-                   "measurement/simulation output dimension mismatch");
+    double nllh = 0.0;
 
     for(int i = 0; (unsigned) i < measurements.size(); ++i) {
         double mes = measurements[i];

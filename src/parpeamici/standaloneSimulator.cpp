@@ -108,8 +108,7 @@ StandaloneSimulator::run(const std::string& resultFile,
                   << " parameters.size() == " << parameters.size()
                   << " ; hierarchical.numParameters() == "
                   << hierarchical.numParameters() << std::endl;
-        RELEASE_ASSERT(
-          parameters.size() == (unsigned)hierarchical.numParameters(), "");
+        Expects(parameters.size() == (unsigned)hierarchical.numParameters());
 
         // expand parameter vector
         auto scalingDummy = hierarchical.getDefaultScalingFactors();
@@ -138,9 +137,9 @@ StandaloneSimulator::run(const std::string& resultFile,
     }
 
     RELEASE_ASSERT(
-      parameters.size() ==
-        (unsigned)dataProvider->getNumOptimizationParameters(),
-      "Size of supplied parameter vector does not match model dimensions.");
+        parameters.size() ==
+            (unsigned)dataProvider->getNumOptimizationParameters(),
+        "Size of supplied parameter vector does not match model dimensions.");
 
     rw.createDatasets(dataProvider->getNumberOfSimulationConditions());
 
@@ -226,7 +225,7 @@ StandaloneSimulator::run(const std::string& resultFile,
                // TODO: redundant with hierarchicalOptimization.cpp
                //  compute scaling factors and offset parameters
                auto allMeasurements = dataProvider->getAllMeasurements();
-               RELEASE_ASSERT(dataIndices.size() == allMeasurements.size(), "");
+               Expects(dataIndices.size() == allMeasurements.size());
 
                auto scalings = hierarchical.computeAnalyticalScalings(
                  allMeasurements, modelOutputs);
@@ -400,7 +399,7 @@ StandaloneSimulator::runSimulation(int conditionIdx,
 
     auto rdata = amiciApp.runAmiciSimulation(solver, edata.get(), model);
 
-    RELEASE_ASSERT(rdata != nullptr, "");
+    Expects(rdata != nullptr);
 
     return AmiciSimulationRunner::AmiciResultPackageSimple{
         rdata->llh,

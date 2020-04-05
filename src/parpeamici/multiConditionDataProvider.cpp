@@ -243,17 +243,13 @@ void MultiConditionDataProviderHDF5::readFixedSimulationParameters(
 
 std::unique_ptr<amici::ExpData> MultiConditionDataProviderHDF5::getExperimentalDataForCondition(
         int simulationIdx) const {
-    auto lock = hdf5MutexGetLock();
-
     auto edata = std::make_unique<amici::ExpData>(*model_);
-    RELEASE_ASSERT(edata, "Failed getting experimental data. Check data file.");
-    {
-        auto lock = hdf5MutexGetLock();
-        edata->setTimepoints(
-                    amici::hdf5::getDoubleDataset1D(
-                        file_, root_path_ + "/measurements/t/"
-                        + std::to_string(simulationIdx)));
-    }
+
+    auto lock = hdf5MutexGetLock();
+    edata->setTimepoints(
+                amici::hdf5::getDoubleDataset1D(
+                    file_, root_path_ + "/measurements/t/"
+                    + std::to_string(simulationIdx)));
     edata->setObservedData(getMeasurementForSimulationIndex(simulationIdx));
     edata->setObservedDataStdDev(getSigmaForSimulationIndex(simulationIdx));
     updateFixedSimulationParameters(simulationIdx, *edata);
@@ -305,13 +301,12 @@ void MultiConditionDataProviderHDF5::getOptimizationParametersLowerBounds(
     auto dataset = file_.openDataSet(hdf5_parameter_min_path_);
 
     auto dataspace = dataset.getSpace();
-    RELEASE_ASSERT(dataspace.getSimpleExtentNdims() == 1,
-                   "hdf5ParameterMinPath dimensions dont match");
+    // hdf5ParameterMinPath dimensions don't match
+    Expects(dataspace.getSimpleExtentNdims() == 1);
     hsize_t dim = 0;
     dataspace.getSimpleExtentDims(&dim);
-    RELEASE_ASSERT(dim == (unsigned) getNumOptimizationParameters(),
-                   "hdf5ParameterMinPath dimensions dont match");
-    RELEASE_ASSERT(dim == buffer.size(), "");
+    Expects(dim == (unsigned) getNumOptimizationParameters());
+    Expects(dim == buffer.size());
     dataset.read(buffer.data(), H5::PredType::NATIVE_DOUBLE);
 }
 
@@ -322,13 +317,12 @@ void MultiConditionDataProviderHDF5::getOptimizationParametersUpperBounds(
     auto dataset = file_.openDataSet(hdf5_parameter_max_path_);
 
     auto dataspace = dataset.getSpace();
-    RELEASE_ASSERT(dataspace.getSimpleExtentNdims() == 1,
-                   "hdf5ParameterMaxPath dimensions dont match");
+    // hdf5ParameterMaxPath dimensions dont match
+    Expects(dataspace.getSimpleExtentNdims() == 1);
     hsize_t dim = 0;
     dataspace.getSimpleExtentDims(&dim);
-    RELEASE_ASSERT(dim == (unsigned) getNumOptimizationParameters(),
-                   "hdf5ParameterMaxPath dimensions dont match");
-    RELEASE_ASSERT(dim == buffer.size(), "");
+    Expects(dim == (unsigned) getNumOptimizationParameters());
+    Expects(dim == buffer.size());
     dataset.read(buffer.data(), H5::PredType::NATIVE_DOUBLE);
 }
 
@@ -461,7 +455,7 @@ void MultiConditionDataProviderHDF5::checkDataIntegrity() const {
     if(model_->nk()) {
         parpe::hdf5GetDatasetDimensions(file_.getId(), hdf5_condition_path_.c_str(),
                                         2, &d1, &d2);
-        RELEASE_ASSERT(d1 == model_->nk(), "");
+        Expects(d1 == model_->nk());
     }
 }
 
