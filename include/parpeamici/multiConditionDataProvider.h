@@ -176,7 +176,7 @@ class MultiConditionDataProviderDefault : public MultiConditionDataProvider {
     std::vector<amici::ExpData> edata;
 
 private:
-    std::unique_ptr<amici::Model> model;
+    std::unique_ptr<amici::Model> model_;
     std::unique_ptr<amici::Solver> solver;
 };
 

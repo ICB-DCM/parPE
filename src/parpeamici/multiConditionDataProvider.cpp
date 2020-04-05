@@ -465,7 +465,7 @@ void MultiConditionDataProviderHDF5::checkDataIntegrity() const {
 
 
 MultiConditionDataProviderDefault::MultiConditionDataProviderDefault(std::unique_ptr<amici::Model> model, std::unique_ptr<amici::Solver> solver)
-    :model(std::move(model)), solver(std::move(solver))
+    :model_(std::move(model)), solver(std::move(solver))
 {
 
 }
@@ -479,7 +479,7 @@ std::vector<int>
 MultiConditionDataProviderDefault::getSimulationToOptimizationParameterMapping(
         int  /*conditionIdx*/) const
 {
-    std::vector<int> mapping(model->np());
+    std::vector<int> mapping(model_->np());
     std::iota(mapping.begin(), mapping.end(), 0);
     return mapping;
 }
@@ -492,7 +492,7 @@ void MultiConditionDataProviderDefault
     // TODO redundant
     auto mapping = getSimulationToOptimizationParameterMapping(conditionIdx);
 
-    for(int i = 0; i < model->np(); ++i) {
+    for(int i = 0; i < model_->np(); ++i) {
         optimization[mapping[i]] = coefficient * simulation[i];
     }
 }
@@ -502,7 +502,7 @@ void MultiConditionDataProviderDefault::mapAndSetOptimizationToSimulationVariabl
     // TODO redundant
     auto mapping = getSimulationToOptimizationParameterMapping(conditionIdx);
 
-    for(int i = 0; i < model->np(); ++i) {
+    for(int i = 0; i < model_->np(); ++i) {
         simulation[i] = optimization[mapping[i]];
     }
 
@@ -510,7 +510,7 @@ void MultiConditionDataProviderDefault::mapAndSetOptimizationToSimulationVariabl
 
 std::vector<amici::ParameterScaling> MultiConditionDataProviderDefault::getParameterScaleOpt() const
 {
-    return model->getParameterScale();
+    return model_->getParameterScale();
 }
 
 amici::ParameterScaling MultiConditionDataProviderDefault::getParameterScaleOpt(int optimizationParameterIndex) const
@@ -522,13 +522,13 @@ amici::ParameterScaling MultiConditionDataProviderDefault::getParameterScaleSim(
         int /*simulationIdx*/, int optimizationParameterIndex) const
 {
     // TODO assumes no extra optimization parameters
-    return model->getParameterScale()[optimizationParameterIndex];
+    return model_->getParameterScale()[optimizationParameterIndex];
 }
 
 std::vector<amici::ParameterScaling>
 MultiConditionDataProviderDefault::getParameterScaleSim(int simulationIdx) const
 {
-    return model->getParameterScale();
+    return model_->getParameterScale();
 }
 
 
@@ -564,12 +564,12 @@ std::vector<std::vector<double> > MultiConditionDataProviderDefault::getAllSigma
 
 int MultiConditionDataProviderDefault::getNumOptimizationParameters() const
 {
-    return model->np();
+    return model_->np();
 }
 
 std::unique_ptr<amici::Model> MultiConditionDataProviderDefault::getModel() const
 {
-    return std::unique_ptr<amici::Model>(model->clone());
+    return std::unique_ptr<amici::Model>(model_->clone());
 }
 
 std::unique_ptr<amici::Solver> MultiConditionDataProviderDefault::getSolver() const
