@@ -571,12 +571,11 @@ runFinalParameters(StandaloneSimulator& sim,
                    std::string const& resultPath,
                    LoadBalancerMaster* loadBalancer)
 {
+    auto lock = hdf5MutexGetLock();
+    H5::H5File parameterFile(parameterFileName, H5F_ACC_RDONLY);
+    H5::H5File conditionFile(conditionFileName, H5F_ACC_RDONLY);
+    lock.unlock();
 
-    H5::H5File parameterFile;
-    {
-        auto lock = hdf5MutexGetLock();
-        parameterFile.openFile(parameterFileName, H5F_ACC_RDONLY);
-    }
     int errors = 0;
 
     int numStarts = getNumStarts(parameterFile);
@@ -591,9 +590,6 @@ runFinalParameters(StandaloneSimulator& sim,
             std::string curResultPath =
               resultPath + "multistarts/" + std::to_string(i);
 
-            auto lock = hdf5MutexGetLock();
-            H5::H5File conditionFile = hdf5OpenForReading(conditionFileName);
-            lock.unlock();
 
             errors += sim.run(resultFileName,
                               curResultPath,
@@ -608,6 +604,10 @@ runFinalParameters(StandaloneSimulator& sim,
         }
     }
 
+    // lock for destruction of H5Files
+    // FIXME: won't lock if an unhandled exception occurs
+    lock.lock();
+
     return errors;
 }
 
@@ -621,11 +621,10 @@ runAlongTrajectory(StandaloneSimulator& sim,
                    std::string const& resultPath,
                    LoadBalancerMaster* loadBalancer)
 {
-    H5::H5File parameterFile;
-    {
-        auto lock = hdf5MutexGetLock();
-        parameterFile.openFile(parameterFileName, H5F_ACC_RDONLY);
-    }
+    auto lock = hdf5MutexGetLock();
+    H5::H5File parameterFile(parameterFileName, H5F_ACC_RDONLY);
+    H5::H5File conditionFile(conditionFileName, H5F_ACC_RDONLY);
+    lock.unlock();
 
     int errors = 0;
 
@@ -641,11 +640,6 @@ runAlongTrajectory(StandaloneSimulator& sim,
                                             std::to_string(startIdx) +
                                             "/iter/" + std::to_string(iter);
 
-                auto lock = hdf5MutexGetLock();
-                H5::H5File conditionFile =
-                  hdf5OpenForReading(conditionFileName);
-                lock.unlock();
-
                 auto outerParameters = getOuterParameters(
                   parameters[iter], parameterFile, parameterFilePath);
 
@@ -660,6 +654,10 @@ runAlongTrajectory(StandaloneSimulator& sim,
             std::cerr << e.what() << std::endl;
         }
     }
+
+    // lock for destruction of H5Files
+    // FIXME: won't lock if an unhandled exception occurs
+    lock.lock();
 
     return errors;
 }

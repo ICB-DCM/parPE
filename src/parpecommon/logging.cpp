@@ -177,7 +177,8 @@ void printlogmessage(loglevel lvl, const char *message)
 #else
     auto procName = "";
 #endif
-    printf("[%*d/%s] ", 1 + static_cast<int>(log10(mpiCommSize)), mpiRank, procName);
+    printf("[%*d:%lu/%s] ", 1 + static_cast<int>(log10(mpiCommSize)),
+           mpiRank, pthread_self(), procName );
     printf("%s", message);
     printf(ANSI_COLOR_RESET "\n");
 
