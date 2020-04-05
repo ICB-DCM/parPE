@@ -740,7 +740,7 @@ HierarchicalOptimizationProblemWrapper::getReporter() const {
     auto outerReporter = std::unique_ptr<OptimizationReporter>(
                 new HierarchicalOptimizationReporter(
                     dynamic_cast<HierarchicalOptimizationWrapper*>(costFun.get()),
-                    std::move(innerReporter->resultWriter),
+                    std::move(innerReporter->result_writer_),
                     std::make_unique<Logger>(*logger)
                     ));
     return outerReporter;
@@ -1178,72 +1178,72 @@ FunctionEvaluationStatus HierarchicalOptimizationReporter::evaluate(
         return functionEvaluationFailure;
 
     if(gradient.data()) {
-        if (!haveCachedGradient || !std::equal(parameters.begin(), parameters.end(),
-                                               cachedParameters.begin())) {
+        if (!have_cached_gradient_ || !std::equal(parameters.begin(), parameters.end(),
+                                               cached_parameters_.begin())) {
             // Have to compute anew
-            cachedStatus = hierarchicalWrapper->evaluate(
-                        parameters, cachedCost, cachedGradient,
+            cached_status_ = hierarchicalWrapper->evaluate(
+                        parameters, cached_cost_, cached_gradient_,
                         cachedFullParameters, cachedFullGradient,
-                        logger ? logger : this->logger.get(), &myCpuTimeSec);
-            haveCachedCost = true;
-            haveCachedGradient = true;
+                        logger ? logger : this->logger_.get(), &myCpuTimeSec);
+            have_cached_cost_ = true;
+            have_cached_gradient_ = true;
         }
         // recycle old result
-        std::copy(cachedGradient.begin(), cachedGradient.end(), gradient.begin());
-        fval = cachedCost;
+        std::copy(cached_gradient_.begin(), cached_gradient_.end(), gradient.begin());
+        fval = cached_cost_;
     } else {
-        if (!haveCachedCost || !std::equal(parameters.begin(), parameters.end(),
-                                           cachedParameters.begin())) {
+        if (!have_cached_cost_ || !std::equal(parameters.begin(), parameters.end(),
+                                           cached_parameters_.begin())) {
             // Have to compute anew
-            cachedStatus = hierarchicalWrapper->evaluate(
-                        parameters, cachedCost, gsl::span<double>(),
+            cached_status_ = hierarchicalWrapper->evaluate(
+                        parameters, cached_cost_, gsl::span<double>(),
                         cachedFullParameters, cachedFullGradient,
-                        logger ? logger : this->logger.get(), &myCpuTimeSec);
-            haveCachedCost = true;
-            haveCachedGradient = false;
+                        logger ? logger : this->logger_.get(), &myCpuTimeSec);
+            have_cached_cost_ = true;
+            have_cached_gradient_ = false;
         }
-        fval = cachedCost;
+        fval = cached_cost_;
     }
 
     // update cached parameters
-    cachedParameters.resize(numParameters_);
-    std::copy(parameters.begin(), parameters.end(), cachedParameters.begin());
+    cached_parameters_.resize(num_parameters_);
+    std::copy(parameters.begin(), parameters.end(), cached_parameters_.begin());
 
-    cpuTimeIterationSec += myCpuTimeSec;
-    cpuTimeTotalSec += myCpuTimeSec;
+    cpu_time_iteration_sec_ += myCpuTimeSec;
+    cpu_time_total_sec_ += myCpuTimeSec;
     if(cpuTime)
         *cpuTime = myCpuTimeSec;
 
     if(afterCostFunctionCall(
-                parameters, cachedCost,
+                parameters, cached_cost_,
                 gradient.data() ? cachedFullGradient : gsl::span<double>()
                 ) != 0)
         return functionEvaluationFailure;
 
-    return cachedStatus;
+    return cached_status_;
 }
 
 void HierarchicalOptimizationReporter::finished(
         double optimalCost, gsl::span<const double> parameters, int exitStatus) const
 {
-    double timeElapsed = wallTimer.getTotal();
+    double timeElapsed = wall_timer_.getTotal();
 
-    if(cachedCost > optimalCost) {
+    if(cached_cost_ > optimalCost) {
         // the optimal value is not from the cached parameters and we did not get
         // the optimal full parameter vector. since we don't know them, rather set to nan
         cachedFullParameters.assign(cachedFullParameters.size(), NAN);
-        std::copy(parameters.begin(), parameters.end(), cachedParameters.data());
-        if(logger) logger->logmessage(LOGLVL_INFO, "cachedCost != optimalCost");
-        cachedCost = NAN;
+        std::copy(parameters.begin(), parameters.end(), cached_parameters_.data());
+        if(logger_) logger_->logmessage(LOGLVL_INFO, "cachedCost != optimalCost");
+        cached_cost_ = NAN;
     }
 
-    if(logger)
-        logger->logmessage(LOGLVL_INFO, "Optimizer status %d, final llh: %e, time: wall: %f cpu: %f.",
-                           exitStatus, cachedCost, timeElapsed, cpuTimeTotalSec);
+    if(logger_)
+        logger_->logmessage(LOGLVL_INFO, "Optimizer status %d, final llh: %e, time: wall: %f cpu: %f.",
+                           exitStatus, cached_cost_, timeElapsed, cpu_time_total_sec_);
 
-    if(resultWriter)
-        resultWriter->saveOptimizerResults(cachedCost, cachedFullParameters,
-                                           timeElapsed, cpuTimeTotalSec, exitStatus);
+    if(result_writer_)
+        result_writer_->saveOptimizerResults(cached_cost_, cachedFullParameters,
+                                           timeElapsed, cpu_time_total_sec_, exitStatus);
 }
 
 const std::vector<double> &HierarchicalOptimizationReporter::getFinalParameters() const
@@ -1256,55 +1256,55 @@ bool HierarchicalOptimizationReporter::iterationFinished(
         double objectiveFunctionValue,
         gsl::span<const double>  /*objectiveFunctionGradient*/) const
 {
-    double wallTimeIter = wallTimer.getRound();
-    double wallTimeOptim = wallTimer.getTotal();
+    double wallTimeIter = wall_timer_.getRound();
+    double wallTimeOptim = wall_timer_.getTotal();
 
-    if(logger)
-        logger->logmessage(LOGLVL_INFO,
+    if(logger_)
+        logger_->logmessage(LOGLVL_INFO,
                            "iter: %d cost: %g "
                            "time_iter: wall: %gs cpu: %gs "
                            "time_optim: wall: %gs cpu: %gs",
-                           numIterations, objectiveFunctionValue,
-                           wallTimeIter, cpuTimeIterationSec,
-                           wallTimeOptim, cpuTimeTotalSec);
+                           num_iterations_, objectiveFunctionValue,
+                           wallTimeIter, cpu_time_iteration_sec_,
+                           wallTimeOptim, cpu_time_total_sec_);
 
-    if(resultWriter) {
+    if(result_writer_) {
         /* check if the optimizer-reported cost matches the last function evaluation.
          * if so, we can log our cached parameter and gradient, otherwise we need to rely on what
          * the optimizer provided us. if no parameters are provided, we will still save the cached
          * one, even if the cost does not match, since this is the best parameter guess we have.
          */
-        if(almostEqual(objectiveFunctionValue, cachedCost)
+        if(almostEqual(objectiveFunctionValue, cached_cost_)
                 && (parameters.empty()
                     || std::equal(parameters.begin(), parameters.end(),
-                                  cachedParameters.begin()))) {
-            resultWriter->logOptimizerIteration(
-                        numIterations,
+                                  cached_parameters_.begin()))) {
+            result_writer_->logOptimizerIteration(
+                        num_iterations_,
                         cachedFullParameters,
                         objectiveFunctionValue,
                         // This might be misleading, the gradient could have been
                         // evaluated at other parameters if there was a line search inbetween
                         cachedFullGradient,
                         wallTimeIter,
-                        cpuTimeIterationSec);
+                        cpu_time_iteration_sec_);
         } else {
             // We don't have the full parameter vector, only the outer parameters
             // so we can't append them due to different dimension
             // TODO: save both, outer + combined? can easily save outer + inner separetly
             std::vector<double> nanParameters(cachedFullParameters.size(), NAN);
 
-            resultWriter->logOptimizerIteration(numIterations,
+            result_writer_->logOptimizerIteration(num_iterations_,
                                                 nanParameters,
                                                 objectiveFunctionValue,
                                                 nanParameters,
                                                 wallTimeIter,
-                                                cpuTimeIterationSec);
+                                                cpu_time_iteration_sec_);
         }
     }
-    ++numIterations;
+    ++num_iterations_;
 
-    logger->setPrefix(defaultLoggerPrefix + "i" + std::to_string(numIterations));
-    cpuTimeIterationSec = 0.0;
+    logger_->setPrefix(default_logger_prefix_ + "i" + std::to_string(num_iterations_));
+    cpu_time_iteration_sec_ = 0.0;
 
     return false;
 
@@ -1315,17 +1315,17 @@ bool HierarchicalOptimizationReporter::afterCostFunctionCall(
         double objectiveFunctionValue,
         gsl::span<const double> objectiveFunctionGradient) const
 {
-    double wallTime = wallTimer.getTotal();
+    double wallTime = wall_timer_.getTotal();
     //(double)(timeCostEvaluationEnd - timeCostEvaluationBegin) / CLOCKS_PER_SEC;
 
     if(!std::isfinite(objectiveFunctionValue))
         printObjectiveFunctionFailureMessage();
 
-    if(resultWriter) {
-        resultWriter->logObjectiveFunctionEvaluation(
-                    cachedFullParameters, cachedCost,
-                    objectiveFunctionGradient, numIterations,
-                    numFunctionCalls, wallTime);
+    if(result_writer_) {
+        result_writer_->logObjectiveFunctionEvaluation(
+                    cachedFullParameters, cached_cost_,
+                    objectiveFunctionGradient, num_iterations_,
+                    num_function_calls_, wallTime);
     }
     return false;
 }
