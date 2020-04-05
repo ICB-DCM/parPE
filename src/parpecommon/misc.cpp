@@ -168,8 +168,8 @@ double randDouble(double min, double max) {
 void fillArrayRandomDoubleIndividualInterval(gsl::span<const double> min,
                                              gsl::span<const double> max,
                                              gsl::span<double> buffer) {
-    RELEASE_ASSERT(min.size() == max.size(), "");
-    RELEASE_ASSERT(min.size() == buffer.size(), "");
+    Expects(min.size() == max.size());
+    Expects(min.size() == buffer.size());
 
     for (gsl::span<double>::index_type i = 0; i < buffer.size(); ++i)
         buffer[i] = randDouble(min[i], max[i]);

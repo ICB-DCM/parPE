@@ -257,7 +257,7 @@ void OptimizationApplication::runWorker() {
         } else {
             // hierarchical
             auto hierarch = dynamic_cast<HierarchicalOptimizationWrapper *>(problem->cost_fun_.get());
-            RELEASE_ASSERT(hierarch, "");
+            Expects(hierarch != nullptr);
             hierarch->fun->messageHandler(buffer, jobId);
         }
     });

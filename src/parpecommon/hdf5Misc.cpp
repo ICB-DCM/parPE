@@ -155,7 +155,7 @@ void hdf5Extend2ndDimensionAndWriteToDouble2DArray(
     H5Sget_simple_extent_dims(filespace, currentDimensions, nullptr);
     H5Sclose(filespace);
 
-    RELEASE_ASSERT(buffer.size() == currentDimensions[0], "");
+    Expects(buffer.size() == currentDimensions[0]);
 
     hsize_t newDimensions[2] = {currentDimensions[0], currentDimensions[1] + 1};
     herr_t status = H5Dset_extent(dataset, newDimensions);
@@ -299,7 +299,7 @@ void hdf5Extend2ndDimensionAndWriteToInt2DArray(hid_t file_id,
 
     hsize_t currentDimensions[2];
     H5Sget_simple_extent_dims(filespace, currentDimensions, nullptr);
-    RELEASE_ASSERT(buffer.size() == currentDimensions[0], "");
+    Expects(buffer.size() == currentDimensions[0]);
 
     hsize_t newDimensions[2] = {currentDimensions[0], currentDimensions[1] + 1};
     herr_t status = H5Dset_extent(dataset, newDimensions);
@@ -394,7 +394,7 @@ int hdf5Read2DDoubleHyperslab(hid_t file_id,
                               hsize_t offset1,
                               gsl::span<double> buffer)
 {
-    RELEASE_ASSERT(buffer.size() == size0 * size1, "");
+    Expects(buffer.size() == size0 * size1);
 
     std::lock_guard<mutexHdfType> lock(mutexHdf);
 
@@ -722,8 +722,8 @@ void hdf5CreateExtendableString1DArray(hid_t file_id, const char *datasetPath)
     datasetCreationProperty.setChunk(rank, chunkDimensions);
 
     H5::StrType strType(0, H5T_VARIABLE);
-    RELEASE_ASSERT(H5T_STRING == H5Tget_class(strType.getId())
-                   && H5Tis_variable_str(strType.getId()), "");
+    Expects(H5T_STRING == H5Tget_class(strType.getId())
+            && H5Tis_variable_str(strType.getId()));
 
     auto dataset = file.createDataSet(datasetPath, strType, dataspace,
                                       datasetCreationProperty);
