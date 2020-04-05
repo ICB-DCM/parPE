@@ -28,9 +28,9 @@ class SteadyStateMultiConditionDataProvider
     ~SteadyStateMultiConditionDataProvider() override = default;
 
 private:
-    void setupModelAndSolver(amici::Model& model, amici::Solver& solver) const;
+    void setupModelAndSolver(amici::Model& model, amici::Solver& solver_) const;
 
-    std::unique_ptr<amici::Solver> solver;
+    std::unique_ptr<amici::Solver> solver_;
 
 };
 
