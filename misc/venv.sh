@@ -1,41 +1,41 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Setup virtual environment for building/testing parPE
 #
 
-SCRIPT_PATH=$(dirname $BASH_SOURCE)
-PARPE_ROOT=$(cd ${SCRIPT_PATH}/.. && pwd)
-BUILD_DIR=$1
+script_path=$(dirname "$BASH_SOURCE")
+parpe_root=$(cd "${script_path}/.." && pwd)
 
-# set default build dir if not provided
-if [[ -z "${BUILD_DIR}" ]]; then BUILD_DIR="${PARPE_ROOT}/build"; fi
+build_dir=${1:-"${parpe_root}/build"}
+venv_dir="${build_dir}/venv"
+
 
 # Save the time for installing AMICI if the venv already exists
 # NOTE: Must remove folder if AMICI is updated
-if [[ ! -d ${BUILD_DIR}/venv ]]; then
+if [[ ! -d "${venv_dir}" ]]; then
     # create venv
-    python3 -m venv ${BUILD_DIR}/venv 2>/dev/null
+    python3 -m venv "${venv_dir}" 2>/dev/null
     # in case this fails (usually due to missing ensurepip), try getting pip
     # manually
     if [[ $? ]]; then
         set -e
-        python3 -m venv ${BUILD_DIR}/venv --clear --without-pip
-        source ${BUILD_DIR}/venv/bin/activate
-        curl https://bootstrap.pypa.io/get-pip.py -o ${BUILD_DIR}/get-pip.py
-        python3 ${BUILD_DIR}/get-pip.py
+        python3 -m venv "${venv_dir}" --clear --without-pip
+        source "${venv_dir}/bin/activate"
+        curl https://bootstrap.pypa.io/get-pip.py -o "${build_dir}/get-pip.py"
+        python3 "${build_dir}/get-pip.py"
     else
         set -e
-        source ${BUILD_DIR}/venv/bin/activate
+        source "${venv_dir}/bin/activate"
     fi
 
     pip3 install wheel pytest
 
     # install AMICI
-    cd ${PARPE_ROOT}/deps/AMICI/python/sdist
+    cd "${parpe_root}/deps/AMICI/python/sdist"
     pip3 install -e .
 
     # install parPE
-    cd ${PARPE_ROOT}/python
+    cd "${parpe_root}/python"
     pip3 install -e .
     #pip3 install https://github.com/ICB-DCM/PEtab/archive/develop.zip
 fi
