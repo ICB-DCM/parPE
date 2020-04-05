@@ -66,28 +66,6 @@ target_link_libraries(${PROJECT_NAME}
 )
 # /example_steadystate executable
 
-# example_steadystate_parallel executable
-if(${PARPE_ENABLE_MPI})
-    project(example_steadystate_parallel)
-
-    set(SRC_LIST_EXE_PARALLEL
-        main_parallel.cpp
-        steadystateProblem.cpp
-        steadystateProblemParallel.cpp
-        steadyStateMultiConditionDataprovider.cpp
-        )
-
-    add_executable(${PROJECT_NAME} ${SRC_LIST_EXE_PARALLEL})
-    add_dependencies(${PROJECT_NAME} ${MODEL_NAME})
-    target_link_libraries(${PROJECT_NAME}
-        ${MODEL_LIBRARIES}
-        parpeoptimization
-        parpeloadbalancer
-        parpeamici
-        )
-endif()
-# /example_steadystate_parallel executable
-
 
 # example_steadystate_multi executable
 project(example_steadystate_multi)
