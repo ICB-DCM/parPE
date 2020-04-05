@@ -88,6 +88,8 @@ class HierarchicalOptimizationWrapper : public GradientFunction
       int numObservables,
       ErrorModel errorModel);
 
+    using GradientFunction::evaluate;
+
     /**
      * @brief See base class
      * @param parameters
@@ -314,6 +316,8 @@ class HierarchicalOptimizationReporter : public OptimizationReporter
       std::unique_ptr<OptimizationResultWriter> rw,
       std::unique_ptr<Logger> logger);
 
+    using GradientFunction::evaluate;
+
     FunctionEvaluationStatus evaluate(gsl::span<const double> parameters,
                                       double& fval,
                                       gsl::span<double> gradient,
@@ -327,9 +331,6 @@ class HierarchicalOptimizationReporter : public OptimizationReporter
       gsl::span<const double> parameters,
       double objectiveFunctionValue,
       gsl::span<const double> objectiveFunctionGradient) const override;
-
-    // virtual bool beforeCostFunctionCall(gsl::span<const double> parameters)
-    // const override;
 
     virtual bool afterCostFunctionCall(
       gsl::span<const double> parameters,
@@ -368,9 +369,21 @@ fillFilteredParams(std::vector<double> const& valuesToFilter,
                    const std::vector<int>& sortedIndicesToExclude,
                    gsl::span<double> result);
 
+/**
+ * @brief Get value to use for scaling parameter during simulation prior to
+ * computing optimal values.
+ * @param scaling Expected scale of the parameter
+ * @return default value
+ */
 double
 getDefaultScalingFactor(amici::ParameterScaling scaling);
 
+/**
+ * @brief Get value to use for offset parameter during simulation prior to
+ * computing optimal values.
+ * @param scaling Expected scale of the parameter
+ * @return default value
+ */
 double
 getDefaultOffsetParameter(amici::ParameterScaling scaling);
 
@@ -383,10 +396,10 @@ getDefaultOffsetParameter(amici::ParameterScaling scaling);
  * parametrization of ODE models.
  *
  * @param scalingIdx
- * @param modelOutputsUnscaled
- * @param measurements
+ * @param modelOutputsUnscaled Unscaled model outputs
+ * @param measurements Measurements
  * @param scalingReader
- * @param numObservables
+ * @param numObservables Number of observables
  * @return
  */
 double
@@ -465,13 +478,22 @@ computeNegLogLikelihood(
  * @param measurements
  * @param modelOutputsScaled
  * @param sigmas
- * @return
+ * @return Negative log-likelihood for the given measurements and simulations,
+ * assuming independently normally distributed noise
  */
 double
 computeNegLogLikelihood(std::vector<double> const& measurements,
                         std::vector<double> const& modelOutputsScaled,
                         const std::vector<double>& sigmas);
 
+/**
+ * @brief If sensitivities are computed w.r.t. analytically computed parameters
+ * (which is unneccessary), this function checks they are below the given
+ * threshold.
+ * @param gradient
+ * @param analyticalIndices
+ * @param threshold
+ */
 void
 checkGradientForAnalyticalParameters(std::vector<double> const& gradient,
                                      std::vector<int> const& analyticalIndices,

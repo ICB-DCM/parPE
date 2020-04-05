@@ -20,11 +20,6 @@
 class steadystateProblemTests : public ::testing::Test {
 
 protected:
-    void SetUp() override {
-    }
-
-    void TearDown() override {
-    }
 
     /*
     const std::vector<double> t { 1.0e8 };
