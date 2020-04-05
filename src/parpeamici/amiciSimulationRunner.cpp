@@ -139,7 +139,8 @@ void AmiciSimulationRunner::queueSimulation(LoadBalancerMaster *loadBalancer,
 }
 #endif
 
-void swap(AmiciSimulationRunner::AmiciResultPackageSimple &first, AmiciSimulationRunner::AmiciResultPackageSimple &second) {
+void swap(AmiciSimulationRunner::AmiciResultPackageSimple &first,
+          AmiciSimulationRunner::AmiciResultPackageSimple &second) noexcept {
     using std::swap;
     swap(first.llh, second.llh);
     swap(first.simulationTimeSeconds, second.simulationTimeSeconds);

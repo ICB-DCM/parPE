@@ -141,7 +141,7 @@ class AmiciSimulationRunner
 
 void
 swap(AmiciSimulationRunner::AmiciResultPackageSimple& first,
-     AmiciSimulationRunner::AmiciResultPackageSimple& second);
+     AmiciSimulationRunner::AmiciResultPackageSimple& second) noexcept;
 
 bool
 operator==(AmiciSimulationRunner::AmiciResultPackageSimple const& lhs,
