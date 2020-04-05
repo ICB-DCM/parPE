@@ -191,7 +191,7 @@ std::vector<double> OptimizationOptions::getStartingPoint(hid_t fileId,
         // read dimensions
         hid_t dataspace = H5Dget_space(dataset);
         const int ndims = H5Sget_simple_extent_ndims(dataspace);
-        assert(ndims == 2);
+        Expects(ndims == 2);
         hsize_t dims[ndims];
         H5Sget_simple_extent_dims(dataspace, dims, nullptr);
         if (dims[1] < static_cast<hsize_t>(index))
