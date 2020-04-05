@@ -133,7 +133,7 @@ class AmiciSimulationRunner
     amici::SensitivityOrder sensitivity_order_;
     std::vector<int> const& condition_indices_;
 
-    callbackJobFinishedType callback_job_finished = nullptr;
+    callbackJobFinishedType callback_job_finished_ = nullptr;
     callbackAllFinishedType aggregate_ = nullptr;
     int errors_ = 0;
     std::string log_prefix_;

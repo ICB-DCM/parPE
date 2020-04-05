@@ -20,7 +20,7 @@ AmiciSimulationRunner::AmiciSimulationRunner(std::vector<double> const& optimiza
     : optimization_parameters_(optimizationParameters),
     sensitivity_order_(sensitivityOrder),
     condition_indices_(conditionIndices),
-    callback_job_finished(std::move(std::move(callbackJobFinished))),
+    callback_job_finished_(std::move(std::move(callbackJobFinished))),
     aggregate_(std::move(std::move(aggregate))),
     log_prefix_(std::move(logPrefix))
 {
@@ -104,8 +104,8 @@ int AmiciSimulationRunner::runSharedMemory(const messageHandlerFunc& messageHand
         messageHandler(buffer, simulationIdx);
         jobs[simulationIdx].recvBuffer = buffer;
 
-        if(callback_job_finished)
-            callback_job_finished(&jobs[simulationIdx], simulationIdx);
+        if(callback_job_finished_)
+            callback_job_finished_(&jobs[simulationIdx], simulationIdx);
     }
 
     // unpack
@@ -131,8 +131,8 @@ void AmiciSimulationRunner::queueSimulation(LoadBalancerMaster *loadBalancer,
     d->sendBuffer = amici::serializeToStdVec<AmiciWorkPackageSimple>(work);
 
     // TODO: must ignore 2nd argument for SimulationRunnerSimple
-    if(callback_job_finished)
-        d->callbackJobFinished = std::bind2nd(callback_job_finished, jobIdx);
+    if(callback_job_finished_)
+        d->callbackJobFinished = std::bind2nd(callback_job_finished_, jobIdx);
 
     loadBalancer->queueJob(d);
 

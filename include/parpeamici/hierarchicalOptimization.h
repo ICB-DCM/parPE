@@ -379,14 +379,14 @@ public:
 
     void fillFilteredParams(std::vector<double> const& fullParams, gsl::span<double> buffer) const;
 
-    OptimizationOptions const& getOptimizationOptions() const override { return wrappedProblem->getOptimizationOptions(); }
-    void setOptimizationOptions(OptimizationOptions const& options) override { wrappedProblem->setOptimizationOptions(options); }
+    OptimizationOptions const& getOptimizationOptions() const override { return wrapped_problem_->getOptimizationOptions(); }
+    void setOptimizationOptions(OptimizationOptions const& options) override { wrapped_problem_->setOptimizationOptions(options); }
 
     // TODO: need to ensure that this will work with the reduced number of parameters
     virtual std::unique_ptr<OptimizationReporter> getReporter() const override;
 
 private:
-    std::unique_ptr<OptimizationProblem> wrappedProblem;
+    std::unique_ptr<OptimizationProblem> wrapped_problem_;
 };
 
 
@@ -424,13 +424,13 @@ public:
 
     std::vector<double> const& getFinalParameters() const override;
 
-    HierarchicalOptimizationWrapper *hierarchicalWrapper = nullptr;
+    HierarchicalOptimizationWrapper *hierarchical_wrapper_ = nullptr;
 
     /* In addition to the vectors for the outer optimization problem,
      * we also keep the complete ones.
      */
-    mutable std::vector<double> cachedFullParameters;
-    mutable std::vector<double> cachedFullGradient;
+    mutable std::vector<double> cached_full_parameters_;
+    mutable std::vector<double> cached_full_gradient_;
     // TODO should override other functions as well
     // TODO: in all functions, we need to check of the provided parameters or functio nvalues match
     // To cached ones, if we want to provide all together to downstreams
