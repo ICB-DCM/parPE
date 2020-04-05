@@ -129,14 +129,14 @@ class AmiciSimulationRunner
                          const std::vector<int>& conditionIndices);
 #endif
 
-    std::vector<double> const& optimizationParameters;
-    amici::SensitivityOrder sensitivityOrder;
-    std::vector<int> const& conditionIndices;
+    std::vector<double> const& optimization_parameters_;
+    amici::SensitivityOrder sensitivity_order_;
+    std::vector<int> const& condition_indices_;
 
-    callbackJobFinishedType callbackJobFinished = nullptr;
-    callbackAllFinishedType aggregate = nullptr;
-    int errors = 0;
-    std::string logPrefix;
+    callbackJobFinishedType callback_job_finished = nullptr;
+    callbackAllFinishedType aggregate_ = nullptr;
+    int errors_ = 0;
+    std::string log_prefix_;
 };
 
 void
@@ -156,7 +156,7 @@ template<class Archive>
 void
 serialize(Archive& ar,
           parpe::AmiciSimulationRunner::AmiciWorkPackageSimple& u,
-          const unsigned int version)
+          const unsigned int /*version*/)
 {
     ar& u.optimizationParameters;
     ar& u.sensitivityOrder;
@@ -168,7 +168,7 @@ template<class Archive>
 void
 serialize(Archive& ar,
           parpe::AmiciSimulationRunner::AmiciResultPackageSimple& u,
-          const unsigned int version)
+          const unsigned int /*version*/)
 {
     ar& u.llh;
     ar& u.simulationTimeSeconds;
