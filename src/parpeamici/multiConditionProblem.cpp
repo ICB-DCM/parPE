@@ -46,12 +46,12 @@ MultiConditionProblem::MultiConditionProblem(
     : dataProvider(dp),
       resultWriter(std::move(resultWriter))
 {
-    this->logger = std::move(logger);
+    this->logger_ = std::move(logger);
     // run on all data
     std::vector<int> dataIndices(dataProvider->getNumberOfSimulationConditions());
     std::iota(dataIndices.begin(), dataIndices.end(), 0);
 
-    costFun = std::make_unique<
+    cost_fun_ = std::make_unique<
             SummedGradientFunctionGradientFunctionAdapter<int>
             > (
                 std::make_unique<AmiciSummedGradientFunction>(
@@ -133,9 +133,9 @@ std::unique_ptr<OptimizationReporter> MultiConditionProblem::getReporter() const
 {
 
     return std::make_unique<OptimizationReporter>(
-                costFun.get(),
+                cost_fun_.get(),
                 std::make_unique<OptimizationResultWriter>(*resultWriter),
-                std::make_unique<Logger>(*logger));
+                std::make_unique<Logger>(*logger_));
 }
 
 std::vector<int> MultiConditionProblem::getTrainingData() const

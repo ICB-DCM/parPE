@@ -107,7 +107,7 @@ TEST_F(steadystateProblemTests, testSteadystateMultiCond) {
     //parpe::AmiciSummedGradientFunction<int>(&dp, nullptr);
     parpe::MultiConditionProblem problem(&dp);
     double cost;
-    problem.costFun->evaluate(p, cost, gsl::span<double>());
+    problem.cost_fun_->evaluate(p, cost, gsl::span<double>());
     EXPECT_NEAR(-parpe::getLogLikelihoodOffset(
                     dp.edata_[0].getObservedData().size()), cost, 1e-5);
 }

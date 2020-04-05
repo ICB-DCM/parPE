@@ -64,7 +64,7 @@ public:
 
     /** mini batch cost function */
     SummedGradientFunction<T>* getGradientFunction() const {
-        auto summedGradientFunction = dynamic_cast<SummedGradientFunction<T>*>(costFun.get());
+        auto summedGradientFunction = dynamic_cast<SummedGradientFunction<T>*>(cost_fun_.get());
         RELEASE_ASSERT(summedGradientFunction, "");
         return summedGradientFunction;
     }

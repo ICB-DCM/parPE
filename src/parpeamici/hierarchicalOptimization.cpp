@@ -661,15 +661,15 @@ HierarchicalOptimizationProblemWrapper::HierarchicalOptimizationProblemWrapper(
         const MultiConditionDataProviderHDF5 *dataProvider)
     : wrappedProblem(std::move(problemToWrap))
 {
-    logger = std::make_unique<Logger>(*wrappedProblem->logger);
+    logger_ = std::make_unique<Logger>(*wrappedProblem->logger_);
     auto wrappedFun =
             dynamic_cast<SummedGradientFunctionGradientFunctionAdapter<int>*>(
-                wrappedProblem->costFun.get());
+                wrappedProblem->cost_fun_.get());
 
     auto model = dataProvider->getModel();
 
     auto lock = hdf5MutexGetLock();
-    costFun.reset(
+    cost_fun_.reset(
                 new HierarchicalOptimizationWrapper(
                       std::unique_ptr<AmiciSummedGradientFunction>(
                           dynamic_cast<AmiciSummedGradientFunction*>(
@@ -697,13 +697,13 @@ HierarchicalOptimizationProblemWrapper
     // Avoid double delete.
     // This will be destroyed when wrappedProblem goes out of scope!
     dynamic_cast<HierarchicalOptimizationWrapper *>(
-                costFun.get())->fun.release();
+                cost_fun_.get())->fun.release();
 }
 
 void HierarchicalOptimizationProblemWrapper::fillInitialParameters(
         gsl::span<double> buffer) const
 {
-    std::vector<double> full(wrappedProblem->costFun->numParameters());
+    std::vector<double> full(wrappedProblem->cost_fun_->numParameters());
     wrappedProblem->fillInitialParameters(full);
     fillFilteredParams(full, buffer);
 }
@@ -711,7 +711,7 @@ void HierarchicalOptimizationProblemWrapper::fillInitialParameters(
 void HierarchicalOptimizationProblemWrapper::fillParametersMax(
         gsl::span<double> buffer) const
 {
-    std::vector<double> full(wrappedProblem->costFun->numParameters());
+    std::vector<double> full(wrappedProblem->cost_fun_->numParameters());
     wrappedProblem->fillParametersMax(full);
     fillFilteredParams(full, buffer);
 }
@@ -719,7 +719,7 @@ void HierarchicalOptimizationProblemWrapper::fillParametersMax(
 void HierarchicalOptimizationProblemWrapper::fillParametersMin(
         gsl::span<double> buffer) const
 {
-    std::vector<double> full(wrappedProblem->costFun->numParameters());
+    std::vector<double> full(wrappedProblem->cost_fun_->numParameters());
     wrappedProblem->fillParametersMin(full);
     fillFilteredParams(full, buffer);
 }
@@ -729,7 +729,7 @@ void HierarchicalOptimizationProblemWrapper::fillFilteredParams(
         gsl::span<double> buffer) const
 {
     auto hierarchical = dynamic_cast<HierarchicalOptimizationWrapper *>(
-                costFun.get());
+                cost_fun_.get());
     auto combinedIndices = hierarchical->getAnalyticalParameterIndices();
     parpe::fillFilteredParams(fullParams, combinedIndices, buffer);
 }
@@ -739,9 +739,9 @@ HierarchicalOptimizationProblemWrapper::getReporter() const {
     auto innerReporter = wrappedProblem->getReporter();
     auto outerReporter = std::unique_ptr<OptimizationReporter>(
                 new HierarchicalOptimizationReporter(
-                    dynamic_cast<HierarchicalOptimizationWrapper*>(costFun.get()),
+                    dynamic_cast<HierarchicalOptimizationWrapper*>(cost_fun_.get()),
                     std::move(innerReporter->result_writer_),
-                    std::make_unique<Logger>(*logger)
+                    std::make_unique<Logger>(*logger_)
                     ));
     return outerReporter;
 }

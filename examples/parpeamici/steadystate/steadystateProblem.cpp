@@ -23,7 +23,7 @@ ExampleSteadystateProblem::ExampleSteadystateProblem(const std::string &dataFile
     optimizationOptions.maxOptimizerIterations = 100;
     setOptimizationOptions(optimizationOptions);
 
-    costFun = std::make_unique<ExampleSteadystateGradientFunction>(file.getId());
+    cost_fun_ = std::make_unique<ExampleSteadystateGradientFunction>(file.getId());
 }
 
 void ExampleSteadystateProblem::fillInitialParameters(gsl::span<double> buffer) const

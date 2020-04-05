@@ -17,9 +17,9 @@ TEST(localOptimizationIpopt, testOptimizationResult) {
     EXPECT_CALL(*problem.reporter, starting(_));
     EXPECT_CALL(*problem.reporter, finished(_, _, 0));
 
-    EXPECT_CALL(*dynamic_cast<parpe::QuadraticGradientFunctionMock *>(problem.costFun.get()),
+    EXPECT_CALL(*dynamic_cast<parpe::QuadraticGradientFunctionMock *>(problem.cost_fun_.get()),
                 evaluate_impl(_, _, Eq(gsl::span<const double>()), _, _)).Times(AtLeast(1));
-    EXPECT_CALL(*dynamic_cast<parpe::QuadraticGradientFunctionMock *>(problem.costFun.get()),
+    EXPECT_CALL(*dynamic_cast<parpe::QuadraticGradientFunctionMock *>(problem.cost_fun_.get()),
                 evaluate_impl(_, _, Ne(gsl::span<const double>()), _, _)).Times(AtLeast(1));
 
     // TODO mock().ignoreOtherCalls();
@@ -44,11 +44,11 @@ TEST(localOptimizationIpopt, testReporterCalled) {
     EXPECT_CALL(*problem.reporter, starting(_));
 
     EXPECT_CALL(*problem.reporter, beforeCostFunctionCall(_)).Times(3 + o.maxOptimizerIterations * 2);
-    EXPECT_CALL(*dynamic_cast<parpe::QuadraticGradientFunctionMock *>(problem.costFun.get()),
+    EXPECT_CALL(*dynamic_cast<parpe::QuadraticGradientFunctionMock *>(problem.cost_fun_.get()),
                 evaluate_impl(_, _, Ne(gsl::span<const double>()), _, _)).Times(1 + o.maxOptimizerIterations);
-    EXPECT_CALL(*dynamic_cast<parpe::QuadraticGradientFunctionMock *>(problem.costFun.get()),
+    EXPECT_CALL(*dynamic_cast<parpe::QuadraticGradientFunctionMock *>(problem.cost_fun_.get()),
                 evaluate_impl(_, _, Eq(gsl::span<const double>()), _, _)).Times(o.maxOptimizerIterations);
-    EXPECT_CALL(*dynamic_cast<parpe::QuadraticGradientFunctionMock *>(problem.costFun.get()),
+    EXPECT_CALL(*dynamic_cast<parpe::QuadraticGradientFunctionMock *>(problem.cost_fun_.get()),
                 numParameters()).Times(2 + 0*o.maxOptimizerIterations);
     EXPECT_CALL(*problem.reporter, iterationFinished(_, _, _)).Times(1 + o.maxOptimizerIterations);
     EXPECT_CALL(*problem.reporter, afterCostFunctionCall(_, _, _)).Times(3 + o.maxOptimizerIterations * 2);

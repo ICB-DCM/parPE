@@ -59,7 +59,7 @@ int main(int argc, char **argv) {
 
     double fval = NAN;
     std::vector<double> gradient(optimizationParams.size(), NAN);
-    problem.costFun->evaluate(optimizationParams, fval, gradient);
+    problem.cost_fun_->evaluate(optimizationParams, fval, gradient);
 
     std::cout<<gradient<<std::endl;
     std::for_each(gradient.begin(), gradient.end(), [](double &d){ d = std::fabs(d); });

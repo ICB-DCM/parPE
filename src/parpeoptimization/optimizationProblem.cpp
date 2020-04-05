@@ -58,7 +58,7 @@ void *getLocalOptimumThreadWrapper(void *optimizationProblemVp) {
 void optimizationProblemGradientCheck(OptimizationProblem *problem,
                                       int numParameterIndicesToCheck,
                                       double epsilon) {
-    int numParameters = problem->costFun->numParameters();
+    int numParameters = problem->cost_fun_->numParameters();
     numParameterIndicesToCheck =
             std::min(numParameterIndicesToCheck, numParameters);
     // choose random parameters to check
@@ -76,11 +76,11 @@ void optimizationProblemGradientCheck(OptimizationProblem *problem,
                                       gsl::span<const int> parameterIndices,
                                       double epsilon) {
     double fc = 0; // f(theta)
-    std::vector<double> theta(problem->costFun->numParameters());
+    std::vector<double> theta(problem->cost_fun_->numParameters());
     problem->fillInitialParameters(theta);
 
     std::vector<double> gradient(theta.size());
-    problem->costFun->evaluate(theta, fc, gradient);
+    problem->cost_fun_->evaluate(theta, fc, gradient);
 
     std::vector<double> thetaTmp(theta);
 
@@ -90,11 +90,11 @@ void optimizationProblemGradientCheck(OptimizationProblem *problem,
         double fb = 0, ff = 0; // f(theta + eps) , f(theta - eps)
 
         thetaTmp[curInd] = theta[curInd] + epsilon;
-        problem->costFun->evaluate(gsl::span<double>(thetaTmp), ff,
+        problem->cost_fun_->evaluate(gsl::span<double>(thetaTmp), ff,
                                    gsl::span<double>());
 
         thetaTmp[curInd] = theta[curInd] - epsilon;
-        problem->costFun->evaluate(gsl::span<double>(thetaTmp), fb,
+        problem->cost_fun_->evaluate(gsl::span<double>(thetaTmp), fb,
                                    gsl::span<double>());
 
         // double fd_f = (ff - fc) / epsilon;
@@ -139,25 +139,25 @@ void optimizationProblemGradientCheck(OptimizationProblem *problem,
 OptimizationProblem::OptimizationProblem(
         std::unique_ptr<GradientFunction> costFun,
         std::unique_ptr<Logger> logger)
-    : costFun(std::move(costFun)), logger(std::move(logger)) {
+    : cost_fun_(std::move(costFun)), logger_(std::move(logger)) {
 
 }
 
 const OptimizationOptions &OptimizationProblem::getOptimizationOptions() const {
-    return optimizationOptions;
+    return optimization_options_;
 }
 
 void OptimizationProblem::setOptimizationOptions(const OptimizationOptions &options) {
-    optimizationOptions = options;
+    optimization_options_ = options;
 }
 
 std::unique_ptr<OptimizationReporter> OptimizationProblem::getReporter() const {
     return std::make_unique < OptimizationReporter > (
-                costFun.get(), std::make_unique < Logger > (*logger));
+                cost_fun_.get(), std::make_unique < Logger > (*logger_));
 }
 
 void OptimizationProblem::fillInitialParameters(gsl::span<double> buffer) const {
-    int numParameters = costFun->numParameters();
+    int numParameters = cost_fun_->numParameters();
     std::vector<double> parametersMin(numParameters);
     std::vector<double> parametersMax(numParameters);
     fillParametersMin(parametersMin);

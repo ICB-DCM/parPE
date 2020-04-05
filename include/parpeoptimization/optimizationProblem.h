@@ -168,12 +168,12 @@ public:
     virtual std::unique_ptr<OptimizationReporter> getReporter() const;
 
     // const?
-    std::unique_ptr<GradientFunction> costFun;
+    std::unique_ptr<GradientFunction> cost_fun_;
 
-    std::unique_ptr<Logger> logger;
+    std::unique_ptr<Logger> logger_;
 
 private:
-    OptimizationOptions optimizationOptions;
+    OptimizationOptions optimization_options_;
 };
 
 
