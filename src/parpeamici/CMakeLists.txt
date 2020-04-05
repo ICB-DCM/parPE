@@ -21,6 +21,7 @@ set(SRC_LIST
     standaloneSimulator.cpp
     amiciMisc.cpp
     hierarchicalOptimization.cpp
+    hierarchicalOptimizationAnalyticalParameterProvider.cpp
 )
 
 add_library(${PROJECT_NAME} ${SRC_LIST})

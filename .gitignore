@@ -44,4 +44,7 @@ python/test_*.png
 # breathe-generatd files
 doc/source/api/
 
+
+# test files
+tests/petab-test-suite/
 test_*.png

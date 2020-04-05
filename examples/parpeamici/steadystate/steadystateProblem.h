@@ -13,7 +13,10 @@
  */
 class ExampleSteadystateGradientFunction : public parpe::GradientFunction {
 public:
-    ExampleSteadystateGradientFunction(hid_t fileId);
+    explicit ExampleSteadystateGradientFunction(hid_t fileId);
+
+    using GradientFunction::evaluate;
+
     parpe::FunctionEvaluationStatus evaluate(
             gsl::span<double const> parameters,
             double &fval,

@@ -29,7 +29,7 @@ std::unique_lock<mutexHdfType> hdf5MutexGetLock()
 
 herr_t hdf5ErrorStackWalker_cb(unsigned int n, const H5E_error_t *err_desc,
                                void* /*client_data*/) {
-    assert(err_desc);
+    Ensures(err_desc != nullptr);
     const int indent = 2;
 
     std::unique_ptr<char, decltype(std::free) *>
@@ -192,7 +192,7 @@ void hdf5Extend3rdDimensionAndWriteToDouble3DArray(hid_t file_id,
     // extend
     hid_t filespace = H5Dget_space(dataset);
     int rank = H5Sget_simple_extent_ndims(filespace);
-    assert(rank == 3 && "Only works for 3D arrays!");
+    RELEASE_ASSERT(rank == 3, "Only works for 3D arrays!");
 
     hsize_t currentDimensions[3];
     H5Sget_simple_extent_dims(filespace, currentDimensions, nullptr);
@@ -343,7 +343,7 @@ void hdf5CreateExtendableInt2DArray(hid_t file_id,
     hid_t datasetCreationProperty = H5Pcreate(H5P_DATASET_CREATE);
     H5Pset_chunk(datasetCreationProperty, rank, chunkDimensions);
 
-    assert(H5Tget_size(H5T_NATIVE_INT) == sizeof(int));
+    Expects(H5Tget_size(H5T_NATIVE_INT) == sizeof(int));
     hid_t dataset =
             H5Dcreate2(file_id, datasetPath, H5T_NATIVE_INT, dataspace,
                        H5P_DEFAULT, datasetCreationProperty, H5P_DEFAULT);
@@ -409,10 +409,10 @@ int hdf5Read2DDoubleHyperslab(hid_t file_id,
     H5Sget_simple_extent_dims(dataspace, dims, nullptr);
     // printf("%lld %lld, %lld %lld, %lld %lld\n", dims[0], dims[1], offset0,
     // offset1, size0, size1);
-    assert(dims[0] >= offset0 && dims[0] >= size0 &&
-            "Offset larger than dataspace dimensions!");
-    assert(dims[1] >= offset1 && dims[1] >= size1 &&
-            "Offset larger than dataspace dimensions!");
+    RELEASE_ASSERT(dims[0] >= offset0 && dims[0] >= size0,
+                   "Offset larger than dataspace dimensions!");
+    RELEASE_ASSERT(dims[1] >= offset1 && dims[1] >= size1,
+                   "Offset larger than dataspace dimensions!");
 
     H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, offset, nullptr,
                         count, nullptr);
@@ -439,11 +439,12 @@ std::vector<int> hdf5Read1DIntegerHyperslab(H5::H5File const& file,
     H5::DataSpace filespace = dataset.getSpace();
 
     const int ndims = filespace.getSimpleExtentNdims();
-    assert(ndims == 1 && "Only works for 1D arrays!");
+    RELEASE_ASSERT(ndims == 1, "Only works for 1D arrays!");
     hsize_t length;
     filespace.getSimpleExtentDims(&length);
 
-    assert(length >= offset && "Offset larger than dataspace dimensions!");
+    RELEASE_ASSERT(length >= offset,
+                   "Offset larger than dataspace dimensions!");
 
     filespace.selectHyperslab(H5S_SELECT_SET, &count, &offset);
 
@@ -468,7 +469,7 @@ std::vector<int> hdf5Read2DIntegerHyperslab(const H5::H5File &file,
     H5::DataSpace filespace = dataset.getSpace();
 
     const int ndims = filespace.getSimpleExtentNdims();
-    assert(ndims == 2 && "Only works for 2D arrays!");
+    RELEASE_ASSERT(ndims == 2, "Only works for 2D arrays!");
     hsize_t dims[ndims];
     filespace.getSimpleExtentDims(dims);
 
@@ -515,15 +516,15 @@ int hdf5Read3DDoubleHyperslab(hid_t file_id,
     hsize_t count[] = {size0, size1, size2};
 
     const int ndims = H5Sget_simple_extent_ndims(dataspace);
-    assert(ndims == rank && "Only works for 3D arrays!");
+    RELEASE_ASSERT(ndims == rank, "Only works for 3D arrays!");
     hsize_t dims[ndims];
     H5Sget_simple_extent_dims(dataspace, dims, nullptr);
-    assert(dims[0] >= offset0 && dims[0] >= size0 &&
-            "Offset larger than dataspace dimensions!");
-    assert(dims[1] >= offset1 && dims[1] >= size1 &&
-            "Offset larger than dataspace dimensions!");
-    assert(dims[2] >= offset2 && dims[2] >= size2 &&
-            "Offset larger than dataspace dimensions!");
+    RELEASE_ASSERT(dims[0] >= offset0 && dims[0] >= size0,
+                   "Offset larger than dataspace dimensions!");
+    RELEASE_ASSERT(dims[1] >= offset1 && dims[1] >= size1,
+                   "Offset larger than dataspace dimensions!");
+    RELEASE_ASSERT(dims[2] >= offset2 && dims[2] >= size2,
+                   "Offset larger than dataspace dimensions!");
 
     H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, offset, nullptr,
                         count, nullptr);
@@ -628,7 +629,7 @@ void hdf5GetDatasetDimensions(hid_t file_id,
                               int *d3,
                               int *d4)
 {
-    assert(file_id >= 0);
+    Expects(file_id >= 0);
 
     std::lock_guard<mutexHdfType> lock(mutexHdf);
     H5_SAVE_ERROR_HANDLER;
@@ -834,7 +835,7 @@ std::vector<std::string> hdf5Read1dStringDataset(
     auto filespace = dataset.getSpace();
 
     const int ndims = filespace.getSimpleExtentNdims();
-    assert(ndims == 1 && "Only works for 1D arrays!");
+    RELEASE_ASSERT(ndims == 1, "Only works for 1D arrays!");
 
     auto dtype = dataset.getDataType();
     auto native_type = H5Tget_native_type(dtype.getId(), H5T_DIR_DEFAULT);
