@@ -233,10 +233,15 @@ MultiConditionDataProviderHDF5::updateFixedSimulationParameters(
     readFixedSimulationParameters(conditionIdxSim, edata.fixedParameters);
 }
 
+void MultiConditionDataProviderHDF5::setModel(std::unique_ptr<amici::Model> model)
+{
+    model_ = std::move(model);
+}
+
 void
 MultiConditionDataProviderHDF5::readFixedSimulationParameters(
-  int conditionIdx,
-  gsl::span<double> buffer) const
+        int conditionIdx,
+        gsl::span<double> buffer) const
 {
     if (!model_->nk())
         return;

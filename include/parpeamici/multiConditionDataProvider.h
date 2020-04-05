@@ -369,6 +369,7 @@ class MultiConditionDataProviderHDF5 : public MultiConditionDataProvider
      */
     hid_t getHdf5FileId() const;
 
+    void setModel(std::unique_ptr<amici::Model> model);
   protected:
     /**
      * @brief Update the contstants in AMICI ExpData object. Reads a slab for the
