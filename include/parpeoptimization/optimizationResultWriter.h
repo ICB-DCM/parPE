@@ -18,11 +18,6 @@ namespace parpe {
 class OptimizationResultWriter {
 public:
     /**
-     * @brief Default constructor, for testing only
-     */
-    OptimizationResultWriter() = default;
-
-    /**
      * @brief Write to pre-opened HDF5 file (will be re-opened)
      * @param problem
      * @param file_id
@@ -124,6 +119,10 @@ public:
 
     bool logGradientEachIteration = true;
 
+    /**
+     * @brief Set root path in HDF5 file and create the respective group.
+     * @param path
+     */
     void setRootPath(std::string const& path);
 
 protected:
