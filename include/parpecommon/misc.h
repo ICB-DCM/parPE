@@ -167,7 +167,7 @@ template<typename MUTEX>
 class InverseUniqueLock
 {
   public:
-    InverseUniqueLock(MUTEX* mutex)
+    explicit InverseUniqueLock(MUTEX* mutex)
       : mutex(mutex)
     {
         mutex->unlock();
