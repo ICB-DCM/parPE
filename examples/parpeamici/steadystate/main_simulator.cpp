@@ -56,7 +56,8 @@ int main(int argc, char **argv) {
         std::string simulationMode = argv[5];
 
         // TODO: testing-only remove result file
-        remove(resultFileName.c_str());
+        if (parpe::getMpiRank() < 1)
+            remove(resultFileName.c_str());
 
         SteadyStateMultiConditionDataProvider dp(getModel(), dataFileName, dataFilePath + "/inputData");
 
@@ -75,7 +76,8 @@ int main(int argc, char **argv) {
         std::string simulationMode = argv[7];
 
         // TODO: testing-only remove result file
-        remove(resultFileName.c_str());
+        if (parpe::getMpiRank() < 1)
+            remove(resultFileName.c_str());
 
         auto dpPath = conditionFilePath;
         {
