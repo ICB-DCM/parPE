@@ -1277,8 +1277,6 @@ HierarchicalOptimizationReporter::afterCostFunctionCall(
   gsl::span<const double> objectiveFunctionGradient) const
 {
     double wallTime = wall_timer_.getTotal();
-    //(double)(timeCostEvaluationEnd - timeCostEvaluationBegin) /
-    // CLOCKS_PER_SEC;
 
     if (!std::isfinite(objectiveFunctionValue))
         printObjectiveFunctionFailureMessage();

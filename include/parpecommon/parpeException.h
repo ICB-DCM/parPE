@@ -8,15 +8,15 @@ namespace parpe {
 
 class ParPEException : public std::exception {
   public:
-    ParPEException(const char *message);
+    explicit ParPEException(const char *message);
 
-    ParPEException(std::string message);
+    explicit ParPEException(std::string message);
 
     virtual ~ParPEException() throw() {}
 
     virtual const char *what() const noexcept override;
 
-  protected:
+  private:
     std::string message;
 };
 

@@ -33,9 +33,9 @@ herr_t hdf5ErrorStackWalker_cb(unsigned int n, const H5E_error_t *err_desc,
     const int indent = 2;
 
     std::unique_ptr<char, decltype(std::free) *>
-            maj_str { H5Eget_major(err_desc->maj_num), std::free };
+            maj_str { H5Eget_major(err_desc->maj_num), &std::free };
     std::unique_ptr<char, decltype(std::free) *>
-            min_str { H5Eget_minor(err_desc->min_num), std::free };
+            min_str { H5Eget_minor(err_desc->min_num), &std::free };
 
     logmessage(LOGLVL_CRITICAL, "%*s#%03d: %s line %u in %s(): %s", indent, "",
                n, err_desc->file_name, err_desc->line, err_desc->func_name,
