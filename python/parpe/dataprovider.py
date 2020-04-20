@@ -45,12 +45,14 @@ class DataProvider:
             y[:, :] = self._get_measurement_sigmas(f, condition_idx)
             edata.setObservedDataStdDev(y.flatten())
 
-            preeq_cond_idx, sim_cond_idx = \
+            preeq_cond_idx, sim_cond_idx, reinit_states_flag = \
                 self._get_fixed_par_indices(f, condition_idx)
             edata.fixedParameters = self._get_fixed_parameters(f, sim_cond_idx)
             if preeq_cond_idx > 0:
                 edata.fixedParametersPreequilibration = \
                     self._get_fixed_parameters(f, preeq_cond_idx)
+            if reinit_states_flag > 0:
+                edata.reinitializeFixedParameterInitialStates = True
 
         return edata
 
@@ -60,9 +62,9 @@ class DataProvider:
 
     @staticmethod
     def _get_fixed_par_indices(f, simulation_idx):
-        preeq_cond_idx, sim_cond_idx = \
+        preeq_cond_idx, sim_cond_idx, reinit_states_flag = \
             f['/fixedParameters/simulationConditions'][simulation_idx, :]
-        return preeq_cond_idx, sim_cond_idx
+        return preeq_cond_idx, sim_cond_idx, reinit_states_flag
 
     @staticmethod
     def _get_measurements(f, simulation_idx):
