@@ -66,28 +66,6 @@ target_link_libraries(${PROJECT_NAME}
 )
 # /example_steadystate executable
 
-# example_steadystate_parallel executable
-if(${PARPE_ENABLE_MPI})
-    project(example_steadystate_parallel)
-
-    set(SRC_LIST_EXE_PARALLEL
-        main_parallel.cpp
-        steadystateProblem.cpp
-        steadystateProblemParallel.cpp
-        steadyStateMultiConditionDataprovider.cpp
-        )
-
-    add_executable(${PROJECT_NAME} ${SRC_LIST_EXE_PARALLEL})
-    add_dependencies(${PROJECT_NAME} ${MODEL_NAME})
-    target_link_libraries(${PROJECT_NAME}
-        ${MODEL_LIBRARIES}
-        parpeoptimization
-        parpeloadbalancer
-        parpeamici
-        )
-endif()
-# /example_steadystate_parallel executable
-
 
 # example_steadystate_multi executable
 project(example_steadystate_multi)
@@ -112,11 +90,11 @@ install(TARGETS ${PROJECT_NAME} EXPORT ParPETargets
     INCLUDES DESTINATION include
     )
 
-if(${BUILD_TESTS} AND ${PARPE_ENABLE_MPI})
-    add_test (NAME ${PROJECT_NAME}
+if("${BUILD_TESTING}" AND ${PARPE_ENABLE_MPI})
+    add_test (NAME pytest_steadystate_example
         COMMAND ${CMAKE_SOURCE_DIR}/misc/run_in_venv.sh
             ${CMAKE_BINARY_DIR}/venv
-            pytest ${CMAKE_CURRENT_LIST_DIR}/test_steadystate.py
+            pytest -vv ${CMAKE_CURRENT_LIST_DIR}/test_steadystate.py
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
         )
 endif()
@@ -141,7 +119,7 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 
-if(${BUILD_TESTS})
+if(${BUILD_TESTING})
 #    add_test (NAME ${PROJECT_NAME}
 #        COMMAND ${TESTS_MPIEXEC_COMMAND} ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME} -o ${PROJECT_NAME}-testresults ${CMAKE_CURRENT_LIST_DIR}/data.h5
 #        )
@@ -149,7 +127,7 @@ endif()
 # /example_steadystate_multi executable_simulator
 
 
-if(${BUILD_TESTS})
+if(${BUILD_TESTING})
     project(test_steadystate)
 
     add_test (NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME} -c)

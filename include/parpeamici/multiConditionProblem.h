@@ -249,7 +249,7 @@ class MultiConditionProblem
   public:
     MultiConditionProblem() = default;
 
-    MultiConditionProblem(MultiConditionDataProvider *dp);
+    explicit MultiConditionProblem(MultiConditionDataProvider *dp);
 
     MultiConditionProblem(
             MultiConditionDataProvider *dp,
@@ -321,20 +321,17 @@ class MultiConditionProblemMultiStartOptimizationProblem
             int multiStartIndex) const override;
 
 private:
-    MultiConditionDataProviderHDF5 *dp = nullptr;
-    OptimizationOptions options;
-    OptimizationResultWriter *resultWriter = nullptr;
-    LoadBalancerMaster *loadBalancer = nullptr;
-    std::unique_ptr<Logger> logger;
+    MultiConditionDataProviderHDF5 *data_provider_ = nullptr;
+    OptimizationOptions options_;
+    OptimizationResultWriter *result_writer_ = nullptr;
+    LoadBalancerMaster *load_balancer_ = nullptr;
+    std::unique_ptr<Logger> logger_;
 };
 
 
-void saveSimulation(
-        H5::H5File const& file, const std::string &pathStr,
+void saveSimulation(H5::H5File const& file, const std::string &pathStr,
         const std::vector<double> &parameters, double llh,
-        gsl::span<const double> gradient, double timeElapsedInSeconds,
-        gsl::span<const double> states,
-        gsl::span<const double> stateSensi, gsl::span<const double> outputs,
+        gsl::span<const double> gradient, double timeElapsedInSeconds, gsl::span<const double>, gsl::span<const double>, gsl::span<const double>,
         int jobId, int status, const std::string &label);
 
 

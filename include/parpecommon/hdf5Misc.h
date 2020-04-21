@@ -16,9 +16,9 @@ namespace parpe {
 
 class HDF5Exception : public std::exception {
 public:
-    HDF5Exception(std::string msg = "");
+    explicit HDF5Exception(std::string msg = "");
 
-    HDF5Exception(const char *format, ...);
+    explicit HDF5Exception(const char *format, ...);
 
     const char* what() const noexcept;
 
@@ -42,7 +42,7 @@ std::unique_lock<mutexHdfType> hdf5MutexGetLock();
 #define H5_RESTORE_ERROR_HANDLER H5Eset_auto1(old_func, old_client_data)
 
 herr_t
-hdf5ErrorStackWalker_cb(unsigned int n, const H5E_error_t *err_desc, void *); // TODO: also use for resultwriter
+hdf5ErrorStackWalker_cb(unsigned int n, const H5E_error_t *err_desc, void *);
 
 bool hdf5DatasetExists(hid_t file_id, std::string const& datasetName);
 
@@ -75,6 +75,8 @@ hid_t hdf5CreateFile(const char *filename,
                    bool overwrite = false);
 
 H5::H5File hdf5OpenForReading(std::string const& hdf5Filename);
+
+H5::H5File hdf5OpenForAppending(const std::string &hdf5Filename);
 
 void closeHDF5File(hid_t file_id);
 

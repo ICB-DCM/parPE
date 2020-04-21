@@ -20,11 +20,6 @@
 class steadystateProblemTests : public ::testing::Test {
 
 protected:
-    void SetUp() override {
-    }
-
-    void TearDown() override {
-    }
 
     /*
     const std::vector<double> t { 1.0e8 };
@@ -99,17 +94,17 @@ TEST_F(steadystateProblemTests, testSteadystateMultiCond) {
     parpe::MultiConditionDataProviderDefault dp(std::move(model),
                                                 modelNonOwning->getSolver());
 
-    dp.edata.push_back(amici::ExpData(*modelNonOwning));
-    dp.edata[0].fixedParameters = modelNonOwning->getFixedParameters();
-    dp.edata[0].setObservedData(yExp);
-    dp.edata[0].setObservedDataStdDev(std::vector<double>(yExp.size(), 1.0));
+    dp.edata_.push_back(amici::ExpData(*modelNonOwning));
+    dp.edata_[0].fixedParameters = modelNonOwning->getFixedParameters();
+    dp.edata_[0].setObservedData(yExp);
+    dp.edata_[0].setObservedDataStdDev(std::vector<double>(yExp.size(), 1.0));
 
     //parpe::AmiciSummedGradientFunction<int>(&dp, nullptr);
     parpe::MultiConditionProblem problem(&dp);
     double cost;
-    problem.costFun->evaluate(p, cost, gsl::span<double>());
+    problem.cost_fun_->evaluate(p, cost, gsl::span<double>());
     EXPECT_NEAR(-parpe::getLogLikelihoodOffset(
-                    dp.edata[0].getObservedData().size()), cost, 1e-5);
+                    dp.edata_[0].getObservedData().size()), cost, 1e-5);
 }
 
 
@@ -130,10 +125,10 @@ TEST_F(steadystateProblemTests, testSteadystateHierarchical) {
     yScaledExp[offsettedObservableIdx] = offsetExp + yExp[1];
     parpe::MultiConditionDataProviderDefault dp(std::move(model), modelNonOwning->getSolver());
     // x0?
-    dp.edata.push_back(amici::ExpData(*modelNonOwning));
-    dp.edata[0].fixedParameters = modelNonOwning->getFixedParameters();
-    dp.edata[0].setObservedData(yScaledExp);
-    dp.edata[0].setObservedDataStdDev(std::vector<double>(yExp.size(), 1.0));
+    dp.edata_.push_back(amici::ExpData(*modelNonOwning));
+    dp.edata_[0].fixedParameters = modelNonOwning->getFixedParameters();
+    dp.edata_[0].setObservedData(yScaledExp);
+    dp.edata_[0].setObservedDataStdDev(std::vector<double>(yExp.size(), 1.0));
 
     //parpe::MultiConditionProblem problem(&dp);
 

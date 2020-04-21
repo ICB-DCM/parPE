@@ -42,6 +42,7 @@ StandaloneSimulator::run(const std::string& resultFile,
     rw.saveYMes = true;
     rw.saveYSim = true;
     rw.saveLlh = true;
+    rw.save_parameters_ = true;
     rw.saveX = true;
 
     auto model = dataProvider->getModel();
@@ -107,8 +108,7 @@ StandaloneSimulator::run(const std::string& resultFile,
                   << " parameters.size() == " << parameters.size()
                   << " ; hierarchical.numParameters() == "
                   << hierarchical.numParameters() << std::endl;
-        RELEASE_ASSERT(
-          parameters.size() == (unsigned)hierarchical.numParameters(), "");
+        Expects(parameters.size() == (unsigned)hierarchical.numParameters());
 
         // expand parameter vector
         auto scalingDummy = hierarchical.getDefaultScalingFactors();
@@ -133,13 +133,13 @@ StandaloneSimulator::run(const std::string& resultFile,
         hdf5EnsureGroupExists(resultFileH5.getId(), resultPath.c_str());
         auto lock = hdf5MutexGetLock();
         amici::hdf5::createAndWriteDouble1DDataset(
-          resultFileH5, resultPath + "/parameters", parameters);
+          resultFileH5, resultPath + "/problemParameters", parameters);
     }
 
     RELEASE_ASSERT(
-      parameters.size() ==
-        (unsigned)dataProvider->getNumOptimizationParameters(),
-      "Size of supplied parameter vector does not match model dimensions.");
+        parameters.size() ==
+            (unsigned)dataProvider->getNumOptimizationParameters(),
+        "Size of supplied parameter vector does not match model dimensions.");
 
     rw.createDatasets(dataProvider->getNumberOfSimulationConditions());
 
@@ -149,7 +149,6 @@ StandaloneSimulator::run(const std::string& resultFile,
     int errors = 0;
     std::cout << "Starting simulation. Number of conditions: "
               << dataProvider->getNumberOfSimulationConditions() << std::endl;
-
     auto jobFinished =
       [&](
         JobData* job,
@@ -171,6 +170,7 @@ StandaloneSimulator::run(const std::string& resultFile,
                                auto edata =
                                  dataProvider->getExperimentalDataForCondition(
                                    conditionIdx);
+
                                rw.saveTimepoints(edata->getTimepoints(),
                                                  conditionIdx);
                                rw.saveMeasurements(edata->getObservedData(),
@@ -182,6 +182,11 @@ StandaloneSimulator::run(const std::string& resultFile,
                                                    model->nytrue,
                                                    conditionIdx);
                                rw.saveLikelihood(result.second.llh,
+                                                 conditionIdx);
+
+                               // to save simulation parameters
+                               dataProvider->updateSimulationParametersAndScale(conditionIdx, parameters, *model);
+                               rw.saveParameters(model->getParameters(),
                                                  conditionIdx);
                            }
       };
@@ -220,7 +225,7 @@ StandaloneSimulator::run(const std::string& resultFile,
                // TODO: redundant with hierarchicalOptimization.cpp
                //  compute scaling factors and offset parameters
                auto allMeasurements = dataProvider->getAllMeasurements();
-               RELEASE_ASSERT(dataIndices.size() == allMeasurements.size(), "");
+               Expects(dataIndices.size() == allMeasurements.size());
 
                auto scalings = hierarchical.computeAnalyticalScalings(
                  allMeasurements, modelOutputs);
@@ -250,7 +255,7 @@ StandaloneSimulator::run(const std::string& resultFile,
                {
                    auto lock = hdf5MutexGetLock();
                    amici::hdf5::createAndWriteDouble1DDataset(
-                     resultFileH5, resultPath + "/parameters", parameters);
+                     resultFileH5, resultPath + "/problemParameters", parameters);
                    hdf5Write1dStringDataset(resultFileH5,
                                             resultPath,
                                             "stateIds",
@@ -259,6 +264,11 @@ StandaloneSimulator::run(const std::string& resultFile,
                                             resultPath,
                                             "observableIds",
                                             model->getObservableIds());
+                   hdf5Write1dStringDataset(resultFileH5,
+                                            resultPath,
+                                            "parameterIds",
+                                            model->getParameterIds());
+
                }
                // compute llh
                for (int conditionIdx = 0;
@@ -285,6 +295,13 @@ StandaloneSimulator::run(const std::string& resultFile,
                                        model->nytrue,
                                        conditionIdx);
                    rw.saveLikelihood(llh, conditionIdx);
+
+                   // to save simulation parameters
+                   dataProvider->updateSimulationParametersAndScale(
+                       conditionIdx, parameters, *model);
+                   rw.saveParameters(model->getParameters(),
+                                     conditionIdx);
+
                }
                return 0;
     };
@@ -382,7 +399,7 @@ StandaloneSimulator::runSimulation(int conditionIdx,
 
     auto rdata = amiciApp.runAmiciSimulation(solver, edata.get(), model);
 
-    RELEASE_ASSERT(rdata != nullptr, "");
+    Expects(rdata != nullptr);
 
     return AmiciSimulationRunner::AmiciResultPackageSimple{
         rdata->llh,
@@ -553,12 +570,11 @@ runFinalParameters(StandaloneSimulator& sim,
                    std::string const& resultPath,
                    LoadBalancerMaster* loadBalancer)
 {
+    auto lock = hdf5MutexGetLock();
+    H5::H5File parameterFile(parameterFileName, H5F_ACC_RDONLY);
+    H5::H5File conditionFile(conditionFileName, H5F_ACC_RDONLY);
+    lock.unlock();
 
-    H5::H5File parameterFile;
-    {
-        auto lock = hdf5MutexGetLock();
-        parameterFile.openFile(parameterFileName, H5F_ACC_RDONLY);
-    }
     int errors = 0;
 
     int numStarts = getNumStarts(parameterFile);
@@ -573,9 +589,6 @@ runFinalParameters(StandaloneSimulator& sim,
             std::string curResultPath =
               resultPath + "multistarts/" + std::to_string(i);
 
-            auto lock = hdf5MutexGetLock();
-            H5::H5File conditionFile = hdf5OpenForReading(conditionFileName);
-            lock.unlock();
 
             errors += sim.run(resultFileName,
                               curResultPath,
@@ -590,6 +603,10 @@ runFinalParameters(StandaloneSimulator& sim,
         }
     }
 
+    // lock for destruction of H5Files
+    // FIXME: won't lock if an unhandled exception occurs
+    lock.lock();
+
     return errors;
 }
 
@@ -603,11 +620,10 @@ runAlongTrajectory(StandaloneSimulator& sim,
                    std::string const& resultPath,
                    LoadBalancerMaster* loadBalancer)
 {
-    H5::H5File parameterFile;
-    {
-        auto lock = hdf5MutexGetLock();
-        parameterFile.openFile(parameterFileName, H5F_ACC_RDONLY);
-    }
+    auto lock = hdf5MutexGetLock();
+    H5::H5File parameterFile(parameterFileName, H5F_ACC_RDONLY);
+    H5::H5File conditionFile(conditionFileName, H5F_ACC_RDONLY);
+    lock.unlock();
 
     int errors = 0;
 
@@ -622,11 +638,6 @@ runAlongTrajectory(StandaloneSimulator& sim,
                 std::string curResultPath = resultPath + "/multistarts/" +
                                             std::to_string(startIdx) +
                                             "/iter/" + std::to_string(iter);
-
-                auto lock = hdf5MutexGetLock();
-                H5::H5File conditionFile =
-                  hdf5OpenForReading(conditionFileName);
-                lock.unlock();
 
                 auto outerParameters = getOuterParameters(
                   parameters[iter], parameterFile, parameterFilePath);
@@ -643,6 +654,10 @@ runAlongTrajectory(StandaloneSimulator& sim,
         }
     }
 
+    // lock for destruction of H5Files
+    // FIXME: won't lock if an unhandled exception occurs
+    lock.lock();
+
     return errors;
 }
 
@@ -657,6 +672,21 @@ runSimulationTasks(StandaloneSimulator& sim,
                    std::string const& resultPath,
                    LoadBalancerMaster* loadBalancer)
 {
+    {
+        // copy input data
+        auto lock = hdf5MutexGetLock();
+        H5::H5File conditionFile = hdf5OpenForReading(conditionFileName);
+        H5::H5File resultFile = hdf5OpenForAppending(resultFileName);
+
+        std::vector<std::string> datasetsToCopy {"/inputData"};
+        for (auto const& datasetToCopy : datasetsToCopy) {
+            auto source = conditionFilePath + datasetToCopy;
+            auto dest = resultPath + "/" + datasetToCopy;
+            H5Ocopy(conditionFile.getId(), source.c_str(),
+                    resultFile.getId(), dest.c_str(),
+                    H5P_DEFAULT, H5P_DEFAULT);
+        }
+    }
 
     if (simulationMode == "--at-optimum") {
         return parpe::runFinalParameters(sim,

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # build f2c
 
 set -euo pipefail

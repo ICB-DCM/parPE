@@ -23,8 +23,11 @@ void LoadBalancerMaster::run() {
 
     int mpiCommSize;
     MPI_Comm_size(mpiComm, &mpiCommSize);
-    assert(mpiCommSize > 1 &&
-           "Need multiple MPI processes!"); // crashes otherwise
+
+    if(mpiCommSize <= 2) {
+        // crashes otherwise
+        throw std::runtime_error("Need at least 2 MPI processes!");
+    }
 
     numWorkers = mpiCommSize - 1;
     sentJobsData.resize(numWorkers, nullptr);
@@ -56,7 +59,7 @@ LoadBalancerMaster::~LoadBalancerMaster()
 
 #ifndef QUEUE_MASTER_TEST
 void LoadBalancerMaster::assertMpiActive() {
-    assert(getMpiActive());
+    Expects(getMpiActive());
 }
 #endif
 
@@ -158,8 +161,8 @@ JobData *LoadBalancerMaster::getNextJob() {
 }
 
 void LoadBalancerMaster::sendToWorker(int workerIdx, JobData *data) {
-    assert(workerIdx >= 0);
-    assert(workerIdx < numWorkers);
+    Expects(workerIdx >= 0);
+    Expects(workerIdx < numWorkers);
 
     workerIsBusy[workerIdx] = true;
 

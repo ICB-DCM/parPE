@@ -1,5 +1,6 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # build Ipopt
+
 set -euo pipefail
 script_dir=$(dirname "$0")
 script_dir=$(cd "${script_dir}" && pwd )

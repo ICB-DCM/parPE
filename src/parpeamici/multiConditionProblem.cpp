@@ -46,12 +46,12 @@ MultiConditionProblem::MultiConditionProblem(
     : dataProvider(dp),
       resultWriter(std::move(resultWriter))
 {
-    this->logger = std::move(logger);
+    this->logger_ = std::move(logger);
     // run on all data
     std::vector<int> dataIndices(dataProvider->getNumberOfSimulationConditions());
     std::iota(dataIndices.begin(), dataIndices.end(), 0);
 
-    costFun = std::make_unique<
+    cost_fun_ = std::make_unique<
             SummedGradientFunctionGradientFunctionAdapter<int>
             > (
                 std::make_unique<AmiciSummedGradientFunction>(
@@ -70,20 +70,20 @@ MultiConditionProblem::MultiConditionProblem(
 
 void MultiConditionProblem::fillParametersMin(gsl::span<double> buffer) const
 {
-    RELEASE_ASSERT(buffer.size() == parametersMin.size(), "");
+    Expects(buffer.size() == parametersMin.size());
     std::copy(parametersMin.begin(), parametersMin.end(), buffer.begin());
 }
 
 void MultiConditionProblem::fillParametersMax(gsl::span<double> buffer) const
 {
-    RELEASE_ASSERT(buffer.size() == parametersMax.size(), "");
+    Expects(buffer.size() == parametersMax.size());
     std::copy(parametersMax.begin(), parametersMax.end(), buffer.begin());
 }
 
 void MultiConditionProblem::fillInitialParameters(gsl::span<double> buffer) const
 {
     if(!startingPoint.empty()) {
-        RELEASE_ASSERT(buffer.size() == startingPoint.size(), "");
+        Expects(buffer.size() == startingPoint.size());
         std::copy(startingPoint.begin(), startingPoint.end(), buffer.begin());
     } else {
         OptimizationProblem::fillInitialParameters(buffer);
@@ -133,9 +133,9 @@ std::unique_ptr<OptimizationReporter> MultiConditionProblem::getReporter() const
 {
 
     return std::make_unique<OptimizationReporter>(
-                costFun.get(),
+                cost_fun_.get(),
                 std::make_unique<OptimizationResultWriter>(*resultWriter),
-                std::make_unique<Logger>(*logger));
+                std::make_unique<Logger>(*logger_));
 }
 
 std::vector<int> MultiConditionProblem::getTrainingData() const
@@ -160,46 +160,46 @@ MultiConditionProblemMultiStartOptimizationProblem
         OptimizationOptions options,
         OptimizationResultWriter *resultWriter,
         LoadBalancerMaster *loadBalancer, std::unique_ptr<Logger> logger)
-    : dp(dp), options(std::move(options)),
-      resultWriter(resultWriter), loadBalancer(loadBalancer),
-      logger(std::move(logger))
+    : data_provider_(dp), options_(std::move(options)),
+      result_writer_(resultWriter), load_balancer_(loadBalancer),
+      logger_(std::move(logger))
 {}
 
-int MultiConditionProblemMultiStartOptimizationProblem::getNumberOfStarts() const { return options.numStarts; }
+int MultiConditionProblemMultiStartOptimizationProblem::getNumberOfStarts() const { return options_.numStarts; }
 
-bool MultiConditionProblemMultiStartOptimizationProblem::restartOnFailure() const { return options.retryOptimization; }
+bool MultiConditionProblemMultiStartOptimizationProblem::restartOnFailure() const { return options_.retryOptimization; }
 
 std::unique_ptr<OptimizationProblem> MultiConditionProblemMultiStartOptimizationProblem::getLocalProblem(
         int multiStartIndex) const {
     // generate new OptimizationProblem with data from dp
 
-    RELEASE_ASSERT(dp != nullptr, "");
+    Expects(data_provider_ != nullptr);
 
     std::unique_ptr<MultiConditionProblem> problem;
 
-    if (resultWriter) {
+    if (result_writer_) {
         problem = std::make_unique<MultiConditionProblem>(
-                    dp, loadBalancer,
-                    logger->getChild(std::string("o")
+                    data_provider_, load_balancer_,
+                    logger_->getChild(std::string("o")
                                      + std::to_string(multiStartIndex)),
-                    std::make_unique<OptimizationResultWriter>(*resultWriter));
+                    std::make_unique<OptimizationResultWriter>(*result_writer_));
         problem->getResultWriter()->setRootPath(
                     "/multistarts/" + std::to_string(multiStartIndex));
     } else {
         problem = std::make_unique<MultiConditionProblem>(
-                    dp, loadBalancer,
-                    logger->getChild(
+                    data_provider_, load_balancer_,
+                    logger_->getChild(
                         std::string("o") + std::to_string(multiStartIndex)),
                     nullptr);
     }
-    problem->setOptimizationOptions(options);
+    problem->setOptimizationOptions(options_);
     problem->setInitialParameters(parpe::OptimizationOptions::getStartingPoint(
-                                      dp->getHdf5FileId(), multiStartIndex));
+                                      data_provider_->getHdf5FileId(), multiStartIndex));
 
-    if(options.hierarchicalOptimization)
+    if(options_.hierarchicalOptimization)
         return std::unique_ptr<OptimizationProblem>(
                     new parpe::HierarchicalOptimizationProblemWrapper(
-                        std::move(problem), dp));
+                        std::move(problem), data_provider_));
 
     return std::move(problem);
 }
@@ -239,9 +239,9 @@ void saveSimulation(const H5::H5File &file, std::string const& pathStr,
                     std::vector<double> const& parameters,
                     double llh, gsl::span<double const> gradient,
                     double timeElapsedInSeconds,
-                    gsl::span<double const> states,
-                    gsl::span<double const> stateSensi,
-                    gsl::span<double const> outputs, int jobId,
+                    gsl::span<double const> /*states*/,
+                    gsl::span<double const> /*stateSensi*/,
+                    gsl::span<double const> /*outputs*/, int jobId,
                     int status, std::string const& label)
 {
     // TODO replace by SimulationResultWriter
@@ -488,7 +488,7 @@ FunctionEvaluationStatus getModelOutputs(
     modelOutput.resize(dataIndices.size());
     auto parameterVector = std::vector<double>(parameters.begin(),
                                                parameters.end());
-    auto jobFinished = [&](JobData *job, int /*dataIdx*/) { // jobFinished
+    auto jobFinished = [&errors, &modelOutput](JobData *job, int /*dataIdx*/) {
         // deserialize
         auto results =
                 amici::deserializeFromChar<AmiciSummedGradientFunction::ResultMap> (
@@ -500,6 +500,7 @@ FunctionEvaluationStatus getModelOutputs(
             modelOutput[result.first] = result.second.modelOutput;
         }
     };
+
     AmiciSimulationRunner simRunner(parameterVector,
                                     amici::SensitivityOrder::none,
                                     dataIndices,
@@ -515,7 +516,7 @@ FunctionEvaluationStatus getModelOutputs(
     } else {
 #endif
         errors += simRunner.runSharedMemory(
-                    [&](std::vector<char> &buffer, int jobId) {
+                    [&dataProvider, &resultWriter, logLineSearch, &sendStates](std::vector<char> &buffer, int jobId) {
                 messageHandler(dataProvider, resultWriter, logLineSearch,
                                buffer, jobId, sendStates);
     });
@@ -694,8 +695,9 @@ int AmiciSummedGradientFunction::runSimulations(
                 ? amici::SensitivityOrder::first
                 : amici::SensitivityOrder::none,
                 dataIndices,
-                [&](JobData *job, int /*jobIdx*/) {
-        errors += aggregateLikelihood(*job,
+                [&nllh, &objectiveFunctionGradient, &simulationTimeSec,
+         &optimizationParameters, &errors, this](JobData *job, int /*jobIdx*/) {
+            errors += this->aggregateLikelihood(*job,
                                       nllh,
                                       objectiveFunctionGradient,
                                       simulationTimeSec,
@@ -715,8 +717,8 @@ int AmiciSummedGradientFunction::runSimulations(
     } else {
 #endif
         errors += simRunner.runSharedMemory(
-                    [&](std::vector<char> &buffer, int jobId) {
-                messageHandler(buffer, jobId);
+                    [this](std::vector<char> &buffer, int jobId) {
+                this->messageHandler(buffer, jobId);
     });
 #ifdef PARPE_ENABLE_MPI
     }

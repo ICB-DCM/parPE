@@ -59,7 +59,7 @@ void createDirectoryIfNotExists(char *dirName) {
  * @return 0 on success, -1 otherwise
  */
 int mkpath(char *file_path, mode_t mode) {
-    assert(file_path && *file_path);
+    Expects(file_path && *file_path);
 
     for (char *p = strchr(file_path + 1, '/'); p; p = strchr(p + 1, '/')) {
         *p = '\0';
@@ -75,20 +75,22 @@ int mkpath(char *file_path, mode_t mode) {
 }
 
 int mkpathConstChar(const char *file_path, mode_t mode) {
-    assert(file_path && *file_path);
+    Expects(file_path && *file_path);
     char tmp[strlen(file_path) + 1];
-    strcpy(tmp, file_path);
+
+    strncpy(tmp, file_path, sizeof(tmp) -1);
+    tmp[sizeof(tmp) - 1] = '\0';
+
     return mkpath(tmp, mode);
 }
 
 void strFormatCurrentLocaltime(gsl::span<char> buffer, const char *format) {
-    time_t timer;
-    time(&timer);
+    time_t current_time;
+    struct tm local_time;
+    time(&current_time);
+    localtime_r(&current_time, &local_time);
 
-    struct tm *tm_info;
-    tm_info = localtime(&timer);
-
-    strftime(buffer.data(), buffer.size(), format, tm_info);
+    strftime(buffer.data(), buffer.size(), format, &local_time);
 }
 
 void runInParallelAndWaitForFinish(void *(*function)(void *), void **args,
@@ -166,8 +168,8 @@ double randDouble(double min, double max) {
 void fillArrayRandomDoubleIndividualInterval(gsl::span<const double> min,
                                              gsl::span<const double> max,
                                              gsl::span<double> buffer) {
-    RELEASE_ASSERT(min.size() == max.size(), "");
-    RELEASE_ASSERT(min.size() == buffer.size(), "");
+    Expects(min.size() == max.size());
+    Expects(min.size() == buffer.size());
 
     for (gsl::span<double>::index_type i = 0; i < buffer.size(); ++i)
         buffer[i] = randDouble(min[i], max[i]);
@@ -263,26 +265,6 @@ double WallTimer::getTotal()
 {
     std::chrono::duration<double> duration = (std::chrono::system_clock::now() - start);
     return duration.count();
-}
-
-bool launchedWithMpi()
-{
-    if(std::getenv("OMPI_COMM_WORLD_SIZE"))
-        return true; // OpenMPI
-    if(std::getenv("MP_PROCS") && atoi(std::getenv("MP_PROCS")) > 1)
-        return true;
-    if(std::getenv("PMI_RANK"))
-        return true; // INTEL MPI / Hydra
-
-    return false;
-}
-
-void initMpiIfNeeded(int *argc, char ***argv)
-{
-#ifdef PARPE_ENABLE_MPI
-    if(parpe::launchedWithMpi())
-        MPI_Init(argc, argv);
-#endif
 }
 
 void finalizeMpiIfNeeded()

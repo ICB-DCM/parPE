@@ -9,9 +9,7 @@ jobs:
     name: parPE tests
     steps:
     - uses: actions/checkout@master
-      with:
-        fetch-depth: 42
-
+    - run: git fetch --prune --unshallow
 
     - run: echo "::set-env name=PARPE_BASE::$(pwd)"
     - run: echo "::set-env name=PARPE_BUILD::${PARPE_BASE}/build"
@@ -68,7 +66,7 @@ jobs:
             -DCERES_INCLUDE_DIRS="/usr/include/;/usr/include/eigen3" \
             -DMPI_INCLUDE_DIRS=/usr/include/openmpi-x86_64/ \
             -DGCOV_REPORT=TRUE \
-            -DBUILD_TESTS=TRUE
+            -DBUILD_TESTING=TRUE
 
     - name: Build parPE
       # with sonar build wrapper
@@ -83,7 +81,7 @@ jobs:
         && $PARPE_BASE/misc/run_in_venv.sh $PARPE_BASE/build/venv \
           pytest \
             --cov-report=xml:$PARPE_BUILD/coverage_py.xml \
-            --cov=./ \
+            --cov=parpe --cov-append \
             $PARPE_BASE/python/tests/
 
     # Redundant with parpe_coverage_cobertura
@@ -95,6 +93,13 @@ jobs:
         cd ${PARPE_BUILD} \
           && CTEST_OUTPUT_ON_FAILURE=1 make parpe_coverage \
           && make ExperimentalCoverage
+
+    - name: Cache sonar files
+      id: cache-sonar
+      uses: actions/cache@v1
+      with:
+        path: sonar_cache
+        key: ${{ runner.os }}-sonar_cache
 
     - name: Run sonar-scanner
       env:

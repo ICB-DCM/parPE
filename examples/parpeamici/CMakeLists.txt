@@ -8,7 +8,7 @@ add_custom_command(
     COMMAND sh -c "${CMAKE_SOURCE_DIR}/misc/venv.sh ${CMAKE_BINARY_DIR}"
     SOURCES ${CMAKE_SOURCE_DIR}/misc/venv.sh)
 
-if(${BUILD_TESTS})
+if(${BUILD_TESTING})
     add_test (
         NAME "parpe_python_package_tests"
         COMMAND ${CMAKE_SOURCE_DIR}/misc/run_in_venv.sh

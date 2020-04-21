@@ -133,8 +133,8 @@ public:
     SummedGradientFunctionGradientFunctionAdapter(
             std::unique_ptr<SummedGradientFunction<T>> gradFun,
             std::vector<T> datasets)
-        : gradFun(std::move(gradFun))
-        , datasets(datasets)
+        : grad_fun_(std::move(gradFun))
+        , datasets_(datasets)
     {}
 
     FunctionEvaluationStatus evaluate(gsl::span<const double> parameters,
@@ -143,8 +143,8 @@ public:
                                       Logger* logger = nullptr,
                                       double* cpuTime = nullptr) const override
     {
-        return gradFun->evaluate(
-                    parameters, datasets, fval, gradient, logger, cpuTime);
+        return grad_fun_->evaluate(
+                    parameters, datasets_, fval, gradient, logger, cpuTime);
     }
 
     FunctionEvaluationStatus evaluate(gsl::span<const double> parameters,
@@ -154,7 +154,7 @@ public:
                                       Logger* logger,
                                       double* cpuTime) const override
     {
-        return gradFun->evaluate(
+        return grad_fun_->evaluate(
                     parameters, dataset, fval, gradient, logger, cpuTime);
     }
 
@@ -165,11 +165,11 @@ public:
                                       Logger* logger,
                                       double* cpuTime) const override
     {
-        return gradFun->evaluate(
+        return grad_fun_->evaluate(
                     parameters, datasets, fval, gradient, logger, cpuTime);
     }
 
-    int numParameters() const override { return gradFun->numParameters(); }
+    int numParameters() const override { return grad_fun_->numParameters(); }
 
     /**
      * @brief Return pointer to the wrapped function (non-owning).
@@ -177,15 +177,15 @@ public:
      */
     SummedGradientFunction<T>* getWrappedFunction() const
     {
-        return gradFun.get();
+        return grad_fun_.get();
     }
 
 private:
     /** Wrapped function */
-    std::unique_ptr<SummedGradientFunction<T>> gradFun;
+    std::unique_ptr<SummedGradientFunction<T>> grad_fun_;
 
     /** Datasets to evaluate function on */
-    std::vector<T> datasets;
+    std::vector<T> datasets_;
 };
 
 }
