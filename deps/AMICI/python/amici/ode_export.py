@@ -823,7 +823,8 @@ class ODEModel:
         self._simplify: Callable = simplify
 
     def import_from_sbml_importer(self,
-                                  si: 'sbml_import.SbmlImporter') -> None:
+                                  si: 'sbml_import.SbmlImporter',
+                                  compute_cls: Optional[bool] = True) -> None:
         """
         Imports a model specification from a
         :class:`amici.sbml_import.SbmlImporter`
@@ -833,24 +834,90 @@ class ODEModel:
             imported SBML model
         """
 
+        # get symbolic expression from SBML importers
         symbols = copy.copy(si.symbols)
 
-        # setting these equations prevents native equation generation
-        self._eqs['dxdotdw'] = si.stoichiometric_matrix
-        self._eqs['w'] = si.flux_vector
-        self._syms['w'] = sp.Matrix(
-            [sp.Symbol(f'flux_r{idx}', real=True)
-             for idx in range(len(si.flux_vector))]
-        )
-        self._eqs['dxdotdx'] = sp.zeros(si.stoichiometric_matrix.shape[0])
-        if len(si.stoichiometric_matrix):
-            symbols['species']['dt'] = \
-                si.stoichiometric_matrix * self.sym('w')
-        else:
-            symbols['species']['dt'] = sp.zeros(
-                *symbols['species']['identifier'].shape
-            )
+        # assemble fluxes and add them as expressions to the model
+        fluxes = []
+        for ir, flux in enumerate(si.flux_vector):
+            flux_id = sp.Symbol(f'flux_r{ir}', real=True)
+            self.add_component(Expression(
+                identifier=flux_id,
+                name=str(flux),
+                value=flux
+            ))
+            fluxes.append(flux_id)
+        nr = len(fluxes)
 
+        # correct time derivatives for compartment changes
+
+        dxdotdw_updates = []
+        def dx_dt(x_index, x_Sw):
+            '''
+            Produces the appropriate expression for the first derivative of a
+            species with respect to time, for species that reside in
+            compartments with a constant volume, or a volume that is defined by
+            an assignment or rate rule.
+
+            :param x_index:
+                The index (not identifier) of the species in the variables
+                (generated in "sbml_import.py") that describe the model.
+
+            :param x_Sw:
+                The element-wise product of the row in the stoichiometric
+                matrix that corresponds to the species (row x_index) and the
+                flux (kinetic laws) vector. Ignored in the case of rate rules.
+            '''
+            x_id = symbols['species']['identifier'][x_index]
+
+            # Rate rules specify dx_dt.
+            # Note that the rate rule of species may describe amount, not
+            # concentration.
+            if x_id in si.compartment_rate_rules:
+                return si.compartment_rate_rules[x_id]
+            elif x_id in si.species_rate_rules:
+                return si.species_rate_rules[x_id]
+
+            # The derivation of the below return expressions can be found in
+            # the documentation. They are found by rearranging
+            # $\frac{d}{dt} (vx) = Sw$ for $\frac{dx}{dt}$, where $v$ is the
+            # vector of species compartment volumes, $x$ is the vector of
+            # species concentrations, $S$ is the stoichiometric matrix, and $w$
+            # is the flux vector. The conditional below handles the cases of
+            # species in (i) compartments with a rate rule, (ii) compartments
+            # with an assignment rule, and (iii) compartments with a constant
+            # volume, respectively.
+            v_name = si.species_compartment[x_index]
+            if v_name in si.compartment_rate_rules:
+                dv_dt = si.compartment_rate_rules[v_name]
+                xdot = (x_Sw - dv_dt*x_id)/v_name
+                for w_index, flux in enumerate(fluxes):
+                    dxdotdw_updates.append((x_index, w_index, xdot.diff(flux)))
+                return xdot
+            elif v_name in si.compartment_assignment_rules:
+                v = si.compartment_assignment_rules[v_name]
+                dv_dt = v.diff(si.amici_time_symbol)
+                dv_dx = v.diff(x_id)
+                xdot = (x_Sw - dv_dt*x_id)/(dv_dx*x_id + v)
+                for w_index, flux in enumerate(fluxes):
+                    dxdotdw_updates.append((x_index, w_index, xdot.diff(flux)))
+                return xdot
+            else:
+                v = si.compartment_volume[list(si.compartment_symbols).index(
+                    si.species_compartment[x_index])]
+                for w_index, flux in enumerate(fluxes):
+                    dxdotdw_updates.append((x_index, w_index,
+                        si.stoichiometric_matrix[x_index, w_index] / v))
+                return x_Sw/v
+
+        # create dynmics without respecting conservation laws first
+        Sw = (MutableDenseMatrix(si.stoichiometric_matrix)
+              * MutableDenseMatrix(fluxes))
+        symbols['species']['dt'] = sp.Matrix([Sw.row(x_index).applyfunc(
+            lambda x_Sw: dx_dt(x_index, x_Sw))
+            for x_index in range(Sw.rows)])
+
+        # create all basic components of the ODE model and add them.
         for symbol in [s for s in symbols if s != 'my']:
             # transform dict of lists into a list of dicts
             protos = [dict(zip(symbols[symbol], t))
@@ -858,6 +925,28 @@ class ODEModel:
             for proto in protos:
                 self.add_component(symbol_to_type[symbol](**proto))
 
+        # process conservation laws
+        if compute_cls:
+            si.process_conservation_laws(self)
+
+        # set derivatives of xdot, this circumvents regular computation. we
+        # do this as we can save a substantial amount of computations by
+        # knowing the right solutions here
+        nx_solver = si.stoichiometric_matrix.shape[0]
+        self._eqs['dxdotdx'] = sp.zeros(nx_solver)
+
+        nw = len(self._expressions)
+        # append zero rows for conservation law `w`s, note that
+        # _process_conservation_laws is called after the fluxes are added as
+        # expressions, if this ordering needs to be changed, this will have
+        # to be adapted.
+        self._eqs['dxdotdw'] = si.stoichiometric_matrix.row_join(
+            sp.zeros(nx_solver, nw-nr)
+        )
+        for ix, iw, val in dxdotdw_updates:
+            self._eqs['dxdotdw'][ix, iw] = val
+
+        # fill in 'self._sym' based on prototypes and components in ode_model
         self.generate_basic_variables()
 
     def add_component(self, component: ModelQuantity) -> None:
@@ -882,20 +971,27 @@ class ODEModel:
                              state_expr: sp.Basic,
                              abundance_expr: sp.Basic) -> None:
         """
-        Adds a new conservation law to the model.
+        Adds a new conservation law to the model. A conservation law is defined
+        by the conserved quantity T = sum_i(a_i * x_i), where a_i are
+        coefficients and x_i are different state variables.
 
         :param state:
             symbolic identifier of the state that should be replaced by
-            the conservation law
+            the conservation law (x_j)
 
         :param total_abundance:
-            symbolic identifier of the total abundance
+            symbolic identifier of the total abundance (T/a_j)
 
         :param state_expr:
-            symbolic algebraic formula that replaces the the state
+            symbolic algebraic formula that replaces the the state. This is
+            used to compute the numeric value of of `state` during simulations.
+            x_j = T/a_j - sum_i≠j(a_i * x_i)/a_j
 
         :param abundance_expr:
-            symbolic algebraic formula that computes the total abundance
+            symbolic algebraic formula that computes the value of the
+            conserved quantity. This is used to update the numeric value for
+            `total_abundance` after (re-)initialization.
+            T/a_j = sum_i≠j(a_i * x_i)/a_j + x_j
         """
         try:
             ix = [
