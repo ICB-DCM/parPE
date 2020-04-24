@@ -906,8 +906,9 @@ class ODEModel:
                 v = si.compartment_volume[list(si.compartment_symbols).index(
                     si.species_compartment[x_index])]
                 for w_index, flux in enumerate(fluxes):
-                    dxdotdw_updates.append((x_index, w_index,
-                        si.stoichiometric_matrix[x_index, w_index] / v))
+                    if si.stoichiometric_matrix[x_index, w_index] != 0:
+                        dxdotdw_updates.append((x_index, w_index,
+                            si.stoichiometric_matrix[x_index, w_index] / v))
                 return x_Sw/v
 
         # create dynmics without respecting conservation laws first
@@ -927,7 +928,8 @@ class ODEModel:
 
         # process conservation laws
         if compute_cls:
-            si.process_conservation_laws(self)
+            dxdotdw_updates = si.process_conservation_laws(self,
+                                                           dxdotdw_updates)
 
         # set derivatives of xdot, this circumvents regular computation. we
         # do this as we can save a substantial amount of computations by
