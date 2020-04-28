@@ -1029,11 +1029,12 @@ class SbmlImporter:
                         sbml.formulaToL3String(nested_rule.getMath()),
                         locals=self.local_symbols)
                     nested_formula = \
-                        nested_formula.subs(variable, formula)
-                    nested_rule.setFormula(str(nested_formula))
+                        str(nested_formula.subs(variable, formula)).replace('**', '^')
+                    if nested_rule.setFormula(nested_formula) != sbml.LIBSBML_OPERATION_SUCCESS:
+                        raise SBMLException(f'Formula {nested_formula} cannot be parsed by libSBML!')
 
-                for variable in assignments:
-                    assignments[variable].subs(variable, formula)
+                for assignment in assignments:
+                    assignments[assignment] = assignments[assignment].subs(variable, formula)
 
         # do this at the very end to ensure we have flattened all recursive
         # rules
@@ -1290,6 +1291,12 @@ class SbmlImporter:
         species_solver = self._add_conservation_for_constant_species(
             ode_model, conservation_laws)
 
+        # Check, whether species_solver is empty now. As currently, AMICI
+        # cannot handle ODEs without species, CLs must switched in this case
+        if len(species_solver) == 0:
+            conservation_laws = []
+            species_solver = list(range(ode_model.nx_rdata()))
+
         # prune out species from stoichiometry and
         volume_updates_solver = self._reduce_stoichiometry(species_solver,
                                                            volume_updates)
@@ -1304,7 +1311,6 @@ class SbmlImporter:
             self,
             ode_model: ODEModel,
             conservation_laws: List[ConservationLaw]
-
     ) -> List[int]:
         """
         Adds constant species to conservations laws
@@ -1362,12 +1368,9 @@ class SbmlImporter:
 
         # updates of stoichiometry (later dxdotdw in ode_exporter) must be
         # corrected for conserved quantities:
-        volume_updates_solver = []
-        for update in volume_updates:
-            x_index = update[0]
-            if x_index in species_solver:
-                x_index = species_solver.index(x_index)
-                volume_updates_solver.append((x_index, update[1], update[2]))
+        volume_updates_solver = [(species_solver.index(ix), iw, val)
+                       for (ix, iw, val) in volume_updates
+                       if ix in species_solver]
 
         return volume_updates_solver
 
