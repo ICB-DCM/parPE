@@ -388,18 +388,6 @@ class ReturnData {
     RDataReporting rdata_reporting{RDataReporting::full};
 
     /**
-     * @brief Set likelihood and chi2 to NaN
-     * (typically after integration failure)
-     */
-    void invalidateLLH();
-
-    /**
-     * @brief Set likelihood sensitivities to NaN
-     * (typically after integration failure)
-     */
-    void invalidateSLLH();
-
-    /**
      * @brief Serialize ReturnData (see boost::serialization::serialize)
      * @param ar Archive to serialize to
      * @param r Data to serialize
@@ -571,6 +559,18 @@ class ReturnData {
      * @param it_start time index at which to start invalidating
      */
     void invalidate(int it_start);
+
+    /**
+     * @brief Set likelihood and chi2 to NaN
+     * (typically after integration failure)
+     */
+    void invalidateLLH();
+
+    /**
+     * @brief Set likelihood sensitivities to NaN
+     * (typically after integration failure)
+     */
+    void invalidateSLLH();
 
     /**
      * @brief applies the chain rule to account for parameter transformation in
