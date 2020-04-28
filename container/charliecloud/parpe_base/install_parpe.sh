@@ -34,7 +34,7 @@ cmake \
 cd "${PARPE_BASE}" && ThirdParty/installGoogleTest.sh
 
 # install parPE python requirements
-pip install -r "${PARPE_BASE}"/python/requirements.txt
+pip3 install -r "${PARPE_BASE}"/python/requirements.txt
 
 # build parPE
 cd "${PARPE_BASE}"
