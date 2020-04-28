@@ -439,8 +439,6 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
             if(rdata->status == AMICI_SUCCESS)
                 // shouldn't happen, but just to be safe
                 rdata->status = AMICI_ERROR;
-            rdata->invalidateLLH();
-            rdata->invalidateSLLH();
         }
 
         if(rdata->status == AMICI_SUCCESS)
