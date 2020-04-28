@@ -436,11 +436,8 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
             logger->logmessage(
                         LOGLVL_WARNING, "Error during simulation: %s (%d)",
                         e.what(), rdata->status);
-            if(rdata->status == AMICI_SUCCESS)
-                // shouldn't happen, but just to be safe
-                rdata->status = AMICI_ERROR;
-            rdata->invalidateLLH();
-            rdata->invalidateSLLH();
+            Expects(std::isnan(rdata->llh));
+            Expects(rdata->status != AMICI_SUCCESS);
         }
 
         if(rdata->status == AMICI_SUCCESS)
