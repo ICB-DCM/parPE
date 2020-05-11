@@ -53,7 +53,7 @@ class SbmlImporter:
         indicates whether libSBML warnings should be
         displayed
 
-    :ivar symbols: dict
+    :ivar symbols:
         dict carrying symbolic definitions
 
     :ivar sbml_reader:
@@ -67,38 +67,38 @@ class SbmlImporter:
     :ivar sbml:
         sbml definition [!not storing this will result in a segfault!]
 
-    :ivar species_index: dict
+    :ivar species_index:
         maps species names to indices
 
     :ivar species_compartment: sympy.Matrix
         compartment for each species
 
-    :ivar constant_species: list[sting]
+    :ivar constant_species:
         ids of species that are marked as constant
 
-    :ivar boundary_condition_species: list[string]
+    :ivar boundary_condition_species:
         ids of species that are marked as boundary
         condition
 
-    :ivar species_has_only_substance_units: list[bool]
+    :ivar species_has_only_substance_units:
         flags indicating whether a species has only substance units
 
-    :ivar species_conversion_factor: sympy.Matrix
+    :ivar species_conversion_factor:
         conversion factors for every species
 
-    :ivar compartment_symbols: sympy.Matrix
+    :ivar compartment_symbols
         compartment ids
 
-    :ivar compartment_volume: sympy.Matrix
+    :ivar compartment_volume:
         numeric/symbolic compartment volumes
 
-    :ivar stoichiometric_matrix: sympy.Matrix
+    :ivar stoichiometric_matrix:
         stoichiometric matrix of the model
 
-    :ivar flux_vector: sympy.Matrix
+    :ivar flux_vector:
         reaction kinetic laws
 
-    :ivar local_symbols: dict
+    :ivar local_symbols:
         model symbols for sympy to consider during sympification
         see `locals`argument in `sympy.sympify`
 
@@ -133,7 +133,7 @@ class SbmlImporter:
                 sbml_doc = self.sbml_reader.readSBMLFromString(sbml_source)
             self.sbml_doc = sbml_doc
 
-        self.show_sbml_warnings = show_sbml_warnings
+        self.show_sbml_warnings : bool = show_sbml_warnings
 
         # process document
         self._process_document()
@@ -144,12 +144,12 @@ class SbmlImporter:
         self.symbols = dict()
         self._reset_symbols()
 
-        self.local_symbols = {}
+        self.local_symbols : dict = {}
 
-        self.compartment_rate_rules = {}
-        self.species_rate_rules = {}
-        self.compartment_assignment_rules = {}
-        self.species_assignment_rules = {}
+        self.compartment_rate_rules : dict = {}
+        self.species_rate_rules : dict = {}
+        self.compartment_assignment_rules : dict = {}
+        self.species_assignment_rules : dict = {}
 
     def _process_document(self) -> None:
         """
@@ -1025,13 +1025,27 @@ class SbmlImporter:
 
             if variable in rulevars:
                 for nested_rule in rules:
+
                     nested_formula = sp.sympify(
                         sbml.formulaToL3String(nested_rule.getMath()),
-                        locals=self.local_symbols)
-                    nested_formula = \
-                        str(nested_formula.subs(variable, formula)).replace('**', '^')
-                    if nested_rule.setFormula(nested_formula) != sbml.LIBSBML_OPERATION_SUCCESS:
-                        raise SBMLException(f'Formula {nested_formula} cannot be parsed by libSBML!')
+                        locals=self.local_symbols).subs(variable, formula)
+
+                    nested_rule_math_ml = sp.printing.mathml(nested_formula)
+
+                    header = "<?xml version='1.0' encoding='UTF-8'?>\n " \
+                             "<math xmlns='http://www.w3.org/1998/Math/MathML'>\n"
+                    footer = "</math>"
+                    nested_rule_math_ml_wrapped = f'{header}{nested_rule_math_ml}{footer}'
+
+                    nested_rule_math_ml_ast_node = sbml.readMathMLFromString(nested_rule_math_ml_wrapped)
+
+                    if nested_rule_math_ml_ast_node is None:
+                        raise SBMLException(f'Formula {sbml.formulaToL3String(nested_rule.getMath())}'
+                                            f' cannot be parsed to valid MathML by SymPy!')
+
+                    elif nested_rule.setMath(nested_rule_math_ml_ast_node) != sbml.LIBSBML_OPERATION_SUCCESS:
+                        raise SBMLException(f'Formula {sbml.formulaToL3String(nested_rule.getMath())}'
+                                            f' cannot be parsed by libSBML!')
 
                 for assignment in assignments:
                     assignments[assignment] = assignments[assignment].subs(variable, formula)
@@ -1127,9 +1141,9 @@ class SbmlImporter:
                     f"{unknown_ids}.")
 
         species_syms = self.symbols['species']['identifier']
-        assignments = {str(c):str(r)
+        assignments = {str(c): str(r)
                        for c, r in self.compartment_assignment_rules.items()}
-        assignments.update({str(s):str(r)
+        assignments.update({str(s): str(r)
                             for s, r in self.species_assignment_rules.items()})
 
         def replace_assignments(formula: str) -> sp.Basic:
