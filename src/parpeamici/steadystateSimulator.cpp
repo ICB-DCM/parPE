@@ -21,7 +21,7 @@ std::unique_ptr<amici::ReturnData> SteadystateSimulator::getSteadystateSolution(
                              "works only with nt == 1"));
 
     std::unique_ptr<amici::ReturnData> rdata;
-    bool inSteadyState = FALSE;
+    bool inSteadyState = false;
     int iterations = 0;
 
     while (!inSteadyState) {
@@ -82,10 +82,10 @@ bool SteadystateSimulator::reachedSteadyState(const double *xdot,
             // logmessage(LOGLVL_DEBUG, "No steady state: %d: x %e xdot %e
             // relxdot %e s %e\n", state,  (x[state]), (xdot[state]) ,
             // (xdot[state]) / (x[state]), sensitivity);
-            return FALSE;
+            return false;
         }
     }
-    return TRUE;
+    return true;
 }
 
 } // namespace parpe

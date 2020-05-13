@@ -71,7 +71,7 @@ TEST_F(steadystateProblemTests, testSteadystate) {
     edata.setObservedDataStdDev(std::vector<double>(yExp.size(), 1.0));
     rdata = amici::runAmiciSimulation(*solver, &edata, *model);
 
-    EXPECT_EQ(rdata->status, AMICI_SUCCESS);
+    EXPECT_EQ(rdata->status, amici::AMICI_SUCCESS);
     EXPECT_NEAR(1e-5, rdata->chi2, 1e-5);
 
     EXPECT_NEAR(parpe::getLogLikelihoodOffset(edata.nt() * edata.nytrue()),
