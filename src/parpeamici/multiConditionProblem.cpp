@@ -437,10 +437,10 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
                         LOGLVL_WARNING, "Error during simulation: %s (%d)",
                         e.what(), rdata->status);
             Expects(std::isnan(rdata->llh));
-            Expects(rdata->status != AMICI_SUCCESS);
+            Expects(rdata->status != amici::AMICI_SUCCESS);
         }
 
-        if(rdata->status == AMICI_SUCCESS)
+        if(rdata->status == amici::AMICI_SUCCESS)
             break;
     }
     double timeSeconds = simulationTimer.getTotal();
@@ -746,7 +746,7 @@ int AmiciSummedGradientFunction::aggregateLikelihood(
         ResultPackage resultPackage;
         std::tie(conditionIdx, resultPackage) = result;
 
-        errors += resultPackage.status != AMICI_SUCCESS;
+        errors += resultPackage.status != amici::AMICI_SUCCESS;
 
         // sum up
         negLogLikelihood -= resultPackage.llh;
