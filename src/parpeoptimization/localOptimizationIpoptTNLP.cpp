@@ -198,6 +198,12 @@ LocalOptimizationIpoptTNLP::finalize_solution(
 {
 
     auto unlockIpOpt = ipOptReleaseLock();
+    // If we finish with objective value of NAN, IpOpt still passes
+    // obj_value 0.0 along with the respective flag. This does not make too
+    // much sense. Set to NAN.
+    if(status == INVALID_NUMBER_DETECTED && obj_value == 0.0) {
+        obj_value = NAN;
+    }
 
     reporter.finished(obj_value, gsl::span<double const>(x, n), status);
 }
