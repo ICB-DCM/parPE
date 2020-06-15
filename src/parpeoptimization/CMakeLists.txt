@@ -1,5 +1,13 @@
 project(parpeoptimization)
 
+find_package(Ceres COMPONENTS
+    HINTS "${CMAKE_SOURCE_DIR}/ThirdParty/ceres-solver-1.13.0/build/install")
+
+if(${PARPE_ENABLE_CERES} AND NOT ${CERES_FOUND})
+    message(FATAL_ERROR "Supposed to build with CERES support, "
+        "but CERES not found.")
+endif()
+
 set(SRC_LIST
     optimizationProblem.cpp
     multiStartOptimization.cpp
@@ -49,14 +57,14 @@ target_include_directories(${PROJECT_NAME}
     PUBLIC ${HDF5_INCLUDE_DIRS}
 )
 
+if(${PARPE_ENABLE_CERES})
+    target_include_directories(${PROJECT_NAME} PUBLIC ${CERES_INCLUDE_DIRS})
+    target_link_libraries(${PROJECT_NAME} ${CERES_LIBRARIES})
+endif(${PARPE_ENABLE_CERES})
+
 if(${PARPE_ENABLE_IPOPT})
     target_include_directories(${PROJECT_NAME} PUBLIC ${IPOPT_INCLUDE_DIRS})
 endif(${PARPE_ENABLE_IPOPT})
-
-if(${PARPE_ENABLE_CERES})
-    target_include_directories(${PROJECT_NAME} PUBLIC ${CERES_INCLUDE_DIRS})
-endif(${PARPE_ENABLE_CERES})
-
 
 set(PARPE_CERES_MINIGLOG_REDIRECT FALSE CACHE BOOL "Custom treatment of Ceres output? Requires miniglog headers in ceres directory.")
 if(${PARPE_CERES_MINIGLOG_REDIRECT})
@@ -90,10 +98,6 @@ target_link_libraries(${PROJECT_NAME}
 if(${PARPE_ENABLE_IPOPT})
     target_link_libraries(${PROJECT_NAME} ${IPOPT_LIBRARIES})
 endif(${PARPE_ENABLE_IPOPT})
-
-if(${PARPE_ENABLE_CERES})
-    target_link_libraries(${PROJECT_NAME} ${CERES_LIBRARIES})
-endif(${PARPE_ENABLE_CERES})
 
 if(${PARPE_ENABLE_DLIB})
     target_link_libraries(${PROJECT_NAME} ${dlib_LIBRARIES})
