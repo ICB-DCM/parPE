@@ -6,7 +6,6 @@
 #include <parpeoptimization/optimizationOptions.h>
 #include <parpeoptimization/optimizationResultWriter.h>
 
-#include <parpeamici/steadystateSimulator.h>
 #include <parpeamici/hierarchicalOptimization.h>
 #include <parpeamici/multiConditionDataProvider.h>
 #include <parpeamici/amiciMisc.h>
