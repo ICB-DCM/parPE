@@ -1171,6 +1171,8 @@ HierarchicalOptimizationReporter::finished(double optimalCost,
         // the optimal value is not from the cached parameters and we did not
         // get the optimal full parameter vector. since we don't know them,
         // rather set to nan
+        // NOTE: This happens if line search steps are worse than the previous
+        // iteration. TODO: recompute inner parameters
         cached_full_parameters_.assign(cached_full_parameters_.size(), NAN);
         std::copy(
           parameters.begin(), parameters.end(), cached_parameters_.data());
