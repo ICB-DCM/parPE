@@ -20,9 +20,9 @@ include(CTest)
 set(CMAKE_DEBUG_POSTFIX "-dbg")
 # -D_GNU_SOURCE for pthread recursive mutex
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} \
-    -std=c99 -Wall -Wno-unused-function -fopenmp -D_GNU_SOURCE")
+    -std=c99 -Wall -Wno-unused-function -D_GNU_SOURCE")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
-   -Wall -Wno-unused-function -fopenmp -D_GNU_SOURCE")
+   -Wall -Wno-unused-function -D_GNU_SOURCE")
 
 if(BUILD_PYTHON_MODULE)
     # Build PIC code to be used for swig/python module
@@ -67,6 +67,9 @@ set(PARPE_ENABLE_TOMS611 FALSE CACHE BOOL "Enable toms611 optimizer?")
 set(PARPE_ENABLE_FSQP FALSE CACHE BOOL "Enable FSQP optimizer?")
 set(PARPE_EXPORT_PACKAGE FALSE CACHE BOOL
     "Export this build to CMake registry?")
+
+# OpenMP?
+find_package(OpenMP)
 
 # Enable MPI?
 if(${PARPE_ENABLE_MPI})
