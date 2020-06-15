@@ -14,7 +14,10 @@
 #include <mpi.h>
 #endif
 
+namespace amici::generic_model {
 std::unique_ptr<amici::Model> getModel();
+}
+
 
 void printUsage() {
     std::cerr<<"Error: wrong number of arguments.\n";
@@ -59,7 +62,9 @@ int main(int argc, char **argv) {
         if (parpe::getMpiRank() < 1)
             remove(resultFileName.c_str());
 
-        SteadyStateMultiConditionDataProvider dp(getModel(), dataFileName, dataFilePath + "/inputData");
+        SteadyStateMultiConditionDataProvider dp(
+            amici::generic_model::getModel(), dataFileName,
+            dataFilePath + "/inputData");
 
         status = parpe::runSimulator(dp, simulationMode,
                                      dataFileName, dataFilePath,
@@ -91,7 +96,7 @@ int main(int argc, char **argv) {
         }
 
         SteadyStateMultiConditionDataProvider dp(
-                    getModel(), conditionFileName, dpPath);
+            amici::generic_model::getModel(), conditionFileName, dpPath);
 
         status = parpe::runSimulator(dp, simulationMode,
                                      conditionFileName, conditionFilePath,

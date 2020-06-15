@@ -94,7 +94,7 @@ void ExampleSteadystateGradientFunction::readMeasurement(int conditionIdx) const
 }
 
 ExampleSteadystateGradientFunction::ExampleSteadystateGradientFunction(hid_t fileId)
-    : fileId(fileId), model(getModel()), solver(model->getSolver())
+    : fileId(fileId), model(amici::generic_model::getModel()), solver(model->getSolver())
 {
     setupUserData(0);
     setupExpData(0);

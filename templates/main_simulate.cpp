@@ -11,7 +11,9 @@
 #include <mpi.h>
 #endif
 
+namespace amici::generic_model {
 std::unique_ptr<amici::Model> getModel();
+}
 
 void printUsage() {
     std::cerr<<"Error: wrong number of arguments.\n";
@@ -55,7 +57,10 @@ int main(int argc, char **argv) {
         // TODO: testing-only remove result file
         //    remove(resultFileName.c_str());
 
-        parpe::MultiConditionDataProviderHDF5 dp(getModel(), dataFileName.c_str(), dataFilePath + "/inputData");
+        parpe::MultiConditionDataProviderHDF5 dp(
+            amici::generic_model::getModel(),
+            dataFileName.c_str(),
+            dataFilePath + "/inputData");
         status = parpe::runSimulator(dp, simulationMode,
                                      dataFileName, dataFilePath,
                                      dataFileName, dataFilePath,
@@ -84,7 +89,10 @@ int main(int argc, char **argv) {
                 dpPath = conditionFilePath + "/inputData";
         }
 
-        parpe::MultiConditionDataProviderHDF5 dp(getModel(), conditionFileName.c_str(), conditionFilePath);
+        parpe::MultiConditionDataProviderHDF5 dp(
+            amici::generic_model::getModel(),
+            conditionFileName.c_str(),
+            conditionFilePath);
 
         status = parpe::runSimulator(dp, simulationMode,
                                      conditionFileName, conditionFilePath,

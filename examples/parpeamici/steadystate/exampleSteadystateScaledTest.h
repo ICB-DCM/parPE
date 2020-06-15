@@ -52,7 +52,7 @@ TEST_F(steadystateProblemTests, testSteadystate) {
     /* Verify steadystate matches saved results and loglikelihood is correct */
 
     // verify steadystate
-    auto model = getModel();
+    auto model = amici::generic_model::getModel();
     model->setTimepoints(t);
     model->setParameterById("observableParameter1_obs_x1_scaled", 2.0);
     model->setParameterById("observableParameter1_obs_x2_offsetted", 3.0);
@@ -79,7 +79,7 @@ TEST_F(steadystateProblemTests, testSteadystate) {
 }
 
 TEST_F(steadystateProblemTests, testSteadystateMultiCond) {
-    auto model = getModel();
+    auto model = amici::generic_model::getModel();
     auto modelNonOwning = model.get();
     // Set output parameters which are not part of amici model
     model->setParameterById("observableParameter1_obs_x1_scaled", 2.0);
@@ -110,7 +110,7 @@ TEST_F(steadystateProblemTests, testSteadystateMultiCond) {
 
 TEST_F(steadystateProblemTests, testSteadystateHierarchical) {
     // introduce scaling parameters
-    auto model = getModel();
+    auto model = amici::generic_model::getModel();
     //model->setFixedParameters(k);
     model->setInitialStates(x0);
     //model->setParameters(p);
