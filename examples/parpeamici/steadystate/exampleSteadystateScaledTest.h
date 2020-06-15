@@ -150,7 +150,7 @@ TEST_F(steadystateProblemTests, testSteadystateHierarchical) {
     auto sigmas = std::make_unique<parpe::AnalyticalParameterProviderDefault>();
 
     auto gradFun = std::make_unique<parpe::AmiciSummedGradientFunction>(&dp, nullptr, nullptr);
-    parpe::HierarchicalOptimizationWrapper hier(std::move(gradFun),
+    parpe::HierarchicalOptimizationWrapper hier(gradFun.get(),
                                                std::move(scalings),
                                                std::move(offsets),
                                                std::move(sigmas),

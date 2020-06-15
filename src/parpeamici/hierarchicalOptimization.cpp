@@ -17,10 +17,10 @@
 namespace parpe {
 
 HierarchicalOptimizationWrapper::HierarchicalOptimizationWrapper(
-  std::unique_ptr<AmiciSummedGradientFunction> fun,
+    AmiciSummedGradientFunction* wrapped_function,
   int numConditions,
   int numObservables)
-  : fun(std::move(fun))
+  : wrapped_function_(wrapped_function)
   , numConditions(numConditions)
   , numObservables(numObservables)
 {
@@ -28,18 +28,18 @@ HierarchicalOptimizationWrapper::HierarchicalOptimizationWrapper(
     offsetReader = std::make_unique<AnalyticalParameterHdf5Reader>();
     sigmaReader = std::make_unique<AnalyticalParameterHdf5Reader>();
 
-    if (fun)
+    if (wrapped_function)
         init();
 }
 
 HierarchicalOptimizationWrapper::HierarchicalOptimizationWrapper(
-  std::unique_ptr<AmiciSummedGradientFunction> fun,
+  AmiciSummedGradientFunction* wrapped_function,
   H5::H5File const& file,
   std::string const& hdf5RootPath,
   int numConditions,
   int numObservables,
   ErrorModel errorModel)
-  : fun(std::move(fun))
+  : wrapped_function_(wrapped_function)
   , numConditions(numConditions)
   , numObservables(numObservables)
   , errorModel(errorModel)
@@ -63,14 +63,14 @@ HierarchicalOptimizationWrapper::HierarchicalOptimizationWrapper(
 }
 
 HierarchicalOptimizationWrapper::HierarchicalOptimizationWrapper(
-  std::unique_ptr<AmiciSummedGradientFunction> fun,
+    AmiciSummedGradientFunction* wrapped_function,
   std::unique_ptr<AnalyticalParameterProvider> scalingReader,
   std::unique_ptr<AnalyticalParameterProvider> offsetReader,
   std::unique_ptr<AnalyticalParameterProvider> sigmaReader,
   int numConditions,
   int numObservables,
   ErrorModel errorModel)
-  : fun(std::move(fun))
+  : wrapped_function_(wrapped_function)
   , scalingReader(std::move(scalingReader))
   , offsetReader(std::move(offsetReader))
   , sigmaReader(std::move(sigmaReader))
@@ -106,10 +106,10 @@ HierarchicalOptimizationWrapper::init()
     Expects(std::is_sorted(this->sigmaParameterIndices.begin(),
                            this->sigmaParameterIndices.end()));
 
-    if (fun) {
+    if (wrapped_function_) {
         std::stringstream ss;
         ss << "HierarchicalOptimizationWrapper parameters: "
-           << fun->numParameters() << " total, " << numParameters()
+           << wrapped_function_->numParameters() << " total, " << numParameters()
            << " numerical, " << proportionalityFactorIndices.size()
            << " proportionality, " << offsetParameterIndices.size()
            << " offset, " << sigmaParameterIndices.size() << " sigma\n";
@@ -166,7 +166,7 @@ HierarchicalOptimizationWrapper::evaluate(
         // evaluate for all conditions
         std::vector<int> dataIndices(numConditions);
         std::iota(dataIndices.begin(), dataIndices.end(), 0);
-        return fun->evaluate(
+        return wrapped_function_->evaluate(
           reducedParameters, dataIndices, fval, gradient, logger, cpuTime);
     }
 
@@ -179,7 +179,7 @@ HierarchicalOptimizationWrapper::evaluate(
         return FunctionEvaluationStatus::functionEvaluationFailure;
     }
 
-    auto measurements = fun->getAllMeasurements();
+    auto measurements = wrapped_function_->getAllMeasurements();
 
     // compute correct scaling factors analytically
     auto scalings = computeAnalyticalScalings(measurements, modelOutput);
@@ -238,7 +238,7 @@ HierarchicalOptimizationWrapper::getDefaultScalingFactors() const
 
     for (int i = 0; i < numProportionalityFactors(); ++i) {
         result[i] = getDefaultScalingFactor(
-          fun->getParameterScaling(proportionalityFactorIndices[i]));
+          wrapped_function_->getParameterScaling(proportionalityFactorIndices[i]));
     }
 
     return result;
@@ -251,7 +251,7 @@ HierarchicalOptimizationWrapper::getDefaultOffsetParameters() const
 
     for (int i = 0; i < numOffsetParameters(); ++i) {
         result[i] = getDefaultOffsetParameter(
-          fun->getParameterScaling(offsetParameterIndices[i]));
+          wrapped_function_->getParameterScaling(offsetParameterIndices[i]));
     }
 
     return result;
@@ -265,7 +265,7 @@ HierarchicalOptimizationWrapper::getDefaultSigmaParameters() const
     for (int i = 0; i < numSigmaParameters(); ++i) {
         // default sigma is the same as default scaling
         result[i] = getDefaultScalingFactor(
-          fun->getParameterScaling(sigmaParameterIndices[i]));
+          wrapped_function_->getParameterScaling(sigmaParameterIndices[i]));
     }
 
     return result;
@@ -293,7 +293,7 @@ HierarchicalOptimizationWrapper::getUnscaledModelOutputs(
 
     std::vector<std::vector<double>> modelOutput(numConditions);
     auto status =
-      fun->getModelOutputs(fullParameters, modelOutput, logger, cpuTime);
+      wrapped_function_->getModelOutputs(fullParameters, modelOutput, logger, cpuTime);
     if (status != FunctionEvaluationStatus::functionEvaluationSuccess)
         throw ParPEException("Function evaluation failed.");
 
@@ -318,7 +318,7 @@ HierarchicalOptimizationWrapper::computeAnalyticalScalings(
                                            *scalingReader,
                                            numObservables);
         auto scale =
-          fun->getParameterScaling(proportionalityFactorIndices[scalingIdx]);
+          wrapped_function_->getParameterScaling(proportionalityFactorIndices[scalingIdx]);
         proportionalityFactors[scalingIdx] =
           getScaledParameter(proportionalityFactor, scale);
     }
@@ -335,7 +335,7 @@ HierarchicalOptimizationWrapper::applyOptimalScalings(
     for (int i = 0; (unsigned)i < proportionalityFactors.size(); ++i) {
         double scaling = getUnscaledParameter(
           proportionalityFactors[i],
-          fun->getParameterScaling(proportionalityFactorIndices[i]));
+          wrapped_function_->getParameterScaling(proportionalityFactorIndices[i]));
 
         applyOptimalScaling(
           i, scaling, modelOutputs, *scalingReader, numObservables);
@@ -353,7 +353,7 @@ HierarchicalOptimizationWrapper::computeAnalyticalOffsets(
     for (int i = 0; i < numOffsetParameters; ++i) {
         auto offsetParameter = parpe::computeAnalyticalOffsets(
           i, modelOutputsUnscaled, measurements, *offsetReader, numObservables);
-        auto scale = fun->getParameterScaling(offsetParameterIndices[i]);
+        auto scale = wrapped_function_->getParameterScaling(offsetParameterIndices[i]);
         offsetParameters[i] = getScaledParameter(offsetParameter, scale);
     }
 
@@ -371,7 +371,7 @@ HierarchicalOptimizationWrapper::computeAnalyticalSigmas(
     for (int i = 0; i < numSigmas; ++i) {
         auto sigma = parpe::computeAnalyticalSigmas(
           i, modelOutputsScaled, measurements, *sigmaReader, numObservables);
-        auto scale = fun->getParameterScaling(sigmaParameterIndices[i]);
+        auto scale = wrapped_function_->getParameterScaling(sigmaParameterIndices[i]);
         sigmas[i] = getScaledParameter(sigma, scale);
     }
     return sigmas;
@@ -386,7 +386,7 @@ HierarchicalOptimizationWrapper::applyOptimalOffsets(
     for (int i = 0; (unsigned)i < offsetParameters.size(); ++i) {
         double offset = getUnscaledParameter(
           offsetParameters[i],
-          fun->getParameterScaling(offsetParameterIndices[i]));
+          wrapped_function_->getParameterScaling(offsetParameterIndices[i]));
         applyOptimalOffset(
           i, offset, modelOutputs, *offsetReader, numObservables);
     }
@@ -405,7 +405,7 @@ HierarchicalOptimizationWrapper::fillInAnalyticalSigmas(
         // and not passed to AMICI -> unscale
         auto sigmaParameterValue = getUnscaledParameter(
           analyticalSigmas[sigmaParameterIdx],
-          fun->getParameterScaling(sigmaParameterIndices[sigmaParameterIdx]));
+          wrapped_function_->getParameterScaling(sigmaParameterIndices[sigmaParameterIdx]));
 
         auto dependentConditions =
           sigmaReader->getConditionsForParameter(sigmaParameterIdx);
@@ -458,7 +458,7 @@ HierarchicalOptimizationWrapper::evaluateWithOptimalParameters(
         // Need intermediary buffer because optimizer expects
         // fewer parameters than `fun` delivers
         fullGradient.resize(fullParameters.size());
-        auto status = fun->evaluate(
+        auto status = wrapped_function_->evaluate(
           fullParameters, dataIndices, fval, fullGradient, logger, cpuTime);
         if (status != functionEvaluationSuccess)
             return status;
@@ -472,7 +472,7 @@ HierarchicalOptimizationWrapper::evaluateWithOptimalParameters(
           fullGradient, analyticalParameterIndices, 1e-8);
 
     } else {
-        auto fullSigmaMatrices = fun->getAllSigmas();
+        auto fullSigmaMatrices = wrapped_function_->getAllSigmas();
         if (!sigmaParameterIndices.empty()) {
             fillInAnalyticalSigmas(fullSigmaMatrices, sigmas);
         }
@@ -489,7 +489,7 @@ HierarchicalOptimizationWrapper::evaluateWithOptimalParameters(
 int
 HierarchicalOptimizationWrapper::numParameters() const
 {
-    return fun->numParameters() - numProportionalityFactors() -
+    return wrapped_function_->numParameters() - numProportionalityFactors() -
            numOffsetParameters() - numSigmaParameters();
 }
 
@@ -544,6 +544,11 @@ HierarchicalOptimizationWrapper::getAnalyticalParameterIndices() const
     return combinedIndices;
 }
 
+AmiciSummedGradientFunction *HierarchicalOptimizationWrapper::getWrappedFunction() const
+{
+    return wrapped_function_;
+}
+
 HierarchicalOptimizationProblemWrapper::HierarchicalOptimizationProblemWrapper(
   std::unique_ptr<OptimizationProblem> problemToWrap,
   const MultiConditionDataProviderHDF5* dataProvider)
@@ -557,15 +562,15 @@ HierarchicalOptimizationProblemWrapper::HierarchicalOptimizationProblemWrapper(
     auto model = dataProvider->getModel();
 
     auto lock = hdf5MutexGetLock();
-    cost_fun_.reset(new HierarchicalOptimizationWrapper(
-      std::unique_ptr<AmiciSummedGradientFunction>(
-        dynamic_cast<AmiciSummedGradientFunction*>(
-          wrappedFun->getWrappedFunction())),
-      dataProvider->getHdf5FileId(),
-      "/",
-      dataProvider->getNumberOfSimulationConditions(),
-      model->nytrue,
-      ErrorModel::normal));
+    cost_fun_.reset(
+        new HierarchicalOptimizationWrapper(
+            dynamic_cast<AmiciSummedGradientFunction*>(
+                wrappedFun->getWrappedFunction()),
+            dataProvider->getHdf5FileId(),
+            "/",
+            dataProvider->getNumberOfSimulationConditions(),
+            model->nytrue,
+            ErrorModel::normal));
 }
 
 HierarchicalOptimizationProblemWrapper::HierarchicalOptimizationProblemWrapper(
@@ -575,15 +580,6 @@ HierarchicalOptimizationProblemWrapper::HierarchicalOptimizationProblemWrapper(
   : OptimizationProblem(std::move(costFun), std::move(logger))
   , wrapped_problem_(std::move(problemToWrap))
 {}
-
-HierarchicalOptimizationProblemWrapper ::
-  ~HierarchicalOptimizationProblemWrapper()
-{
-    // Avoid double delete.
-    // This will be destroyed when wrappedProblem goes out of scope!
-    dynamic_cast<HierarchicalOptimizationWrapper*>(cost_fun_.get())
-      ->fun.release();
-}
 
 void
 HierarchicalOptimizationProblemWrapper::fillInitialParameters(

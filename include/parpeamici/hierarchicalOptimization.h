@@ -14,9 +14,6 @@
 
 namespace parpe {
 
-// Currently using enum from amici enum class ParameterTransformation { none,
-// log10 };
-
 enum class ErrorModel
 {
     normal
@@ -48,9 +45,9 @@ class HierarchicalOptimizationWrapper : public GradientFunction
      * @param numTimepoints
      */
     HierarchicalOptimizationWrapper(
-      std::unique_ptr<AmiciSummedGradientFunction> fun,
-      int numConditions = 0,
-      int numObservables = 0);
+        AmiciSummedGradientFunction *wrapped_function,
+        int numConditions = 0,
+        int numObservables = 0);
 
     /**
      * @brief Get information on analytically computed parameters from HDF5 file
@@ -62,7 +59,7 @@ class HierarchicalOptimizationWrapper : public GradientFunction
      * @param errorModel
      */
     HierarchicalOptimizationWrapper(
-      std::unique_ptr<AmiciSummedGradientFunction> fun,
+      AmiciSummedGradientFunction *wrapped_function,
       const H5::H5File& file,
       const std::string& hdf5RootPath,
       int numConditions,
@@ -80,7 +77,7 @@ class HierarchicalOptimizationWrapper : public GradientFunction
      * @param errorModel
      */
     HierarchicalOptimizationWrapper(
-      std::unique_ptr<AmiciSummedGradientFunction> fun,
+      AmiciSummedGradientFunction *wrapped_function,
       std::unique_ptr<AnalyticalParameterProvider> scalingReader,
       std::unique_ptr<AnalyticalParameterProvider> offsetReader,
       std::unique_ptr<AnalyticalParameterProvider> sigmaReader,
@@ -223,10 +220,12 @@ class HierarchicalOptimizationWrapper : public GradientFunction
 
     std::vector<int> getAnalyticalParameterIndices() const;
 
-    std::unique_ptr<AmiciSummedGradientFunction> fun;
+    AmiciSummedGradientFunction* getWrappedFunction() const;
 
   private:
     void init();
+    /** Objective function of inner optimization problem */
+    AmiciSummedGradientFunction *wrapped_function_;
 
     /** Reads scaling parameter information from HDF5 file */
     std::unique_ptr<AnalyticalParameterProvider> scalingReader;
@@ -274,8 +273,6 @@ class HierarchicalOptimizationProblemWrapper : public OptimizationProblem
 
     HierarchicalOptimizationProblemWrapper(
       HierarchicalOptimizationProblemWrapper const& other) = delete;
-
-    virtual ~HierarchicalOptimizationProblemWrapper() override;
 
     virtual void fillInitialParameters(gsl::span<double> buffer) const override;
 
