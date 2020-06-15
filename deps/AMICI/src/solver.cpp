@@ -81,7 +81,7 @@ void Solver::setup(const realtype t0, Model *model, const AmiVector &x0,
 
     /* Initialize CVodes/IDAs solver*/
     init(t0, x0, dx0);
-    
+
     /* Clear diagnosis storage */
     resetDiagnosis();
 
@@ -161,7 +161,7 @@ void Solver::setupB(int *which, const realtype tf, Model *model,
 void Solver::updateAndReinitStatesAndSensitivities(Model *model) {
     model->fx0_fixedParameters(x);
     reInit(t, x, dx);
-    
+
     if (getSensitivityOrder() >= SensitivityOrder::first) {
             model->fsx0_fixedParameters(sx, x);
             if (getSensitivityMethod() == SensitivityMethod::forward)
@@ -175,7 +175,7 @@ void Solver::resetDiagnosis() const {
     netf.clear();
     nnlscf.clear();
     order.clear();
-    
+
     nsB.clear();
     nrhsB.clear();
     netfB.clear();
@@ -183,19 +183,25 @@ void Solver::resetDiagnosis() const {
 }
 
 void Solver::storeDiagnosis() const {
-    if (!solverWasCalledF || !solverMemory)
+    if (!solverWasCalledF || !solverMemory) {
+        ns.push_back(0);
+        nrhs.push_back(0);
+        netf.push_back(0);
+        nnlscf.push_back(0);
+        order.push_back(0);
         return;
+    }
 
     long int lnumber;
     getNumSteps(solverMemory.get(), &lnumber);
     ns.push_back(static_cast<int>(lnumber));
-    
+
     getNumRhsEvals(solverMemory.get(), &lnumber);
     nrhs.push_back(static_cast<int>(lnumber));
-    
+
     getNumErrTestFails(solverMemory.get(), &lnumber);
     netf.push_back(static_cast<int>(lnumber));
-    
+
     getNumNonlinSolvConvFails(solverMemory.get(), &lnumber);
     nnlscf.push_back(static_cast<int>(lnumber));
 
@@ -205,9 +211,14 @@ void Solver::storeDiagnosis() const {
 }
 
 void Solver::storeDiagnosisB(const int which) const {
-    if (!solverWasCalledB || !solverMemoryB.at(which))
+    if (!solverWasCalledB || !solverMemoryB.at(which)) {
+        nsB.push_back(0);
+        nrhsB.push_back(0);
+        netfB.push_back(0);
+        nnlscfB.push_back(0);
         return;
-    
+    }
+
     long int number;
     getNumSteps(solverMemoryB.at(which).get(), &number);
     nsB.push_back(static_cast<int>(number));
@@ -805,7 +816,7 @@ void Solver::setStateOrdering(int ordering) {
 int Solver::getStabilityLimitFlag() const { return stldet; }
 
 void Solver::setStabilityLimitFlag(const int stldet) {
-    if (stldet != true && stldet != false)
+    if (stldet != static_cast<int>(true) && stldet != static_cast<int>(false))
         throw AmiException("Invalid stldet flag, valid values are %i or %i",
                            true, false);
 
