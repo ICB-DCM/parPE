@@ -580,7 +580,7 @@ TEST(hierarchicalOptimization1, likelihoodOfMatchingData) {
 
     const double pi = atan(1)*4;
     const double llhOffset = 0.5 * log(2 * pi);
-    const double expected = llhOffset * data.size();
+    const double expected = llhOffset * static_cast<double>(data.size());
 
     auto actual = parpe::computeNegLogLikelihood(data, data, sigmas);
     EXPECT_EQ(expected, actual);
