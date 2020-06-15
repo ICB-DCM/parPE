@@ -9,9 +9,9 @@ SteadyStateMultiConditionDataProvider::SteadyStateMultiConditionDataProvider(
         std::unique_ptr<amici::Model> model,
         std::string const& hdf5Filename,
         std::string const& rootPath)
-    : MultiConditionDataProviderHDF5(std::move(model), hdf5Filename, rootPath),
-      solver_(getModel()->getSolver())
+    : MultiConditionDataProviderHDF5(std::move(model), hdf5Filename, rootPath)
 {
+    solver_ = MultiConditionDataProviderHDF5::getModel()->getSolver();
     setupModelAndSolver();
 }
 

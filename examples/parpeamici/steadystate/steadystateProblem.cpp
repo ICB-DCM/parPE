@@ -17,11 +17,11 @@ ExampleSteadystateProblem::ExampleSteadystateProblem(const std::string &dataFile
     auto lock = parpe::hdf5MutexGetLock();
     file.openFile(dataFileName, H5F_ACC_RDONLY);
 
-    auto optimizationOptions = getOptimizationOptions();
+    auto optimizationOptions = OptimizationProblem::getOptimizationOptions();
     optimizationOptions.optimizer = parpe::optimizerName::OPTIMIZER_IPOPT;
     optimizationOptions.printToStdout = true;
     optimizationOptions.maxOptimizerIterations = 100;
-    setOptimizationOptions(optimizationOptions);
+    OptimizationProblem::setOptimizationOptions(optimizationOptions);
 
     cost_fun_ = std::make_unique<ExampleSteadystateGradientFunction>(file.getId());
 }
