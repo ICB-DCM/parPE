@@ -10,7 +10,7 @@ project(parpe)
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/CMakeModules/")
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 include(BuildType) # Ensure CMAKE_BUILD_TYPE is always set
@@ -22,7 +22,7 @@ set(CMAKE_DEBUG_POSTFIX "-dbg")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} \
     -std=c99 -Wall -Wno-unused-function -fopenmp -D_GNU_SOURCE")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
-    -std=c++11 -Wall -Wno-unused-function -fopenmp -D_GNU_SOURCE")
+   -Wall -Wno-unused-function -fopenmp -D_GNU_SOURCE")
 
 if(BUILD_PYTHON_MODULE)
     # Build PIC code to be used for swig/python module
