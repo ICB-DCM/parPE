@@ -1,3 +1,5 @@
+find_package(OpenMP)
+
 # To show in IDE
 add_custom_target(templates
     SOURCES
