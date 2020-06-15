@@ -63,7 +63,8 @@ TEST_F(steadystateProblemTests, testSteadystate) {
     // verify steadystate concentrations
     parpe::checkEqualArray(xSteadystateExp.data(),
                            rdata->x.data(),
-                           xSteadystateExp.size(), 1e-5, 1e-5);
+                           static_cast<int>(xSteadystateExp.size()),
+                           1e-5, 1e-5);
 
     // verify likelihood for matching measurement / simulation
     amici::ExpData edata {*model};
