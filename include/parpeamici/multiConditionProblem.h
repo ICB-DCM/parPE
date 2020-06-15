@@ -281,12 +281,12 @@ class MultiConditionProblem
     std::unique_ptr<OptimizationReporter> getReporter() const override;
 
     std::vector<int> getTrainingData() const override;
-protected:
+
+private:
     //TODO std::unique_ptr<OptimizationProblem> validationProblem;
 
     MultiConditionDataProvider *dataProvider = nullptr;
 
-private:
     std::unique_ptr<OptimizationResultWriter> resultWriter;
 
     std::vector<double> startingPoint;

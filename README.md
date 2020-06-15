@@ -59,7 +59,7 @@ For full functionality, parPE requires the following libraries:
 * CBLAS compatible BLAS (libcblas, Intel MKL, ...)
 * [AMICI](https://github.com/ICB-DCM/AMICI) (included in this repository)
   (uses SuiteSparse, Sundials)
-* C++14 compiler
+* C++17 compiler
 * Python >= 3.6, including header files
 
 On Debian-based systems, dependencies can be installed via:

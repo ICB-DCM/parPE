@@ -39,6 +39,10 @@ target_link_libraries(${PROJECT_NAME}
     PUBLIC ${Boost_SERIALIZATION_LIBRARY_RELEASE}
 )
 
+if (${OpenMP_FOUND})
+    target_link_libraries(${PROJECT_NAME} PUBLIC OpenMP::OpenMP_CXX)
+endif()
+
 install(TARGETS ${PROJECT_NAME} EXPORT ParPETargets
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib

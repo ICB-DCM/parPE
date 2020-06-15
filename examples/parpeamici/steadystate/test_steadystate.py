@@ -26,6 +26,8 @@ optim_exe = './example_steadystate_multi'
 sim_exe = './example_steadystate_multi_simulator'
 print('Files:', HDF5_FILE, HDF5_FILE_TEST, MPIEXEC)
 
+result_filename = '_rank00000.h5'
+
 with contextlib.suppress(subprocess.CalledProcessError):
     # Allow running as root in docker
     subprocess.run('grep docker /proc/1/cgroup -qa', shell=True, check=True)
@@ -70,7 +72,8 @@ def test_nompi_optimization():
     with contextlib.suppress(FileNotFoundError):
         os.remove(sim_file)
 
-    cmd = [sim_exe, outdir + '/_rank00000.h5', '/', sim_file, '/',
+    cmd = [sim_exe, os.path.join(outdir, result_filename), '/',
+           sim_file, '/',
            '--at-optimum', '--nompi']
     ret = subprocess.run(cmd, capture_output=True,
                          check=True, encoding="utf-8")
@@ -100,7 +103,8 @@ def test_mpi_optimization():
     with contextlib.suppress(FileNotFoundError):
         os.remove(sim_file)
 
-    cmd = [*MPIEXEC, sim_exe, outdir + '/_rank00000.h5', '/', sim_file, '/',
+    cmd = [*MPIEXEC, sim_exe, os.path.join(outdir, result_filename), '/',
+           sim_file, '/',
            '--along-trajectory', '--mpi']
     ret = subprocess.run(cmd, capture_output=True,
                          check=True, encoding="utf-8")
@@ -119,7 +123,8 @@ def test_mpi_optimization():
         os.remove(sim_file)
 
     cmd = [*MPIEXEC, sim_exe, HDF5_FILE_TEST, '/',
-           outdir + '/_rank00000.h5', '/', sim_file, '/',
+           os.path.join(outdir, result_filename), '/',
+           sim_file, '/',
            '--at-optimum', '--mpi']
     ret = subprocess.run(cmd, capture_output=True,
                          check=True, encoding="utf-8")
