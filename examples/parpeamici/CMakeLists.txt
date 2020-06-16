@@ -1,6 +1,6 @@
 find_package(Amici HINTS ${CMAKE_SOURCE_DIR}/deps/AMICI/build)
 
-# create python virtual environment
+# rebuild amici
 add_custom_target(rebuild_amici)
 add_custom_command(
     TARGET rebuild_amici PRE_BUILD
