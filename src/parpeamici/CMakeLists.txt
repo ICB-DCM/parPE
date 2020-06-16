@@ -1,6 +1,8 @@
+# dependency: AMICI
 find_package(Amici
     HINTS ${CMAKE_SOURCE_DIR}/deps/AMICI/build)
 
+# dependecy: BOOST
 if(CMAKE_BUILD_TYPE MATCHES Release)
     set(Boost_USE_STATIC_LIBS TRUE)
 else()
@@ -8,6 +10,7 @@ else()
     set(Boost_USE_STATIC_LIBS FALSE)
 endif()
 find_package(Boost COMPONENTS serialization REQUIRED)
+
 
 project(parpeamici)
 
