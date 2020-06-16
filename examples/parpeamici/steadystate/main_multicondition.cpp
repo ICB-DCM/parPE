@@ -49,7 +49,7 @@ class SteadystateApplication : public parpe::OptimizationApplication {
         logParPEVersion(file_id);
 
         dataProvider = std::make_unique<SteadyStateMultiConditionDataProvider>(
-                    getModel(), inFileArgument);
+            amici::generic_model::getModel(), inFileArgument);
 
         // read options from file
         auto optimizationOptions = parpe::OptimizationOptions::fromHDF5(dataProvider->getHdf5FileId());

@@ -119,17 +119,17 @@ def create_model():
     c1.setSpatialDimensions(3)
     c1.setUnits('litre')
 
-    s1 = create_species(model, 'x1', 'c1', False, 0.1)
-    s2 = create_species(model, 'x2', 'c1', False, 0.4)
-    s3 = create_species(model, 'x3', 'c1', False, 0.7)
+    create_species(model, 'x1', 'c1', False, 0.1)
+    create_species(model, 'x2', 'c1', False, 0.4)
+    create_species(model, 'x3', 'c1', False, 0.7)
 
     #TODO: initial amounts should be parameters
-    p1 = create_parameter(model, 'p1', True, 1.0, 'litre2_per_mole_per_second')
-    p2 = create_parameter(model, 'p2', True, 0.5, 'litre2_per_mole_per_second')
-    p3 = create_parameter(model, 'p3', True, 0.4, 'litre_per_second')
-    p4 = create_parameter(model, 'p4', True, 2.0, 'litre_per_second')
-    p5 = create_parameter(model, 'p5', True, 0.1, 'mole_per_second')
-    k0 = create_parameter(model, 'k0', True, 1.0, 'litre_per_second')
+    create_parameter(model, 'p1', True, 1.0, 'litre2_per_mole_per_second')
+    create_parameter(model, 'p2', True, 0.5, 'litre2_per_mole_per_second')
+    create_parameter(model, 'p3', True, 0.4, 'litre_per_second')
+    create_parameter(model, 'p4', True, 2.0, 'litre_per_second')
+    create_parameter(model, 'p5', True, 0.1, 'mole_per_second')
+    create_parameter(model, 'k0', True, 1.0, 'litre_per_second')
 
 
     create_reaction(model, 'r1', [(2, 'x1')], [(1, 'x2')], 'p1 * x1^2')

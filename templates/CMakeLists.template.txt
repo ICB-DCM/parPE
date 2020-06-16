@@ -25,6 +25,7 @@ set(BUILD_TESTS FALSE CACHE BOOL "Build tests?")
 
 find_package(Amici REQUIRED)
 find_package(ParPE REQUIRED)
+find_package(OpenMP)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -Wall -Wno-unused-function -fopenmp -D_GNU_SOURCE") # -D_GNU_SOURCE for pthread recursive mutex issues
 

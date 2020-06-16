@@ -1,9 +1,5 @@
 # `/misc` Various helper scripts
 
-- amiciHelper.py
-  
-  Module for parsing AMICI source files
-
 - createJobsForScalingStudy.sh
   
   Script for creating job file templates for scaling tests

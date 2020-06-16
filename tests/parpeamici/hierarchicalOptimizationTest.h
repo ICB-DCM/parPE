@@ -154,7 +154,7 @@ TEST_F(hierarchicalOptimization, hierarchicalOptimization) {
                 "/sigmaParametersMapToObservables");
 
     parpe::HierarchicalOptimizationWrapper hierarchicalOptimizationWrapper(
-                std::move(funUnqiue),
+                funUnqiue.get(),
                 std::move(scalingReaderUnique), std::move(offsetReaderUnique), std::move(sigmaReaderUnique),
                 numConditions, numObservables,
                 parpe::ErrorModel::normal);
@@ -247,7 +247,7 @@ TEST_F(hierarchicalOptimization, testNoAnalyticalParameters) {
     EXPECT_CALL(*sigmaProvider, getOptimizationParameterIndices());
 
     parpe::HierarchicalOptimizationWrapper w(
-                std::move(fun), std::move(scalingProvider),
+                fun.get(), std::move(scalingProvider),
                 std::move(offsetProvider), std::move(sigmaProvider),
                 numConditions, numObservables, parpe::ErrorModel::normal);
 
@@ -533,10 +533,10 @@ TEST_F(hierarchicalOptimization, testWrappedFunIsCalledWithGradient) {
     EXPECT_CALL(*sigmaProvider, getOptimizationParameterIndices());
 
     parpe::HierarchicalOptimizationWrapper hierarchicalWrapper(
-                std::move(fun), std::move(scalingProvider),
-                std::move(offsetProvider), std::move(sigmaProvider),
-                numConditions, numObservables,
-                parpe::ErrorModel::normal);
+        fun.get(), std::move(scalingProvider),
+        std::move(offsetProvider), std::move(sigmaProvider),
+        numConditions, numObservables,
+        parpe::ErrorModel::normal);
     Mock::VerifyAndClearExpectations(funNonOwning);
     Mock::VerifyAndClearExpectations(scalingProviderNonOwning);
     //    Mock::VerifyAndClearExpectations(*offsetProvider);
@@ -580,7 +580,7 @@ TEST(hierarchicalOptimization1, likelihoodOfMatchingData) {
 
     const double pi = atan(1)*4;
     const double llhOffset = 0.5 * log(2 * pi);
-    const double expected = llhOffset * data.size();
+    const double expected = llhOffset * static_cast<double>(data.size());
 
     auto actual = parpe::computeNegLogLikelihood(data, data, sigmas);
     EXPECT_EQ(expected, actual);

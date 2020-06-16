@@ -4,7 +4,6 @@
 #include "amici/solver.h"
 #include "amici/steadystateproblem.h"
 #include "amici/forwardproblem.h"
-#include "amici/rdata.h"
 #include "amici/edata.h"
 
 #include "sunlinsol/sunlinsol_klu.h" // sparse solver
@@ -16,28 +15,25 @@
 
 namespace amici {
 
-NewtonSolver::NewtonSolver(realtype *t, AmiVector *x, Model *model,
-                           ReturnData *rdata)
-    : model(model), rdata(rdata), xdot(model->nx_solver), dx(model->nx_solver)
-    {
+NewtonSolver::NewtonSolver(realtype *t, AmiVector *x, Model *model)
+    : model(model), xdot(model->nx_solver), dx(model->nx_solver) {
     this->t = t;
     this->x = x;
 }
 
 /* ------------------------------------------------------------------------- */
 
-std::unique_ptr<NewtonSolver> NewtonSolver::getSolver(
-        realtype *t, AmiVector *x, LinearSolver linsolType, Model *model,
-        ReturnData *rdata, int maxlinsteps, int maxsteps, double atol, double rtol,
-        NewtonDampingFactorMode dampingFactorMode, double dampingFactorLowerBound) {
+std::unique_ptr<NewtonSolver> NewtonSolver::getSolver(realtype *t, AmiVector *x,
+                                                      Solver &simulationSolver,
+                                                      Model *model) {
 
     std::unique_ptr<NewtonSolver> solver;
 
-    switch (linsolType) {
+    switch (simulationSolver.getLinearSolver()) {
 
     /* DIRECT SOLVERS */
     case LinearSolver::dense:
-        solver.reset(new NewtonSolverDense(t, x, model, rdata));
+        solver.reset(new NewtonSolverDense(t, x, model));
         break;
 
     case LinearSolver::band:
@@ -57,7 +53,7 @@ std::unique_ptr<NewtonSolver> NewtonSolver::getSolver(
         throw NewtonFailure(AMICI_NOT_IMPLEMENTED, "getSolver");
 
     case LinearSolver::SPBCG:
-        solver.reset(new NewtonSolverIterative(t, x, model, rdata));
+        solver.reset(new NewtonSolverIterative(t, x, model));
         break;
 
     case LinearSolver::SPTFQMR:
@@ -67,18 +63,20 @@ std::unique_ptr<NewtonSolver> NewtonSolver::getSolver(
     case LinearSolver::SuperLUMT:
         throw NewtonFailure(AMICI_NOT_IMPLEMENTED, "getSolver");
     case LinearSolver::KLU:
-        solver.reset(new NewtonSolverSparse(t, x, model, rdata));
+        solver.reset(new NewtonSolverSparse(t, x, model));
         break;
     default:
         throw NewtonFailure(AMICI_NOT_IMPLEMENTED, "getSolver");
     }
-
-    solver->atol = atol;
-    solver->rtol = rtol;
-    solver->maxlinsteps = maxlinsteps;
-    solver->maxsteps = maxsteps;
-    solver->dampingFactorMode = dampingFactorMode;
-    solver->dampingFactorLowerBound = dampingFactorLowerBound;
+    solver->atol = simulationSolver.getAbsoluteTolerance();
+    solver->rtol = simulationSolver.getRelativeTolerance();
+    solver->maxlinsteps = simulationSolver.getNewtonMaxLinearSteps();
+    solver->maxsteps = simulationSolver.getNewtonMaxSteps();
+    solver->dampingFactorMode = simulationSolver.getNewtonDampingFactorMode();
+    solver->dampingFactorLowerBound =
+        simulationSolver.getNewtonDampingFactorLowerBound();
+    if (simulationSolver.getLinearSolver() == LinearSolver::SPBCG)
+        solver->numlinsteps.resize(simulationSolver.getNewtonMaxSteps(), 0);
 
     return solver;
 }
@@ -109,7 +107,7 @@ void NewtonSolver::computeNewtonSensis(AmiVectorArray &sx) {
                 auto data_ptr = model->dxdotdp_explicit.data();
                 for (sunindextype iCol = col[model->plist(ip)];
                      iCol < col[model->plist(ip) + 1]; ++iCol)
-                    sx.at(row[iCol], ip) -= data_ptr[iCol];
+                    sx.at(static_cast<int>(row[iCol]), ip) -= data_ptr[iCol];
             }
 
             // copy implicit version
@@ -119,7 +117,7 @@ void NewtonSolver::computeNewtonSensis(AmiVectorArray &sx) {
                 auto data_ptr = model->dxdotdp_implicit.data();
                 for (sunindextype iCol = col[model->plist(ip)];
                      iCol < col[model->plist(ip) + 1]; ++iCol)
-                    sx.at(row[iCol], ip) -= data_ptr[iCol];
+                    sx.at(static_cast<int>(row[iCol]), ip) -= data_ptr[iCol];
             }
 
             solveLinearSystem(sx[ip]);
@@ -138,12 +136,9 @@ void NewtonSolver::computeNewtonSensis(AmiVectorArray &sx) {
 /* ------------------------------------------------------------------------- */
 
 /* Derived class for dense linear solver */
-NewtonSolverDense::NewtonSolverDense(realtype *t, AmiVector *x, Model *model,
-                                     ReturnData *rdata)
-    : NewtonSolver(t, x, model, rdata),
-      Jtmp(model->nx_solver, model->nx_solver),
-      linsol(SUNLinSol_Dense(x->getNVector(), Jtmp.get()))
-{
+NewtonSolverDense::NewtonSolverDense(realtype *t, AmiVector *x, Model *model)
+    : NewtonSolver(t, x, model), Jtmp(model->nx_solver, model->nx_solver),
+      linsol(SUNLinSol_Dense(x->getNVector(), Jtmp.get())) {
     int status = SUNLinSolInitialize_Dense(linsol);
     if(status != AMICI_SUCCESS)
         throw NewtonFailure(status, "SUNLinSolInitialize_Dense");
@@ -182,12 +177,10 @@ NewtonSolverDense::~NewtonSolverDense() {
 /* ------------------------------------------------------------------------- */
 
 /* Derived class for sparse linear solver */
-NewtonSolverSparse::NewtonSolverSparse(realtype *t, AmiVector *x, Model *model,
-                                       ReturnData *rdata)
-    : NewtonSolver(t, x, model, rdata),
+NewtonSolverSparse::NewtonSolverSparse(realtype *t, AmiVector *x, Model *model)
+    : NewtonSolver(t, x, model),
       Jtmp(model->nx_solver, model->nx_solver, model->nnz, CSC_MAT),
-      linsol(SUNKLU(x->getNVector(), Jtmp.get()))
-{
+      linsol(SUNKLU(x->getNVector(), Jtmp.get())) {
     int status = SUNLinSolInitialize_KLU(linsol);
     if(status != AMICI_SUCCESS)
         throw NewtonFailure(status, "SUNLinSolInitialize_KLU");
@@ -212,7 +205,7 @@ void NewtonSolverSparse::solveLinearSystem(AmiVector &rhs) {
     // last argument is tolerance and does not have any influence on result
 
     if(status != AMICI_SUCCESS)
-        throw NewtonFailure(status, "SUNLinSolSolve_Dense");
+        throw NewtonFailure(status, "SUNLinSolSolve_KLU");
 }
 
 /* ------------------------------------------------------------------------- */
@@ -227,14 +220,11 @@ NewtonSolverSparse::~NewtonSolverSparse() {
 /* ------------------------------------------------------------------------- */
 
 NewtonSolverIterative::NewtonSolverIterative(realtype *t, AmiVector *x,
-                                             Model *model, ReturnData *rdata)
-    : NewtonSolver(t, x, model, rdata), ns_p(model->nx_solver),
-    ns_h(model->nx_solver), ns_t(model->nx_solver), ns_s(model->nx_solver),
-    ns_r(model->nx_solver), ns_rt(model->nx_solver), ns_v(model->nx_solver),
-    ns_Jv(model->nx_solver), ns_tmp(model->nx_solver),
-    ns_Jdiag(model->nx_solver)
-    {
-}
+                                             Model *model)
+    : NewtonSolver(t, x, model), ns_p(model->nx_solver), ns_h(model->nx_solver),
+      ns_t(model->nx_solver), ns_s(model->nx_solver), ns_r(model->nx_solver),
+      ns_rt(model->nx_solver), ns_v(model->nx_solver), ns_Jv(model->nx_solver),
+      ns_tmp(model->nx_solver), ns_Jdiag(model->nx_solver) {}
 
 /* ------------------------------------------------------------------------- */
 
@@ -242,8 +232,9 @@ void NewtonSolverIterative::prepareLinearSystem(int ntry, int nnewt) {
     newton_try = ntry;
     i_newton = nnewt;
     if (nnewt == -1) {
-        throw AmiException("Linear solver SPBCG does not support sensitivity "
-                           "computation for steady state problems.");
+        throw NewtonFailure(AMICI_NOT_IMPLEMENTED,
+                            "Linear solver SPBCG does not support sensitivity "
+                            "computation for steady state problems.");
     }
 }
 
@@ -331,8 +322,7 @@ void NewtonSolverIterative::linsolveSPBCG(int ntry, int nnewt,
         // Test convergence
         if (res < atol) {
             // Write number of steps needed
-            rdata->newton_numlinsteps[(ntry - 1) * maxsteps +
-                                      nnewt] = i_linstep + 1;
+            numlinsteps.at(nnewt) = i_linstep + 1;
 
             // Return success
             return;

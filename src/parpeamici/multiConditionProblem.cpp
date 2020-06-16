@@ -6,7 +6,6 @@
 #include <parpeoptimization/optimizationOptions.h>
 #include <parpeoptimization/optimizationResultWriter.h>
 
-#include <parpeamici/steadystateSimulator.h>
 #include <parpeamici/hierarchicalOptimization.h>
 #include <parpeamici/multiConditionDataProvider.h>
 #include <parpeamici/amiciMisc.h>
@@ -206,6 +205,14 @@ std::unique_ptr<OptimizationProblem> MultiConditionProblemMultiStartOptimization
 
 void printSimulationResult(Logger *logger, int jobId,
                            amici::ReturnData const* rdata, double timeSeconds) {
+    if(!rdata) {
+        // This should not happen, but apparently we can't rely on AMICI always
+        // returning some result object
+        logger->logmessage(LOGLVL_ERROR,
+                           "AMICI simulation failed unexpectedly.");
+        return;
+    }
+
     bool with_sensi = rdata->sensi >= amici::SensitivityOrder::first;
 
     logger->logmessage(LOGLVL_DEBUG, "Result for %d: %g (%d) (%d/%d/%.4fs%c)",
@@ -433,41 +440,55 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
         try {
             rdata = amiciApp.runAmiciSimulation(*solver, edata.get(), model);
         } catch (std::exception const& e) {
+            std::cerr<<e.what()<<std::endl;
+            std::string status = "-";
+            if(rdata) {
+                status = std::to_string(rdata->status);
+            }
             logger->logmessage(
-                        LOGLVL_WARNING, "Error during simulation: %s (%d)",
-                        e.what(), rdata->status);
-            if(rdata->status == AMICI_SUCCESS)
-                // shouldn't happen, but just to be safe
-                rdata->status = AMICI_ERROR;
-            rdata->invalidateLLH();
-            rdata->invalidateSLLH();
+                        LOGLVL_WARNING, "Error during simulation: %s (%s)",
+                e.what(), status.c_str());
         }
 
-        if(rdata->status == AMICI_SUCCESS)
+        if(rdata && rdata->status == amici::AMICI_SUCCESS)
             break;
     }
     double timeSeconds = simulationTimer.getTotal();
 
     printSimulationResult(logger, jobId, rdata.get(), timeSeconds);
 
-    if (resultWriter && (solverTemplate.getSensitivityOrder()
+    if (resultWriter && rdata && (solverTemplate.getSensitivityOrder()
                          > amici::SensitivityOrder::none || logLineSearch)) {
         saveSimulation(resultWriter->getH5File(), resultWriter->getRootPath(),
                        model.getParameters(), rdata->llh, rdata->sllh,
                        timeSeconds, rdata->x, rdata->sx, rdata->y,
                        jobId, rdata->status, logger->getPrefix());
     }
+    if(rdata) {
+        return AmiciSimulationRunner::AmiciResultPackageSimple {
+            rdata->llh,
+                    timeSeconds,
+                    (solverTemplate.getSensitivityOrder()
+                     > amici::SensitivityOrder::none)
+                    ? rdata->sllh : std::vector<double>(),
+                    rdata->y,
+                    sendStates ? rdata->x : std::vector<double>(),
+                    rdata->status
+        };
+    }
 
+    // AMICI failed expectedly and did not return anything
     return AmiciSimulationRunner::AmiciResultPackageSimple {
-        rdata->llh,
-                timeSeconds,
-                (solverTemplate.getSensitivityOrder()
-                 > amici::SensitivityOrder::none)
-                ? rdata->sllh : std::vector<double>(),
-                rdata->y,
-                sendStates ? rdata->x : std::vector<double>(),
-                rdata->status
+        NAN,
+        timeSeconds,
+        (solverTemplate.getSensitivityOrder()
+         > amici::SensitivityOrder::none)
+            ? std::vector<double>(model.nplist(), NAN) : std::vector<double>(),
+        std::vector<double>(model.nytrue, NAN),
+        sendStates ? std::vector<double>(model.nx_rdata, NAN) : std::vector<double>(),
+        amici::AMICI_UNRECOVERABLE_ERROR
     };
+
 }
 
 FunctionEvaluationStatus getModelOutputs(
@@ -749,7 +770,7 @@ int AmiciSummedGradientFunction::aggregateLikelihood(
         ResultPackage resultPackage;
         std::tie(conditionIdx, resultPackage) = result;
 
-        errors += resultPackage.status != AMICI_SUCCESS;
+        errors += resultPackage.status != amici::AMICI_SUCCESS;
 
         // sum up
         negLogLikelihood -= resultPackage.llh;

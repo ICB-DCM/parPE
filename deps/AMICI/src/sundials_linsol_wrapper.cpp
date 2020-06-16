@@ -43,7 +43,9 @@ int SUNLinSolWrapper::Solve(SUNMatrix A, N_Vector x, N_Vector b, realtype tol) c
     return SUNLinSolSolve(solver, A, x, b, tol);
 }
 
-long SUNLinSolWrapper::getLastFlag() const { return SUNLinSolLastFlag(solver); }
+long SUNLinSolWrapper::getLastFlag() const {
+    return static_cast<long>(SUNLinSolLastFlag(solver));
+}
 
 int SUNLinSolWrapper::space(long *lenrwLS, long *leniwLS) const {
     return SUNLinSolSpace(solver, lenrwLS, leniwLS);
@@ -99,8 +101,9 @@ int SUNNonLinSolWrapper::setLSolveFn(SUNNonlinSolLSolveFn SolveFn) {
     return SUNNonlinSolSetLSolveFn(solver, SolveFn);
 }
 
-int SUNNonLinSolWrapper::setConvTestFn(SUNNonlinSolConvTestFn CTestFn) {
-    return SUNNonlinSolSetConvTestFn(solver, CTestFn);
+int SUNNonLinSolWrapper::setConvTestFn(SUNNonlinSolConvTestFn CTestFn,
+                                       void* ctest_data) {
+    return SUNNonlinSolSetConvTestFn(solver, CTestFn, ctest_data);
 }
 
 int SUNNonLinSolWrapper::setMaxIters(int maxiters) {
