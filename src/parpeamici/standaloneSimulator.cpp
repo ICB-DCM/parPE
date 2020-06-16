@@ -62,6 +62,8 @@ StandaloneSimulator::run(const std::string& resultFile,
     // (parameters.size() !=
     // (unsigned)dataProvider->getNumOptimizationParameters());
 
+    std::unique_ptr<AmiciSummedGradientFunction> wrappedFun;
+
     if (needComputeAnalyticalParameters) {
         if (hdf5GroupExists(conditionFile.getId(), "inputData"))
             // TODO: might not be the best place to have that here
@@ -90,12 +92,12 @@ StandaloneSimulator::run(const std::string& resultFile,
         auto sigmaParameterIndices =
           hierarchicalSigmaReader->getOptimizationParameterIndices();
 
-        auto wrappedFun = std::make_unique<AmiciSummedGradientFunction>(
+        wrappedFun = std::make_unique<AmiciSummedGradientFunction>(
           dataProvider, loadBalancer, nullptr);
         wrappedFun->sendStates = true;
 
         hierarchical = HierarchicalOptimizationWrapper(
-          std::move(wrappedFun),
+          wrappedFun.get(),
           std::move(hierarchicalScalingReader),
           std::move(hierarchicalOffsetReader),
           std::move(hierarchicalSigmaReader),
@@ -235,7 +237,7 @@ StandaloneSimulator::run(const std::string& resultFile,
                hierarchical.applyOptimalOffsets(offsets, modelOutputs);
                auto sigmas = hierarchical.computeAnalyticalSigmas(
                  allMeasurements, modelOutputs);
-               auto fullSigmaMatrices = hierarchical.fun->getAllSigmas();
+               auto fullSigmaMatrices = hierarchical.getWrappedFunction()->getAllSigmas();
                if (!hierarchical.getSigmaParameterIndices().empty()) {
                    hierarchical.fillInAnalyticalSigmas(fullSigmaMatrices,
                                                        sigmas);

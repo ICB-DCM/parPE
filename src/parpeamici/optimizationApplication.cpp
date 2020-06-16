@@ -258,7 +258,7 @@ void OptimizationApplication::runWorker() {
             // hierarchical
             auto hierarch = dynamic_cast<HierarchicalOptimizationWrapper *>(problem->cost_fun_.get());
             Expects(hierarch != nullptr);
-            hierarch->fun->messageHandler(buffer, jobId);
+            hierarch->getWrappedFunction()->messageHandler(buffer, jobId);
         }
     });
 }

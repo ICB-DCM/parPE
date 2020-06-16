@@ -63,7 +63,8 @@ TEST_F(steadystateProblemTests, testSteadystate) {
     // verify steadystate concentrations
     parpe::checkEqualArray(xSteadystateExp.data(),
                            rdata->x.data(),
-                           xSteadystateExp.size(), 1e-5, 1e-5);
+                           static_cast<int>(xSteadystateExp.size()),
+                           1e-5, 1e-5);
 
     // verify likelihood for matching measurement / simulation
     amici::ExpData edata {*model};
@@ -149,7 +150,7 @@ TEST_F(steadystateProblemTests, testSteadystateHierarchical) {
     auto sigmas = std::make_unique<parpe::AnalyticalParameterProviderDefault>();
 
     auto gradFun = std::make_unique<parpe::AmiciSummedGradientFunction>(&dp, nullptr, nullptr);
-    parpe::HierarchicalOptimizationWrapper hier(std::move(gradFun),
+    parpe::HierarchicalOptimizationWrapper hier(gradFun.get(),
                                                std::move(scalings),
                                                std::move(offsets),
                                                std::move(sigmas),
