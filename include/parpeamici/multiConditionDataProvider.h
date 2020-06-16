@@ -383,13 +383,12 @@ class MultiConditionDataProviderHDF5 : public MultiConditionDataProvider
                                          amici::ExpData& edata) const;
 
 
+  private:
     /**
      * @brief The model for which the data is to be read
      */
-    // TODO: Make private
     std::unique_ptr<amici::Model> model_;
 
-  private:
     /**
      * @brief Absolute paths in the HDF5 file to the datasets
      * from which the respective data is to be read

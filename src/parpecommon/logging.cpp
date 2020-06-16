@@ -180,8 +180,10 @@ void printlogmessage(loglevel lvl, const char *message)
 
     switch (lvl) {
     case LOGLVL_CRITICAL:
+        [[fallthrough]];
     case LOGLVL_ERROR:
         fflush(stdout);
+        break;
     default:
         break;
     }

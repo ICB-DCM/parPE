@@ -11,7 +11,9 @@
 #include <memory>
 
 // to avoid including model-specific header files
-std::unique_ptr<amici::Model> getModel();
+namespace amici::generic_model {
+    std::unique_ptr<amici::Model> getModel();
+}
 
 class MyOptimizationApplication : public parpe::OptimizationApplication {
 public:
@@ -30,7 +32,7 @@ public:
 
         // setup data and problem
         dataProvider = std::make_unique<parpe::MultiConditionDataProviderHDF5>(
-                    getModel(), inFileArgument);
+            amici::generic_model::getModel(), inFileArgument);
 
         // read options from file
         auto optimizationOptions = parpe::OptimizationOptions::fromHDF5(dataProvider->getHdf5FileId());

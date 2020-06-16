@@ -52,7 +52,7 @@ TEST_F(steadystateProblemTests, testSteadystate) {
     /* Verify steadystate matches saved results and loglikelihood is correct */
 
     // verify steadystate
-    auto model = getModel();
+    auto model = amici::generic_model::getModel();
     model->setTimepoints(t);
     model->setParameterById("observableParameter1_obs_x1_scaled", 2.0);
     model->setParameterById("observableParameter1_obs_x2_offsetted", 3.0);
@@ -63,7 +63,8 @@ TEST_F(steadystateProblemTests, testSteadystate) {
     // verify steadystate concentrations
     parpe::checkEqualArray(xSteadystateExp.data(),
                            rdata->x.data(),
-                           xSteadystateExp.size(), 1e-5, 1e-5);
+                           static_cast<int>(xSteadystateExp.size()),
+                           1e-5, 1e-5);
 
     // verify likelihood for matching measurement / simulation
     amici::ExpData edata {*model};
@@ -71,7 +72,7 @@ TEST_F(steadystateProblemTests, testSteadystate) {
     edata.setObservedDataStdDev(std::vector<double>(yExp.size(), 1.0));
     rdata = amici::runAmiciSimulation(*solver, &edata, *model);
 
-    EXPECT_EQ(rdata->status, AMICI_SUCCESS);
+    EXPECT_EQ(rdata->status, amici::AMICI_SUCCESS);
     EXPECT_NEAR(1e-5, rdata->chi2, 1e-5);
 
     EXPECT_NEAR(parpe::getLogLikelihoodOffset(edata.nt() * edata.nytrue()),
@@ -79,7 +80,7 @@ TEST_F(steadystateProblemTests, testSteadystate) {
 }
 
 TEST_F(steadystateProblemTests, testSteadystateMultiCond) {
-    auto model = getModel();
+    auto model = amici::generic_model::getModel();
     auto modelNonOwning = model.get();
     // Set output parameters which are not part of amici model
     model->setParameterById("observableParameter1_obs_x1_scaled", 2.0);
@@ -110,7 +111,7 @@ TEST_F(steadystateProblemTests, testSteadystateMultiCond) {
 
 TEST_F(steadystateProblemTests, testSteadystateHierarchical) {
     // introduce scaling parameters
-    auto model = getModel();
+    auto model = amici::generic_model::getModel();
     //model->setFixedParameters(k);
     model->setInitialStates(x0);
     //model->setParameters(p);
@@ -149,7 +150,7 @@ TEST_F(steadystateProblemTests, testSteadystateHierarchical) {
     auto sigmas = std::make_unique<parpe::AnalyticalParameterProviderDefault>();
 
     auto gradFun = std::make_unique<parpe::AmiciSummedGradientFunction>(&dp, nullptr, nullptr);
-    parpe::HierarchicalOptimizationWrapper hier(std::move(gradFun),
+    parpe::HierarchicalOptimizationWrapper hier(gradFun.get(),
                                                std::move(scalings),
                                                std::move(offsets),
                                                std::move(sigmas),

@@ -12,12 +12,47 @@ Requires:
 - hdf5 libraries and headers
 """
 
-from setuptools import find_packages, setup, Extension
-
 import os
-import sys
 import subprocess
+import sys
+
 import setup_clibs  # Must run from within containing directory
+
+from distutils import log
+
+
+def try_install(package: str) -> None:
+    """Try installing the given package using pip. Exit on error."""
+
+    log.info(f"Missing required package {package}. Trying to install...")
+    errno = subprocess.call([sys.executable, "-m", "pip", "install", package])
+    if errno:
+        log.error(f"Failed trying to install {package}. "
+                  "Please install manually before installing AMICI.")
+        raise SystemExit(errno)
+
+    import importlib
+    importlib.invalidate_caches()
+    globals()[package] = importlib.import_module(package)
+
+
+try:
+    # Required for numpy include directory, and for importing anything from
+    # the `amici` package. Therefore, try before any amici import.
+    import numpy as np
+except ImportError:
+    # We need numpy, but setup_requires fires too late
+    try_install('numpy')
+    # retry
+    import numpy as np
+
+try:
+    # Required for customizing installation, but setup_requires fires too late
+    from setuptools import find_packages, setup, Extension
+except ImportError:
+    try_install('setuptools')
+    from setuptools import find_packages, setup, Extension
+
 
 # Add current directory to path, as we need some modules from the AMICI
 # package already for installation
@@ -32,25 +67,9 @@ from amici.setuptools import (
     get_hdf5_config,
     add_coverage_flags_if_required,
     add_debug_flags_if_required,
+    add_openmp_flags,
 )
 
-
-def try_install(package):
-    """Try installing the given package using pip. Exit on error."""
-    errno = subprocess.call([sys.executable, "-m", "pip", "install", package])
-    if errno:
-        print(f"Failed trying to install {package}. Please install manually.")
-        raise SystemExit(errno)
-
-
-try:
-    # required for include directory
-    import numpy as np
-except ImportError:
-    # We need numpy, but setup_requires fires too late
-    try_install('numpy')
-    # retry
-    import numpy as np
 
 # Python version check. We need >= 3.6 due to e.g. f-strings
 if sys.version_info < (3, 6):
@@ -62,6 +81,8 @@ def main():
     cxx_flags = []
     amici_module_linker_flags = []
     define_macros = []
+
+    add_openmp_flags(cxx_flags=cxx_flags, ldflags=amici_module_linker_flags)
 
     blaspkgcfg = get_blas_config()
     amici_module_linker_flags.extend(blaspkgcfg['extra_link_args'])
@@ -184,7 +205,7 @@ def main():
                 'amici_import_petab.py = amici.petab_import:main'
             ]
         },
-        install_requires=['sympy',
+        install_requires=['sympy>=1.6.0',
                           'python-libsbml',
                           'h5py',
                           'pandas',
