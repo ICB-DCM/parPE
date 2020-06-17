@@ -5,8 +5,8 @@
 ;
 [subrepo]
 	remote = git@github.com:ICB-DCM/AMICI.git
-	branch = develop
-	commit = 71b2b0010cf13b3370b8648a2b35d2b20517a561
-	parent = 8018064c447d572f75b5f80f6029e71b13166f7c
+	branch = hotfix_steadystate_sensi_allocation
+	commit = 02cc3b1111a32ba2c84f7564f0df351a2ce82490
+	parent = 514ad3e496ff477ac589b18c7a359a1e15f04920
 	cmdver = 0.4.1
 	method = merge
