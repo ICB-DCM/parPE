@@ -112,18 +112,6 @@ runSimulator(MultiConditionDataProvider& dp,
              std::string const& resultFileName,
              std::string const& resultPath);
 
-/**
- * @brief From the given parameter vector, extract outer optimization
- * parameters, as defined in the file HDF5 file parameterFile
- * @param fullParameters
- * @param parameterFile
- * @param parameterPath
- * @return
- */
-std::vector<double>
-getOuterParameters(std::vector<double> const& fullParameters,
-                   H5::H5File const& parameterFile,
-                   std::string const& parameterPath);
 } // namespace parpe
 
 #endif // STANDALONESIMULATOR_H

@@ -465,6 +465,19 @@ removeInnerParameters(const gsl::span<double const> allParameters,
                       const std::vector<int>& offsetParameterIndices,
                       const std::vector<int>& sigmaParameterIndices);
 
+/**
+ * @brief From the given parameter vector, extract outer optimization
+ * parameters, as defined in the file HDF5 file parameterFile
+ * @param fullParameters
+ * @param parameterFile
+ * @param parameterPath
+ * @return
+ */
+std::vector<double>
+getOuterParameters(std::vector<double> const& fullParameters,
+                   H5::H5File const& parameterFile,
+                   std::string const& parameterPath);
+
 
 /**
  * @brief Compute negative log-likelihood for normal distribution based on the

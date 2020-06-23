@@ -1069,6 +1069,49 @@ double computeNegLogLikelihood(
     return nllh;
 }
 
+
+std::vector<double>
+getOuterParameters(const std::vector<double>& fullParameters,
+                   const H5::H5File& parameterFile,
+                   const std::string& parameterPath)
+{
+    // auto options = OptimizationOptions::fromHDF5(parameterFile.getId(),
+    // parameterPath + "/optimizationOptions");
+    AnalyticalParameterHdf5Reader hierarchicalScalingReader(
+        parameterFile,
+        parameterPath + "/scalingParameterIndices",
+        parameterPath + "/scalingParametersMapToObservables");
+    AnalyticalParameterHdf5Reader hierarchicalOffsetReader(
+        parameterFile,
+        parameterPath + "/offsetParameterIndices",
+        parameterPath + "/offsetParametersMapToObservables");
+    AnalyticalParameterHdf5Reader hierarchicalSigmaReader(
+        parameterFile,
+        parameterPath + "/sigmaParameterIndices",
+        parameterPath + "/sigmaParametersMapToObservables");
+
+    auto proportionalityFactorIndices =
+        hierarchicalScalingReader.getOptimizationParameterIndices();
+    auto offsetParameterIndices =
+        hierarchicalOffsetReader.getOptimizationParameterIndices();
+    auto sigmaParameterIndices =
+        hierarchicalSigmaReader.getOptimizationParameterIndices();
+
+    auto combinedIndices = proportionalityFactorIndices;
+    combinedIndices.insert(combinedIndices.end(),
+                           offsetParameterIndices.begin(),
+                           offsetParameterIndices.end());
+    combinedIndices.insert(combinedIndices.end(),
+                           sigmaParameterIndices.begin(),
+                           sigmaParameterIndices.end());
+    std::sort(combinedIndices.begin(), combinedIndices.end());
+
+    std::vector<double> result(fullParameters.size() - combinedIndices.size());
+    parpe::fillFilteredParams(fullParameters, combinedIndices, result);
+
+    return result;
+}
+
 double
 computeNegLogLikelihood(std::vector<double> const& measurements,
                         std::vector<double> const& modelOutputsScaled,
