@@ -21,26 +21,35 @@ void printUsage() {
                "PARAMETER_FILE_NAME PARAMETER_FILE_PATH "
                "OUTFILENAME OUTFILEPATH "
                "--at-optimum|--along-trajectory|--nominal "
-               "--mpi|--nompi\n";
+               "--mpi|--nompi --compute-inner|--nocompute-inner\n";
     // |--parameter-matrix=PATH-UNSUPPORTED
 }
 
 int main(int argc, char **argv) {
     int status = EXIT_SUCCESS;
 
-    if(argc != 9) {
+    if(argc != 10) {
         printUsage();
         return EXIT_FAILURE;
     }
 
+    bool computeInner;
+    if(std::string(argv[argc -1]) == "--compute-inner") {
+        computeInner = true;
+    } else if(std::string(argv[argc -1]) == "--nocompute-inner") {
+        computeInner = false;
+    } else {
+        printUsage();
+        return EXIT_FAILURE;
+    }
 
-    if(std::string(argv[argc -1]) == "--mpi") {
+    if(std::string(argv[argc -2]) == "--mpi") {
 #ifdef PARPE_ENABLE_MPI
         MPI_Init(&argc, &argv);
 #else
         throw std::runtime_error("parPE was built without MPI support.");
 #endif
-    } else if(std::string(argv[argc -1]) == "--nompi") {
+    } else if(std::string(argv[argc -2]) == "--nompi") {
         ;
     } else {
         printUsage();
@@ -67,7 +76,7 @@ int main(int argc, char **argv) {
     status = parpe::runSimulator(dp, simulationMode,
                                  conditionFileName, conditionFilePath,
                                  parameterFileName, parameterFilePath,
-                                 resultFileName, resultPath);
+                                 resultFileName, resultPath, computeInner);
 
     parpe::finalizeMpiIfNeeded();
 

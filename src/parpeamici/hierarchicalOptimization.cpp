@@ -550,6 +550,15 @@ AmiciSummedGradientFunction *HierarchicalOptimizationWrapper::getWrappedFunction
     return wrapped_function_;
 }
 
+std::vector<std::string> HierarchicalOptimizationWrapper::getParameterIds() const
+{
+    return removeInnerParameters<std::string>(
+        wrapped_function_->getParameterIds(),
+        proportionalityFactorIndices,
+        offsetParameterIndices,
+        sigmaParameterIndices);
+}
+
 HierarchicalOptimizationProblemWrapper::HierarchicalOptimizationProblemWrapper(
   std::unique_ptr<OptimizationProblem> problemToWrap,
   const MultiConditionDataProviderHDF5* dataProvider)
@@ -1013,39 +1022,6 @@ spliceParameters(const gsl::span<double const> reducedParameters,
     Ensures((unsigned) idxRegular == reducedParameters.size());
 
     return fullParameters;
-}
-
-
-std::vector<double> removeInnerParameters(
-    const gsl::span<const double> allParameters,
-    const std::vector<int> &proportionalityFactorIndices,
-    const std::vector<int> &offsetParameterIndices,
-    const std::vector<int> &sigmaParameterIndices)
-{
-    std::vector<double> outerParameters(
-        allParameters.size() - proportionalityFactorIndices.size() -
-        offsetParameterIndices.size() - sigmaParameterIndices.size());
-
-    int idxOuter = 0;
-    for(int idxFull = 0; idxFull < static_cast<int>(allParameters.size());
-         ++idxFull) {
-        if(std::find(proportionalityFactorIndices.begin(),
-                      proportionalityFactorIndices.end(), idxOuter)
-            != std::end(proportionalityFactorIndices))
-            continue;
-        if(std::find(offsetParameterIndices.begin(),
-                      offsetParameterIndices.end(), idxOuter)
-            != std::end(offsetParameterIndices))
-            continue;
-        if(std::find(sigmaParameterIndices.begin(),
-                      sigmaParameterIndices.end(), idxOuter)
-            != std::end(sigmaParameterIndices))
-            continue;
-        outerParameters[idxOuter++] = allParameters[idxFull];
-    }
-
-    Ensures(idxOuter == static_cast<int>(outerParameters.size()));
-    return outerParameters;
 }
 
 

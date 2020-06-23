@@ -135,6 +135,8 @@ public:
      */
     virtual int numParameters() const override;
 
+    std::vector<std::string> getParameterIds() const override;
+
     /**
      * @brief Run simulations (no gradient) with given parameters and collect
      * model outputs

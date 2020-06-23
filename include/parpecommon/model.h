@@ -88,6 +88,13 @@ public:
 
     int numParameters() const override {return numParameters_;}
 
+    std::vector<std::string> getParameterIds() const override {
+        std::vector<std::string> ids(numParameters());
+        for(int i = 0; i < static_cast<int>(ids.size()); ++i)
+            ids[i] = std::string("p") + std::to_string(i);
+        return ids;
+    }
+
 
     int numParameters_ = 0;
     std::vector<std::vector<double>> datasets;

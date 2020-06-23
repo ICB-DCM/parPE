@@ -665,6 +665,11 @@ int AmiciSummedGradientFunction::numParameters() const
     return dataProvider->getNumOptimizationParameters();
 }
 
+std::vector<std::string> AmiciSummedGradientFunction::getParameterIds() const
+{
+    return dataProvider->getProblemParameterIds();
+}
+
 FunctionEvaluationStatus AmiciSummedGradientFunction::getModelOutputs(
         gsl::span<const double> parameters,
         std::vector<std::vector<double> > &modelOutput,

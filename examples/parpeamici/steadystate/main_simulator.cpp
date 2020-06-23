@@ -69,7 +69,7 @@ int main(int argc, char **argv) {
         status = parpe::runSimulator(dp, simulationMode,
                                      dataFileName, dataFilePath,
                                      dataFileName, dataFilePath,
-                                     resultFileName, resultPath);
+                                     resultFileName, resultPath, false);
     } else if(argc == 9) {
         // simulate on test set: need optimizer result and test set data as inputs
         std::string conditionFileName = argv[1];
@@ -101,7 +101,7 @@ int main(int argc, char **argv) {
         status = parpe::runSimulator(dp, simulationMode,
                                      conditionFileName, conditionFilePath,
                                      parameterFileName, parameterFilePath,
-                                     resultFileName, resultPath);
+                                     resultFileName, resultPath, false);
     }
 
     parpe::finalizeMpiIfNeeded();

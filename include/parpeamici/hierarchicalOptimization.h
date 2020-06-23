@@ -222,6 +222,8 @@ class HierarchicalOptimizationWrapper : public GradientFunction
 
     AmiciSummedGradientFunction* getWrappedFunction() const;
 
+    std::vector<std::string> getParameterIds() const override;
+
   private:
     void init();
     /** Objective function of inner optimization problem */
@@ -459,11 +461,38 @@ spliceParameters(const gsl::span<double const> reducedParameters,
  * @brief Remove inner parameters
  * @return Outer parameters
  */
-std::vector<double>
-removeInnerParameters(const gsl::span<double const> allParameters,
+template <typename T>
+std::vector<T>
+removeInnerParameters(const gsl::span<T const> allParameters,
                       const std::vector<int>& proportionalityFactorIndices,
                       const std::vector<int>& offsetParameterIndices,
-                      const std::vector<int>& sigmaParameterIndices);
+                      const std::vector<int>& sigmaParameterIndices)
+{
+    std::vector<T> outerParameters(
+        allParameters.size() - proportionalityFactorIndices.size() -
+        offsetParameterIndices.size() - sigmaParameterIndices.size());
+
+    int idxOuter = 0;
+    for(int idxFull = 0; idxFull < static_cast<int>(allParameters.size());
+         ++idxFull) {
+        if(std::find(proportionalityFactorIndices.begin(),
+                      proportionalityFactorIndices.end(), idxOuter)
+            != std::end(proportionalityFactorIndices))
+            continue;
+        if(std::find(offsetParameterIndices.begin(),
+                      offsetParameterIndices.end(), idxOuter)
+            != std::end(offsetParameterIndices))
+            continue;
+        if(std::find(sigmaParameterIndices.begin(),
+                      sigmaParameterIndices.end(), idxOuter)
+            != std::end(sigmaParameterIndices))
+            continue;
+        outerParameters[idxOuter++] = allParameters[idxFull];
+    }
+
+    Ensures(idxOuter == static_cast<int>(outerParameters.size()));
+    return outerParameters;
+}
 
 /**
  * @brief From the given parameter vector, extract outer optimization
