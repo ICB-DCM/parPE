@@ -456,6 +456,17 @@ spliceParameters(const gsl::span<double const> reducedParameters,
                  const std::vector<double>& sigmaParameters);
 
 /**
+ * @brief Remove inner parameters
+ * @return Outer parameters
+ */
+std::vector<double>
+removeInnerParameters(const gsl::span<double const> allParameters,
+                      const std::vector<int>& proportionalityFactorIndices,
+                      const std::vector<int>& offsetParameterIndices,
+                      const std::vector<int>& sigmaParameterIndices);
+
+
+/**
  * @brief Compute negative log-likelihood for normal distribution based on the
  * model outputs and measurements for multiple conditions.
  * @param measurements

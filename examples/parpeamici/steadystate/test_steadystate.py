@@ -72,7 +72,9 @@ def test_nompi_optimization():
     with contextlib.suppress(FileNotFoundError):
         os.remove(sim_file)
 
-    cmd = [sim_exe, os.path.join(outdir, result_filename), '/',
+    cmd = [sim_exe,
+           os.path.join(outdir, result_filename), '/inputData',
+           os.path.join(outdir, result_filename), '/',
            sim_file, '/',
            '--at-optimum', '--nompi']
     ret = subprocess.run(cmd, capture_output=True,
@@ -103,7 +105,9 @@ def test_mpi_optimization():
     with contextlib.suppress(FileNotFoundError):
         os.remove(sim_file)
 
-    cmd = [*MPIEXEC, sim_exe, os.path.join(outdir, result_filename), '/',
+    cmd = [*MPIEXEC, sim_exe,
+           os.path.join(outdir, result_filename), '/inputData',
+           os.path.join(outdir, result_filename), '/',
            sim_file, '/',
            '--along-trajectory', '--mpi']
     ret = subprocess.run(cmd, capture_output=True,
@@ -122,7 +126,8 @@ def test_mpi_optimization():
     with contextlib.suppress(FileNotFoundError):
         os.remove(sim_file)
 
-    cmd = [*MPIEXEC, sim_exe, HDF5_FILE_TEST, '/',
+    cmd = [*MPIEXEC, sim_exe,
+           HDF5_FILE_TEST, '/',
            os.path.join(outdir, result_filename), '/',
            sim_file, '/',
            '--at-optimum', '--mpi']
