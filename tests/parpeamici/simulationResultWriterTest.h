@@ -52,7 +52,7 @@ TEST(simulationResultWriter, testResultWriter) {
     // write
     rw.createDatasets(numSimulations);
 
-    EXPECT_TRUE(parpe::hdf5GroupExists(file.getId(), "/testResultWriter/"));
+    EXPECT_TRUE(parpe::hdf5GroupExists(file, "/testResultWriter/"));
     EXPECT_TRUE(parpe::hdf5DatasetExists(file, rw.llhPath));
     EXPECT_TRUE(parpe::hdf5DatasetExists(file, rw.xPath));
     EXPECT_TRUE(parpe::hdf5DatasetExists(file, rw.yMesPath));

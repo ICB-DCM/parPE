@@ -431,8 +431,7 @@ getFinalParameters(std::string const& startIndex, H5::H5File const& file)
         std::string("/multistarts/") + startIndex + "/iteration/";
     int iteration = 0;
     while (
-        hdf5GroupExists(file.getId(),
-                        (iterationPath + std::to_string(iteration)).c_str()) &&
+        hdf5GroupExists(file, iterationPath + std::to_string(iteration)) &&
         hdf5DatasetExists(file,
                           iterationPath + std::to_string(iteration) +
                               "/costFunParameters")) {
@@ -582,10 +581,11 @@ runFinalParameters(StandaloneSimulator& sim,
     H5::H5File parameterFile(parameterFileName, H5F_ACC_RDONLY);
     H5::H5File conditionFile(conditionFileName, H5F_ACC_RDONLY);
     std::vector<std::string> parameterNames;
-    try {
+    if(hdf5GroupExists(parameterFile,
+                        parameterFilePath + "/parameters/parameterNames")){
         parameterNames = hdf5Read1dStringDataset(
             parameterFile, parameterFilePath + "/parameters/parameterNames");
-    } catch (H5::FileIException const&){
+    } else {
         parameterNames = hdf5Read1dStringDataset(
             parameterFile, parameterFilePath + "/inputData/parameters/parameterNames");
     }
