@@ -112,7 +112,7 @@ AmiciSimulationRunner::runSharedMemory(const messageHandlerFunc& messageHandler,
     for (int simulationIdx = 0;
          simulationIdx < (signed)condition_indices_.size();
          ++simulationIdx) {
-        // to resuse the parallel code and for debugging we still serialze the
+        // to reuse the parallel code and for debugging we still serialze the
         // job data here
         auto curConditionIndices = std::vector<int>{ simulationIdx };
         AmiciWorkPackageSimple work{ optimization_parameters_,
