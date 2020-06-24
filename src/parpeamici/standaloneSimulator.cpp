@@ -149,7 +149,7 @@ StandaloneSimulator::run(const std::string& resultFile,
         allFinished = [this, &dataIndices, &hierarchical, &parameterValues,
                        &outerParameters, &resultFileH5, &resultPath, &model,
                        &rw](std::vector<JobData>& jobs)
-            -> int {
+        {
             /* all finished */
             // must wait for all jobs to finish because of hierarchical
             // optimization and scaling factors
