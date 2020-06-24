@@ -16,9 +16,8 @@
 
 TEST(simulationResultWriter, testResultWriter) {
     // setup ResultWriter
-    char tmpName[TMP_MAX];
-    if(!std::tmpnam(tmpName))
-        std::abort();
+    const char* tmpName = "parpeTest_testResultWriter.h5";
+    auto _ = gsl::finally([tmpName] { remove(tmpName); });
     parpe::SimulationResultWriter rw(tmpName, "/testResultWriter/");
 
     rw.saveLlh = true;
@@ -71,9 +70,8 @@ TEST(simulationResultWriter, testResultWriter) {
 }
 
 TEST(simulationResultWriter, testResultWriterNewExistingFile) {
-    char tmpName[TMP_MAX];
-    if(!std::tmpnam(tmpName))
-        std::abort();
+    const char* tmpName = "parpeTest_testResultWriterNewExistingFile.h5";
+    auto _ = gsl::finally([tmpName] { remove(tmpName); });
 
     // create file
     parpe::SimulationResultWriter rw1(tmpName, "/testResultWriter/");

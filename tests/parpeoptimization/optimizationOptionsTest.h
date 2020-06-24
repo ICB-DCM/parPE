@@ -104,9 +104,8 @@ TEST(optimizationOptions, setCeresOptions) {
 #endif
 
 TEST(optimizationOptions, fromHDF5) {
-    char tmpName[TMP_MAX];
-    if(!std::tmpnam(tmpName))
-        std::abort();
+    const char* tmpName = "parpeTest_fromHDF5.h5";
+    auto _ = gsl::finally([tmpName] { remove(tmpName); });
 
     // fail on non-existing file (hide hdf5 errors)
     parpe::captureStreamToString([tmpName](){
@@ -138,6 +137,4 @@ TEST(optimizationOptions, fromHDF5) {
     EXPECT_EQ(optimizer, static_cast<int>(o->optimizer));
     EXPECT_EQ(optimizer, o->getIntOption("someOption"));
     EXPECT_TRUE(o->toString().size() > 50);
-
-    remove(tmpName);
 }

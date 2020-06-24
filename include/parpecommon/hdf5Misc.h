@@ -75,7 +75,10 @@ void hdf5CreateGroup(hid_t file_id, const char *groupPath, bool recursively = fa
  * @return HDF5 file handle of the created/opened file
  */
 hid_t hdf5CreateFile(const char *filename,
-                   bool overwrite = false);
+                     bool overwrite = false);
+
+hid_t hdf5CreateFile(std::string const& filename,
+                     bool overwrite = false);
 
 H5::H5File hdf5OpenForReading(std::string const& hdf5Filename);
 
