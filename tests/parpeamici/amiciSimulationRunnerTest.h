@@ -12,6 +12,7 @@ TEST(simulationWorkerAmici, testSerializeResultPackageMessage) {
     parpe::AmiciSimulationRunner::AmiciResultPackageSimple
             results = { 1.1, 2.345, std::vector<double>(1.0, 2.0),
                         std::vector<double>(3.0, 4.0),
+                        std::vector<double>(3.3, 4.4),
                         std::vector<double>(1.0, 2.0), 10 };
 
     int msgSize = 0;

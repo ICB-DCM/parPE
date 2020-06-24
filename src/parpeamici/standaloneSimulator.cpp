@@ -155,6 +155,8 @@ StandaloneSimulator::run(const std::string& resultFile,
                 simulationResults(dataIndices.size());
             std::vector<std::vector<double>> modelOutputs(
                 dataIndices.size());
+            std::vector<std::vector<double>> modelSigmas(
+                dataIndices.size());
             std::vector<std::vector<double>> modelStates(
                 dataIndices.size());
 
@@ -167,8 +169,11 @@ StandaloneSimulator::run(const std::string& resultFile,
                 job.recvBuffer = std::vector<char>(); // free buffer
                 for (auto& result : results) {
                     swap(simulationResults[result.first], result.second);
+                    // TODO sigmas
                     modelOutputs[result.first] =
                         simulationResults[result.first].modelOutput;
+                    modelSigmas[result.first] =
+                        simulationResults[result.first].modelSigmas;
                     modelStates[result.first] =
                         simulationResults[result.first].modelStates;
 
@@ -188,9 +193,8 @@ StandaloneSimulator::run(const std::string& resultFile,
             hierarchical.applyOptimalOffsets(offsets, modelOutputs);
             auto sigmas = hierarchical.computeAnalyticalSigmas(
                 allMeasurements, modelOutputs);
-            auto fullSigmaMatrices = hierarchical.getWrappedFunction()->getAllSigmas();
             if (!hierarchical.getSigmaParameterIndices().empty()) {
-                hierarchical.fillInAnalyticalSigmas(fullSigmaMatrices,
+                hierarchical.fillInAnalyticalSigmas(modelSigmas,
                                                     sigmas);
             }
 
@@ -218,7 +222,7 @@ StandaloneSimulator::run(const std::string& resultFile,
                 double llh = -parpe::computeNegLogLikelihood(
                     allMeasurements[conditionIdx],
                     modelOutputs[conditionIdx],
-                    fullSigmaMatrices[conditionIdx]);
+                    modelSigmas[conditionIdx]);
 
                 auto edata = dataProvider->getExperimentalDataForCondition(
                     conditionIdx);
@@ -429,6 +433,7 @@ StandaloneSimulator::runSimulation(int conditionIdx,
             ? rdata->sllh
             : std::vector<double>(),
         rdata->y,
+        rdata->sigmay,
         rdata->x,
         rdata->status
     };

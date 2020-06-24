@@ -175,6 +175,7 @@ swap(AmiciSimulationRunner::AmiciResultPackageSimple& first,
     swap(first.gradient, second.gradient);
     swap(first.modelOutput, second.modelOutput);
     swap(first.modelStates, second.modelStates);
+    swap(first.modelSigmas, second.modelSigmas);
     swap(first.status, second.status);
 }
 
@@ -185,6 +186,7 @@ operator==(const AmiciSimulationRunner::AmiciResultPackageSimple& lhs,
     return lhs.llh == rhs.llh && lhs.status == rhs.status &&
            lhs.gradient == rhs.gradient && lhs.modelOutput == rhs.modelOutput &&
            lhs.modelStates == rhs.modelStates &&
+           lhs.modelSigmas == rhs.modelSigmas &&
            lhs.simulationTimeSeconds == rhs.simulationTimeSeconds;
 }
 

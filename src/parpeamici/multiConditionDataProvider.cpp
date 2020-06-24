@@ -313,7 +313,6 @@ MultiConditionDataProviderHDF5::getAllMeasurements() const
 std::vector<std::vector<double>>
 MultiConditionDataProviderHDF5::getAllSigmas() const
 {
-    // TODO: how to deal with sigma parameters vs table
     std::vector<std::vector<double>> result(getNumberOfSimulationConditions());
     for (int conditionIdx = 0; (unsigned)conditionIdx < result.size();
          ++conditionIdx) {

@@ -62,14 +62,13 @@ public:
 
 class AmiciSummedGradientFunctionMock : public parpe::AmiciSummedGradientFunction {
 public:
-    MOCK_CONST_METHOD4(getModelOutputs, parpe::FunctionEvaluationStatus(
+    MOCK_CONST_METHOD5(getModelOutputsAndSigmas, parpe::FunctionEvaluationStatus(
                            gsl::span<double const> parameters,
                            std::vector<std::vector<double> > &modelOutput,
+                           std::vector<std::vector<double> > &modelSigmas,
                            parpe::Logger *logger, double *cpuTime));
 
     MOCK_CONST_METHOD0(getAllMeasurements,  std::vector<std::vector<double>>());
-
-    MOCK_CONST_METHOD0(getAllSigmas,  std::vector<std::vector<double>>());
 
     //    MOCK_CONST_METHOD6(evaluate, parpe::FunctionEvaluationStatus(
     //                           gsl::span<double const> parameters,
@@ -183,15 +182,18 @@ TEST_F(hierarchicalOptimization, hierarchicalOptimization) {
                 scalingDummy, offsetDummy, sigmaDummy);
     EXPECT_EQ(onesFullParameters, splicedParameter);
 
-    ON_CALL(*fun, getModelOutputs(_, _, _, _))
+    ON_CALL(*fun, getModelOutputsAndSigmas(_, _, _, _, _))
             .WillByDefault(DoAll(SetArgReferee<1>(modelOutput),
+                             SetArgReferee<2>(sigmas),
                                  Return(parpe::functionEvaluationSuccess)));
 
     // Ensure it is called with proper parameter vector:
-    EXPECT_CALL(*fun, getModelOutputs(
-                    gsl::span<const double>(onesFullParameters), _, _, _));
+    EXPECT_CALL(*fun, getModelOutputsAndSigmas(
+                    gsl::span<const double>(onesFullParameters), _, _, _, _));
 
-    auto outputs = hierarchicalOptimizationWrapper.getUnscaledModelOutputs(
+    std::vector<std::vector<double>> outputs, modelSigmas;
+    std::tie(outputs, modelSigmas) =
+        hierarchicalOptimizationWrapper.getUnscaledModelOutputsAndSigmas(
                 reducedParameters, nullptr, nullptr);
     Mock::VerifyAndClearExpectations(fun);
 
@@ -521,11 +523,11 @@ TEST_F(hierarchicalOptimization, testWrappedFunIsCalledWithGradient) {
     ON_CALL(*scalingProvider, getObservablesForParameter(0, 0))
             .WillByDefault(ReturnRefOfCopy(res));
     ON_CALL(*fun, numParameters()).WillByDefault(Return(numParameters_));
-    ON_CALL(*fun, getModelOutputs(_, _, _, _))
+    ON_CALL(*fun, getModelOutputsAndSigmas(_, _, _, _, _))
             .WillByDefault(DoAll(SetArgReferee<1>(modelOutput),
+                             SetArgReferee<2>(sigmas),
                                  Return(parpe::functionEvaluationSuccess)));
     ON_CALL(*fun, getAllMeasurements()).WillByDefault(Return(measurements));
-    ON_CALL(*fun, getAllSigmas()).WillByDefault(Return(sigmas));
 
     EXPECT_CALL(*fun, numParameters()).Times(2);
     EXPECT_CALL(*scalingProvider, getOptimizationParameterIndices());
@@ -552,7 +554,7 @@ TEST_F(hierarchicalOptimization, testWrappedFunIsCalledWithGradient) {
 
     // ensure fun::evaluate is called with gradient
     EXPECT_CALL(*funNonOwning, numParameters());
-    EXPECT_CALL(*funNonOwning, getModelOutputs(_, _, _, _));
+    EXPECT_CALL(*funNonOwning, getModelOutputsAndSigmas(_, _, _, _, _));
     EXPECT_CALL(*scalingProviderNonOwning, getConditionsForParameter(0)).Times(2);
     EXPECT_CALL(*scalingProviderNonOwning, getObservablesForParameter(0, 0)).Times(2);
     EXPECT_CALL(*funNonOwning, evaluate(_, _, _, Ne(gsl::span<double>()), _, _));
@@ -565,7 +567,7 @@ TEST_F(hierarchicalOptimization, testWrappedFunIsCalledWithGradient) {
 
     // test fun::evaluate is not called if no gradient (only get outputs)
     EXPECT_CALL(*funNonOwning, numParameters());
-    EXPECT_CALL(*funNonOwning, getModelOutputs(_, _, _, _));
+    EXPECT_CALL(*funNonOwning, getModelOutputsAndSigmas(_, _, _, _, _));
     EXPECT_CALL(*scalingProviderNonOwning, getConditionsForParameter(0))
             .Times(2);
     EXPECT_CALL(*scalingProviderNonOwning, getObservablesForParameter(0, 0))

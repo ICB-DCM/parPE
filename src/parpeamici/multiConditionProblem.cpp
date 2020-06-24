@@ -467,13 +467,13 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
     if(rdata) {
         return AmiciSimulationRunner::AmiciResultPackageSimple {
             rdata->llh,
-                    timeSeconds,
-                    (solverTemplate.getSensitivityOrder()
-                     > amici::SensitivityOrder::none)
-                    ? rdata->sllh : std::vector<double>(),
-                    rdata->y,
-                    sendStates ? rdata->x : std::vector<double>(),
-                    rdata->status
+            timeSeconds,
+            (solverTemplate.getSensitivityOrder()
+             > amici::SensitivityOrder::none)
+                ? rdata->sllh : std::vector<double>(),
+            rdata->y, rdata->sigmay,
+            sendStates ? rdata->x : std::vector<double>(),
+            rdata->status
         };
     }
 
@@ -485,20 +485,22 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
          > amici::SensitivityOrder::none)
             ? std::vector<double>(model.nplist(), NAN) : std::vector<double>(),
         std::vector<double>(model.nytrue, NAN),
+        std::vector<double>(model.nytrue, NAN),
         sendStates ? std::vector<double>(model.nx_rdata, NAN) : std::vector<double>(),
         amici::AMICI_UNRECOVERABLE_ERROR
     };
 
 }
 
-FunctionEvaluationStatus getModelOutputs(
+FunctionEvaluationStatus getModelOutputsAndSigmas(
         MultiConditionDataProvider *dataProvider,
         LoadBalancerMaster *loadBalancer,
         int maxSimulationsPerPackage,
         OptimizationResultWriter *resultWriter,
         bool logLineSearch,
         gsl::span<const double> parameters,
-        std::vector<std::vector<double> > &modelOutput,
+        std::vector<std::vector<double> > &modelOutputs,
+        std::vector<std::vector<double> > &modelSigmas,
         Logger *logger, double * /*cpuTime*/, bool sendStates)
 {
     int errors = 0;
@@ -506,10 +508,10 @@ FunctionEvaluationStatus getModelOutputs(
     std::vector<int> dataIndices(dataProvider->getNumberOfSimulationConditions());
     std::iota(dataIndices.begin(), dataIndices.end(), 0);
 
-    modelOutput.resize(dataIndices.size());
+    modelOutputs.resize(dataIndices.size());
     auto parameterVector = std::vector<double>(parameters.begin(),
                                                parameters.end());
-    auto jobFinished = [&errors, &modelOutput](JobData *job, int /*dataIdx*/) {
+    auto jobFinished = [&errors, &modelOutputs](JobData *job, int /*dataIdx*/) {
         // deserialize
         auto results =
                 amici::deserializeFromChar<AmiciSummedGradientFunction::ResultMap> (
@@ -518,7 +520,8 @@ FunctionEvaluationStatus getModelOutputs(
 
         for (auto const& result : results) {
             errors += result.second.status;
-            modelOutput[result.first] = result.second.modelOutput;
+            modelOutputs[result.first] = result.second.modelOutput;
+            modelOutputs[result.first] = result.second.modelSigmas;
         }
     };
 
@@ -670,21 +673,18 @@ std::vector<std::string> AmiciSummedGradientFunction::getParameterIds() const
     return dataProvider->getProblemParameterIds();
 }
 
-FunctionEvaluationStatus AmiciSummedGradientFunction::getModelOutputs(
-        gsl::span<const double> parameters,
-        std::vector<std::vector<double> > &modelOutput,
-        Logger *logger, double *cpuTime) const
+FunctionEvaluationStatus AmiciSummedGradientFunction::getModelOutputsAndSigmas(
+    gsl::span<const double> parameters,
+    std::vector<std::vector<double> > &modelOutputs,
+    std::vector<std::vector<double> > &modelSigmas,
+    Logger *logger, double *cpuTime) const
 {
-    return parpe::getModelOutputs(dataProvider, loadBalancer,
-                                  maxSimulationsPerPackage, resultWriter,
-                                  logLineSearch, parameters, modelOutput,
-                                  logger, cpuTime, sendStates);
+    return parpe::getModelOutputsAndSigmas(
+        dataProvider, loadBalancer, maxSimulationsPerPackage, resultWriter,
+        logLineSearch, parameters, modelOutputs, modelSigmas,
+        logger, cpuTime, sendStates);
 }
 
-std::vector<std::vector<double> > AmiciSummedGradientFunction::getAllSigmas() const {
-    // TODO: some could be parameter-dependent
-    return dataProvider->getAllSigmas();
-}
 
 std::vector<std::vector<double> > AmiciSummedGradientFunction::getAllMeasurements() const {
     return dataProvider->getAllMeasurements();
