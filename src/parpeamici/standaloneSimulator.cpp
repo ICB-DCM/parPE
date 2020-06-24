@@ -715,7 +715,7 @@ runNominalParameters(StandaloneSimulator& sim,
         parameterFile, parameterFilePath + "/parameters/parameterNames");
     Expects(parameterValues.size() == parameterNames.size());
     std::map<std::string, double> parameters;
-    for(int i = 0; i < static_cast<int>(parameters.size()); ++i)
+    for(int i = 0; i < static_cast<int>(parameterValues.size()); ++i)
         parameters[parameterNames[i]] = parameterValues[i];
 
     std::string curResultPath = resultPath + "nominal/";
