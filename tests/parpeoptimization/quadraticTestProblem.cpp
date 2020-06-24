@@ -90,6 +90,11 @@ int QuadraticGradientFunction::numParameters() const
     return 1;
 }
 
+std::vector<std::string> QuadraticGradientFunction::getParameterIds() const
+{
+    return std::vector<std::string> {"p1"};
+}
+
 bool OptimizationReporterTest::starting(gsl::span<const double>  /*parameters*/) const
 {
 //    mock().actualCall("OptimizationReporterTest::starting");

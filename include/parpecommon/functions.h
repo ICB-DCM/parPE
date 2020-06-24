@@ -50,6 +50,8 @@ public:
 
     virtual int numParameters() const = 0;
 
+    virtual std::vector<std::string> getParameterIds() const = 0;
+
     virtual ~GradientFunction() = default;
 };
 
@@ -109,6 +111,8 @@ public:
      * @return Number of parameters
      */
     virtual int numParameters() const = 0;
+
+    virtual std::vector<std::string> getParameterIds() const = 0;
 
     virtual ~SummedGradientFunction() = default;
 };
@@ -170,6 +174,11 @@ public:
     }
 
     int numParameters() const override { return grad_fun_->numParameters(); }
+
+    std::vector<std::string> getParameterIds() const override
+    {
+        return grad_fun_->getParameterIds();
+    }
 
     /**
      * @brief Return pointer to the wrapped function (non-owning).

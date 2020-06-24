@@ -65,6 +65,7 @@ class AmiciSimulationRunner
         double simulationTimeSeconds;
         std::vector<double> gradient;
         std::vector<double> modelOutput;
+        std::vector<double> modelSigmas;
         std::vector<double> modelStates;
         int status;
     };
@@ -174,6 +175,7 @@ serialize(Archive& ar,
     ar& u.simulationTimeSeconds;
     ar& u.gradient;
     ar& u.modelOutput;
+    ar& u.modelSigmas;
     ar& u.modelStates;
     ar& u.status;
 }

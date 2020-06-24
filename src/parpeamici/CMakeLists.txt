@@ -42,7 +42,7 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 if (${OpenMP_FOUND})
-    target_link_libraries(${PROJECT_NAME} PUBLIC OpenMP::OpenMP_CXX)
+    target_link_libraries(${PROJECT_NAME} INTERFACE OpenMP::OpenMP_CXX)
 endif()
 
 install(TARGETS ${PROJECT_NAME} EXPORT ParPETargets

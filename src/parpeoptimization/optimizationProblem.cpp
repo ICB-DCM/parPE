@@ -358,6 +358,11 @@ void OptimizationReporter::setGradientFunction(GradientFunction *gradFun) const 
     cached_gradient_.resize(num_parameters_);
 }
 
+std::vector<std::string> OptimizationReporter::getParameterIds() const
+{
+    return grad_fun_->getParameterIds();
+}
+
 void OptimizationProblemImpl::fillParametersMin(gsl::span<double> buffer) const {
     std::copy(parametersMin.begin(), parametersMin.end(), buffer.begin());
 }

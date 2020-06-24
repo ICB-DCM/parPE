@@ -4,7 +4,7 @@ https://academic.oup.com/bioinformatics/advance-article/doi/10.1093/bioinformati
 """
 
 from typing import Tuple, Dict, List
-
+import numpy as np
 import pandas as pd
 import petab.C as ptc
 import sympy as sp
@@ -136,6 +136,19 @@ def get_candidates_for_hierarchical(
         if x in sigma_candidates:
             raise RuntimeError(
                 f"Determined {x} as candidate for both scaling and sigma.")
+
+    # TODO Can't use hierarchical optimization with non-normal or
+    #  transformation yet
+    if (offset_candidates or scaling_candidates or sigma_candidates) \
+            and ((ptc.NOISE_DISTRIBUTION in observable_df
+                  and not np.all(observable_df[ptc.NOISE_DISTRIBUTION]
+                                 == ptc.NORMAL))
+                 or (ptc.OBSERVABLE_TRANSFORMATION in observable_df
+                     and not np.all(
+                        observable_df[ptc.OBSERVABLE_TRANSFORMATION]
+                        == ptc.LIN))):
+        raise ValueError("Can't use hierarchical optimization with non-normal "
+                         "noise or observable transformation yet.")
 
     return (list(offset_candidates),
             list(scaling_candidates),
