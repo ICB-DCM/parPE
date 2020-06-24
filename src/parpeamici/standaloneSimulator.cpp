@@ -659,8 +659,15 @@ runAlongTrajectory(StandaloneSimulator& sim,
     auto lock = hdf5MutexGetLock();
     H5::H5File parameterFile(parameterFileName, H5F_ACC_RDONLY);
     H5::H5File conditionFile(conditionFileName, H5F_ACC_RDONLY);
-    auto parameterNames = hdf5Read1dStringDataset(
-        parameterFile, parameterFilePath + "/parameters/parameterNames");
+    std::vector<std::string> parameterNames;
+    if(hdf5GroupExists(parameterFile,
+                        parameterFilePath + "/parameters/parameterNames")){
+        parameterNames = hdf5Read1dStringDataset(
+            parameterFile, parameterFilePath + "/parameters/parameterNames");
+    } else {
+        parameterNames = hdf5Read1dStringDataset(
+            parameterFile, parameterFilePath + "/inputData/parameters/parameterNames");
+    }
 
     lock.unlock();
 

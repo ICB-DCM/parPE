@@ -429,10 +429,7 @@ HierarchicalOptimizationWrapper::fillInAnalyticalSigmas(
                 for (int timeIdx = 0; timeIdx < numTimepoints; ++timeIdx) {
                     // NOTE: this must be in sync with data ordering in AMICI
                     // (assumes row-major)
-                    // Expecting NaN value for sigma parameters being estimated,
-                    // but got non-NAN.
                     int flat_index = observableIdx + timeIdx * numObservables;
-                    Expects(std::isnan(allSigmas[conditionIdx][flat_index]));
                     allSigmas[conditionIdx][flat_index] = sigmaParameterValue;
                 }
             }

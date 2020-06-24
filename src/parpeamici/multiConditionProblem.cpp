@@ -511,7 +511,7 @@ FunctionEvaluationStatus getModelOutputsAndSigmas(
     modelOutputs.resize(dataIndices.size());
     auto parameterVector = std::vector<double>(parameters.begin(),
                                                parameters.end());
-    auto jobFinished = [&errors, &modelOutputs](JobData *job, int /*dataIdx*/) {
+    auto jobFinished = [&errors, &modelOutputs, &modelSigmas](JobData *job, int /*dataIdx*/) {
         // deserialize
         auto results =
                 amici::deserializeFromChar<AmiciSummedGradientFunction::ResultMap> (
@@ -521,7 +521,7 @@ FunctionEvaluationStatus getModelOutputsAndSigmas(
         for (auto const& result : results) {
             errors += result.second.status;
             modelOutputs[result.first] = result.second.modelOutput;
-            modelOutputs[result.first] = result.second.modelSigmas;
+            modelSigmas[result.first] = result.second.modelSigmas;
         }
     };
 

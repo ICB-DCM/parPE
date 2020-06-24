@@ -76,7 +76,7 @@ def test_nompi_optimization():
            os.path.join(outdir, result_filename), '/inputData',
            os.path.join(outdir, result_filename), '/',
            sim_file, '/',
-           '--at-optimum', '--nompi']
+           '--at-optimum', '--nompi', '--compute-inner']
     ret = subprocess.run(cmd, capture_output=True,
                          check=True, encoding="utf-8")
     assert os.path.isfile(sim_file)
@@ -109,7 +109,7 @@ def test_mpi_optimization():
            os.path.join(outdir, result_filename), '/inputData',
            os.path.join(outdir, result_filename), '/',
            sim_file, '/',
-           '--along-trajectory', '--mpi']
+           '--along-trajectory', '--mpi', '--nocompute-inner']
     ret = subprocess.run(cmd, capture_output=True,
                          check=True, encoding="utf-8")
 
@@ -130,7 +130,7 @@ def test_mpi_optimization():
            HDF5_FILE_TEST, '/',
            os.path.join(outdir, result_filename), '/',
            sim_file, '/',
-           '--at-optimum', '--mpi']
+           '--at-optimum', '--mpi', '--compute-inner']
     ret = subprocess.run(cmd, capture_output=True,
                          check=True, encoding="utf-8")
     assert os.path.isfile(sim_file)
