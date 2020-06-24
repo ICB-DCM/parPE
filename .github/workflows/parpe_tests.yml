@@ -109,6 +109,10 @@ jobs:
          -Dsonar.cfamily.build-wrapper-output=bw-output \
          -Dsonar.projectVersion="$(git describe --abbrev=4 --dirty=-dirty --always --tags | tr -d '\n')"
 
+    - name: Run example notebooks
+      run: |
+        misc/run_notebook.sh examples/parpeamici/steadystate/parpeExampleSteadystateBasic.ipynb
+
     - name: Run valgrind
       run: |
         cd ${PARPE_BUILD} \
