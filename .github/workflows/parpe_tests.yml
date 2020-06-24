@@ -111,7 +111,7 @@ jobs:
 
     - name: Run example notebooks
       run: |
-        misc/run_notebook.sh examples/parpeamici/steadystate/parpeExampleSteadystateBasic.ipynb examples/parpeamici/steadystate/parpeExampleSteadystateHierarchical.ipynb
+        misc/run_notebook.sh examples/parpeamici/steadystate/
 
     - name: Run valgrind
       run: |
