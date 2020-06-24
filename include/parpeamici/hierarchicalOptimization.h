@@ -490,7 +490,8 @@ removeInnerParameters(const gsl::span<T const> allParameters,
                       sigmaParameterIndices.end(), idxOuter)
             != std::end(sigmaParameterIndices))
             continue;
-        outerParameters[idxOuter++] = allParameters[idxFull];
+        outerParameters[idxOuter] = allParameters[idxFull];
+        ++idxOuter;
     }
 
     Ensures(idxOuter == static_cast<int>(outerParameters.size()));

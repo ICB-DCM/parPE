@@ -146,7 +146,9 @@ StandaloneSimulator::run(const std::string& resultFile,
             offsetDummy,
             sigmaDummy);
 
-        allFinished = [&](std::vector<JobData>& jobs)
+        allFinished = [this, &dataIndices, &hierarchical, &parameterValues,
+                       &outerParameters, &resultFileH5, &resultPath, &model,
+                       &rw](std::vector<JobData>& jobs)
             -> int {
             /* all finished */
             // must wait for all jobs to finish because of hierarchical
@@ -169,7 +171,6 @@ StandaloneSimulator::run(const std::string& resultFile,
                 job.recvBuffer = std::vector<char>(); // free buffer
                 for (auto& result : results) {
                     swap(simulationResults[result.first], result.second);
-                    // TODO sigmas
                     modelOutputs[result.first] =
                         simulationResults[result.first].modelOutput;
                     modelSigmas[result.first] =
@@ -208,8 +209,6 @@ StandaloneSimulator::run(const std::string& resultFile,
                 offsets,
                 sigmas);
             {
-                auto resultFileH5 = rw.reopenFile();
-                hdf5EnsureGroupExists(resultFileH5.getId(), resultPath.c_str());
                 auto lock = hdf5MutexGetLock();
                 amici::hdf5::createAndWriteDouble1DDataset(
                     resultFileH5, resultPath + "/problemParameters", parameterValues);
@@ -265,7 +264,7 @@ StandaloneSimulator::run(const std::string& resultFile,
         } else {
 #endif
             errors +=
-                simRunner->runSharedMemory([&](std::vector<char>& buffer, int jobId) {
+                simRunner->runSharedMemory([this](std::vector<char>& buffer, int jobId) {
                     messageHandler(buffer, jobId);
                 });
 #ifdef PARPE_ENABLE_MPI
@@ -281,8 +280,6 @@ StandaloneSimulator::run(const std::string& resultFile,
         Expects(parameterValues.size() == (unsigned)wrappedFun->numParameters());
 
         {
-            auto resultFileH5 = rw.reopenFile();
-            hdf5EnsureGroupExists(resultFileH5.getId(), resultPath.c_str());
             auto lock = hdf5MutexGetLock();
             amici::hdf5::createAndWriteDouble1DDataset(
                 resultFileH5, resultPath + "/problemParameters", parameterValues);
@@ -343,7 +340,7 @@ StandaloneSimulator::run(const std::string& resultFile,
         } else {
 #endif
             errors +=
-                simRunner->runSharedMemory([&](std::vector<char>& buffer, int jobId) {
+                simRunner->runSharedMemory([this](std::vector<char>& buffer, int jobId) {
                     messageHandler(buffer, jobId);
                 });
 #ifdef PARPE_ENABLE_MPI
@@ -612,18 +609,18 @@ runFinalParameters(StandaloneSimulator& sim,
     int errors = 0;
 
     int numStarts = getNumStarts(parameterFile);
-    for (int i = 0; i < numStarts; ++i) {
-        std::cout << "Running for start " << i << std::endl;
+    for (int iStart = 0; iStart < numStarts; ++iStart) {
+        std::cout << "Running for start " << iStart << std::endl;
         try {
             auto parameterValues =
-                parpe::getFinalParameters(std::to_string(i), parameterFile);
+                parpe::getFinalParameters(std::to_string(iStart), parameterFile);
             Expects(parameterValues.size() == parameterNames.size());
             std::map<std::string, double> parameters;
             for(int i = 0; i < static_cast<int>(parameters.size()); ++i)
                 parameters[parameterNames[i]] = parameterValues[i];
 
             std::string curResultPath =
-                resultPath + "multistarts/" + std::to_string(i);
+                resultPath + "multistarts/" + std::to_string(iStart);
 
             errors += sim.run(resultFileName,
                               curResultPath,
@@ -633,7 +630,7 @@ runFinalParameters(StandaloneSimulator& sim,
                               conditionFilePath,
                               computeInnerParameters);
         } catch (H5::FileIException const& e) {
-            std::cerr << "Exception during start " << i << " "
+            std::cerr << "Exception during start " << iStart << " "
                       << e.getDetailMsg() << std::endl;
             std::cerr << "... skipping" << std::endl;
         }

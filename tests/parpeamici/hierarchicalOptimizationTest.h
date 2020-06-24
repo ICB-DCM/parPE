@@ -191,7 +191,8 @@ TEST_F(hierarchicalOptimization, hierarchicalOptimization) {
     EXPECT_CALL(*fun, getModelOutputsAndSigmas(
                     gsl::span<const double>(onesFullParameters), _, _, _, _));
 
-    std::vector<std::vector<double>> outputs, modelSigmas;
+    std::vector<std::vector<double>> outputs;
+    std::vector<std::vector<double>> modelSigmas;
     std::tie(outputs, modelSigmas) =
         hierarchicalOptimizationWrapper.getUnscaledModelOutputsAndSigmas(
                 reducedParameters, nullptr, nullptr);
