@@ -65,6 +65,25 @@ StandaloneSimulator::run(const std::string& resultFile,
 
     rw.createDatasets(dataProvider->getNumberOfSimulationConditions());
 
+    // Write IDs
+    auto resultFileH5 = rw.reopenFile();
+    hdf5EnsureGroupExists(resultFileH5.getId(), resultPath.c_str());
+    {
+        auto lock = hdf5MutexGetLock();
+        hdf5Write1dStringDataset(resultFileH5,
+                                 resultPath,
+                                 "stateIds",
+                                 model->getStateIds());
+        hdf5Write1dStringDataset(resultFileH5,
+                                 resultPath,
+                                 "observableIds",
+                                 model->getObservableIds());
+        hdf5Write1dStringDataset(resultFileH5,
+                                 resultPath,
+                                 "parameterIds",
+                                 model->getParameterIds());
+    }
+
     std::cout << "Starting simulation. Number of conditions: "
               << dataProvider->getNumberOfSimulationConditions() << std::endl;
     std::unique_ptr<AmiciSimulationRunner> simRunner;
@@ -184,25 +203,14 @@ StandaloneSimulator::run(const std::string& resultFile,
                 scalings,
                 offsets,
                 sigmas);
-            auto resultFileH5 = rw.reopenFile();
-            hdf5EnsureGroupExists(resultFileH5.getId(), resultPath.c_str());
             {
+                auto resultFileH5 = rw.reopenFile();
+                hdf5EnsureGroupExists(resultFileH5.getId(), resultPath.c_str());
                 auto lock = hdf5MutexGetLock();
                 amici::hdf5::createAndWriteDouble1DDataset(
                     resultFileH5, resultPath + "/problemParameters", parameterValues);
-                hdf5Write1dStringDataset(resultFileH5,
-                                         resultPath,
-                                         "stateIds",
-                                         model->getStateIds());
-                hdf5Write1dStringDataset(resultFileH5,
-                                         resultPath,
-                                         "observableIds",
-                                         model->getObservableIds());
-                hdf5Write1dStringDataset(resultFileH5,
-                                         resultPath,
-                                         "parameterIds",
-                                         model->getParameterIds());
             }
+
             // compute llh
             for (int conditionIdx = 0;
                  (unsigned)conditionIdx < simulationResults.size();
@@ -268,12 +276,13 @@ StandaloneSimulator::run(const std::string& resultFile,
         }
         Expects(parameterValues.size() == (unsigned)wrappedFun->numParameters());
 
-        auto resultFileH5 = rw.reopenFile();
-        hdf5EnsureGroupExists(resultFileH5.getId(), resultPath.c_str());
-        auto lock = hdf5MutexGetLock();
-        amici::hdf5::createAndWriteDouble1DDataset(
-            resultFileH5, resultPath + "/problemParameters", parameterValues);
-
+        {
+            auto resultFileH5 = rw.reopenFile();
+            hdf5EnsureGroupExists(resultFileH5.getId(), resultPath.c_str());
+            auto lock = hdf5MutexGetLock();
+            amici::hdf5::createAndWriteDouble1DDataset(
+                resultFileH5, resultPath + "/problemParameters", parameterValues);
+        }
         jobFinished =
             [&](
                 JobData* job,
@@ -294,6 +303,10 @@ StandaloneSimulator::run(const std::string& resultFile,
 
                     rw.saveTimepoints(edata->getTimepoints(),
                                       conditionIdx);
+                    if(!result.second.modelStates.empty()) {
+                        rw.saveStates(result.second.modelStates, edata->nt(),
+                                      model->nx_rdata, conditionIdx);
+                    }
                     rw.saveMeasurements(edata->getObservedData(),
                                         edata->nt(),
                                         edata->nytrue(),
