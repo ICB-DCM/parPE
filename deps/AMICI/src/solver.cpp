@@ -20,8 +20,9 @@ Solver::Solver(AmiciApplication *app) : app(app)
 Solver::Solver(const Solver &other)
     : ism(other.ism), lmm(other.lmm), iter(other.iter),
       interpType(other.interpType), maxsteps(other.maxsteps),
-      sensi_meth(other.sensi_meth), stldet(other.stldet),
-      ordering(other.ordering), newton_maxsteps(other.newton_maxsteps),
+      sensi_meth(other.sensi_meth), sensi_meth_preeq(other.sensi_meth_preeq),
+      stldet(other.stldet), ordering(other.ordering),
+      newton_maxsteps(other.newton_maxsteps),
       newton_maxlinsteps(other.newton_maxlinsteps),
       newton_damping_factor_mode(other.newton_damping_factor_mode),
       newton_damping_factor_lower_bound(other.newton_damping_factor_lower_bound),
@@ -67,7 +68,8 @@ void Solver::runB(const realtype tout) const {
 
 void Solver::setup(const realtype t0, Model *model, const AmiVector &x0,
                    const AmiVector &dx0, const AmiVectorArray &sx0,
-                   const AmiVectorArray &sdx0) const {
+                   const AmiVectorArray &sdx0, bool steadystate,
+                   const AmiVector &xQ0) const {
     if (nx() != model->nx_solver || nplist() != model->nplist() ||
         nquad() != model->nJ * model->nplist()) {
         resetMutableMemory(model->nx_solver, model->nplist(),
@@ -79,7 +81,7 @@ void Solver::setup(const realtype t0, Model *model, const AmiVector &x0,
         throw AmiException("Failed to allocated solver memory!");
 
     /* Initialize CVodes/IDAs solver*/
-    init(t0, x0, dx0);
+    init(t0, x0, dx0, steadystate);
 
     /* Clear diagnosis storage */
     resetDiagnosis();
@@ -115,8 +117,15 @@ void Solver::setup(const realtype t0, Model *model, const AmiVector &x0,
 
             applyTolerancesFSA();
         } else if (sensi_meth == SensitivityMethod::adjoint) {
-            /* Allocate space for the adjoint computation */
-            adjInit();
+            if (steadystate) {
+                /* Allocate space for forward quadratures */
+                quadInit(xQ0);
+                applyQuadTolerances();
+                setSparseJacFn_ss();
+            } else {
+                /* Allocate space for the adjoint computation */
+                adjInit();
+            }
         }
     }
 
@@ -501,6 +510,23 @@ void Solver::applyQuadTolerancesASA(const int which) const {
     quadSStolerancesB(which, quad_rtol, quad_atol);
 }
 
+void Solver::applyQuadTolerances() const {
+    if (!getQuadInitDone())
+        throw AmiException("Quadratures were not intialized, the "
+                           "tolerances cannot be applied yet!");
+
+    if (sensi < SensitivityOrder::first)
+        return;
+
+    realtype quad_rtol = isNaN(this->quad_rtol) ? rtol : this->quad_rtol;
+    realtype quad_atol = isNaN(this->quad_atol) ? atol : this->quad_atol;
+
+    /* Enable Quadrature Error Control */
+    setQuadErrCon(!std::isinf(quad_atol) && !std::isinf(quad_rtol));
+
+    quadSStolerances(quad_rtol, quad_atol);
+}
+
 void Solver::applySensitivityTolerances() const {
     if (sensi < SensitivityOrder::first)
         return;
@@ -515,14 +541,29 @@ void Solver::applySensitivityTolerances() const {
 
 SensitivityMethod Solver::getSensitivityMethod() const { return sensi_meth; }
 
+SensitivityMethod Solver::getSensitivityMethodPreequilibration() const { return sensi_meth_preeq; }
+
 void Solver::setSensitivityMethod(const SensitivityMethod sensi_meth) {
-    if (rdata_mode == RDataReporting::residuals &&
-        sensi_meth == SensitivityMethod::adjoint)
-        throw AmiException("Adjoint Sensitivity Analysis is not compatible with"
-                           " only reporting residuals!");
     if (sensi_meth != this->sensi_meth)
         resetMutableMemory(nx(), nplist(), nquad());
-    this->sensi_meth = sensi_meth;
+    sensitivityMethod(sensi_meth, false);
+}
+
+void Solver::setSensitivityMethodPreequilibration(const SensitivityMethod sensi_meth_preeq) {
+    sensitivityMethod(sensi_meth_preeq, true);
+}
+
+void Solver::sensitivityMethod(const SensitivityMethod new_sensi_meth,
+                               bool preequilibration) {
+    if (rdata_mode == RDataReporting::residuals &&
+        new_sensi_meth == SensitivityMethod::adjoint)
+        throw AmiException("Adjoint Sensitivity Analysis is not compatible with"
+                           " only reporting residuals!");
+    if (preequilibration) {
+        this->sensi_meth_preeq = new_sensi_meth;
+    } else {
+        this->sensi_meth = new_sensi_meth;
+    }
 }
 
 int Solver::getNewtonMaxSteps() const { return newton_maxsteps; }
@@ -925,6 +966,8 @@ bool Solver::getQuadInitDoneB(const int which) const {
            initializedQB.at(which);
 }
 
+bool Solver::getQuadInitDone() const { return quadInitialized; }
+
 void Solver::setInitDone() const { initialized = true; };
 
 void Solver::setSensInitDone() const { sensInitialized = true; }
@@ -944,6 +987,8 @@ void Solver::setQuadInitDoneB(const int which) const {
         initializedQB.resize(which + 1, false);
     initializedQB.at(which) = true;
 }
+
+void Solver::setQuadInitDone() const { quadInitialized = true; }
 
 void Solver::switchForwardSensisOff() const {
     sensToggleOff();
@@ -975,6 +1020,7 @@ void Solver::resetMutableMemory(const int nx, const int nplist,
     xB = AmiVector(nx);
     dxB = AmiVector(nx);
     xQB = AmiVector(nquad);
+    xQ = AmiVector(nx);
 
     solverMemoryB.clear();
     initializedB.clear();
@@ -982,13 +1028,14 @@ void Solver::resetMutableMemory(const int nx, const int nplist,
 }
 
 void Solver::writeSolution(realtype *t, AmiVector &x, AmiVector &dx,
-                           AmiVectorArray &sx) const {
+                           AmiVectorArray &sx, AmiVector &xQ) const {
     *t = gett();
     x.copy(getState(*t));
     dx.copy(getDerivativeState(*t));
-    if (sensInitialized) {
+    if (sensInitialized)
         sx.copy(getStateSensitivity(*t));
-    }
+    if (quadInitialized)
+        xQ.copy(getQuadrature(*t));
 }
 
 void Solver::writeSolutionB(realtype *t, AmiVector &xB, AmiVector &dxB,
@@ -1077,6 +1124,22 @@ const AmiVector &Solver::getAdjointQuadrature(const int which,
     }
     return xQB;
 }
+
+const AmiVector &Solver::getQuadrature(realtype t) const {
+    if (quadInitialized) {
+        if (solverWasCalledF) {
+            if (t == this->t) {
+                getQuad(t);
+                return xQ;
+            }
+            getQuadDky(t, 0);
+        }
+    } else {
+        xQ.reset();
+    }
+    return xQ;
+}
+
 
 realtype Solver::gett() const { return t; }
 

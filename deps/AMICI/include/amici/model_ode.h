@@ -36,6 +36,8 @@ class Model_ODE : public Model {
      * @param nx_solver number of state variables with conservation laws applied
      * @param nxtrue_solver number of state variables of the non-augmented model
      with conservation laws applied
+     * @param nx_solver_reinit number of state variables with conservation laws
+     * subject to reinitialization
      * @param ny number of observables
      * @param nytrue number of observables of the non-augmented model
      * @param nz number of event observables
@@ -63,7 +65,7 @@ class Model_ODE : public Model {
      * @param ndxdotdp_implicit number of nonzero elements dxdotdp_implicit
      */
     Model_ODE(const int nx_rdata, const int nxtrue_rdata, const int nx_solver,
-              const int nxtrue_solver, const int ny, const int nytrue,
+              const int nxtrue_solver, const int nx_solver_reinit, const int ny, const int nytrue,
               const int nz, const int nztrue, const int ne, const int nJ,
               const int nw, const int ndwdx, const int ndwdp,
               const int ndxdotdw, std::vector<int> ndJydy,
@@ -73,7 +75,7 @@ class Model_ODE : public Model {
               std::vector<realtype> const &idlist,
               std::vector<int> const &z2event, const bool pythonGenerated=false,
               const int ndxdotdp_explicit=0, const int ndxdotdp_implicit=0)
-        : Model(nx_rdata, nxtrue_rdata, nx_solver, nxtrue_solver, ny, nytrue,
+        : Model(nx_rdata, nxtrue_rdata, nx_solver, nxtrue_solver, nx_solver_reinit, ny, nytrue,
                 nz, nztrue, ne, nJ, nw, ndwdx, ndwdp, ndxdotdw, std::move(ndJydy),
                 nnz, ubw, lbw, o2mode, p, k, plist, idlist, z2event,
                 pythonGenerated, ndxdotdp_explicit, ndxdotdp_implicit) {}
@@ -125,10 +127,14 @@ class Model_ODE : public Model {
 
     void fJSparseB(const realtype t, realtype cj, const AmiVector &x,
                    const AmiVector &dx, const AmiVector &xB,
+                   const AmiVector &dxB, const AmiVector &xBdot) override;
+
+    void fJSparseB(const realtype t, realtype cj, const AmiVector &x,
+                   const AmiVector &dx, const AmiVector &xB,
                    const AmiVector &dxB, const AmiVector &xBdot,
                    SUNMatrix JB) override;
 
-    /** implementation of fJSparseB at the N_Vector level, this function
+   /** implementation of fJSparseB at the N_Vector level, this function
      * provides an interface to the model specific routines for the solver
      * implementation
      * @param t timepoint
@@ -223,6 +229,29 @@ class Model_ODE : public Model {
      * @param qBdot Vector with the adjoint quadrature right hand side
      */
     void fqBdot(realtype t, N_Vector x, N_Vector xB, N_Vector qBdot);
+
+    void fxBdot_ss(const realtype t, const AmiVector &xB,
+                   const AmiVector & /*dxB*/, AmiVector &xBdot) override;
+
+    /** implementation of fxBdot for steady state case at the N_Vector level
+     * @param t timepoint
+     * @param xB Vector with the states
+     * @param xBdot Vector with the adjoint right hand side
+     */
+    void fxBdot_ss(realtype t, N_Vector xB, N_Vector xBdot);
+
+    /** implementation of fqBdot for steady state case at the N_Vector level
+     * @param t timepoint
+     * @param xB Vector with the adjoint states
+     * @param qBdot Vector with the adjoint quadrature right hand side
+     */
+    void fqBdot_ss(realtype t, N_Vector xB, N_Vector qBdot);
+
+    /**
+     * @brief Sparse Jacobian function backward, steady state case
+     * @param JB sparse matrix to which values of the Jacobian will be written
+     */
+    void fJSparseB_ss(SUNMatrix JB) override;
 
     /** Sensitivity of dx/dt wrt model parameters w
      * @param t timepoint

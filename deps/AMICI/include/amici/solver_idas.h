@@ -52,6 +52,8 @@ class IDASolver : public Solver {
     void quadSStolerancesB(int which, realtype reltolQB,
                            realtype abstolQB) const override;
 
+    void quadSStolerances(realtype reltolQ, realtype abstolQ) const override;
+
     int solve(realtype tout, int itask) const override;
 
     int solveF(realtype tout, int itask,
@@ -74,6 +76,10 @@ class IDASolver : public Solver {
     void getQuadB(int which) const override;
 
     void getQuadDkyB(realtype t, int k, int which) const override;
+
+    void getQuad(realtype &t) const override;
+
+    void getQuadDky(realtype t, int k) const override;
 
     void calcIC(realtype tout1) const override;
 
@@ -111,6 +117,8 @@ class IDASolver : public Solver {
 
     void setQuadErrConB(int which, bool flag) const override;
 
+    void setQuadErrCon(bool flag) const override;
+
     void setErrHandlerFn() const override;
 
     void setUserData(Model *model) const override;
@@ -134,6 +142,8 @@ class IDASolver : public Solver {
                        const int *plist) const override;
 
     void adjInit() const override;
+
+    void quadInit(const AmiVector &xQ0) const override;
 
     void allocateSolverB(int *which) const override;
 
@@ -164,7 +174,7 @@ class IDASolver : public Solver {
     void *getAdjBmem(void *ami_mem, int which) const override;
 
     void init(realtype t0, const AmiVector &x0,
-              const AmiVector &dx0) const override;
+              const AmiVector &dx0, bool steadystate) const override;
 
     void sensInit1(const AmiVectorArray &sx0, const AmiVectorArray &sdx0) const override;
 
@@ -190,6 +200,8 @@ class IDASolver : public Solver {
     void setBandJacFnB(int which) const override;
 
     void setJacTimesVecFnB(int which) const override;
+
+    void setSparseJacFn_ss() const override;
 };
 
 } // namespace amici

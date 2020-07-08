@@ -100,11 +100,14 @@ class Solver {
      * @param dx0 initial derivative states
      * @param sx0 initial state sensitivities
      * @param sdx0 initial derivative state sensitivities
+     * @param steadystate (optional) flag indicating steadystate case
+     * @param xQ0 initial quadrature vector
      */
 
     void setup(realtype t0, Model *model, const AmiVector &x0,
                const AmiVector &dx0, const AmiVectorArray &sx0,
-               const AmiVectorArray &sdx0) const;
+               const AmiVectorArray &sdx0, bool steadystate = false,
+               const AmiVector &xQ0 = AmiVector(0)) const;
 
     /**
      * @brief Initialises the AMI memory object for the backwards problem
@@ -173,10 +176,22 @@ class Solver {
     SensitivityMethod getSensitivityMethod() const;
 
     /**
-     * @brief Set sensitivity method
+     * @brief Set sensitivity method (wrapper for sensitivityMethod())
      * @param sensi_meth
      */
     void setSensitivityMethod(SensitivityMethod sensi_meth);
+
+    /**
+     * @brief Return current sensitivity method during preequilibration
+     * @return method enum
+     */
+    SensitivityMethod getSensitivityMethodPreequilibration() const;
+
+    /**
+     * @brief Set sensitivity method for preequilibration (wrapper for sensitivityMethod())
+     * @param sensi_meth_preeq
+     */
+    void setSensitivityMethodPreequilibration(SensitivityMethod sensi_meth_preeq);
 
     /**
      * @brief Disable forward sensitivity integration (used in steady state sim)
@@ -564,9 +579,10 @@ class Solver {
      * @param x state
      * @param dx derivative state
      * @param sx state sensitivity
+     * @param xQ quadrature
      */
     void writeSolution(realtype *t, AmiVector &x, AmiVector &dx,
-                       AmiVectorArray &sx) const;
+                       AmiVectorArray &sx, AmiVector &xQ) const;
 
     /**
      * @brief write solution from forward simulation
@@ -623,6 +639,13 @@ class Solver {
      * @return (interpolated) solution xQB
      */
     const AmiVector &getAdjointQuadrature(int which, realtype t) const;
+
+    /**
+     * @brief Access quadrature solution at time t
+     * @param t time
+     * @return (interpolated) solution xQ
+     */
+    const AmiVector &getQuadrature(realtype t) const;
 
     /**
      * @brief Reinitializes the states in the solver after an event occurence
@@ -897,14 +920,23 @@ class Solver {
     virtual void getQuadB(int which) const = 0;
 
     /**
+     * @brief extracts the quadrature at the current timepoint from solver
+     * memory and writes it to the xQ member variable
+     *
+     * @param t timepoint for quadrature extraction
+     */
+    virtual void getQuad(realtype &t) const = 0;
+
+    /**
      * @brief Initialises the states at the specified initial timepoint
      *
      * @param t0 initial timepoint
      * @param x0 initial states
      * @param dx0 initial derivative states
+     * @param steadystate flag indicating simulation in steadystate
      */
     virtual void init(realtype t0, const AmiVector &x0,
-                      const AmiVector &dx0) const = 0;
+                      const AmiVector &dx0, bool steadystate) const = 0;
 
     /**
      * @brief initialises the forward sensitivities
@@ -995,6 +1027,11 @@ class Solver {
     virtual void setJacTimesVecFnB(int which) const = 0;
 
     /**
+     * @brief sets the sparse Jacobian function for backward steady state case
+     */
+    virtual void setSparseJacFn_ss() const = 0;
+
+    /**
      * @brief Create specifies solver method and initializes solver memory for
      * the forward problem
      */
@@ -1034,6 +1071,14 @@ class Solver {
      * @param flag activation flag
      */
     virtual void setQuadErrConB(int which, bool flag) const = 0;
+
+    /**
+     * @brief Specifies whether error control is also enforced for the
+     * forward quadrature problem
+     *
+     * @param flag activation flag
+     */
+    virtual void setQuadErrCon(bool flag) const = 0;
 
     /**
      * @brief Attaches the error handler function (errMsgIdAndTxt)
@@ -1159,10 +1204,24 @@ class Solver {
     virtual void getQuadDkyB(realtype t, int k, int which) const = 0;
 
     /**
-     * @brief initializes the adjoint problem
+     * @brief interpolates the (derivative of the) solution at the requested
+     * timepoint
      *
+     * @param t timepoint
+     * @param k derivative order
+     */
+    virtual void getQuadDky(realtype t, int k) const = 0;
+
+    /**
+     * @brief initializes the adjoint problem
      */
     virtual void adjInit() const = 0;
+
+    /**
+     * @brief initializes the quadratures
+     * @param xQ0 vector with initial values for xQ
+     */
+    virtual void quadInit(const AmiVector &xQ0) const = 0;
 
     /**
      * @brief Specifies solver method and initializes solver memory for the
@@ -1193,6 +1252,15 @@ class Solver {
      */
     virtual void quadSStolerancesB(int which, realtype reltolQB,
                                    realtype abstolQB) const = 0;
+
+    /**
+     * @brief sets relative and absolute tolerances for the quadrature problem
+     *
+     * @param reltolQB relative tolerances
+     * @param abstolQB absolute tolerances
+     */
+    virtual void quadSStolerances(realtype reltolQB,
+                                  realtype abstolQB) const = 0;
 
     /**
      * @brief reports the number of solver steps
@@ -1341,6 +1409,12 @@ class Solver {
     bool getQuadInitDoneB(int which) const;
 
     /**
+     * @brief checks whether memory for quadratures has been allocated
+     * @return proxy for solverMemory->(cv|ida)_QuadMallocDone
+     */
+    bool getQuadInitDone() const;
+
+    /**
      * @brief attaches a diagonal linear solver to the forward problem
      */
     virtual void diag() const = 0;
@@ -1398,6 +1472,12 @@ class Solver {
      * @param which identifier of the backwards problem
      */
     void applyQuadTolerancesASA(int which) const;
+
+    /**
+     * @brief updates quadrature solver tolerances according to the
+     * currently specified member variables
+     */
+    void applyQuadTolerances() const;
 
     /**
      * @brief updates all senstivivity solver tolerances according to the
@@ -1486,6 +1566,19 @@ class Solver {
      */
     void setQuadInitDoneB(int which) const;
 
+    /**
+     * @brief sets that memory for quadratures has been allocated
+     */
+    void setQuadInitDone() const;
+
+    /**
+     * @brief Sets sensitivity method (for simulation or preequilibration)
+     * @param new_sensi_meth new value for sensi_meth[_preeq]
+     * @param preequilibration flag indicating preequilibration or simulation
+     */
+    void sensitivityMethod(const SensitivityMethod new_sensi_meth,
+                           bool preequilibration);
+
     /** state (dimension: nx_solver) */
     mutable AmiVector x = AmiVector(0);
 
@@ -1511,6 +1604,9 @@ class Solver {
     /** adjoint quadrature interface variable (dimension: nJ x nplist) */
     mutable AmiVector xQB = AmiVector(0);
 
+    /** forward quadrature interface variable (dimension: nx_solver) */
+    mutable AmiVector xQ = AmiVector(0);
+
     /** integration time of the forward problem */
     mutable realtype t = std::nan("");
 
@@ -1523,6 +1619,9 @@ class Solver {
   private:
     /** method for sensitivity computation */
     SensitivityMethod sensi_meth = SensitivityMethod::forward;
+
+    /** method for sensitivity computation in preequilibration */
+    SensitivityMethod sensi_meth_preeq = SensitivityMethod::forward;
 
     /** Use possibly the Newton solver in the adjoint problem. */
     bool newton_solver_backward = true;
@@ -1611,6 +1710,9 @@ class Solver {
 
     /** flag indicating whether adjInit was called */
     mutable bool adjInitialized = false;
+
+    /** flag indicating whether (forward) quadInit was called */
+    mutable bool quadInitialized = false;
 
     /** vector of flags indicating whether binit was called for respective
      which */

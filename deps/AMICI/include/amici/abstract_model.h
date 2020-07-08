@@ -69,6 +69,23 @@ class AbstractModel {
                         const AmiVector &sdx, AmiVector &sxdot) = 0;
 
     /**
+     * @brief Residual function backward when running in steady state mode
+     * @param t time
+     * @param xB adjoint state
+     * @param dxB time derivative of state (DAE only)
+     * @param xBdot array to which values of the residual function will be
+     * written
+     */
+    virtual void fxBdot_ss(const realtype t, const AmiVector &xB,
+                           const AmiVector &dxB, AmiVector &xBdot) = 0;
+
+    /**
+     * @brief Sparse Jacobian function backward, steady state case
+     * @param JB sparse matrix to which values of the Jacobian will be written
+     */
+    virtual void fJSparseB_ss(SUNMatrix JB) = 0;
+
+    /**
      * @brief Dense Jacobian function
      * @param t time
      * @param cj scaling factor (inverse of timestep, DAE only)
@@ -111,7 +128,7 @@ class AbstractModel {
                           SUNMatrix J) = 0;
 
     /**
-     * @brief Dense Jacobian function
+     * @brief Sparse Jacobian function
      * @param t time
      * @param cj scaling factor (inverse of timestep, DAE only)
      * @param x state
@@ -126,6 +143,19 @@ class AbstractModel {
                            const AmiVector &dxB, const AmiVector &xBdot,
                            SUNMatrix JB) = 0;
 
+    /**
+     * @brief Sparse Jacobian function
+     * @param t time
+     * @param cj scaling factor (inverse of timestep, DAE only)
+     * @param x state
+     * @param dx time derivative of state (DAE only)
+     * @param xB Vector with the adjoint states
+     * @param dxB Vector with the adjoint derivative states
+     * @param xBdot Vector with the adjoint right hand side (unused)
+     */
+    virtual void fJSparseB(const realtype t, realtype cj, const AmiVector &x,
+                           const AmiVector &dx, const AmiVector &xB,
+                           const AmiVector &dxB, const AmiVector &xBdot) = 0;
     /**
      * @brief Diagonal Jacobian function
      * @param t time
