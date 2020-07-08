@@ -6,7 +6,7 @@
 [subrepo]
 	remote = git@github.com:ICB-DCM/AMICI.git
 	branch = adjoint_equilibration_by_simulation
-	commit = bff334d13263bd1cc76b8f5fb5c38ed39c0283cd
-	parent = b32c6b1d425f2adccb73e13aba03624357f7df9d
+	commit = 6cc5b4eaf2a773390f7628f3a091178f92ddcad1
+	parent = 5c051cea68bfb31b493b5bd68efe7eeb1aadc3cd
 	cmdver = 0.4.1
 	method = merge

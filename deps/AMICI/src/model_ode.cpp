@@ -408,22 +408,22 @@ void Model_ODE::fxBdot_ss(const realtype t, const AmiVector &xB,
     fxBdot_ss(t, xB.getNVector(), xBdot.getNVector());
 }
 
-void Model_ODE::fxBdot_ss(realtype t, N_Vector xB, N_Vector xBdot) {
+void Model_ODE::fxBdot_ss(realtype /*t*/, N_Vector xB, N_Vector xBdot) {
     /* Right hande side of the adjoint state for steady state computations.
        J is fixed (as x remeins in steady state), so the RHS becomes simple. */
     N_VConst(0.0, xBdot);
     J.multiply(xBdot, xB);
 }
 
-void Model_ODE::fqBdot_ss(realtype t, N_Vector xB, N_Vector qBdot) {
+void Model_ODE::fqBdot_ss(realtype /*t*/, N_Vector xB, N_Vector qBdot) {
     /* Quadratures when computing adjoints for steady state. The integrand is
        just the adjoint state itself. */
     N_VScale(1.0, xB, qBdot);
 }
 
 void Model_ODE::fJSparseB_ss(SUNMatrix JB) {
-    /* Just pass the model Jacobian on to JB */
-    JB = J.get();
+    /* Just copy the model Jacobian */
+    SUNMatCopy(J.get(), JB);
 }
 
 void Model_ODE::fsxdot(const realtype t, const AmiVector &x,
