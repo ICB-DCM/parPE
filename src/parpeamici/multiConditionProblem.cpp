@@ -381,6 +381,27 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
          * occurred,so clone every time */
         auto solver = std::unique_ptr<amici::Solver>(solverTemplate.clone());
         solver->app = &amiciApp;
+        if (!sendStates) {
+            /* If we don't need the states, we can save memory here.
+             * For current optimizers we only need the likelihood. For
+             * hierarchical optimization we need the model outputs. Here, we
+             * don't know about this, but for know it seems safe to use
+             * amici::RDataReporting::likelihood if sensitivities are requested
+             * and RDataReporting::residuals otherwise
+             */
+
+            if(solver->getSensitivityOrder() >= amici::SensitivityOrder::first
+                && solver->getSensitivityMethod()
+                       == amici::SensitivityMethod::adjoint) {
+                solver->setReturnDataReportingMode(amici::RDataReporting::likelihood);
+            } else {
+                // unset sensitivity method, because `residuals` is not allowed
+                // with `adjoint`, independent of sensitivity order
+                solver->setSensitivityMethod(amici::SensitivityMethod::none);
+                solver->setReturnDataReportingMode(amici::RDataReporting::residuals);
+            }
+
+        }
 
         if(trial - 1 == maxNumTrials) {
             logger->logmessage(LOGLVL_ERROR,
