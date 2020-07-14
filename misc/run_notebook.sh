@@ -9,13 +9,14 @@ parpe_path=$(cd "$script_path/.." && pwd)
 runNotebook () {
     set +e
     tempfile=$(mktemp)
-    jupyter nbconvert --debug --stdout --execute --ExecutePreprocessor.timeout=300 --to markdown $@ &> $tempfile
+    jupyter nbconvert --debug --stdout --execute --ExecutePreprocessor.timeout=300 --to markdown "$@" &> $tempfile
     ret=$?
     if [[ $ret != 0 ]]; then
-      cat $tempfile
+      cat "$tempfile"
+      echo "Error running" "$@"
       exit $ret
     fi
-    rm $tempfile
+    rm "$tempfile"
     set -e
 }
 
@@ -24,19 +25,19 @@ if [ $# -eq 0 ]; then
     exit 1
 fi
 
-source ${parpe_path}/build/venv/bin/activate
+source "${parpe_path}/build/venv/bin/activate"
 pip3 show ipython \
   || (pip3 install --upgrade jupyter jupyter_contrib_nbextensions \
       && python3 -m ipykernel install --user \
-      --name parpe --display-name "Python (parpe)")
+                 --name parpe --display-name "Python (parpe)")
 
 for arg in "$@"; do
     if [ -d $arg ]; then
         for notebook in $(ls -1 $arg | grep -E ipynb\$); do
-            runNotebook $arg/$notebook
+            runNotebook "$arg/$notebook"
         done
-    elif [ -f $arg ]; then
-        runNotebook $arg
+    elif [ -f "$arg" ]; then
+        runNotebook "$arg"
     else
       echo "$arg is neither file nor directory."
       exit 1
