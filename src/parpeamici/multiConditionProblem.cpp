@@ -217,8 +217,8 @@ void printSimulationResult(Logger *logger, int jobId,
 
     logger->logmessage(LOGLVL_DEBUG, "Result for %d: %g (%d) (%d/%d/%.4fs%c)",
                        jobId, rdata->llh, rdata->status,
-                       rdata->numsteps[rdata->numsteps.size() - 1],
-                       rdata->numstepsB.empty()?0:rdata->numstepsB[0],
+                       rdata->numsteps.empty()?-1:rdata->numsteps[rdata->numsteps.size() - 1],
+                       rdata->numstepsB.empty()?-1:rdata->numstepsB[0],
                        timeSeconds,
                        with_sensi?'+':'-');
 
