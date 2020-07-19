@@ -37,6 +37,7 @@ with contextlib.suppress(subprocess.CalledProcessError):
     #  permissions  and thus, cannot use vader. Also disable Infiniband.
     subprocess.run('mpiexec --version | grep open-mpi', shell=True, check=True)
     MPIEXEC.extend(["--oversubscribe",
+                    "--allow-run-as-root",
                     "--mca", "btl_vader_single_copy_mechanism", "none",
                     "--mca", "btl", "^openib",
                     "--mca", "oob_tcp_if_include", "lo",
