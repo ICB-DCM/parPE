@@ -8,7 +8,7 @@ import contextlib
 import os
 import shutil
 import subprocess
-
+import h5py
 
 # General setup
 script_path = os.path.dirname(os.path.abspath(__name__))
@@ -66,9 +66,11 @@ def test_nompi_optimization():
                          capture_output=True,
                          check=True, encoding="utf-8")
     assert '[ERR]' not in ret.stdout
+    check_optimization_results(
+        filename=os.path.join(outdir, result_filename))
 
     # Simulate at optimum
-    sim_file = 'simulate1.h5'
+    sim_file = os.path.abspath('simulate1.h5')
     with contextlib.suppress(FileNotFoundError):
         os.remove(sim_file)
 
@@ -83,9 +85,8 @@ def test_nompi_optimization():
     assert '[ERR]' not in ret.stdout
     assert '[WRN]' not in ret.stdout
     assert 'exception' not in ret.stdout
-    # test dataset exists
-    subprocess.run(['h5dump', '-d', '/multistarts/0/yMes/3', sim_file],
-                   check=True)
+
+    check_simulation_results(filename=sim_file, sim_type="at-optimum")
 
 
 def test_mpi_optimization():
@@ -100,8 +101,11 @@ def test_mpi_optimization():
     assert 'Maximum Number of Iterations Exceeded' in ret.stdout \
            or 'Solved To Acceptable Level' in ret.stdout
 
+    check_optimization_results(
+        filename=os.path.join(outdir, result_filename))
+
     # Simulate along trajectory
-    sim_file = 'simulate2.h5'
+    sim_file = os.path.abspath('simulate2.h5')
     with contextlib.suppress(FileNotFoundError):
         os.remove(sim_file)
 
@@ -117,12 +121,11 @@ def test_mpi_optimization():
     assert '[ERR]' not in ret.stdout
     assert '[WRN]' not in ret.stdout
     assert 'exception' not in ret.stdout
-    # test dataset exists
-    subprocess.run(['h5dump', '-d', '/multistarts/0/iter/1/yMes/3', sim_file],
-                   check=True)
+
+    check_simulation_results(filename=sim_file, sim_type="along-trajectory")
 
     # Simulate on test set
-    sim_file = 'simulate3.h5'
+    sim_file = os.path.abspath('simulate3.h5')
     with contextlib.suppress(FileNotFoundError):
         os.remove(sim_file)
 
@@ -137,6 +140,39 @@ def test_mpi_optimization():
     assert '[ERR]' not in ret.stdout
     assert '[WRN]' not in ret.stdout
     assert 'exception' not in ret.stdout
-    # test dataset exists
-    subprocess.run(['h5dump', '-d', '/multistarts/0/yMes/3', sim_file],
-                   check=True)
+
+    check_simulation_results(filename=sim_file, sim_type="at-optimum")
+
+
+def check_optimization_results(filename: str) -> None:
+    """Check for presence of optimization results"""
+
+    try:
+        with h5py.File(filename, "r") as f:
+            # TODO: extend checks
+            assert f["/multistarts/0/iterCostFunParameters"].size > 0
+    except Exception as e:
+        import sys
+        raise type(e)(str(e) + f' occurred in {filename}') \
+            .with_traceback(sys.exc_info()[2])
+
+
+def check_simulation_results(filename: str, sim_type: str) -> None:
+    """Check for presence of simulation results"""
+
+    try:
+        with h5py.File(filename, "r") as f:
+            # TODO: extend checks
+            if sim_type == "at-optimum":
+                assert len(f["/multistarts/0/yMes"])\
+                       == len(f["/multistarts/0/ySim"])
+            elif sim_type == "along-trajectory":
+                assert len(f["/multistarts/0/iter/0/yMes"])\
+                       == len(f["/multistarts/0/iter/0/ySim"])
+            else:
+                raise ValueError(f"Unknown sim_type: {sim_type}")
+
+    except Exception as e:
+        import sys
+        raise type(e)(str(e) + f' occurred in {filename}') \
+            .with_traceback(sys.exc_info()[2])
