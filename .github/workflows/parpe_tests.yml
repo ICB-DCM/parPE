@@ -7,6 +7,18 @@ jobs:
     runs-on: ubuntu-latest
     container: dweindl/parpeci:1511078
     name: parPE tests
+    env:
+      # mpiexec prefix for running tests
+      # If we are running in docker, we generally don't have SYS_PTRACE
+      #  permissions  and thus, cannot use vader. Also disable Infiniband.
+      PARPE_TESTS_MPIEXEC: |
+        mpiexec -n 5 --oversubscribe --allow-run-as-root \
+          --mca btl_vader_single_copy_mechanism none \
+          --mca btl ^openib \
+          --mca oob_tcp_if_include lo \
+          --mca btl_tcp_if_include lo \
+          --mca orte_base_help_aggregate 0
+
     steps:
     - uses: actions/checkout@master
     - run: git fetch --prune --unshallow

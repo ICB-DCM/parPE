@@ -21,28 +21,13 @@ HDF5_FILE_TEST = os.path.join(
     cwd, 'steadystate_scaled-prefix/src/steadystate_scaled/',
     'example_data-testset.h5')
 
-MPIEXEC = ['mpiexec', '--oversubscribe', '-n', '5']
+MPIEXEC = os.environ.get('PARPE_TESTS_MPIEXEC',
+                         "mpiexec -n 5 --oversubscribe").split(" ")
 optim_exe = './example_steadystate_multi'
 sim_exe = './example_steadystate_multi_simulator'
 print('Files:', HDF5_FILE, HDF5_FILE_TEST, MPIEXEC)
 
 result_filename = '_rank00000.h5'
-
-with contextlib.suppress(subprocess.CalledProcessError):
-    # Allow running as root in docker
-    subprocess.run('grep docker /proc/1/cgroup -qa', shell=True, check=True)
-    MPIEXEC.append("--allow-run-as-root")
-
-    # If we are running in docker, we generally don't have SYS_PTRACE
-    #  permissions  and thus, cannot use vader. Also disable Infiniband.
-    subprocess.run('mpiexec --version | grep open-mpi', shell=True, check=True)
-    MPIEXEC.extend(["--oversubscribe",
-                    "--allow-run-as-root",
-                    "--mca", "btl_vader_single_copy_mechanism", "none",
-                    "--mca", "btl", "^openib",
-                    "--mca", "oob_tcp_if_include", "lo",
-                    "--mca", "btl_tcp_if_include", "lo",
-                    "--mca", "orte_base_help_aggregate", "0"])
 
 
 def test_nompi_gradient_check():
