@@ -1105,6 +1105,18 @@ class ODEModel:
         """
         return self.nx_rdata()-self.nx_solver()
 
+    def nx_solver_reinit(self) -> int:
+        """
+        Number of solver states which would be reinitialized after
+        preequilibraiton
+
+        :return:
+            number of state variable symbols with reinitialization
+        """
+        reinit_states = self.eq('x0_fixedParameters')
+        solver_states = self.eq('x_solver')
+        return sum([1 for ix in reinit_states if ix in solver_states])
+
     def ny(self) -> int:
         """
         Number of Observables.
@@ -1565,7 +1577,7 @@ class ODEModel:
                 self._eqs[name] = self._eqs[name].transpose()
 
         if self._simplify:
-            self._eqs[name] = self._simplify(self._eqs[name])
+            self._eqs[name] = self._eqs[name].applyfunc(self._simplify)
 
     def sym_names(self) -> List[str]:
         """
@@ -2486,6 +2498,7 @@ class ODEExporter:
             'NXTRUE_RDATA': str(self.model.nx_rdata()),
             'NX_SOLVER': str(self.model.nx_solver()),
             'NXTRUE_SOLVER': str(self.model.nx_solver()),
+            'NX_SOLVER_REINIT': str(self.model.nx_solver_reinit()),
             'NY': str(self.model.ny()),
             'NYTRUE': str(self.model.ny()),
             'NZ': '0',

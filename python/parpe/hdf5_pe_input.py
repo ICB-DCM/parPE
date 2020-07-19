@@ -877,8 +877,9 @@ class HDF5DataGenerator:
         Write simulation options
         """
         g = self.f.require_group("/amiciOptions")
-        g.attrs['sensi'] = amici.SensitivityOrder_first
-        g.attrs['sensi_meth'] = amici.SensitivityMethod_adjoint
+        g.attrs['sensi'] = amici.SensitivityOrder.first
+        g.attrs['sensi_meth'] = amici.SensitivityMethod.adjoint
+        g.attrs['sensi_meth_preeq'] = amici.SensitivityMethod.adjoint
         # TODO PEtab support: get from file
         g.attrs['tstart'] = 0.0
         g.attrs['atol'] = 1e-14

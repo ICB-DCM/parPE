@@ -384,8 +384,14 @@ void writeReturnDataDiagnosis(const ReturnData &rdata,
                                    rdata.preeq_numlinsteps,
                                    rdata.newton_maxsteps, 2);
 
+    H5LTset_attribute_int(file.getId(), hdf5Location.c_str(),
+                          "preeq_numstepsB", &rdata.preeq_numstepsB, 1);
+
     H5LTset_attribute_double(file.getId(), hdf5Location.c_str(),
                              "preeq_cpu_time", &rdata.preeq_cpu_time, 1);
+
+    H5LTset_attribute_double(file.getId(), hdf5Location.c_str(),
+                             "preeq_cpu_timeB", &rdata.preeq_cpu_timeB, 1);
 
     H5LTset_attribute_double(file.getId(), hdf5Location.c_str(), "preeq_t",
                              &rdata.preeq_t, 1);
@@ -409,6 +415,9 @@ void writeReturnDataDiagnosis(const ReturnData &rdata,
         createAndWriteInt2DDataset(file, hdf5Location + "/posteq_numlinsteps",
                                    rdata.posteq_numlinsteps,
                                    rdata.newton_maxsteps, 2);
+
+    H5LTset_attribute_int(file.getId(), hdf5Location.c_str(),
+                          "posteq_numstepsB", &rdata.posteq_numstepsB, 1);
 
     H5LTset_attribute_double(file.getId(), hdf5Location.c_str(),
                              "posteq_cpu_time", &rdata.posteq_cpu_time, 1);
@@ -650,6 +659,10 @@ void writeSolverSettingsToHDF5(Solver const& solver,
     H5LTset_attribute_int(file.getId(), hdf5Location.c_str(),
                           "sensi_meth", &ibuffer, 1);
 
+    ibuffer = static_cast<int>(solver.getSensitivityMethodPreequilibration());
+    H5LTset_attribute_int(file.getId(), hdf5Location.c_str(),
+                          "sensi_meth_preeq", &ibuffer, 1);
+
     ibuffer = static_cast<int>(solver.getSensitivityOrder());
     H5LTset_attribute_int(file.getId(), hdf5Location.c_str(),
                           "sensi", &ibuffer, 1);
@@ -796,6 +809,12 @@ void readSolverSettingsFromHDF5(H5::H5File const& file, Solver &solver,
         solver.setSensitivityMethod(
                     static_cast<SensitivityMethod>(
                         getIntScalarAttribute(file, datasetPath, "sensi_meth")));
+    }
+
+    if(attributeExists(file, datasetPath, "sensi_meth_preeq")) {
+        solver.setSensitivityMethodPreequilibration(
+            static_cast<SensitivityMethod>(
+                getIntScalarAttribute(file, datasetPath, "sensi_meth_preeq")));
     }
 
     if(attributeExists(file, datasetPath, "sensi")) {
