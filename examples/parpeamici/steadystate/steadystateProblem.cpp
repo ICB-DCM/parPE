@@ -74,6 +74,11 @@ void ExampleSteadystateGradientFunction::setupExpData(int conditionIdx) {
     readMeasurement(conditionIdx);
 }
 
+std::vector<std::string> ExampleSteadystateGradientFunction::getParameterIds() const
+{
+    return parpe::hdf5Read1dStringDataset(fileId, "/parameters/parameterNames");
+}
+
 
 void ExampleSteadystateGradientFunction::readFixedParameters(int conditionIdx) const {
     std::vector<double> k(model->nk());

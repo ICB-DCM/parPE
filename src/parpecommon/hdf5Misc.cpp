@@ -881,4 +881,14 @@ void hdf5Write1dStringDataset(
     dataset.write((void*)charPtrBuffer.data(), tid1);
 }
 
+bool hdf5GroupExists(const H5::H5File &file, const std::string &groupName)
+{
+    return hdf5GroupExists(file.getId(), groupName.c_str());
+}
+
+hid_t hdf5CreateFile(const std::string &filename, bool overwrite)
+{
+    return hdf5CreateFile(filename.c_str(), overwrite);
+}
+
 } // namespace parpe

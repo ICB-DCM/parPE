@@ -51,7 +51,7 @@ MultiConditionDataProviderHDF5::MultiConditionDataProviderHDF5(
     hdf5_simulation_to_optimization_parameter_mapping_path_ =
       rootPath + "/parameters/optimizationSimulationMapping";
     hdf5_parameter_overrides_path = rootPath + "/parameters/parameterOverrides";
-
+    hdf5_parameter_ids_path_ = rootPath + "/parameters/parameterNames";
     checkDataIntegrity();
 
     amici::hdf5::readModelDataFromHDF5(
@@ -238,6 +238,12 @@ void MultiConditionDataProviderHDF5::setModel(std::unique_ptr<amici::Model> mode
     model_ = std::move(model);
 }
 
+std::vector<std::string> MultiConditionDataProviderHDF5::getProblemParameterIds() const
+{
+    return hdf5Read1dStringDataset(file_, hdf5_parameter_ids_path_);
+
+}
+
 void
 MultiConditionDataProviderHDF5::readFixedSimulationParameters(
         int conditionIdx,
@@ -307,7 +313,6 @@ MultiConditionDataProviderHDF5::getAllMeasurements() const
 std::vector<std::vector<double>>
 MultiConditionDataProviderHDF5::getAllSigmas() const
 {
-    // TODO: how to deal with sigma parameters vs table
     std::vector<std::vector<double>> result(getNumberOfSimulationConditions());
     for (int conditionIdx = 0; (unsigned)conditionIdx < result.size();
          ++conditionIdx) {
@@ -673,6 +678,12 @@ std::unique_ptr<amici::Solver>
 MultiConditionDataProviderDefault::getSolver() const
 {
     return std::unique_ptr<amici::Solver>(solver_->clone());
+}
+
+std::vector<std::string> MultiConditionDataProviderDefault::getProblemParameterIds() const
+{
+    // not implemented
+    std::terminate();
 }
 
 double

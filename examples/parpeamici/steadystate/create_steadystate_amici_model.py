@@ -524,10 +524,10 @@ def main():
 
     write_starting_points(args.hdf5_file_name, true_parameters)
 
-    # TODO
-    #hdf5FileMinibatch = 'example_data_minibatch.h5'
-    #from shutil import copyfile
-    #copyfile(hdf5_file_name, hdf5FileMinibatch)
+    hdf5_file_minibatch = os.path.join(os.path.dirname(args.hdf5_file_name),
+                                       'example_data_minibatch.h5')
+    from shutil import copyfile
+    copyfile(args.hdf5_file_name, hdf5_file_minibatch)
 
 
 if __name__ == '__main__':
