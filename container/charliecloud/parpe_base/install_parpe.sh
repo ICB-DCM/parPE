@@ -63,6 +63,9 @@ CC=mpicc CXX=mpiCC cmake \
       ..
 make -j12 VERBOSE=1
 
+# MPI settings for python tests
+export PARPE_TESTS_MPIEXEC=mpiexec -n 5 --oversubscribe --allow-run-as-root --mca btl_vader_single_copy_mechanism none --mca btl ^openib --mca oob_tcp_if_include lo --mca btl_tcp_if_include lo --mca orte_base_help_aggregate 0
+
 # run tests
 cd "${PARPE_BASE}"/build && CTEST_OUTPUT_ON_FAILURE=1 make test
 
