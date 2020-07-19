@@ -10,7 +10,7 @@ if [[ $# -lt 2 ]] || [[ $# -gt 2 ]]; then
     exit 1;
 fi
 
-script_path=$(dirname "$BASH_SOURCE")
+script_path=$(realpath $(dirname "$BASH_SOURCE"))
 model_dir="$1"
 output_dir="$2"
 template_dir="${script_path}/../templates"
