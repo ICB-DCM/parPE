@@ -65,14 +65,15 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(amici::Solve
  * @param cpuTime
  * @return Simulation status
  */
-FunctionEvaluationStatus getModelOutputs(
+FunctionEvaluationStatus getModelOutputsAndSigmas(
         MultiConditionDataProvider *dataProvider,
         LoadBalancerMaster *loadBalancer,
         int maxSimulationsPerPackage,
         OptimizationResultWriter *resultWriter,
         bool logLineSearch,
         gsl::span<const double> parameters,
-        std::vector<std::vector<double> > &modelOutput,
+        std::vector<std::vector<double> > &modelOutputs,
+        std::vector<std::vector<double> > &modelSigmas,
         Logger *logger, double *cpuTime, bool sendStates);
 
 /**
@@ -135,6 +136,8 @@ public:
      */
     virtual int numParameters() const override;
 
+    std::vector<std::string> getParameterIds() const override;
+
     /**
      * @brief Run simulations (no gradient) with given parameters and collect
      * model outputs
@@ -144,13 +147,12 @@ public:
      * (nt x ny, column-major)
      * @return Simulation status
      */
-    virtual FunctionEvaluationStatus getModelOutputs(
-            gsl::span<double const> parameters,
-            std::vector<std::vector<double> > &modelOutput,
-            Logger *logger,
-            double *cpuTime) const;
-
-    virtual std::vector<std::vector<double>> getAllSigmas() const;
+    virtual FunctionEvaluationStatus getModelOutputsAndSigmas(
+        gsl::span<double const> parameters,
+        std::vector<std::vector<double> > &modelOutputs,
+        std::vector<std::vector<double> > &modelSigmas,
+        Logger *logger,
+        double *cpuTime) const;
 
     virtual std::vector<std::vector<double>> getAllMeasurements() const;
 

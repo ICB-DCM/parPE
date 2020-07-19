@@ -8,7 +8,7 @@ import contextlib
 import os
 import shutil
 import subprocess
-
+import h5py
 
 # General setup
 script_path = os.path.dirname(os.path.abspath(__name__))
@@ -21,27 +21,13 @@ HDF5_FILE_TEST = os.path.join(
     cwd, 'steadystate_scaled-prefix/src/steadystate_scaled/',
     'example_data-testset.h5')
 
-MPIEXEC = ['mpiexec', '--oversubscribe', '-n', '5']
+MPIEXEC = os.environ.get('PARPE_TESTS_MPIEXEC',
+                         "mpiexec -n 5 --oversubscribe").split(" ")
 optim_exe = './example_steadystate_multi'
 sim_exe = './example_steadystate_multi_simulator'
 print('Files:', HDF5_FILE, HDF5_FILE_TEST, MPIEXEC)
 
 result_filename = '_rank00000.h5'
-
-with contextlib.suppress(subprocess.CalledProcessError):
-    # Allow running as root in docker
-    subprocess.run('grep docker /proc/1/cgroup -qa', shell=True, check=True)
-    MPIEXEC.append("--allow-run-as-root")
-
-    # If we are running in docker, we generally don't have SYS_PTRACE
-    #  permissions  and thus, cannot use vader. Also disable Infiniband.
-    subprocess.run('mpiexec --version | grep open-mpi', shell=True, check=True)
-    MPIEXEC.extend(["--oversubscribe",
-                    "--mca", "btl_vader_single_copy_mechanism", "none",
-                    "--mca", "btl", "^openib",
-                    "--mca", "oob_tcp_if_include", "lo",
-                    "--mca", "btl_tcp_if_include", "lo",
-                    "--mca", "orte_base_help_aggregate", "0"])
 
 
 def test_nompi_gradient_check():
@@ -66,24 +52,27 @@ def test_nompi_optimization():
                          capture_output=True,
                          check=True, encoding="utf-8")
     assert '[ERR]' not in ret.stdout
+    check_optimization_results(
+        filename=os.path.join(outdir, result_filename))
 
     # Simulate at optimum
-    sim_file = 'simulate1.h5'
+    sim_file = os.path.abspath('simulate1.h5')
     with contextlib.suppress(FileNotFoundError):
         os.remove(sim_file)
 
-    cmd = [sim_exe, os.path.join(outdir, result_filename), '/',
+    cmd = [sim_exe,
+           os.path.join(outdir, result_filename), '/inputData',
+           os.path.join(outdir, result_filename), '/',
            sim_file, '/',
-           '--at-optimum', '--nompi']
+           '--at-optimum', '--nompi', '--compute-inner']
     ret = subprocess.run(cmd, capture_output=True,
                          check=True, encoding="utf-8")
     assert os.path.isfile(sim_file)
     assert '[ERR]' not in ret.stdout
     assert '[WRN]' not in ret.stdout
     assert 'exception' not in ret.stdout
-    # test dataset exists
-    subprocess.run(['h5dump', '-d', '/multistarts/0/yMes/3', sim_file],
-                   check=True)
+
+    check_simulation_results(filename=sim_file, sim_type="at-optimum")
 
 
 def test_mpi_optimization():
@@ -98,40 +87,78 @@ def test_mpi_optimization():
     assert 'Maximum Number of Iterations Exceeded' in ret.stdout \
            or 'Solved To Acceptable Level' in ret.stdout
 
+    check_optimization_results(
+        filename=os.path.join(outdir, result_filename))
+
     # Simulate along trajectory
-    sim_file = 'simulate2.h5'
+    sim_file = os.path.abspath('simulate2.h5')
     with contextlib.suppress(FileNotFoundError):
         os.remove(sim_file)
 
-    cmd = [*MPIEXEC, sim_exe, os.path.join(outdir, result_filename), '/',
-           sim_file, '/',
-           '--along-trajectory', '--mpi']
-    ret = subprocess.run(cmd, capture_output=True,
-                         check=True, encoding="utf-8")
-
-    assert os.path.isfile(sim_file)
-    assert '[ERR]' not in ret.stdout
-    assert '[WRN]' not in ret.stdout
-    assert 'exception' not in ret.stdout
-    # test dataset exists
-    subprocess.run(['h5dump', '-d', '/multistarts/0/iter/1/yMes/3', sim_file],
-                   check=True)
-
-    # Simulate on test set
-    sim_file = 'simulate3.h5'
-    with contextlib.suppress(FileNotFoundError):
-        os.remove(sim_file)
-
-    cmd = [*MPIEXEC, sim_exe, HDF5_FILE_TEST, '/',
+    cmd = [*MPIEXEC, sim_exe,
+           os.path.join(outdir, result_filename), '/inputData',
            os.path.join(outdir, result_filename), '/',
            sim_file, '/',
-           '--at-optimum', '--mpi']
+           '--along-trajectory', '--mpi', '--nocompute-inner']
+    ret = subprocess.run(cmd, capture_output=True,
+                         check=True, encoding="utf-8")
+
+    assert os.path.isfile(sim_file)
+    assert '[ERR]' not in ret.stdout
+    assert '[WRN]' not in ret.stdout
+    assert 'exception' not in ret.stdout
+
+    check_simulation_results(filename=sim_file, sim_type="along-trajectory")
+
+    # Simulate on test set
+    sim_file = os.path.abspath('simulate3.h5')
+    with contextlib.suppress(FileNotFoundError):
+        os.remove(sim_file)
+
+    cmd = [*MPIEXEC, sim_exe,
+           HDF5_FILE_TEST, '/',
+           os.path.join(outdir, result_filename), '/',
+           sim_file, '/',
+           '--at-optimum', '--mpi', '--compute-inner']
     ret = subprocess.run(cmd, capture_output=True,
                          check=True, encoding="utf-8")
     assert os.path.isfile(sim_file)
     assert '[ERR]' not in ret.stdout
     assert '[WRN]' not in ret.stdout
     assert 'exception' not in ret.stdout
-    # test dataset exists
-    subprocess.run(['h5dump', '-d', '/multistarts/0/yMes/3', sim_file],
-                   check=True)
+
+    check_simulation_results(filename=sim_file, sim_type="at-optimum")
+
+
+def check_optimization_results(filename: str) -> None:
+    """Check for presence of optimization results"""
+
+    try:
+        with h5py.File(filename, "r") as f:
+            # TODO: extend checks
+            assert f["/multistarts/0/iterCostFunParameters"].size > 0
+    except Exception as e:
+        import sys
+        raise type(e)(str(e) + f' occurred in {filename}') \
+            .with_traceback(sys.exc_info()[2])
+
+
+def check_simulation_results(filename: str, sim_type: str) -> None:
+    """Check for presence of simulation results"""
+
+    try:
+        with h5py.File(filename, "r") as f:
+            # TODO: extend checks
+            if sim_type == "at-optimum":
+                assert len(f["/multistarts/0/yMes"])\
+                       == len(f["/multistarts/0/ySim"])
+            elif sim_type == "along-trajectory":
+                assert len(f["/multistarts/0/iter/0/yMes"])\
+                       == len(f["/multistarts/0/iter/0/ySim"])
+            else:
+                raise ValueError(f"Unknown sim_type: {sim_type}")
+
+    except Exception as e:
+        import sys
+        raise type(e)(str(e) + f' occurred in {filename}') \
+            .with_traceback(sys.exc_info()[2])

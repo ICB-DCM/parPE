@@ -52,6 +52,9 @@ bool hdf5DatasetExists(H5::H5File const& file, const std::string &datasetName);
 
 bool hdf5GroupExists(hid_t file_id, const char *groupName);
 
+bool hdf5GroupExists(H5::H5File const& file,
+                     const std::string &groupName);
+
 void hdf5EnsureGroupExists(hid_t file_id, const char *groupName);
 
 void hdf5EnsureGroupExists(hid_t file_id, const std::string &groupName);
@@ -72,7 +75,10 @@ void hdf5CreateGroup(hid_t file_id, const char *groupPath, bool recursively = fa
  * @return HDF5 file handle of the created/opened file
  */
 hid_t hdf5CreateFile(const char *filename,
-                   bool overwrite = false);
+                     bool overwrite = false);
+
+hid_t hdf5CreateFile(std::string const& filename,
+                     bool overwrite = false);
 
 H5::H5File hdf5OpenForReading(std::string const& hdf5Filename);
 

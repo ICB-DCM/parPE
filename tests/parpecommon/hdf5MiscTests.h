@@ -15,16 +15,16 @@ protected:
         H5::H5Library::dontAtExit();
         parpe::initHDF5Mutex();
 
-        fileId = parpe::hdf5CreateFile(std::tmpnam(tempFileName), false);
+        fileId = parpe::hdf5CreateFile(tempFileName, false);
     }
 
     void TearDown() override {
         if(fileId)
             H5Fclose(fileId);
-        std::remove(tempFileName);
+        std::remove(tempFileName.c_str());
     }
 
-    char tempFileName[TMP_MAX];
+    std::string tempFileName {"parpeTest_hdf5Misc.h5"};
     hid_t fileId = 0;
 };
 
@@ -51,7 +51,7 @@ TEST_F(hdf5Misc, testErrorStackWalker) {
     H5_SAVE_ERROR_HANDLER;
 
     // provoke error by asking to truncate a file that is already open
-    hid_t fileId = H5Fcreate(tempFileName, H5F_ACC_TRUNC,
+    hid_t fileId = H5Fcreate(tempFileName.c_str(), H5F_ACC_TRUNC,
                              H5P_DEFAULT, H5P_DEFAULT);
     EXPECT_TRUE(fileId <= 0);
 

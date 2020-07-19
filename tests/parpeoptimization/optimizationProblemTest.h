@@ -85,6 +85,10 @@ public:
         return numParameters_;
     }
 
+    std::vector<std::string> getParameterIds() const override {
+        return std::vector<std::string> {"p1", "p2"};
+    }
+
     int numParameters_ = 2;
 
 };

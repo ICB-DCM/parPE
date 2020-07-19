@@ -86,13 +86,8 @@ std::string captureStreamToString(const std::function<void()>& f,
 std::string captureStreamToString(const std::function<void()>& f,
                                   std::FILE* captureStream,
                                   int captureStreamFd) {
-    // use fmemopen instead of file?
-
-    char tempFileName[TMP_MAX];
-    if(!std::tmpnam(tempFileName))
-        std::abort();
-
-    int newStreamFd = open(tempFileName, O_CREAT | O_WRONLY, S_IRWXU);
+    char tempFileName [] = "parpeTestCaptureXXXXXX";
+    int newStreamFd = mkstemp(tempFileName);
     Expects(newStreamFd >= 0);
 
     int oldStreamFd = dup(captureStreamFd);

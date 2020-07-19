@@ -91,6 +91,8 @@ public:
 
     void setGradientFunction(GradientFunction *gradFun) const;
 
+    std::vector<std::string> getParameterIds() const override;
+
     std::unique_ptr<OptimizationResultWriter> result_writer_;
 
     mutable double cpu_time_total_sec_ = 0.0;

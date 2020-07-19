@@ -78,21 +78,17 @@ TEST(commonMisc, testCreateDirectoryIfNotExists) {
     char dir[] {"/"};
     parpe::createDirectoryIfNotExists(dir);
 
-    char tmpName[TMP_MAX];
-    if(!std::tmpnam(tmpName))
-        std::abort();
+    char tmpName[] = "parpeTest_testCreateDirectoryIfNotExists";
+    auto _ = gsl::finally([tmpName] { rmdir(tmpName); });
+
     parpe::createDirectoryIfNotExists(tmpName);
-    rmdir(tmpName);
 }
 
 TEST(commonMisc, testRecursiveMkpath) {
-    char tmpName[TMP_MAX];
-    if(!std::tmpnam(tmpName))
-        std::abort();
-    std::string name(tmpName);
-    name += "/a/b/c";
+    std::string name {"parpeTest_testRecursiveMkpath/a/b/c"};
+    auto _ = gsl::finally([name] { rmdir(name.c_str()); });
+
     parpe::mkpathConstChar(name.c_str(), 0755);
-    rmdir(name.c_str());
 }
 
 TEST(commonMisc, testRandDouble) {

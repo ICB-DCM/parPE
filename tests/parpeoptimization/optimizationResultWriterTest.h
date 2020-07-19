@@ -13,7 +13,7 @@ TEST(optimizationResultWriter, testResultWriter) {
 
     H5::H5File file(tmpFilename, H5F_ACC_RDONLY);
 
-    EXPECT_TRUE(parpe::hdf5GroupExists(file.getId(), "/bla"));
+    EXPECT_TRUE(parpe::hdf5GroupExists(file, "/bla"));
 
     w.setRootPath("/bla2");
 

@@ -99,6 +99,8 @@ class MultiConditionDataProvider
      */
     virtual int getNumOptimizationParameters() const = 0;
 
+    virtual std::vector<std::string> getProblemParameterIds() const = 0;
+
     /**
      * @brief Returns a pointer to the underlying AMICI model
      * @return The model
@@ -186,6 +188,8 @@ class MultiConditionDataProviderDefault : public MultiConditionDataProvider
     virtual std::unique_ptr<amici::Model> getModel() const override;
 
     virtual std::unique_ptr<amici::Solver> getSolver() const override;
+
+    std::vector<std::string> getProblemParameterIds() const override;
 
     // TODO private
     std::vector<amici::ExpData> edata_;
@@ -370,6 +374,9 @@ class MultiConditionDataProviderHDF5 : public MultiConditionDataProvider
     hid_t getHdf5FileId() const;
 
     void setModel(std::unique_ptr<amici::Model> model);
+
+    std::vector<std::string> getProblemParameterIds() const override;
+
   protected:
     /**
      * @brief Update the contstants in AMICI ExpData object. Reads a slab for the
@@ -406,6 +413,7 @@ class MultiConditionDataProviderHDF5 : public MultiConditionDataProvider
     std::string hdf5_parameter_scale_optimization_path_;
     std::string hdf5_simulation_to_optimization_parameter_mapping_path_;
     std::string hdf5_parameter_overrides_path;
+    std::string hdf5_parameter_ids_path_;
 
     /**
      * @brief HDF5 file handles for C++ and C API

@@ -4,10 +4,11 @@ https://academic.oup.com/bioinformatics/advance-article/doi/10.1093/bioinformati
 """
 
 from typing import Tuple, Dict, List
-
+import numpy as np
 import pandas as pd
 import petab.C as ptc
 import sympy as sp
+from numbers import Number
 from numpy import isnan
 from petab import split_parameter_replacement_list
 
@@ -137,6 +138,24 @@ def get_candidates_for_hierarchical(
             raise RuntimeError(
                 f"Determined {x} as candidate for both scaling and sigma.")
 
+    # TODO Can't use hierarchical optimization with non-normal or
+    #  transformation yet
+    if (offset_candidates or scaling_candidates or sigma_candidates):
+        not_normal = ptc.NOISE_DISTRIBUTION in observable_df \
+                     and not np.all(x == ptc.NORMAL
+                                    or (isinstance(x, Number) and np.isnan(x))
+                                    for x
+                                    in observable_df[ptc.NOISE_DISTRIBUTION])
+        not_lin = ptc.OBSERVABLE_TRANSFORMATION in observable_df \
+                     and not np.all(x == ptc.LIN
+                                    or (isinstance(x, Number) and np.isnan(x))
+                                    for x in observable_df[
+                                        ptc.OBSERVABLE_TRANSFORMATION])
+        if not_normal or not_lin:
+            raise ValueError("Can't use hierarchical optimization with "
+                             "non-normal noise or observable transformation "
+                             "yet.")
+
     return (list(offset_candidates),
             list(scaling_candidates),
             list(sigma_candidates))
@@ -185,7 +204,8 @@ def get_analytical_parameter_table(
         sim_cond_idx = \
             condition_id_to_index[row.simulationConditionId]
         preeq_cond_idx = no_preeq_condition_idx
-        if not isnan(row.preequilibrationConditionId):
+        if not (isinstance(row.preequilibrationConditionId, Number)
+                and isnan(row.preequilibrationConditionId)):
             preeq_cond_idx = condition_id_to_index[
                 row.preequilibrationConditionId]
 

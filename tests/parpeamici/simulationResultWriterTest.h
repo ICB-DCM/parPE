@@ -16,9 +16,8 @@
 
 TEST(simulationResultWriter, testResultWriter) {
     // setup ResultWriter
-    char tmpName[TMP_MAX];
-    if(!std::tmpnam(tmpName))
-        std::abort();
+    const char* tmpName = "parpeTest_testResultWriter.h5";
+    auto _ = gsl::finally([tmpName] { remove(tmpName); });
     parpe::SimulationResultWriter rw(tmpName, "/testResultWriter/");
 
     rw.saveLlh = true;
@@ -38,7 +37,7 @@ TEST(simulationResultWriter, testResultWriter) {
     edata.setObservedData(measurements);
 
     amici::ReturnData rdata(
-        timepoints, 0, 1, nx, nx, nx, nytrue, nytrue, 0, 0, 0, 0, 0, 0,
+        timepoints, 0, 1, nx, nx, nx, 0, nytrue, nytrue, 0, 0, 0, 0, 0, 0,
         timepoints.size(), 0, 0, std::vector<amici::ParameterScaling>(),
         amici::SecondOrderMode::none, amici::SensitivityOrder::none,
         amici::SensitivityMethod::none, amici::RDataReporting::full);
@@ -52,7 +51,7 @@ TEST(simulationResultWriter, testResultWriter) {
     // write
     rw.createDatasets(numSimulations);
 
-    EXPECT_TRUE(parpe::hdf5GroupExists(file.getId(), "/testResultWriter/"));
+    EXPECT_TRUE(parpe::hdf5GroupExists(file, "/testResultWriter/"));
     EXPECT_TRUE(parpe::hdf5DatasetExists(file, rw.llhPath));
     EXPECT_TRUE(parpe::hdf5DatasetExists(file, rw.xPath));
     EXPECT_TRUE(parpe::hdf5DatasetExists(file, rw.yMesPath));
@@ -71,9 +70,8 @@ TEST(simulationResultWriter, testResultWriter) {
 }
 
 TEST(simulationResultWriter, testResultWriterNewExistingFile) {
-    char tmpName[TMP_MAX];
-    if(!std::tmpnam(tmpName))
-        std::abort();
+    const char* tmpName = "parpeTest_testResultWriterNewExistingFile.h5";
+    auto _ = gsl::finally([tmpName] { remove(tmpName); });
 
     // create file
     parpe::SimulationResultWriter rw1(tmpName, "/testResultWriter/");

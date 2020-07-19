@@ -27,6 +27,8 @@ public:
     void setupUserData(int conditionIdx);
     void setupExpData(int conditionIdx);
 
+    std::vector<std::string> getParameterIds() const override;
+
 private:
     void requireSensitivities(bool sensitivitiesRequired) const;
     void readFixedParameters(int conditionIdx) const;
