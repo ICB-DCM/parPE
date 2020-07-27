@@ -415,7 +415,7 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
              * better exception handling, we check those fields to deduce where
              * the error occurred
              */
-            bool forwardFailed = std::isnan(rdata->x[rdata->x.size() - 1]);
+            bool forwardFailed = std::isnan(rdata->llh);
             bool backwardFailed = solver->getSensitivityOrder() >= amici::SensitivityOrder::first
                     && solver->getSensitivityMethod() == amici::SensitivityMethod::adjoint
                     && !rdata->sllh.empty() && std::isnan(rdata->sllh[0]);
