@@ -4,4 +4,4 @@ sphinx_rtd_theme
 breathe
 exhale
 IPython
-m2r
+m2r @ git+https://github.com/crossnox/m2r@dev#egg=m2r
