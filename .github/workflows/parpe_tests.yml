@@ -1,7 +1,7 @@
 # https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions
 # https://help.github.com/en/actions/configuring-and-managing-workflows/using-environment-variables
 name: parPE tests
-on: [push]
+on: [push, pull_request, workflow_dispatch]
 jobs:
   container:
     runs-on: ubuntu-latest

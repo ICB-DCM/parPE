@@ -2,7 +2,7 @@
 # https://help.github.com/en/actions/configuring-and-managing-workflows/using-environment-variables
 
 name: PEtab test suite
-on: [push]
+on: [push, pull_request, workflow_dispatch]
 jobs:
   container:
     runs-on: ubuntu-latest
