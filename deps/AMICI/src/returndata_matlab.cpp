@@ -33,17 +33,17 @@ mxArray *initMatlabReturnFields(ReturnData const *rdata) {
                                               "x0",
                                               "sx0",
                                               "diagnosis"};
-    
+
     checkFieldNames(field_names_sol,numFields);
 
     mxArray *matlabSolutionStruct =
         mxCreateStructMatrix(1, 1, numFields, field_names_sol);
-    
+
     std::vector<int> perm0 = {1, 0};
     std::vector<int> perm1 = {0, 1};
     std::vector<int> perm2 = {0, 2, 1};
     std::vector<int> perm3 = {0, 2, 3, 1};
-    
+
     writeMatlabField0(matlabSolutionStruct, "status", rdata->status);
 
     writeMatlabField1(matlabSolutionStruct, "t", rdata->ts, rdata->nt);
@@ -96,12 +96,12 @@ mxArray *initMatlabReturnFields(ReturnData const *rdata) {
 
     mxArray *diagnosis = initMatlabDiagnosisFields(rdata);
     mxSetField(matlabSolutionStruct, 0, "diagnosis", diagnosis);
-    
+
     return(matlabSolutionStruct);
 }
 
 mxArray *initMatlabDiagnosisFields(ReturnData const *rdata) {
-    const int numFields = 17;
+    const int numFields = 27;
     const char *field_names_sol[numFields] = {"xdot",
                                               "J",
                                               "numsteps",
@@ -113,43 +113,74 @@ mxArray *initMatlabDiagnosisFields(ReturnData const *rdata) {
                                               "numrhsevalsB",
                                               "numerrtestfailsB",
                                               "numnonlinsolvconvfailsB",
-                                              "newton_status",
-                                              "newton_numsteps",
-                                              "newton_numlinsteps",
-                                              "newton_cpu_time",
-                                              "newton_t_steadystate",
-                                              "newton_wrms"
-    };
-    
+                                              "preeq_status",
+                                              "preeq_numsteps",
+                                              "preeq_numstepsB",
+                                              "preeq_numlinsteps",
+                                              "preeq_cpu_time",
+                                              "preeq_cpu_timeB",
+                                              "preeq_t",
+                                              "preeq_wrms",
+                                              "posteq_status",
+                                              "posteq_numsteps",
+                                              "posteq_numstepsB",
+                                              "posteq_numlinsteps",
+                                              "posteq_cpu_time",
+                                              "posteq_cpu_timeB",
+                                              "posteq_t",
+                                              "posteq_wrms"};
+
     checkFieldNames(field_names_sol,numFields);
-    
+
     mxArray *matlabDiagnosisStruct =
         mxCreateStructMatrix(1, 1, numFields, field_names_sol);
-    
+
     std::vector<int> perm1 = {0, 1};
-    
-    writeMatlabField1(matlabDiagnosisStruct, "numsteps", rdata->numsteps, rdata->nt);
-    writeMatlabField1(matlabDiagnosisStruct, "numrhsevals", rdata->numrhsevals, rdata->nt);
-    writeMatlabField1(matlabDiagnosisStruct, "numerrtestfails", rdata->numerrtestfails, rdata->nt);
-    writeMatlabField1(matlabDiagnosisStruct, "numnonlinsolvconvfails", rdata->numnonlinsolvconvfails, rdata->nt);
-    writeMatlabField1(matlabDiagnosisStruct, "order", rdata->order, rdata->nt);
+    int finite_nt = 0;
+    for (int it = 0; it < rdata->nt; it++)
+        if (!std::isinf(rdata->ts[it]))
+            finite_nt++;
+
+    writeMatlabField1(matlabDiagnosisStruct, "numsteps", rdata->numsteps, finite_nt);
+    writeMatlabField1(matlabDiagnosisStruct, "numrhsevals", rdata->numrhsevals, finite_nt);
+    writeMatlabField1(matlabDiagnosisStruct, "numerrtestfails", rdata->numerrtestfails, finite_nt);
+    writeMatlabField1(matlabDiagnosisStruct, "numnonlinsolvconvfails", rdata->numnonlinsolvconvfails, finite_nt);
+    writeMatlabField1(matlabDiagnosisStruct, "order", rdata->order, finite_nt);
 
     if (rdata->nx > 0) {
-        writeMatlabField1(matlabDiagnosisStruct, "xdot", rdata->xdot, rdata->nx);
-        writeMatlabField2(matlabDiagnosisStruct, "J", rdata->J, rdata->nx, rdata->nx, perm1);
-        writeMatlabField0(matlabDiagnosisStruct, "newton_status", rdata->newton_status);
-        writeMatlabField1(matlabDiagnosisStruct, "newton_numsteps", rdata->newton_numsteps, 3);
-        writeMatlabField2(matlabDiagnosisStruct, "newton_numlinsteps", rdata->newton_numlinsteps, rdata->newton_maxsteps, 2, perm1);
-        writeMatlabField0(matlabDiagnosisStruct, "newton_cpu_time", rdata->newton_cpu_time);
-        writeMatlabField0(matlabDiagnosisStruct, "newton_t_steadystate", rdata->t_steadystate);
-        writeMatlabField0(matlabDiagnosisStruct, "newton_wrms", rdata->wrms_steadystate);
+        writeMatlabField1(matlabDiagnosisStruct, "xdot", rdata->xdot, rdata->nx_solver);
+        writeMatlabField2(matlabDiagnosisStruct, "J", rdata->J, rdata->nx_solver, rdata->nx_solver, perm1);
+
+        writeMatlabField1(matlabDiagnosisStruct, "preeq_status", rdata->preeq_status, 3);
+        writeMatlabField1(matlabDiagnosisStruct, "preeq_numsteps", rdata->preeq_numsteps, 3);
+        writeMatlabField2(matlabDiagnosisStruct, "preeq_numlinsteps",
+                          rdata->preeq_numlinsteps,
+                          rdata->preeq_numlinsteps.size() > 0
+                              ? rdata->newton_maxsteps : 0, 2, perm1);
+        writeMatlabField0(matlabDiagnosisStruct, "preeq_numstepsB", rdata->preeq_numstepsB);
+        writeMatlabField0(matlabDiagnosisStruct, "preeq_cpu_time", rdata->preeq_cpu_time);
+        writeMatlabField0(matlabDiagnosisStruct, "preeq_cpu_timeB", rdata->preeq_cpu_timeB);
+        writeMatlabField0(matlabDiagnosisStruct, "preeq_t", rdata->preeq_t);
+        writeMatlabField0(matlabDiagnosisStruct, "preeq_wrms", rdata->preeq_wrms);
+
+        writeMatlabField1(matlabDiagnosisStruct, "posteq_status", rdata->posteq_status, 3);
+        writeMatlabField1(matlabDiagnosisStruct, "posteq_numsteps", rdata->posteq_numsteps, 3);
+        writeMatlabField2(matlabDiagnosisStruct, "posteq_numlinsteps",
+                          rdata->posteq_numlinsteps,
+                          rdata->posteq_numlinsteps.size() > 0
+                              ? rdata->newton_maxsteps : 0, 2, perm1);
+        writeMatlabField0(matlabDiagnosisStruct, "posteq_numstepsB", rdata->posteq_numstepsB);
+        writeMatlabField0(matlabDiagnosisStruct, "posteq_cpu_time", rdata->posteq_cpu_time);
+        writeMatlabField0(matlabDiagnosisStruct, "posteq_cpu_timeB", rdata->posteq_cpu_timeB);
+        writeMatlabField0(matlabDiagnosisStruct, "posteq_t", rdata->posteq_t);
+        writeMatlabField0(matlabDiagnosisStruct, "posteq_wrms", rdata->posteq_wrms);
     }
     if (rdata->sensi >= SensitivityOrder::first) {
         if (rdata->sensi_meth == SensitivityMethod::adjoint) {
-            writeMatlabField1(matlabDiagnosisStruct, "numstepsB", rdata->numstepsB, rdata->nt);
-            writeMatlabField1(matlabDiagnosisStruct, "numrhsevalsB", rdata->numrhsevalsB, rdata->nt);
-            writeMatlabField1(matlabDiagnosisStruct, "numerrtestfailsB", rdata->numerrtestfailsB, rdata->nt);
-            writeMatlabField1(matlabDiagnosisStruct, "numnonlinsolvconvfailsB", rdata->numnonlinsolvconvfailsB, rdata->nt);
+            writeMatlabField1(matlabDiagnosisStruct, "numstepsB", rdata->numstepsB, finite_nt);
+            writeMatlabField1(matlabDiagnosisStruct, "numrhsevalsB", rdata->numrhsevalsB, finite_nt);
+            writeMatlabField1(matlabDiagnosisStruct, "numerrtestfailsB", rdata->numerrtestfailsB, finite_nt);
+            writeMatlabField1(matlabDiagnosisStruct, "numnonlinsolvconvfailsB", rdata->numnonlinsolvconvfailsB, finite_nt);
         }
     }
 
@@ -160,11 +191,11 @@ mxArray *initMatlabDiagnosisFields(ReturnData const *rdata) {
 template<typename T>
 void writeMatlabField0(mxArray *matlabStruct, const char *fieldName,
                        T fieldData) {
-    
+
     std::vector<mwSize> dim = {(mwSize)(1), (mwSize)(1)};
-    
+
     double *array = initAndAttachArray(matlabStruct, fieldName, dim);
-    
+
     array[0] = static_cast<double>(fieldData);
 }
 
@@ -173,11 +204,11 @@ void writeMatlabField1(mxArray *matlabStruct, const char *fieldName,
                        std::vector<T> const& fieldData, int dim0) {
     if(fieldData.size() != dim0)
         throw AmiException("Dimension mismatch when writing rdata->%s to matlab results",fieldName);
-    
+
     std::vector<mwSize> dim = {(mwSize)(dim0), (mwSize)(1)};
-    
+
     double *array = initAndAttachArray(matlabStruct, fieldName, dim);
-    
+
     for(int i = 0; i < dim0; i++)
         array[i] = static_cast<double>(fieldData[i]);
 }
@@ -187,15 +218,18 @@ void writeMatlabField2(mxArray *matlabStruct, const char *fieldName,
                       std::vector<T> const& fieldData, int dim0, int dim1,
                       std::vector<int> perm) {
     if(fieldData.size() != dim0*dim1)
-        throw AmiException("Dimension mismatch when writing rdata->%s to matlab results",fieldName);
-    
+        throw AmiException("Dimension mismatch when writing rdata->%s to "
+                           "matlab results (expected: %d, actual: %d)",
+                           fieldName, dim0 * dim1,
+                           static_cast<int>(fieldData.size()));
+
     if(perm.size() != 2)
         throw AmiException("Dimension mismatch when applying permutation!");
-    
+
     std::vector<mwSize> dim = {(mwSize)(dim0), (mwSize)(dim1)};
-    
+
     double *array = initAndAttachArray(matlabStruct, fieldName, reorder(dim,perm));
-    
+
     std::vector<int> index = {0,0};
     /* transform rowmajor (c++) to colmajor (matlab) and apply permutation */
     for (index[0] = 0; index[0] < dim[0]; index[0]++) {
@@ -212,14 +246,14 @@ void writeMatlabField3(mxArray *matlabStruct, const char *fieldName,
                       int dim2, std::vector<int> perm) {
     if(fieldData.size() != dim0*dim1*dim2)
         throw AmiException("Dimension mismatch when writing rdata->%s to matlab results",fieldName);
-    
+
     if(perm.size() != 3)
         throw AmiException("Dimension mismatch when applying permutation!");
-    
+
     std::vector<mwSize> dim = {(mwSize)(dim0), (mwSize)(dim1), (mwSize)(dim2)};
-    
+
     double *array = initAndAttachArray(matlabStruct, fieldName, reorder(dim,perm));
-    
+
     std::vector<int> index = {0,0,0};
     /* transform rowmajor (c++) to colmajor (matlab) and apply permutation */
     for (index[0] = 0; index[0] < dim[0]; index[0]++) {
@@ -238,14 +272,14 @@ void writeMatlabField4(mxArray *matlabStruct, const char *fieldName,
                       int dim2, int dim3, std::vector<int> perm) {
     if(fieldData.size() != dim0*dim1*dim2*dim3)
         throw AmiException("Dimension mismatch when writing rdata->%s to matlab results!",fieldName);
-    
+
     if(perm.size() != 4)
         throw AmiException("Dimension mismatch when applying permutation!");
-    
+
     std::vector<mwSize> dim = {(mwSize)(dim0), (mwSize)(dim1), (mwSize)(dim2), (mwSize)(dim3)};
-    
+
     double *array = initAndAttachArray(matlabStruct, fieldName, reorder(dim,perm));
-    
+
     std::vector<int> index = {0,0,0,0};
     /* transform rowmajor (c++) to colmajor (matlab) and apply permutation */
     for (index[0] = 0; index[0] < dim[0]; index[0]++) {
@@ -263,7 +297,7 @@ void writeMatlabField4(mxArray *matlabStruct, const char *fieldName,
 double *initAndAttachArray(mxArray *matlabStruct, const char *fieldName, std::vector<mwSize> dim) {
     if(!mxIsStruct(matlabStruct))
         throw AmiException("Passing non-struct mxArray to initAndAttachArray!",fieldName);
-    
+
     int fieldNumber = mxGetFieldNumber(matlabStruct, fieldName);
     if(fieldNumber<0)
         throw AmiException("Trying to access non-existent field '%s'!",fieldName);

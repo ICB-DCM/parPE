@@ -40,6 +40,8 @@ class CVodeSolver : public Solver {
     void sensReInit(const AmiVectorArray &yyS0,
                     const AmiVectorArray &ypS0) const override;
 
+    void sensToggleOff() const override;
+
     void reInitB(int which, realtype tB0,
                  const AmiVector &yyB0, const AmiVector &ypB0) const override;
 
@@ -95,6 +97,10 @@ class CVodeSolver : public Solver {
 
     void getQuadB(int which) const override;
 
+    void getQuad(realtype &t) const override;
+
+    void getQuadDky(realtype t, int k) const override;
+
     void reInitPostProcessF(realtype tnext) const override;
 
     void reInitPostProcessB(realtype tnext) const override;
@@ -112,6 +118,8 @@ class CVodeSolver : public Solver {
     void setSensErrCon(bool error_corr) const override;
 
     void setQuadErrConB(int which, bool flag) const override;
+
+    void setQuadErrCon(bool flag) const override;
 
     void setErrHandlerFn() const override;
 
@@ -136,6 +144,8 @@ class CVodeSolver : public Solver {
 
     void adjInit() const override;
 
+    void quadInit(const AmiVector &xQ0) const override;
+    
     void allocateSolverB(int *which) const override;
 
     void setSStolerancesB(int which, realtype relTolB,
@@ -143,6 +153,8 @@ class CVodeSolver : public Solver {
 
     void quadSStolerancesB(int which, realtype reltolQB,
                            realtype abstolQB) const override;
+
+    void quadSStolerances(realtype reltolQ, realtype abstolQ) const override;
 
     void setMaxNumStepsB(int which, long int mxstepsB) const override;
 
@@ -172,8 +184,11 @@ class CVodeSolver : public Solver {
 
     friend bool operator==(const CVodeSolver &a, const CVodeSolver &b);
 
-    void init(realtype t0, const AmiVector &x0, const AmiVector &dx0)
-    const override;
+    void init(realtype t0, const AmiVector &x0,
+              const AmiVector &dx0) const override;
+
+    void initSteadystate(const realtype t0, const AmiVector &x0,
+                         const AmiVector &dx0) const override;
 
     void sensInit1(const AmiVectorArray &sx0, const AmiVectorArray &sdx0)
     const override;
@@ -200,6 +215,8 @@ class CVodeSolver : public Solver {
     void setBandJacFnB(int which) const override;
 
     void setJacTimesVecFnB(int which) const override;
+
+    void setSparseJacFn_ss() const override;
 };
 
 } // namespace amici

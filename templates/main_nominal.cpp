@@ -9,7 +9,9 @@
 #include <memory>
 
 // to avoid including model-specific header files
+namespace amici::generic_model {
 std::unique_ptr<amici::Model> getModel();
+}
 using namespace parpe;
 
 int main(int argc, char **argv) {
@@ -41,7 +43,8 @@ int main(int argc, char **argv) {
                       inFileArgument.c_str());
 
     // setup data and problem
-    MultiConditionDataProviderHDF5 dataProvider(getModel(), inFileArgument);
+    MultiConditionDataProviderHDF5 dataProvider(
+        amici::generic_model::getModel(), inFileArgument);
     auto options = OptimizationOptions::fromHDF5(dataProvider.getHdf5FileId());
 
     std::unique_ptr<OptimizationResultWriter> rw;
@@ -59,7 +62,7 @@ int main(int argc, char **argv) {
 
     double fval = NAN;
     std::vector<double> gradient(optimizationParams.size(), NAN);
-    problem.costFun->evaluate(optimizationParams, fval, gradient);
+    problem.cost_fun_->evaluate(optimizationParams, fval, gradient);
 
     std::cout<<gradient<<std::endl;
     std::for_each(gradient.begin(), gradient.end(), [](double &d){ d = std::fabs(d); });

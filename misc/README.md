@@ -1,9 +1,5 @@
 # `/misc` Various helper scripts
 
-- amiciHelper.py
-  
-  Module for parsing AMICI source files
-
 - createJobsForScalingStudy.sh
   
   Script for creating job file templates for scaling tests
@@ -24,10 +20,6 @@
 - parPE.R
 
   (Outdated) example for plotting parPE parameter estimation results in R 
-
-- runExamples.sh
-
-  Run parPE examples for testing
   
 - run_in_venv.sh
 

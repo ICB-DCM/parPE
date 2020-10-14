@@ -23,7 +23,7 @@ QuadraticTestProblem::QuadraticTestProblem(std::unique_ptr<Logger> logger)
     setOptimizationOptions(options);
     // will keep ref, but will be passed as unique pointer, so getReporter
     // must only be called once
-    reporter = new NiceMock<OptimizationReporterMock>(costFun.get(),
+    reporter = new NiceMock<OptimizationReporterMock>(cost_fun_.get(),
                                             std::make_unique<Logger>());
 }
 
@@ -88,6 +88,11 @@ int QuadraticGradientFunction::numParameters() const
 //    mock().actualCall("GradientFunction::numParameters");
 
     return 1;
+}
+
+std::vector<std::string> QuadraticGradientFunction::getParameterIds() const
+{
+    return std::vector<std::string> {"p1"};
 }
 
 bool OptimizationReporterTest::starting(gsl::span<const double>  /*parameters*/) const

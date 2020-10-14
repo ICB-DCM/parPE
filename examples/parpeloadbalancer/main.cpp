@@ -7,7 +7,7 @@
 
 #include <mpi.h>
 
-#define NUM_JOBS 1000
+constexpr int NUM_JOBS = 1000;
 
 /*
  * Testing code for MPI load balancing.

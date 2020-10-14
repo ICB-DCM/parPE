@@ -25,7 +25,7 @@ namespace parpe {
 class StandaloneSimulator
 {
   public:
-    StandaloneSimulator(MultiConditionDataProvider* dp);
+    explicit StandaloneSimulator(MultiConditionDataProvider* dp);
 
     /**
      * @brief Run simulations for the given parameter and write results to an
@@ -42,10 +42,10 @@ class StandaloneSimulator
      */
     int run(const std::string& resultFile,
             const std::string& resultPath,
-            std::vector<double> const& optimizationParameters,
+            std::map<std::string, double> &optimizationParameters,
             LoadBalancerMaster* loadBalancer,
             const H5::H5File& conditionFile,
-            std::string conditionFilePath);
+            std::string conditionFilePath, bool computeInnerParameters);
 
     void messageHandler(std::vector<char>& buffer, int jobId);
 
@@ -90,7 +90,8 @@ runFinalParameters(parpe::StandaloneSimulator& sim,
                    const std::string& parameterFilePath,
                    const std::string& resultFileName,
                    const std::string& resultPath,
-                   parpe::LoadBalancerMaster* loadBalancer);
+                   parpe::LoadBalancerMaster* loadBalancer,
+                   bool computeInnerParameters);
 
 int
 runAlongTrajectory(parpe::StandaloneSimulator& sim,
@@ -100,7 +101,8 @@ runAlongTrajectory(parpe::StandaloneSimulator& sim,
                    const std::string& parameterFilePath,
                    std::string const& resultFileName,
                    std::string const& resultPath,
-                   parpe::LoadBalancerMaster* loadBalancer);
+                   parpe::LoadBalancerMaster* loadBalancer,
+                   bool computeInnerParameters);
 
 int
 runSimulator(MultiConditionDataProvider& dp,
@@ -110,20 +112,9 @@ runSimulator(MultiConditionDataProvider& dp,
              const std::string& parameterFileName,
              const std::string& parameterFilePath,
              std::string const& resultFileName,
-             std::string const& resultPath);
+             std::string const& resultPath,
+             bool computeInnerParameters);
 
-/**
- * @brief From the given parameter vector, extract outer optimization
- * parameters, as defined in the file HDF5 file parameterFile
- * @param fullParameters
- * @param parameterFile
- * @param parameterPath
- * @return
- */
-std::vector<double>
-getOuterParameters(std::vector<double> const& fullParameters,
-                   H5::H5File const& parameterFile,
-                   std::string const& parameterPath);
 } // namespace parpe
 
 #endif // STANDALONESIMULATOR_H

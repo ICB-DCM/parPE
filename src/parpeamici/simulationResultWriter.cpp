@@ -118,9 +118,8 @@ void SimulationResultWriter::saveMeasurements(
         return;
     }
 
-    RELEASE_ASSERT(measurements.size() ==
-                   static_cast<decltype(measurements)::index_type>(nt * nytrue),
-                   "");
+    Expects(measurements.size() ==
+                static_cast<decltype(measurements)::index_type>(nt * nytrue));
 
     auto lock = parpe::hdf5MutexGetLock();
 
@@ -144,8 +143,8 @@ void SimulationResultWriter::saveModelOutputs(
         return;
     }
 
-    RELEASE_ASSERT(outputs.size() ==
-                   static_cast<decltype(outputs)::index_type>(nt * nytrue), "");
+    Expects(outputs.size() ==
+            static_cast<decltype(outputs)::index_type>(nt * nytrue));
 
     auto lock = parpe::hdf5MutexGetLock();
 
@@ -169,8 +168,8 @@ void SimulationResultWriter::saveStates(
         return;
     }
 
-    RELEASE_ASSERT(states.size() ==
-                   static_cast<decltype(states)::index_type>(nt * nx), "");
+    Expects(states.size() ==
+                static_cast<decltype(states)::index_type>(nt * nx));
 
     auto lock = parpe::hdf5MutexGetLock();
 

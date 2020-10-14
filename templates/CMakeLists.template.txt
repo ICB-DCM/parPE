@@ -18,6 +18,9 @@ endif()
 
 set(MODEL_NAME mymodel)
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
+
 # call project to select language and required by some modules
 project(${MODEL_NAME}) # for IDE
 
@@ -25,8 +28,9 @@ set(BUILD_TESTS FALSE CACHE BOOL "Build tests?")
 
 find_package(Amici REQUIRED)
 find_package(ParPE REQUIRED)
+find_package(OpenMP)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -Wall -Wno-unused-function -fopenmp -D_GNU_SOURCE") # -D_GNU_SOURCE for pthread recursive mutex issues
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-unused-function -fopenmp -D_GNU_SOURCE") # -D_GNU_SOURCE for pthread recursive mutex issues
 
 execute_process(COMMAND sh -c "cd ${CMAKE_CURRENT_SOURCE_DIR} && git describe --abbrev=4 --dirty=-dirty --always --tags  | tr -d '\n'" OUTPUT_VARIABLE GIT_VERSION)
 message(STATUS "Building version ${GIT_VERSION}")

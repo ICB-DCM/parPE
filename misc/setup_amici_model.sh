@@ -1,51 +1,51 @@
 #!/usr/bin/env bash
 # For an AMICI-imported model, set up parPE build
 
-set -e
+set -euo pipefail
 
 # invalid options:
 if [[ $# -lt 2 ]] || [[ $# -gt 2 ]]; then
     echo "For an AMICI-imported model, set up parPE build"
-    echo "USAGE: $(basename "$0") MODEL_DIR OUTPUT_DIR"
+    echo "USAGE: $(basename "$0") model_dir output_dir"
     exit 1;
 fi
 
-SCRIPT_PATH=$(dirname $BASH_SOURCE)
-MODEL_DIR=$1
-OUTPUT_DIR=$2
-TEMPLATE_DIR=${SCRIPT_PATH}/../templates
-MODEL_NAME=$(basename ${MODEL_DIR})
+script_path=$(realpath $(dirname "$BASH_SOURCE"))
+model_dir="$1"
+output_dir="$2"
+template_dir="${script_path}/../templates"
+model_name=$(basename "${model_dir}")
 
-if [[ ! -d ${MODEL_DIR} ]]; then
-    echo "ERROR: Model directory ${MODEL_DIR} does not exist."
+if [[ ! -d "${model_dir}" ]]; then
+    echo "ERROR: Model directory ${model_dir} does not exist."
     exit 1
 fi
 
-if [[ -e ${OUTPUT_DIR} ]]; then
-    echo "ERROR: Output directory ${OUTPUT_DIR} exists. Change or delete."
+if [[ -e "${output_dir}" ]]; then
+    echo "ERROR: Output directory ${output_dir} exists. Change or delete."
     exit 1
 fi
 
-echo "Copying model to output directory $OUTPUT_DIR ..."
-mkdir -p ${OUTPUT_DIR}
-cp -R ${MODEL_DIR} ${OUTPUT_DIR}/model
+echo "Copying model to output directory ${output_dir} ..."
+mkdir -p "${output_dir}"
+cp -R "${model_dir}" "${output_dir}/model"
 
 echo "Adding CMake and source files ..."
-cp ${TEMPLATE_DIR}/CMakeLists.template.txt ${OUTPUT_DIR}/CMakeLists.txt
-sed -ri "s/mymodel/${MODEL_NAME}/" ${OUTPUT_DIR}/CMakeLists.txt
+cp "${template_dir}/CMakeLists.template.txt" "${output_dir}/CMakeLists.txt"
+sed -ri "s/mymodel/${model_name}/" "${output_dir}/CMakeLists.txt"
 # TODO change in AMICI to avoid naming conflicts
-sed -ri "s/simulate_/amici_/" ${OUTPUT_DIR}/model/CMakeLists.txt
-cp ${TEMPLATE_DIR}/main*.cpp ${OUTPUT_DIR}
+sed -ri "s/simulate_/amici_/" "${output_dir}/model/CMakeLists.txt"
+cp "${template_dir}"/main*.cpp "${output_dir}"
 
 echo "Setting up build ..."
-mkdir ${OUTPUT_DIR}/build
-cd ${OUTPUT_DIR}/build
 
-if [[ -z "${AMICI_ROOT}" ]]
-    then AMICI_ROOT=${SCRIPT_PATH}/../deps/AMICI/
-fi
+amici_root=${AMICI_ROOT:-${script_path}/../deps/AMICI/}
 
-CC=mpicc CXX=mpiCC cmake -DAmici_DIR=${AMICI_ROOT}/build -DParPE_DIR=${SCRIPT_PATH}/../build ..
+CC=mpicc CXX=mpiCC \
+  cmake -S "${output_dir}" \
+        -B "${output_dir}/build" \
+        -DAmici_DIR="${amici_root}/build" \
+        -DParPE_DIR="${script_path}/../build"
 
 echo "Building ..."
-make ${MAKE_OPTS}
+cmake --build "${output_dir}/build" -- VERBOSE=1

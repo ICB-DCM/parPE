@@ -32,13 +32,45 @@ void serialize(Archive &ar, amici::Model &u, unsigned int version);
 namespace amici {
 
 /**
- * @brief The Model class represents an AMICI ODE model. The model can compute
+ * @brief implements an exchange format to store and transfer the state of the model at a
+ * specific timepoint. This is designed to only encompass the minimal number of attributes that need to be
+ * transferred.
+ */
+struct ModelState {
+    /** flag indicating whether a certain heaviside function should be active or
+         not (dimension: ne) */
+    std::vector<realtype> h;
+
+    /** total abundances for conservation laws
+     (dimension: nx_rdata-nx_solver) */
+    std::vector<realtype> total_cl;
+
+    /** sensitivities of total abundances for conservation laws
+     (dimension: (nx_rdata-nx_solver) x np, row-major) */
+    std::vector<realtype> stotal_cl;
+
+    /** unscaled parameters (dimension: np) */
+    std::vector<realtype> unscaledParameters;
+
+    /** constants (dimension: nk) */
+    std::vector<realtype> fixedParameters;
+
+    /** indexes of parameters wrt to which sensitivities are computed
+     *  (dimension: nplist)
+     */
+    std::vector<int> plist;
+};
+
+
+
+/**
+ * @brief The Model class represents an AMICI ODE/DAE model. The model can compute
  * various model related quantities based on symbolically generated code.
  */
 class Model : public AbstractModel {
   public:
     /** default constructor */
-    Model();
+    Model() = default;
 
     /**
      * @brief Constructor with model dimensions
@@ -47,6 +79,8 @@ class Model : public AbstractModel {
      * @param nx_solver number of state variables with conservation laws applied
      * @param nxtrue_solver number of state variables of the non-augmented model
      * with conservation laws applied
+     * @param nx_solver_reinit number of state variables with conservation laws
+     * subject to reinitialization
      * @param ny number of observables
      * @param nytrue number of observables of the non-augmented model
      * @param nz number of event observables
@@ -75,9 +109,10 @@ class Model : public AbstractModel {
      * @param ndxdotdp_implicit number of nonzero elements dxdotdp_implicit
      */
     Model(int nx_rdata, int nxtrue_rdata, int nx_solver, int nxtrue_solver,
-          int ny, int nytrue, int nz, int nztrue, int ne, int nJ, int nw,
-          int ndwdx, int ndwdp, int ndxdotdw, std::vector<int> ndJydy, int nnz,
-          int ubw, int lbw, amici::SecondOrderMode o2mode,
+          int nx_solver_reinit, int ny, int nytrue, int nz, int nztrue, int ne,
+          int nJ, int nw, int ndwdx, int ndwdp, int ndxdotdw,
+          std::vector<int> ndJydy, int nnz, int ubw, int lbw,
+          amici::SecondOrderMode o2mode,
           const std::vector<amici::realtype> &p, std::vector<amici::realtype> k,
           const std::vector<int> &plist, std::vector<amici::realtype> idlist,
           std::vector<int> z2event, bool pythonGenerated = false,
@@ -176,8 +211,10 @@ class Model : public AbstractModel {
      * @param xB adjoint state variables
      * @param dxB time derivative of adjoint states (DAE only)
      * @param xQB adjoint quadratures
+     * @param posteq flag indicating whether postequilibration was performed
      */
-    void initializeB(AmiVector &xB, AmiVector &dxB, AmiVector &xQB);
+    void initializeB(AmiVector &xB, AmiVector &dxB, AmiVector &xQB,
+                     bool posteq) const;
 
     /**
      * @brief Initialization of initial states
@@ -223,6 +260,12 @@ class Model : public AbstractModel {
      * @return difference between nx_rdata and nx_solver
      */
     int ncl() const;
+
+    /**
+     * @brief Number of solver states subject to reinitialization
+     * @return model member nx_solver_reinit
+     */
+    int nx_reinit() const;
 
     /**
      * @brief Fixed parameters
@@ -576,6 +619,32 @@ class Model : public AbstractModel {
      * non-negative
      */
     void setAllStatesNonNegative();
+
+    /**
+     * @brief retrieves the current model state
+     * @return current model state
+     */
+    ModelState const &getModelState() const {
+        return state;
+    };
+
+    /**
+     * @brief sets the current model state
+     * @param state model state
+     */
+    void setModelState(ModelState const &state) {
+        if (static_cast<int>(state.unscaledParameters.size()) != np())
+            throw AmiException("Mismatch in parameter size");
+        if (static_cast<int>(state.fixedParameters.size()) != nk())
+            throw AmiException("Mismatch in fixed parameter size");
+        if (static_cast<int>(state.h.size()) != ne)
+            throw AmiException("Mismatch in heaviside size");
+        if (static_cast<int>(state.total_cl.size()) != ncl())
+            throw AmiException("Mismatch in conservation law size");
+        if (static_cast<int>(state.stotal_cl.size()) != ncl() * np() )
+            throw AmiException("Mismatch in conservation law sensitivity size");
+        this->state = state;
+    };
 
     /**
      * @brief Get the list of parameters for which sensitivities are computed
@@ -1117,6 +1186,9 @@ class Model : public AbstractModel {
      */
     int nxtrue_solver{0};
 
+    /** number of solver states subject to reinitialization */
+    int nx_solver_reinit{0};
+
     /** number of observables */
     int ny{0};
 
@@ -1192,7 +1264,7 @@ class Model : public AbstractModel {
      * temporary storage of dxdotdp data across functions, Matlab only
      * (dimension: nplist x nx_solver, row-major)
      */
-    AmiVectorArray dxdotdp;
+    AmiVectorArray dxdotdp {0, 0};
     /** AMICI context */
     AmiciApplication *app = &defaultContext;
 
@@ -1233,8 +1305,8 @@ class Model : public AbstractModel {
      * @param sllh first order buffer
      * @param s2llh second order buffer
      */
-    void checkLLHBufferSize(std::vector<realtype> &sllh,
-                            std::vector<realtype> &s2llh);
+    void checkLLHBufferSize(const std::vector<realtype> &sllh,
+                            const std::vector<realtype> &s2llh) const;
 
     /**
      * @brief Set the nplist-dependent vectors to their proper sizes
@@ -1590,6 +1662,9 @@ class Model : public AbstractModel {
      */
     N_Vector computeX_pos(const_N_Vector x);
 
+    /** all variables necessary for function evaluation */
+    ModelState state;
+
     /** Sparse Jacobian (dimension: nnz)*/
     mutable SUNMatrixWrapper J;
 
@@ -1750,39 +1825,16 @@ class Model : public AbstractModel {
      */
     mutable std::vector<realtype> deltaqB;
 
-    /** flag indicating whether a certain heaviside function should be active or
-         not (dimension: ne) */
-    mutable std::vector<realtype> h;
-
-    /** total abundances for conservation laws
-     (dimension: nx_rdata-nx_solver) */
-    mutable std::vector<realtype> total_cl;
-
-    /** sensitivities of total abundances for conservation laws
-     (dimension: (nx_rdata-nx_solver) x np, row-major) */
-    mutable std::vector<realtype> stotal_cl;
-
     /** temporary storage of positified state variables according to
      * stateIsNonNegative (dimension: nx_solver) */
-    mutable AmiVector x_pos_tmp;
-
-    /** unscaled parameters (dimension: np) */
-    std::vector<realtype> unscaledParameters;
+    mutable AmiVector x_pos_tmp {0};
 
     /** orignal user-provided, possibly scaled parameter array (dimension: np)
      */
     std::vector<realtype> originalParameters;
 
-    /** constants (dimension: nk) */
-    std::vector<realtype> fixedParameters;
-
     /** index indicating to which event an event output belongs */
     std::vector<int> z2event;
-
-    /** indexes of parameters wrt to which sensitivities are computed
-     *  (dimension: nplist)
-     */
-    std::vector<int> plist_;
 
     /** state initialisation (size nx_solver) */
     std::vector<double> x0data;

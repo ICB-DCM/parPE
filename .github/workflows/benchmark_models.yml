@@ -1,7 +1,7 @@
 # https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions
 # https://help.github.com/en/actions/configuring-and-managing-workflows/using-environment-variables
 name: Test benchmark collection models
-on: [push]
+on: [push, pull_request, workflow_dispatch]
 jobs:
   container:
     runs-on: ubuntu-latest
@@ -10,9 +10,9 @@ jobs:
     steps:
     - uses: actions/checkout@master
 
-    - run: echo "::set-env name=PARPE_BASE::$(pwd)"
-    - run: echo "::set-env name=PARPE_BUILD::${PARPE_BASE}/build"
-    - run: echo "::set-env name=AMICI_PATH::${PARPE_BASE}/deps/AMICI/"
+    - run: echo "PARPE_BASE=$(pwd)" >> $GITHUB_ENV
+    - run: echo "PARPE_BUILD=${PARPE_BASE}/build" >> $GITHUB_ENV
+    - run: echo "AMICI_PATH=${PARPE_BASE}/deps/AMICI/" >> $GITHUB_ENV
 
     # Build dependencies
 

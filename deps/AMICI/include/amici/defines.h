@@ -18,37 +18,32 @@ constexpr double pi = 3.14159265358979323846;
 
 // clang-format off
 
-#define AMICI_ONEOUTPUT   5
+constexpr int AMICI_ONEOUTPUT=                 5;
 
 /* Return codes */
-#define AMICI_RECOVERABLE_ERROR          1
-#define AMICI_UNRECOVERABLE_ERROR      -10
-#define AMICI_TOO_MUCH_WORK             -1
-#define AMICI_TOO_MUCH_ACC              -2
-#define AMICI_ERR_FAILURE               -3
-#define AMICI_CONV_FAILURE              -4
-#define AMICI_ILL_INPUT                -22
-#define AMICI_ERROR                    -99
-#define AMICI_NOT_IMPLEMENTED         -999
-#define AMICI_SUCCESS                    0
-#define AMICI_DATA_RETURN                1
-#define AMICI_ROOT_RETURN                2
+constexpr int AMICI_RECOVERABLE_ERROR=         1;
+constexpr int AMICI_UNRECOVERABLE_ERROR=     -10;
+constexpr int AMICI_TOO_MUCH_WORK=            -1;
+constexpr int AMICI_TOO_MUCH_ACC=             -2;
+constexpr int AMICI_ERR_FAILURE=              -3;
+constexpr int AMICI_CONV_FAILURE=             -4;
+constexpr int AMICI_ILL_INPUT=               -22;
+constexpr int AMICI_ERROR=                   -99;
+constexpr int AMICI_NO_STEADY_STATE=         -81;
+constexpr int AMICI_DAMPING_FACTOR_ERROR=    -86;
+constexpr int AMICI_SINGULAR_JACOBIAN=      -807;
+constexpr int AMICI_NOT_IMPLEMENTED=        -999;
+constexpr int AMICI_SUCCESS=                   0;
+constexpr int AMICI_DATA_RETURN=               1;
+constexpr int AMICI_ROOT_RETURN=               2;
 
-#define AMICI_NORMAL                     1
-#define AMICI_ONE_STEP                   2
+constexpr int AMICI_NORMAL=                    1;
+constexpr int AMICI_ONE_STEP=                  2;
 
-#define AMICI_PREEQUILIBRATE            -1
+constexpr int AMICI_PREEQUILIBRATE=           -1;
 
 #ifndef booleantype
 #define booleantype int
-#endif
-
-#ifndef FALSE
-#define FALSE 0
-#endif
-
-#ifndef TRUE
-#define TRUE 1
 #endif
 
 /** defines variable type for simulation variables
@@ -143,17 +138,40 @@ enum class SteadyStateSensitivityMode {
 };
 
 /** State in which the steady state computation finished */
-enum class NewtonStatus {
-    failed=-1,
-    newt=1,
-    newt_sim=2,
-    newt_sim_newt=3,
+enum class SteadyStateStatus {
+    failed_too_long_simulation = -5,
+    failed_damping = -4,
+    failed_factorization = -3,
+    failed_convergence = -2,
+    failed = -1,
+    not_run = 0,
+    success = 1
+};
+
+/** Context for which the sensitivity flag should be computed */
+enum class SteadyStateContext {
+    newtonSensi = 0,
+    sensiStorage = 1,
+    solverCreation = 2
 };
 
 /** Damping factor flag for the Newton method */
 enum class NewtonDampingFactorMode {
     off = 0,
     on = 1
+};
+
+/** fixedParameter to be used in condition context */
+enum class FixedParameterContext {
+    simulation = 0,
+    preequilibration = 1,
+    presimulation = 2,
+};
+
+enum class RDataReporting {
+    full,
+    residuals,
+    likelihood,
 };
 
 /**

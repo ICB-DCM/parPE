@@ -337,7 +337,8 @@ def simulation_to_df(mes_df, sim, result_file, start, observable_ids,
         (condition_names[preeq_idx] if not np.isnan(
             preeq_idx) and preeq_idx >= 0 else -1.0,
          condition_names[sim_idx] if sim_idx >= 0 else -1.0): comb_idx
-        for comb_idx, (preeq_idx, sim_idx) in enumerate(simulation_conditions)}
+        for comb_idx, (preeq_idx, sim_idx, _) in enumerate(
+            simulation_conditions)}
     obs_id_to_idx = {id_: idx for idx, id_ in enumerate(observable_ids)}
 
     mes_df[MEASUREMENT] = np.nan

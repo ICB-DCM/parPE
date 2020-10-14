@@ -1,6 +1,8 @@
+# dependency: AMICI
 find_package(Amici
     HINTS ${CMAKE_SOURCE_DIR}/deps/AMICI/build)
 
+# dependecy: BOOST
 if(CMAKE_BUILD_TYPE MATCHES Release)
     set(Boost_USE_STATIC_LIBS TRUE)
 else()
@@ -9,18 +11,19 @@ else()
 endif()
 find_package(Boost COMPONENTS serialization REQUIRED)
 
+
 project(parpeamici)
 
 set(SRC_LIST
     multiConditionDataProvider.cpp
     multiConditionProblem.cpp
-    steadystateSimulator.cpp
     optimizationApplication.cpp
     amiciSimulationRunner.cpp
     simulationResultWriter.cpp
     standaloneSimulator.cpp
     amiciMisc.cpp
     hierarchicalOptimization.cpp
+    hierarchicalOptimizationAnalyticalParameterProvider.cpp
 )
 
 add_library(${PROJECT_NAME} ${SRC_LIST})
@@ -37,6 +40,10 @@ target_link_libraries(${PROJECT_NAME}
     PUBLIC Upstream::amici
     PUBLIC ${Boost_SERIALIZATION_LIBRARY_RELEASE}
 )
+
+if (${OpenMP_FOUND})
+    target_link_libraries(${PROJECT_NAME} INTERFACE OpenMP::OpenMP_CXX)
+endif()
 
 install(TARGETS ${PROJECT_NAME} EXPORT ParPETargets
   LIBRARY DESTINATION lib

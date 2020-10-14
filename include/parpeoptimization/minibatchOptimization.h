@@ -14,6 +14,7 @@
 #include <iostream>
 #include <sstream>
 #include <functional>
+#include <gsl/gsl-lite.hpp>
 
 namespace parpe {
 
@@ -64,8 +65,8 @@ public:
 
     /** mini batch cost function */
     SummedGradientFunction<T>* getGradientFunction() const {
-        auto summedGradientFunction = dynamic_cast<SummedGradientFunction<T>*>(costFun.get());
-        RELEASE_ASSERT(summedGradientFunction, "");
+        auto summedGradientFunction = dynamic_cast<SummedGradientFunction<T>*>(cost_fun_.get());
+        Ensures(summedGradientFunction != nullptr);
         return summedGradientFunction;
     }
 };
@@ -418,7 +419,7 @@ public:
                                                            gsl::span<const double> upperParameterBounds,
                                                            OptimizationReporter *reporter,
                                                            Logger *logger_) {
-        RELEASE_ASSERT((unsigned) f.numParameters() == initialParameters.size(), "");
+        Expects((unsigned) f.numParameters() == initialParameters.size());
         Logger logger = logger_ ? *logger_ : Logger();
 
         // We don't change the user inputs but work with copies
@@ -438,8 +439,8 @@ public:
 
         if (reporter) {
             reporter->starting(initialParameters);
-            reporter->resultWriter->setLoggingEachFunctionEvaluation(false, true);
-            reporter->resultWriter->setLoggingEachIteration(false);
+            reporter->result_writer_->setLoggingEachFunctionEvaluation(false, true);
+            reporter->result_writer_->setLoggingEachIteration(false);
         }
 
         for (int epoch = 0; epoch < maxEpochs; ++epoch) {
@@ -521,7 +522,7 @@ public:
                                       OptimizationReporter *reporter) const {
         if (reporter) {
             reporter->beforeCostFunctionCall(parameters);
-            reporter->logger->setPrefix(logger->getPrefix());
+            reporter->logger_->setPrefix(logger->getPrefix());
         }
 
         double cpuTime = 0.0;
@@ -534,8 +535,8 @@ public:
             g /= batchSize;
 
         if (reporter) {
-            reporter->cpuTimeIterationSec += cpuTime;
-            reporter->cpuTimeTotalSec += cpuTime;
+            reporter->cpu_time_iteration_sec_ += cpuTime;
+            reporter->cpu_time_total_sec_ += cpuTime;
             reporter->afterCostFunctionCall(parameters, cost, gradient);
         }
 
@@ -606,7 +607,7 @@ public:
 
         if (reporter) {
             reporter->beforeCostFunctionCall(parameters);
-            reporter->logger->setPrefix(logger->getPrefix());
+            reporter->logger_->setPrefix(logger->getPrefix());
         }
 
         // debug output
@@ -987,8 +988,8 @@ void clipToBounds(gsl::span<const T> lowerBounds,
     if (lowerBounds.empty() && upperBounds.empty())
         return;
 
-    RELEASE_ASSERT(lowerBounds.size() == upperBounds.size(), "");
-    RELEASE_ASSERT(lowerBounds.size() == x.size(), "");
+    Expects(lowerBounds.size() == upperBounds.size());
+    Expects(lowerBounds.size() == x.size());
 
     for (int i = 0; static_cast<typename gsl::span<const T>::index_type>(i) < x.size(); ++i)
         x[i] = std::min(std::max(lowerBounds[i], x[i]), upperBounds[i]);

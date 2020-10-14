@@ -13,9 +13,9 @@ void Model_DAE::fJ(realtype t, realtype cj, N_Vector x, N_Vector dx,
     auto x_pos = computeX_pos(x);
     fdwdx(t, N_VGetArrayPointer(x_pos));
     SUNMatZero(J);
-    fJ(SM_DATA_D(J), t, N_VGetArrayPointer(x_pos), unscaledParameters.data(),
-       fixedParameters.data(), h.data(), cj, N_VGetArrayPointer(dx), w.data(),
-       dwdx.data());
+    fJ(SM_DATA_D(J), t, N_VGetArrayPointer(x_pos),
+       state.unscaledParameters.data(), state.fixedParameters.data(),
+       state.h.data(), cj, N_VGetArrayPointer(dx), w.data(), dwdx.data());
 }
 
 void Model_DAE::fJSparse(const realtype t, const realtype cj,
@@ -30,9 +30,9 @@ void Model_DAE::fJSparse(realtype t, realtype cj, N_Vector x, N_Vector dx,
     fdwdx(t, N_VGetArrayPointer(x_pos));
     SUNMatZero(J);
     fJSparse(static_cast<SUNMatrixContent_Sparse>(SM_CONTENT_S(J)), t,
-             N_VGetArrayPointer(x_pos), unscaledParameters.data(),
-             fixedParameters.data(), h.data(), cj, N_VGetArrayPointer(dx),
-             w.data(), dwdx.data());
+             N_VGetArrayPointer(x_pos), state.unscaledParameters.data(),
+             state.fixedParameters.data(), state.h.data(), cj,
+             N_VGetArrayPointer(dx), w.data(), dwdx.data());
 }
 
 void Model_DAE::fJSparseB(SUNMatrixContent_Sparse   /*JSparseB*/,
@@ -70,8 +70,9 @@ void Model_DAE::froot(realtype t, N_Vector x, N_Vector dx,
                       gsl::span<realtype> root) {
     std::fill(root.begin(), root.end(), 0.0);
     auto x_pos = computeX_pos(x);
-    froot(root.data(), t, N_VGetArrayPointer(x_pos), unscaledParameters.data(),
-          fixedParameters.data(), h.data(), N_VGetArrayPointer(dx));
+    froot(root.data(), t, N_VGetArrayPointer(x_pos),
+          state.unscaledParameters.data(), state.fixedParameters.data(),
+          state.h.data(), N_VGetArrayPointer(dx));
 }
 
 void Model_DAE::fxdot(const realtype t, const AmiVector &x, const AmiVector &dx,
@@ -84,8 +85,8 @@ void Model_DAE::fxdot(realtype t, N_Vector x, N_Vector dx, N_Vector xdot) {
     fw(t, N_VGetArrayPointer(x));
     N_VConst(0.0, xdot);
     fxdot(N_VGetArrayPointer(xdot), t, N_VGetArrayPointer(x_pos),
-          unscaledParameters.data(), fixedParameters.data(), h.data(),
-          N_VGetArrayPointer(dx), w.data());
+          state.unscaledParameters.data(), state.fixedParameters.data(),
+          state.h.data(), N_VGetArrayPointer(dx), w.data());
 }
 
 void Model_DAE::fJDiag(const realtype t, AmiVector &JDiag,
@@ -95,8 +96,8 @@ void Model_DAE::fJDiag(const realtype t, AmiVector &JDiag,
     fdwdx(t, N_VGetArrayPointer(x_pos));
     JDiag.set(0.0);
     fJDiag(JDiag.data(), t, N_VGetArrayPointer(x_pos),
-           unscaledParameters.data(), fixedParameters.data(), h.data(), 0.0,
-           dx.data(), w.data(), dwdx.data());
+           state.unscaledParameters.data(), state.fixedParameters.data(),
+           state.h.data(), 0.0, dx.data(), w.data(), dwdx.data());
     if (!checkFinite(JDiag.getVector(), "Jacobian"))
         throw AmiException("Evaluation of fJDiag failed!");
 }
@@ -110,13 +111,14 @@ void Model_DAE::fdxdotdp(const realtype t, const N_Vector x,
         throw AmiException("Wrapping of DAEs is not yet implemented from Python");
     } else {
         // matlab generated
-        fdwdp(t, N_VGetArrayPointer(x_pos)); // Why is it x_pos here and x ind model_ode.cpp?
+        fdwdp(t, N_VGetArrayPointer(x_pos));
 
         for (int ip = 0; ip < nplist(); ip++) {
             N_VConst(0.0, dxdotdp.getNVector(ip));
             fdxdotdp(dxdotdp.data(ip), t, N_VGetArrayPointer(x_pos),
-                     unscaledParameters.data(), fixedParameters.data(), h.data(),
-                     plist_[ip], N_VGetArrayPointer(dx), w.data(), dwdp.data());
+                     state.unscaledParameters.data(),
+                     state.fixedParameters.data(), state.h.data(), plist(ip),
+                     N_VGetArrayPointer(dx), w.data(), dwdp.data());
         }
     }
 }
@@ -124,8 +126,8 @@ void Model_DAE::fdxdotdp(const realtype t, const N_Vector x,
 void Model_DAE::fM(realtype t, const N_Vector x) {
     SUNMatZero(M.get());
     auto x_pos = computeX_pos(x);
-    fM(M.data(), t, N_VGetArrayPointer(x_pos), unscaledParameters.data(),
-       fixedParameters.data());
+    fM(M.data(), t, N_VGetArrayPointer(x_pos), state.unscaledParameters.data(),
+       state.fixedParameters.data());
 }
 
 std::unique_ptr<Solver> Model_DAE::getSolver() {
@@ -182,14 +184,30 @@ void Model_DAE::fdxdotdp(realtype * /*dxdotdp*/, const realtype /*t*/,
                        __func__);
 }
 
+void Model_DAE::fJB(const realtype t, realtype cj, const AmiVector &x,
+                     const AmiVector &dx, const AmiVector &xB,
+                     const AmiVector &dxB, const AmiVector & /*xBdot*/,
+                     SUNMatrix JB) {
+    fJB(t, cj, x.getNVector(), dx.getNVector(), xB.getNVector(), dx.getNVector(), JB);
+}
+
+
 void Model_DAE::fJB(realtype t, realtype cj, N_Vector x, N_Vector dx,
                     N_Vector xB, N_Vector dxB, SUNMatrix JB) {
     auto x_pos = computeX_pos(x);
     fdwdx(t, N_VGetArrayPointer(x_pos));
     SUNMatZero(JB);
-    fJB(SM_DATA_D(JB), t, N_VGetArrayPointer(x_pos), unscaledParameters.data(),
-        fixedParameters.data(), h.data(), cj, N_VGetArrayPointer(xB),
-        N_VGetArrayPointer(dx), N_VGetArrayPointer(dxB), w.data(), dwdx.data());
+    fJB(SM_DATA_D(JB), t, N_VGetArrayPointer(x_pos),
+        state.unscaledParameters.data(), state.fixedParameters.data(),
+        state.h.data(), cj, N_VGetArrayPointer(xB), N_VGetArrayPointer(dx),
+        N_VGetArrayPointer(dxB), w.data(), dwdx.data());
+}
+
+void Model_DAE::fJSparseB(const realtype t, realtype cj, const AmiVector &x,
+                          const AmiVector &dx, const AmiVector &xB,
+                          const AmiVector &dxB, const AmiVector & /*xBdot*/,
+                          SUNMatrix JB) {
+    fJSparseB(t, cj, x.getNVector(), dx.getNVector(), xB.getNVector(), dxB.getNVector(), JB);
 }
 
 void Model_DAE::fJSparseB(realtype t, realtype cj, N_Vector x, N_Vector dx,
@@ -198,10 +216,10 @@ void Model_DAE::fJSparseB(realtype t, realtype cj, N_Vector x, N_Vector dx,
     fdwdx(t, N_VGetArrayPointer(x_pos));
     SUNMatZero(JB);
     fJSparseB(static_cast<SUNMatrixContent_Sparse>(SM_CONTENT_S(JB)), t,
-              N_VGetArrayPointer(x_pos), unscaledParameters.data(),
-              fixedParameters.data(), h.data(), cj, N_VGetArrayPointer(xB),
-              N_VGetArrayPointer(dx), N_VGetArrayPointer(dxB), w.data(),
-              dwdx.data());
+              N_VGetArrayPointer(x_pos), state.unscaledParameters.data(),
+              state.fixedParameters.data(), state.h.data(), cj,
+              N_VGetArrayPointer(xB), N_VGetArrayPointer(dx),
+              N_VGetArrayPointer(dxB), w.data(), dwdx.data());
 }
 
 void Model_DAE::fJvB(realtype t, N_Vector x, N_Vector dx, N_Vector xB,
@@ -233,6 +251,44 @@ void Model_DAE::fqBdot(realtype t, N_Vector x, N_Vector dx, N_Vector xB,
                     NV_Ith_S(xB, ix) * dxdotdp.at(ix + iJ * nxtrue_solver, ip) +
                     NV_Ith_S(xB, ix + iJ * nxtrue_solver) * dxdotdp.at(ix, ip);
     }
+}
+
+void Model_DAE::fxBdot_ss(const realtype t, const AmiVector &xB,
+                          const AmiVector &dxB, AmiVector &xBdot) {
+    fxBdot_ss(t, xB.getNVector(), dxB.getNVector(), xBdot.getNVector());
+}
+
+void Model_DAE::fxBdot_ss(realtype /*t*/, N_Vector xB, N_Vector /*dxB*/,
+                          N_Vector xBdot) const {
+    /* Right hande side of the adjoint state for steady state computations.
+     J is fixed (as x remeins in steady state), so the RHS becomes simple. */
+    N_VConst(0.0, xBdot);
+    J.multiply(xBdot, xB);
+    /* Mind the minus sign... */
+    N_VScale(-1.0, xBdot, xBdot);
+}
+
+void Model_DAE::fqBdot_ss(realtype /*t*/, N_Vector xB, N_Vector /*dxB*/,
+                          N_Vector qBdot) const {
+    /* Quadratures when computing adjoints for steady state. The integrand is
+     just the adjoint state itself. */
+    N_VScale(1.0, xB, qBdot);
+}
+
+void Model_DAE::fJSparseB_ss(SUNMatrix JB) {
+    /* Just pass the model Jacobian on to JB */
+    SUNMatCopy(J.get(), JB);
+}
+
+void Model_DAE::writeSteadystateJB(const realtype t, realtype cj,
+                                   const AmiVector &x, const AmiVector & dx,
+                                   const AmiVector &xB, const AmiVector & dxB,
+                                   const AmiVector &xBdot) {
+    /* Get backward Jacobian */
+    fJSparseB(t, cj, x.getNVector(), dx.getNVector(), xB.getNVector(),
+              dxB.getNVector(), J.get());
+    /* Switch sign, as we integrate forward in time, not backward */
+    J.scale(-1);
 }
 
 void Model_DAE::fsxdot(const realtype t, const AmiVector &x,

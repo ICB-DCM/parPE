@@ -10,7 +10,7 @@ project(parpe)
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/CMakeModules/")
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 include(BuildType) # Ensure CMAKE_BUILD_TYPE is always set
@@ -20,9 +20,9 @@ include(CTest)
 set(CMAKE_DEBUG_POSTFIX "-dbg")
 # -D_GNU_SOURCE for pthread recursive mutex
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} \
-    -std=c99 -Wall -Wno-unused-function -fopenmp -D_GNU_SOURCE")
+    -std=c99 -Wall -Wno-unused-function -D_GNU_SOURCE")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
-    -std=c++11 -Wall -Wno-unused-function -fopenmp -D_GNU_SOURCE")
+   -Wall -Wno-unused-function -D_GNU_SOURCE")
 
 if(BUILD_PYTHON_MODULE)
     # Build PIC code to be used for swig/python module
@@ -57,9 +57,6 @@ set(IPOPT_INCLUDE_DIRS "${IPOPT_DIR}/include/coin/"
 set(IPOPT_LIBRARIES "${IPOPT_DIR}/lib/libipopt.a"
     "${IPOPT_DIR}/lib/libcoinhsl.a" "gfortran"
     CACHE STRING "IpOpt library")
-set(CERES_INCLUDE_DIRS "" "/usr/include/eigen3"
-    CACHE PATH "CERES include directories")
-set(CERES_LIBRARIES "" CACHE STRING "CERES libraries")
 set(PARPE_ENABLE_IPOPT TRUE CACHE BOOL "Enable ipopt optimizer?")
 set(PARPE_ENABLE_CERES TRUE CACHE BOOL "Enable ceres optimizer?")
 set(PARPE_ENABLE_DLIB FALSE CACHE BOOL "Enable dlib optimizers?")
@@ -67,6 +64,9 @@ set(PARPE_ENABLE_TOMS611 FALSE CACHE BOOL "Enable toms611 optimizer?")
 set(PARPE_ENABLE_FSQP FALSE CACHE BOOL "Enable FSQP optimizer?")
 set(PARPE_EXPORT_PACKAGE FALSE CACHE BOOL
     "Export this build to CMake registry?")
+
+# OpenMP?
+find_package(OpenMP)
 
 # Enable MPI?
 if(${PARPE_ENABLE_MPI})
@@ -97,6 +97,9 @@ set(HDF5_LIBRARIES
 
 # Guidelines Support Library (GSL-lite) directory
 set(GSL_INCLUDE_DIRS "${CMAKE_SOURCE_DIR}/ThirdParty/gsl")
+# Throw on contract violation instead of terminate to get more meaningful
+#  message
+add_definitions(-Dgsl_CONFIG_CONTRACT_VIOLATION_THROWS)
 
 # Build tests?
 if(${BUILD_TESTING})

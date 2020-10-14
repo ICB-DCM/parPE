@@ -91,11 +91,13 @@ public:
 
     void setGradientFunction(GradientFunction *gradFun) const;
 
-    std::unique_ptr<OptimizationResultWriter> resultWriter;
+    std::vector<std::string> getParameterIds() const override;
 
-    mutable double cpuTimeTotalSec = 0.0;
-    mutable double cpuTimeIterationSec = 0.0;
-    std::unique_ptr<Logger> logger;
+    std::unique_ptr<OptimizationResultWriter> result_writer_;
+
+    mutable double cpu_time_total_sec_ = 0.0;
+    mutable double cpu_time_iteration_sec_ = 0.0;
+    std::unique_ptr<Logger> logger_;
 
 protected:
     void printObjectiveFunctionFailureMessage() const;
@@ -103,30 +105,30 @@ protected:
     // data members are mutable, because we inherit from GradientFunction,
     // and evaluate() is const there. This could probably be solved better....
 
-    mutable WallTimer wallTimer;
+    mutable WallTimer wall_timer_;
 
-    mutable int numFunctionCalls = 0;
-    mutable int numIterations = 0;
-    mutable int numParameters_ = 0;
+    mutable int num_function_calls_ = 0;
+    mutable int num_iterations_ = 0;
+    mutable int num_parameters_ = 0;
 
-    mutable bool started = false;
+    mutable bool started_ = false;
 
     // non-owning
-    mutable GradientFunction *gradFun = nullptr;
+    mutable GradientFunction *grad_fun_ = nullptr;
 
     // for caching
-    mutable bool haveCachedCost = false;
-    mutable bool haveCachedGradient = false;
-    mutable std::vector<double> cachedGradient;
-    mutable double cachedCost = std::numeric_limits<double>::infinity();
-    mutable FunctionEvaluationStatus cachedStatus = functionEvaluationSuccess;
+    mutable bool have_cached_cost_ = false;
+    mutable bool have_cached_gradient_ = false;
+    mutable std::vector<double> cached_gradient_;
+    mutable double cached_cost_ = std::numeric_limits<double>::infinity();
+    mutable FunctionEvaluationStatus cached_status_ = functionEvaluationSuccess;
 
-    mutable double finalCost = std::numeric_limits<double>::quiet_NaN();
+    mutable double final_cost_ = std::numeric_limits<double>::quiet_NaN();
 
     // keeps the most recent parameters, assuming they are the final ones
-    mutable std::vector<double> cachedParameters;
+    mutable std::vector<double> cached_parameters_;
 
-    std::string defaultLoggerPrefix;
+    std::string default_logger_prefix_;
 };
 
 
@@ -168,12 +170,12 @@ public:
     virtual std::unique_ptr<OptimizationReporter> getReporter() const;
 
     // const?
-    std::unique_ptr<GradientFunction> costFun;
+    std::unique_ptr<GradientFunction> cost_fun_;
 
-    std::unique_ptr<Logger> logger;
+    std::unique_ptr<Logger> logger_;
 
 private:
-    OptimizationOptions optimizationOptions;
+    OptimizationOptions optimization_options_;
 };
 
 

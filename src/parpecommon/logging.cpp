@@ -147,13 +147,9 @@ void printlogmessage(loglevel lvl, const char *message)
     }
 
     // Timestamp
-    time_t current_time;
-    struct tm local_time;
-    time(&current_time);
-    localtime_r(&current_time, &local_time);
     char dateBuffer[50];
-    strftime(dateBuffer, 25, "[%Y-%m-%d %H:%M:%S] ", &local_time);
 
+    strFormatCurrentLocaltime(dateBuffer, "[%Y-%m-%d %H:%M:%S] ");
     fputs(dateBuffer, stdout);
 
     printf("[%s] ", loglevelShortStr[static_cast<int>(lvl)]);
@@ -177,14 +173,17 @@ void printlogmessage(loglevel lvl, const char *message)
 #else
     auto procName = "";
 #endif
-    printf("[%*d/%s] ", 1 + static_cast<int>(log10(mpiCommSize)), mpiRank, procName);
+    printf("[%*d:%lu/%s] ", 1 + static_cast<int>(log10(mpiCommSize)),
+           mpiRank, pthread_self(), procName );
     printf("%s", message);
-    printf(ANSI_COLOR_RESET "\n");
+    printf("%s\n", ANSI_COLOR_RESET);
 
     switch (lvl) {
     case LOGLVL_CRITICAL:
+        [[fallthrough]];
     case LOGLVL_ERROR:
         fflush(stdout);
+        break;
     default:
         break;
     }

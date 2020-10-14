@@ -567,8 +567,9 @@ class HDF5DataGenerator:
             # Mind different ordering preeq/sim sim/preeq here and in PEtab!
             for sim_idx, (sim_id, preeq_id) \
                     in enumerate(simulations.iloc[:, 0:2].values):
-                condition_map[sim_idx] = [condition_id_to_idx[preeq_id],
-                                          condition_id_to_idx[sim_id]]
+                if preeq_id:
+                    condition_map[sim_idx, 0] = condition_id_to_idx[preeq_id]
+                condition_map[sim_idx, 1] = condition_id_to_idx[sim_id]
 
         print(Fore.CYAN + "Number of simulation conditions:",
               len(simulations))
@@ -876,8 +877,9 @@ class HDF5DataGenerator:
         Write simulation options
         """
         g = self.f.require_group("/amiciOptions")
-        g.attrs['sensi'] = amici.SensitivityOrder_first
-        g.attrs['sensi_meth'] = amici.SensitivityMethod_adjoint
+        g.attrs['sensi'] = amici.SensitivityOrder.first
+        g.attrs['sensi_meth'] = amici.SensitivityMethod.adjoint
+        g.attrs['sensi_meth_preeq'] = amici.SensitivityMethod.adjoint
         # TODO PEtab support: get from file
         g.attrs['tstart'] = 0.0
         g.attrs['atol'] = 1e-14

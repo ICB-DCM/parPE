@@ -17,7 +17,7 @@ def write_string_array(f: h5py.Group,
     """
     dt = h5py.special_dtype(vlen=str)
     dset = f.create_dataset(path, (len(strings),), dtype=dt)
-    dset[:] = [s.encode('utf8') for s in strings]
+    dset[:] = [str(s).encode('utf8') for s in strings]
     f.file.flush()
 
 

@@ -63,6 +63,7 @@ wrap_unique_ptr(ExpDataPtr, amici::ExpData)
 %include "amici/defines.h"
 
 %include abstract_model.i
+%include misc.i
 %include edata.i
 %include rdata.i
 %include solver.i
@@ -141,6 +142,30 @@ bool compiledWithOpenMP() {
 namespace amici {
 bool compiledWithOpenMP();
 }
+
+%pythoncode %{
+from enum import IntEnum
+def enum(prefix):
+    values = {k:v for k,v in globals().items() if k.startswith(prefix + '_')}
+    values = {k[len(prefix)+1:]:v for k,v in values.items()}
+    return IntEnum(prefix, values)
+ParameterScaling = enum('ParameterScaling')
+SecondOrderMode = enum('SecondOrderMode')
+SensitivityOrder = enum('SensitivityOrder')
+SensitivityMethod = enum('SensitivityMethod')
+LinearSolver = enum('LinearSolver')
+InternalSensitivityMethod = enum('InternalSensitivityMethod')
+InterpolationType = enum('InterpolationType')
+LinearMultistepMethod = enum('LinearMultistepMethod')
+NonlinearSolverIteration = enum('NonlinearSolverIteration')
+SteadyStateSensitivityMode = enum('SteadyStateSensitivityMode')
+SteadyStateStatus = enum('SteadyStateStatus')
+NewtonDampingFactorMode = enum('NewtonDampingFactorMode')
+FixedParameterContext = enum('FixedParameterContext')
+RDataReporting = enum('RDataReporting')
+%}
+
+%template(SteadyStateStatusVector) std::vector<amici::SteadyStateStatus>;
 
 // add module docstring and import additional types for typehints
 %pythonbegin %{

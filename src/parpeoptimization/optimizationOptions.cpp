@@ -179,9 +179,12 @@ std::vector<double> OptimizationOptions::getStartingPoint(hid_t fileId,
     auto lock = hdf5MutexGetLock();
     H5_SAVE_ERROR_HANDLER;
 
-    hid_t dataset;
-    if (!hdf5DatasetExists(fileId, path)
-            || (dataset = H5Dopen2(fileId, path, H5P_DEFAULT)) < 0) {
+    hid_t dataset = -1;
+    if (hdf5DatasetExists(fileId, path)) {
+        dataset = H5Dopen2(fileId, path, H5P_DEFAULT);
+    }
+
+    if (dataset < 0) {
         logmessage(LOGLVL_DEBUG, "No initial parameters found in %s", path);
         H5Eclear1();
         goto freturn;
@@ -191,7 +194,7 @@ std::vector<double> OptimizationOptions::getStartingPoint(hid_t fileId,
         // read dimensions
         hid_t dataspace = H5Dget_space(dataset);
         const int ndims = H5Sget_simple_extent_ndims(dataspace);
-        assert(ndims == 2);
+        Expects(ndims == 2);
         hsize_t dims[ndims];
         H5Sget_simple_extent_dims(dataspace, dims, nullptr);
         if (dims[1] < static_cast<hsize_t>(index))
@@ -325,6 +328,7 @@ void printAvailableOptimizers(std::string prefix)
                 <<static_cast<int>(optimizerName::OPTIMIZER_IPOPT)
                <<" disabled\n";
 #endif
+        [[fallthrough]];
     case optimizerName::OPTIMIZER_CERES:
 #ifdef PARPE_ENABLE_CERES
         std::cout<<prefix<<std::left<<std::setw(22)<<"OPTIMIZER_CERES"
@@ -335,6 +339,7 @@ void printAvailableOptimizers(std::string prefix)
                 <<static_cast<int>(optimizerName::OPTIMIZER_CERES)
                <<" disabled\n";
 #endif
+        [[fallthrough]];
     case optimizerName::OPTIMIZER_DLIB:
 #ifdef PARPE_ENABLE_DLIB
         std::cout<<prefix<<std::left<<std::setw(22)<<"OPTIMIZER_DLIB"
@@ -345,6 +350,7 @@ void printAvailableOptimizers(std::string prefix)
                 <<static_cast<int>(optimizerName::OPTIMIZER_DLIB)
                <<" disabled\n";
 #endif
+        [[fallthrough]];
     case optimizerName::OPTIMIZER_TOMS611:
 #ifdef PARPE_ENABLE_TOMS611
         std::cout<<prefix<<std::left<<std::setw(22)<<"OPTIMIZER_TOMS611"
@@ -355,6 +361,7 @@ void printAvailableOptimizers(std::string prefix)
                 <<static_cast<int>(optimizerName::OPTIMIZER_TOMS611)
                <<" disabled\n";
 #endif
+        [[fallthrough]];
     case optimizerName::OPTIMIZER_FSQP:
 #ifdef PARPE_ENABLE_FSQP
         std::cout<<prefix<<std::left<<std::setw(22)<<"OPTIMIZER_FSQP"
@@ -365,6 +372,7 @@ void printAvailableOptimizers(std::string prefix)
                 <<static_cast<int>(optimizerName::OPTIMIZER_FSQP)
                <<" disabled\n";
 #endif
+        [[fallthrough]];
     case optimizerName::OPTIMIZER_MINIBATCH_1:
         std::cout<<prefix<<std::left<<std::setw(22)<<"OPTIMIZER_MINIBATCH_1"
                 <<static_cast<int>(optimizerName::OPTIMIZER_MINIBATCH_1)

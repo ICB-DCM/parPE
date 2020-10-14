@@ -15,6 +15,22 @@ from typing import Dict, List, Union, Tuple, Any, Optional
 PackageInfo = Dict[str, List[Union[str, Tuple[str, Any]]]]
 Library = Tuple[str, PackageInfo]
 
+# suite sparse include directories
+suite_sparse_include_dirs = [
+    'amici/ThirdParty/SuiteSparse/KLU/Include/',
+    'amici/ThirdParty/SuiteSparse/AMD/Include/',
+    'amici/ThirdParty/SuiteSparse/COLAMD/Include/',
+    'amici/ThirdParty/SuiteSparse/BTF/Include/',
+    'amici/ThirdParty/SuiteSparse/SuiteSparse_config',
+    'amici/ThirdParty/SuiteSparse/include'
+]
+
+# sundials include directories
+sundials_include_dirs = [
+    'amici/ThirdParty/sundials/include',
+    'amici/ThirdParty/sundials/src',
+]
+
 
 def get_sundials_sources() -> List[str]:
     """Get list of Sundials source files"""
@@ -43,23 +59,17 @@ def get_sundials_sources() -> List[str]:
         os.path.join('src', 'idas', 'idas_nls_sim.c'),
         os.path.join('src', 'idas', 'idaa_io.c'),
         os.path.join('src', 'sundials', 'sundials_math.c'),
-        os.path.join('src', 'sundials', 'sundials_mpi.c'),
-        os.path.join('src', 'sundials', 'sundials_sptfqmr.c'),
         os.path.join('src', 'sundials', 'sundials_matrix.c'),
-        os.path.join('src', 'sundials', 'sundials_pcg.c'),
         os.path.join('src', 'sundials', 'sundials_direct.c'),
-        os.path.join('src', 'sundials', 'sundials_spgmr.c'),
-        os.path.join('src', 'sundials', 'sundials_spbcgs.c'),
         os.path.join('src', 'sundials', 'sundials_nvector_senswrapper.c'),
         os.path.join('src', 'sundials', 'sundials_dense.c'),
         os.path.join('src', 'sundials', 'sundials_nvector.c'),
         os.path.join('src', 'sundials', 'sundials_version.c'),
-        os.path.join('src', 'sundials', 'sundials_spfgmr.c'),
-        os.path.join('src', 'sundials', 'sundials_sparse.c'),
         os.path.join('src', 'sundials', 'sundials_iterative.c'),
         os.path.join('src', 'sundials', 'sundials_nonlinearsolver.c'),
         os.path.join('src', 'sundials', 'sundials_linearsolver.c'),
         os.path.join('src', 'sundials', 'sundials_band.c'),
+        os.path.join('src', 'sundials', 'sundials_futils.c'),
         os.path.join('src', 'sunnonlinsol', 'newton', 'sunnonlinsol_newton.c'),
         os.path.join('src', 'sunnonlinsol', 'fixedpoint',
                      'sunnonlinsol_fixedpoint.c'),
@@ -135,9 +145,9 @@ def get_amici_base_sources(with_hdf5: bool = True) -> List[str]:
         with_hdf5: compile with HDF5 support
     """
 
-    amici_base_sources = glob.glob('amici{s}src{s}*.cpp'.format(s=os.sep))
-    amici_base_sources = [src for src in amici_base_sources if not re.search(
-        r'(matlab)|(\.template\.)', src)]
+    amici_base_sources = glob.glob(os.path.join('amici', 'src', '*.cpp'))
+    amici_base_sources = [src for src in amici_base_sources
+                          if not re.search(r'(matlab)|(\.(ODE_)?template\.)', src)]
 
     if not with_hdf5:
         hdf5_cpp = os.path.join('amici', 'src', 'hdf5.cpp')
@@ -164,14 +174,9 @@ def get_lib_sundials(extra_compiler_flags: Optional[List[str]] = None) -> \
 
     libsundials = ('sundials', {
         'sources': get_sundials_sources(),
-        'include_dirs': ['amici/ThirdParty/sundials/include',
-                         'amici/ThirdParty/sundials/src',
-                         'amici/ThirdParty/SuiteSparse/KLU/Include/',
-                         'amici/ThirdParty/SuiteSparse/AMD/Include/',
-                         'amici/ThirdParty/SuiteSparse/COLAMD/Include/',
-                         'amici/ThirdParty/SuiteSparse/BTF/Include/',
-                         'amici/ThirdParty/SuiteSparse/SuiteSparse_config',
-                         'amici/ThirdParty/SuiteSparse/include'],
+        'include_dirs': [*sundials_include_dirs,
+                         *suite_sparse_include_dirs,
+                         ],
         'cflags': [*extra_compiler_flags],
         'cflags_mingw32': ['-Wno-misleading-indentation'],
         'cflags_unix': ['-Wno-misleading-indentation']
@@ -192,13 +197,7 @@ def get_lib_suite_sparse(extra_compiler_flags: Optional[List[str]] = None) -> \
 
     libsuitesparse = ('suitesparse', {
         'sources': get_suite_sparse_sources(),
-        'include_dirs': ['amici/ThirdParty/SuiteSparse/KLU/Include/',
-                         'amici/ThirdParty/SuiteSparse/AMD/Include/',
-                         'amici/ThirdParty/SuiteSparse/COLAMD/Include/',
-                         'amici/ThirdParty/SuiteSparse/BTF/Include/',
-                         'amici/ThirdParty/SuiteSparse/SuiteSparse_config',
-                         'amici/ThirdParty/SuiteSparse/include'
-                         ],
+        'include_dirs': suite_sparse_include_dirs,
         'cflags': [*extra_compiler_flags],
         'cflags_mingw32': ['-Wno-unused-but-set-variable'],
         'cflags_unix': ['-Wno-unused-but-set-variable']
@@ -233,14 +232,8 @@ def get_lib_amici(extra_compiler_flags: List[str] = None,
                        and h5pkgcfg['include_dirs'])
             ),
         'include_dirs': ['amici/include',
-                         'amici/ThirdParty/SuiteSparse/KLU/Include/',
-                         'amici/ThirdParty/SuiteSparse/AMD/Include/',
-                         'amici/ThirdParty/SuiteSparse/COLAMD/Include/',
-                         'amici/ThirdParty/SuiteSparse/BTF/Include/',
-                         'amici/ThirdParty/SuiteSparse/SuiteSparse_config/',
-                         'amici/ThirdParty/SuiteSparse/include',
-                         'amici/ThirdParty/sundials/include',
-                         'amici/ThirdParty/sundials/src',
+                         *suite_sparse_include_dirs,
+                         *sundials_include_dirs,
                          'amici/ThirdParty/gsl/',
                          ],
         'cflags': [*extra_compiler_flags],

@@ -7,7 +7,9 @@
 #include <memory>
 
 // to avoid including model-specific header files
+namespace amici::generic_model {
 std::unique_ptr<amici::Model> getModel();
+}
 using namespace parpe;
 
 int main(int argc, char **argv) {
@@ -23,7 +25,8 @@ int main(int argc, char **argv) {
                       inFileArgument.c_str());
 
     // setup data and problem
-    MultiConditionDataProviderHDF5 dataProvider(getModel(), inFileArgument);
+    MultiConditionDataProviderHDF5 dataProvider(
+        amici::generic_model::getModel(), inFileArgument);
     auto options = OptimizationOptions::fromHDF5(dataProvider.getHdf5FileId());
 
 

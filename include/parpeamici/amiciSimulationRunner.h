@@ -65,6 +65,7 @@ class AmiciSimulationRunner
         double simulationTimeSeconds;
         std::vector<double> gradient;
         std::vector<double> modelOutput;
+        std::vector<double> modelSigmas;
         std::vector<double> modelStates;
         int status;
     };
@@ -129,19 +130,19 @@ class AmiciSimulationRunner
                          const std::vector<int>& conditionIndices);
 #endif
 
-    std::vector<double> const& optimizationParameters;
-    amici::SensitivityOrder sensitivityOrder;
-    std::vector<int> const& conditionIndices;
+    std::vector<double> const& optimization_parameters_;
+    amici::SensitivityOrder sensitivity_order_;
+    std::vector<int> const& condition_indices_;
 
-    callbackJobFinishedType callbackJobFinished = nullptr;
-    callbackAllFinishedType aggregate = nullptr;
-    int errors = 0;
-    std::string logPrefix;
+    callbackJobFinishedType callback_job_finished_ = nullptr;
+    callbackAllFinishedType aggregate_ = nullptr;
+    int errors_ = 0;
+    std::string log_prefix_;
 };
 
 void
 swap(AmiciSimulationRunner::AmiciResultPackageSimple& first,
-     AmiciSimulationRunner::AmiciResultPackageSimple& second);
+     AmiciSimulationRunner::AmiciResultPackageSimple& second) noexcept;
 
 bool
 operator==(AmiciSimulationRunner::AmiciResultPackageSimple const& lhs,
@@ -156,7 +157,7 @@ template<class Archive>
 void
 serialize(Archive& ar,
           parpe::AmiciSimulationRunner::AmiciWorkPackageSimple& u,
-          const unsigned int version)
+          const unsigned int /*version*/)
 {
     ar& u.optimizationParameters;
     ar& u.sensitivityOrder;
@@ -168,12 +169,13 @@ template<class Archive>
 void
 serialize(Archive& ar,
           parpe::AmiciSimulationRunner::AmiciResultPackageSimple& u,
-          const unsigned int version)
+          const unsigned int /*version*/)
 {
     ar& u.llh;
     ar& u.simulationTimeSeconds;
     ar& u.gradient;
     ar& u.modelOutput;
+    ar& u.modelSigmas;
     ar& u.modelStates;
     ar& u.status;
 }

@@ -44,4 +44,11 @@ python/test_*.png
 # breathe-generatd files
 doc/source/api/
 
+
+# test files
+tests/petab-test-suite/
 test_*.png
+
+# containers
+/container/charliecloud/parpe_base/parpe.tar.gz
+*.sif

@@ -6,7 +6,6 @@
 #include <parpeoptimization/optimizationOptions.h>
 #include <parpeoptimization/optimizationResultWriter.h>
 
-#include <parpeamici/steadystateSimulator.h>
 #include <parpeamici/hierarchicalOptimization.h>
 #include <parpeamici/multiConditionDataProvider.h>
 #include <parpeamici/amiciMisc.h>
@@ -46,12 +45,12 @@ MultiConditionProblem::MultiConditionProblem(
     : dataProvider(dp),
       resultWriter(std::move(resultWriter))
 {
-    this->logger = std::move(logger);
+    this->logger_ = std::move(logger);
     // run on all data
     std::vector<int> dataIndices(dataProvider->getNumberOfSimulationConditions());
     std::iota(dataIndices.begin(), dataIndices.end(), 0);
 
-    costFun = std::make_unique<
+    cost_fun_ = std::make_unique<
             SummedGradientFunctionGradientFunctionAdapter<int>
             > (
                 std::make_unique<AmiciSummedGradientFunction>(
@@ -70,20 +69,20 @@ MultiConditionProblem::MultiConditionProblem(
 
 void MultiConditionProblem::fillParametersMin(gsl::span<double> buffer) const
 {
-    RELEASE_ASSERT(buffer.size() == parametersMin.size(), "");
+    Expects(buffer.size() == parametersMin.size());
     std::copy(parametersMin.begin(), parametersMin.end(), buffer.begin());
 }
 
 void MultiConditionProblem::fillParametersMax(gsl::span<double> buffer) const
 {
-    RELEASE_ASSERT(buffer.size() == parametersMax.size(), "");
+    Expects(buffer.size() == parametersMax.size());
     std::copy(parametersMax.begin(), parametersMax.end(), buffer.begin());
 }
 
 void MultiConditionProblem::fillInitialParameters(gsl::span<double> buffer) const
 {
     if(!startingPoint.empty()) {
-        RELEASE_ASSERT(buffer.size() == startingPoint.size(), "");
+        Expects(buffer.size() == startingPoint.size());
         std::copy(startingPoint.begin(), startingPoint.end(), buffer.begin());
     } else {
         OptimizationProblem::fillInitialParameters(buffer);
@@ -133,9 +132,9 @@ std::unique_ptr<OptimizationReporter> MultiConditionProblem::getReporter() const
 {
 
     return std::make_unique<OptimizationReporter>(
-                costFun.get(),
+                cost_fun_.get(),
                 std::make_unique<OptimizationResultWriter>(*resultWriter),
-                std::make_unique<Logger>(*logger));
+                std::make_unique<Logger>(*logger_));
 }
 
 std::vector<int> MultiConditionProblem::getTrainingData() const
@@ -160,58 +159,66 @@ MultiConditionProblemMultiStartOptimizationProblem
         OptimizationOptions options,
         OptimizationResultWriter *resultWriter,
         LoadBalancerMaster *loadBalancer, std::unique_ptr<Logger> logger)
-    : dp(dp), options(std::move(options)),
-      resultWriter(resultWriter), loadBalancer(loadBalancer),
-      logger(std::move(logger))
+    : data_provider_(dp), options_(std::move(options)),
+      result_writer_(resultWriter), load_balancer_(loadBalancer),
+      logger_(std::move(logger))
 {}
 
-int MultiConditionProblemMultiStartOptimizationProblem::getNumberOfStarts() const { return options.numStarts; }
+int MultiConditionProblemMultiStartOptimizationProblem::getNumberOfStarts() const { return options_.numStarts; }
 
-bool MultiConditionProblemMultiStartOptimizationProblem::restartOnFailure() const { return options.retryOptimization; }
+bool MultiConditionProblemMultiStartOptimizationProblem::restartOnFailure() const { return options_.retryOptimization; }
 
 std::unique_ptr<OptimizationProblem> MultiConditionProblemMultiStartOptimizationProblem::getLocalProblem(
         int multiStartIndex) const {
     // generate new OptimizationProblem with data from dp
 
-    RELEASE_ASSERT(dp != nullptr, "");
+    Expects(data_provider_ != nullptr);
 
     std::unique_ptr<MultiConditionProblem> problem;
 
-    if (resultWriter) {
+    if (result_writer_) {
         problem = std::make_unique<MultiConditionProblem>(
-                    dp, loadBalancer,
-                    logger->getChild(std::string("o")
+                    data_provider_, load_balancer_,
+                    logger_->getChild(std::string("o")
                                      + std::to_string(multiStartIndex)),
-                    std::make_unique<OptimizationResultWriter>(*resultWriter));
+                    std::make_unique<OptimizationResultWriter>(*result_writer_));
         problem->getResultWriter()->setRootPath(
                     "/multistarts/" + std::to_string(multiStartIndex));
     } else {
         problem = std::make_unique<MultiConditionProblem>(
-                    dp, loadBalancer,
-                    logger->getChild(
+                    data_provider_, load_balancer_,
+                    logger_->getChild(
                         std::string("o") + std::to_string(multiStartIndex)),
                     nullptr);
     }
-    problem->setOptimizationOptions(options);
+    problem->setOptimizationOptions(options_);
     problem->setInitialParameters(parpe::OptimizationOptions::getStartingPoint(
-                                      dp->getHdf5FileId(), multiStartIndex));
+                                      data_provider_->getHdf5FileId(), multiStartIndex));
 
-    if(options.hierarchicalOptimization)
+    if(options_.hierarchicalOptimization)
         return std::unique_ptr<OptimizationProblem>(
                     new parpe::HierarchicalOptimizationProblemWrapper(
-                        std::move(problem), dp));
+                        std::move(problem), data_provider_));
 
     return std::move(problem);
 }
 
 void printSimulationResult(Logger *logger, int jobId,
                            amici::ReturnData const* rdata, double timeSeconds) {
+    if(!rdata) {
+        // This should not happen, but apparently we can't rely on AMICI always
+        // returning some result object
+        logger->logmessage(LOGLVL_ERROR,
+                           "AMICI simulation failed unexpectedly.");
+        return;
+    }
+
     bool with_sensi = rdata->sensi >= amici::SensitivityOrder::first;
 
     logger->logmessage(LOGLVL_DEBUG, "Result for %d: %g (%d) (%d/%d/%.4fs%c)",
                        jobId, rdata->llh, rdata->status,
-                       rdata->numsteps[rdata->numsteps.size() - 1],
-                       rdata->numstepsB.empty()?0:rdata->numstepsB[0],
+                       rdata->numsteps.empty()?-1:rdata->numsteps[rdata->numsteps.size() - 1],
+                       rdata->numstepsB.empty()?-1:rdata->numstepsB[0],
                        timeSeconds,
                        with_sensi?'+':'-');
 
@@ -239,9 +246,9 @@ void saveSimulation(const H5::H5File &file, std::string const& pathStr,
                     std::vector<double> const& parameters,
                     double llh, gsl::span<double const> gradient,
                     double timeElapsedInSeconds,
-                    gsl::span<double const> states,
-                    gsl::span<double const> stateSensi,
-                    gsl::span<double const> outputs, int jobId,
+                    gsl::span<double const> /*states*/,
+                    gsl::span<double const> /*stateSensi*/,
+                    gsl::span<double const> /*outputs*/, int jobId,
                     int status, std::string const& label)
 {
     // TODO replace by SimulationResultWriter
@@ -374,6 +381,27 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
          * occurred,so clone every time */
         auto solver = std::unique_ptr<amici::Solver>(solverTemplate.clone());
         solver->app = &amiciApp;
+        if (!sendStates) {
+            /* If we don't need the states, we can save memory here.
+             * For current optimizers we only need the likelihood. For
+             * hierarchical optimization we need the model outputs. Here, we
+             * don't know about this, but for know it seems safe to use
+             * amici::RDataReporting::likelihood if sensitivities are requested
+             * and RDataReporting::residuals otherwise
+             */
+
+            if(solver->getSensitivityOrder() >= amici::SensitivityOrder::first
+                && solver->getSensitivityMethod()
+                       == amici::SensitivityMethod::adjoint) {
+                solver->setReturnDataReportingMode(amici::RDataReporting::likelihood);
+            } else {
+                // unset sensitivity method, because `residuals` is not allowed
+                // with `adjoint`, independent of sensitivity order
+                solver->setSensitivityMethod(amici::SensitivityMethod::none);
+                solver->setReturnDataReportingMode(amici::RDataReporting::residuals);
+            }
+
+        }
 
         if(trial - 1 == maxNumTrials) {
             logger->logmessage(LOGLVL_ERROR,
@@ -387,7 +415,7 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
              * better exception handling, we check those fields to deduce where
              * the error occurred
              */
-            bool forwardFailed = std::isnan(rdata->x[rdata->x.size() - 1]);
+            bool forwardFailed = std::isnan(rdata->llh);
             bool backwardFailed = solver->getSensitivityOrder() >= amici::SensitivityOrder::first
                     && solver->getSensitivityMethod() == amici::SensitivityMethod::adjoint
                     && !rdata->sllh.empty() && std::isnan(rdata->sllh[0]);
@@ -433,51 +461,67 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
         try {
             rdata = amiciApp.runAmiciSimulation(*solver, edata.get(), model);
         } catch (std::exception const& e) {
+            std::cerr<<e.what()<<std::endl;
+            std::string status = "-";
+            if(rdata) {
+                status = std::to_string(rdata->status);
+            }
             logger->logmessage(
-                        LOGLVL_WARNING, "Error during simulation: %s (%d)",
-                        e.what(), rdata->status);
-            if(rdata->status == AMICI_SUCCESS)
-                // shouldn't happen, but just to be safe
-                rdata->status = AMICI_ERROR;
-            rdata->invalidateLLH();
-            rdata->invalidateSLLH();
+                        LOGLVL_WARNING, "Error during simulation: %s (%s)",
+                e.what(), status.c_str());
         }
 
-        if(rdata->status == AMICI_SUCCESS)
+        if(rdata && rdata->status == amici::AMICI_SUCCESS)
             break;
     }
     double timeSeconds = simulationTimer.getTotal();
 
     printSimulationResult(logger, jobId, rdata.get(), timeSeconds);
 
-    if (resultWriter && (solverTemplate.getSensitivityOrder()
+    if (resultWriter && rdata && (solverTemplate.getSensitivityOrder()
                          > amici::SensitivityOrder::none || logLineSearch)) {
         saveSimulation(resultWriter->getH5File(), resultWriter->getRootPath(),
                        model.getParameters(), rdata->llh, rdata->sllh,
                        timeSeconds, rdata->x, rdata->sx, rdata->y,
                        jobId, rdata->status, logger->getPrefix());
     }
-
-    return AmiciSimulationRunner::AmiciResultPackageSimple {
-        rdata->llh,
-                timeSeconds,
-                (solverTemplate.getSensitivityOrder()
-                 > amici::SensitivityOrder::none)
+    if(rdata) {
+        return AmiciSimulationRunner::AmiciResultPackageSimple {
+            rdata->llh,
+            timeSeconds,
+            (solverTemplate.getSensitivityOrder()
+             > amici::SensitivityOrder::none)
                 ? rdata->sllh : std::vector<double>(),
-                rdata->y,
-                sendStates ? rdata->x : std::vector<double>(),
-                rdata->status
+            rdata->y, rdata->sigmay,
+            sendStates ? rdata->x : std::vector<double>(),
+            rdata->status
+        };
+    }
+
+    // AMICI failed expectedly and did not return anything
+    return AmiciSimulationRunner::AmiciResultPackageSimple {
+        NAN,
+        timeSeconds,
+        (solverTemplate.getSensitivityOrder()
+         > amici::SensitivityOrder::none)
+            ? std::vector<double>(model.nplist(), NAN) : std::vector<double>(),
+        std::vector<double>(model.nytrue, NAN),
+        std::vector<double>(model.nytrue, NAN),
+        sendStates ? std::vector<double>(model.nx_rdata, NAN) : std::vector<double>(),
+        amici::AMICI_UNRECOVERABLE_ERROR
     };
+
 }
 
-FunctionEvaluationStatus getModelOutputs(
+FunctionEvaluationStatus getModelOutputsAndSigmas(
         MultiConditionDataProvider *dataProvider,
         LoadBalancerMaster *loadBalancer,
         int maxSimulationsPerPackage,
         OptimizationResultWriter *resultWriter,
         bool logLineSearch,
         gsl::span<const double> parameters,
-        std::vector<std::vector<double> > &modelOutput,
+        std::vector<std::vector<double> > &modelOutputs,
+        std::vector<std::vector<double> > &modelSigmas,
         Logger *logger, double * /*cpuTime*/, bool sendStates)
 {
     int errors = 0;
@@ -485,10 +529,10 @@ FunctionEvaluationStatus getModelOutputs(
     std::vector<int> dataIndices(dataProvider->getNumberOfSimulationConditions());
     std::iota(dataIndices.begin(), dataIndices.end(), 0);
 
-    modelOutput.resize(dataIndices.size());
+    modelOutputs.resize(dataIndices.size());
     auto parameterVector = std::vector<double>(parameters.begin(),
                                                parameters.end());
-    auto jobFinished = [&](JobData *job, int /*dataIdx*/) { // jobFinished
+    auto jobFinished = [&errors, &modelOutputs, &modelSigmas](JobData *job, int /*dataIdx*/) {
         // deserialize
         auto results =
                 amici::deserializeFromChar<AmiciSummedGradientFunction::ResultMap> (
@@ -497,9 +541,11 @@ FunctionEvaluationStatus getModelOutputs(
 
         for (auto const& result : results) {
             errors += result.second.status;
-            modelOutput[result.first] = result.second.modelOutput;
+            modelOutputs[result.first] = result.second.modelOutput;
+            modelSigmas[result.first] = result.second.modelSigmas;
         }
     };
+
     AmiciSimulationRunner simRunner(parameterVector,
                                     amici::SensitivityOrder::none,
                                     dataIndices,
@@ -515,7 +561,7 @@ FunctionEvaluationStatus getModelOutputs(
     } else {
 #endif
         errors += simRunner.runSharedMemory(
-                    [&](std::vector<char> &buffer, int jobId) {
+                    [&dataProvider, &resultWriter, logLineSearch, &sendStates](std::vector<char> &buffer, int jobId) {
                 messageHandler(dataProvider, resultWriter, logLineSearch,
                                buffer, jobId, sendStates);
     });
@@ -643,21 +689,23 @@ int AmiciSummedGradientFunction::numParameters() const
     return dataProvider->getNumOptimizationParameters();
 }
 
-FunctionEvaluationStatus AmiciSummedGradientFunction::getModelOutputs(
-        gsl::span<const double> parameters,
-        std::vector<std::vector<double> > &modelOutput,
-        Logger *logger, double *cpuTime) const
+std::vector<std::string> AmiciSummedGradientFunction::getParameterIds() const
 {
-    return parpe::getModelOutputs(dataProvider, loadBalancer,
-                                  maxSimulationsPerPackage, resultWriter,
-                                  logLineSearch, parameters, modelOutput,
-                                  logger, cpuTime, sendStates);
+    return dataProvider->getProblemParameterIds();
 }
 
-std::vector<std::vector<double> > AmiciSummedGradientFunction::getAllSigmas() const {
-    // TODO: some could be parameter-dependent
-    return dataProvider->getAllSigmas();
+FunctionEvaluationStatus AmiciSummedGradientFunction::getModelOutputsAndSigmas(
+    gsl::span<const double> parameters,
+    std::vector<std::vector<double> > &modelOutputs,
+    std::vector<std::vector<double> > &modelSigmas,
+    Logger *logger, double *cpuTime) const
+{
+    return parpe::getModelOutputsAndSigmas(
+        dataProvider, loadBalancer, maxSimulationsPerPackage, resultWriter,
+        logLineSearch, parameters, modelOutputs, modelSigmas,
+        logger, cpuTime, sendStates);
 }
+
 
 std::vector<std::vector<double> > AmiciSummedGradientFunction::getAllMeasurements() const {
     return dataProvider->getAllMeasurements();
@@ -694,8 +742,9 @@ int AmiciSummedGradientFunction::runSimulations(
                 ? amici::SensitivityOrder::first
                 : amici::SensitivityOrder::none,
                 dataIndices,
-                [&](JobData *job, int /*jobIdx*/) {
-        errors += aggregateLikelihood(*job,
+                [&nllh, &objectiveFunctionGradient, &simulationTimeSec,
+         &optimizationParameters, &errors, this](JobData *job, int /*jobIdx*/) {
+            errors += this->aggregateLikelihood(*job,
                                       nllh,
                                       objectiveFunctionGradient,
                                       simulationTimeSec,
@@ -715,8 +764,8 @@ int AmiciSummedGradientFunction::runSimulations(
     } else {
 #endif
         errors += simRunner.runSharedMemory(
-                    [&](std::vector<char> &buffer, int jobId) {
-                messageHandler(buffer, jobId);
+                    [this](std::vector<char> &buffer, int jobId) {
+                this->messageHandler(buffer, jobId);
     });
 #ifdef PARPE_ENABLE_MPI
     }
@@ -747,7 +796,7 @@ int AmiciSummedGradientFunction::aggregateLikelihood(
         ResultPackage resultPackage;
         std::tie(conditionIdx, resultPackage) = result;
 
-        errors += resultPackage.status != AMICI_SUCCESS;
+        errors += resultPackage.status != amici::AMICI_SUCCESS;
 
         // sum up
         negLogLikelihood -= resultPackage.llh;

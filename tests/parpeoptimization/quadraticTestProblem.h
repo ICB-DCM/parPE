@@ -107,6 +107,7 @@ public:
                                       double *cpuTime = nullptr) const override;
 
     int numParameters() const override;
+    std::vector<std::string> getParameterIds() const override;
 };
 
 class QuadraticGradientFunctionMock : public GradientFunction {
@@ -130,6 +131,7 @@ public:
     }
 
     MOCK_CONST_METHOD0(numParameters, int());
+    MOCK_CONST_METHOD0(getParameterIds, std::vector<std::string>());
 
 
 private:

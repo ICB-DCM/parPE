@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <random>
 
+#include <gsl/gsl-lite.hpp>
 #include <gtest/gtest.h>
 
 namespace parpe {
@@ -85,17 +86,12 @@ std::string captureStreamToString(const std::function<void()>& f,
 std::string captureStreamToString(const std::function<void()>& f,
                                   std::FILE* captureStream,
                                   int captureStreamFd) {
-    // use fmemopen instead of file?
-
-    char tempFileName[TMP_MAX];
-    if(!std::tmpnam(tempFileName))
-        std::abort();
-
-    int newStreamFd = open(tempFileName, O_CREAT | O_WRONLY, S_IRWXU);
-    assert(newStreamFd >= 0);
+    char tempFileName [] = "parpeTestCaptureXXXXXX";
+    int newStreamFd = mkstemp(tempFileName);
+    Expects(newStreamFd >= 0);
 
     int oldStreamFd = dup(captureStreamFd);
-    assert(oldStreamFd >= 0);
+    Expects(oldStreamFd >= 0);
     fflush(captureStream);
 
     dup2(newStreamFd, captureStreamFd); // replace original fd by tmp file

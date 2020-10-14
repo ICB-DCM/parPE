@@ -65,14 +65,15 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(amici::Solve
  * @param cpuTime
  * @return Simulation status
  */
-FunctionEvaluationStatus getModelOutputs(
+FunctionEvaluationStatus getModelOutputsAndSigmas(
         MultiConditionDataProvider *dataProvider,
         LoadBalancerMaster *loadBalancer,
         int maxSimulationsPerPackage,
         OptimizationResultWriter *resultWriter,
         bool logLineSearch,
         gsl::span<const double> parameters,
-        std::vector<std::vector<double> > &modelOutput,
+        std::vector<std::vector<double> > &modelOutputs,
+        std::vector<std::vector<double> > &modelSigmas,
         Logger *logger, double *cpuTime, bool sendStates);
 
 /**
@@ -135,6 +136,8 @@ public:
      */
     virtual int numParameters() const override;
 
+    std::vector<std::string> getParameterIds() const override;
+
     /**
      * @brief Run simulations (no gradient) with given parameters and collect
      * model outputs
@@ -144,13 +147,12 @@ public:
      * (nt x ny, column-major)
      * @return Simulation status
      */
-    virtual FunctionEvaluationStatus getModelOutputs(
-            gsl::span<double const> parameters,
-            std::vector<std::vector<double> > &modelOutput,
-            Logger *logger,
-            double *cpuTime) const;
-
-    virtual std::vector<std::vector<double>> getAllSigmas() const;
+    virtual FunctionEvaluationStatus getModelOutputsAndSigmas(
+        gsl::span<double const> parameters,
+        std::vector<std::vector<double> > &modelOutputs,
+        std::vector<std::vector<double> > &modelSigmas,
+        Logger *logger,
+        double *cpuTime) const;
 
     virtual std::vector<std::vector<double>> getAllMeasurements() const;
 
@@ -249,7 +251,7 @@ class MultiConditionProblem
   public:
     MultiConditionProblem() = default;
 
-    MultiConditionProblem(MultiConditionDataProvider *dp);
+    explicit MultiConditionProblem(MultiConditionDataProvider *dp);
 
     MultiConditionProblem(
             MultiConditionDataProvider *dp,
@@ -281,12 +283,12 @@ class MultiConditionProblem
     std::unique_ptr<OptimizationReporter> getReporter() const override;
 
     std::vector<int> getTrainingData() const override;
-protected:
+
+private:
     //TODO std::unique_ptr<OptimizationProblem> validationProblem;
 
     MultiConditionDataProvider *dataProvider = nullptr;
 
-private:
     std::unique_ptr<OptimizationResultWriter> resultWriter;
 
     std::vector<double> startingPoint;
@@ -321,20 +323,17 @@ class MultiConditionProblemMultiStartOptimizationProblem
             int multiStartIndex) const override;
 
 private:
-    MultiConditionDataProviderHDF5 *dp = nullptr;
-    OptimizationOptions options;
-    OptimizationResultWriter *resultWriter = nullptr;
-    LoadBalancerMaster *loadBalancer = nullptr;
-    std::unique_ptr<Logger> logger;
+    MultiConditionDataProviderHDF5 *data_provider_ = nullptr;
+    OptimizationOptions options_;
+    OptimizationResultWriter *result_writer_ = nullptr;
+    LoadBalancerMaster *load_balancer_ = nullptr;
+    std::unique_ptr<Logger> logger_;
 };
 
 
-void saveSimulation(
-        H5::H5File const& file, const std::string &pathStr,
+void saveSimulation(H5::H5File const& file, const std::string &pathStr,
         const std::vector<double> &parameters, double llh,
-        gsl::span<const double> gradient, double timeElapsedInSeconds,
-        gsl::span<const double> states,
-        gsl::span<const double> stateSensi, gsl::span<const double> outputs,
+        gsl::span<const double> gradient, double timeElapsedInSeconds, gsl::span<const double>, gsl::span<const double>, gsl::span<const double>,
         int jobId, int status, const std::string &label);
 
 

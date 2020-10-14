@@ -112,10 +112,10 @@ protected:
         auto sgf = std::make_unique < parpe::SummedGradientFunctionGradientFunctionAdapter<int>
                 > (std::move(lm2), dataIndices);
         auto p = std::make_unique<parpe::OptimizationProblemImpl>();
-        p->costFun = std::move(sgf);
+        p->cost_fun_ = std::move(sgf);
         p->setParametersMin(std::vector<double>(trueParameters.size(), 0.0));
         p->setParametersMax(std::vector<double>(trueParameters.size(), 5.0));
-        p->logger = std::make_unique<parpe::Logger>();
+        p->logger_ = std::make_unique<parpe::Logger>();
         return p;
     }
 

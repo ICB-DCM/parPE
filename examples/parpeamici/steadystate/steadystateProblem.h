@@ -13,7 +13,10 @@
  */
 class ExampleSteadystateGradientFunction : public parpe::GradientFunction {
 public:
-    ExampleSteadystateGradientFunction(hid_t fileId);
+    explicit ExampleSteadystateGradientFunction(hid_t fileId);
+
+    using GradientFunction::evaluate;
+
     parpe::FunctionEvaluationStatus evaluate(
             gsl::span<double const> parameters,
             double &fval,
@@ -23,6 +26,8 @@ public:
     int numParameters() const override;
     void setupUserData(int conditionIdx);
     void setupExpData(int conditionIdx);
+
+    std::vector<std::string> getParameterIds() const override;
 
 private:
     void requireSensitivities(bool sensitivitiesRequired) const;
@@ -43,7 +48,7 @@ private:
 
 class ExampleSteadystateProblem : public parpe::OptimizationProblem {
   public:
-    ExampleSteadystateProblem(std::string const& dataFileName);
+    explicit ExampleSteadystateProblem(std::string const& dataFileName);
 
     void fillInitialParameters(gsl::span<double> buffer) const override;
     void fillParametersMin(gsl::span<double> buffer) const override;

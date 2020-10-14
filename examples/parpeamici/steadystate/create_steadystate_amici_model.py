@@ -187,7 +187,7 @@ def create_data_tables(model, condition_df):
         print('Model parameters:', model_parameters)
 
         # simulate condition
-        rdata = getReturnDataForCondition(
+        rdata = get_return_data_for_condition(
             model, solver, condition_parameters,
             model_parameters, sigmay,
             sigma_parameter_observable_idx,
@@ -208,10 +208,10 @@ def create_data_tables(model, condition_df):
     return measurement_df, true_parameters, expected_llh
 
 
-def getReturnDataForCondition(model, solver, fixed_parameters,
-                              dynamic_parameters, sigmay,
-                              sigma_parameter_observable_idx,
-                              sigma_parameter_idx):
+def get_return_data_for_condition(model, solver, fixed_parameters,
+                                  dynamic_parameters, sigmay,
+                                  sigma_parameter_observable_idx,
+                                  sigma_parameter_idx):
 
     model.setParameters(amici.DoubleVector(dynamic_parameters))
 
@@ -338,9 +338,6 @@ def create_parameter_table(problem: petab.Problem,
                            nominal_parameters):
     """Create PEtab parameter table"""
 
-    # FIXME
-    #df = problem.create_parameter_df(include_optional=True, lower_bound=1e-3,
-    #                                 upper_bound=1e5)
     df = petab.create_parameter_df(
         problem.sbml_model, problem.condition_df,
         problem.observable_df, problem.measurement_df,
@@ -351,8 +348,6 @@ def create_parameter_table(problem: petab.Problem,
     df.loc['offset_x2_batch_0', 'hierarchicalOptimization'] = 1
     df.loc['offset_x2_batch_1', 'hierarchicalOptimization'] = 1
     df.loc['x1withsigma_sigma', 'hierarchicalOptimization'] = 1
-    #df.parameterScale = 'lin'
-    #df.estimate = 0
 
     for pid, val in nominal_parameters.items():
         if pid in df.index:
@@ -529,10 +524,10 @@ def main():
 
     write_starting_points(args.hdf5_file_name, true_parameters)
 
-    # TODO
-    #hdf5FileMinibatch = 'example_data_minibatch.h5'
-    #from shutil import copyfile
-    #copyfile(hdf5_file_name, hdf5FileMinibatch)
+    hdf5_file_minibatch = os.path.join(os.path.dirname(args.hdf5_file_name),
+                                       'example_data_minibatch.h5')
+    from shutil import copyfile
+    copyfile(args.hdf5_file_name, hdf5_file_minibatch)
 
 
 if __name__ == '__main__':

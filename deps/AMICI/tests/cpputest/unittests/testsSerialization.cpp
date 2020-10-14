@@ -1,5 +1,5 @@
-#include <amici/serialization.h> // needs to be included before cpputest
 #include <amici/model.h>
+#include <amici/serialization.h> // needs to be included before cpputest
 #include <amici/solver_cvodes.h>
 
 #include "testfunctions.h"
@@ -9,12 +9,15 @@
 #include "CppUTest/TestHarness.h"
 #include "CppUTestExt/MockSupport.h"
 
-void checkReturnDataEqual(amici::ReturnData const& r, amici::ReturnData const& s) {
+void
+checkReturnDataEqual(amici::ReturnData const& r, amici::ReturnData const& s)
+{
     CHECK_EQUAL(r.np, s.np);
     CHECK_EQUAL(r.nk, s.nk);
     CHECK_EQUAL(r.nx, s.nx);
     CHECK_EQUAL(r.nxtrue, s.nxtrue);
     CHECK_EQUAL(r.nx_solver, s.nx_solver);
+    CHECK_EQUAL(r.nx_solver_reinit, s.nx_solver_reinit);
     CHECK_EQUAL(r.ny, s.ny);
     CHECK_EQUAL(r.nytrue, s.nytrue);
     CHECK_EQUAL(r.nz, s.nz);
@@ -35,7 +38,7 @@ void checkReturnDataEqual(amici::ReturnData const& r, amici::ReturnData const& s
     checkEqualArray(r.xdot, s.xdot, 1e-16, 1e-16, "xdot");
     checkEqualArray(r.J, s.J, 1e-16, 1e-16, "J");
     checkEqualArray(r.z, s.z, 1e-16, 1e-16, "z");
-    checkEqualArray(r.sigmaz, s.sigmaz,1e-16, 1e-16, "sigmaz");
+    checkEqualArray(r.sigmaz, s.sigmaz, 1e-16, 1e-16, "sigmaz");
     checkEqualArray(r.sz, s.sz, 1e-16, 1e-16, "sz");
     checkEqualArray(r.ssigmaz, s.ssigmaz, 1e-16, 1e-16, "ssigmaz");
     checkEqualArray(r.rz, s.rz, 1e-16, 1e-16, "rz");
@@ -48,7 +51,7 @@ void checkReturnDataEqual(amici::ReturnData const& r, amici::ReturnData const& s
     checkEqualArray(r.sigmay, s.sigmay, 1e-16, 1e-16, "sigmay");
     checkEqualArray(r.sy, s.sy, 1e-16, 1e-16, "sy");
     checkEqualArray(r.ssigmay, s.ssigmay, 1e-16, 1e-16, "ssigmay");
-    
+
     CHECK_TRUE(r.numsteps == s.numsteps);
     CHECK_TRUE(r.numstepsB == s.numstepsB);
     CHECK_TRUE(r.numrhsevals == s.numrhsevals);
@@ -60,16 +63,27 @@ void checkReturnDataEqual(amici::ReturnData const& r, amici::ReturnData const& s
     CHECK_TRUE(r.order == s.order);
     CHECK_TRUE(r.cpu_time == s.cpu_time);
     CHECK_TRUE(r.cpu_timeB == s.cpu_timeB);
-    CHECK_TRUE(r.newton_cpu_time == s.newton_cpu_time);
 
-    CHECK_TRUE(r.newton_status == s.newton_status);
-    CHECK_TRUE(r.newton_numsteps == s.newton_numsteps);
-    CHECK_TRUE(r.newton_numlinsteps == s.newton_numlinsteps);
+    CHECK_TRUE(r.preeq_status == s.preeq_status);
+    CHECK_TRUE(r.preeq_t == s.preeq_t ||
+               (std::isnan(r.preeq_t) && std::isnan(s.preeq_t)));
+    CHECK_TRUE(r.preeq_wrms == s.preeq_wrms ||
+               (std::isnan(r.preeq_wrms) && std::isnan(s.preeq_wrms)));
+    CHECK_TRUE(r.preeq_numsteps == s.preeq_numsteps);
+    CHECK_TRUE(r.preeq_numlinsteps == s.preeq_numlinsteps);
+    DOUBLES_EQUAL(r.preeq_cpu_time, s.preeq_cpu_time, 1e-16);
 
-    DOUBLES_EQUAL(r.newton_cpu_time, s.newton_cpu_time, 1e-16);
+    CHECK_TRUE(r.posteq_status == s.posteq_status);
+    CHECK_TRUE(r.posteq_t == s.posteq_t ||
+               (std::isnan(r.posteq_t) && std::isnan(s.posteq_t)));
+    CHECK_TRUE(r.posteq_wrms == s.posteq_wrms ||
+               (std::isnan(r.posteq_wrms) && std::isnan(s.posteq_wrms)));
+    CHECK_TRUE(r.posteq_numsteps == s.posteq_numsteps);
+    CHECK_TRUE(r.posteq_numlinsteps == s.posteq_numlinsteps);
+    DOUBLES_EQUAL(r.posteq_cpu_time, s.posteq_cpu_time, 1e-16);
+
     checkEqualArray(r.x0, s.x0, 1e-16, 1e-16, "x0");
     checkEqualArray(r.sx0, s.sx0, 1e-16, 1e-16, "sx0");
-
 
     CHECK_TRUE(r.llh == s.llh || (std::isnan(r.llh) && std::isnan(s.llh)));
     CHECK_TRUE(r.chi2 == s.chi2 || (std::isnan(r.llh) && std::isnan(s.llh)));
@@ -79,24 +93,23 @@ void checkReturnDataEqual(amici::ReturnData const& r, amici::ReturnData const& s
     checkEqualArray(r.s2llh, s.s2llh, 1e-5, 1e-5, "s2llh");
 }
 
-
 // clang-format off
 TEST_GROUP(dataSerialization){
     amici::CVodeSolver solver;
     void setup() {
         // set non-default values for all members
-        solver.setAbsoluteTolerance(4);
-        solver.setRelativeTolerance(4);
-        solver.setAbsoluteToleranceQuadratures(4);
-        solver.setRelativeToleranceQuadratures(4);
-        solver.setAbsoluteToleranceSteadyState(4);
-        solver.setRelativeToleranceSteadyState(4);
+        solver.setAbsoluteTolerance(1e-4);
+        solver.setRelativeTolerance(1e-5);
+        solver.setAbsoluteToleranceQuadratures(1e-6);
+        solver.setRelativeToleranceQuadratures(1e-7);
+        solver.setAbsoluteToleranceSteadyState(1e-8);
+        solver.setRelativeToleranceSteadyState(1e-9);
         solver.setSensitivityMethod(amici::SensitivityMethod::adjoint);
         solver.setSensitivityOrder(amici::SensitivityOrder::second);
-        solver.setMaxSteps(1e6);
-        solver.setMaxStepsBackwardProblem(1e6);
-        solver.setNewtonMaxSteps(1e6);
-        solver.setNewtonMaxLinearSteps(1e6);
+        solver.setMaxSteps(1e1);
+        solver.setMaxStepsBackwardProblem(1e2);
+        solver.setNewtonMaxSteps(1e3);
+        solver.setNewtonMaxLinearSteps(1e4);
         solver.setPreequilibration(true);
         solver.setStateOrdering(static_cast<int>(amici::SUNLinSolKLU::StateOrdering::COLAMD));
         solver.setInterpolationType(amici::InterpolationType::polynomial);
@@ -105,6 +118,7 @@ TEST_GROUP(dataSerialization){
         solver.setLinearMultistepMethod(amici::LinearMultistepMethod::adams);
         solver.setNonlinearSolverIteration(amici::NonlinearSolverIteration::newton);
         solver.setInternalSensitivityMethod(amici::InternalSensitivityMethod::staggered);
+        solver.setReturnDataReportingMode(amici::RDataReporting::likelihood);
     }
 
     void teardown() {
@@ -112,76 +126,114 @@ TEST_GROUP(dataSerialization){
 };
 // clang-format on
 
-
-
-TEST(dataSerialization, testFile) {
+TEST(dataSerialization, testFile)
+{
     int np = 1;
     int nk = 2;
     int nx = 3;
     int nz = 4;
     amici::CVodeSolver solver;
-    amici::Model_Test m = amici::Model_Test(nx, nx, nx, nx, 4, 4, nz, nz, 8, 9, 10, 11, 12, 13, 14, 15, 16,
+    amici::Model_Test m = amici::Model_Test(nx,
+                                            nx,
+                                            nx,
+                                            nx,
+                                            0,
+                                            4,
+                                            4,
+                                            nz,
+                                            nz,
+                                            8,
+                                            9,
+                                            10,
+                                            11,
+                                            12,
+                                            13,
+                                            14,
+                                            15,
+                                            16,
                                             amici::SecondOrderMode::none,
-                                            std::vector<realtype>(np,0.0),
-                                            std::vector<realtype>(nk,0.0),
-                                            std::vector<int>(np,0),
-                                            std::vector<realtype>(nx,0.0),
-                                            std::vector<int>(nz,0));
+                                            std::vector<realtype>(np, 0.0),
+                                            std::vector<realtype>(nk, 0.0),
+                                            std::vector<int>(np, 0),
+                                            std::vector<realtype>(nx, 0.0),
+                                            std::vector<int>(nz, 0));
 
     {
         std::ofstream ofs("sstore.dat");
         boost::archive::text_oarchive oar(ofs);
-        //oar & static_cast<amici::Solver&>(solver);
-        oar & static_cast<amici::Model&>(m);
+        // oar & static_cast<amici::Solver&>(solver);
+        oar& static_cast<amici::Model&>(m);
     }
     {
         std::ifstream ifs("sstore.dat");
         boost::archive::text_iarchive iar(ifs);
         amici::CVodeSolver v;
         amici::Model_Test n;
-        //iar &static_cast<amici::Solver&>(v);
-        iar &static_cast<amici::Model&>(n);
-        //CHECK_TRUE(solver == v);
+        // iar &static_cast<amici::Solver&>(v);
+        iar& static_cast<amici::Model&>(n);
+        // CHECK_TRUE(solver == v);
         CHECK_TRUE(m == n);
-
     }
 }
 
-TEST(dataSerialization, testString) {
+TEST(dataSerialization, testString)
+{
     int np = 1;
     int nk = 2;
     int nx = 3;
     int nz = 4;
     amici::CVodeSolver solver;
-    amici::Model_Test m = amici::Model_Test(nx, nx, nx, nx, 4, 4, nz, nz, 8, 9, 10, 11, 12, 13, 14, 15, 16,
+    amici::Model_Test m = amici::Model_Test(nx,
+                                            nx,
+                                            nx,
+                                            nx,
+                                            0,
+                                            4,
+                                            4,
+                                            nz,
+                                            nz,
+                                            8,
+                                            9,
+                                            10,
+                                            11,
+                                            12,
+                                            13,
+                                            14,
+                                            15,
+                                            16,
                                             amici::SecondOrderMode::none,
-                                            std::vector<realtype>(np,0.0),
-                                            std::vector<realtype>(nk,0.0),
-                                            std::vector<int>(np,0),
-                                            std::vector<realtype>(nx,0.0),
-                                            std::vector<int>(nz,0));
+                                            std::vector<realtype>(np, 0.0),
+                                            std::vector<realtype>(nk, 0.0),
+                                            std::vector<int>(np, 0),
+                                            std::vector<realtype>(nx, 0.0),
+                                            std::vector<int>(nz, 0));
 
     amici::ReturnData r(solver, m);
 
     std::string serialized = amici::serializeToString(r);
 
-    checkReturnDataEqual(r, amici::deserializeFromString<amici::ReturnData>(serialized));
+    checkReturnDataEqual(
+      r, amici::deserializeFromString<amici::ReturnData>(serialized));
 }
 
-TEST(dataSerialization, testChar) {
+TEST(dataSerialization, testChar)
+{
     int length;
-    char *buf = amici::serializeToChar(solver, &length);
+    char* buf = amici::serializeToChar(solver, &length);
 
-    amici::CVodeSolver v = amici::deserializeFromChar<amici::CVodeSolver>(buf, length);
+    amici::CVodeSolver v =
+      amici::deserializeFromChar<amici::CVodeSolver>(buf, length);
 
     delete[] buf;
     CHECK_TRUE(solver == v);
 }
 
-TEST(dataSerialization, testStdVec) {
+TEST(dataSerialization, testStdVec)
+{
 
     auto buf = amici::serializeToStdVec(solver);
-    amici::CVodeSolver v = amici::deserializeFromChar<amici::CVodeSolver>(buf.data(), buf.size());
+    amici::CVodeSolver v =
+      amici::deserializeFromChar<amici::CVodeSolver>(buf.data(), buf.size());
 
     CHECK_TRUE(solver == v);
 }

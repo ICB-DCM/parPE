@@ -63,7 +63,7 @@ public:
 class LinearModelMSE : public SummedGradientFunction<int>
 {
 public:
-    LinearModelMSE(int numParameters)
+  explicit LinearModelMSE(int numParameters)
         :numParameters_(numParameters) {}
 
     // SummedGradientFunction
@@ -87,6 +87,13 @@ public:
             double *cpuTime) const override;
 
     int numParameters() const override {return numParameters_;}
+
+    std::vector<std::string> getParameterIds() const override {
+        std::vector<std::string> ids(numParameters());
+        for(int i = 0; i < static_cast<int>(ids.size()); ++i)
+            ids[i] = std::string("p") + std::to_string(i);
+        return ids;
+    }
 
 
     int numParameters_ = 0;
