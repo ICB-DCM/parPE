@@ -10,9 +10,9 @@ jobs:
     steps:
     - uses: actions/checkout@master
 
-    - run: echo "::set-env name=PARPE_BASE::$(pwd)"
-    - run: echo "::set-env name=PARPE_BUILD::${PARPE_BASE}/build"
-    - run: echo "::set-env name=AMICI_PATH::${PARPE_BASE}/deps/AMICI/"
+    - run: echo "PARPE_BASE=$(pwd)" >> $GITHUB_ENV
+    - run: echo "PARPE_BUILD=${PARPE_BASE}/build" >> $GITHUB_ENV
+    - run: echo "AMICI_PATH=${PARPE_BASE}/deps/AMICI/" >> $GITHUB_ENV
 
     # Build dependencies
 
