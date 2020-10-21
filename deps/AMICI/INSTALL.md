@@ -7,14 +7,13 @@
 4. [C++ only](#cpp)
 5. [Dependencies](#dependencies)
 
-
 <a name="availability"></a>
 ## Availability
 
 The sources for AMICI are available as
-- Source  [tarball](https://github.com/ICB-DCM/AMICI/tarball/master)
-- Source  [zip](https://github.com/ICB-DCM/AMICI/zipball/master)
-- GIT repository on  [github](https://github.com/ICB-DCM/AMICI)
+- Source [tarball](https://github.com/AMICI-dev/AMICI/tarball/master)
+- Source [zip](https://github.com/AMICI-dev/AMICI/zipball/master)
+- GIT repository on [github](https://github.com/AMICI-dev/AMICI)
 
 A Python package is available on pypi, see below.
 
@@ -29,11 +28,10 @@ release is available. For more information about GIT checkout their
 [website](http://git-scm.com/)
 
 The GIT repository can currently be found at 
-[https://github.com/ICB-DCM/AMICI](https://github.com/ICB-DCM/AMICI)
+[https://github.com/AMICI-dev/AMICI](https://github.com/AMICI-dev/AMICI)
 and a direct clone is possible via
 
-    git clone https://github.com/ICB-DCM/AMICI.git AMICI
-
+    git clone https://github.com/AMICI-dev/AMICI.git AMICI
 
 <a name="python"></a>
 ## Python
@@ -50,15 +48,14 @@ You can now import it as python module:
 For cases where this installation fails, check below for special setups
 and custom installations.
 For Python-AMICI usage see 
-[https://github.com/ICB-DCM/AMICI/blob/master/documentation/PYTHON.md](https://github.com/ICB-DCM/AMICI/blob/master/documentation/PYTHON.md).
-
+[https://github.com/AMICI-dev/AMICI/blob/master/documentation/PYTHON.md](https://github.com/AMICI-dev/AMICI/blob/master/documentation/PYTHON.md).
 
 ### Installation of development versions
 
 To install development versions which have not been released to pypi yet,
 you can install AMICI with pip directly from GitHub using:
 
-    pip3 install -e git+https://github.com/icb-dcm/amici.git@develop#egg=amici\&subdirectory=python/sdist
+    pip3 install -e git+https://github.com/AMICI-dev/amici.git@develop#egg=amici\&subdirectory=python/sdist
 
 Replace `develop` by the branch or commit you want to install.
 
@@ -79,7 +76,7 @@ Python extension with this installation.
 
 NOTE: If you run into an error with above installation command, install
 all AMICI dependencies listed in 
-[`setup.py`](https://github.com/ICB-DCM/AMICI/blob/master/python/sdist/setup.py)
+[`setup.py`](https://github.com/AMICI-dev/AMICI/blob/master/python/sdist/setup.py)
 manually, and try again. (This is because `pip` `--install-option`s are
 applied to *all* installed packages, including dependencies.)
 
@@ -135,10 +132,9 @@ on. This can be done by inserting the following code before calling
     os.environ['CXX'] = 'clang'
     os.environ['CFLAGS'] = '-stdlib=libc++'
 
-(For further discussion see https://github.com/ICB-DCM/AMICI/issues/357)
+(For further discussion see https://github.com/AMICI-dev/AMICI/issues/357)
 
-
-### Windows
+### Windows using GCC (mingw)
 
 To install AMICI on Windows using python, you can proceed as follows:
 
@@ -149,17 +145,18 @@ Some general remarks:
 * Replace the following paths according to your installation.
 * Slashes can be preferable to backslashes for some environment
   variables.
-* See also [#425](https://github.com/icb-dcm/amici/issues/425) for
+* See also [#425](https://github.com/AMICI-dev/amici/issues/425) for
   further discussion.
 
 Then, follow these steps:
 
 * A python environment for Windows is required. We recommend
-  [Anaconda](https://www.anaconda.com/distribution/) with python >=3.6.
-* Install [mingw64](https://sourceforge.net/projects/mingw-w64/files/latest/download)
+  [Anaconda](https://www.anaconda.com/distribution/) with python >=3.7.
+* Install [MinGW-W64](https://sourceforge.net/projects/mingw-w64/files/)
   (32bit will succeed to compile, but fail during linking).
-  During installation, select Version=8.1.0, Architecture=x64_64.
-  Add the following directory to `PATH`:
+  MinGW-W64 GCC-8.1.0 for `x86_64-posix-sjlj` 
+  ([direct link](https://sourceforge.net/projects/mingw-w64/files/Toolchains%20targetting%20Win64/Personal%20Builds/mingw-builds/8.1.0/threads-posix/sjlj/x86_64-8.1.0-release-posix-sjlj-rt_v6-rev0.7z/download) has been shown to work on Windows 7 and 10 test systems.
+* Add the following directory to `PATH`:
     + `C:\mingw-w64\x86_64-8.1.0-posix-sjlj-rt_v6-rev0\mingw64\bin`
 * Make sure that this is the compiler that is found by the system
   (e.g. `where gcc` in a `cmd` should point to this installation).
@@ -174,7 +171,9 @@ Then, follow these steps:
     + `C:\swigwin-3.0.12`
 * Install AMICI using:
 
-    `pip install --global-option="build_clib" --global-option="--compiler=mingw32" --global-option="build_ext" --global-option="--compiler=mingw32" amici --no-cache-dir --verbose`
+    `pip install --global-option="build_clib" --global-option="--compiler=mingw32" 
+        --global-option="build_ext" --global-option="--compiler=mingw32" 
+        amici --no-cache-dir --verbose`
 
 Possible sources of errors:
 
@@ -196,6 +195,88 @@ Possible sources of errors:
   AMICI module itself).
   [DependencyWalker](http://www.dependencywalker.com/) will show you
   which ones.
+  
+  Support for msvc is experimental.
+  [installOpenBLAS.ps1](https://github.com/AMICI-dev/AMICI/blob/master/scripts/installOpenBLAS.ps1)
+  and [compileBLAS.cmd](https://github.com/AMICI-dev/AMICI/blob/master/scripts/compileBLAS.cmd)
+  may serve as guidance on how to install openBLAS using msvc.
+
+### Windows using MSVC (Visual Studio)
+
+#### Visual Studio
+
+We assume that Visual Studio (not to be confused with Visual Studio Code) is already installed. Using Visual Studio Installer, the following components need to be included:
+
+* Microsoft Visual C++ (MSVC). This is part of multiple packages, including Desktop Development with C++.
+* Windows Universal C Runtime. This is an individual component and installs some DLLs that we need.
+
+#### openBLAS
+
+To install open BLAS, download the following scripts from AMICI:
+
+https://github.com/AMICI-dev/AMICI/blob/master/scripts/installOpenBLAS.ps1
+https://github.com/AMICI-dev/AMICI/blob/master/scripts/compileBLAS.cmd
+
+The first script needs to be called in Powershell, and it needs to call `compileBLAS.cmd`, so you will need to modify line 11:
+
+    C:\Users\travis\build\AMICI\scripts\compileBLAS.cmd
+
+so that it matches your directory structure.
+This will download openBLAS and compile it, creating
+
+    C:\BLAS\lib\openblas.lib
+    C:\BLAS\bin\openblas.dll
+
+You will also need to define two environment variables:
+
+    BLAS_LIBS="/LIBPATH:C:\BLAS\lib openblas.lib"
+    BLAS_CFLAGS="/IC:\BLAS\OpenBLAS-v0.3.10\OpenBLAS-0.3.10"
+    
+One way to do that is to run a PowerShell script with the following commands:
+
+    [System.Environment]::SetEnvironmentVariable("BLAS_LIBS", "/LIBPATH:C:\BLAS\lib openblas.lib", [System.EnvironmentVariableTarget]::User)
+    [System.Environment]::SetEnvironmentVariable("BLAS_LIBS", "/LIBPATH:C:\BLAS\lib openblas.lib", [System.EnvironmentVariableTarget]::Process)
+    [System.Environment]::SetEnvironmentVariable("BLAS_CFLAGS", "-IC:\BLAS\OpenBLAS-v0.3.10\OpenBLAS-0.3.10", [System.EnvironmentVariableTarget]::User)
+    [System.Environment]::SetEnvironmentVariable("BLAS_CFLAGS", "-IC:\BLAS\OpenBLAS-v0.3.10\OpenBLAS-0.3.10", [System.EnvironmentVariableTarget]::Process)
+
+The call ending in `Process` sets the environment variable in the current process, and it is no longer in effect in the next process. The call ending in `User` is permanent, and takes effect the next time the user logs on.
+
+#### PATH
+Now we need to make sure that all required DLLs are within the scope of the PATH variable. In particular, the following directories need to be included in PATH:
+
+    C:\BLAS\bin
+    C:\Program Files (x86)\Windows Kits\10\Redist\ucrt\DLLs\x64
+
+The first one is needed for `openblas.dll` and the second is needed for the Windows Universal C Runtime.
+If any DLLs are missing in the PATH variable, Python will return the following error:
+
+    ImportError: DLL load failed: The specified module could not be found.
+
+This can be tested using the "where" command. For example
+
+    where openblas.dll
+
+should return
+
+    C:\BLAS\bin\openblas.dll
+
+Almost all of the DLLs are standard Windows DLLs and should be included in either Windows or Visual Studio. But, in case it is necessary to test this, here is a list of some DLLs required by AMICI (when compiled with MSVC):
+
+* `openblas.dll`
+* `python37.dll`
+* `MSVCP140.dll`
+* `KERNEL32.dll`
+* `VCRUNTIME140_1.dll`
+* `VCRUNTIME140.dll`
+* `api-ms-win-crt-convert-l1-1-0.dll`
+* `api-ms-win-crt-heap-l1-1-0.dll`
+* `api-ms-win-crt-stdio-l1-1-0.dll`
+* `api-ms-win-crt-string-l1-1-0.dll`
+* `api-ms-win-crt-runtime-l1-1-0.dll`
+* `api-ms-win-crt-time-l1-1-0.dll`
+* `api-ms-win-crt-math-l1-1-0.dll`
+
+`MSVCP140.dll`, `VCRUNTIME140.dll`, and `VCRUNTIME140_1.dll` are needed by MSVC (see Visual Studio above). `KERNEL32.dll` is part of Windows and in `C:\Windows\System32`. The `api-ms-win-crt-XXX-l1-1-0.dll` are needed by `openblas.dll` and are part of the Windows Universal C Runtime (see Visual Studio above).
 
 ### Custom installation
 
@@ -211,7 +292,6 @@ environment variables:
 |`ENABLE_GCOV_COVERAGE`| Set to build AMICI to provide code coverage information | `ENABLE_GCOV_COVERAGE=TRUE`| 
 |`ENABLE_AMICI_DEBUGGING`| Set to build AMICI with debugging symbols | `ENABLE_AMICI_DEBUGGING=TRUE`| 
 |`AMICI_PARALLEL_COMPILE`| Set to the number of parallel processes to be used for C(++) file compilation (defaults to 1)| `AMICI_PARALLEL_COMPILE=4`|
-
 
 <a name="matlab"></a>
 ## MATLAB
@@ -237,7 +317,6 @@ For a list of supported compilers we refer to the mathworks
 documentation: 
 [mathworks.com](http://mathworks.com/support/compilers/R2018b/index.html)
 Note that Microsoft Visual Studio compilers are currently not supported.
-
 
 <a name="cpp"></a>
 ## C++ only
@@ -272,7 +351,6 @@ To build AMICI with SuperLU_MT support, run
     cd build/
     cmake -DSUNDIALS_SUPERLUMT_ENABLE=ON ..
     make
-
 
 <a name="dependencies"></a>
 ## Dependencies
@@ -326,6 +404,10 @@ On Ubuntu, this requirement can be satisfied with
 
     apt install libatlas-base-dev
 
+On Fedora (32):
+
+    sudo dnf install blas-devel
+
 #### C++ compiler
 
 All AMICI installations require a C++11-compatible C++ compiler.
@@ -366,7 +448,6 @@ AMICI repository (not included in the PyPI package). The binary
 directory has to be added to the `PATH` environment variable, or `SWIG`
 has to be set as described in the following section.
 
-
 ##### Using a non-default SWIG executable
 
 We note here that some linux package managers may provide swig
@@ -384,12 +465,11 @@ AMICI package installation as well as during model compilation.
 The MATLAB interface requires the Mathworks Symbolic Toolbox for model
 generation via `amiwrap(...)`, but not for execution of precompiled
 models. Currently MATLAB R2018a or newer is not supported (see 
-[https://github.com/ICB-DCM/AMICI/issues/307](https://github.com/ICB-DCM/AMICI/issues/307)).
+[https://github.com/AMICI-dev/AMICI/issues/307](https://github.com/AMICI-dev/AMICI/issues/307)).
 
 The Symbolic Toolbox requirement can be circumvented by performing model
 import using the Python interface. The result code can then be used from
 Matlab. 
-
 
 ### Python
 
@@ -407,10 +487,28 @@ They are automatically installed when installing the python package.
 The C++ interface requires `cmake` and a cblas-compatible BLAS to be
 installed.
 
-
 ### Optional
 
-__SuperLU_MT__, "a general purpose library for the direct solution of large,
+#### SuperLU_MT
+
+"A general purpose library for the direct solution of large,
 sparse, nonsymmetric systems of linear equations"
 (https://crd-legacy.lbl.gov/~xiaoye/SuperLU/#superlu_mt).
 SuperLU_MT is optional and is so far only available from the C++ interface.
+
+
+#### Boost
+
+[Boost](https://www.boost.org/) is an optional C++ dependency only required for
+special functions (including e.g. gamma derivatives) in the python interface.
+It can be installed via package managers via
+
+    apt-get install libboost-math-dev
+
+or
+
+    brew install boost
+
+As only headers are required, also a
+[source code](https://www.boost.org/doc/libs/1_66_0/more/getting_started/unix-variants.html)
+download suffices. The compiler must be able to find the module in the search path.

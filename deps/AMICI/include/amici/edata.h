@@ -306,11 +306,11 @@ class ExpData {
 
     /**
      * @brief get function that returns a pointer to observed data at ieth
-     * occurence
+     * occurrence
      *
-     * @param ie event occurence
+     * @param ie event occurrence
      *
-     * @return pointer to observed event data at ieth occurence
+     * @return pointer to observed event data at ieth occurrence
      */
     const realtype *getObservedEventsPtr(int ie) const;
 
@@ -372,12 +372,12 @@ class ExpData {
 
     /**
      * @brief get function that returns a pointer to standard deviation of
-     * observed event data at ieth occurence
+     * observed event data at ieth occurrence
      *
-     * @param ie event occurence
+     * @param ie event occurrence
      *
      * @return pointer to standard deviation of observed event data at ieth
-     * occurence
+     * occurrence
      */
     const realtype *getObservedEventsStdDevPtr(int ie) const;
 
@@ -407,7 +407,7 @@ class ExpData {
     std::vector<realtype> x0;
     /**
      * @brief condition-specific initial condition sensitivities of size
-     * Model::nx() * Model::nplist(), Model::nx() * ExpDataplist.size(), if
+     * Model::nx() * Model::nplist(), Model::nx() * ExpData::plist.size(), if
      * ExpData::plist is not empty, or empty
      */
     std::vector<realtype> sx0;
@@ -422,7 +422,7 @@ class ExpData {
 
     /**
      * @brief duration of pre-simulation
-     * if this is > 0, presimualation will be performed from
+     * if this is > 0, presimulation will be performed from
      * (model->t0 - t_presim) to model->t0 using the fixedParameters in
      * fixedParametersPresimulation
      */
@@ -463,7 +463,7 @@ class ExpData {
      * @brief checker for dimensions of input observedEvents or
      * observedEventsStdDev
      *
-     * @param input vector input to be checkedjupyter_contrib_nbextensions
+     * @param input vector input to be checked
      * @param fieldname name of the input
      */
     void checkEventsDimension(std::vector<realtype> const &input,
@@ -475,29 +475,29 @@ class ExpData {
     /** @brief number of event observables */
     int nztrue_{0};
 
-    /** @brief maximal number of event occurences */
+    /** @brief maximal number of event occurrences */
     int nmaxevent_{0};
 
     /** @brief observation timepoints (dimension: nt) */
-    std::vector<realtype> ts;
+    std::vector<realtype> ts_;
 
     /** @brief observed data (dimension: nt x nytrue, row-major) */
-    std::vector<realtype> observedData;
+    std::vector<realtype> observed_data_;
     /**
      * @brief standard deviation of observed data (dimension: nt x nytrue,
      * row-major)
      */
-    std::vector<realtype> observedDataStdDev;
+    std::vector<realtype> observed_data_std_dev_;
 
     /**
      * @brief observed events (dimension: nmaxevents x nztrue, row-major)
      */
-    std::vector<realtype> observedEvents;
+    std::vector<realtype> observed_events_;
     /**
      * @brief standard deviation of observed events/roots
      * (dimension: nmaxevents x nztrue, row-major)
      */
-    std::vector<realtype> observedEventsStdDev;
+    std::vector<realtype> observed_events_std_dev_;
 };
 
 /**
@@ -529,7 +529,7 @@ class ConditionContext : public ContextManager {
      *
      * @param model
      * @param edata
-     * @param fpc flag indicating which fixedParmeter from edata to apply
+     * @param fpc flag indicating which fixedParameter from edata to apply
      */
     explicit ConditionContext(
         Model *model, const ExpData *edata = nullptr,
@@ -545,7 +545,7 @@ class ConditionContext : public ContextManager {
      * backed-up in the constructor call.
      *
      * @param edata
-     * @param fpc flag indicating which fixedParmeter from edata to apply
+     * @param fpc flag indicating which fixedParameter from edata to apply
      */
     void applyCondition(const ExpData *edata,
                         FixedParameterContext fpc);
@@ -558,15 +558,15 @@ class ConditionContext : public ContextManager {
     void restore();
 
   private:
-    Model *model = nullptr;
-    std::vector<realtype> originalx0;
-    std::vector<realtype> originalsx0;
-    std::vector<realtype> originalParameters;
-    std::vector<realtype> originalFixedParameters;
-    std::vector<realtype> originalTimepoints;
-    std::vector<int> originalParameterList;
-    std::vector<amici::ParameterScaling> originalScaling;
-    bool originalReinitializeFixedParameterInitialStates;
+    Model *model_ = nullptr;
+    std::vector<realtype> original_x0_;
+    std::vector<realtype> original_sx0_;
+    std::vector<realtype> original_parameters_;
+    std::vector<realtype> original_fixed_parameters_;
+    std::vector<realtype> original_timepoints_;
+    std::vector<int> original_parameter_list_;
+    std::vector<amici::ParameterScaling> original_scaling_;
+    bool original_reinitialize_fixed_parameter_initial_states_;
 };
 
 } // namespace amici
