@@ -884,7 +884,7 @@ class HDF5DataGenerator:
         g.attrs['lmm'] = amici.LinearMultistepMethod_BDF
         g.attrs['maxsteps'] = 10000
         # fail fast to retry with looser tolerances
-        g.attrs['maxstepsB'] = 5000
+        g.attrs['maxstepsB'] = 10000
         g.attrs['newton_preeq'] = 0
         g.attrs['nmaxevent'] = 0
         g.attrs['ordering'] = 0
