@@ -1,21 +1,3 @@
-import os
-import sys
-import re
-import subprocess
-import mock
-
-from sphinx.transforms.post_transforms import ReferencesResolver
-
-import amici
-
-# The short X.Y version
-version = amici.__version__
-# The full version, including alpha/beta/rc tags
-release = version
-
-del amici
-
-
 # -*- coding: utf-8 -*-
 #
 # Configuration file for the Sphinx documentation builder.
@@ -24,25 +6,112 @@ del amici
 # full list see the documentation:
 # http://www.sphinx-doc.org/en/stable/config
 
-# -- RTD custom build --------------------------------------------------------
+import os
+import sys
+import re
+import mock
+import subprocess
 
-# only execute those commands when running from RTD
-if 'READTHEDOCS' in os.environ and os.environ['READTHEDOCS']:
-    amici_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+from sphinx.transforms.post_transforms import ReferencesResolver
+import exhale_multiproject_monkeypatch
+from exhale import configs as exhale_configs
+import exhale.deploy
+
+# BEGIN Monkeypatch exhale
+exhale_multiproject_monkeypatch  # to avoid removal of unused import
+from exhale.deploy import _generate_doxygen as exhale_generate_doxygen
+
+
+def my_exhale_generate_doxygen(doxygen_input):
+    """Monkey-patch exhale for post-processing doxygen output"""
+
+    # run mtocpp_post
+    doxy_xml_dir = exhale_configs._doxygen_xml_output_directory
+    if 'matlab' in doxy_xml_dir:
+        print('Running mtocpp_post on ', doxy_xml_dir)
+        mtocpp_post = os.path.join(amici_dir, 'ThirdParty', 'mtocpp-master',
+                                   'build', 'mtocpp_post')
+        subprocess.run([mtocpp_post, doxy_xml_dir])
+
+    # let exhale do it's job
+    exhale_generate_doxygen(doxygen_input)
+
+
+exhale.deploy._generate_doxygen = my_exhale_generate_doxygen
+# END Monkeypatch exhale
+
+
+# BEGIN Monkeypatch breathe
+from breathe.renderer.sphinxrenderer import \
+    DomainDirectiveFactory as breathe_DomainDirectiveFactory
+
+old_breathe_DomainDirectiveFactory_create = breathe_DomainDirectiveFactory.create
+
+
+def my_breathe_DomainDirectiveFactory_create(domain: str, args):
+    if domain != 'mat':
+        return old_breathe_DomainDirectiveFactory_create(domain, args)
+
+    from sphinxcontrib.matlab import MATLABDomain, MatClassmember
+
+    matlab_classes = {k: (v, k) for k, v in MATLABDomain.directives.items()}
+    matlab_classes['variable'] = (MatClassmember, 'attribute')
+    cls, name = matlab_classes[args[0]]
+    return cls(domain + ':' + name, *args[1:])
+
+
+breathe_DomainDirectiveFactory.create = my_breathe_DomainDirectiveFactory_create
+
+
+# END Monkeypatch breathe
+
+
+def install_mtocpp():
+    """Install mtocpp (Matlab doxygen filter)"""
+    cmd = os.path.join(amici_dir, 'scripts', 'downloadAndBuildMtocpp.sh')
+    ret = subprocess.run(cmd, shell=True,
+                         stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    if ret.returncode != 0:
+        print(ret.stdout.decode('utf-8'))
+        raise RuntimeError('downloadAndBuildMtocpp.sh failed')
+
+
+def install_amici_deps_rtd():
+    """Install AMICI dependencies and set up environment for use on RTD"""
+
+    # cblas -- manually install ubuntu deb package
+    cblas_root = os.path.join(amici_dir, 'ThirdParty', 'libatlas-base-dev',
+                              'usr')
+
+    if os.path.isdir(cblas_root):
+        # If this exists, it means this has been run before. On RTD, sphinx is
+        #  being run several times and we don't want to reinstall dependencies
+        #  every time.
+        return
+
+    cblas_inc_dir = os.path.join(cblas_root, "include", "x86_64-linux-gnu")
+    cblas_lib_dir = os.path.join(cblas_root, "lib", "x86_64-linux-gnu")
+    cmd = (f"cd '{os.path.join(amici_dir, 'ThirdParty')}' "
+           "&& apt download libatlas-base-dev && mkdir libatlas-base-dev "
+           "&& cd libatlas-base-dev "
+           "&& ar x ../libatlas-base-dev_3.10.3-5_amd64.deb "
+           "&& tar -xJf data.tar.xz "
+           f"&& ln -s {cblas_inc_dir}/cblas-atlas.h {cblas_inc_dir}/cblas.h "
+           )
+    subprocess.run(cmd, shell=True, check=True)
+    os.environ['BLAS_CFLAGS'] = f'-I{cblas_inc_dir}'
+    os.environ['BLAS_LIBS'] = (f'-L{cblas_lib_dir}/atlas -L{cblas_lib_dir} '
+                               '-lcblas -latlas -lblas -lm')
+
     # build swig4.0
     subprocess.run(os.path.join(amici_dir, 'scripts',
-                                'downloadAndBuildSwig.sh'))
+                                'downloadAndBuildSwig.sh'), check=True)
 
     # add swig to path
     swig_dir = os.path.join(amici_dir, 'ThirdParty', 'swig-4.0.1', 'install',
                             'bin')
     os.environ['SWIG'] = os.path.join(swig_dir, 'swig')
-    # in source install, this fails to compile the c extensions but we don't
-    # care since we replace it by a mock import later on
-    subprocess.run([
-        'python', '-m', 'pip', 'install', '--verbose', '-e',
-        os.path.join(amici_dir, 'python', 'sdist')
-    ])
+
 
 # -- Path setup --------------------------------------------------------------
 
@@ -51,8 +120,45 @@ if 'READTHEDOCS' in os.environ and os.environ['READTHEDOCS']:
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
 
-sys.path.insert(0, os.path.abspath('../python/sdist'))
-sys.path.insert(0, os.path.abspath('../'))
+amici_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# -- RTD custom build --------------------------------------------------------
+
+# only execute those commands when running from RTD
+if 'READTHEDOCS' in os.environ and os.environ['READTHEDOCS']:
+    install_amici_deps_rtd()
+
+# Required for matlab doxygen processing
+install_mtocpp()
+
+# Install AMICI if not already present
+try:
+    import amici
+except ModuleNotFoundError:
+    subprocess.run([
+        'python', '-m', 'pip', 'install', '--verbose', '-e',
+        os.path.join(amici_dir, 'python', 'sdist')
+    ], check=True)
+
+    from importlib import invalidate_caches
+
+    invalidate_caches()
+
+    sys.path.insert(0, amici_dir)
+    sys.path.insert(0, os.path.join(amici_dir, 'python', 'sdist'))
+
+    import amici
+
+# -- Project information -----------------------------------------------------
+# The short X.Y version
+version = amici.__version__
+# The full version, including alpha/beta/rc tags
+release = version
+
+project = 'AMICI'
+copyright = '2020, The AMICI developers'
+author = 'The AMICI developers'
+title = 'AMICI Documentation'
 
 # -- Mock out some problematic modules-------------------------------------
 
@@ -60,13 +166,6 @@ sys.path.insert(0, os.path.abspath('../'))
 autodoc_mock_imports = ['_amici', 'amici._amici']
 for mod_name in autodoc_mock_imports:
     sys.modules[mod_name] = mock.MagicMock()
-
-# -- Project information -----------------------------------------------------
-
-project = 'AMICI'
-copyright = '2020, The AMICI developers'
-author = 'The AMICI developers'
-title = 'AMICI Documentation'
 
 # -- General configuration ---------------------------------------------------
 
@@ -78,14 +177,25 @@ title = 'AMICI Documentation'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    'readthedocs_ext.readthedocs',
+    # Required, e.g. for PEtab-derived classes where the base class has non-rst
+    #  docstrings
+    'sphinx.ext.napoleon',
     'sphinx.ext.autodoc',
     'sphinx.ext.doctest',
     'sphinx.ext.coverage',
     'sphinx.ext.intersphinx',
     'sphinx.ext.autosummary',
+    'sphinx.ext.viewcode',
+    'sphinx.ext.mathjax',
+    'sphinxcontrib.matlab',
     'nbsphinx',
+    'IPython.sphinxext.ipython_console_highlighting',
     'recommonmark',
     'sphinx_autodoc_typehints',
+    'hoverxref.extension',
+    'breathe',
+    'exhale',
 ]
 
 intersphinx_mapping = {
@@ -119,8 +229,17 @@ language = None
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path .
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store',
-                    '**.ipynb_checkpoints', 'numpy.py', 'MATLAB.md', 'gfx']
+exclude_patterns = [
+    '_build',
+    'Thumbs.db',
+    '.DS_Store',
+    '**.ipynb_checkpoints',
+    'numpy.py',
+    'INSTALL.md',
+    'MATLAB_.md',
+    'CPP_.md',
+    'gfx'
+]
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'
@@ -128,7 +247,85 @@ pygments_style = 'sphinx'
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = False
 
+# sphinx-autodoc-typehints
+typehints_fully_qualified = True
+typehints_document_rtype = True
+set_type_checking_flag = True
 
+# hoverxref
+hoverxref_auto_ref = True
+hoverxref_roles = ['term']
+hoverxref_domains = ['py']
+hoverxref_role_types = {
+    'hoverxref': 'tooltip',
+    'ref': 'tooltip',
+    'term': 'tooltip',
+    'obj': 'tooltip',
+    'func': 'tooltip',
+    'mod': 'tooltip',
+    'meth': 'tooltip',
+    'class': 'tooltip',
+}
+
+# breathe settings
+breathe_projects = {
+    "AMICI_Matlab": "./_doxyoutput_amici_matlab/xml",
+    "AMICI_CPP": "./_doxyoutput_amici_cpp/xml",
+}
+
+breathe_default_project = "AMICI_CPP"
+breathe_domain_by_extension = {
+    "m": "mat",
+    "h": "cpp",
+    "cpp": "cpp",
+}
+
+# exhale settings
+exhale_args = {
+    "rootFileName": "library_root.rst",
+    "doxygenStripFromPath": "..",
+    "createTreeView": True,
+    # TIP: if using the sphinx-bootstrap-theme, you need
+    # "treeViewIsBootstrap": True,
+    "exhaleExecutesDoxygen": True,
+    "verboseBuild": True,
+}
+
+mtocpp_filter = os.path.join(amici_dir, 'matlab', 'mtoc',
+                             'config', 'mtocpp_filter.sh')
+exhale_projects_args = {
+    "AMICI_CPP": {
+        "exhaleDoxygenStdin": "\n".join([
+            "INPUT = ../include",
+            "BUILTIN_STL_SUPPORT    = YES",
+            "PREDEFINED            += EXHALE_DOXYGEN_SHOULD_SKIP_THIS"
+        ]),
+        "containmentFolder": "_exhale_cpp_api",
+        "rootFileTitle": "AMICI C++ API",
+        "afterTitleDescription":
+            "AMICI C++ library functions",
+    },
+    # Third Party Project Includes
+    "AMICI_Matlab": {
+        "exhaleDoxygenStdin": "\n".join([
+            "INPUT = ../matlab",
+            "EXTENSION_MAPPING = .m=C++",
+            "FILTER_PATTERNS = "
+            f"*.m={mtocpp_filter}",
+            "EXCLUDE += ../matlab/examples",
+            "EXCLUDE += ../matlab/mtoc",
+            "EXCLUDE += ../matlab/SBMLimporter",
+            "EXCLUDE += ../matlab/auxiliary",
+            "EXCLUDE += ../matlab/tests",
+            "PREDEFINED += EXHALE_DOXYGEN_SHOULD_SKIP_THIS",
+        ]),
+        "containmentFolder": "_exhale_matlab_api",
+        "rootFileTitle": "AMICI Matlab API",
+        "afterTitleDescription":
+            "AMICI Matlab library functions",
+        "lexerMapping": {r'.*\.m$': 'matlab'}
+    },
+}
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
@@ -164,7 +361,6 @@ html_favicon = "gfx/logo.png"
 # Output file base name for HTML help builder.
 htmlhelp_basename = 'AMICIdoc'
 
-
 # -- Options for LaTeX output ------------------------------------------------
 
 latex_elements = {
@@ -193,7 +389,6 @@ latex_documents = [
      author, 'manual'),
 ]
 
-
 # -- Options for manual page output ------------------------------------------
 
 # One entry per manual page. List of tuples
@@ -202,7 +397,6 @@ man_pages = [
     (master_doc, 'amici', title,
      [author], 1)
 ]
-
 
 # -- Options for Texinfo output ----------------------------------------------
 
@@ -258,7 +452,6 @@ vector_types = {
 
 
 def process_docstring(app, what, name, obj, options, lines):
-
     # only apply in the amici.amici module
     if len(name.split('.')) < 2 or name.split('.')[1] != 'amici':
         return
@@ -288,7 +481,7 @@ def process_docstring(app, what, name, obj, options, lines):
 
     if name == 'amici.amici.ParameterScalingVector':
         lines.append(
-            'Swig-Generated class, which ,in contrast to other Vector '
+            'Swig-Generated class, which, in contrast to other Vector '
             'classes, does not allow for simple interoperability with common '
             'python types, but must be created using '
             ':func:`amici.amici.parameterScalingFromIntVector`'
@@ -300,11 +493,11 @@ def process_docstring(app, what, name, obj, options, lines):
         cname = name.split('.')[2]
         lines.append(
             f'Swig-Generated class that implements smart pointers to '
-            f'{cname.replace("Ptr","")} as objects.'
+            f'{cname.replace("Ptr", "")} as objects.'
         )
         return
 
-    # add linebreaks before argument/return defintions
+    # add linebreaks before argument/return definitions
     lines_clean = []
 
     while len(lines):
@@ -335,6 +528,9 @@ def process_docstring(app, what, name, obj, options, lines):
 
 def fix_typehints(sig: str) -> str:
     # cleanup types
+    if not isinstance(sig, str):
+        return sig
+
     for old, new in typemaps.items():
         sig = sig.replace(old, new)
     sig = sig.replace('void', 'None')
@@ -366,7 +562,6 @@ def fix_typehints(sig: str) -> str:
 
 def process_signature(app, what: str, name: str, obj, options, signature,
                       return_annotation):
-
     if signature is None:
         return
 
@@ -430,26 +625,26 @@ def skip_member(app, what, name, obj, skip, options):
     if name.startswith('_') and name != '__init__':
         return True
 
-    # igore various functions for std::vector<> types
+    # ignore various functions for std::vector<> types
     if re.match(r'^<function [\w]+Vector\.', str(obj)):
         return True
 
-    # igore various functions for smart pointer types
+    # ignore various functions for smart pointer types
     if re.match(r'^<function [\w]+Ptr\.', str(obj)):
         return True
 
-    # igore various functions for StringDoubleMap
+    # ignore various functions for StringDoubleMap
     if str(obj).startswith('<function StringDoubleMap'):
         return True
 
     return None
 
 
-def setup(app):
-    app.connect('autodoc-process-docstring', process_docstring)
-    app.connect('autodoc-process-signature', process_signature)
-    app.connect('missing-reference', process_missing_ref)
-    app.connect('autodoc-skip-member', skip_member)
+def setup(app: 'sphinx.application.Sphinx'):
+    app.connect('autodoc-process-docstring', process_docstring, priority=0)
+    app.connect('autodoc-process-signature', process_signature, priority=0)
+    app.connect('missing-reference', process_missing_ref, priority=0)
+    app.connect('autodoc-skip-member', skip_member, priority=0)
     app.config.intersphinx_mapping = intersphinx_mapping
     app.config.autosummary_generate = True
     app.config.autodoc_mock_imports = autodoc_mock_imports

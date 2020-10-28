@@ -2,12 +2,12 @@
 PySB Import
 ------------
 This module provides all necessary functionality to import a model specified
-in the :class:`pysb.core.Model` format
+in the :class:`pysb.core.Model` format.
 """
 
 from .ode_export import (
     ODEExporter, ODEModel, State, Constant, Parameter, Observable, SigmaY,
-    Expression, LogLikelihood
+    Expression, LogLikelihood, generate_measurement_symbol
 )
 
 import logging
@@ -16,8 +16,10 @@ from .logging import get_logger, log_execution_time, set_log_level
 import sympy as sp
 import numpy as np
 import itertools
+import os
+import sys
 
-from typing import List, Union, Dict, Tuple, Set, Iterable, Any
+from typing import List, Union, Dict, Tuple, Set, Iterable, Any, Callable
 
 CL_Prototype = Dict[str, Dict[str, Any]]
 ConservationLaw = Dict[str, Union[str, sp.Basic]]
@@ -39,33 +41,35 @@ def pysb2amici(model: pysb.Model,
                compiler: str = None,
                compute_conservation_laws: bool = True,
                compile: bool = True,
+               simplify: Callable = lambda x: sp.powsimp(x, deep=True),
                ):
     """
     Generate AMICI C++ files for the model provided to the constructor.
 
     :param model:
-        pysb model, model.name will determine the name of the
+        pysb model, :attr:`pysb.Model.name` will determine the name of the
         generated module
 
     :param output_dir:
         see :meth:`amici.ode_export.ODEExporter.set_paths`
 
     :param observables:
-        list of :class:`pysb.core.Expression` names that should be mapped to
-        observables
+        list of :class:`pysb.core.Expression` or :class:`pysb.core.Observable`
+        names in the provided model that should be mapped to observables
 
     :param sigmas:
-        dict of :class:`pysb.core.Expression` names that should be mapped to sigmas
+        dict of :class:`pysb.core.Expression` names that should be mapped to
+        sigmas
 
     :param constant_parameters:
-        list of :class:`pysb.core.Parameter` names that should be mapped as fixed
-        parameter
+        list of :class:`pysb.core.Parameter` names that should be mapped as
+        fixed parameters
 
     :param verbose: verbosity level for logging, True/False default to
-        :attr:`logging.ERROR`/:attr:`logging.DEBUG`
+        :attr:`logging.DEBUG`/:attr:`logging.ERROR`
 
     :param assume_pow_positivity:
-        if set to true, a special pow function is used to avoid problems
+        if set to ``true``, a special pow function is used to avoid problems
         with state variables that may become negative due to numerical
         errors
 
@@ -74,18 +78,20 @@ def pysb2amici(model: pysb.Model,
         extension
 
     :param compute_conservation_laws:
-        if set to true, conservation laws are automatically computed and
+        if set to ``true``, conservation laws are automatically computed and
         applied such that the state-jacobian of the ODE right-hand-side has
-        full rank. This option should be set to True when using the newton
+        full rank. This option should be set to ``true`` when using the Newton
         algorithm to compute steadystates
 
     :param compile:
-        If true, build the python module for the generated model. If false,
+        If ``true``, build the python module for the generated model. If false,
         just generate the source code.
+
+    :param simplify:
+        see :attr:`amici.ODEModel._simplify`
     """
     if observables is None:
         observables = []
-
     if constant_parameters is None:
         constant_parameters = []
 
@@ -93,11 +99,12 @@ def pysb2amici(model: pysb.Model,
         sigmas = {}
 
     set_log_level(logger, verbose)
-
     ode_model = ode_model_from_pysb_importer(
         model, constant_parameters=constant_parameters,
         observables=observables, sigmas=sigmas,
         compute_conservation_laws=compute_conservation_laws,
+        simplify=simplify,
+        verbose=verbose,
     )
     exporter = ODEExporter(
         ode_model,
@@ -115,13 +122,18 @@ def pysb2amici(model: pysb.Model,
 
 
 @log_execution_time('creating ODE model', logger)
-def ode_model_from_pysb_importer(model: pysb.Model,
-                                 constant_parameters: List[str] = None,
-                                 observables: List[str] = None,
-                                 sigmas: Dict[str, str] = None,
-                                 compute_conservation_laws=True) -> ODEModel:
+def ode_model_from_pysb_importer(
+        model: pysb.Model,
+        constant_parameters: List[str] = None,
+        observables: List[str] = None,
+        sigmas: Dict[str, str] = None,
+        compute_conservation_laws: bool = True,
+        simplify: Callable = sp.powsimp,
+        verbose: Union[int, bool] = False,
+) -> ODEModel:
     """
-    Creates an ODEModel instance from a pysb.Model instance.
+    Creates an :class:`amici.ODEModel` instance from a :class:`pysb.Model`
+    instance.
 
     :param model:
         see :func:`amici.pysb_import.pysb2amici`
@@ -139,11 +151,17 @@ def ode_model_from_pysb_importer(model: pysb.Model,
     :param compute_conservation_laws:
         see :func:`amici.pysb_import.pysb2amici`
 
+    :param simplify:
+            see :attr:`amici.ODEModel._simplify`
+
+    :param verbose: verbosity level for logging, True/False default to
+        :attr:`logging.DEBUG`/:attr:`logging.ERROR`
+
     :return:
         New ODEModel instance according to pysbModel
     """
 
-    ode = ODEModel(simplify=None)
+    ode = ODEModel(verbose=verbose, simplify=simplify)
 
     if constant_parameters is None:
         constant_parameters = []
@@ -154,14 +172,14 @@ def ode_model_from_pysb_importer(model: pysb.Model,
     if sigmas is None:
         sigmas = {}
 
-    pysb.bng.generate_equations(model)
+    pysb.bng.generate_equations(model, verbose=verbose)
 
     _process_pysb_species(model, ode)
     _process_pysb_parameters(model, ode, constant_parameters)
     if compute_conservation_laws:
         _process_pysb_conservation_laws(model, ode)
+    _process_pysb_observables(model, ode, observables, sigmas)
     _process_pysb_expressions(model, ode, observables, sigmas)
-    _process_pysb_observables(model, ode)
 
     ode.generate_basic_variables()
 
@@ -231,75 +249,100 @@ def _process_pysb_parameters(pysb_model: pysb.Model,
         )
 
 
-@log_execution_time('processing PySB observables', logger)
+@log_execution_time('processing PySB expressions', logger)
 def _process_pysb_expressions(pysb_model: pysb.Model,
                               ode_model: ODEModel,
                               observables: List[str],
                               sigmas: Dict[str, str]) -> None:
     """
-    Converts pysb expressions into Observables (with corresponding standard
-    deviation SigmaY and LogLikelihood) or Expressions and adds them
-    to the ODEModel instance
+    Converts pysb expressions/observables into Observables (with
+    corresponding standard deviation SigmaY and LogLikelihood) or
+    Expressions and adds them to the ODEModel instance
 
     :param pysb_model:
         pysb model
 
     :param observables:
-        list of names of Expressions that are to be mapped to observables
+        list of names of :class`pysb.Expression`\\ s or
+        :class:`pysb.Observable`\\ s that are to be mapped to ODEModel
+        observables
 
     :param sigmas:
-        dict with names of observable Expressions as keys and names of sigma
-        Expressions as value sigma
+        dict with names of observable pysb.Expressions/pysb.Observables
+        names as keys and names of sigma pysb.Expressions as values
 
     :param ode_model:
         ODEModel instance
     """
-    for exp in pysb_model.expressions:
-        ode_model.add_component(
-            Expression(
-                exp,
-                f'{exp.name}',
-                exp.expand_expr(expand_observables=True))
+    # we no longer expand expressions here. pysb/bng guarantees that
+    # they are ordered according to their dependency and we can
+    # evaluate them sequentially without reordering. Important to make
+    # sure that observables are processed first though.
+    for expr in pysb_model.expressions:
+        _add_expression(expr, expr.name, expr.expr,
+                        pysb_model, ode_model, observables, sigmas)
+
+
+def _add_expression(
+    sym: sp.Symbol,
+    name: str,
+    expr: sp.Basic,
+    pysb_model: pysb.Model,
+    ode_model: ODEModel,
+    observables: List[str],
+    sigmas: Dict[str, str]
+):
+    """
+    Adds expressions to the ODE model given and adds observables/sigmas if
+    appropriate
+
+    :param sym:
+        symbol how the expression is referenced in the model
+
+    :param name:
+        name of the expression
+
+    :param expr:
+        symbolic expression that the symbol refers to
+
+    :param pysb_model:
+        see :py:func:`_process_pysb_expressions`
+
+    :param observables:
+        see :py:func:`_process_pysb_expressions`
+
+    :param sigmas:
+        see :py:func:`_process_pysb_expressions`
+
+    :param ode_model:
+        see :py:func:`_process_pysb_expressions`
+    """
+    ode_model.add_component(
+        Expression(sym, name, expr)
+    )
+
+    if name in observables:
+        y = sp.Symbol(f'{name}')
+        obs = Observable(y, name, sym)
+        ode_model.add_component(obs)
+
+        sigma_name, sigma_value = _get_sigma_name_and_value(
+            pysb_model, name, sigmas
         )
-        if exp.name in observables:
-            # here we do not define a new Expression from the
-            # pysb.Expression but define an observable, so we do not need
-            # to expand observables as these can be defined as Expressions
-            y = exp
-            ode_model.add_component(
-                Observable(
-                    y,
-                    f'{exp.name}',
-                    exp
-                )
-            )
 
-            sigma_name, sigma_value = _get_sigma_name_and_value(
-                pysb_model, exp.name, sigmas
-            )
+        sigma = sp.Symbol(sigma_name)
+        ode_model.add_component(SigmaY(sigma, f'{sigma_name}', sigma_value))
 
-            sy = sp.Symbol(sigma_name)
-            ode_model.add_component(
-                SigmaY(
-                    sy,
-                    f'{sigma_name}',
-                    sigma_value
-                )
+        my = generate_measurement_symbol(obs.get_id())
+        pi = sp.pi
+        ode_model.add_component(
+            LogLikelihood(
+                sp.Symbol(f'llh_{name}'),
+                f'llh_{name}',
+                0.5 * sp.log(2 * pi * sigma ** 2) +
+                0.5 * ((y - my) / sigma) ** 2
             )
-
-            my = sp.Symbol(f'm{exp.name}')
-            pi = sp.sympify('pi')
-            ode_model.add_component(
-                LogLikelihood(
-                    sp.Symbol(f'llh_{exp.name}'),
-                    f'llh_{exp.name}',
-                    0.5*sp.log(2*pi*sy**2) + 0.5*((y - my)/sy)**2
-                )
-            )
-
-        elif exp.name in sigmas.values():
-            # do nothing
-            pass
+        )
 
 
 def _get_sigma_name_and_value(
@@ -318,18 +361,23 @@ def _get_sigma_name_and_value(
         name of the observable
 
     :param sigmas:
-        list of names of Expressions that are to be mapped to sigmas
+        dict of :class:`pysb.core.Expression` names that should be mapped to
+        sigmas
 
     :return:
         tuple containing symbolic identifier and formula for the specified
         observable
     """
     if obs_name in sigmas:
-        if sigmas[obs_name] not in pysb_model.expressions:
+        sigma_name = sigmas[obs_name]
+        try:
+            # find corresponding Expression instance
+            sigma_expr = next(x for x in pysb_model.expressions
+                              if x.name == sigma_name)
+        except StopIteration:
             raise ValueError(f'value of sigma {obs_name} is not a '
-                            f'valid expression.')
-        sigma_name = pysb_model.expressions[sigmas[obs_name]].name
-        sigma_value = pysb_model.expressions[sigmas[obs_name]].expand_expr()
+                             f'valid expression.')
+        sigma_value = sigma_expr.expand_expr()
     else:
         sigma_name = f'sigma_{obs_name}'
         sigma_value = sp.sympify(1.0)
@@ -339,7 +387,9 @@ def _get_sigma_name_and_value(
 
 @log_execution_time('processing PySB observables', logger)
 def _process_pysb_observables(pysb_model: pysb.Model,
-                              ode_model: ODEModel) -> None:
+                              ode_model: ODEModel,
+                              observables: List[str],
+                              sigmas: Dict[str, str]) -> None:
     """
     Converts :class:`pysb.core.Observable` into
     :class:`ODEModel.Expressions` and adds them to the ODEModel instance
@@ -349,18 +399,20 @@ def _process_pysb_observables(pysb_model: pysb.Model,
 
     :param ode_model:
         ODEModel instance
+
+    :param observables:
+        list of names of pysb.Expressions or pysb.Observables that are to be
+        mapped to ODEModel observables
+
+    :param sigmas:
+        dict with names of observable pysb.Expressions/pysb.Observables
+        names as keys and names of sigma pysb.Expressions as values
     """
     # only add those pysb observables that occur in the added
     # Observables as expressions
     for obs in pysb_model.observables:
-        if obs in ode_model.eq('y').free_symbols:
-            ode_model.add_component(
-                Expression(
-                    obs,
-                    f'{obs.name}',
-                    obs.expand_obs()
-                )
-            )
+        _add_expression(obs, obs.name, obs.expand_obs(),
+                        pysb_model, ode_model, observables, sigmas)
 
 
 @log_execution_time('computing PySB conservation laws', logger)
@@ -503,7 +555,7 @@ def _compute_possible_indices(cl_prototypes: CL_Prototype,
                 ix
                 for ix, specie in enumerate(pysb_model.species)
                 if monomer.name in extract_monomers(specie)
-                and not ode_model.state_is_constant(ix)
+                   and not ode_model.state_is_constant(ix)
             ]
 
             prototype['species_count'] = len(
@@ -564,7 +616,7 @@ def _compute_target_index(cl_prototypes: CL_Prototype,
         dict that contains possible indices for every monomer
 
     :param ode_model:
-        ODEModel instance @type ODEModel
+        ODEModel instance
     """
     possible_indices = list(set(list(itertools.chain(*[
         cl_prototypes[monomer]['possible_indices']
@@ -631,8 +683,8 @@ def _cl_prototypes_are_valid(cl_prototypes: CL_Prototype) -> bool:
         return False
     # conservation law dependencies are cycle free
     if any(
-        _cl_has_cycle(monomer, cl_prototypes)
-        for monomer in cl_prototypes
+            _cl_has_cycle(monomer, cl_prototypes)
+            for monomer in cl_prototypes
     ):
         return False
 
@@ -781,8 +833,8 @@ def _greedy_target_index_update(cl_prototypes: CL_Prototype) -> None:
             prototype['diff_fillin'] = -1
 
     if all(
-        prototype['diff_fillin'] == -1
-        for prototype in cl_prototypes.values()
+            prototype['diff_fillin'] == -1
+            for prototype in cl_prototypes.values()
     ):
         raise RuntimeError('Could not compute a valid set of conservation '
                            'laws for this model!')
@@ -809,8 +861,8 @@ def _greedy_target_index_update(cl_prototypes: CL_Prototype) -> None:
         if prototype['diff_fillin'] > -1 \
                 and (
                 _get_target_indices(cl_prototypes).count(
-                        prototype['target_index']
-                    ) > 1
+                    prototype['target_index']
+                ) > 1
                 or _cl_has_cycle(monomer, cl_prototypes)
         ):
             prototype['fillin'] = prototype['alternate_fillin']
@@ -870,8 +922,8 @@ def _construct_conservation_from_prototypes(
             for ix, specie in enumerate(pysb_model.species)
             if ix != target_index
         ) / extract_monomers(pysb_model.species[
-            target_index
-        ]).count(monomer_name)
+                                 target_index
+                             ]).count(monomer_name)
         # normalize by the stoichiometry of the target species
         target_state = sp.Symbol(f'__s{target_index}')
         # = x_j
@@ -897,21 +949,21 @@ def _construct_conservation_from_prototypes(
 
 def _add_conservation_for_constant_species(
         ode_model: ODEModel,
-        conservation_laws:  List[ConservationLaw]
+        conservation_laws: List[ConservationLaw]
 ) -> None:
     """
     Computes the algebraic expression for the total amount of a given
     monomer
 
     :param ode_model:
-        ODEModel isntance to which the conservation laws will be added
+        ODEModel instance to which the conservation laws will be added
 
     :param conservation_laws:
         see return of :func:`_construct_conservation_from_prototypes`
 
     """
 
-    for ix in range(ode_model.nx_rdata()):
+    for ix in range(ode_model.num_states_rdata()):
         if ode_model.state_is_constant(ix):
             target_state = sp.Symbol(f'__s{ix}')
             total_abundance = sp.Symbol(f'tcl__s{ix}')
@@ -925,7 +977,7 @@ def _add_conservation_for_constant_species(
 
 
 def _flatten_conservation_laws(
-        conservation_laws:  List[ConservationLaw]) -> None:
+        conservation_laws: List[ConservationLaw]) -> None:
     """
     Flatten the conservation laws such that the state_expr not longer
     depend on any states that are replaced by conservation laws
@@ -1051,7 +1103,7 @@ def has_fixed_parameter_ic(specie: pysb.core.ComplexPattern,
                            ode_model: ODEModel) -> bool:
     """
     Wrapper to interface
-    :meth:`ODEModel.state_has_fixed_parameter_initial_condition`
+    :meth:`ode_export.ODEModel.state_has_fixed_parameter_initial_condition`
     from a pysb specie/model arguments
 
     :param specie:
@@ -1064,9 +1116,9 @@ def has_fixed_parameter_ic(specie: pysb.core.ComplexPattern,
         ODE model
 
     :return:
-        False if the species does not have an initial condition at all.
+        ``False`` if the species does not have an initial condition at all.
         Otherwise the return value of
-        :meth:`ODEModel.state_has_fixed_parameter_initial_condition`
+        :meth:`ode_export.ODEModel.state_has_fixed_parameter_initial_condition`
     """
     # ComplexPatterns are not hashable, so we have to compare by string
     ic_index = next(
@@ -1181,3 +1233,23 @@ def _get_changed_stoichiometries(
             changed_stoichiometries.add(monomer)
 
     return changed_stoichiometries
+
+
+def pysb_model_from_path(pysb_model_file: str) -> pysb.Model:
+    """Load a pysb model module and return the :class:`pysb.Model` instance
+
+    :param pysb_model_file: Full or relative path to the PySB model module
+    :return: The pysb Model instance
+    """
+
+    pysb_model_module_name = \
+        os.path.splitext(os.path.split(pysb_model_file)[-1])[0]
+
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        pysb_model_module_name, pysb_model_file)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[pysb_model_module_name] = module
+    spec.loader.exec_module(module)
+
+    return module.model

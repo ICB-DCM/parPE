@@ -159,12 +159,6 @@ class HDF5DataGenerator:
         self.condition_id_to_index = {name: idx for idx, name in
                                       enumerate(self.condition_ids)}
 
-        # when using adjoint sensitivities, we cannot keep inf
-        # -> consider late timepoint as steady-state
-        print(Fore.GREEN + "Changing t = Inf to t = 1e8, since we cannot use "
-                           "Inf with adjoint sensitivities.")
-        measurement_df.loc[measurement_df[ptc.TIME] == np.inf, ptc.TIME] = 1e8
-
         # list of unique timepoints, just for info and AMICI model default
         # setting
         self.unique_timepoints = sorted(measurement_df[ptc.TIME].unique())
@@ -890,7 +884,7 @@ class HDF5DataGenerator:
         g.attrs['lmm'] = amici.LinearMultistepMethod_BDF
         g.attrs['maxsteps'] = 10000
         # fail fast to retry with looser tolerances
-        g.attrs['maxstepsB'] = 5000
+        g.attrs['maxstepsB'] = 10000
         g.attrs['newton_preeq'] = 0
         g.attrs['nmaxevent'] = 0
         g.attrs['ordering'] = 0
