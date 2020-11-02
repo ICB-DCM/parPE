@@ -378,6 +378,11 @@ class HDF5DataGenerator:
                     condition_scale_map_sim[init_par_id] = ptc.LIN
 
                     if preeq_cond_idx != NO_PREEQ_CONDITION_IDX:
+                        value = petab.to_float_if_float(
+                            self.petab_problem.condition_df.loc[
+                                preeq_cond_id, species_id])
+                        if isinstance(value, float):
+                            condition_map_sim[init_par_id] = value
                         _set_initial_concentration(
                             preeq_cond_id, species_id, init_par_id,
                             condition_map_preeq,
