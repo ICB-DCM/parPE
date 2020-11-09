@@ -19,7 +19,7 @@ setup(
                       'colorama>=0.4.3',
                       'petab>=0.1.7',
                       'amici>=0.11.2',
-                      'h5py>=2.10.0',
+                      'h5py>=3.0.0',
                       'python-libsbml>=5.17.0',
                       'jinja2>=2.11.1',
                       'snakemake>=5.10.0'

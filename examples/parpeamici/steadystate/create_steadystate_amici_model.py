@@ -303,7 +303,7 @@ def save_expected_results(hdf5_file_name, true_parameters_dict, expected_llh):
     # write true parameters
     with h5py.File(hdf5_file_name, 'r+') as f:
         true_parameters = [true_parameters_dict[p] for p in
-                           f['/parameters/parameterNames']]
+                           f['/parameters/parameterNames'].asstr()]
         f.require_dataset(
             '/parameters/true_parameters',
             shape=(len(true_parameters),), dtype="f8", data=true_parameters)
@@ -318,7 +318,7 @@ def write_starting_points(hdf5_file_name, true_parameters):
     with h5py.File(hdf5_file_name, 'r+') as f:
         pscale = f['/parameters/pscaleOptimization'][:]
         true_parameters_scaled = np.array([true_parameters[p] for p in
-                           f['/parameters/parameterNames']])
+                           f['/parameters/parameterNames'].asstr()])
         for i, p in enumerate(pscale):
             if p == amici.ParameterScaling_log10:
                 true_parameters_scaled[i] = np.log10(true_parameters_scaled[i])
