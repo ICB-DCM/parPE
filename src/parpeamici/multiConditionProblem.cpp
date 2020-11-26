@@ -537,7 +537,7 @@ FunctionEvaluationStatus getModelOutputsAndSigmas(
         auto results =
                 amici::deserializeFromChar<AmiciSummedGradientFunction::ResultMap> (
                     job->recvBuffer.data(), job->recvBuffer.size());
-        job->recvBuffer = std::vector<char>(); // free buffer
+        std::vector<char>().swap(job->recvBuffer); // free buffer
 
         for (auto const& result : results) {
             errors += result.second.status;
@@ -788,7 +788,7 @@ int AmiciSummedGradientFunction::aggregateLikelihood(
     auto results =
             amici::deserializeFromChar<ResultMap> (
                 data.recvBuffer.data(), data.recvBuffer.size());
-    data.recvBuffer = std::vector<char>(); // free buffer
+    std::vector<char>().swap(data.recvBuffer); // free buffer
 
 
     for (auto const& result : results) {

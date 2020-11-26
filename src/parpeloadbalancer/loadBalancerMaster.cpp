@@ -99,7 +99,7 @@ void LoadBalancerMaster::freeEmptiedSendBuffers() {
             /* By the time we check for send to be finished, we might have received the reply
              * already and the pointed-to object might have been already destroyed. This
              * is therefore set to nullptr when receiving the reply. */
-            sentJobsData[emptiedBufferIdx]->sendBuffer = std::vector<char>();
+            std::vector<char>().swap(sentJobsData[emptiedBufferIdx]->sendBuffer);
         } else {
             break;
         }

@@ -168,7 +168,7 @@ StandaloneSimulator::run(const std::string& resultFile,
                     std::map<int,
                              AmiciSimulationRunner::AmiciResultPackageSimple>>(
                     job.recvBuffer.data(), job.recvBuffer.size());
-                job.recvBuffer = std::vector<char>(); // free buffer
+                std::vector<char>().swap(job.recvBuffer); // free buffer
                 for (auto& result : results) {
                     swap(simulationResults[result.first], result.second);
                     modelOutputs[result.first] =
@@ -293,7 +293,7 @@ StandaloneSimulator::run(const std::string& resultFile,
                     int,
                     AmiciSimulationRunner::AmiciResultPackageSimple>>(
                     job->recvBuffer.data(), job->recvBuffer.size());
-                job->recvBuffer = std::vector<char>(); // free buffer
+                std::vector<char>().swap(job->recvBuffer); // free buffer
 
                 for (auto const& result : results) {
                     errors += result.second.status;
