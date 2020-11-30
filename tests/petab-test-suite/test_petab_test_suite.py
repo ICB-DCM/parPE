@@ -102,7 +102,7 @@ def _test_case(case: Union[int, str]) -> None:
     g = re.search(r'Likelihood: (\d+\.\d+)', ret.stdout).group(0)
     llh_actual = - float(g.split(' ')[1])
     print("Actual llh:", llh_actual)
-    solution = petabtests.load_solution(case)
+    solution = petabtests.load_solution(case, 'sbml')
 
     gt_llh = solution[petabtests.LLH]
     assert llh_actual == pytest.approx(gt_llh,
