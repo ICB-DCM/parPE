@@ -67,7 +67,7 @@ jobs:
         PETAB_TEST_URL: https://github.com/PEtab-dev/petab_test_suite.git
       run: |
         cd $PARPE_BASE/ \
-          && git clone --depth 1 $PETAB_TEST_URL \
+          && git clone --depth 1 --branch develop $PETAB_TEST_URL \
           && $PARPE_BASE/misc/run_in_venv.sh $PARPE_BASE/build/venv \
             pip3 install -e petab_test_suite
 
