@@ -5,7 +5,7 @@ on: [push, pull_request, workflow_dispatch]
 jobs:
   container:
     runs-on: ubuntu-latest
-    container: dweindl/parpeci:1511078
+    container: dweindl/parpeci:1861082
     name: parPE tests
     env:
       # mpiexec prefix for running tests
