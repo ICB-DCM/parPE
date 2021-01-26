@@ -111,37 +111,3 @@ exhale_args = {
 highlight_language = 'cpp'
 
 html_logo = 'logo/parPE.png'
-
-# -- RTD custom build --------------------------------------------------------
-
-# only execute those commands when running from RTD
-if on_rtd:
-    parpe_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    doc_dir = os.path.dirname(os.path.abspath(__file__))
-
-    print("Running in", os.getcwd())
-    print("Generating Doxyfile")
-
-    # # need cmake to update doxyfile
-    # subprocess.run(['cmake', '-B' 'build', '-DBUILD_EXAMPLES=OFF',
-    #                 '-DPARPE_ENABLE_CERES=OFF', '-DPARPE_ENABLE_DLIB=OFF',
-    #                 '-DPARPE_ENABLE_FSQP=OFF', '-DPARPE_ENABLE_IPOPT=OFF',
-    #                 '-DPARPE_ENABLE_MPI=OFF', '-DPARPE_ENABLE_TOMS611=OFF',
-    #                 #f'-DAmici_DIR={parpe_dir}/deps/AMICI'
-    #                 ],
-    #                cwd=parpe_dir)
-
-    # FIXME: workaround until we have cmake on rtd:
-    #  https://github.com/readthedocs/readthedocs-docker-images/issues/127
-    replacements = {
-        "@GIT_VERSION@": "",
-        "@CMAKE_CURRENT_LIST_DIR@": parpe_dir
-    }
-    with open(os.path.join(doc_dir, "Doxyfile.in"), "rt") as fin:
-        with open(os.path.join(doc_dir, "Doxyfile"), "wt") as fout:
-            for line in fin:
-                for needle, replacement in replacements.items():
-                    fout.write(line.replace(needle, replacement))
-
-    print("Generating Doxygen docs")
-    subprocess.run(['doxygen'], cwd=doc_dir, check=True)
