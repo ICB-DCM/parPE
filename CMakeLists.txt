@@ -65,10 +65,8 @@ find_package(OpenMP)
 # Enable MPI?
 if(${PARPE_ENABLE_MPI})
     find_package(MPI REQUIRED)
-    if(IS_DIRECTORY ${MPI_INCLUDE_DIRS})
-        # may be undefined. will be provided by MPI compiler wrapped.
-        # this is only added for convenient IDE integration
-        include_directories(${MPI_INCLUDE_DIRS})
+    if(IS_DIRECTORY ${MPI_C_HEADER_DIR})
+        include_directories(${MPI_C_HEADER_DIR})
     endif()
 endif(${PARPE_ENABLE_MPI})
 # </Build options>

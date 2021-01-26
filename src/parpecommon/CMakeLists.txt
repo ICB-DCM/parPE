@@ -27,7 +27,14 @@ target_include_directories(${PROJECT_NAME}
 
 target_link_libraries(${PROJECT_NAME}
     PUBLIC ${HDF5_LIBRARIES}
-)
+    )
+
+if(${PARPE_ENABLE_MPI})
+    target_link_libraries(${PROJECT_NAME}
+        PUBLIC MPI::MPI_CXX
+        PUBLIC MPI::MPI_C
+        )
+endif(${PARPE_ENABLE_MPI})
 
 install(TARGETS ${PROJECT_NAME} EXPORT ParPETargets
   LIBRARY DESTINATION lib

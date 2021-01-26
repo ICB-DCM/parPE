@@ -29,6 +29,7 @@ set(BUILD_TESTS FALSE CACHE BOOL "Build tests?")
 find_package(Amici REQUIRED)
 find_package(ParPE REQUIRED)
 find_package(OpenMP)
+find_package(MPI)
 find_package(PkgConfig)
 pkg_search_module(IPOPT IMPORTED_TARGET GLOBAL ipopt>=3.11.0 )
 
