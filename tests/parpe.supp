@@ -63,7 +63,7 @@
    match-leak-kinds: indirect
    fun:*alloc
    ...
-   obj:/usr/lib/x86_64-linux-gnu/libhwloc.so.15.2.0
+   obj:/usr/lib/x86_64-linux-gnu/libhwloc.so.15.*.*
    fun:opal_hwloc_base_get_topology
    ...
 }
@@ -74,7 +74,7 @@
    match-leak-kinds: definite
    fun:*alloc
    ...
-   obj:/usr/lib/x86_64-linux-gnu/libhwloc.so.15.2.0
+   obj:/usr/lib/x86_64-linux-gnu/libhwloc.so.15.*.*
    ...
    fun:opal_hwloc_base_get_topology
    ...
