@@ -238,7 +238,7 @@ double CpuTimer::getRound()
     return timeRound;
 }
 
-double CpuTimer::getTotal()
+double CpuTimer::getTotal() const
 {
     auto now = clock();
     return (double)(now - start) / CLOCKS_PER_SEC;
@@ -261,7 +261,7 @@ double WallTimer::getRound()
     return duration.count();
 }
 
-double WallTimer::getTotal()
+double WallTimer::getTotal() const
 {
     std::chrono::duration<double> duration = (std::chrono::system_clock::now() - start);
     return duration.count();
