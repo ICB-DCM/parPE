@@ -6,7 +6,7 @@ on: [push, pull_request, workflow_dispatch]
 jobs:
   container:
     runs-on: ubuntu-latest
-    container: dweindl/parpeci:1511078
+    container: dweindl/parpeci:1861082
     name: PEtab test suite
     steps:
     - uses: actions/checkout@master
