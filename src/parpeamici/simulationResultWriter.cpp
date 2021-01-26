@@ -230,7 +230,7 @@ void SimulationResultWriter::saveLikelihood(double llh, int simulationIdx) const
 H5::H5File SimulationResultWriter::reopenFile()
 {
     auto lock = hdf5MutexGetLock();
-    return H5::H5File(file.getId());
+    return H5::H5File(file);
 }
 
 
