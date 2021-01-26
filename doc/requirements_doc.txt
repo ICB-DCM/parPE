@@ -1,7 +1,7 @@
-#recommonmark
-Sphinx>=2.0
-sphinx_rtd_theme
-breathe
-exhale
-IPython
-m2r @ git+https://github.com/crossnox/m2r@dev#egg=m2r
+Sphinx>=3.4.3
+sphinx_rtd_theme>=0.5.1
+breathe>=4.26.1
+exhale>=0.2.3
+IPython>=7.19.0
+m2r2>=0.2.7
+
