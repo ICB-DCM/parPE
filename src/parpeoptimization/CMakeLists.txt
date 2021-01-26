@@ -34,10 +34,7 @@ if(${PARPE_ENABLE_IPOPT})
     list(APPEND HEADER_LIST
         localOptimizationIpopt.h
         localOptimizationIpoptTNLP.h)
-    target_include_directories(${PROJECT_NAME}
-        PUBLIC ${IPOPT_INCLUDE_DIRS})
-    target_link_libraries(${PROJECT_NAME}
-        PUBLIC ${IPOPT_LIBRARIES})
+    target_link_libraries(${PROJECT_NAME} PUBLIC PkgConfig::IPOPT)
 endif(${PARPE_ENABLE_IPOPT})
 
 if(${PARPE_ENABLE_CERES})
