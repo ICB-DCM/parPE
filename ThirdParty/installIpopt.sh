@@ -8,14 +8,6 @@ cd "${script_dir}"
 
 make_opts=${MAKEOPTS-}
 
-git clone https://github.com/coin-or-tools/ThirdParty-HSL.git
-cd ThirdParty-HSL
-# Now unpack the HSL sources archive, move and rename the resulting directory so that it becomes ThirdParty-HSL/coinhsl. Then, in ThirdParty-HSL, configure, build, and install the HSL sources:
-./configure
-make
-sudo make install
-
-
 ipopt_url="https://www.coin-or.org/download/source/Ipopt/Ipopt-3.13.3.tgz"
 ipopt_archive="Ipopt-3.13.3.tgz"
 ipopt_dir="${script_dir}/Ipopt-releases-3.13.3"
@@ -41,3 +33,32 @@ if [[ ! -d "${ipopt_dir}" ]]; then
 else
     echo "Skipping building Ipopt. Directory already exists."
 fi
+
+# Handle HSL solvers
+cd "${ipopt_dir}"
+if [[ ! -d "ThirdParty-HSL" ]]; then
+  git clone https://github.com/coin-or-tools/ThirdParty-HSL.git
+fi
+
+cd ThirdParty-HSL
+
+if [[ ! -d "coinhsl" ]]; then
+  # Need some coinhsl library. Check for common ones:
+  if [[ -f "${script_dir}/coinhsl-2015.06.23.tar.gz" ]]; then
+    tar -xzf "${script_dir}/coinhsl-2015.06.23.tar.gz"
+    mv coinhsl-2015.06.23 coinhsl
+  elif [[ -f "${script_dir}/coinhsl-2014.01.10.tar.gz" ]]; then
+                tar -xzf "${script_dir}/coinhsl-2014.01.10.tar.gz"
+                mv coinhsl-2014.01.10 coinhsl
+  else
+    echo "Did not find coinhsl/ or a known coinhsl archive."
+    echo "Press any key to continue"
+    read -n 1 -s -r
+  fi
+fi
+
+./configure --prefix="$(pwd)/install"
+make
+make install
+(cd install/lib && test ! -e libhsl.so && ln -s libcoinhsl.so libhsl.so || true)
+
