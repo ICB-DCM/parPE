@@ -74,7 +74,7 @@ endif(${PARPE_ENABLE_MPI})
 # </Build options>
 
 find_package(PkgConfig)
-pkg_search_module(IPOPT REQUIRED IMPORTED_TARGET GLOBAL ipopt>=3.12.12 )
+pkg_search_module(IPOPT REQUIRED IMPORTED_TARGET GLOBAL ipopt>=3.11.0 )
 
 if(${ENABLE_DLIB})
     set(DLIB_DIR "${CMAKE_CURRENT_LIST_DIR}/ThirdParty/dlib-19.7"
