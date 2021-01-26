@@ -51,12 +51,6 @@ set(BUILD_PYTHON_MODULE FALSE CACHE BOOL "Build Python module?")
 set(BLAS "CBLAS" CACHE STRING "BLAS library to use")
 set_property(CACHE BLAS PROPERTY STRINGS "CBLAS" "MKL")
 set(PARPE_ENABLE_MPI TRUE CACHE BOOL "Use MPI?")
-set(IPOPT_DIR "" CACHE PATH "IpOpt root directory")
-set(IPOPT_INCLUDE_DIRS "${IPOPT_DIR}/include/coin/"
-    CACHE PATH "IpOpt include directory")
-set(IPOPT_LIBRARIES "${IPOPT_DIR}/lib/libipopt.a"
-    "${IPOPT_DIR}/lib/libcoinhsl.a" "gfortran"
-    CACHE STRING "IpOpt library")
 set(PARPE_ENABLE_IPOPT TRUE CACHE BOOL "Enable ipopt optimizer?")
 set(PARPE_ENABLE_CERES TRUE CACHE BOOL "Enable ceres optimizer?")
 set(PARPE_ENABLE_DLIB FALSE CACHE BOOL "Enable dlib optimizers?")
