@@ -38,30 +38,32 @@ namespace parpe {
 
 class WallTimer
 {
-  public:
+public:
     WallTimer();
 
     void reset();
 
     double getRound();
 
-    double getTotal();
+    double getTotal() const;
 
+private:
     std::chrono::time_point<std::chrono::system_clock> start;
     std::chrono::time_point<std::chrono::system_clock> roundStart;
 };
 
 class CpuTimer
 {
-  public:
+public:
     CpuTimer() = default;
 
     void reset();
 
     double getRound();
 
-    double getTotal();
+    double getTotal() const;
 
+private:
     clock_t start = clock();
     clock_t roundStart = clock();
 };
