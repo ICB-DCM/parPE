@@ -8,6 +8,14 @@ cd "${script_dir}"
 
 make_opts=${MAKEOPTS-}
 
+git clone https://github.com/coin-or-tools/ThirdParty-HSL.git
+cd ThirdParty-HSL
+# Now unpack the HSL sources archive, move and rename the resulting directory so that it becomes ThirdParty-HSL/coinhsl. Then, in ThirdParty-HSL, configure, build, and install the HSL sources:
+./configure
+make
+sudo make install
+
+
 ipopt_url="https://www.coin-or.org/download/source/Ipopt/Ipopt-3.13.3.tgz"
 ipopt_archive="Ipopt-3.13.3.tgz"
 ipopt_dir="${script_dir}/Ipopt-releases-3.13.3"

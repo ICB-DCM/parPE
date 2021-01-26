@@ -230,7 +230,6 @@ add_library(${PROJECT_NAME} /dev/null)
 target_link_libraries(${PROJECT_NAME}
     PUBLIC parpecommon parpeloadbalancer parpeoptimization parpeamici)
 
-
 # <Export cmake configuration>
 install(TARGETS ${PROJECT_NAME} EXPORT ParPETargets
     LIBRARY DESTINATION lib
