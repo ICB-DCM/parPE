@@ -45,8 +45,8 @@ class SteadystateApplication : public parpe::OptimizationApplication {
     {
 
         // The same file should only be opened/created once, an then only be reopened
-        file_id = parpe::hdf5CreateFile(outFileArgument.c_str(), true);
-        logParPEVersion(file_id);
+        h5File = parpe::hdf5CreateFile(outFileArgument, true);
+        logParPEVersion(h5File);
 
         dataProvider = std::make_unique<SteadyStateMultiConditionDataProvider>(
             amici::generic_model::getModel(), inFileArgument);
@@ -61,7 +61,7 @@ class SteadystateApplication : public parpe::OptimizationApplication {
                     std::make_unique<parpe::Logger>(),
                     // TODO remove this resultwriter
                     std::make_unique<parpe::OptimizationResultWriter>(
-                        file_id,
+                        h5File,
                         std::string("/multistarts/"))
                     );
 
@@ -79,7 +79,7 @@ class SteadystateApplication : public parpe::OptimizationApplication {
 
         // On master, copy input data to result file
         if(parpe::getMpiRank() < 1)
-            dataProvider->copyInputData(file_id);
+            dataProvider->copyInputData(h5File);
 
         // TODO: we can set the correct start?
         auto ms = new parpe::MultiConditionProblemMultiStartOptimizationProblem(

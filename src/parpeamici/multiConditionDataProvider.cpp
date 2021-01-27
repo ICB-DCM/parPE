@@ -81,7 +81,7 @@ MultiConditionDataProviderHDF5::getSimulationToOptimizationParameterMapping(
 {
     std::string path = hdf5_simulation_to_optimization_parameter_mapping_path_;
 
-    if (hdf5DatasetExists(file_, path)) {
+    if (file_.nameExists(path)) {
         return hdf5Read2DIntegerHyperslab(
           file_, path, model_->np(), 1, 0, conditionIdx);
     }
@@ -128,10 +128,10 @@ MultiConditionDataProviderHDF5::mapAndSetOptimizationToSimulationVariables(
     auto mapping = getSimulationToOptimizationParameterMapping(conditionIdx);
 
     std::vector<double> overrides;
-    if (hdf5DatasetExists(file_, hdf5_parameter_overrides_path)) {
+    if (file_.nameExists(hdf5_parameter_overrides_path)) {
         overrides.resize(model_->np());
-        hdf5Read2DDoubleHyperslab(file_.getId(),
-                                  hdf5_parameter_overrides_path.c_str(),
+        hdf5Read2DDoubleHyperslab(file_,
+                                  hdf5_parameter_overrides_path,
                                   model_->np(),
                                   1,
                                   0,

@@ -447,9 +447,8 @@ getFinalParameters(std::string const& startIndex, H5::H5File const& file)
     int iteration = 0;
     while (
         hdf5GroupExists(file, iterationPath + std::to_string(iteration)) &&
-        hdf5DatasetExists(file,
-                          iterationPath + std::to_string(iteration) +
-                              "/costFunParameters")) {
+        file.nameExists(iterationPath + std::to_string(iteration)
+                        + "/costFunParameters")) {
         ++iteration;
     }
     --iteration; // last one did not exist
