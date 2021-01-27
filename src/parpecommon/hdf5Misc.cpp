@@ -106,7 +106,7 @@ void hdf5CreateExtendableDouble2DArray(const H5::H5File &file,
     dSetCreatPropList.setChunk(rank, chunkDimensions);
 
     auto dataset = file.createDataSet(datasetPath, H5T_NATIVE_DOUBLE, dataspace,
-                       dSetCreatPropList);
+                                      dSetCreatPropList);
 }
 
 void hdf5Extend2ndDimensionAndWriteToDouble2DArray(const H5::H5File &file, const std::string &datasetPath, gsl::span<const double> buffer)
@@ -315,12 +315,12 @@ void hdf5CreateExtendableDouble3DArray(const H5::H5File &file,
 }
 
 void hdf5Read2DDoubleHyperslab(const H5::H5File &file,
-                              const std::string &path,
-                              hsize_t size0,
-                              hsize_t size1,
-                              hsize_t offset0,
-                              hsize_t offset1,
-                              gsl::span<double> buffer)
+                               const std::string &path,
+                               hsize_t size0,
+                               hsize_t size1,
+                               hsize_t offset0,
+                               hsize_t offset1,
+                               gsl::span<double> buffer)
 {
     Expects(buffer.size() == size0 * size1);
 
@@ -338,9 +338,9 @@ void hdf5Read2DDoubleHyperslab(const H5::H5File &file,
     // printf("%lld %lld, %lld %lld, %lld %lld\n", dims[0], dims[1], offset0,
     // offset1, size0, size1);
     RELEASE_ASSERT(dims[0] >= offset0 && dims[0] >= size0,
-                   "Offset larger than dataspace dimensions!");
+            "Offset larger than dataspace dimensions!");
     RELEASE_ASSERT(dims[1] >= offset1 && dims[1] >= size1,
-                   "Offset larger than dataspace dimensions!");
+            "Offset larger than dataspace dimensions!");
 
     dataspace.selectHyperslab(H5S_SELECT_SET, count, offset);
 
@@ -419,14 +419,14 @@ std::vector<int> hdf5Read2DIntegerHyperslab(const H5::H5File &file,
 }
 
 void hdf5Read3DDoubleHyperslab(H5::H5File const& file,
-                              std::string const& path,
-                              hsize_t size0,
-                              hsize_t size1,
-                              hsize_t size2,
-                              hsize_t offset0,
-                              hsize_t offset1,
-                              hsize_t offset2,
-                              gsl::span<double> buffer)
+                               std::string const& path,
+                               hsize_t size0,
+                               hsize_t size1,
+                               hsize_t size2,
+                               hsize_t offset0,
+                               hsize_t offset1,
+                               hsize_t offset2,
+                               gsl::span<double> buffer)
 {
     std::lock_guard<mutexHdfType> lock(mutexHdf);
 
@@ -441,11 +441,11 @@ void hdf5Read3DDoubleHyperslab(H5::H5File const& file,
     hsize_t dims[ndims];
     dataspace.getSimpleExtentDims(dims);
     RELEASE_ASSERT(dims[0] >= offset0 && dims[0] >= size0,
-                   "Offset larger than dataspace dimensions!");
+            "Offset larger than dataspace dimensions!");
     RELEASE_ASSERT(dims[1] >= offset1 && dims[1] >= size1,
-                   "Offset larger than dataspace dimensions!");
+            "Offset larger than dataspace dimensions!");
     RELEASE_ASSERT(dims[2] >= offset2 && dims[2] >= size2,
-                   "Offset larger than dataspace dimensions!");
+            "Offset larger than dataspace dimensions!");
 
     dataspace.selectHyperslab(H5S_SELECT_SET, count, offset);
 
@@ -477,7 +477,7 @@ bool hdf5AttributeExists(const H5::H5File &file,
 
     H5_SAVE_ERROR_HANDLER;
 
-    hid_t loc = H5Oopen(file.getId(), datasetPath.c_str(), H5P_DEFAULT);
+    auto loc = H5Oopen(file.getId(), datasetPath.c_str(), H5P_DEFAULT);
     if (loc >= 0) {
         exists = H5LTfind_attribute(loc, attributeName.c_str());
         H5Oclose(loc);
@@ -504,7 +504,7 @@ void hdf5WriteStringAttribute(const H5::H5File &file,
 }
 
 H5::H5File hdf5CreateFile(const std::string &filename,
-                     bool overwrite)
+                          bool overwrite)
 {
     // Create parent folders
     mkpathConstChar(filename.c_str(), 0755);
@@ -742,7 +742,7 @@ void hdf5Write1dStringDataset(
 
     H5::StrType tid1(0, H5T_VARIABLE);
     RELEASE_ASSERT(H5T_STRING == H5Tget_class(tid1.getId())
-            || !H5Tis_variable_str(tid1.getId()), "String type failure.");
+                   || !H5Tis_variable_str(tid1.getId()), "String type failure.");
 
     hdf5EnsureGroupExists(file, parentPath);
     auto dataset = file.createDataSet(parentPath + "/" + datasetPath,

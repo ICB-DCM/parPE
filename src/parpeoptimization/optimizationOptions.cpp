@@ -60,7 +60,7 @@ void optimizationOptionsFromAttribute(H5::H5Object& loc,
     H5Aget_info(a.getId(), &ainfo);
     char buf[ainfo.data_size + 1]; // +1 for \0
     buf[ainfo.data_size] = '\0';
-    hid_t nativeType = H5Tget_native_type(type.getId(), H5T_DIR_ASCEND);
+    auto nativeType = H5Tget_native_type(type.getId(), H5T_DIR_ASCEND);
     a.read(nativeType, buf);
     H5Tclose(nativeType);
 
