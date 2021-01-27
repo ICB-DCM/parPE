@@ -519,15 +519,9 @@ H5::H5File hdf5CreateFile(const std::string &filename,
             throw HDF5Exception("Result file exists " + filename);
     }
 
-    H5_SAVE_ERROR_HANDLER;
-    H5::H5File file;
     try {
-        file = H5::H5File(filename, H5F_ACC_TRUNC);
-        H5_RESTORE_ERROR_HANDLER;
-        return file;
-    }  catch (H5::Exception const&) {
-        H5Eprint(H5E_DEFAULT, stderr);
-        H5_RESTORE_ERROR_HANDLER;
+        return H5::H5File(filename, H5F_ACC_TRUNC);
+    }  catch (H5::Exception const& e) {
         printBacktrace();
         throw HDF5Exception("hdf5CreateFile: Failed to create file %s. "
                             "Is this file opened by another process?",
