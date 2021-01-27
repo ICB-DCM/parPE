@@ -558,7 +558,9 @@ def _get_timepoints_with_replicates(
     timepoints_w_reps = []
     for time in timepoints:
         # subselect for time
-        df_for_time = df_for_condition[df_for_condition.time == time]
+        df_for_time = df_for_condition[
+            df_for_condition.time.astype(float) == time
+        ]
         # rep number is maximum over rep numbers for observables
         n_reps = max(df_for_time.groupby(
             [OBSERVABLE_ID, TIME]).size())
@@ -571,7 +573,8 @@ def _get_timepoints_with_replicates(
 def _get_measurements_and_sigmas(
         df_for_condition: pd.DataFrame,
         timepoints_w_reps: Sequence[numbers.Number],
-        observable_ids: Sequence[str]) -> Tuple[np.array, np.array]:
+        observable_ids: Sequence[str],
+    ) -> Tuple[np.array, np.array]:
     """
     Get measurements and sigmas
 

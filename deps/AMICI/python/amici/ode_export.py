@@ -4,11 +4,12 @@ C++ Export
 This module provides all necessary functionality specify an ODE model and
 generate executable C++ simulation code. The user generally won't have to
 directly call any function from this module as this will be done by
-:func:`amici.pysb_import.pysb2amici`,
-:meth:`amici.sbml_import.SbmlImporter.sbml2amici` and
-:func:`amici.petab_import.import_model`
+:py:func:`amici.pysb_import.pysb2amici`,
+:py:func:`amici.sbml_import.SbmlImporter.sbml2amici` and
+:py:func:`amici.petab_import.import_model`
 """
 import sympy as sp
+import numpy as np
 import re
 import shutil
 import subprocess
@@ -18,6 +19,7 @@ import copy
 import numbers
 import logging
 import itertools
+import contextlib
 
 try:
     import pysb
@@ -25,18 +27,25 @@ except ImportError:
     pysb = None
 
 from typing import (
-    Callable, Optional, Union, List, Dict, Tuple, SupportsFloat, Sequence
+    Callable, Optional, Union, List, Dict, Tuple, SupportsFloat, Sequence,
+    Set, Any
 )
 from string import Template
-import sympy.printing.cxxcode as cxxcode
+from sympy.printing import cxxcode
+from sympy.printing.cxx import _CXXCodePrinterBase
 from sympy.matrices.immutable import ImmutableDenseMatrix
 from sympy.matrices.dense import MutableDenseMatrix
+from sympy.logic.boolalg import BooleanAtom
+from itertools import chain
+
 
 from . import (
     amiciSwigPath, amiciSrcPath, amiciModulePath, __version__, __commit__,
     sbml_import
 )
 from .logging import get_logger, log_execution_time, set_log_level
+from .constants import SymbolId
+from .import_utils import smart_subs_dict
 
 # Template for model simulation main.cpp file
 CXX_MAIN_TEMPLATE_FILE = os.path.join(amiciSrcPath, 'main.template.cpp')
@@ -63,41 +72,6 @@ MODEL_CMAKE_TEMPLATE_FILE = os.path.join(amiciSrcPath,
 # sparse format. sparse format means that the function will only return an
 # array of nonzero values and not a full matrix.
 functions = {
-    'J': {
-        'signature':
-            '(realtype *J, const realtype t, const realtype *x, '
-            'const realtype *p, const realtype *k, const realtype *h, '
-            'const realtype *w, const realtype *dwdx)',
-        'flags': ['assume_pow_positivity']
-    },
-    'JB': {
-        'signature':
-            '(realtype *JB, const realtype t, const realtype *x, '
-            'const realtype *p, const realtype *k, const realtype *h, '
-            'const realtype *xB, const realtype *w, const realtype *dwdx)',
-        'flags': ['assume_pow_positivity']
-    },
-    'JDiag': {
-        'signature':
-            '(realtype *JDiag, const realtype t, const realtype *x, '
-            'const realtype *p, const realtype *k, const realtype *h, '
-            'const realtype *w, const realtype *dwdx)',
-        'flags': ['assume_pow_positivity']
-    },
-    'JSparse': {
-        'signature':
-            '(realtype *JSparse, const realtype t, const realtype *x, '
-            'const realtype *p, const realtype *k, const realtype *h, '
-            'const realtype *w, const realtype *dwdx)',
-        'flags': ['assume_pow_positivity', 'sparse']
-    },
-    'JSparseB': {
-        'signature':
-            '(realtype *JSparseB, const realtype t, const realtype *x, '
-            'const realtype *p, const realtype *k, const realtype *h, '
-            'const realtype *xB, const realtype *w, const realtype *dwdx)',
-        'flags': ['assume_pow_positivity', 'sparse']
-    },
     'Jy': {
         'signature':
             '(realtype *Jy, const int iy, const realtype *p, '
@@ -117,6 +91,11 @@ functions = {
             'const realtype *sigmay, const realtype *my)',
         'flags': ['sparse']
     },
+    'root': {
+        'signature':
+            '(realtype *root, const realtype t, const realtype *x, '
+            'const realtype *p, const realtype *k, const realtype *h)'
+    },
     'dwdp': {
         'signature':
             '(realtype *dwdp, const realtype t, const realtype *x, '
@@ -131,6 +110,13 @@ functions = {
             'const realtype *w, const realtype *tcl)',
         'flags': ['assume_pow_positivity', 'sparse']
     },
+    'dwdw': {
+        'signature':
+            '(realtype *dwdw, const realtype t, const realtype *x, '
+            'const realtype *p, const realtype *k, const realtype *h, '
+            'const realtype *w, const realtype *tcl)',
+        'flags': ['assume_pow_positivity', 'sparse']
+    },
     'dxdotdw': {
         'signature':
             '(realtype *dxdotdw, const realtype t, const realtype *x, '
@@ -138,20 +124,19 @@ functions = {
             'const realtype *w)',
         'flags': ['assume_pow_positivity', 'sparse']
     },
+    'dxdotdx_explicit': {
+        'signature':
+            '(realtype *dxdotdx_explicit, const realtype t, '
+            'const realtype *x, const realtype *p, const realtype *k, '
+            'const realtype *h, const realtype *w)',
+        'flags': ['assume_pow_positivity', 'sparse']
+    },
     'dxdotdp_explicit': {
         'signature':
             '(realtype *dxdotdp_explicit, const realtype t, '
-            'const realtype *x, const realtype *p, '
-            'const realtype *k, const realtype *h, '
-            'const realtype *w)',
-        'flags': ['assume_pow_positivity', 'sparse']
-    },
-    'dxdotdp_implicit': {
-        'signature':
-            '(realtype *dxdotdp_implicit, const realtype t, '
             'const realtype *x, const realtype *p, const realtype *k, '
-            'const realtype *h, const int ip, const realtype *w)',
-        'flags': ['assume_pow_positivity', 'sparse', 'dont_generate_body']
+            'const realtype *h, const realtype *w)',
+        'flags': ['assume_pow_positivity', 'sparse']
     },
     'dydx': {
         'signature':
@@ -163,7 +148,7 @@ functions = {
         'signature':
             '(realtype *dydp, const realtype t, const realtype *x, '
             'const realtype *p, const realtype *k, const realtype *h, '
-            'const int ip, const realtype *w, const realtype *dwdp)',
+            'const int ip, const realtype *w, const realtype *dtcldp)',
     },
     'dsigmaydp': {
         'signature':
@@ -174,6 +159,42 @@ functions = {
         'signature':
             '(realtype *sigmay, const realtype t, const realtype *p, '
             'const realtype *k)',
+    },
+    'sroot': {
+        'signature':
+            '(realtype *stau, const realtype t, const realtype *x, '
+            'const realtype *p, const realtype *k, const realtype *h, '
+            'const realtype *sx, const int ip, const int ie)',
+        'flags': ['dont_generate_body']
+    },
+    'drootdt': {
+        'signature': '()',
+        'flags': ['dont_generate_body']
+    },
+    'drootdt_total': {
+        'signature': '()',
+        'flags': ['dont_generate_body']
+    },
+    'drootdp': {
+        'signature': '()',
+        'flags': ['dont_generate_body']
+    },
+    'drootdx': {
+        'signature': '()',
+        'flags': ['dont_generate_body']
+    },
+    'stau': {
+        'signature':
+            '(realtype *stau, const realtype t, const realtype *x, '
+            'const realtype *p, const realtype *k, const realtype *h, '
+            'const realtype *sx, const int ip, const int ie)'
+    },
+    'deltasx': {
+        'signature':
+            '(realtype *deltasx, const realtype t, const realtype *x, '
+            'const realtype *p, const realtype *k, const realtype *h, '
+            'const realtype *w, const int ip, const int ie, const realtype *xdot, '
+            'const realtype *xdot_old, const realtype *sx, const realtype *stau)'
     },
     'w': {
         'signature':
@@ -209,6 +230,10 @@ functions = {
             'const realtype *p, const realtype *k, const realtype *h, '
             'const realtype *w)',
         'flags': ['assume_pow_positivity']
+    },
+    'xdot_old': {
+        'signature': '()',
+        'flags': ['dont_generate_body'],
     },
     'y': {
         'signature':
@@ -246,10 +271,32 @@ sensi_functions = [
     if 'const int ip' in functions[function]['signature']
     and function != 'sxdot'
 ]
+# list of event functions
+event_functions = [
+    function for function in functions
+    if 'const int ie' in functions[function]['signature']
+]
 # list of multiobs functions
 multiobs_functions = [
     function for function in functions
     if 'const int iy' in functions[function]['signature']
+]
+# list of equations that have ids which may not be unique
+non_unique_id_symbols = [
+    'x_rdata', 'y'
+]
+
+# custom c++ function replacements
+CUSTOM_FUNCTIONS = [
+    {'sympy': 'polygamma',
+     'c++': 'boost::math::polygamma',
+     'include': '#include <boost/math/special_functions/polygamma.hpp>',
+     'build_hint': 'Using polygamma requires libboost-math header files.'
+     },
+    {'sympy': 'Heaviside',
+     'c++': 'amici::heaviside'},
+    {'sympy': 'DiracDelta',
+     'c++': 'amici::dirac'}
 ]
 
 # python log manager
@@ -284,7 +331,7 @@ class ModelQuantity:
     def __init__(self,
                  identifier: sp.Symbol,
                  name: str,
-                 value: Union[SupportsFloat, numbers.Number, sp.Basic]):
+                 value: Union[SupportsFloat, numbers.Number, sp.Expr]):
         """
         Create a new ModelQuantity instance.
 
@@ -301,19 +348,13 @@ class ModelQuantity:
         if not isinstance(identifier, sp.Symbol):
             raise TypeError(f'identifier must be sympy.Symbol, was '
                             f'{type(identifier)}')
-        self._identifier = identifier
+        self._identifier: sp.Symbol = identifier
 
         if not isinstance(name, str):
             raise TypeError(f'name must be str, was {type(name)}')
-        self._name = name
+        self._name: str = name
 
-        if isinstance(value, sp.RealNumber) \
-                or isinstance(value, numbers.Number):
-            value = float(value)
-        if not isinstance(value, sp.Basic) and not isinstance(value, float):
-            raise TypeError(f'value must be sympy.Symbol or float, was '
-                            f'{type(value)}')
-        self._value = value
+        self._value: sp.Expr = cast_to_sym(value, 'value')
 
     def __repr__(self) -> str:
         """
@@ -342,7 +383,7 @@ class ModelQuantity:
         """
         return self._name
 
-    def get_val(self) -> Union[float, sp.Basic]:
+    def get_val(self) -> sp.Expr:
         """
         ModelQuantity value
 
@@ -357,19 +398,23 @@ class State(ModelQuantity):
     A State variable defines an entity that evolves with time according to
     the provided time derivative, abbreviated by `x`
 
-    :ivar conservation_law:
+    :ivar _conservation_law:
         algebraic formula that allows computation of this
-        species according to a conservation law
+        state according to a conservation law
+
+    :ivar _dt:
+        algebraic formula that defines the temporal derivative of this state
 
     """
 
-    conservation_law: Union[sp.Basic, None] = None
+    _dt: Union[sp.Expr, None] = None
+    _conservation_law: Union[sp.Expr, None] = None
 
     def __init__(self,
                  identifier: sp.Symbol,
                  name: str,
-                 value: sp.Basic,
-                 dt: sp.Basic):
+                 init: sp.Expr,
+                 dt: sp.Expr):
         """
         Create a new State instance. Extends :meth:`ModelQuantity.__init__`
         by dt
@@ -380,22 +425,18 @@ class State(ModelQuantity):
         :param name:
             individual name of the state (does not need to be unique)
 
-        :param value:
+        :param init:
             initial value
 
         :param dt:
             time derivative
         """
-        super(State, self).__init__(identifier, name, value)
-        if not isinstance(dt, sp.Basic):
-            raise TypeError(f'dt must have type sympy.Basic, was '
-                            f'{type(dt)}')
-
-        self._dt = dt
-        self.conservation_law = None
+        super(State, self).__init__(identifier, name, init)
+        self._dt = cast_to_sym(dt, 'dt')
+        self._conservation_law = None
 
     def set_conservation_law(self,
-                             law: sp.Basic) -> None:
+                             law: sp.Expr) -> None:
         """
         Sets the conservation law of a state. If the a conservation law
         is set, the respective state will be replaced by an algebraic
@@ -405,26 +446,23 @@ class State(ModelQuantity):
             linear sum of states that if added to this state remain
             constant over time
         """
-        if not isinstance(law, sp.Basic):
-            raise TypeError(f'conservation law must have type sympy.Basic, '
+        if not isinstance(law, sp.Expr):
+            raise TypeError(f'conservation law must have type sympy.Expr, '
                             f'was {type(law)}')
 
-        self.conservation_law = law
+        self._conservation_law = law
 
     def set_dt(self,
-               dt: sp.Basic) -> None:
+               dt: sp.Expr) -> None:
         """
         Sets the time derivative
 
         :param dt:
             time derivative
         """
-        if not isinstance(dt, sp.Basic):
-            raise TypeError(f'time derivative must have type sympy.Basic, '
-                            f'was {type(dt)}')
-        self._dt = dt
+        self._dt = cast_to_sym(dt, 'dt')
 
-    def get_dt(self) -> sp.Basic:
+    def get_dt(self) -> sp.Expr:
         """
         Gets the time derivative
 
@@ -432,6 +470,15 @@ class State(ModelQuantity):
             time derivative
         """
         return self._dt
+
+    def get_free_symbols(self) -> Set[sp.Symbol]:
+        """
+        Gets the set of free symbols in time derivative and initial conditions
+
+        :return:
+            free symbols
+        """
+        return self._dt.free_symbols.union(self._value.free_symbols)
 
 
 class ConservationLaw(ModelQuantity):
@@ -443,7 +490,7 @@ class ConservationLaw(ModelQuantity):
     def __init__(self,
                  identifier: sp.Symbol,
                  name: str,
-                 value: sp.Basic):
+                 value: sp.Expr):
         """
         Create a new ConservationLaw instance.
 
@@ -463,11 +510,19 @@ class Observable(ModelQuantity):
     """
     An Observable links model simulations to experimental measurements,
     abbreviated by `y`
+
+    :ivar _measurement_symbol:
+        sympy symbol used in the objective function to represent
+        measurements to this observable
     """
+
+    _measurement_symbol: Union[sp.Symbol, None] = None
+
     def __init__(self,
                  identifier: sp.Symbol,
                  name: str,
-                 value: sp.Basic):
+                 value: sp.Expr,
+                 measurement_symbol: Optional[sp.Symbol] = None):
         """
         Create a new Observable instance.
 
@@ -481,6 +536,15 @@ class Observable(ModelQuantity):
             formula
         """
         super(Observable, self).__init__(identifier, name, value)
+        self._measurement_symbol = measurement_symbol
+
+    def get_measurement_symbol(self) -> sp.Symbol:
+        if self._measurement_symbol is None:
+            self._measurement_symbol = generate_measurement_symbol(
+                self.get_id()
+            )
+
+        return self._measurement_symbol
 
 
 class SigmaY(ModelQuantity):
@@ -492,7 +556,7 @@ class SigmaY(ModelQuantity):
     def __init__(self,
                  identifier: sp.Symbol,
                  name: str,
-                 value: sp.Basic):
+                 value: sp.Expr):
         """
         Create a new Standard Deviation instance.
 
@@ -519,7 +583,7 @@ class Expression(ModelQuantity):
     def __init__(self,
                  identifier: sp.Symbol,
                  name: str,
-                 value: sp.Basic):
+                 value: sp.Expr):
         """
         Create a new Expression instance.
 
@@ -538,7 +602,7 @@ class Expression(ModelQuantity):
 class Parameter(ModelQuantity):
     """
     A Parameter is a free variable in the model with respect to which
-    sensitivites may be computed, abbreviated by `p`
+    sensitivities may be computed, abbreviated by `p`
     """
 
     def __init__(self,
@@ -564,7 +628,7 @@ class Parameter(ModelQuantity):
 class Constant(ModelQuantity):
     """
     A Constant is a fixed variable in the model with respect to which
-    sensitivites cannot be computed, abbreviated by `k`
+    sensitivities cannot be computed, abbreviated by `k`
     """
 
     def __init__(self,
@@ -597,7 +661,7 @@ class LogLikelihood(ModelQuantity):
     def __init__(self,
                  identifier: sp.Symbol,
                  name: str,
-                 value: sp.Basic):
+                 value: sp.Expr):
         """
         Create a new Expression instance.
 
@@ -613,19 +677,61 @@ class LogLikelihood(ModelQuantity):
         """
         super(LogLikelihood, self).__init__(identifier, name, value)
 
+class Event(ModelQuantity):
+    """
+    An Event defines either a SBML event or a root of the argument of a
+    Heaviside function. The Heaviside functions will be tracked via the
+    vector `h` during simulation and are needed to inform the ODE solver about
+    a discontinuity in either the right hand side or the states themselves,
+    causing a reinitialization of the solver.
+    """
+
+    def __init__(self,
+                 identifier: sp.Symbol,
+                 name: str,
+                 value: sp.Expr,
+                 state_update: Union[sp.Expr, None],
+                 event_observable: Union[sp.Expr, None]):
+        """
+        Create a new Event instance.
+
+        :param identifier:
+            unique identifier of the Event
+
+        :param name:
+            individual name of the Event (does not need to be unique)
+
+        :param value:
+            formula for the root / trigger function
+
+        :param state_update:
+            formula for the bolus function (None for Heaviside functions,
+            zero vector for events without bolus)
+
+        :param event_observable:
+            formula a potential observable linked to the event
+            (None for Heaviside functions, empty events without observable)
+        """
+        super(Event, self).__init__(identifier, name, value)
+        # add the Event specific components
+        self._state_update = state_update
+        self._observable = event_observable
+
 
 # defines the type of some attributes in ODEModel
 symbol_to_type = {
-    'species': State,
-    'parameter': Parameter,
-    'fixed_parameter': Constant,
-    'observable': Observable,
-    'sigmay': SigmaY,
-    'llhy': LogLikelihood,
-    'expression': Expression,
+    SymbolId.SPECIES: State,
+    SymbolId.PARAMETER: Parameter,
+    SymbolId.FIXED_PARAMETER: Constant,
+    SymbolId.OBSERVABLE: Observable,
+    SymbolId.SIGMAY: SigmaY,
+    SymbolId.LLHY: LogLikelihood,
+    SymbolId.EXPRESSION: Expression,
+    SymbolId.EVENT: Event
 }
 
 
+@log_execution_time('running smart_jacobian', logger)
 def smart_jacobian(eq: sp.MutableDenseMatrix,
                    sym_var: sp.MutableDenseMatrix) -> sp.MutableDenseMatrix:
     """
@@ -647,8 +753,10 @@ def smart_jacobian(eq: sp.MutableDenseMatrix,
     return sp.zeros(eq.shape[0], sym_var.shape[0])
 
 
-def smart_multiply(x: sp.MutableDenseMatrix,
-                   y: sp.MutableDenseMatrix) -> sp.MutableDenseMatrix:
+@log_execution_time('running smart_multiply', logger)
+def smart_multiply(x: Union[sp.MutableDenseMatrix, sp.MutableSparseMatrix],
+                   y: sp.MutableDenseMatrix
+                   ) -> Union[sp.MutableDenseMatrix, sp.MutableSparseMatrix]:
     """
     Wrapper around symbolic multiplication with some additional checks that
     reduce computation time for large matrices
@@ -663,10 +771,11 @@ def smart_multiply(x: sp.MutableDenseMatrix,
     if not x.shape[0] or not y.shape[1] or smart_is_zero_matrix(x) or \
             smart_is_zero_matrix(y):
         return sp.zeros(x.shape[0], y.shape[1])
-    return x * y
+    return x.multiply(y)
 
 
-def smart_is_zero_matrix(x: sp.MutableDenseMatrix) -> bool:
+def smart_is_zero_matrix(x: Union[sp.MutableDenseMatrix,
+                                  sp.MutableSparseMatrix]) -> bool:
     """A faster implementation of sympy's is_zero_matrix
 
     Avoids repeated indexer type checks and double iteration to distinguish
@@ -675,7 +784,12 @@ def smart_is_zero_matrix(x: sp.MutableDenseMatrix) -> bool:
     :param x: Matrix to check
     """
 
-    return not any(xx.is_zero is not True for xx in x._mat)
+    if isinstance(x, sp.MutableDenseMatrix):
+        nonzero = any(xx.is_zero is not True for xx in x._mat)
+    else:
+        nonzero = x.nnz() > 0
+
+    return not nonzero
 
 
 class ODEModel:
@@ -763,11 +877,6 @@ class ODEModel:
         key defines the name and values should be arguments for
         ODEModel.totalDerivative()
 
-    :ivar _multiplication_prototypes:
-        defines how a multiplication equation is computed for an equation,
-        key defines the name and values should be
-        arguments for ODEModel.multiplication()
-
     :ivar _lock_total_derivative:
         add chainvariables to this set when computing total derivative from
         a partial derivative call to enforce a partial derivative in the
@@ -777,16 +886,27 @@ class ODEModel:
         If not None, this function will be used to simplify symbolic
         derivative expressions. Receives sympy expressions as only argument.
         To apply multiple simplifications, wrap them in a lambda expression.
-        NOTE: This does currently not work with PySB symbols.
 
     :ivar _x0_fixedParameters_idx:
         Index list of subset of states for which x0_fixedParameters was
         computed
+
+    :ivar _w_recursion_depth:
+        recursion depth in w, quantified as nilpotency of dwdw
+
+    :ivar _has_quadratic_nllh:
+        whether all observables have a gaussian noise model, i.e. whether
+        res and FIM make sense.
     """
 
-    def __init__(self, simplify: Optional[Callable] = sp.powsimp):
+    def __init__(self, verbose: Optional[Union[bool, int]] = False,
+                 simplify: Optional[Callable] = sp.powsimp):
         """
         Create a new ODEModel instance.
+
+        :param verbose:
+            verbosity level for logging, True/False default to
+            ``logging.DEBUG``/``logging.ERROR``
 
         :param simplify:
             see :meth:`ODEModel._simplify`
@@ -799,12 +919,13 @@ class ODEModel:
         self._loglikelihoods: List[LogLikelihood] = []
         self._expressions: List[Expression] = []
         self._conservationlaws: List[ConservationLaw] = []
+        self._events: List[Event] = []
         self._symboldim_funs: Dict[str, Callable[[], int]] = {
-            'sx': self.nx_solver,
-            'v': self.nx_solver,
-            'vB': self.nx_solver,
-            'xB': self.nx_solver,
-            'sigmay': self.ny,
+            'sx': self.num_states_solver,
+            'v': self.num_states_solver,
+            'vB': self.num_states_solver,
+            'xB': self.num_states_solver,
+            'sigmay': self.num_obs,
         }
         self._eqs: Dict[str, sp.Matrix] = dict()
         self._sparseeqs: Dict[str, Union[sp.Matrix, List[sp.Matrix]]] = dict()
@@ -822,7 +943,8 @@ class ODEModel:
             'y': '_observables',
             'Jy': '_loglikelihoods',
             'w': '_expressions',
-            'sigmay': '_sigmays',
+            'root': '_events',
+            'sigmay': '_sigmays'
         }
         self._variable_prototype: Dict[str, str] = {
             'tcl': '_conservationlaws',
@@ -831,7 +953,8 @@ class ODEModel:
             'p': '_parameters',
             'k': '_constants',
             'w': '_expressions',
-            'sigmay': '_sigmays'
+            'sigmay': '_sigmays',
+            'h': '_events'
         }
         self._value_prototype: Dict[str, str] = {
             'p': '_parameters',
@@ -839,48 +962,28 @@ class ODEModel:
         }
         self._total_derivative_prototypes: \
             Dict[str, Dict[str, Union[str, List[str]]]] = {
-                'J': {
-                    'eq': 'xdot',
-                    'chainvars': ['w'],
-                    'var': 'x',
-                },
-                'sxdot': {
-                    'eq': 'xdot',
-                    'chainvars': ['x'],
-                    'var': 'p',
-                    'dydx_name': 'JSparse',
-                    'dxdz_name': 'sx',
-                },
                 'sx_rdata': {
                     'eq': 'x_rdata',
                     'chainvars': ['x'],
                     'var': 'p',
                     'dxdz_name': 'sx',
                 },
+                'sroot': {
+                    'eq': 'root',
+                    'chainvars': ['x'],
+                    'var': 'p',
+                    'dxdz_name': 'sx',
+                }
             }
-        self._multiplication_prototypes: Dict[str, Dict[str, str]] = {
-            'Jv': {
-                'x': 'J',
-                'y': 'v',
-            },
-            'JvB': {
-                'x': 'JB',
-                'y': 'vB',
-            },
-            'xBdot': {
-                'x': 'JB',
-                'y': 'xB',
-            },
-            'dxdotdp_implicit': {
-                'x': 'dxdotdw',
-                'y': 'dwdp',
-            },
-        }
 
         self._lock_total_derivative: List[str] = list()
         self._simplify: Callable = simplify
         self._x0_fixedParameters_idx: Union[None, Sequence[int]]
+        self._w_recursion_depth: int = 0
+        self._has_quadratic_nllh: bool = True
+        set_log_level(logger, verbose)
 
+    @log_execution_time('importing SbmlImporter', logger)
     def import_from_sbml_importer(self,
                                   si: 'sbml_import.SbmlImporter',
                                   compute_cls: Optional[bool] = True) -> None:
@@ -895,48 +998,34 @@ class ODEModel:
 
         # get symbolic expression from SBML importers
         symbols = copy.copy(si.symbols)
+        nexpr = len(symbols[SymbolId.EXPRESSION])
 
         # assemble fluxes and add them as expressions to the model
         fluxes = []
         for ir, flux in enumerate(si.flux_vector):
-            flux_id = sp.Symbol(f'flux_r{ir}', real=True)
-            self.add_component(Expression(
-                identifier=flux_id,
-                name=str(flux),
-                value=flux
-            ))
+            flux_id = generate_flux_symbol(ir)
             fluxes.append(flux_id)
         nr = len(fluxes)
 
         # correct time derivatives for compartment changes
 
         dxdotdw_updates = []
-        def dx_dt(x_index, x_Sw):
-            '''
+
+        def transform_dxdt_to_concentration(specie_id, dxdt):
+            """
             Produces the appropriate expression for the first derivative of a
             species with respect to time, for species that reside in
             compartments with a constant volume, or a volume that is defined by
             an assignment or rate rule.
 
-            :param x_index:
-                The index (not identifier) of the species in the variables
-                (generated in "sbml_import.py") that describe the model.
+            :param specie_id:
+                The identifier of the species (generated in "sbml_import.py").
 
-            :param x_Sw:
+            :param dxdt:
                 The element-wise product of the row in the stoichiometric
                 matrix that corresponds to the species (row x_index) and the
                 flux (kinetic laws) vector. Ignored in the case of rate rules.
-            '''
-            x_id = symbols['species']['identifier'][x_index]
-
-            # Rate rules specify dx_dt.
-            # Note that the rate rule of species may describe amount, not
-            # concentration.
-            if x_id in si.compartment_rate_rules:
-                return si.compartment_rate_rules[x_id]
-            elif x_id in si.species_rate_rules:
-                return si.species_rate_rules[x_id]
-
+            """
             # The derivation of the below return expressions can be found in
             # the documentation. They are found by rearranging
             # $\frac{d}{dt} (vx) = Sw$ for $\frac{dx}{dt}$, where $v$ is the
@@ -946,81 +1035,162 @@ class ODEModel:
             # species in (i) compartments with a rate rule, (ii) compartments
             # with an assignment rule, and (iii) compartments with a constant
             # volume, respectively.
-            v_name = si.species_compartment[x_index]
-            if v_name in si.compartment_rate_rules:
-                dv_dt = si.compartment_rate_rules[v_name]
-                xdot = (x_Sw - dv_dt*x_id)/v_name
-                for w_index, flux in enumerate(fluxes):
-                    dxdotdw_updates.append((x_index, w_index, xdot.diff(flux)))
+            specie = si.symbols[SymbolId.SPECIES][specie_id]
+
+            comp = specie['compartment']
+            x_index = specie['index']
+            if comp in si.symbols[SymbolId.SPECIES]:
+                dv_dt = si.symbols[SymbolId.SPECIES][comp]['dt']
+                xdot = (dxdt - dv_dt * specie_id) / comp
+                dxdotdw_updates.extend(
+                    (x_index, w_index, xdot.diff(r_flux))
+                    for w_index, r_flux in enumerate(fluxes)
+                )
                 return xdot
-            elif v_name in si.compartment_assignment_rules:
-                v = si.compartment_assignment_rules[v_name]
+            elif comp in si.compartment_assignment_rules:
+                v = si.compartment_assignment_rules[comp]
+
+                # we need to flatten out assignments in the compartment in
+                # order to ensure that we catch all species dependencies
+                v = smart_subs_dict(v, si.symbols[SymbolId.EXPRESSION],
+                                    'value')
                 dv_dt = v.diff(si.amici_time_symbol)
-                dv_dx = v.diff(x_id)
-                xdot = (x_Sw - dv_dt*x_id)/(dv_dx*x_id + v)
-                for w_index, flux in enumerate(fluxes):
-                    dxdotdw_updates.append((x_index, w_index, xdot.diff(flux)))
+                # we may end up with a time derivative of the compartment
+                # volume due to parameter rate rules
+                comp_rate_vars = [p for p in v.free_symbols
+                                  if p in si.symbols[SymbolId.SPECIES]]
+                for var in comp_rate_vars:
+                    dv_dt += \
+                        v.diff(var) * si.symbols[SymbolId.SPECIES][var]['dt']
+                dv_dx = v.diff(specie_id)
+                xdot = (dxdt - dv_dt * specie_id) / (dv_dx * specie_id + v)
+                dxdotdw_updates.extend(
+                    (x_index, w_index, xdot.diff(r_flux))
+                    for w_index, r_flux in enumerate(fluxes)
+                )
                 return xdot
             else:
-                v = si.compartment_volume[list(si.compartment_symbols).index(
-                    si.species_compartment[x_index])]
-                for w_index, flux in enumerate(fluxes):
-                    if si.stoichiometric_matrix[x_index, w_index] != 0:
-                        dxdotdw_updates.append((x_index, w_index,
-                            si.stoichiometric_matrix[x_index, w_index] / v))
-                return x_Sw/v
+                v = si.compartments[comp]
+
+                if v == 1.0:
+                    return dxdt
+
+                dxdotdw_updates.extend(
+                    (x_index, w_index,
+                     si.stoichiometric_matrix[x_index, w_index] / v)
+                    for w_index in range(si.stoichiometric_matrix.shape[1])
+                    if si.stoichiometric_matrix[x_index, w_index] != 0
+                )
+
+                return dxdt / v
 
         # create dynamics without respecting conservation laws first
-        Sw = smart_multiply(MutableDenseMatrix(si.stoichiometric_matrix),
-                            MutableDenseMatrix(fluxes))
-        symbols['species']['dt'] = sp.Matrix([Sw.row(x_index).applyfunc(
-            lambda x_Sw: dx_dt(x_index, x_Sw))
-            for x_index in range(Sw.rows)])
+        dxdt = smart_multiply(si.stoichiometric_matrix,
+                              MutableDenseMatrix(fluxes))
+        for ix, ((specie_id, specie), formula) in enumerate(zip(
+                symbols[SymbolId.SPECIES].items(),
+                dxdt
+        )):
+            assert ix == specie['index']  # check that no reordering occurred
+            # rate rules and amount species don't need to be updated
+            if 'dt' in specie:
+                continue
+            if specie['amount']:
+                specie['dt'] = formula
+            else:
+                specie['dt'] = transform_dxdt_to_concentration(specie_id,
+                                                               formula)
 
         # create all basic components of the ODE model and add them.
-        for symbol in [s for s in symbols if s != 'my']:
+        for symbol_name in symbols:
             # transform dict of lists into a list of dicts
-            protos = [dict(zip(symbols[symbol], t))
-                      for t in zip(*symbols[symbol].values())]
+            args = ['name', 'identifier']
+
+            if symbol_name == SymbolId.SPECIES:
+                args += ['dt', 'init']
+            else:
+                args += ['value']
+
+            protos = [
+                {
+                    'identifier': var_id,
+                    **{k: v for k, v in var.items() if k in args}
+                }
+                for var_id, var in symbols[symbol_name].items()
+            ]
+
             for proto in protos:
-                self.add_component(symbol_to_type[symbol](**proto))
+                self.add_component(symbol_to_type[symbol_name](**proto))
+
+        # add fluxes as expressions, this needs to happen after base
+        # expressions from symbols have been parsed
+        for flux_id, flux in zip(fluxes, si.flux_vector):
+            self.add_component(Expression(
+                identifier=flux_id,
+                name=str(flux_id),
+                value=flux
+            ))
 
         # process conservation laws
         if compute_cls:
             dxdotdw_updates = si.process_conservation_laws(self,
                                                            dxdotdw_updates)
 
-        # set derivatives of xdot, this circumvents regular computation. we
-        # do this as we can save a substantial amount of computations by
-        # knowing the right solutions here
         nx_solver = si.stoichiometric_matrix.shape[0]
         nw = len(self._expressions)
-        # append zero rows for conservation law `w`s, note that
-        # _process_conservation_laws is called after the fluxes are added as
-        # expressions, if this ordering needs to be changed, this will have
-        # to be adapted.
-        self._eqs['dxdotdw'] = si.stoichiometric_matrix.row_join(
-            sp.zeros(nx_solver, nw-nr)
-        )
-        for ix, iw, val in dxdotdw_updates:
-            self._eqs['dxdotdw'][ix, iw] = val
+        ncl = nw - nr - nexpr
+
+        # set derivatives of xdot, if applicable. We do this as we can save
+        # a substantial amount of computations by exploiting the structure
+        # of the right hand side.
+        # the tricky part is that the expressions w do not only contain the
+        # flux entries, but also assignment rules and conservation laws.
+        # assignment rules are added before the fluxes and
+        # _process_conservation_laws is called after the fluxes,
+        # but conservation law expressions are inserted at the beginning
+        # of the self.eq['w']. Accordingly we concatenate a zero matrix (for
+        # rule assignments and conservation laws) with the stoichiometric
+        # matrix and then apply the necessary updates from
+        # transform_dxdt_to_concentration
+
+        if not any(s in [e.get_id() for e in self._expressions]
+                   for s in si.stoichiometric_matrix.free_symbols):
+            self._eqs['dxdotdw'] = sp.zeros(nx_solver, ncl + nexpr).row_join(
+                si.stoichiometric_matrix
+            )
+            for ix, iw, val in dxdotdw_updates:
+                # offset update according to concatenated zero matrix
+                self._eqs['dxdotdw'][ix, ncl + nexpr + iw] = val
 
         # fill in 'self._sym' based on prototypes and components in ode_model
-        self.generate_basic_variables()
+        self.generate_basic_variables(from_sbml=True)
+        self._has_quadratic_nllh = all(
+            llh['dist'] in ['normal', 'lin-normal']
+            for llh in si.symbols[SymbolId.LLHY].values()
+        )
 
-    def add_component(self, component: ModelQuantity) -> None:
+    def add_component(self, component: ModelQuantity,
+                      insert_first: Optional[bool] = False) -> None:
         """
         Adds a new ModelQuantity to the model.
 
         :param component:
             model quantity to be added
+
+        :param insert_first:
+            whether to add quantity first or last, relevant when components
+            may refer to other components of the same type.
         """
         for comp_type in [Observable, Expression, Parameter, Constant, State,
-                          LogLikelihood, SigmaY, ConservationLaw]:
+                          LogLikelihood, SigmaY, ConservationLaw, Event]:
             if isinstance(component, comp_type):
-                getattr(self, f'_{type(component).__name__.lower()}s').append(
-                    component
+                component_list = getattr(
+                    self, f'_{type(component).__name__.lower()}s'
                 )
+                if insert_first:
+                    component_list.insert(0, component)
+                else:
+                    component_list.append(component)
                 return
 
         raise ValueError(f'Invalid component type {type(component)}')
@@ -1028,8 +1198,8 @@ class ODEModel:
     def add_conservation_law(self,
                              state: sp.Symbol,
                              total_abundance: sp.Symbol,
-                             state_expr: sp.Basic,
-                             abundance_expr: sp.Basic) -> None:
+                             state_expr: sp.Expr,
+                             abundance_expr: sp.Expr) -> None:
         """
         Adds a new conservation law to the model. A conservation law is defined
         by the conserved quantity T = sum_i(a_i * x_i), where a_i are
@@ -1065,7 +1235,8 @@ class ODEModel:
         state_id = self._states[ix].get_id()
 
         self.add_component(
-            Expression(state_id, str(state_id), state_expr)
+            Expression(state_id, str(state_id), state_expr),
+            insert_first=True
         )
 
         self.add_component(
@@ -1078,7 +1249,7 @@ class ODEModel:
 
         self._states[ix].set_conservation_law(state_expr)
 
-    def nx_rdata(self) -> int:
+    def num_states_rdata(self) -> int:
         """
         Number of states.
 
@@ -1087,7 +1258,7 @@ class ODEModel:
         """
         return len(self.sym('x_rdata'))
 
-    def nx_solver(self) -> int:
+    def num_states_solver(self) -> int:
         """
         Number of states after applying conservation laws.
 
@@ -1096,19 +1267,19 @@ class ODEModel:
         """
         return len(self.sym('x'))
 
-    def ncl(self) -> int:
+    def num_cons_law(self) -> int:
         """
         Number of conservation laws.
 
         :return:
             number of conservation laws
         """
-        return self.nx_rdata()-self.nx_solver()
+        return self.num_states_rdata() - self.num_states_solver()
 
-    def nx_solver_reinit(self) -> int:
+    def num_state_reinits(self) -> int:
         """
         Number of solver states which would be reinitialized after
-        preequilibraiton
+        preequilibration
 
         :return:
             number of state variable symbols with reinitialization
@@ -1117,7 +1288,7 @@ class ODEModel:
         solver_states = self.eq('x_solver')
         return sum([1 for ix in reinit_states if ix in solver_states])
 
-    def ny(self) -> int:
+    def num_obs(self) -> int:
         """
         Number of Observables.
 
@@ -1126,7 +1297,7 @@ class ODEModel:
         """
         return len(self.sym('y'))
 
-    def nk(self) -> int:
+    def num_const(self) -> int:
         """
         Number of Constants.
 
@@ -1135,7 +1306,7 @@ class ODEModel:
         """
         return len(self.sym('k'))
 
-    def np(self) -> int:
+    def num_par(self) -> int:
         """
         Number of Parameters.
 
@@ -1143,6 +1314,24 @@ class ODEModel:
             number of parameter symbols
         """
         return len(self.sym('p'))
+
+    def num_expr(self) -> int:
+        """
+        Number of Expressions.
+
+        :return:
+            number of expression symbols
+        """
+        return len(self.sym('w'))
+
+    def num_events(self) -> int:
+        """
+        Number of Events.
+
+        :return:
+            number of event symbols (length of the root vector in AMICI)
+        """
+        return len(self.sym('h'))
 
     def sym(self,
             name: str,
@@ -1163,10 +1352,7 @@ class ODEModel:
         if name not in self._syms:
             self._generate_symbol(name)
 
-        if stripped:
-            if name not in self._variable_prototype:
-                raise ValueError('Stripped symbols only available for '
-                                 'variables from variable prototypes')
+        if stripped and name in self._variable_prototype:
             return self._strippedsyms[name]
         else:
             return self._syms[name]
@@ -1294,7 +1480,17 @@ class ODEModel:
             self._generate_name(name)
         return self._names[name]
 
-    def _generate_symbol(self, name: str) -> None:
+    def free_symbols(self) -> Set[sp.Basic]:
+        """
+        Returns list of free symbols that appear in ODE rhs and initial
+        conditions.
+        """
+        return set(chain.from_iterable(
+            state.get_free_symbols()
+            for state in self._states
+        ))
+
+    def _generate_symbol(self, name: str, *, from_sbml: bool = False) -> None:
         """
         Generates the symbolic identifiers for a symbolic variable
 
@@ -1312,13 +1508,16 @@ class ODEModel:
             # generated by pysb (if compiling a pysb model). To ensure
             # correctness of derivatives, the same assumptions as in pysb
             # have to be used (currently no assumptions)
-            self._strippedsyms[name] = sp.Matrix([
-                sp.Symbol(comp.get_name())
-                for comp in getattr(self, component)
-            ])
+            # NB if we are compiling a SBML model, then it will be the same
+            # as the "non-stripped" in order to preserve assumptions
+            self._strippedsyms[name] = self._syms[name] if from_sbml \
+                else sp.Matrix([
+                    sp.Symbol(comp.get_name())
+                    for comp in getattr(self, component)
+                ])
             if name == 'y':
                 self._syms['my'] = sp.Matrix([
-                    sp.Symbol(f'm{strip_pysb(comp.get_id())}', real=True)
+                    comp.get_measurement_symbol()
                     for comp in getattr(self, component)
                 ])
             return
@@ -1326,14 +1525,14 @@ class ODEModel:
             self._syms[name] = sp.Matrix([
                 state.get_id()
                 for state in self._states
-                if state.conservation_law is None
+                if state._conservation_law is None
             ])
             return
         elif name == 'sx0':
             self._syms[name] = sp.Matrix([
                 f's{state.get_id()}_0'
                 for state in self._states
-                if state.conservation_law is None
+                if state._conservation_law is None
             ])
             return
         elif name == 'dtcldp':
@@ -1344,10 +1543,12 @@ class ODEModel:
                            f'{strip_pysb(par.get_id())}', real=True)
                     for par in self._parameters]
                 if self.conservation_law_has_multispecies(tcl)
-                else [0] * self.np()
+                else [0] * self.num_par()
                 for tcl in self._conservationlaws
             ])
             return
+        elif name == 'xdot_old':
+            length = len(self.eq('xdot'))
         elif name in sparse_functions:
             self._generate_sparse_symbol(name)
             return
@@ -1362,14 +1563,38 @@ class ODEModel:
             sp.Symbol(f'{name}{i}', real=True) for i in range(length)
         ])
 
-    def generate_basic_variables(self) -> None:
+    def generate_basic_variables(self, *, from_sbml: bool = False) -> None:
         """
         Generates the symbolic identifiers for all variables in
         ODEModel.variable_prototype
         """
+
+        # We need to process events and Heaviside functions in the ODE Model,
+        # before adding it to ODEExporter
+        self.parse_events()
+
         for var in self._variable_prototype:
             if var not in self._syms:
-                self._generate_symbol(var)
+                self._generate_symbol(var, from_sbml=from_sbml)
+
+        self._generate_symbol('x', from_sbml=from_sbml)
+
+    def parse_events(self) -> None:
+        """
+        This functions checks the right hand side for roots of Heaviside
+        functions or events, collects the roots, removes redundant roots,
+        and replaces the formulae of the found roots by identifiers of AMICI's
+        Heaviside function implementation in the right hand side
+        """
+
+        # Track all roots functions in the right hand side
+        roots = []
+        for state in self._states:
+            state.set_dt(_process_heavisides(state.get_dt(), roots))
+
+        # Now add the found roots to the model components
+        for root in roots:
+            self.add_component(root)
 
     def get_appearance_counts(self, idxs: List[int]) -> List[int]:
         """
@@ -1418,6 +1643,10 @@ class ODEModel:
 
         """
         matrix = self.eq(name)
+        match_deriv = re.match(r'd([\w]+)d([a-z]+)', name)
+        if match_deriv:
+            rownames = self.sym(match_deriv.group(1))
+            colnames = self.sym(match_deriv.group(2))
 
         if name == 'dJydy':
             # One entry per y-slice
@@ -1426,12 +1655,12 @@ class ODEModel:
             self._sparseeqs[name] = []
             self._sparsesyms[name] = []
             self._syms[name] = []
-            base_index = 0
-            for iy in range(self.ny()):
+            for iy in range(self.num_obs()):
                 symbol_col_ptrs, symbol_row_vals, sparse_list, symbol_list, \
-                    sparse_matrix = csc_matrix(matrix[iy, :], name,
-                                               base_index=base_index)
-                base_index += len(symbol_list)
+                    sparse_matrix = csc_matrix(matrix[iy, :],
+                                               rownames=rownames,
+                                               colnames=colnames,
+                                               identifier=iy)
                 self._colptrs[name].append(symbol_col_ptrs)
                 self._rowvals[name].append(symbol_row_vals)
                 self._sparseeqs[name].append(sparse_list)
@@ -1440,7 +1669,8 @@ class ODEModel:
         else:
             symbol_col_ptrs, symbol_row_vals, sparse_list, symbol_list, \
                 sparse_matrix = csc_matrix(
-                    matrix, name, pattern_only=name in nobody_functions
+                    matrix, rownames=rownames, colnames=colnames,
+                    pattern_only=name in nobody_functions
                 )
 
             self._colptrs[name] = symbol_col_ptrs
@@ -1458,6 +1688,7 @@ class ODEModel:
 
         """
         match_deriv = re.match(r'd([\w_]+)d([a-z_]+)', name)
+        time_symbol = sp.Matrix([symbol_with_assumptions('t')])
 
         if name in self._equation_prototype:
             self._equation_from_component(name, self._equation_prototype[name])
@@ -1470,22 +1701,17 @@ class ODEModel:
             for cv in args['chainvars']:
                 self._lock_total_derivative.remove(cv)
 
-        elif name in self._multiplication_prototypes:
-            args = self._multiplication_prototypes[name]
-            args['name'] = name
-            self._multiplication(**args)
-
         elif name == 'xdot':
             self._eqs[name] = sp.Matrix([
                 s.get_dt() for s in self._states
-                if s.conservation_law is None
+                if s._conservation_law is None
             ])
 
         elif name == 'x_rdata':
             self._eqs[name] = sp.Matrix([
                 state.get_id()
-                if state.conservation_law is None
-                else state.conservation_law
+                if state._conservation_law is None
+                else state._conservation_law
                 for state in self._states
             ])
 
@@ -1493,14 +1719,14 @@ class ODEModel:
             self._eqs[name] = sp.Matrix([
                 state.get_id()
                 for state in self._states
-                if state.conservation_law is None
+                if state._conservation_law is None
             ])
 
         elif name == 'sx_solver':
             self._eqs[name] = sp.Matrix([
                 self.sym('sx_rdata')[ix]
                 for ix, state in enumerate(self._states)
-                if state.conservation_law is None
+                if state._conservation_law is None
             ])
 
         elif name == 'sx0':
@@ -1528,12 +1754,6 @@ class ODEModel:
                         dx0_fixed_parametersdx, self.sym('sx0')
                     )
 
-        elif name == 'JB':
-            self._eqs[name] = -self.eq('J').transpose()
-
-        elif name == 'JDiag':
-            self._eqs[name] = get_symbolic_diagonal(self.eq('J'))
-
         elif name == 'x0_fixedParameters':
             k = self.sym('k')
             self._x0_fixedParameters_idx = [
@@ -1545,30 +1765,65 @@ class ODEModel:
             self._eqs[name] = sp.Matrix([eq[ix] for ix in
                                          self._x0_fixedParameters_idx])
 
-        elif name in ['JSparse', 'JSparseB']:
-            self._eqs[name] = self.eq(name.replace('Sparse', ''))
-
         elif name == 'dtotal_cldx_rdata':
             # not correctly parsed in regex
             self._derivative('total_cl', 'x_rdata')
 
         elif name == 'dtcldx':
             # this is always zero
-            self._eqs[name] = sp.zeros(self.ncl(), self.nx_solver())
+            self._eqs[name] = sp.zeros(self.num_cons_law(), self.num_states_solver())
 
         elif name == 'dtcldp':
             # force symbols
             self._eqs[name] = self.sym(name)
 
+        elif name == 'dxdotdx_explicit':
+            # force symbols
+            self._derivative('xdot', 'x', name=name)
+
         elif name == 'dxdotdp_explicit':
             # force symbols
             self._derivative('xdot', 'p', name=name)
+
+        elif name == 'drootdt':
+            self._eqs[name] = smart_jacobian(self.eq('root'), time_symbol)
+
+        elif name == 'drootdt_total':
+            # backsubstitution of optimized right hand side terms into RHS
+            # calling subs() is costly. Due to looping over events though, the
+            # following lines are only evaluated if a model has events
+            tmp_xdot = self._eqs['xdot'].subs(self._syms['w'], self._eqs['w'])
+            self._eqs[name] = smart_multiply(self.eq('drootdx'), tmp_xdot) + \
+                              self.eq('drootdt')
+
+        elif name == 'stau':
+            self._eqs[name] = [
+                -self.eq('sroot')[ie, :] / self.eq('drootdt_total')[ie]
+                for ie in range(self.num_events())
+            ]
+
+        elif name == 'deltasx':
+            self._eqs[name] = [
+                smart_multiply((self.eq('xdot_old') - self.eq('xdot')),
+                               self.eq('stau')[ie])
+                for ie in range(self.num_events())
+            ]
+
+        elif name == 'xdot_old':
+            # force symbols
+            self._eqs[name] = self.sym(name)
+
 
         elif match_deriv:
             self._derivative(match_deriv.group(1), match_deriv.group(2))
 
         else:
             raise ValueError(f'Unknown equation {name}')
+
+        if name == 'root':
+            # Events are processed after the ODE model has been set up.
+            # Equations are there, but symbols for roots must be added
+            self.sym('h')
 
         if name in ['Jy', 'dydx']:
             # do not transpose if we compute the partial derivative as part of
@@ -1577,7 +1832,12 @@ class ODEModel:
                 self._eqs[name] = self._eqs[name].transpose()
 
         if self._simplify:
-            self._eqs[name] = self._eqs[name].applyfunc(self._simplify)
+            dec = log_execution_time(f'simplifying {name}', logger)
+            if isinstance(self._eqs[name], list):
+                self._eqs[name] = [dec(sub_eq.applyfunc)(self._simplify)
+                                   for sub_eq in self._eqs[name]]
+            else:
+                self._eqs[name] = dec(self._eqs[name].applyfunc)(self._simplify)
 
     def sym_names(self) -> List[str]:
         """
@@ -1610,7 +1870,10 @@ class ODEModel:
         # automatically detect chainrule
         chainvars = []
         ignore_chainrule = {
-            ('xdot', 'p'): 'w'  # has generic implementation in c++ code
+            ('xdot', 'p'): 'w',  # has generic implementation in c++ code
+            ('xdot', 'x'): 'w',  # has generic implementation in c++ code
+            ('w', 'w'): 'tcl',   # dtcldw = 0
+            ('w', 'x'): 'tcl',   # dtcldx = 0
         }
         for cv in ['w', 'tcl']:
             if var_in_function_signature(eq, cv) \
@@ -1635,14 +1898,14 @@ class ODEModel:
 
         # partial derivative
         if eq == 'Jy':
-            eq = self.eq(eq).transpose()
+            sym_eq = self.eq(eq).transpose()
         else:
-            eq = self.eq(eq)
+            sym_eq = self.eq(eq)
 
         if pysb is not None and needs_stripped_symbols:
             needs_stripped_symbols = not any(
                 isinstance(sym, pysb.Component)
-                for sym in eq.free_symbols
+                for sym in sym_eq.free_symbols
             )
 
         # now check whether we are working with energy_modeling branch
@@ -1651,7 +1914,36 @@ class ODEModel:
         #  branch
         sym_var = self.sym(var, needs_stripped_symbols)
 
-        self._eqs[name] = smart_jacobian(eq, sym_var)
+        derivative = smart_jacobian(sym_eq, sym_var)
+
+        self._eqs[name] = derivative
+
+        # compute recursion depth based on nilpotency of jacobian. computing
+        # nilpotency can be done more efficiently on numerical sparsity pattern
+        if name == 'dwdw':
+            nonzeros = np.asarray(
+                derivative.applyfunc(lambda x: int(not x.is_zero))
+            ).astype(np.int64)
+            if max(nonzeros.shape):
+                while nonzeros.max():
+                    nonzeros = nonzeros.dot(nonzeros)
+                    self._w_recursion_depth += 1
+                    if self._w_recursion_depth > len(sym_eq):
+                        raise RuntimeError(
+                            'dwdw is not nilpotent. Something, somewhere went '
+                            'terribly wrong. Please file a bug report at '
+                            'https://github.com/AMICI-dev/AMICI/issues and '
+                            'attach this model.'
+                        )
+
+        if name == 'dydw' and not smart_is_zero_matrix(derivative):
+            dwdw = self.eq('dwdw')
+            # h(k) = d{eq}dw*dwdw^k* (k=1)
+            h = smart_multiply(derivative, dwdw)
+            while not smart_is_zero_matrix(h):
+                self._eqs[name] += h
+                # h(k+1) = d{eq}dw*dwdw^(k+1) = h(k)*dwdw
+                h = smart_multiply(h, dwdw)
 
     def _total_derivative(self, name: str, eq: str, chainvars: List[str],
                           var: str, dydx_name: str = None,
@@ -1731,7 +2023,12 @@ class ODEModel:
             the variable equations otherwise.
 
         """
-        if var_in_function_signature(name, varname):
+        # dwdx and dwdp will be dynamically computed and their ordering
+        # within a column may differ from the initialization of symbols here,
+        # so those are not safe to use. Not removing them from signature as
+        # this would break backwards compatibility.
+        if var_in_function_signature(name, varname) \
+                and varname not in ['dwdx', 'dwdp']:
             return self.sym(varname)
         else:
             return self.eq(varname)
@@ -1793,11 +2090,6 @@ class ODEModel:
         self._eqs[name] = sp.Matrix(
             [comp.get_val() for comp in getattr(self, component)]
         )
-        # flatten conservation laws in expressions
-        if name == 'w':
-            self._eqs[name] = self._eqs[name].subs(
-                self.get_conservation_laws()
-            )
 
     def get_conservation_laws(self) -> List[Tuple[sp.Symbol, sp.Basic]]:
         """ Returns a list of states with conservation law set
@@ -1808,9 +2100,9 @@ class ODEModel:
 
         """
         return [
-            (state.get_id(), state.conservation_law)
+            (state.get_id(), state._conservation_law)
             for state in self._states
-            if state.conservation_law is not None
+            if state._conservation_law is not None
         ]
 
     def _generate_value(self, name: str) -> None:
@@ -1882,7 +2174,7 @@ class ODEModel:
             boolean indicating if conservation_law is not None
 
         """
-        return self._states[ix].conservation_law is not None
+        return self._states[ix]._conservation_law is not None
 
     def state_is_constant(self, ix: int) -> bool:
         """
@@ -1915,7 +2207,7 @@ class ODEModel:
         return n_species > 1
 
 
-def _print_with_exception(math: sp.Basic) -> str:
+def _print_with_exception(math: sp.Expr) -> str:
     """
     Generate C++ code for a symbolic expression
 
@@ -1925,8 +2217,17 @@ def _print_with_exception(math: sp.Basic) -> str:
     :return:
         C++ code for the specified expression
     """
+    # get list of custom replacements
+    user_functions = {fun['sympy']: fun['c++'] for fun in CUSTOM_FUNCTIONS}
+
     try:
-        ret = cxxcode(math, standard='c++11')
+        # Required until https://github.com/sympy/sympy/pull/20558 is released
+        with _monkeypatched(_CXXCodePrinterBase, '_print_Max',
+                            _custom_print_max),\
+                _monkeypatched(_CXXCodePrinterBase, '_print_Min',
+                               _custom_print_min):
+            ret = cxxcode(math, standard='c++11',
+                          user_functions=user_functions)
         ret = re.sub(r'(^|\W)M_PI(\W|$)', r'\1amici::pi\2', ret)
         return ret
     except TypeError as e:
@@ -1936,15 +2237,15 @@ def _print_with_exception(math: sp.Basic) -> str:
         )
 
 
-def _get_sym_lines(symbols: sp.Matrix,
-                   variable: str,
-                   indent_level: int) -> List[str]:
+def _get_sym_lines_array(equations: sp.Matrix,
+                         variable: str,
+                         indent_level: int) -> List[str]:
     """
     Generate C++ code for assigning symbolic terms in symbols to C++ array
     `variable`.
 
-    :param symbols:
-        vectors of symbolic terms
+    :param equations:
+        vectors of symbolic expressions
 
     :param variable:
         name of the C++ array to assign to
@@ -1959,7 +2260,39 @@ def _get_sym_lines(symbols: sp.Matrix,
 
     return [' ' * indent_level + f'{variable}[{index}] = '
                                  f'{_print_with_exception(math)};'
-            for index, math in enumerate(symbols)
+            for index, math in enumerate(equations)
+            if not (math == 0 or math == 0.0)]
+
+
+def _get_sym_lines_symbols(symbols: sp.Matrix,
+                           equations: sp.Matrix,
+                           variable: str,
+                           indent_level: int) -> List[str]:
+    """
+    Generate C++ code for where array elements are directly replaced with
+    their corresponding macro symbol
+
+    :param symbols:
+        vectors of symbols that equations are assigned to
+
+    :param equations:
+        vectors of expressions
+
+    :param variable:
+        name of the C++ array to assign to, only used in comments
+
+    :param indent_level:
+        indentation level (number of leading blanks)
+
+    :return:
+        C++ code as list of lines
+
+    """
+
+    return [f'{" " * indent_level}{sym} = {_print_with_exception(math)};'
+            f'  // {variable}[{index}]'.replace('\n',
+                                                '\n' + ' ' * indent_level)
+            for index, (sym, math) in enumerate(zip(symbols, equations))
             if not (math == 0 or math == 0.0)]
 
 
@@ -2001,6 +2334,9 @@ class ODEExporter:
         indicates whether reinitialization of
         initial states depending on fixedParameters is allowed for this model
 
+    :ivar _build_hints:
+        If the given model uses special functions, this set contains hints for
+        model building.
     """
 
     def __init__(
@@ -2035,7 +2371,6 @@ class ODEExporter:
 
         :param allow_reinit_fixpar_initcond:
             see :class:`amici.ode_export.ODEExporter`
-
         """
         set_log_level(logger, verbose)
 
@@ -2052,7 +2387,6 @@ class ODEExporter:
 
         # Signatures and properties of generated model functions (see
         # include/amici/model.h for details)
-
         self.model: ODEModel = ode_model
 
         # To only generate a subset of functions, apply subselection here
@@ -2060,6 +2394,7 @@ class ODEExporter:
             copy.deepcopy(functions)
 
         self.allow_reinit_fixpar_initcond: bool = allow_reinit_fixpar_initcond
+        self._build_hints = set()
 
     @log_execution_time('generating cpp code', logger)
     def generate_model_code(self) -> None:
@@ -2069,9 +2404,12 @@ class ODEExporter:
 
 
         """
-        self._prepare_model_folder()
-        self._generate_c_code()
-        self._generate_m_code()
+        with _monkeypatched(sp.Pow, '_eval_derivative',
+                            _custom_pow_eval_derivative):
+
+            self._prepare_model_folder()
+            self._generate_c_code()
+            self._generate_m_code()
 
     @log_execution_time('compiling cpp code', logger)
     def compile_model(self) -> None:
@@ -2157,6 +2495,10 @@ class ODEExporter:
                                     check=True)
         except subprocess.CalledProcessError as e:
             print(e.output.decode('utf-8'))
+            print("Failed building the model extension.")
+            if self._build_hints:
+                print("Note:")
+                print('\n'.join(self._build_hints))
             raise
 
         if verbose:
@@ -2176,8 +2518,8 @@ class ODEExporter:
         # Second order code is not yet implemented. Once this is done,
         # those variables will have to be replaced by
         # "self.model.<var>true()", or the corresponding "model.self.o2flag"
-        nxtrue_rdata = self.model.nx_rdata()
-        nytrue = self.model.ny()
+        nxtrue_rdata = self.model.num_states_rdata()
+        nytrue = self.model.num_obs()
         o2flag = 0
 
         # a preliminary comment
@@ -2194,7 +2536,7 @@ class ODEExporter:
         lines.append("amimodel.compileAndLinkModel"
                      "(modelName, '', [], [], [], []);")
         lines.append(f"amimodel.generateMatlabWrapper({nxtrue_rdata}, "
-                     f"{nytrue}, {self.model.np()}, {self.model.nk()}, "
+                     f"{nytrue}, {self.model.num_par()}, {self.model.num_const()}, "
                      f"{nz}, {o2flag}, ...\n    [], "
                      "['simulate_' modelName '.m'], modelName, ...\n"
                      "    'lin', 1, 1);")
@@ -2219,6 +2561,9 @@ class ODEExporter:
                 symbols = self.model.sparsesym(name)
             else:
                 symbols = self.model.sym(name).T
+            # flatten multiobs
+            if isinstance(next(iter(symbols), None), list):
+                symbols = [symbol for obs in symbols for symbol in obs]
         else:
             raise ValueError(f'Unknown symbolic array: {name}')
 
@@ -2245,20 +2590,21 @@ class ODEExporter:
         # first generate the equations to make sure we have everything we
         # need in subsequent steps
         if function in sparse_functions:
-            symbol = self.model.sparseeq(function)
+            equations = self.model.sparseeq(function)
         elif not self.allow_reinit_fixpar_initcond \
                 and function == 'sx0_fixedParameters':
             # Not required. Will create empty function body.
-            symbol = sp.Matrix()
+            equations = sp.Matrix()
         else:
-            symbol = self.model.eq(function)
+            equations = self.model.eq(function)
 
         # function header
         lines = [
             '#include "amici/symbolic_functions.h"',
             '#include "amici/defines.h"',
             '#include "sundials/sundials_types.h"',
-            '#include <cmath>',
+            '',
+            '#include <array>',
         ]
 
         # function signature
@@ -2271,7 +2617,7 @@ class ODEExporter:
             # added '[0]*' for initial conditions
             if re.search(
                     fr'const (realtype|double) \*{sym}[0]*[,)]+', signature
-            ):
+            ) or (function == sym and function not in non_unique_id_symbols):
                 lines.append(f'#include "{sym}.h"')
 
         lines.extend([
@@ -2284,14 +2630,14 @@ class ODEExporter:
         lines.append(f'void {function}_{self.model_name}{signature}{{')
 
         # function body
-        body = self._get_function_body(function, symbol)
+        body = self._get_function_body(function, equations)
         if self.assume_pow_positivity and 'assume_pow_positivity' \
                 in self.functions[function].get('flags', []):
-            body = [re.sub(r'(^|\W)pow\(', r'\1amici::pos_pow(', line)
+            body = [re.sub(r'(^|\W)std::pow\(', r'\1amici::pos_pow(', line)
                     for line in body]
             # execute this twice to catch cases where the ending ( would be the
             # starting (^|\W) for the following match
-            body = [re.sub(r'(^|\W)pow\(', r'\1amici::pos_pow(', line)
+            body = [re.sub(r'(^|\W)std::pow\(', r'\1amici::pos_pow(', line)
                     for line in body]
         self.functions[function]['body'] = body
         lines += body
@@ -2301,6 +2647,14 @@ class ODEExporter:
             '} // namespace amici',
             f'}} // namespace model_{self.model_name}',
         ])
+
+        # check custom functions
+        for fun in CUSTOM_FUNCTIONS:
+            if 'include' in fun and any(fun['c++'] in line for line in lines):
+                if 'build_hint' in fun:
+                    self._build_hints.add(fun['build_hint'])
+                lines.insert(0, fun['include'])
+
         # if not body is None:
         with open(os.path.join(
                 self.model_path, f'{self.model_name}_{function}.cpp'), 'w'
@@ -2322,19 +2676,22 @@ class ODEExporter:
 
         if indextype == 'colptrs':
             values = self.model.colptrs(function)
+            setter = 'indexptrs'
         elif indextype == 'rowvals':
             values = self.model.rowvals(function)
+            setter = 'indexvals'
         else:
             raise ValueError('Invalid value for indextype, must be colptrs or '
                              f'rowvals: {indextype}')
 
         # function signature
         if function in multiobs_functions:
-            signature = f'(sunindextype *{indextype}, int index)'
+            signature = f'(SUNMatrixWrapper &{function}, int index)'
         else:
-            signature = f'(sunindextype *{indextype})'
+            signature = f'(SUNMatrixWrapper &{function})'
 
         lines = [
+            '#include "amici/sundials_matrix_wrapper.h"',
             '#include "sundials/sundials_types.h"',
             '',
             '#include <array>',
@@ -2350,7 +2707,7 @@ class ODEExporter:
             static_array_name = f"{function}_{indextype}_{self.model_name}_"
             if function in multiobs_functions:
                 # list of index vectors
-                lines.append("static constexpr std::array<std::array<int, "
+                lines.append("static constexpr std::array<std::array<sunindextype, "
                              f"{len(values[0])}>, {len(values)}> "
                              f"{static_array_name} = {{{{")
                 lines.extend(['    {'
@@ -2359,7 +2716,7 @@ class ODEExporter:
                 lines.append("}};")
             else:
                 # single index vector
-                lines.append("static constexpr std::array<int, "
+                lines.append("static constexpr std::array<sunindextype, "
                              f"{len(values)}> {static_array_name} = {{")
                 lines.append('    ' + ', '.join(map(str, values)))
                 lines.append("};")
@@ -2371,12 +2728,9 @@ class ODEExporter:
 
         if len(values):
             if function in multiobs_functions:
-                lines.append(f"    std::copy({static_array_name}[index]"
-                             f".begin(), {static_array_name}[index].end(), "
-                             f"{indextype});")
+                lines.append(f"    {function}.set_{setter}(gsl::make_span({static_array_name}[index]));")
             else:
-                lines.append(f"    std::copy({static_array_name}.begin(), "
-                             f"{static_array_name}.end(), {indextype});")
+                lines.append(f"    {function}.set_{setter}(gsl::make_span({static_array_name}));")
 
         lines.extend([
             '}'
@@ -2393,15 +2747,15 @@ class ODEExporter:
 
     def _get_function_body(self,
                            function: str,
-                           symbol: sp.Matrix) -> List[str]:
+                           equations: sp.Matrix) -> List[str]:
         """
         Generate C++ code for body of function `function`.
 
         :param function:
             name of the function to be written (see self.functions)
 
-        :param symbol:
-            symbolic defintion of the function body
+        :param equations:
+            symbolic definition of the function body
 
         :return:
             generated C++ code
@@ -2410,9 +2764,9 @@ class ODEExporter:
 
         lines = []
 
-        if len(symbol) == 0 or (isinstance(symbol, (sp.Matrix,
-                                                    sp.ImmutableDenseMatrix))
-                                and min(symbol.shape) == 0):
+        if len(equations) == 0 or (isinstance(equations, (sp.Matrix,
+                                                          sp.ImmutableDenseMatrix))
+                                   and min(equations.shape) == 0):
             # dJydy is a list
             return lines
 
@@ -2423,45 +2777,91 @@ class ODEExporter:
         if function == 'sx0_fixedParameters':
             # here we only want to overwrite values where x0_fixedParameters
             # was applied
+
+            lines.extend([
+                # Keep list of indices of fixed parameters occurring in x0
+                "    static const std::array<int, "
+                + str(len(self.model._x0_fixedParameters_idx))
+                + "> _x0_fixedParameters_idxs = {",
+                "        "
+                + ', '.join(str(x)
+                            for x in self.model._x0_fixedParameters_idx),
+                "    };",
+                "",
+                # Set all parameters that are to be reset to 0, so that the
+                #  switch statement below only needs to handle non-zero entries
+                #  (which usually reduces file size and speeds up
+                #  compilation significantly).
+                "    for(auto idx: _x0_fixedParameters_idxs) {",
+                "        sx0_fixedParameters[idx] = 0.0;",
+                "    }"])
+
             cases = dict()
-            for ipar in range(self.model.np()):
+            for ipar in range(self.model.num_par()):
                 expressions = []
                 for index, formula in zip(
                         self.model._x0_fixedParameters_idx,
-                        symbol[:, ipar]
+                        equations[:, ipar]
                 ):
-                    expressions.append(f'{function}[{index}] = '
-                                       f'{_print_with_exception(formula)};')
+                    if not formula.is_zero:
+                        expressions.append(
+                            f'{function}[{index}] = '
+                            f'{_print_with_exception(formula)};')
                 cases[ipar] = expressions
             lines.extend(get_switch_statement('ip', cases, 1))
 
         elif function == 'x0_fixedParameters':
             for index, formula in zip(
                     self.model._x0_fixedParameters_idx,
-                    symbol
+                    equations
             ):
                 lines.append(f'{function}[{index}] = '
                              f'{_print_with_exception(formula)};')
 
+        elif function in event_functions:
+            outer_cases = {}
+            for ie, inner_equations in enumerate(equations):
+                inner_lines = []
+                inner_cases = {
+                    ipar: _get_sym_lines_array(inner_equations[:, ipar],
+                                               function, 0)
+                    for ipar in range(self.model.num_par())
+                    if not smart_is_zero_matrix(inner_equations[:, ipar])}
+                inner_lines.extend(get_switch_statement(
+                    'ip', inner_cases, 0))
+                outer_cases[ie] = copy.copy(inner_lines)
+            lines.extend(get_switch_statement('ie', outer_cases, 1))
+
         elif function in sensi_functions:
-            cases = {ipar: _get_sym_lines(symbol[:, ipar], function, 0)
-                     for ipar in range(self.model.np())
-                     if not smart_is_zero_matrix(symbol[:, ipar])}
+            cases = {ipar: _get_sym_lines_array(equations[:, ipar], function,
+                                                0)
+                     for ipar in range(self.model.num_par())
+                     if not smart_is_zero_matrix(equations[:, ipar])}
             lines.extend(get_switch_statement('ip', cases, 1))
 
         elif function in multiobs_functions:
             if function == 'dJydy':
-                cases = {iobs: _get_sym_lines(symbol[iobs], function, 0)
-                         for iobs in range(self.model.ny())
-                         if not smart_is_zero_matrix(symbol[iobs])}
+                cases = {iobs: _get_sym_lines_array(equations[iobs], function,
+                                                    0)
+                         for iobs in range(self.model.num_obs())
+                         if not smart_is_zero_matrix(equations[iobs])}
             else:
-                cases = {iobs: _get_sym_lines(symbol[:, iobs], function, 0)
-                         for iobs in range(self.model.ny())
-                         if not smart_is_zero_matrix(symbol[:, iobs])}
+                cases = {iobs: _get_sym_lines_array(equations[:, iobs], function,
+                                                    0)
+                         for iobs in range(self.model.num_obs())
+                         if not smart_is_zero_matrix(equations[:, iobs])}
             lines.extend(get_switch_statement('iy', cases, 1))
 
+        elif function in self.model.sym_names() \
+                and function not in non_unique_id_symbols:
+            if function in sparse_functions:
+                symbols = self.model.sparsesym(function)
+            else:
+                symbols = self.model.sym(function, stripped=True)
+            lines += _get_sym_lines_symbols(symbols, equations, function, 4)
+
         else:
-            lines += _get_sym_lines(symbol, function, 4)
+            lines += _get_sym_lines_array(equations, function, 4)
 
         return [line for line in lines if line]
 
@@ -2494,36 +2894,38 @@ class ODEExporter:
 
         tpl_data = {
             'MODELNAME': str(self.model_name),
-            'NX_RDATA': str(self.model.nx_rdata()),
-            'NXTRUE_RDATA': str(self.model.nx_rdata()),
-            'NX_SOLVER': str(self.model.nx_solver()),
-            'NXTRUE_SOLVER': str(self.model.nx_solver()),
-            'NX_SOLVER_REINIT': str(self.model.nx_solver_reinit()),
-            'NY': str(self.model.ny()),
-            'NYTRUE': str(self.model.ny()),
+            'NX_RDATA': str(self.model.num_states_rdata()),
+            'NXTRUE_RDATA': str(self.model.num_states_rdata()),
+            'NX_SOLVER': str(self.model.num_states_solver()),
+            'NXTRUE_SOLVER': str(self.model.num_states_solver()),
+            'NX_SOLVER_REINIT': str(self.model.num_state_reinits()),
+            'NY': str(self.model.num_obs()),
+            'NYTRUE': str(self.model.num_obs()),
             'NZ': '0',
             'NZTRUE': '0',
-            'NEVENT': '0',
+            'NEVENT': str(self.model.num_events()),
             'NOBJECTIVE': '1',
             'NW': str(len(self.model.sym('w'))),
             'NDWDP': str(len(self.model.sparsesym('dwdp'))),
             'NDWDX': str(len(self.model.sparsesym('dwdx'))),
+            'NDWDW': str(len(self.model.sparsesym('dwdw'))),
             'NDXDOTDW': str(len(self.model.sparsesym('dxdotdw'))),
             'NDXDOTDP_EXPLICIT': str(len(self.model.sparsesym(
                 'dxdotdp_explicit'))),
-            'NDXDOTDP_IMPLICIT': str(len(self.model.sparsesym(
-                'dxdotdp_implicit'))),
+            'NDXDOTDX_EXPLICIT': str(len(self.model.sparsesym(
+                'dxdotdx_explicit'))),
             'NDJYDY': 'std::vector<int>{%s}'
                       % ','.join(str(len(x))
                                  for x in self.model.sparsesym('dJydy')),
-            'NNZ': str(len(self.model.sparsesym('JSparse'))),
-            'UBW': str(self.model.nx_solver()),
-            'LBW': str(self.model.nx_solver()),
-            'NP': str(self.model.np()),
-            'NK': str(self.model.nk()),
+            'UBW': str(self.model.num_states_solver()),
+            'LBW': str(self.model.num_states_solver()),
+            'NP': str(self.model.num_par()),
+            'NK': str(self.model.num_const()),
             'O2MODE': 'amici::SecondOrderMode::none',
-            'PARAMETERS': str(self.model.val('p'))[1:-1],
-            'FIXED_PARAMETERS': str(self.model.val('k'))[1:-1],
+            # using cxxcode ensures proper handling of nan/inf
+            'PARAMETERS': _print_with_exception(self.model.val('p'))[1:-1],
+            'FIXED_PARAMETERS': _print_with_exception(self.model.val('k'))[
+                                1:-1],
             'PARAMETER_NAMES_INITIALIZER_LIST':
                 self._get_symbol_name_initializer_list('p'),
             'STATE_NAMES_INITIALIZER_LIST':
@@ -2532,6 +2934,8 @@ class ODEExporter:
                 self._get_symbol_name_initializer_list('k'),
             'OBSERVABLE_NAMES_INITIALIZER_LIST':
                 self._get_symbol_name_initializer_list('y'),
+            'EXPRESSION_NAMES_INITIALIZER_LIST':
+                self._get_symbol_name_initializer_list('w'),
             'PARAMETER_IDS_INITIALIZER_LIST':
                 self._get_symbol_id_initializer_list('p'),
             'STATE_IDS_INITIALIZER_LIST':
@@ -2540,16 +2944,21 @@ class ODEExporter:
                 self._get_symbol_id_initializer_list('k'),
             'OBSERVABLE_IDS_INITIALIZER_LIST':
                 self._get_symbol_id_initializer_list('y'),
+            'EXPRESSION_IDS_INITIALIZER_LIST':
+                self._get_symbol_id_initializer_list('w'),
             'REINIT_FIXPAR_INITCOND':
                 'true' if self.allow_reinit_fixpar_initcond else
                 'false',
             'AMICI_VERSION_STRING':  __version__,
             'AMICI_COMMIT_STRING': __commit__,
+            'W_RECURSION_DEPTH': self.model._w_recursion_depth,
+            'QUADRATIC_LLH': 'true'
+                if self.model._has_quadratic_nllh else 'false',
         }
 
         for fun in [
-            'w', 'dwdp', 'dwdx', 'x_rdata', 'x_solver', 'total_cl', 'dxdotdw',
-            'dxdotdp_explicit', 'dxdotdp_implicit', 'JSparse', 'JSparseB',
+            'w', 'dwdp', 'dwdx', 'dwdw', 'x_rdata', 'x_solver', 'total_cl',
+            'dxdotdw', 'dxdotdp_explicit', 'dxdotdx_explicit',
             'dJydy'
         ]:
             tpl_data[f'{fun.upper()}_DEF'] = \
@@ -2570,7 +2979,7 @@ class ODEExporter:
                     get_sunindex_override_implementation(fun, self.model_name,
                                                          'rowvals')
 
-        if self.model.nx_solver() == self.model.nx_rdata():
+        if self.model.num_states_solver() == self.model.num_states_rdata():
             tpl_data['X_RDATA_DEF'] = ''
             tpl_data['X_RDATA_IMPL'] = ''
 
@@ -2721,24 +3130,6 @@ class ODEExporter:
         self.model_name = model_name
 
 
-def get_symbolic_diagonal(matrix: sp.Matrix) -> sp.Matrix:
-    """
-    Get symbolic matrix with diagonal of matrix `matrix`.
-
-    :param matrix:
-        Matrix from which to return the diagonal
-
-    :return:
-        A Symbolic matrix with the diagonal of `matrix`.
-    """
-    if not matrix.cols == matrix.rows:
-        raise ValueError('Provided matrix is not square!')
-
-    diagonal = [matrix[index, index] for index in range(matrix.cols)]
-
-    return sp.Matrix(diagonal)
-
-
 class TemplateAmici(Template):
     """
     Template format used in AMICI (see string.template for more details).
@@ -2835,7 +3226,7 @@ def get_sunindex_extern_declaration(fun: str, name: str,
     index_arg = ', int index' if fun in multiobs_functions else ''
     return \
         f'extern void {fun}_{indextype}_{name}' \
-        f'(sunindextype *{indextype}{index_arg});'
+        f'(SUNMatrixWrapper &{indextype}{index_arg});'
 
 
 def get_model_override_implementation(fun: str, name: str) -> str:
@@ -2896,7 +3287,7 @@ def get_sunindex_override_implementation(fun: str, name: str,
             fun=fun,
             indextype=indextype,
             name=name,
-            signature=f'(sunindextype *{indextype}{index_arg})',
+            signature=f'(SUNMatrixWrapper &{indextype}{index_arg})',
             eval_signature=f'({indextype}{index_arg_eval})',
         )
 
@@ -2980,8 +3371,9 @@ def get_switch_statement(condition: str, cases: Dict[int, List[str]],
 
 
 def csc_matrix(matrix: sp.Matrix,
-               name: str,
-               base_index: Optional[int] = 0,
+               rownames: List[sp.Symbol],
+               colnames: List[sp.Symbol],
+               identifier: Optional[int] = 0,
                pattern_only: Optional[bool] = False) -> Tuple[
     List[int], List[int], sp.Matrix, List[str], sp.Matrix
 ]:
@@ -2993,11 +3385,17 @@ def csc_matrix(matrix: sp.Matrix,
     :param matrix:
         dense matrix to be sparsified
 
-    :param name:
-        name of the symbolic variable
+    :param rownames:
+        ids of the variable of which the derivative is computed (assuming
+        matrix is the jacobian)
 
-    :param base_index:
-        index for first symbol name, defaults to 0
+    :param colnames:
+        ids of the variable with respect to which the derivative is computed
+        (assuming matrix is the jacobian)
+
+    :param identifier:
+        additional identifier that gets appended to symbol names to
+        ensure their uniqueness in outer loops
 
     :param pattern_only:
         flag for computing sparsity pattern without whole matrix
@@ -3008,7 +3406,6 @@ def csc_matrix(matrix: sp.Matrix,
 
     """
     idx = 0
-    symbol_name_idx = base_index
 
     nrows, ncols = matrix.shape
 
@@ -3027,9 +3424,11 @@ def csc_matrix(matrix: sp.Matrix,
 
             symbol_row_vals.append(row)
             idx += 1
-            symbol_name = f'{name}{symbol_name_idx}'
+            symbol_name = f'd{_print_with_exception(rownames[row])}' \
+                          f'_d{_print_with_exception(colnames[col])}'
+            if identifier:
+                symbol_name += f'_{identifier}'
             symbol_list.append(symbol_name)
-            symbol_name_idx += 1
             if pattern_only:
                 continue
 
@@ -3051,17 +3450,247 @@ def csc_matrix(matrix: sp.Matrix,
 
 
 def is_valid_identifier(x: str) -> bool:
-    """Check whether `x` is a valid identifier
-
+    """
     Check whether `x` is a valid identifier for conditions, parameters,
     observables... . Identifiers may only contain upper and lower case letters,
     digits and underscores, and must not start with a digit.
 
-    Arguments:
-        x: string to check
+    :param x:
+        string to check
 
-    Returns:
+    :return:
         ``True`` if valid, ``False`` otherwise
     """
 
     return re.match(r'^[a-zA-Z_]\w*$', x) is not None
+
+
+def generate_measurement_symbol(observable_id: Union[str, sp.Symbol]):
+    """
+    Generates the appropriate measurement symbol for the provided observable
+
+    :param observable_id:
+        symbol (or string representation) of the observable
+
+    :return:
+        symbol for the corresponding measurement
+    """
+    if not isinstance(observable_id, str):
+        observable_id = strip_pysb(observable_id)
+    return symbol_with_assumptions(f'm{observable_id}')
+
+
+def generate_flux_symbol(reaction_index: int) -> sp.Symbol:
+    """
+    Generate identifier symbol for a reaction flux.
+    This function will always return the same unique python object for a
+    given entity.
+
+    :param reaction_index:
+        index of the reaction to which the flux corresponds
+    :return:
+        identifier symbol
+    """
+    return symbol_with_assumptions(f'flux_r{reaction_index}')
+
+
+def symbol_with_assumptions(name: str):
+    """
+    Central function to create symbols with consistent, canonical assumptions
+
+    :param name:
+        name of the symbol
+
+    :return:
+        symbol with canonical assumptions
+    """
+    return sp.Symbol(name, real=True)
+
+
+def cast_to_sym(value: Union[SupportsFloat, sp.Expr, BooleanAtom],
+                input_name: str) -> sp.Expr:
+    """
+    Typecasts the value to sympy.Float if possible, and ensures the
+    value is a symbolic expression.
+
+    :param value:
+        value to be cast
+
+    :param input_name:
+        name of input variable
+
+    :return:
+        typecast value
+    """
+    if isinstance(value, (sp.RealNumber, numbers.Number)):
+        value = sp.Float(float(value))
+    elif isinstance(value, BooleanAtom):
+        value = sp.Float(float(bool(value)))
+
+    if not isinstance(value, sp.Expr):
+        raise TypeError(f"Couldn't cast {input_name} to sympy.Expr, was "
+                        f"{type(value)}")
+
+    return value
+
+
+@contextlib.contextmanager
+def _monkeypatched(obj: object, name: str, patch: Any):
+    """
+    Temporarily monkeypatches an object.
+
+    :param obj:
+        object to be patched
+
+    :param name:
+        name of the attribute to be patched
+
+    :param patch:
+        patched value
+
+    """
+    pre_patched_value = getattr(obj, name)
+    setattr(obj, name, patch)
+    try:
+        yield object
+    finally:
+        setattr(obj, name, pre_patched_value)
+
+
+def _custom_pow_eval_derivative(self, s):
+    """
+    Custom Pow derivative that removes a removeable singularity for
+    self.base == 0 and self.base.diff(s) == 0. This function is intended to
+    be monkeypatched into sp.Pow._eval_derivative.
+
+    :param self:
+        sp.Pow class
+
+    :param s:
+        variable with respect to which the derivative will be computed
+
+    """
+    dbase = self.base.diff(s)
+    dexp = self.exp.diff(s)
+    part1 = sp.Pow(self.base, self.exp - 1) * self.exp * dbase
+    part2 = self * dexp * sp.log(self.base)
+    if self.base.is_nonzero or dbase.is_nonzero or part2.is_zero:
+        # first piece never applies or is zero anyways
+        return part1 + part2
+
+    return part1 + sp.Piecewise(
+        (self.base, sp.And(sp.Eq(self.base, 0), sp.Eq(dbase, 0))),
+        (part2, True)
+    )
+
+
+def _custom_print_max(self, expr):
+    """
+    Custom Max printing function, see https://github.com/sympy/sympy/pull/20558
+    """
+    from sympy import Max
+    if len(expr.args) == 1:
+        return self._print(expr.args[0])
+    return "%smax(%s, %s)" % (self._ns, self._print(expr.args[0]),
+                              self._print(Max(*expr.args[1:])))
+
+
+def _custom_print_min(self, expr):
+    """
+    Custom Min printing function, see https://github.com/sympy/sympy/pull/20558
+    """
+    from sympy import Min
+    if len(expr.args) == 1:
+        return self._print(expr.args[0])
+    return "%smin(%s, %s)" % (self._ns, self._print(expr.args[0]),
+                              self._print(Min(*expr.args[1:])))
+
+
+def _collect_heaviside_roots(args: Sequence[sp.Expr]) -> List[sp.Expr]:
+    """
+    Recursively checks an expression for the occurrence of Heaviside
+    functions and return all roots found
+
+    :param args:
+        args attribute of the expanded expression
+
+    :returns:
+        root functions that were extracted from Heaviside function arguments
+    """
+    root_funs = []
+    for arg in args:
+        if arg.func == sp.Heaviside:
+            root_funs.append(arg.args[0])
+        elif arg.has(sp.Heaviside):
+            root_funs.extend(_collect_heaviside_roots(arg.args))
+
+    return root_funs
+
+
+def _get_unique_root(root_found: sp.Expr, roots: List[Event]) -> sp.Symbol:
+    """
+    Collects roots of Heaviside functions and events and stores them in
+    the roots list. It checks for redundancy to not store symbolically
+    equivalent root functions more than once.
+
+    :param root_found:
+        equation of the root function
+    :param roots:
+        list of already known root functions with identifier
+
+    :returns:
+        unique identifier for root
+    """
+    for root in roots:
+        if sp.simplify(root_found - root.get_val()) == 0:
+            return root.get_id()
+
+    # create an event for a new root function
+    root_symstr = f'Heaviside_{len(roots)}'
+    roots.append(Event(
+        identifier=sp.Symbol(root_symstr),
+        name=root_symstr,
+        value=root_found,
+        state_update=None,
+        event_observable=None
+    ))
+    return roots[-1].get_id()
+
+
+def _process_heavisides(dxdt: sp.Expr, roots: List[Event]) -> sp.Expr:
+    """
+    Parses the RHS of a state variable, checks for Heaviside functions,
+    collects unique roots functions that can be tracked by SUNDIALS and
+    replaces Heaviside Functions by amici helper variables that will be
+    updated based on SUNDIALS root tracking.
+
+    :param dxdt:
+        right hand side of state variable
+    :param roots:
+        list of known root functions with identifier
+
+    :returns:
+        dxdt with Heaviside functions replaced by amici helper variables
+    """
+
+    # expanding the rhs will in general help to collect the same
+    # heaviside function
+    dt_expanded = dxdt.expand()
+    # track all the old Heaviside expressions in tmp_roots_old
+    # replace them later by the new expressions
+    heavisides = []
+    # run through the expression tree and get the roots
+    tmp_roots_old = _collect_heaviside_roots(dt_expanded.args)
+    for tmp_old in tmp_roots_old:
+        # we want unique identifiers for the roots
+        tmp_new = _get_unique_root(tmp_old, roots)
+        # For Heavisides, we need to add the negative function as well
+        _get_unique_root(sp.sympify(-1 * tmp_old), roots)
+        heavisides.append((sp.Heaviside(tmp_old), tmp_new))
+
+    if heavisides:
+        # only apply subs if necessary
+        for heaviside_sympy, heaviside_amici in heavisides:
+            dxdt = dxdt.subs(heaviside_sympy, heaviside_amici)
+
+    return dxdt

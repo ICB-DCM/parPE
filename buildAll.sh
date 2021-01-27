@@ -23,11 +23,10 @@ ceres_inc="${ceres_inc};${parpe_root}/ThirdParty/eigen-eigen-67e894c6cd8f/build/
 parpe_build_dir="${parpe_root}/build"
 mkdir -p "${parpe_build_dir}"
 cd "${parpe_build_dir}"
-CC=mpicc CXX=mpiCC cmake \
+cmake \
       -DIPOPT_DIR="${parpe_root}/ThirdParty/Ipopt-3.12.12/install" \
       -DCERES_LIBRARIES="${ceres_libs}" \
       -DCERES_INCLUDE_DIRS="${ceres_inc}" \
-      -DENABLE_SWIG=FALSE \
       "${parpe_root}"
 make -j12
 

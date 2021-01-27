@@ -134,7 +134,7 @@ class OptimizationApplication {
      */
     virtual void printUsage(char* const argZero);
 
-    virtual void logParPEVersion(hid_t file_id) const;
+    virtual void logParPEVersion(const H5::H5File &file) const;
 
 private:
     /**
@@ -173,7 +173,7 @@ protected:
     // the need to be filled in by sub
     std::unique_ptr<MultiStartOptimizationProblem> multiStartOptimizationProblem;
     std::unique_ptr<OptimizationProblem> problem;
-    hid_t file_id = 0;
+    H5::H5File h5File = 0;
     OperationType operationType = OperationType::parameterEstimation;
     LoadBalancerMaster loadBalancer;
     bool withMPI = false;
@@ -182,10 +182,10 @@ protected:
 
 /**
  * @brief CPU time for whole application run
- * @param file_id
+ * @param file
  * @param timeInSeconds
  */
-void saveTotalCpuTime(hid_t file_id, const double timeInSeconds);
+void saveTotalCpuTime(const H5::H5File &file, const double timeInSeconds);
 
 
 } // namespace parpe

@@ -168,7 +168,7 @@ StandaloneSimulator::run(const std::string& resultFile,
                     std::map<int,
                              AmiciSimulationRunner::AmiciResultPackageSimple>>(
                     job.recvBuffer.data(), job.recvBuffer.size());
-                job.recvBuffer = std::vector<char>(); // free buffer
+                std::vector<char>().swap(job.recvBuffer); // free buffer
                 for (auto& result : results) {
                     swap(simulationResults[result.first], result.second);
                     modelOutputs[result.first] =
@@ -293,7 +293,7 @@ StandaloneSimulator::run(const std::string& resultFile,
                     int,
                     AmiciSimulationRunner::AmiciResultPackageSimple>>(
                     job->recvBuffer.data(), job->recvBuffer.size());
-                job->recvBuffer = std::vector<char>(); // free buffer
+                std::vector<char>().swap(job->recvBuffer); // free buffer
 
                 for (auto const& result : results) {
                     errors += result.second.status;
@@ -447,9 +447,8 @@ getFinalParameters(std::string const& startIndex, H5::H5File const& file)
     int iteration = 0;
     while (
         hdf5GroupExists(file, iterationPath + std::to_string(iteration)) &&
-        hdf5DatasetExists(file,
-                          iterationPath + std::to_string(iteration) +
-                              "/costFunParameters")) {
+        file.nameExists(iterationPath + std::to_string(iteration)
+                        + "/costFunParameters")) {
         ++iteration;
     }
     --iteration; // last one did not exist

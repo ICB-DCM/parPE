@@ -58,6 +58,29 @@
 }
 
 {
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: indirect
+   fun:*alloc
+   ...
+   obj:/usr/lib/x86_64-linux-gnu/libhwloc.so.15.*.*
+   fun:opal_hwloc_base_get_topology
+   ...
+}
+
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:*alloc
+   ...
+   obj:/usr/lib/x86_64-linux-gnu/libhwloc.so.15.*.*
+   ...
+   fun:opal_hwloc_base_get_topology
+   ...
+}
+
+{
    <_dlerror_run OpenMPI?>
    Memcheck:Leak
    match-leak-kinds: definite
@@ -99,25 +122,6 @@
    ...
    fun:H5CX_push
    ...
-}
-
-{
-   <??>
-   Memcheck:Leak
-   match-leak-kinds: definite
-   fun:malloc
-   fun:strdup
-   obj:*
-   fun:call_init.part.0
-   fun:call_init
-   fun:_dl_init
-   fun:dl_open_worker
-   fun:_dl_catch_exception
-   fun:_dl_open
-   fun:dlopen_doit
-   fun:_dl_catch_exception
-   fun:_dl_catch_error
-   fun:_dlerror_run
 }
 
 {
@@ -200,6 +204,16 @@
 {
    <insert_a_suppression_name_here>
    Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   ...
+   fun:opal_hwloc_base_get_topology
+   ...
+}
+
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
    match-leak-kinds: reachable
    fun:calloc
    fun:_dl_check_map_versions
@@ -212,6 +226,46 @@
    fun:_dlerror_run
    ...
 }
+
+
+{
+   <??>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   ...
+   fun:call_init.part.0
+   fun:call_init
+   fun:_dl_init
+   ...
+   fun:dl_open_worker
+   fun:_dl_catch_exception
+   fun:_dl_open
+   fun:dlopen_doit
+   fun:_dl_catch_exception
+   fun:_dl_catch_error
+   fun:_dlerror_run
+}
+
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   fun:strdup
+   obj:*
+   fun:call_init.part.0
+   fun:call_init
+   fun:_dl_init
+   fun:_dl_catch_exception
+   fun:dl_open_worker
+   fun:_dl_catch_exception
+   fun:_dl_open
+   fun:dlopen_doit
+   fun:_dl_catch_exception
+   fun:_dl_catch_error
+}
+
 
 {
    <insert_a_suppression_name_here>
@@ -308,4 +362,60 @@
    obj:*/libevent-2.1.so*
    fun:event_base_loop
    ...
+}
+
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: indirect
+   fun:malloc
+   fun:strdup
+   ...
+   fun:pmix_server_init
+}
+
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:realloc
+   ...
+   fun:pmix_server_init
+   ...
+}
+
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: indirect
+   fun:malloc
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+}
+
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:realloc
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
 }

@@ -21,7 +21,7 @@ class SteadystateProblem;
 namespace boost {
 namespace serialization {
 template <class Archive>
-void serialize(Archive &ar, amici::ReturnData &u, unsigned int version);
+void serialize(Archive &ar, amici::ReturnData &r, unsigned int version);
 }
 } // namespace boost
 
@@ -65,6 +65,8 @@ class ReturnData {
      * @param sensi see amici::Solver::sensi
      * @param sensi_meth see amici::Solver::sensi_meth
      * @param rdrm see amici::Solver::rdata_reporting
+     * @param quadratic_llh whether model defines a quadratic nllh and computing res, sres and
+     * FIM makes sense
      */
     ReturnData(std::vector<realtype> ts, int np, int nk, int nx, int nx_solver,
                int nxtrue, int nx_solver_reinit, int ny, int nytrue, int nz, int nztrue, int ne,
@@ -72,7 +74,7 @@ class ReturnData {
                int nw,
                std::vector<ParameterScaling> pscale, SecondOrderMode o2mode,
                SensitivityOrder sensi, SensitivityMethod sensi_meth,
-               RDataReporting rdrm);
+               RDataReporting rdrm, bool quadratic_llh);
 
     /**
      * @brief constructor that uses information from model and solver to
@@ -89,8 +91,7 @@ class ReturnData {
      * appropriately initialize fields
      * @param preeq simulated preequilibration problem, pass nullptr to ignore
      * @param fwd simulated forward problem, pass nullptr to ignore
-     * @param bwd simulat
-     * ed backward problem, pass nullptr to ignore
+     * @param bwd simulated backward problem, pass nullptr to ignore
      * @param posteq simulated postequilibration problem, pass nullptr to ignore
      * @param model matching model instance
      * @param solver matching solver instance
@@ -204,13 +205,13 @@ class ReturnData {
     /** number of right hand side evaluations forward problem (dimension: nt) */
     std::vector<int> numrhsevals;
 
-    /** number of right hand side evaluations backwad problem (dimension: nt) */
+    /** number of right hand side evaluations backward problem (dimension: nt) */
     std::vector<int> numrhsevalsB;
 
     /** number of error test failures forward problem (dimension: nt) */
     std::vector<int> numerrtestfails;
 
-    /** number of error test failures backwad problem (dimension: nt) */
+    /** number of error test failures backward problem (dimension: nt) */
     std::vector<int> numerrtestfailsB;
 
     /**
@@ -219,7 +220,7 @@ class ReturnData {
     std::vector<int> numnonlinsolvconvfails;
 
     /**
-     * number of linear solver convergence failures backwad problem (dimension:
+     * number of linear solver convergence failures backward problem (dimension:
      * nt) */
     std::vector<int> numnonlinsolvconvfailsB;
 
@@ -360,7 +361,7 @@ class ReturnData {
     /** number of states in the unaugmented system */
     int nxtrue{0};
 
-    /** number of solver states to be reinitilized after preequilibration */
+    /** number of solver states to be reinitialized after preequilibration */
     int nx_solver_reinit{0};
 
     /** number of observables */
@@ -384,7 +385,7 @@ class ReturnData {
     /** number of parameter for which sensitivities were requested */
     int nplist{0};
 
-    /** maximal number of occuring events (for every event type) */
+    /** maximal number of occurring events (for every event type) */
     int nmaxevent{0};
 
     /** number of considered timepoints */
@@ -424,49 +425,54 @@ class ReturnData {
   protected:
 
     /** timepoint for model evaluation*/
-    realtype t;
+    realtype t_;
 
     /** partial state vector, excluding states eliminated from conservation laws */
-    AmiVector x_solver;
+    AmiVector x_solver_;
 
     /** partial time derivative of state vector, excluding states eliminated from conservation laws */
-    AmiVector dx_solver;
+    AmiVector dx_solver_;
 
     /** partial sensitivity state vector array, excluding states eliminated from
      * conservation laws */
-    AmiVectorArray sx_solver;
+    AmiVectorArray sx_solver_;
 
     /** full state vector, including states eliminated from conservation laws */
-    AmiVector x_rdata;
+    AmiVector x_rdata_;
 
     /** full sensitivity state vector array, including states eliminated from
      * conservation laws */
-    AmiVectorArray sx_rdata;
+    AmiVectorArray sx_rdata_;
 
     /** array of number of found roots for a certain event type
      * (dimension: ne) */
-    std::vector<int> nroots;
+    std::vector<int> nroots_;
 
     /**
      * @brief initializes storage for likelihood reporting mode
+     * @param quadratic_llh whether model defines a quadratic nllh and computing res, sres and FIM
+     * makes sense.
      */
-    void initializeLikelihoodReporting();
+    void initializeLikelihoodReporting(bool quadratic_llh);
 
     /**
      * @brief initializes storage for residual reporting mode
+     * @param enable_res whether residuals are to be computed
      */
-    void initializeResidualReporting();
+    void initializeResidualReporting(bool enable_res);
 
     /**
      * @brief initializes storage for full reporting mode
+     * @param enable_fim whether FIM Hessian approximation is to be computed
      */
-    void initializeFullReporting();
+    void initializeFullReporting(bool enable_fim);
 
 
     /**
      * @brief initialize values for chi2 and llh and derivatives
+     * @param enable_chi2 whether chi2 values are to be computed
      */
-    void initializeObjectiveFunction();
+    void initializeObjectiveFunction(bool enable_chi2);
 
     /**
      * @brief extracts data from a preequilibration steadystateproblem
@@ -527,14 +533,14 @@ class ReturnData {
 
         AmiVector xdot(nx_solver);
         if (!this->xdot.empty() || !this->J.empty())
-            model.fxdot(t, x_solver, dx_solver, xdot);
+            model.fxdot(t_, x_solver_, dx_solver_, xdot);
 
         if (!this->xdot.empty())
             writeSlice(xdot, this->xdot);
 
         if (!this->J.empty()) {
             SUNMatrixWrapper J(nx_solver, nx_solver);
-            model.fJ(t, 0.0, x_solver, dx_solver, xdot, J.get());
+            model.fJ(t_, 0.0, x_solver_, dx_solver_, xdot, J.get());
             // CVODES uses colmajor, so we need to transform to rowmajor
             for (int ix = 0; ix < model.nx_solver; ix++)
                 for (int jx = 0; jx < model.nx_solver; jx++)
@@ -636,25 +642,23 @@ class ReturnData {
     /**
      * @brief Extracts output information for events, expects that x_solver and sx_solver were
      * were set appropriately
-     * @param iroot event index
      * @param t event timepoint
      * @param rootidx information about which roots fired (1 indicating fired, 0/-1 for not)
      * @param model model that was used in forward solve
      * @param edata ExpData instance carrying experimental data
      */
-    void getEventOutput(int iroot, realtype t, const std::vector<int> rootidx,
+    void getEventOutput(realtype t, const std::vector<int> rootidx,
                         Model &model, ExpData const *edata);
 
     /**
      * @brief Extracts event information for forward sensitivity analysis, expects that x_solver and
      * sx_solver were set appropriately
-     * @param iroot event index
      * @param ie index of event type
      * @param t event timepoint
      * @param model model that was used in forward solve
      * @param edata ExpData instance carrying experimental data
      */
-    void getEventSensisFSA(int iroot, int ie, realtype t, Model &model,
+    void getEventSensisFSA(int ie, realtype t, Model &model,
                            ExpData const *edata);
 
     /**
@@ -668,12 +672,12 @@ class ReturnData {
                            AmiVector &xQB) const;
 
     /**
-     * @brief Updates contribution to likelihood for inital state sensitivities
+     * @brief Updates contribution to likelihood for initial state sensitivities
      * (llhS0), if no preequilibration was run or if forward sensitivities were used
      * @param model model that was used for forward/backward simulation
      * @param llhS0 contribution to likelihood for initial state sensitivities
      * @param xB vector with final adjoint state
-     * (exluding conservation laws)
+     * (excluding conservation laws)
      */
     void handleSx0Forward(const Model &model,
                           std::vector<realtype> &llhS0,
@@ -705,8 +709,8 @@ class ModelContext : public ContextManager {
     void restore();
 
   private:
-    Model *model = nullptr;
-    ModelState original_state;
+    Model *model_ {nullptr};
+    ModelState original_state_;
 };
 
 

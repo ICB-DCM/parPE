@@ -19,15 +19,23 @@ set(SRC_LIST
 add_library(${PROJECT_NAME} ${SRC_LIST})
 
 target_include_directories(${PROJECT_NAME}
-    PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/../
-    PUBLIC ${CMAKE_SOURCE_DIR}/include/
+    PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/../>"
+    PUBLIC "$<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include/>"
+           "$<INSTALL_INTERFACE:include>"
     PUBLIC ${HDF5_INCLUDE_DIRS}
     PUBLIC ${GSL_INCLUDE_DIRS}
     )
 
 target_link_libraries(${PROJECT_NAME}
     PUBLIC ${HDF5_LIBRARIES}
-)
+    )
+
+if(${PARPE_ENABLE_MPI})
+    target_link_libraries(${PROJECT_NAME}
+        PUBLIC MPI::MPI_CXX
+        PUBLIC MPI::MPI_C
+        )
+endif(${PARPE_ENABLE_MPI})
 
 install(TARGETS ${PROJECT_NAME} EXPORT ParPETargets
   LIBRARY DESTINATION lib

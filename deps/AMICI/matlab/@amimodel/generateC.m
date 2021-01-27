@@ -23,9 +23,6 @@ for ifun = this.funs
         if(strcmp(ifun{1},'JSparse'))
             bodyNotEmpty = any(this.fun.J.sym(:)~=0);
         end
-        if(strcmp(ifun{1},'JSparseB'))
-            bodyNotEmpty = any(this.fun.JB.sym(:)~=0);
-        end
 
         if(bodyNotEmpty)
             fprintf([ifun{1} ' | ']);
@@ -34,7 +31,7 @@ for ifun = this.funs
             fprintf(fid,'#include "amici/symbolic_functions.h"\n');
             fprintf(fid,'#include "amici/defines.h" //realtype definition\n');
 
-            if(ismember(ifun{1},{'JSparse','JSparseB'}))
+            if(ismember(ifun{1},{'JSparse'}))
                 fprintf(fid,'#include <sunmatrix/sunmatrix_sparse.h> //SUNMatrixContent_Sparse definition\n');
             end
 
@@ -54,14 +51,6 @@ for ifun = this.funs
                 end
                 for i = 1:length(this.colptrs)
                     fprintf(fid,['  JSparse->indexptrs[' num2str(i-1) '] = ' num2str(this.colptrs(i)) ';\n']);
-                end
-            end
-            if(strcmp(ifun{1},'JSparseB'))
-                for i = 1:length(this.rowvalsB)
-                    fprintf(fid,['  JSparseB->indexvals[' num2str(i-1) '] = ' num2str(this.rowvalsB(i)) ';\n']);
-                end
-                for i = 1:length(this.colptrsB)
-                    fprintf(fid,['  JSparseB->indexptrs[' num2str(i-1) '] = ' num2str(this.colptrsB(i)) ';\n']);
                 end
             end
 
@@ -174,6 +163,7 @@ fprintf(fid,['                    ' num2str(this.nw) ',\n']);
 fprintf(fid,['                    ' num2str(this.ndwdx) ',\n']);
 fprintf(fid,['                    ' num2str(this.ndwdp) ',\n']);
 fprintf(fid,['                    0,\n']);
+fprintf(fid,['                    0,\n']);
 fprintf(fid,['                    {},\n']);
 fprintf(fid,['                    ' num2str(this.nnz) ',\n']);
 fprintf(fid,['                    ' num2str(this.ubw) ',\n']);
@@ -189,7 +179,7 @@ end
 fprintf(fid,['                    std::vector<realtype>(' num2str(this.np) ',1.0),\n']);
 fprintf(fid,['                    std::vector<realtype>(' num2str(this.nk) ',1.0),\n']);
 fprintf(fid,'                    std::vector<int>(),\n');
-initstr = num2str(transpose(double(this.id)), '%d, ');
+initstr = num2str(this.id, '%d, ');
 fprintf(fid,['                    std::vector<realtype>{' initstr(1:end-1) '},\n']);
 initstr = num2str(transpose(this.z2event), '%d, ');
 fprintf(fid,['                    std::vector<int>{' initstr(1:end-1) '})\n']);

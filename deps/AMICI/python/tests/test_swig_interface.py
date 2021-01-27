@@ -22,6 +22,7 @@ def test_copy_constructors(pysb_example_presimulation_module):
         for attr in dir(obj):
             if attr.startswith('__') \
                     or attr == 'this' \
+                    or attr == 'thisown' \
                     or is_callable_but_not_getter(obj, attr):
                 continue
 
@@ -70,9 +71,7 @@ def get_val(obj, attr):
 
 
 def get_mod_val(val, attr):
-    if attr == 'getStabilityLimitFlag':
-        return val - 1
-    elif attr == 'getReturnDataReportingMode':
+    if attr == 'getReturnDataReportingMode':
         return amici.RDataReporting.likelihood
     elif attr == 'getParameterList':
         return tuple(get_mod_val(val[0], '') for _ in val)

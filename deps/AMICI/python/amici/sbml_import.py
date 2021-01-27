@@ -2,7 +2,7 @@
 SBML Import
 -----------
 This module provides all necessary functionality to import a model specified
-in the System Biology Markup Language (SBML)
+in the `Systems Biology Markup Language (SBML) <http://sbml.org/Main_Page>`_.
 """
 
 
@@ -13,33 +13,39 @@ import math
 import itertools as itt
 import warnings
 import logging
-from typing import Dict, Union, List, Callable, Any, Iterable
+import copy
+from typing import (
+    Dict, List, Callable, Any, Iterable, Union, Optional, Tuple, Sequence
+)
 
-from .ode_export import ODEExporter, ODEModel
+from .import_utils import (
+    smart_subs, smart_subs_dict, toposort_symbols,
+    _get_str_symbol_identifiers,
+    noise_distribution_to_cost_function
+)
+from .ode_export import (
+    ODEExporter, ODEModel, generate_measurement_symbol,
+    symbol_with_assumptions
+)
+from .constants import SymbolId
 from .logging import get_logger, log_execution_time, set_log_level
 from . import has_clibs
 
-from sympy.logic.boolalg import BooleanTrue as spTrue
-from sympy.logic.boolalg import BooleanFalse as spFalse
-from sympy.printing.mathml import MathMLContentPrinter
+from sympy.logic.boolalg import BooleanAtom
 
 
 class SBMLException(Exception):
     pass
 
 
+SymbolicFormula = Dict[sp.Symbol, sp.Expr]
+
+
 default_symbols = {
-    'species': {},
-    'parameter': {},
-    'fixed_parameter': {},
-    'observable': {},
-    'expression': {},
-    'sigmay': {},
-    'my': {},
-    'llhy': {},
+    symbol: {} for symbol in SymbolId
 }
 
-ConservationLaw = Dict[str, Union[str, sp.Basic]]
+ConservationLaw = Dict[str, Union[str, sp.Expr]]
 
 logger = get_logger(__name__, logging.ERROR)
 
@@ -49,7 +55,7 @@ class SbmlImporter:
     Class to generate AMICI C++ files for a model provided in the Systems
     Biology Markup Language (SBML).
 
-    :ivar show_sbml_warnings: bool
+    :ivar show_sbml_warnings:
         indicates whether libSBML warnings should be
         displayed
 
@@ -57,40 +63,23 @@ class SbmlImporter:
         dict carrying symbolic definitions
 
     :ivar sbml_reader:
-        the libSBML sbml reader [!not storing this will result
-        in a segfault!]
+
+        The libSBML sbml reader
+
+        .. warning::
+           Not storing this may result in a segfault.
 
     :ivar sbml_doc:
-        document carrying the sbml definition [!not storing this
-        will result in a segfault!]
+        document carrying the sbml definition
+
+        .. warning::
+           Not storing this may result in a segfault.
 
     :ivar sbml:
-        sbml definition [!not storing this will result in a segfault!]
+        SBML model to import
 
-    :ivar species_index:
-        maps species names to indices
-
-    :ivar species_compartment: sympy.Matrix
-        compartment for each species
-
-    :ivar constant_species:
-        ids of species that are marked as constant
-
-    :ivar boundary_condition_species:
-        ids of species that are marked as boundary
-        condition
-
-    :ivar species_has_only_substance_units:
-        flags indicating whether a species has only substance units
-
-    :ivar species_conversion_factor:
-        conversion factors for every species
-
-    :ivar compartment_symbols
-        compartment ids
-
-    :ivar compartment_volume:
-        numeric/symbolic compartment volumes
+    :ivar compartments:
+        dict of compartment ids and compartment volumes
 
     :ivar stoichiometric_matrix:
         stoichiometric matrix of the model
@@ -98,9 +87,28 @@ class SbmlImporter:
     :ivar flux_vector:
         reaction kinetic laws
 
-    :ivar local_symbols:
+    :ivar _local_symbols:
         model symbols for sympy to consider during sympification
         see `locals`argument in `sympy.sympify`
+
+    :ivar species_assignment_rules:
+        Assignment rules for species.
+        Key is symbolic identifier and value is assignment value
+
+    :ivar compartment_assignment_rules:
+        Assignment rules for compartments.
+        Key is symbolic identifier and value is assignment value
+
+    :ivar parameter_assignment_rules:
+        assignment rules for parameters, these parameters are not permissible
+        for sensitivity analysis
+
+    :ivar initial_assignments:
+        initial assignments for parameters, these parameters are not
+        permissible for sensitivity analysis
+
+    :ivar sbml_parser_settings:
+        sets behaviour of SBML Formula parsing
 
     """
 
@@ -124,32 +132,43 @@ class SbmlImporter:
             string
         """
         if isinstance(sbml_source, sbml.Model):
-            self.sbml_doc = sbml_source.getSBMLDocument()
+            self.sbml_doc: sbml.Document = sbml_source.getSBMLDocument()
         else:
-            self.sbml_reader = sbml.SBMLReader()
+            self.sbml_reader: sbml.SBMLReader = sbml.SBMLReader()
             if from_file:
                 sbml_doc = self.sbml_reader.readSBMLFromFile(sbml_source)
             else:
                 sbml_doc = self.sbml_reader.readSBMLFromString(sbml_source)
             self.sbml_doc = sbml_doc
 
-        self.show_sbml_warnings : bool = show_sbml_warnings
+        self.show_sbml_warnings: bool = show_sbml_warnings
 
         # process document
         self._process_document()
 
-        self.sbml = self.sbml_doc.getModel()
+        self.sbml: sbml.Model = self.sbml_doc.getModel()
 
         # Long and short names for model components
-        self.symbols = dict()
+        self.symbols: Dict[SymbolId, Dict[sp.Symbol, Dict[str, Any]]] = {}
+
+        self._local_symbols: Dict[str, Union[sp.Expr, sp.Function]] = {}
+        self.compartments: SymbolicFormula = {}
+        self.compartment_assignment_rules: SymbolicFormula = {}
+        self.species_assignment_rules: SymbolicFormula = {}
+        self.parameter_assignment_rules: SymbolicFormula = {}
+        self.initial_assignments: SymbolicFormula = {}
+
         self._reset_symbols()
 
-        self.local_symbols : dict = {}
-
-        self.compartment_rate_rules : dict = {}
-        self.species_rate_rules : dict = {}
-        self.compartment_assignment_rules : dict = {}
-        self.species_assignment_rules : dict = {}
+        # http://sbml.org/Software/libSBML/5.18.0/docs/python-api/classlibsbml_1_1_l3_parser_settings.html#abcfedd34efd3cae2081ba8f42ea43f52
+        # all defaults except disable unit parsing
+        self.sbml_parser_settings = sbml.L3ParserSettings(
+            self.sbml, sbml.L3P_PARSE_LOG_AS_LOG10,
+            sbml.L3P_EXPAND_UNARY_MINUS, sbml.L3P_NO_UNITS,
+            sbml.L3P_AVOGADRO_IS_CSYMBOL,
+            sbml.L3P_COMPARE_BUILTINS_CASE_INSENSITIVE, None,
+            sbml.L3P_MODULO_IS_PIECEWISE
+        )
 
     def _process_document(self) -> None:
         """
@@ -162,7 +181,7 @@ class SbmlImporter:
 
         # apply several model simplifications that make our life substantially
         # easier
-        if len(self.sbml_doc.getModel().getListOfFunctionDefinitions()) > 0:
+        if self.sbml_doc.getModel().getNumFunctionDefinitions():
             convert_config = sbml.SBMLFunctionDefinitionConverter()\
                 .getDefaultProperties()
             self.sbml_doc.convert(convert_config)
@@ -180,15 +199,16 @@ class SbmlImporter:
         """
         Reset the symbols attribute to default values
         """
-        self.symbols = default_symbols
+        self.symbols = copy.deepcopy(default_symbols)
+        self._local_symbols = dict()
 
     def sbml2amici(self,
                    model_name: str = None,
                    output_dir: str = None,
                    observables: Dict[str, Dict[str, str]] = None,
-                   constant_parameters: List[str] = None,
+                   constant_parameters: Iterable[str] = None,
                    sigmas: Dict[str, Union[str, float]] = None,
-                   noise_distributions: Dict[str, str] = None,
+                   noise_distributions: Dict[str, Union[str, Callable]] = None,
                    verbose: Union[int, bool] = logging.ERROR,
                    assume_pow_positivity: bool = False,
                    compiler: str = None,
@@ -196,18 +216,22 @@ class SbmlImporter:
                    compile: bool = True,
                    compute_conservation_laws: bool = True,
                    simplify: Callable = lambda x: sp.powsimp(x, deep=True),
+                   log_as_log10: bool = True,
                    **kwargs) -> None:
         """
-        Generate AMICI C++ files for the model provided to the constructor.
+        Generate and compile AMICI C++ files for the model provided to the
+        constructor.
 
         The resulting model can be imported as a regular Python module (if
         `compile=True`), or used from Matlab or C++ as described in the
         documentation of the respective AMICI interface.
 
         Note that this generates model ODEs for changes in concentrations, not
-        amounts. The simulation results obtained from the model will be
-        concentrations, independently of the SBML `hasOnlySubstanceUnits`
-        attribute.
+        amounts unless the `hasOnlySubstanceUnits` attribute has been
+        defined for a particular species.
+
+        Sensitivity analysis for local parameters is enabled by creating
+        global parameters _{reactionId}_{localParameterName}.
 
         :param model_name:
             name of the model/model directory
@@ -228,7 +252,8 @@ class SbmlImporter:
         :param noise_distributions:
             dictionary(observableId: noise type).
             If nothing is passed for some observable id, a normal model is
-            assumed as default.
+            assumed as default. Either pass a noise type identifier, or a
+            callable generating a custom noise string.
 
         :param verbose:
             verbosity level for logging, True/False default to
@@ -257,12 +282,13 @@ class SbmlImporter:
             algorithm to compute steadystate sensitivities.
 
         :param simplify:
-            see :meth:`ODEModel._simplify`
+            see :attr:`ODEModel._simplify`
+
+        :param log_as_log10:
+            If True, log in the SBML model will be parsed as `log10` (default),
+            if False, log will be parsed as natural logarithm `ln`
         """
         set_log_level(logger, verbose)
-
-        if observables is None:
-            observables = {}
 
         if 'constantParameters' in kwargs:
             logger.warning('Use of `constantParameters` as argument name '
@@ -279,6 +305,7 @@ class SbmlImporter:
 
         elif constant_parameters is None:
             constant_parameters = []
+        constant_parameters = list(constant_parameters)
 
         if sigmas is None:
             sigmas = {}
@@ -305,14 +332,18 @@ class SbmlImporter:
             raise ValueError(f'Unknown arguments {kwargs.keys()}.')
 
         self._reset_symbols()
+        self.sbml_parser_settings.setParseLog(
+            sbml.L3P_PARSE_LOG_AS_LOG10 if log_as_log10 else
+            sbml.L3P_PARSE_LOG_AS_LN
+        )
         self._process_sbml(constant_parameters)
         self._process_observables(observables, sigmas, noise_distributions)
+        self._replace_compartments_with_volumes()
 
-        self._process_time()
         self._clean_reserved_symbols()
-        self._replace_special_constants()
+        self._process_time()
 
-        ode_model = ODEModel(simplify=simplify)
+        ode_model = ODEModel(verbose=verbose, simplify=simplify)
         ode_model.import_from_sbml_importer(
             self, compute_cls=compute_conservation_laws)
         exporter = ODEExporter(
@@ -333,6 +364,7 @@ class SbmlImporter:
                               'Generated model code, but unable to compile.')
             exporter.compile_model()
 
+    @log_execution_time('importing SBML', logger)
     def _process_sbml(self, constant_parameters: List[str] = None) -> None:
         """
         Read parameters, species, reactions, and so on from SBML model
@@ -351,7 +383,8 @@ class SbmlImporter:
         self._process_species()
         self._process_reactions()
         self._process_rules()
-        self._process_volume_conversion()
+        self._process_initial_assignments()
+        self._process_species_references()
 
     def check_support(self) -> None:
         """
@@ -359,76 +392,138 @@ class SbmlImporter:
         Also ensures that the SBML contains at least one reaction, or rate
         rule, or assignment rule, to produce change in the system over time.
         """
-        if len(self.sbml.getListOfSpecies()) == 0:
-            raise SBMLException('Models without species '
-                                'are currently not supported!')
-
         if hasattr(self.sbml, 'all_elements_from_plugins') \
-                and self.sbml.all_elements_from_plugins.getSize() > 0:
+                and self.sbml.all_elements_from_plugins.getSize():
             raise SBMLException('SBML extensions are currently not supported!')
 
-        if len(self.sbml.getListOfEvents()) > 0:
+        if self.sbml.getNumEvents():
             raise SBMLException('Events are currently not supported!')
 
-        # Contains condition to allow compartment rate rules
-        compartment_ids = list(map(lambda x: x.getId(),
-                                   self.sbml.getListOfCompartments()))
-        species_ids = list(map(lambda x: x.getId(),
-                               self.sbml.getListOfSpecies()))
-        if any([not(rule.isAssignment()) and
-                not(rule.getVariable() in compartment_ids) and
-                not(rule.getVariable() in species_ids)
-                for rule in self.sbml.getListOfRules()]):
+        if any([not rule.isAssignment() and not isinstance(
+                    self.sbml.getElementBySId(rule.getVariable()),
+                    (sbml.Compartment, sbml.Species, sbml.Parameter)
+                ) for rule in self.sbml.getListOfRules()]):
             raise SBMLException('Algebraic rules are currently not supported, '
                                 'and rate rules are only supported for '
-                                'species and compartments.')
+                                'species, compartments, and parameters.')
 
-        if any([not(rule.isAssignment() or rule.isRate()) and
-                (rule.getVariable() in compartment_ids)
-                for rule in self.sbml.getListOfRules()]):
-            raise SBMLException('Only assignment and rate rules are currently '
-                                'supported for compartments!')
+        if any([not (rule.isAssignment() or rule.isRate())
+                and isinstance(
+                    self.sbml.getElementBySId(rule.getVariable()),
+                    (sbml.Compartment, sbml.Species, sbml.Parameter)
+                ) for rule in self.sbml.getListOfRules()]):
+            raise SBMLException('Only assignment and rate rules are '
+                                'currently supported for compartments, '
+                                'species, and parameters! Error '
+                                f'occurred with rule: {rule.getVariable()}')
 
-        if any([not(rule.isAssignment() or rule.isRate()) and
-                (rule.getVariable() in species_ids)
-                for rule in self.sbml.getListOfRules()]):
-            raise SBMLException('Only assignment and rate rules are currently '
-                                'supported for species!')
-
-        if any([reaction.getFast()
-                for reaction in self.sbml.getListOfReactions()]):
+        if any([r.getFast() for r in self.sbml.getListOfReactions()]):
             raise SBMLException('Fast reactions are currently not supported!')
 
-        if any([any([not element.getStoichiometryMath() is None
-                for element in list(reaction.getListOfReactants())
-                + list(reaction.getListOfProducts())])
-                for reaction in self.sbml.getListOfReactions()]):
-            raise SBMLException('Non-unity stoichiometry is'
-                                ' currently not supported!')
-
+    @log_execution_time('gathering local SBML symbols', logger)
     def _gather_locals(self) -> None:
         """
         Populate self.local_symbols with all model entities.
 
         This is later used during sympifications to avoid sympy builtins
-        shadowing model entities.
+        shadowing model entities as well as to avoid possibly costly
+        symbolic substitutions
         """
-        for s in self.sbml.getListOfSpecies():
-            self.local_symbols[s.getId()] = sp.Symbol(s.getId(), real=True)
+        self._gather_base_locals()
+        self._gather_dependent_locals()
 
-        for p in self.sbml.getListOfParameters():
-            self.local_symbols[p.getId()] = sp.Symbol(p.getId(), real=True)
+    def _gather_base_locals(self):
+        """
+        Populate self.local_symbols with pure symbol definitions that do not
+        depend on any other symbol.
+        """
 
-        for c in self.sbml.getListOfCompartments():
-            self.local_symbols[c.getId()] = sp.Symbol(c.getId(), real=True)
+        special_symbols_and_funs = {
+            # oo is sympy infinity
+            'INF': sp.oo,
+            'NaN': sp.nan,
+            'rem': sp.Mod,
+            'time': symbol_with_assumptions('time'),
+            # SBML L3 explicitly defines this value, which is not equal
+            # to the most recent SI definition.
+            'avogadro': sp.Float(6.02214179e23),
+            'exponentiale': sp.E,
+        }
+        for s, v in special_symbols_and_funs.items():
+            self.add_local_symbol(s, v)
 
-        for r in self.sbml.getListOfRules():
-            self.local_symbols[r.getVariable()] = sp.Symbol(r.getVariable(),
-                                                            real=True)
+        for c in itt.chain(self.sbml.getListOfSpecies(),
+                           self.sbml.getListOfParameters(),
+                           self.sbml.getListOfCompartments()):
+            if not c.isSetId():
+                continue
 
-        # SBML time symbol + constants
-        self.local_symbols['time'] = sp.Symbol('time', real=True)
-        self.local_symbols['avogadro'] = sp.Symbol('avogadro', real=True)
+            self.add_local_symbol(c.getId(), _get_identifier_symbol(c))
+
+        for x_ref in _get_list_of_species_references(self.sbml):
+            if not x_ref.isSetId():
+                continue
+            if x_ref.isSetStoichiometry() and not \
+                    self.is_assignment_rule_target(x_ref):
+                value = sp.Float(x_ref.getStoichiometry())
+            else:
+                value = _get_identifier_symbol(x_ref)
+
+            ia_sym = self._get_element_initial_assignment(x_ref.getId())
+            if ia_sym is not None:
+                value = ia_sym
+
+            self.add_local_symbol(x_ref.getId(), value)
+
+        for r in self.sbml.getListOfReactions():
+            for e in itt.chain(r.getListOfReactants(), r.getListOfProducts()):
+                if isinstance(e, sbml.SpeciesReference):
+                    continue
+
+                if not (e.isSetId() and e.isSetStoichiometry()) or \
+                        self.is_assignment_rule_target(e):
+                    continue
+
+                self.add_local_symbol(e.getId(),
+                                      sp.Float(e.getStoichiometry()))
+
+    def _gather_dependent_locals(self):
+        """
+        Populate self.local_symbols with symbol definitions that may depend on
+        other symbol definitions.
+        """
+        for r in self.sbml.getListOfReactions():
+            if not r.isSetId():
+                continue
+            self.add_local_symbol(
+                r.getId(),
+                self._sympy_from_sbml_math(r.getKineticLaw())
+            )
+
+    def add_local_symbol(self, key: str, value: sp.Expr):
+        """
+        Add local symbols with some sanity checking for duplication which
+        would indicate redefinition of internals, which SBML permits,
+        but we don't.
+
+        :param key:
+            local symbol key
+
+        :param value:
+            local symbol value
+        """
+        if key in itt.chain(self._local_symbols.keys(),
+                            ['True', 'False', 'pi']):
+            raise SBMLException(
+                f'AMICI tried to add a local symbol {key} with value {value}, '
+                f'but {key} was already instantiated with '
+                f'{self._local_symbols[key]}. This means either that there '
+                f'are multiple SBML element with SId {key}, which is '
+                f'invalid SBML, or that the employed SId {key} is a special '
+                'reserved symbol in AMICI. This can be fixed by renaming '
+                f'the element with SId {key}.'
+            )
+        self._local_symbols[key] = value
 
     @log_execution_time('processing SBML compartments', logger)
     def _process_compartments(self) -> None:
@@ -437,212 +532,148 @@ class SbmlImporter:
         SBML model.
         """
         compartments = self.sbml.getListOfCompartments()
-        self.compartment_symbols = sp.Matrix(
-            [sp.Symbol(comp.getId(), real=True) for comp in compartments]
-        )
+        self.compartments = {}
+        for comp in compartments:
+            init = sp.Float(1.0)
 
-        # Initial volumes may be overridden at the end of _process_species,
-        # where compartment assignment rules are processed.
-        self.compartment_volume = sp.Matrix([
-            sp.sympify(comp.getVolume()) if comp.isSetVolume()
-            else sp.sympify(1.0) for comp in compartments
-        ])
+            if comp.isSetVolume():
+                init = self._sympy_from_sbml_math(comp.getVolume())
 
-        compartment_ids = [comp.getId() for comp in compartments]
-        for initial_assignment in self.sbml.getListOfInitialAssignments():
-            if initial_assignment.getId() in compartment_ids:
-                index = compartment_ids.index(
-                        initial_assignment.getId()
-                    )
-                self.compartment_volume[index] = sp.sympify(
-                    sbml.formulaToL3String(initial_assignment.getMath()),
-                    locals=self.local_symbols
-                )
+            ia_sym = self._get_element_initial_assignment(comp.getId())
+            if ia_sym is not None:
+                init = ia_sym
+
+            self.compartments[_get_identifier_symbol(comp)] = init
 
     @log_execution_time('processing SBML species', logger)
     def _process_species(self) -> None:
         """
         Get species information from SBML model.
         """
-        species = self.sbml.getListOfSpecies()
-
-        self.species_index = {
-            species_element.getId(): species_index
-            for species_index, species_element in enumerate(species)
-        }
-
-        self.symbols['species']['identifier'] = sp.Matrix(
-            [sp.Symbol(spec.getId(), real=True) for spec in species]
-        )
-        self.symbols['species']['name'] = [spec.getName() for spec in species]
-
-        self.species_compartment = sp.Matrix(
-            [sp.Symbol(spec.getCompartment(), real=True) for spec in species]
-        )
-
-        self.constant_species = [species_element.getId()
-                                 for species_element in species
-                                 if species_element.getConstant()]
-
-        self.boundary_condition_species = [
-            species_element.getId()
-            for species_element in species
-            if species_element.getBoundaryCondition()
-        ]
-        self.species_has_only_substance_units = [
-            specie.getHasOnlySubstanceUnits() for specie in species
-        ]
-
-        concentrations = [spec.getInitialConcentration() for spec in species]
-        amounts = [spec.getInitialAmount() for spec in species]
-
-        def get_species_initial(index, conc):
-            # We always simulate concentrations!
-            if self.species_has_only_substance_units[index]:
-                if species[index].isSetInitialAmount() \
-                        and not math.isnan(amounts[index]):
-                    return sp.sympify(amounts[index]) \
-                           / self.species_compartment[index]
-                if species[index].isSetInitialConcentration():
-                    return sp.sympify(conc)
-            else:
-                if species[index].isSetInitialConcentration():
-                    return sp.sympify(conc)
-
-                if species[index].isSetInitialAmount() \
-                        and not math.isnan(amounts[index]):
-                    return sp.sympify(amounts[index]) \
-                           / self.species_compartment[index]
-
-            return self.symbols['species']['identifier'][index]
-
-        species_initial = sp.Matrix(
-            [get_species_initial(index, conc)
-             for index, conc in enumerate(concentrations)]
-        )
-
-        species_ids = [spec.getId() for spec in self.sbml.getListOfSpecies()]
-        for initial_assignment in self.sbml.getListOfInitialAssignments():
-            if initial_assignment.getId() in species_ids:
-                index = species_ids.index(
-                        initial_assignment.getId()
-                    )
-                sym_math = sp.sympify(_parse_logical_operators(
-                    sbml.formulaToL3String(initial_assignment.getMath())),
-                    locals=self.local_symbols
-                )
-                if sym_math is not None:
-                    sym_math = _parse_special_functions(sym_math)
-                    _check_unsupported_functions(sym_math, 'InitialAssignment')
-                    species_initial[index] = sym_math
-
-        for ix, (symbol, init) in enumerate(zip(
-            self.symbols['species']['identifier'], species_initial
-        )):
-            if symbol == init:
-                species_initial[ix] = sp.sympify(0.0)
-
-        # flatten initSpecies
-        while any([species in species_initial.free_symbols
-                   for species in self.symbols['species']['identifier']]):
-            species_initial = species_initial.subs([
-                (symbol, init)
-                for symbol, init in zip(
-                    self.symbols['species']['identifier'], species_initial
-                )
-            ])
-
-        self.symbols['species']['value'] = species_initial
-
         if self.sbml.isSetConversionFactor():
-            conversion_factor = sp.Symbol(self.sbml.getConversionFactor(),
-                                          real=True)
+            conversion_factor = symbol_with_assumptions(
+                self.sbml.getConversionFactor()
+            )
         else:
             conversion_factor = 1.0
 
-        self.species_conversion_factor = sp.Matrix([
-             sp.sympify(specie.getConversionFactor())
-             if specie.isSetConversionFactor()
-             else conversion_factor
-             for specie in species
-        ])
+        for s in self.sbml.getListOfSpecies():
+            if self.is_assignment_rule_target(s):
+                continue
+            self.symbols[SymbolId.SPECIES][_get_identifier_symbol(s)] = {
+                'name': s.getName() if s.isSetName() else s.getId(),
+                'compartment': _get_species_compartment_symbol(s),
+                'constant': s.getConstant() or s.getBoundaryCondition(),
+                'amount': s.getHasOnlySubstanceUnits(),
+                'conversion_factor': symbol_with_assumptions(
+                    s.getConversionFactor()
+                )
+                if s.isSetConversionFactor()
+                else conversion_factor,
+                'index': len(self.symbols[SymbolId.SPECIES]),
+            }
 
-        # Process assignment and rate rules for species and compartments.
-        # Compartments with rate rules are implemented as species. Species and
-        # compartments with assignments are implemented as observables (and
-        # replaced with their assignment in all expressions). Note that, in the
-        # case of species, rate rules may describe the change in amount, not
-        # concentration, of a species.
+        self._process_species_initial()
+        self._process_rate_rules()
+
+    @log_execution_time('processing SBML species initials', logger)
+    def _process_species_initial(self):
+        """
+        Extract initial values and initial assignments from species
+        """
+        for species_variable in self.sbml.getListOfSpecies():
+            initial = _get_species_initial(species_variable)
+
+            species_id = _get_identifier_symbol(species_variable)
+            # If species_id is a target of an AssignmentRule, species will be
+            # None, but we don't have to account for the initial definition
+            # of the species itself and SBML doesn't permit AssignmentRule
+            # targets to have InitialAssignments.
+            species = self.symbols[SymbolId.SPECIES].get(species_id, None)
+
+            ia_initial = self._get_element_initial_assignment(
+                species_variable.getId()
+            )
+            if ia_initial is not None:
+                if species and species['amount'] \
+                        and 'compartment' in species:
+                    ia_initial *= self.compartments.get(
+                        species['compartment'], species['compartment']
+                    )
+                initial = ia_initial
+            if species:
+                species['init'] = initial
+
+        # don't assign this since they need to stay in order
+        sorted_species = toposort_symbols(self.symbols[SymbolId.SPECIES],
+                                          'init')
+        for species in self.symbols[SymbolId.SPECIES].values():
+            species['init'] = smart_subs_dict(species['init'],
+                                              sorted_species,
+                                              'init')
+
+    @log_execution_time('processing SBML rate rules', logger)
+    def _process_rate_rules(self):
+        """
+        Process assignment and rate rules for species, compartments and
+        parameters. Compartments and parameters with rate rules are
+        implemented as species. Note that, in the case of species,
+        rate rules may describe the change in amount, not concentration,
+        of a species.
+        """
         rules = self.sbml.getListOfRules()
-        compartmentvars = self.compartment_symbols.free_symbols
         # compartments with rules are replaced with constants in the relevant
         # equations during the _replace_in_all_expressions call inside
         # _process_rules
         for rule in rules:
-            ### Taken from _process_rules
-            if rule.getFormula() == '':
+            if rule.getTypeCode() != sbml.SBML_RATE_RULE:
                 continue
-            variable = sp.sympify(rule.getVariable(),
-                                  locals=self.local_symbols)
-            formula = sp.sympify(_parse_logical_operators(
-                sbml.formulaToL3String(rule.getMath())),
-                locals=self.local_symbols)
-            formula = _parse_special_functions(formula)
-            _check_unsupported_functions(formula, 'Rule')
-            ###
+
+            variable = symbol_with_assumptions(rule.getVariable())
+            formula = self._sympy_from_sbml_math(rule)
+            if formula is None:
+                continue
 
             # Species rules are processed first, to avoid processing
             # compartments twice (as compartments with rate rules are
-            # implemented as species). Could also be avoided with a
-            # `not in self.compartment_rate_rules` condition.
-            if variable in self.symbols['species']['identifier']:
-                if rule.getTypeCode() == sbml.SBML_ASSIGNMENT_RULE:
-                    # Handled in _process_rules and _process_observables.
-                    pass
-                elif rule.getTypeCode() == sbml.SBML_RATE_RULE:
-                    self.add_d_dt(
-                        formula,
-                        variable,
-                        self.symbols['species']['value'],
-                        sbml.SBML_SPECIES)
-                else:
-                    raise SBMLException('The only rules currently supported '
-                                        'for species are assignment and rate '
-                                        'rules!')
+            # implemented as species).
+            ia_init = self._get_element_initial_assignment(rule.getVariable())
+            if variable in self.symbols[SymbolId.SPECIES]:
+                init = self.symbols[SymbolId.SPECIES][variable]['init']
+                name = None
 
-            if variable in compartmentvars:
-                if rule.getTypeCode() == sbml.SBML_ASSIGNMENT_RULE:
-                    # Handled in _process_rules and _process_observables
-                    # SBML Assignment Rules can be used to specify initial
-                    # values (see SBML L3V2 manual, Section 3.4.8).
-                    # Priority appears to be above InitialAssignment.
-                    self.compartment_volume[list(
-                        self.compartment_symbols
-                    ).index(variable)] = formula
-                elif rule.getTypeCode() == sbml.SBML_RATE_RULE:
-                    self.add_d_dt(
-                        formula,
-                        variable,
-                        self.compartment_volume[list(
-                            self.compartment_symbols
-                        ).index(variable)],
-                        sbml.SBML_COMPARTMENT)
-                else:
-                    raise SBMLException('The only rules currently supported '
-                                        'for compartments are assignment and '
-                                        'rate rules!')
+            if variable in self.compartments:
+                init = self.compartments[variable]
+                name = str(variable)
+                del self.compartments[variable]
+
+            elif variable in self.symbols[SymbolId.PARAMETER]:
+                init = self._sympy_from_sbml_math(
+                    self.symbols[SymbolId.PARAMETER][variable]['value'],
+                )
+                name = self.symbols[SymbolId.PARAMETER][variable]['name']
+                del self.symbols[SymbolId.PARAMETER][variable]
+
+            # parameter with initial assignment, cannot use
+            # self.initial_assignments as it is not filled at this
+            # point
+            elif ia_init is not None:
+                init = ia_init
+                par = self.sbml.getElementBySId(rule.getVariable())
+                name = par.getName() if par.isSetName() else par.getId()
+
+            self.add_d_dt(formula, variable, init, name)
 
     def add_d_dt(
             self,
             d_dt: sp.Expr,
             variable: sp.Symbol,
             variable0: Union[float, sp.Expr],
-            component: int,
-            name: str = None
+            name: str,
     ) -> None:
-        '''
-        Creates or modifies species, to implement rate rules for compartments
-        and species, respectively.
+        """
+        Creates or modifies species, to implement rate rules for
+        compartments and species, respectively.
 
         :param d_dt:
             The rate rule (or, right-hand side of an ODE).
@@ -653,109 +684,32 @@ class SbmlImporter:
         :param variable0:
             The initial value of the variable.
 
-        :param component:
-            The type of SBML component. Currently, only libsbml.SBML_SPECIES
-            and libsbml.SBML_COMPARTMENT are supported.
-        '''
-        if name is None:
-            name = ''
-
-        ### d_dt may contain speciesReference symbols, that may be defined in
-        # an initial assignment (e.g. see SBML test suite case 1498, which
-        # uses a speciesReference Id in a species rate rule).
-        # Here, such speciesReference symbols are replaced with the initial
-        # assignment expression, if the expression is a constant (time-
-        # dependent expression symbols are not evaluated at zero, rather raise
-        # an error).
-        # One method to implement expressions with time-dependent symbols
-        # may be to produce a dictionary of speciesReference symbols and
-        # their initial assignment expressions here, then add this dictionary
-        # to the _replace_in_all_expressions method. After _process_sbml,
-        # substitute initial values in for any remaining symbols, evaluate the
-        # the expressions at $t=0$ (self.amici_time_symbol), then substitute
-        # them into d_dt.
-
-        # Initial assignment symbols may be compartments, species, parameters,
-        # speciesReferences, or an (extension?) package element. Here, it is
-        # assumed that a symbol is a speciesReference if it is not a
-        # compartment, species, or parameter, and is the symbol of an initial
-        # assignment.
-        alternative_components = [s.getId() for s in
-            list(self.sbml.getListOfCompartments()) +\
-            list(self.sbml.getListOfSpecies()) +\
-            list(self.sbml.getListOfParameters())]
-        initial_assignments = {ia.getId(): ia for ia in
-                                       self.sbml.getListOfInitialAssignments()}
-        for symbol in d_dt.free_symbols:
-            if str(symbol) not in alternative_components and\
-               str(symbol) in initial_assignments:
-                # Taken from _process_species
-                sym_math = sp.sympify(_parse_logical_operators(
-                    sbml.formulaToL3String(initial_assignments[
-                        str(symbol)
-                    ].getMath())),
-                    locals=self.local_symbols
-                )
-                if sym_math is not None:
-                    sym_math = _parse_special_functions(sym_math)
-                    _check_unsupported_functions(sym_math, 'InitialAssignment')
-
-                if not isinstance(sym_math, sp.Float):
-                    raise SBMLException('Rate rules that contain '
-                                        'speciesReferences, defined in '
-                                        'initial assignments that contain '
-                                        'symbols, are currently not '
-                                        'supported! Rate rule symbol: '
-                                        f'{variable}, species reference '
-                                        f'symbol: {symbol}, initial '
-                                        f'assignment: {sym_math}, type: '
-                                        f'{type(sym_math)}.')
-                else:
-                    d_dt = d_dt.subs(symbol, sym_math)
-        ###
-
-        if component == sbml.SBML_COMPARTMENT:
-            self.symbols['species']['identifier'] = \
-                self.symbols['species']['identifier'].col_join(
-                    sp.Matrix([variable]))
-            self.symbols['species']['name'].append(name)
-            self.symbols['species']['value'] = \
-                self.symbols['species']['value'].col_join(
-                    sp.Matrix([variable0]))
-            self.species_index[str(variable)] = len(self.species_index)
-            self.compartment_rate_rules[variable] = d_dt
-        elif component == sbml.SBML_SPECIES:
-            if str(variable) in self.species_index:
-                # SBML species are already in the species symbols
-                x_index = self.species_index[str(variable)]
-                if self.species_has_only_substance_units[x_index]:
-                    self.symbols['species']['value'][x_index] *= \
-                        self.species_compartment[x_index]
-                self.species_rate_rules[variable] = d_dt
-            else:
-                # For Jakob to specify rules independently of SBML (untested)
-                # Remove assert statement to use
-                # Currently untested...
-                assert False, "Error while processing species rate rules."
-                self.symbols['species']['identifier'] = \
-                    self.symbols['species']['identifier'].col_join(
-                        sp.Matrix([variable]))
-                self.symbols['species']['name'].append(name)
-                self.symbols['species']['value'] = \
-                    self.symbols['species']['value'].col_join(
-                        sp.Matrix([variable0]))
-                self.species_index[str(variable)] = len(self.species_index)
-                self.species_rate_rules[variable] = d_dt
-                # May need to modify this function (`add_d_dt`) to allow
-                # specification of whether the argument `d_dt` describes change
-                # in amount or concentration.
-                #if self.species_has_only_substance_units[x_index]:
-                #    self.symbols['species']['value'][x_index] *= \
-                #    self.species_compartment[x_index]
+        :param name:
+            Species name, only applicable if this function generates a new
+            species
+        """
+        if variable in self.symbols[SymbolId.SPECIES]:
+            # only update dt if species was already generated
+            self.symbols[SymbolId.SPECIES][variable]['dt'] = d_dt
         else:
-            raise TypeError(f'Rate rules are currently only supported for '
-                            'libsbml.SBML_COMPARTMENT and '
-                            'libsbml.SBML_SPECIES components.')
+            # update initial values
+            for species_id, species in self.symbols[SymbolId.SPECIES].items():
+                variable0 = smart_subs(variable0, species_id, species['init'])
+
+            for species in self.symbols[SymbolId.SPECIES].values():
+                species['init'] = smart_subs(species['init'],
+                                             variable, variable0)
+
+            # add compartment/parameter species
+            self.symbols[SymbolId.SPECIES][variable] = {
+                'name': name,
+                'init': variable0,
+                'amount': False,
+                'conversion_factor': 1.0,
+                'constant': False,
+                'index': len(self.symbols[SymbolId.SPECIES]),
+                'dt': d_dt,
+            }
 
     @log_execution_time('processing SBML parameters', logger)
     def _process_parameters(self,
@@ -776,58 +730,32 @@ class SbmlImporter:
                 raise KeyError('Cannot make %s a constant parameter: '
                                'Parameter does not exist.' % parameter)
 
-        parameter_ids = [par.getId() for par
-                         in self.sbml.getListOfParameters()]
-        for initial_assignment in self.sbml.getListOfInitialAssignments():
-            if initial_assignment.getId() in parameter_ids:
-                raise SBMLException('Initial assignments for parameters are'
-                                    ' currently not supported')
-
         fixed_parameters = [
             parameter
             for parameter in self.sbml.getListOfParameters()
             if parameter.getId() in constant_parameters
         ]
 
-        rulevars = [rule.getVariable() for rule in self.sbml.getListOfRules()]
-
-        parameters = [parameter for parameter
-                      in self.sbml.getListOfParameters()
-                      if parameter.getId() not in constant_parameters
-                      and parameter.getId() not in rulevars]
+        parameters = [
+            parameter for parameter
+            in self.sbml.getListOfParameters()
+            if parameter.getId() not in constant_parameters
+            and self._get_element_initial_assignment(parameter.getId()) is None
+            and not self.is_assignment_rule_target(parameter)
+        ]
 
         loop_settings = {
-            'parameter': {
-                'var': parameters,
-                'name': 'parameter',
-
-            },
-            'fixed_parameter': {
-                'var': fixed_parameters,
-                'name': 'fixed_parameter'
-            }
-
+            SymbolId.PARAMETER: {'var': parameters, 'name': 'parameter'},
+            SymbolId.FIXED_PARAMETER: {'var': fixed_parameters,
+                                       'name': 'fixed_parameter'}
         }
 
         for partype, settings in loop_settings.items():
-            self.symbols[partype]['identifier'] = sp.Matrix(
-                [sp.Symbol(par.getId(), real=True) for par in settings['var']]
-            )
-            self.symbols[partype]['name'] = [
-                par.getName() for par in settings['var']
-            ]
-            self.symbols[partype]['value'] = [
-                par.getValue() for par in settings['var']
-            ]
-            setattr(
-                self,
-                f'{settings["name"]}_index',
-                {
-                    parameter_element.getId(): parameter_index
-                    for parameter_index, parameter_element
-                    in enumerate(settings['var'])
+            for par in settings['var']:
+                self.symbols[partype][_get_identifier_symbol(par)] = {
+                    'name': par.getName() if par.isSetName() else par.getId(),
+                    'value': par.getValue()
                 }
-            )
 
     @log_execution_time('processing SBML reactions', logger)
     def _process_reactions(self):
@@ -839,110 +767,44 @@ class SbmlImporter:
         # to ensure that, if there are no reactions, the stoichiometric matrix
         # and flux vector multiply to a zero vector with dimensions (nx, 1).
         nr = max(1, len(reactions))
-        nx = len(self.symbols['species']['name'])
+        nx = len(self.symbols[SymbolId.SPECIES])
         # stoichiometric matrix
         self.stoichiometric_matrix = sp.SparseMatrix(sp.zeros(nx, nr))
         self.flux_vector = sp.zeros(nr, 1)
-
-        assignment_ids = [ass.getId()
-                          for ass in self.sbml.getListOfInitialAssignments()]
-        rulevars = [rule.getVariable()
-                    for rule in self.sbml.getListOfRules()
-                    if rule.getFormula() != '']
 
         reaction_ids = [
             reaction.getId() for reaction in reactions
             if reaction.isSetId()
         ]
 
-        def get_element_from_assignment(element_id):
-            assignment = self.sbml.getInitialAssignment(
-                element_id
-            )
-            sym = sp.sympify(sbml.formulaToL3String(assignment.getMath()),
-                             locals=self.local_symbols)
-            # this is an initial assignment so we need to use
-            # initial conditions
-            if sym is not None:
-                sym = sym.subs(
-                    self.symbols['species']['identifier'],
-                    self.symbols['species']['value']
-                )
-            return sym
-
-        def get_element_stoichiometry(ele):
-            if ele.isSetId():
-                if ele.getId() in assignment_ids:
-                    sym = get_element_from_assignment(ele.getId())
-                    if sym is None:
-                        sym = sp.sympify(ele.getStoichiometry())
-                elif ele.getId() in rulevars:
-                    return sp.Symbol(ele.getId(), real=True)
-                else:
-                    # dont put the symbol if it wont get replaced by a
-                    # rule
-                    sym = sp.sympify(ele.getStoichiometry())
-            elif ele.isSetStoichiometry():
-                sym = sp.sympify(ele.getStoichiometry())
-            else:
-                return sp.sympify(1.0)
-            sym = _parse_special_functions(sym)
-            _check_unsupported_functions(sym, 'Stoichiometry')
-            return sym
-
-        def is_constant(specie):
-            return specie in self.constant_species or \
-                   specie in self.boundary_condition_species
-
         for reaction_index, reaction in enumerate(reactions):
-            for elementList, sign in [(reaction.getListOfReactants(), -1.0),
-                                      (reaction.getListOfProducts(), 1.0)]:
-                elements = {}
-                for index, element in enumerate(elementList):
-                    # we need the index here as we might have multiple elements
-                    # for the same species
-                    elements[index] = {'species': element.getSpecies()}
-                    elements[index]['stoichiometry'] = \
-                        get_element_stoichiometry(element)
+            for element_list, sign in [(reaction.getListOfReactants(), -1.0),
+                                       (reaction.getListOfProducts(), 1.0)]:
+                for element in element_list:
+                    stoichiometry = self._get_element_stoichiometry(
+                        element
+                    )
+                    sbml_species = self.sbml.getSpecies(element.getSpecies())
+                    if self.is_assignment_rule_target(sbml_species):
+                        continue
+                    species_id = _get_identifier_symbol(sbml_species)
+                    species = self.symbols[SymbolId.SPECIES][species_id]
 
-                for index in elements.keys():
-                    if not is_constant(elements[index]['species']):
-                        specie_index = self.species_index[
-                            elements[index]['species']
-                        ]
-                        # Division by species compartment size (to find the
-                        # rate of change in species concentration) now occurs
-                        # in the `dx_dt` method in "ode_export.py", which also
-                        # accounts for possibly variable compartments.
-                        self.stoichiometric_matrix[specie_index,
-                                                   reaction_index] += \
-                            sign \
-                            * elements[index]['stoichiometry'] \
-                            * self.species_conversion_factor[specie_index]
+                    if species['constant']:
+                        continue
 
-            # usage of formulaToL3String ensures that we get "time" as time
-            # symbol
-            kmath = sbml.formulaToL3String(reaction.getKineticLaw().getMath())
-            try:
-                sym_math = sp.sympify(_parse_logical_operators(kmath),
-                                      locals=self.local_symbols)
-            except SBMLException as Ex:
-                raise Ex
-            except sp.SympifyError:
-                raise SBMLException(f'Kinetic law "{kmath}" contains an '
-                                    'unsupported expression!')
-            sym_math = _parse_special_functions(sym_math)
-            _check_unsupported_functions(sym_math, 'KineticLaw')
-            for r in reactions:
-                elements = list(r.getListOfReactants()) \
-                           + list(r.getListOfProducts())
-                for element in elements:
-                    if element.isSetId() & element.isSetStoichiometry():
-                        sym_math = sym_math.subs(
-                            sp.sympify(element.getId(),
-                                       locals=self.local_symbols),
-                            sp.sympify(element.getStoichiometry())
-                        )
+                    # Division by species compartment size (to find the
+                    # rate of change in species concentration) now occurs
+                    # in the `dx_dt` method in "ode_export.py", which also
+                    # accounts for possibly variable compartments.
+                    self.stoichiometric_matrix[species['index'],
+                                               reaction_index] += \
+                        sign * stoichiometry * species['conversion_factor']
+
+            if reaction.isSetId():
+                sym_math = self._local_symbols[reaction.getId()]
+            else:
+                sym_math = self._sympy_from_sbml_math(reaction.getKineticLaw())
 
             self.flux_vector[reaction_index] = sym_math
             if any([
@@ -959,150 +821,64 @@ class SbmlImporter:
         """
         Process Rules defined in the SBML model.
         """
-        rules = self.sbml.getListOfRules()
-
-        rulevars = get_rule_vars(rules, local_symbols=self.local_symbols)
-        fluxvars = self.flux_vector.free_symbols
-        specvars = self.symbols['species']['identifier'].free_symbols
-        volumevars = self.compartment_volume.free_symbols
-        compartmentvars = self.compartment_symbols.free_symbols
-        parametervars = sp.Matrix([
-            sp.Symbol(par.getId(), real=True)
-            for par in self.sbml.getListOfParameters()
-        ])
-        stoichvars = self.stoichiometric_matrix.free_symbols
-
-        assignments = {}
-
-        for rule in rules:
-            # Rate rules should not be substituted for the target of the rate
-            # rule.
+        for rule in self.sbml.getListOfRules():
+            # rate rules are processed in _process_species
             if rule.getTypeCode() == sbml.SBML_RATE_RULE:
                 continue
-            if rule.getFormula() == '':
+
+            sbml_var = self.sbml.getElementBySId(rule.getVariable())
+            sym_id = symbol_with_assumptions(rule.getVariable())
+            formula = self._sympy_from_sbml_math(rule)
+            if formula is None:
                 continue
-            variable = sp.sympify(rule.getVariable(),
-                                  locals=self.local_symbols)
-            # avoid incorrect parsing of pow(x, -1) in symengine
-            formula = sp.sympify(_parse_logical_operators(
-                sbml.formulaToL3String(rule.getMath())),
-                locals=self.local_symbols)
-            formula = _parse_special_functions(formula)
-            _check_unsupported_functions(formula, 'Rule')
 
-            if variable in stoichvars:
-                self.stoichiometric_matrix = \
-                    self.stoichiometric_matrix.subs(variable, formula)
+            if isinstance(sbml_var, sbml.Species):
+                self.species_assignment_rules[sym_id] = formula
 
-            if variable in specvars:
-                if rule.getTypeCode() == sbml.SBML_ASSIGNMENT_RULE:
-                    self.species_assignment_rules[variable] = formula
-                    assignments[str(variable)] = formula
-                else:
-                    # Rate rules are handled in _process_species, and are
-                    # skipped in this loop
-                    raise KeyError('Only assignment and rate rules are '
-                                   'currently supported for species!')
+            elif isinstance(sbml_var, sbml.Compartment):
+                self.compartment_assignment_rules[sym_id] = formula
+                self.compartments[sym_id] = formula
 
-            if variable in compartmentvars:
-                if rule.getTypeCode() == sbml.SBML_ASSIGNMENT_RULE:
-                    self.compartment_assignment_rules[variable] = formula
-                    assignments[str(variable)] = formula
-                else:
-                    # Rate rules are handled in _process_species, and are
-                    # skipped in this loop
-                    raise KeyError('Only assignment and rate rules are '
-                                   'currently supported for compartments!')
+            elif isinstance(sbml_var, sbml.Parameter):
+                self.parameter_assignment_rules[sym_id] = formula
 
-            if variable in parametervars:
-                if str(variable) in self.parameter_index:
-                    idx = self.parameter_index[str(variable)]
-                    self.symbols['parameter']['value'][idx] \
-                        = float(formula)
-                else:
-                    self.sbml.removeParameter(str(variable))
-                    assignments[str(variable)] = formula
+            self.symbols[SymbolId.EXPRESSION][sym_id] = {
+                'name': str(sym_id),
+                'value': formula
+            }
 
-            if variable in fluxvars:
-                self.flux_vector = self.flux_vector.subs(variable, formula)
+        self.symbols[SymbolId.EXPRESSION] = toposort_symbols(
+            self.symbols[SymbolId.EXPRESSION], 'value'
+        )
 
-            if variable in volumevars:
-                self.compartment_volume = \
-                    self.compartment_volume.subs(variable, formula)
-
-            if variable in rulevars:
-                for nested_rule in rules:
-
-                    nested_formula = sp.sympify(
-                        _parse_logical_operators(sbml.formulaToL3String(nested_rule.getMath())),
-                        locals=self.local_symbols).subs(variable, formula)
-                    nested_formula = _parse_special_functions(nested_formula)
-                    _check_unsupported_functions(nested_formula, 'Rule')
-
-                    nested_rule_math_ml = mathml(nested_formula)
-                    nested_rule_math_ml_ast_node = sbml.readMathMLFromString(nested_rule_math_ml)
-
-                    if nested_rule_math_ml_ast_node is None:
-                        raise SBMLException(f'Formula {sbml.formulaToL3String(nested_rule.getMath())}'
-                                            f' cannot be correctly read by SymPy'
-                                            f' or cannot be converted to valid MathML by SymPy!')
-
-                    elif nested_rule.setMath(nested_rule_math_ml_ast_node) != sbml.LIBSBML_OPERATION_SUCCESS:
-                        raise SBMLException(f'Formula {sbml.formulaToL3String(nested_rule.getMath())}'
-                                            f' cannot be parsed by libSBML!')
-
-                for assignment in assignments:
-                    assignments[assignment] = assignments[assignment].subs(variable, formula)
-
-        # do this at the very end to ensure we have flattened all recursive
-        # rules
-        for variable in assignments.keys():
-            self._replace_in_all_expressions(
-                sp.Symbol(variable, real=True),
-                assignments[variable]
+        # expressions must not occur in definition of x0
+        for species in self.symbols[SymbolId.SPECIES].values():
+            species['init'] = self._make_initial(
+                smart_subs_dict(species['init'],
+                                self.symbols[SymbolId.EXPRESSION],
+                                'value')
             )
-        for comp, vol in zip(self.compartment_symbols,
-                             self.compartment_volume):
-            self._replace_in_all_expressions(
-                comp, vol
-            )
-
-    def _process_volume_conversion(self) -> None:
-        """
-        Convert equations from amount to volume.
-        """
-        compartments = self.species_compartment
-        for comp, vol in zip(self.compartment_symbols,
-                             self.compartment_volume):
-            if comp not in self.compartment_rate_rules:
-                compartments = compartments.subs(comp, vol)
-        for index, sunits in enumerate(self.species_has_only_substance_units):
-            if sunits:
-                self.flux_vector = \
-                    self.flux_vector.subs(
-                        self.symbols['species']['identifier'][index],
-                        self.symbols['species']['identifier'][index]
-                        * compartments[index]
-                    )
 
     def _process_time(self) -> None:
         """
         Convert time_symbol into cpp variable.
         """
-        sbml_time_symbol = sp.Symbol('time', real=True)
-        amici_time_symbol = sp.Symbol('t', real=True)
+        sbml_time_symbol = symbol_with_assumptions('time')
+        amici_time_symbol = symbol_with_assumptions('t')
         self.amici_time_symbol = amici_time_symbol
 
         self._replace_in_all_expressions(sbml_time_symbol, amici_time_symbol)
 
     @log_execution_time('processing SBML observables', logger)
-    def _process_observables(self,
-                             observables: Dict[str, Dict[str, str]],
-                             sigmas: Dict[str, Union[str, float]],
-                             noise_distributions: Dict[str, str]) -> None:
+    def _process_observables(
+            self,
+            observables: Optional[Dict[str, Dict[str, str]]] = None,
+            sigmas: Optional[Dict[str, Union[str, float]]] = None,
+            noise_distributions: Optional[Dict[str, str]] = None
+    ) -> None:
         """
-        Perform symbolic computations required for objective function
-        evaluation.
+        Perform symbolic computations required for observable and objective
+        function evaluation.
 
         :param observables:
             dictionary(observableId: {'name':observableName
@@ -1115,13 +891,10 @@ class SbmlImporter:
 
         :param noise_distributions:
             dictionary(observableId: noise type)
-            See :func:`sbml2amici`.
+            See :py:func:`sbml2amici`.
         """
 
-        if observables is None:
-            observables = {}
-
-        if sigmas is None:
+        if sigmas is None or observables is None:
             sigmas = {}
         else:
             # Ensure no non-existing observableIds have been specified
@@ -1132,7 +905,7 @@ class SbmlImporter:
                     f"Sigma provided for unknown observableIds: "
                     f"{unknown_ids}.")
 
-        if noise_distributions is None:
+        if noise_distributions is None or observables is None:
             noise_distributions = {}
         else:
             # Ensure no non-existing observableIds have been specified
@@ -1144,151 +917,182 @@ class SbmlImporter:
                     f"Noise distribution provided for unknown observableIds: "
                     f"{unknown_ids}.")
 
-        species_syms = self.symbols['species']['identifier']
-        assignments = {str(c): str(r)
-                       for c, r in self.compartment_assignment_rules.items()}
-        assignments.update({str(s): str(r)
-                            for s, r in self.species_assignment_rules.items()})
-
-        def replace_assignments(formula: str) -> sp.Basic:
-            """
-            Replace assignment rules in observables
-
-            :param formula:
-                algebraic formula of the observable
-
-            :return:
-                observable formula with assignment rules replaced
-            """
-            formula = sp.sympify(formula, locals=self.local_symbols)
-            for s in formula.free_symbols:
-                r = self.sbml.getAssignmentRuleByVariable(str(s))
-                if r is not None:
-                    rule_formula = _parse_logical_operators(
-                        sbml.formulaToL3String(r.getMath()))
-                    rule_formula = sp.sympify(
-                        rule_formula, locals=self.local_symbols)
-                    rule_formula = _parse_special_functions(rule_formula)
-                    _check_unsupported_functions(rule_formula, 'Rule')
-                    formula = formula.replace(s, rule_formula)
-            return formula
-
         # add user-provided observables or make all species, and compartments
         # with assignment rules, observable
         if observables:
-            # Replace logX(.) by log(., X) since symengine cannot parse the
-            # former. Also replace symengine-incompatible sbml log(basis, x)
-            for observable in observables:
-                observables[observable]['formula'] = re.sub(
-                    r'(^|\W)log(\d+)\(', r'\g<1>1/ln(\2)*ln(',
-                    observables[observable]['formula']
-                )
-                repl = replaceLogAB(observables[observable]['formula'])
-                if repl != observables[observable]['formula']:
-                    warnings.warn(
-                        f'Replaced "{observables[observable]["formula"]}" by '
-                        f'"{repl}", assuming first argument to log() was the '
-                        f'basis.'
+            self.symbols[SymbolId.OBSERVABLE] = {
+                symbol_with_assumptions(obs): {
+                    'name': definition.get('name', f'y{iobs}'),
+                    # Replace logX(.) by log(., X) since sympy cannot parse the
+                    # former.
+                    'value': self._sympy_from_sbml_math(
+                        definition['formula']
                     )
-                    observables[observable]['formula'] = repl
+                }
+                for iobs, (obs, definition) in enumerate(observables.items())
+            }
+        elif observables is None:
+            self._generate_default_observables()
 
-            observable_values = sp.Matrix([
-                replace_assignments(observables[observable]['formula'])
-                for observable in observables
-            ])
-            observable_names = [
-                observables[observable]['name'] if 'name' in observables[
-                    observable].keys()
-                else f'y{index}'
-                for index, observable in enumerate(observables)
-            ]
-            observable_syms = sp.Matrix([
-                sp.symbols(obs, real=True) for obs in observables.keys()
-            ])
-            observable_ids = observables.keys()
-        else:
-            observable_values = species_syms.copy() # prefer sympy's copy over deepcopy, see sympy issue #7672
-            observable_ids = [
-                f'x{index}' for index in range(len(species_syms))
-            ]
-            observable_names = observable_ids[:]
-            observable_syms = sp.Matrix(
-                [sp.symbols(f'y{index}', real=True)
-                 for index in range(len(species_syms))]
+        self._process_log_likelihood(sigmas, noise_distributions)
+
+    def _generate_default_observables(self):
+        """
+        Generate default observables from species, compartments and
+        (initial) assignment rules.
+        """
+        self.symbols[SymbolId.OBSERVABLE] = {
+            symbol_with_assumptions(f'y{species_id}'): {
+                'name': specie['name'],
+                'value': species_id
+            }
+            for ix, (species_id, specie)
+            in enumerate(self.symbols[SymbolId.SPECIES].items())
+        }
+
+        for variable, formula in itt.chain(
+                self.parameter_assignment_rules.items(),
+                self.initial_assignments.items(),
+                self.compartment_assignment_rules.items(),
+                self.species_assignment_rules.items(),
+                self.compartments.items()
+        ):
+            symbol = symbol_with_assumptions(f'y{variable}')
+            # Assignment rules take precedence over compartment volume
+            # definitions, so they need to be evaluated first.
+            # Species assignment rules always overwrite.
+            if symbol in self.symbols[SymbolId.OBSERVABLE] \
+                    and variable not in self.species_assignment_rules:
+                continue
+            self.symbols[SymbolId.OBSERVABLE][symbol] = {
+                'name': str(variable), 'value': formula
+            }
+
+    def _process_log_likelihood(self,
+                                sigmas: Dict[str, Union[str, float]],
+                                noise_distributions: Dict[str, str]):
+        """
+        Perform symbolic computations required for objective function
+        evaluation.
+
+        :param sigmas:
+            See :py:func:`SBMLImporter._process_observables`
+
+        :param noise_distributions:
+            See :py:func:`SBMLImporter._process_observables`
+        """
+
+        for obs_id, obs in self.symbols[SymbolId.OBSERVABLE].items():
+            obs['measurement_symbol'] = generate_measurement_symbol(obs_id)
+
+        self.symbols[SymbolId.SIGMAY] = {
+            symbol_with_assumptions(f'sigma_{obs_id}'): {
+                'name': f'sigma_{obs["name"]}',
+                'value': self._sympy_from_sbml_math(
+                    sigmas.get(str(obs_id), '1.0')
+                )
+            }
+            for obs_id, obs in self.symbols[SymbolId.OBSERVABLE].items()
+        }
+
+        self.symbols[SymbolId.LLHY] = {}
+        for (obs_id, obs), (sigma_id, sigma) in zip(
+                self.symbols[SymbolId.OBSERVABLE].items(),
+                self.symbols[SymbolId.SIGMAY].items()
+        ):
+            symbol = symbol_with_assumptions(f'J{obs_id}')
+            dist = noise_distributions.get(str(obs_id), 'normal')
+            cost_fun = noise_distribution_to_cost_function(dist)(obs_id)
+            value = sp.sympify(cost_fun, locals=dict(zip(
+                _get_str_symbol_identifiers(obs_id),
+                (obs_id, obs['measurement_symbol'], sigma_id)
+            )))
+            self.symbols[SymbolId.LLHY][symbol] = {
+                    'name': f'J{obs["name"]}',
+                    'value': value,
+                    'dist': dist,
+                }
+
+    @log_execution_time('processing SBML initial assignments', logger)
+    def _process_initial_assignments(self):
+        """
+        Accounts for initial assignments of parameters and species
+        references. Initial assignments for species and compartments are
+        processed in :py:func:`amici.SBMLImporter._process_initial_species` and
+        :py:func:`amici.SBMLImporter._process_compartments` respectively.
+        """
+        for ia in self.sbml.getListOfInitialAssignments():
+            identifier = _get_identifier_symbol(ia)
+            if identifier in itt.chain(self.symbols[SymbolId.SPECIES],
+                                       self.compartments):
+                continue
+
+            sym_math = self._get_element_initial_assignment(ia.getId())
+            if sym_math is None:
+                continue
+
+            sym_math = self._make_initial(smart_subs_dict(
+                sym_math, self.symbols[SymbolId.EXPRESSION], 'value'
+            ))
+            self.initial_assignments[_get_identifier_symbol(ia)] = sym_math
+
+        # sort and flatten
+        self.initial_assignments = toposort_symbols(self.initial_assignments)
+        for ia_id, ia in self.initial_assignments.items():
+            self.initial_assignments[ia_id] = smart_subs_dict(
+                ia, self.initial_assignments
             )
-            # Add compartment and species assignment rules as observables
-            # Useful for passing the SBML Test Suite (compartment volumes are
-            # used to calculate species amounts).
-            # The id's and names below may conflict with the automatically
-            # generated id's and names above.
-            for compartment in self.compartment_assignment_rules:
-                observable_values = observable_values.col_join(sp.Matrix(
-                    [self.compartment_assignment_rules[compartment]]))
-                observable_ids.append(str(compartment))
-                observable_names.append(str(compartment))
-                observable_syms = observable_syms.col_join(sp.Matrix(
-                    [compartment]))
-            for species in self.species_assignment_rules:
-                x_index = self.species_index[str(species)]
-                observable_values[x_index] = sp.Matrix(
-                    [replace_assignments(str(species))])
-                observable_ids[x_index] = str(species)
-                observable_names[x_index] = str(species)
-                observable_syms[x_index] = sp.Matrix([species])
 
-        sigma_y_syms = sp.Matrix(
-            [sp.symbols(f'sigma{symbol}', real=True)
-             for symbol in observable_syms]
-        )
-        sigma_y_values = sp.Matrix(
-            [1.0] * len(observable_syms)
-        )
+        for identifier, sym_math in list(self.initial_assignments.items()):
+            self._replace_in_all_expressions(identifier, sym_math)
 
-        # set user-provided sigmas
-        for iy, obs_name in enumerate(observables):
-            if obs_name in sigmas:
-                sigma_y_values[iy] = replace_assignments(sigmas[obs_name])
+    @log_execution_time('processing SBML species references', logger)
+    def _process_species_references(self):
+        """
+        Replaces species references that define anything but stoichiometries.
 
-        measurement_y_syms = sp.Matrix(
-            [sp.symbols(f'm{symbol}', real=True) for symbol in observable_syms]
-        )
-        measurement_y_values = sp.Matrix(
-            [0.0] * len(observable_syms)
-        )
+        Species references for stoichiometries are processed in
+        :py:func:`amici.SBMLImporter._process_reactions`.
+        """
+        # doesnt look like there is a better way to get hold of those lists:
+        species_references = _get_list_of_species_references(self.sbml)
+        for species_reference in species_references:
+            if hasattr(species_reference, 'getStoichiometryMath') and \
+                    species_reference.getStoichiometryMath() is not None:
+                raise SBMLException('StoichiometryMath is currently not '
+                                    'supported for species references.')
+            if species_reference.getId() == '':
+                continue
 
-        # set cost functions
-        llh_y_strings = []
-        for y_name in observable_ids:
-            llh_y_strings.append(noise_distribution_to_cost_function(
-                noise_distributions.get(y_name, 'normal')))
+            stoich = self._get_element_stoichiometry(species_reference)
+            self._replace_in_all_expressions(
+                _get_identifier_symbol(species_reference),
+                self._sympy_from_sbml_math(stoich)
+            )
 
-        llh_y_values = []
-        for llhYString, o_sym, m_sym, s_sym \
-                in zip(llh_y_strings, observable_syms,
-                       measurement_y_syms, sigma_y_syms):
-            f = sp.sympify(llhYString(o_sym), locals={str(o_sym): o_sym,
-                                                      str(m_sym): m_sym,
-                                                      str(s_sym): s_sym})
-            llh_y_values.append(f)
-        llh_y_values = sp.Matrix(llh_y_values)
+    def _make_initial(self, sym_math: Union[sp.Expr, None, float]
+                      ) -> Union[sp.Expr, None, float]:
+        """
+        Transforms an expression to its value at the initial time point by
+        replacing species by their initial values.
 
-        llh_y_syms = sp.Matrix(
-            [sp.Symbol(f'J{symbol}', real=True) for symbol in observable_syms]
-        )
+        :param sym_math:
+            symbolic expression
+        :return:
+            transformed expression
+        """
 
-        # set symbols
-        self.symbols['observable']['identifier'] = observable_syms
-        self.symbols['observable']['name'] = l2s(observable_names)
-        self.symbols['observable']['value'] = observable_values
-        self.symbols['sigmay']['identifier'] = sigma_y_syms
-        self.symbols['sigmay']['name'] = l2s(sigma_y_syms)
-        self.symbols['sigmay']['value'] = sigma_y_values
-        self.symbols['my']['identifier'] = measurement_y_syms
-        self.symbols['my']['name'] = l2s(measurement_y_syms)
-        self.symbols['my']['value'] = measurement_y_values
-        self.symbols['llhy']['value'] = llh_y_values
-        self.symbols['llhy']['name'] = l2s(llh_y_syms)
-        self.symbols['llhy']['identifier'] = llh_y_syms
+        if not isinstance(sym_math, sp.Expr):
+            return sym_math
+
+        for species_id, species in self.symbols[SymbolId.SPECIES].items():
+            if 'init' in species:
+                sym_math = smart_subs(sym_math, species_id, species['init'])
+
+        sym_math = smart_subs(sym_math, self._local_symbols['time'],
+                              sp.Float(0))
+
+        return sym_math
 
     def process_conservation_laws(self, ode_model, volume_updates) -> List:
         """
@@ -1298,24 +1102,25 @@ class SbmlImporter:
             ODEModel object with basic definitions
 
         :param volume_updates:
-            List with updates for the stoichiometrix matrix accounting for
+            List with updates for the stoichiometric matrix accounting for
             compartment volumes
 
         :returns volume_updates_solver:
             List (according to reduced stoichiometry) with updates for the
-            stoichiometrix matrix accounting for compartment volumes
+            stoichiometric matrix accounting for compartment volumes
         """
         conservation_laws = []
 
         # So far, only conservation laws for constant species are supported
-        species_solver = self._add_conservation_for_constant_species(
-            ode_model, conservation_laws)
+        species_solver = _add_conservation_for_constant_species(
+            ode_model, conservation_laws
+        )
 
         # Check, whether species_solver is empty now. As currently, AMICI
         # cannot handle ODEs without species, CLs must switched in this case
         if len(species_solver) == 0:
             conservation_laws = []
-            species_solver = list(range(ode_model.nx_rdata()))
+            species_solver = list(range(ode_model.num_states_rdata()))
 
         # prune out species from stoichiometry and
         volume_updates_solver = self._reduce_stoichiometry(species_solver,
@@ -1327,45 +1132,6 @@ class SbmlImporter:
 
         return volume_updates_solver
 
-    def _add_conservation_for_constant_species(
-            self,
-            ode_model: ODEModel,
-            conservation_laws: List[ConservationLaw]
-    ) -> List[int]:
-        """
-        Adds constant species to conservations laws
-
-        :param ode_model:
-            ODEModel object with basic definitions
-
-        :param conservation_laws:
-            List of already known conservation laws
-
-        :returns species_solver:
-            List of species indices which remain later in the ODE solver
-        """
-
-        # decide which species to keep in stoichiometry
-        species_solver = list(range(ode_model.nx_rdata()))
-
-        # iterate over species, find constant ones
-        for ix in reversed(range(ode_model.nx_rdata())):
-            if ode_model.state_is_constant(ix):
-                # dont use sym('x') here since conservation laws need to be
-                # added before symbols are generated
-                target_state = ode_model._states[ix].get_id()
-                total_abundance = sp.Symbol(f'tcl_{target_state}')
-                conservation_laws.append({
-                    'state': target_state,
-                    'total_abundance': total_abundance,
-                    'state_expr': total_abundance,
-                    'abundance_expr': target_state,
-                })
-                # mark species to delete from stoichiometrix matrix
-                species_solver.pop(ix)
-
-        return species_solver
-
     def _reduce_stoichiometry(self, species_solver, volume_updates) -> List:
         """
         Reduces the stoichiometry with respect to conserved quantities
@@ -1374,12 +1140,12 @@ class SbmlImporter:
             List of species indices which remain later in the ODE solver
 
         :param volume_updates:
-            List with updates for the stoichiometrix matrix accounting for
+            List with updates for the stoichiometric matrix accounting for
             compartment volumes
 
         :returns volume_updates_solver:
             List (according to reduced stoichiometry) with updates for the
-            stoichiometrix matrix accounting for compartment volumes
+            stoichiometric matrix accounting for compartment volumes
         """
 
         # prune out constant species from stoichiometric matrix
@@ -1389,15 +1155,30 @@ class SbmlImporter:
         # updates of stoichiometry (later dxdotdw in ode_exporter) must be
         # corrected for conserved quantities:
         volume_updates_solver = [(species_solver.index(ix), iw, val)
-                       for (ix, iw, val) in volume_updates
-                       if ix in species_solver]
+                                 for (ix, iw, val) in volume_updates
+                                 if ix in species_solver]
 
         return volume_updates_solver
 
+    def _replace_compartments_with_volumes(self):
+        """
+        Replaces compartment symbols in expressions with their respective
+        (possibly variable) volumes.
+        """
+        for comp, vol in self.compartments.items():
+            if comp in self.symbols[SymbolId.SPECIES]:
+                # for comps with rate rules volume is only initial
+                for species in self.symbols[SymbolId.SPECIES].values():
+                    if isinstance(species['init'], sp.Expr):
+                        species['init'] = smart_subs(species['init'],
+                                                     comp, vol)
+                continue
+            self._replace_in_all_expressions(comp, vol)
 
     def _replace_in_all_expressions(self,
                                     old: sp.Symbol,
-                                    new: sp.Symbol) -> None:
+                                    new: sp.Expr,
+                                    replace_identifiers=False) -> None:
         """
         Replace 'old' by 'new' in all symbolic expressions.
 
@@ -1407,184 +1188,213 @@ class SbmlImporter:
         :param new:
             replacement symbolic variables
         """
-        # Avoid replacing variables with rates
-        if old not in set((*self.compartment_rate_rules.keys(),
-                           *self.species_rate_rules.keys())):
-            fields = [
-                'stoichiometric_matrix', 'flux_vector',
-            ]
-            for field in fields:
-                if field in dir(self):
-                    self.__setattr__(field, self.__getattribute__(field).subs(
-                        old, new
-                    ))
-            for compartment in self.compartment_rate_rules:
-                self.compartment_rate_rules[compartment] = \
-                    self.compartment_rate_rules[compartment].subs(old, new)
-            for species in self.species_rate_rules:
-                self.species_rate_rules[species] = \
-                    self.species_rate_rules[species].subs(old, new)
-
-        symbols = [
-            'species', 'observable',
+        fields = [
+            'stoichiometric_matrix', 'flux_vector',
         ]
-        for symbol in symbols:
-            if symbol in self.symbols:
-                # Initial species values that are specified as amounts need to
-                # be divided by their compartment volume to obtain
-                # concentration. The condition below ensures that species
-                # initial amount is divided by the initial compartment size,
-                # and not the expression for a compartment assignment rule.
-                if symbol == 'species' and (
-                        old in self.compartment_assignment_rules):
-                    comp_v0 = self.compartment_volume[
-                        list(self.compartment_symbols).index(old)]
-                    self.symbols[symbol]['value'] = \
-                        self.symbols[symbol]['value'].subs(old, comp_v0)
-                else:
-                    # self.symbols['observable'] may not yet be defined.
-                    if not self.symbols[symbol]:
-                        continue
-                    self.symbols[symbol]['value'] = \
-                        self.symbols[symbol]['value'].subs(old, new)
+        for field in fields:
+            if field in dir(self):
+                self.__setattr__(field, smart_subs(
+                    self.__getattribute__(field), old, new
+                ))
 
-        for compartment in self.compartment_assignment_rules:
-            self.compartment_assignment_rules[compartment] = \
-                self.compartment_assignment_rules[compartment].subs(old, new)
+        dictfields = [
+            'compartment_assignment_rules', 'parameter_assignment_rules',
+            'initial_assignments'
+        ]
+        for dictfield in dictfields:
+            d = getattr(self, dictfield)
+
+            # replace identifiers
+            if old in d and replace_identifiers:
+                d[new] = d[old]
+                del d[old]
+
+            if dictfield == 'initial_assignments':
+                tmp_new = self._make_initial(new)
+            else:
+                tmp_new = new
+
+            # replace values
+            for k in d:
+                d[k] = smart_subs(d[k], old, tmp_new)
+
+        # replace in identifiers
+        if replace_identifiers:
+            for symbol in [SymbolId.EXPRESSION, SymbolId.SPECIES]:
+                # completely recreate the dict to keep ordering consistent
+                if old not in self.symbols[symbol]:
+                    continue
+                self.symbols[symbol] = {
+                    smart_subs(k, old, new): v
+                    for k, v in self.symbols[symbol].items()
+                }
+
+            for symbol in [SymbolId.OBSERVABLE, SymbolId.LLHY, SymbolId.SIGMAY]:
+                if old not in self.symbols[symbol]:
+                    continue
+                self.symbols[symbol][new] = self.symbols[symbol][old]
+                del self.symbols[symbol][old]
+
+        # replace in values
+        for symbol in [SymbolId.OBSERVABLE, SymbolId.LLHY, SymbolId.SIGMAY,
+                       SymbolId.EXPRESSION]:
+            if not self.symbols.get(symbol, None):
+                continue
+            for element in self.symbols[symbol].values():
+                element['value'] = smart_subs(element['value'], old, new)
+
+        if SymbolId.SPECIES in self.symbols:
+            for species in self.symbols[SymbolId.SPECIES].values():
+                species['init'] = smart_subs(species['init'],
+                                             old, self._make_initial(new))
+
+                fields = ['dt']
+                if replace_identifiers:
+                    fields.append('compartment')
+
+                for field in ['dt']:
+                    if field in species:
+                        species[field] = smart_subs(species[field], old, new)
+
         # Initial compartment volume may also be specified with an assignment
         # rule (at the end of the _process_species method), hence needs to be
         # processed here too.
-        for index in range(len(self.compartment_volume)):
-            if 'amici_time_symbol' in dir(self) and (
-                    new == self.amici_time_symbol):
-                self.compartment_volume[index] = \
-                    self.compartment_volume[index].subs(old, 0)
-            else:
-                self.compartment_volume[index] = \
-                    self.compartment_volume[index].subs(old, new)
+        self.compartments = {smart_subs(c, old, new) if replace_identifiers
+                             else c:
+                             smart_subs(v, old, self._make_initial(new))
+                             for c, v in self.compartments.items()}
 
     def _clean_reserved_symbols(self) -> None:
         """
         Remove all reserved symbols from self.symbols
         """
-        reserved_symbols = ['k', 'p', 'y', 'w']
+        reserved_symbols = ['x', 'k', 'p', 'y', 'w', 'h', 't']
         for sym in reserved_symbols:
-            old_symbol = sp.Symbol(sym, real=True)
-            new_symbol = sp.Symbol('amici_' + sym, real=True)
-            self._replace_in_all_expressions(old_symbol, new_symbol)
-            for symbol in self.symbols.keys():
-                if 'identifier' in self.symbols[symbol].keys():
-                    self.symbols[symbol]['identifier'] = \
-                        self.symbols[symbol]['identifier'].subs(old_symbol,
-                                                                new_symbol)
+            old_symbol = symbol_with_assumptions(sym)
+            new_symbol = symbol_with_assumptions(f'amici_{sym}')
+            self._replace_in_all_expressions(old_symbol, new_symbol,
+                                             replace_identifiers=True)
+            for symbols_ids, symbols in self.symbols.items():
+                if old_symbol in symbols:
+                    # reconstitute the whole dict in order to keep the ordering
+                    self.symbols[symbols_ids] = {
+                        new_symbol if k is old_symbol else k: v
+                        for k, v in symbols.items()
+                    }
 
-    def _replace_special_constants(self) -> None:
+    def _sympy_from_sbml_math(self, var_or_math: [sbml.SBase, str]
+                              ) -> Union[sp.Expr, float, None]:
         """
-        Replace all special constants by their respective SBML
-        csymbol definition
+        Sympify Math of SBML variables with all sanity checks and
+        transformations
+
+        :param var_or_math:
+            SBML variable that has a getMath() function or math string
+        :return:
+            sympfified symbolic expression
         """
-        constants = [
-            (sp.Symbol('avogadro', real=True), sp.Symbol('6.02214179e23')),
-        ]
-        for constant, value in constants:
-            # do not replace if any symbol is shadowing default definition
-            if not any([constant in self.symbols[symbol]['identifier']
-                        for symbol in self.symbols.keys()
-                        if 'identifier' in self.symbols[symbol].keys()]):
-                self._replace_in_all_expressions(constant, value)
-            else:
-                # yes sbml supports this but we wont. Are you really expecting
-                # to be saved if you are trying to shoot yourself in the foot?
-                raise SBMLException(
-                    f'Encountered currently unsupported element id {constant}!'
-                )
+        if isinstance(var_or_math, sbml.SBase):
+            math_string = sbml.formulaToL3StringWithSettings(
+                var_or_math.getMath(),
+                self.sbml_parser_settings
+            )
+            ele_name = var_or_math.element_name
+        else:
+            math_string = var_or_math
+            ele_name = 'string'
+        math_string = replace_logx(math_string)
+        try:
+            try:
+                formula = sp.sympify(_parse_logical_operators(
+                    math_string
+                ), locals=self._local_symbols)
+            except TypeError as err:
+                if str(err) == 'BooleanAtom not allowed in this context.':
+                    formula = sp.sympify(_parse_logical_operators(
+                        math_string
+                    ), locals={'true': sp.Float(1.0), 'false': sp.Float(0.0),
+                               **self._local_symbols})
+                else:
+                    raise
+        except (sp.SympifyError, TypeError, ZeroDivisionError) as err:
+            raise SBMLException(f'{ele_name} "{math_string}" '
+                                'contains an unsupported expression: '
+                                f'{err}.')
 
+        if isinstance(formula, sp.Expr):
+            formula = _parse_special_functions(formula)
+            _check_unsupported_functions(formula,
+                                         expression_type=ele_name)
+        return formula
 
-def get_rule_vars(rules: List[sbml.Rule],
-                  local_symbols: Dict[str, sp.Symbol] = None) -> sp.Matrix:
-    """
-    Extract free symbols in SBML rule formulas.
+    def _get_element_initial_assignment(self,
+                                        element_id: str) -> Union[sp.Expr,
+                                                                  None]:
+        """
+        Extract value of sbml variable according to its initial assignment
 
-    :param rules:
-        sbml definitions of rules
+        :param element_id:
+            sbml variable name
+        :return:
 
-    :param local_symbols:
-        locals to pass to sympy.sympify
+        """
+        assignment = self.sbml.getInitialAssignment(
+            element_id
+        )
+        if assignment is None:
+            return None
+        sym = self._sympy_from_sbml_math(assignment)
+        # this is an initial assignment so we need to use
+        # initial conditions
+        sym = self._make_initial(sym)
+        return sym
 
-    :return:
-        Tuple of free symbolic variables in the formulas all provided rules
-    """
-    return sp.Matrix(
-        [sp.sympify(sbml.formulaToL3String(rule.getMath()),
-                    locals=local_symbols)
-         for rule in rules if rule.getFormula() != '']
-    ).free_symbols
+    def _get_element_stoichiometry(self,
+                                   ele: sbml.SBase) -> sp.Expr:
+        """
+        Computes the stoichiometry of a reactant or product of a reaction
 
+        :param ele:
+            reactant or product
+        :return:
+            symbolic variable that defines stoichiometry
+        """
+        if ele.isSetId():
+            sym = self._get_element_initial_assignment(ele.getId())
+            if sym is not None:
+                return sym
 
-def replaceLogAB(x: str) -> str:
-    """
-    Replace log(a, b) in the given string by ln(b)/ln(a).
+            if self.is_assignment_rule_target(ele):
+                return _get_identifier_symbol(ele)
 
-    Works for nested parentheses and nested 'log's. This can be used to
-    circumvent the incompatible argument order between symengine (log(x,
-    basis)) and libsbml (log(basis, x)).
+        if ele.isSetStoichiometry():
+            return sp.Float(ele.getStoichiometry())
 
-    :param x:
-        string to replace
+        return sp.Float(1.0)
 
-    :return:
-        string with replaced 'log's
-    """
+    def is_assignment_rule_target(self,
+                                  element: sbml.SBase) -> bool:
+        """
+        Checks if an element has a valid assignment rule in the specified
+        model.
 
-    match = re.search(r'(^|\W)log\(', x)
-    if not match:
-        return x
+        :param element:
+            SBML variable
 
-    # index of 'l' of 'log'
-    log_start = match.start() if match.end() - match.start() == 4 \
-        else match.start() + 1
-    level = 0  # parenthesis level
-    pos_comma = -1  # position of comma in log(a,b)
-    for i in range(log_start + 4, len(x)):
-        if x[i] == '(':
-            level += 1
-        elif x[i] == ')':
-            level -= 1
-            if level == -1:
-                break
-        elif x[i] == ',' and level == 0:
-            pos_comma = i
+        :return:
+            boolean indicating truth of function name
+        """
+        a = self.sbml.getAssignmentRuleByVariable(element.getId())
+        if a is None or self._sympy_from_sbml_math(a) is None:
+            return False
 
-    if pos_comma < 0:
-        # was log(a), not log(a,b), so nothing to replace
-        return x
-
-    prefix = x[:log_start]
-    suffix = x[i+1:]
-    basis = x[log_start+4: pos_comma]
-    a = x[pos_comma+1: i]
-
-    replacement = f'{prefix}ln({a})/ln({basis}){suffix}'
-
-    return replaceLogAB(replacement)
-
-
-def l2s(inputs: List) -> List[str]:
-    """
-    Transforms a list into list of strings.
-
-    :param inputs:
-        objects
-
-    :return: list of str(object)
-    """
-    return [str(inp) for inp in inputs]
+        return True
 
 
 def _check_lib_sbml_errors(sbml_doc: sbml.SBMLDocument,
                            show_warnings: bool = False) -> None:
     """
-        Checks the error log in the current self.sbml_doc.
+    Checks the error log in the current self.sbml_doc.
 
     :param sbml_doc:
         SBML document
@@ -1597,8 +1407,8 @@ def _check_lib_sbml_errors(sbml_doc: sbml.SBMLDocument,
     num_fatal = sbml_doc.getNumErrors(sbml.LIBSBML_SEV_FATAL)
 
     if num_warning + num_error + num_fatal:
-        for iError in range(0, sbml_doc.getNumErrors()):
-            error = sbml_doc.getError(iError)
+        for i_error in range(0, sbml_doc.getNumErrors()):
+            error = sbml_doc.getError(i_error)
             # we ignore any info messages for now
             if error.getSeverity() >= sbml.LIBSBML_SEV_ERROR \
                     or (show_warnings and
@@ -1613,9 +1423,9 @@ def _check_lib_sbml_errors(sbml_doc: sbml.SBMLDocument,
         )
 
 
-def _check_unsupported_functions(sym: sp.Basic,
+def _check_unsupported_functions(sym: sp.Expr,
                                  expression_type: str,
-                                 full_sym: sp.Basic = None):
+                                 full_sym: Optional[sp.Expr] = None):
     """
     Recursively checks the symbolic expression for unsupported symbolic
     functions
@@ -1625,47 +1435,35 @@ def _check_unsupported_functions(sym: sp.Basic,
 
     :param expression_type:
         type of expression, only used when throwing errors
+
+    :param full sym:
+        outermost symbolic expression in recursive checks, only used for errors
     """
     if full_sym is None:
         full_sym = sym
 
-    unsupported_functions = [
+    # note that sp.functions.factorial, sp.functions.ceiling,
+    # sp.functions.floor applied to numbers should be simplified out and
+    # thus pass this test
+    unsupported_functions = (
         sp.functions.factorial, sp.functions.ceiling, sp.functions.floor,
-        sp.function.UndefinedFunction
-    ]
-
-    unsupp_fun_type = next(
-        (
-            fun_type
-            for fun_type in unsupported_functions
-            if isinstance(sym.func, fun_type)
-        ),
-        None
+        sp.functions.sec, sp.functions.csc, sp.functions.cot,
+        sp.functions.asec, sp.functions.acsc, sp.functions.acot,
+        sp.functions.acsch, sp.functions.acoth,
+        sp.Mod, sp.core.function.UndefinedFunction
     )
-    if unsupp_fun_type:
+
+    if isinstance(sym.func, unsupported_functions) \
+            or isinstance(sym, unsupported_functions):
         raise SBMLException(f'Encountered unsupported expression '
                             f'"{sym.func}" of type '
-                            f'"{unsupp_fun_type}" as part of a '
+                            f'"{type(sym.func)}" as part of a '
                             f'{expression_type}: "{full_sym}"!')
-    for fun in list(sym._args) + [sym]:
-        unsupp_fun_type = next(
-            (
-                fun_type
-                for fun_type in unsupported_functions
-                if isinstance(fun, fun_type)
-            ),
-            None
-        )
-        if unsupp_fun_type:
-            raise SBMLException(f'Encountered unsupported expression '
-                                f'"{fun}" of type '
-                                f'"{unsupp_fun_type}" as part of a '
-                                f'{expression_type}: "{full_sym}"!')
-        if fun is not sym:
-            _check_unsupported_functions(fun, expression_type)
+    for arg in list(sym.args):
+        _check_unsupported_functions(arg, expression_type)
 
 
-def _parse_special_functions(sym: sp.Basic, toplevel: bool = True) -> sp.Basic:
+def _parse_special_functions(sym: sp.Expr, toplevel: bool = True) -> sp.Expr:
     """
     Recursively checks the symbolic expression for functions which have be
     to parsed in a special way, such as piecewise functions
@@ -1676,30 +1474,174 @@ def _parse_special_functions(sym: sp.Basic, toplevel: bool = True) -> sp.Basic:
     :param toplevel:
         as this is called recursively, are we in the top level expression?
     """
-    args = tuple(_parse_special_functions(arg, False) for arg in sym._args)
+    args = tuple(arg if arg.__class__.__name__ == 'piecewise'
+                 and sym.__class__.__name__ == 'piecewise'
+                 else _parse_special_functions(arg, False)
+                 for arg in sym.args)
 
-    if sym.__class__.__name__ == 'abs':
-        return sp.Abs(sym._args[0])
-    elif sym.__class__.__name__ == 'xor':
-        return sp.Xor(*sym.args)
+    fun_mappings = {
+        'times': sp.Mul,
+        'xor': sp.Xor,
+        'abs': sp.Abs,
+        'min': sp.Min,
+        'max': sp.Max,
+        'ceil': sp.functions.ceiling,
+        'floor': sp.functions.floor,
+        'factorial': sp.functions.factorial,
+        'arcsin': sp.functions.asin,
+        'arccos': sp.functions.acos,
+        'arctan': sp.functions.atan,
+        'arccot': sp.functions.acot,
+        'arcsec': sp.functions.asec,
+        'arccsc': sp.functions.acsc,
+        'arcsinh': sp.functions.asinh,
+        'arccosh': sp.functions.acosh,
+        'arctanh': sp.functions.atanh,
+        'arccoth': sp.functions.acoth,
+        'arcsech': sp.functions.asech,
+        'arccsch': sp.functions.acsch,
+    }
+
+    if sym.__class__.__name__ in fun_mappings:
+        # c++ doesnt like mixing int and double for arguments of those
+        # functions
+        if sym.__class__.__name__ in ['min', 'max']:
+            args = tuple([
+                sp.Float(arg) if arg.is_number else arg
+                for arg in sym.args
+            ])
+        else:
+            args = sym.args
+        return fun_mappings[sym.__class__.__name__](*args)
+
     elif sym.__class__.__name__ == 'piecewise':
-        # how many condition-expression pairs will we have?
-        return sp.Piecewise(*grouper(args, 2, True))
-    elif isinstance(sym, (sp.Function, sp.Mul, sp.Add)):
+        # We need to parse piecewise functions into Heavisides
+        return _parse_piecewise_to_heaviside(
+            _denest_piecewise(args)
+        )
+
+    if sym.__class__.__name__ == 'plus' and not sym.args:
+        return sp.Float(0.0)
+
+    if isinstance(sym, (sp.Function, sp.Mul, sp.Add)):
         sym._args = args
-    elif toplevel:
+        
+    elif toplevel and isinstance(sym, BooleanAtom):
         # Replace boolean constants by numbers so they can be differentiated
         #  must not replace in Piecewise function. Therefore, we only replace
         #  it the complete expression consists only of a Boolean value.
-        if isinstance(sym, spTrue):
-            sym = sp.Float(1.0)
-        elif isinstance(sym, spFalse):
-            sym = sp.Float(0.0)
+        sym = sp.Float(int(bool(sym)))
 
     return sym
 
 
-def _parse_logical_operators(math_str: str) -> Union[str, None]:
+def _denest_piecewise(
+        args: Sequence[Union[sp.Expr, sp.logic.boolalg.Boolean, bool]]
+    ) -> Tuple[Union[sp.Expr, sp.logic.boolalg.Boolean, bool]]:
+    """
+    Denest piecewise functions that contain piecewise as condition
+
+    :param args:
+        Arguments to the piecewise function
+
+    :return:
+        Arguments where conditions no longer contain piecewise functions and
+        the conditional dependency is flattened out
+    """
+    args_out = []
+    for coeff, cond in grouper(args, 2, True):
+        # handling of this case is explicitely disabled in
+        # _parse_special_functions as keeping track of coeff/cond
+        # arguments is tricky. Simpler to just parse them out here
+        if coeff.__class__.__name__ == 'piecewise':
+            coeff = _parse_special_functions(coeff, False)
+
+        # we can have conditions that are piecewise function
+        # returning True or False
+        if cond.__class__.__name__ == 'piecewise':
+            # this keeps track of conditional that the previous
+            # piece was picked
+            previous_was_picked = sp.false
+            # recursively denest those first
+            for sub_coeff, sub_cond in grouper(
+                    _denest_piecewise(cond.args), 2, True
+            ):
+                # flatten the individual pieces
+                pick_this = sp.And(
+                    sp.Not(previous_was_picked), sub_cond
+                )
+                if sub_coeff == sp.true:
+                    args_out.extend([coeff, pick_this])
+                previous_was_picked = pick_this
+
+        else:
+            args_out.extend([coeff, cond])
+    # cut off last condition as that's the default
+    return tuple(args_out[:-1])
+
+
+def _parse_piecewise_to_heaviside(args: Iterable[sp.Expr]) -> sp.Expr:
+    """
+    Piecewise functions cannot be transformed into C++ right away, but AMICI has
+    a special interface for Heaviside function, so we transform them
+
+    :param args:
+        symbolic expressions for arguments of the piecewise function
+    """
+    # how many condition-expression pairs will we have?
+    formula = sp.Float(0.0)
+    not_condition = sp.Float(1.0)
+
+    for coeff, trigger in grouper(args, 2, True):
+        if isinstance(coeff, BooleanAtom):
+            coeff = sp.Float(int(bool(coeff)))
+
+        if trigger == sp.true:
+            return formula + coeff * not_condition
+
+        if trigger == sp.false:
+            continue
+
+        # we now need to convert the relational >, >=, ... expression into
+        # a trigger function which will be a Heaviside argument
+        root = _parse_trigger(trigger)
+
+        tmp = sp.Heaviside(root)
+        formula += coeff * sp.simplify(not_condition * tmp)
+        not_condition *= (1-tmp)
+
+    return formula
+
+
+def _parse_trigger(trigger: sp.Expr) -> sp.Expr:
+    """
+    Recursively translates a boolean trigger function into a real valued
+    root function
+
+    :param trigger:
+    :return: real valued root function expression
+    """
+    if trigger.is_Relational:
+        root = trigger.args[0] - trigger.args[1]
+        if isinstance(trigger, (sp.core.relational.StrictLessThan,
+                                sp.core.relational.LessThan)):
+            root *= -1
+        return root
+
+    if isinstance(trigger, sp.Or):
+        return sp.Max(*[_parse_trigger(arg)
+                        for arg in trigger.args])
+
+    if isinstance(trigger, sp.And):
+        return sp.Min(*[_parse_trigger(arg)
+                        for arg in trigger.args])
+
+    raise SBMLException('AMICI can not parse piecewise functions '
+                        f'with argument {trigger}.')
+
+
+def _parse_logical_operators(math_str: Union[str, float, None]
+                             ) -> Union[str, float, None]:
     """
     Parses a math string in order to replace logical operators by a form
     parsable for sympy
@@ -1709,8 +1651,8 @@ def _parse_logical_operators(math_str: str) -> Union[str, None]:
     :param math_str:
         parsed math_str
     """
-    if math_str is None:
-        return None
+    if not isinstance(math_str, str):
+        return math_str
 
     if ' xor(' in math_str or ' Xor(' in math_str:
         raise SBMLException('Xor is currently not supported as logical '
@@ -1720,7 +1662,7 @@ def _parse_logical_operators(math_str: str) -> Union[str, None]:
 
 
 def grouper(iterable: Iterable, n: int,
-            fillvalue: Any = None) -> Iterable[Iterable]:
+            fillvalue: Any = None) -> Iterable[Tuple[Any]]:
     """
     Collect data into fixed-length chunks or blocks
 
@@ -1741,18 +1683,18 @@ def grouper(iterable: Iterable, n: int,
     return itt.zip_longest(*args, fillvalue=fillvalue)
 
 
-def assignmentRules2observables(sbml_model,
-                                filter_function=lambda *_: True):
+def assignmentRules2observables(sbml_model: sbml.Model,
+                                filter_function: Callable = lambda *_: True):
     """
     Turn assignment rules into observables.
 
     :param sbml_model:
-        an sbml Model instance
+        Model to operate on
 
     :param filter_function:
-        callback function taking assignment variable as input and returning
-        True/False to indicate if the respective rule should be
-        turned into an observable
+        Callback function taking assignment variable as input and returning
+        ``True``/``False`` to indicate if the respective rule should be
+        turned into an observable.
 
     :return:
         A dictionary(observableId:{
@@ -1760,14 +1702,12 @@ def assignmentRules2observables(sbml_model,
         'formula': formulaString
         })
     """
-    warnings.warn("This function will be removed in future releases.",
-                  DeprecationWarning)
     observables = {}
     for p in sbml_model.getListOfParameters():
         parameter_id = p.getId()
         if filter_function(p):
             observables[parameter_id] = {
-                'name': p.getName(),
+                'name': p.getName() if p.isSetName() else p.getId(),
                 'formula': sbml_model.getAssignmentRuleByVariable(
                     parameter_id
                 ).getFormula()
@@ -1780,73 +1720,136 @@ def assignmentRules2observables(sbml_model,
     return observables
 
 
-def noise_distribution_to_cost_function(
-        noise_distribution: str
-) -> Callable[[str], str]:
+def _add_conservation_for_constant_species(
+        ode_model: ODEModel,
+        conservation_laws: List[ConservationLaw]
+) -> List[int]:
     """
-    Parse noise distribution string to a cost function definition amici can
-    work with.
+    Adds constant species to conservations laws
 
-    :param noise_distribution: An identifier specifying a noise model.
-        Possible values are {'normal', 'log-normal', 'log10-normal', 'laplace',
-        'log-laplace', 'log10-laplace'}
+    :param ode_model:
+        ODEModel object with basic definitions
 
-    :return: A function that takes a strSymbol and then creates a cost
-        function string (negative log-likelihood) from it, which can be
-        sympified.
+    :param conservation_laws:
+        List of already known conservation laws
+
+    :returns species_solver:
+        List of species indices which remain later in the ODE solver
     """
-    if noise_distribution in ['normal', 'lin-normal']:
-        def nllh_y_string(str_symbol):
-            return f'0.5*log(2*pi*sigma{str_symbol}**2) ' \
-                f'+ 0.5*(({str_symbol} - m{str_symbol}) ' \
-                f'/ sigma{str_symbol})**2'
-    elif noise_distribution == 'log-normal':
-        def nllh_y_string(str_symbol):
-            return f'0.5*log(2*pi*sigma{str_symbol}**2*m{str_symbol}**2) ' \
-                f'+ 0.5*((log({str_symbol}) - log(m{str_symbol})) ' \
-                f'/ sigma{str_symbol})**2'
-    elif noise_distribution == 'log10-normal':
-        def nllh_y_string(str_symbol):
-            return f'0.5*log(2*pi*sigma{str_symbol}**2' \
-                f'*m{str_symbol}**2*log(10)**2) ' \
-                f'+ 0.5*((log({str_symbol}, 10) - log(m{str_symbol}, 10)) ' \
-                f'/ sigma{str_symbol})**2'
-    elif noise_distribution in ['laplace', 'lin-laplace']:
-        def nllh_y_string(str_symbol):
-            return f'log(2*sigma{str_symbol}) ' \
-                f'+ Abs({str_symbol} - m{str_symbol}) ' \
-                f'/ sigma{str_symbol}'
-    elif noise_distribution == 'log-laplace':
-        def nllh_y_string(str_symbol):
-            return f'log(2*sigma{str_symbol}*m{str_symbol}) ' \
-                f'+ Abs(log({str_symbol}) - log(m{str_symbol})) ' \
-                f'/ sigma{str_symbol}'
-    elif noise_distribution == 'log10-laplace':
-        def nllh_y_string(str_symbol):
-            return f'log(2*sigma{str_symbol}*m{str_symbol}*log(10)) ' \
-                f'+ Abs(log({str_symbol}, 10) - log(m{str_symbol}, 10)) ' \
-                f'/ sigma{str_symbol}'
-    else:
-        raise ValueError(
-            f"Cost identifier {noise_distribution} not recognized.")
 
-    return nllh_y_string
+    # decide which species to keep in stoichiometry
+    species_solver = list(range(ode_model.num_states_rdata()))
 
-class MathMLSbmlPrinter(MathMLContentPrinter):
-    """Prints a SymPy expression to a MathML expression parsable by libSBML.
-    Differences from `sympy.MathMLContentPrinter`:
-    1. underscores in symbol names are not converted to subscripts
-    2. symbols with name 'time' are converted to the SBML time symbol
+    # iterate over species, find constant ones
+    for ix in reversed(range(ode_model.num_states_rdata())):
+        if ode_model.state_is_constant(ix):
+            # dont use sym('x') here since conservation laws need to be
+            # added before symbols are generated
+            target_state = ode_model._states[ix].get_id()
+            total_abundance = symbol_with_assumptions(f'tcl_{target_state}')
+            conservation_laws.append({
+                'state': target_state,
+                'total_abundance': total_abundance,
+                'state_expr': total_abundance,
+                'abundance_expr': target_state,
+            })
+            # mark species to delete from stoichiometric matrix
+            species_solver.pop(ix)
+
+    return species_solver
+
+
+def _get_species_compartment_symbol(species: sbml.Species) -> sp.Symbol:
     """
-    def _print_Symbol(self, sym):
-        ci = self.dom.createElement(self.mathml_tag(sym))
-        ci.appendChild(self.dom.createTextNode(sym.name))
-        return ci
-    def doprint(self, expr):
-        mathml = super().doprint(expr)
-        mathml = '<math xmlns="http://www.w3.org/1998/Math/MathML">' + mathml + '</math>'
-        mathml = mathml.replace(f'<ci>time</ci>', '<csymbol encoding="text" definitionURL="http://www.sbml.org/sbml/symbols/time"> time </csymbol>')
-        return mathml
+    Generate compartment symbol for the compartment of a specific species.
+    This function will always return the same unique python object for a
+    given species name.
 
-def mathml(expr, **settings):
-    return MathMLSbmlPrinter(settings).doprint(expr)
+    :param species:
+        sbml species
+    :return:
+        compartment symbol
+    """
+    return symbol_with_assumptions(species.getCompartment())
+
+
+def _get_identifier_symbol(var: sbml.SBase) -> sp.Symbol:
+    """
+    Generate identifier symbol for a sbml variable.
+    This function will always return the same unique python object for a
+    given entity.
+
+    :param var:
+        sbml variable
+    :return:
+        identifier symbol
+    """
+    return symbol_with_assumptions(var.getId())
+
+
+def _get_species_initial(species: sbml.Species) -> sp.Expr:
+    """
+    Extract the initial concentration from a given species
+
+    :param species:
+        species index
+
+    :return:
+        initial species concentration
+    """
+    if species.isSetInitialConcentration():
+        conc = species.getInitialConcentration()
+        if species.getHasOnlySubstanceUnits():
+            return sp.Float(conc) * _get_species_compartment_symbol(species)
+        else:
+            return sp.Float(conc)
+
+    if species.isSetInitialAmount():
+        amt = species.getInitialAmount()
+        if math.isnan(amt):
+            return sp.Float(0.0)
+
+        if species.getHasOnlySubstanceUnits():
+            return sp.Float(amt)
+        else:
+            return sp.Float(amt) / _get_species_compartment_symbol(species)
+
+    return sp.Float(0.0)
+
+
+def _get_list_of_species_references(sbml_model: sbml.Model) \
+        -> List[sbml.SpeciesReference]:
+    """
+    Extracts list of species references as SBML doesn't provide a native
+    function for this.
+
+    :param sbml_model:
+        SBML model instance
+
+    :return:
+        ListOfSpeciesReferences
+    """
+    return [
+        reference
+        for element in sbml_model.all_elements
+        if isinstance(element, sbml.ListOfSpeciesReferences)
+        for reference in element
+    ]
+
+
+def replace_logx(math_str: Union[str, float, None]) -> Union[str, float, None]:
+    """
+    Replace logX(.) by log(., X) since sympy cannot parse the former
+
+    :param math_str:
+        string for sympification
+
+    :return:
+        sympifiable string
+    """
+    if not isinstance(math_str, str):
+        return math_str
+
+    return re.sub(
+        r'(^|\W)log(\d+)\(', r'\g<1>1/ln(\2)*ln(', math_str
+    )

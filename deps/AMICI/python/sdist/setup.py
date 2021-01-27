@@ -53,7 +53,6 @@ except ImportError:
     try_install('setuptools')
     from setuptools import find_packages, setup, Extension
 
-
 # Add current directory to path, as we need some modules from the AMICI
 # package already for installation
 sys.path.insert(0, os.getcwd())
@@ -69,7 +68,6 @@ from amici.setuptools import (
     add_debug_flags_if_required,
     add_openmp_flags,
 )
-
 
 # Python version check. We need >= 3.6 due to e.g. f-strings
 if sys.version_info < (3, 6):
@@ -90,6 +88,10 @@ def main():
         f'-l{lib}' for lib in blaspkgcfg['libraries'])
     define_macros.extend(blaspkgcfg['define_macros'])
 
+    extension_sources = [
+        'amici/amici_wrap.cxx',  # swig interface
+    ]
+
     h5pkgcfg = get_hdf5_config()
 
     if h5pkgcfg['found']:
@@ -100,15 +102,10 @@ def main():
         amici_module_linker_flags.extend(
             [f'-l{lib}' for lib in
              ['hdf5_hl_cpp', 'hdf5_hl', 'hdf5_cpp', 'hdf5']])
-        extension_sources = [
-            'amici/amici_wrap.cxx',  # swig interface
-        ]
         define_macros.extend(h5pkgcfg['define_macros'])
     else:
         print("HDF5 library NOT found. Building AMICI WITHOUT HDF5 support.")
-        extension_sources = [
-            'amici/amici_wrap_without_hdf5.cxx',  # swig interface
-        ]
+        define_macros.append(('AMICI_SWIG_WITHOUT_HDF5', None))
 
     add_coverage_flags_if_required(
         cxx_flags,
@@ -187,16 +184,13 @@ def main():
         description='Advanced multi-language Interface to CVODES and IDAS',
         long_description=long_description,
         long_description_content_type="text/markdown",
-        url='https://github.com/ICB-DCM/AMICI',
+        url='https://github.com/AMICI-dev/AMICI',
         author='Fabian Froehlich, Jan Hasenauer, Daniel Weindl and '
                'Paul Stapor',
         author_email='fabian_froehlich@hms.harvard.edu',
         license='BSD',
         libraries=[libamici, libsundials, libsuitesparse],
         ext_modules=[amici_module],
-        py_modules=['amici/amici',  # the swig interface
-                    'amici/amici_without_hdf5',  # the swig interface
-                    ],
         packages=find_packages(),
         package_dir={'amici': 'amici'},
         entry_points={
@@ -206,16 +200,17 @@ def main():
                 'amici_import_petab.py = amici.petab_import:main'
             ]
         },
-        install_requires=['sympy>=1.6.0',
+        install_requires=['sympy>=1.7.1',
                           'python-libsbml',
                           'h5py',
                           'pandas',
                           'pkgconfig',
-                          'wurlitzer'],
+                          'wurlitzer',
+                          'toposort'],
         setup_requires=['setuptools>=40.6.3'],
         python_requires='>=3.6',
         extras_require={
-            'petab': ['petab==0.1.7'],
+            'petab': ['petab>=0.1.11'],
             'pysb': ['pysb>=1.11.0']
         },
         package_data={
@@ -223,8 +218,6 @@ def main():
                       'src/*template*',
                       'swig/*',
                       'libs/*',
-                      'amici.py',
-                      'amici_without_hdf5.py',
                       'setup.py.template',
                       ],
         },
