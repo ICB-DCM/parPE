@@ -105,8 +105,8 @@ void hdf5CreateExtendableDouble2DArray(const H5::H5File &file,
     H5::DSetCreatPropList dSetCreatPropList;
     dSetCreatPropList.setChunk(rank, chunkDimensions);
 
-    auto dataset = file.createDataSet(datasetPath, H5T_NATIVE_DOUBLE, dataspace,
-                                      dSetCreatPropList);
+    auto dataset = file.createDataSet(datasetPath, H5::PredType::NATIVE_DOUBLE,
+                                      dataspace, dSetCreatPropList);
 }
 
 void hdf5Extend2ndDimensionAndWriteToDouble2DArray(const H5::H5File &file, const std::string &datasetPath, gsl::span<const double> buffer)
@@ -142,7 +142,7 @@ void hdf5Extend2ndDimensionAndWriteToDouble2DArray(const H5::H5File &file, const
     filespace.selectHyperslab(H5S_SELECT_SET, slabsize, offset);
 
     H5::DataSpace memspace(rank, slabsize);
-    dataset.write(buffer.data(), H5T_NATIVE_DOUBLE, memspace, filespace);
+    dataset.write(buffer.data(), H5::PredType::NATIVE_DOUBLE, memspace, filespace);
 }
 
 void hdf5Extend3rdDimensionAndWriteToDouble3DArray(const H5::H5File &file,
@@ -174,7 +174,7 @@ void hdf5Extend3rdDimensionAndWriteToDouble3DArray(const H5::H5File &file,
 
     auto memspace = H5::DataSpace(rank, slabsize);
 
-    dataset.write(buffer.data(), H5T_NATIVE_DOUBLE, memspace, filespace);
+    dataset.write(buffer.data(), H5::PredType::NATIVE_DOUBLE, memspace, filespace);
 }
 
 void hdf5CreateOrExtendAndWriteToDouble2DArray(const H5::H5File &file,
@@ -265,7 +265,7 @@ void hdf5Extend2ndDimensionAndWriteToInt2DArray(const H5::H5File &file,
     filespace.selectHyperslab(H5S_SELECT_SET, slabsize, offset);
 
     H5::DataSpace memspace(rank, slabsize);
-    dataset.write(buffer.data(), H5T_NATIVE_INT, memspace, filespace);
+    dataset.write(buffer.data(), H5::PredType::NATIVE_INT, memspace, filespace);
 }
 
 void hdf5CreateExtendableInt2DArray(const H5::H5File &file,
@@ -286,8 +286,8 @@ void hdf5CreateExtendableInt2DArray(const H5::H5File &file,
     datasetCreationProperty.setChunk(rank, chunkDimensions);
 
     Expects(H5Tget_size(H5T_NATIVE_INT) == sizeof(int));
-    auto dataset = file.createDataSet(datasetPath, H5T_NATIVE_INT, dataspace,
-                                      datasetCreationProperty);
+    auto dataset = file.createDataSet(datasetPath, H5::PredType::NATIVE_INT,
+                                      dataspace, datasetCreationProperty);
 
 }
 
@@ -310,8 +310,8 @@ void hdf5CreateExtendableDouble3DArray(const H5::H5File &file,
     H5::DSetCreatPropList datasetCreationProperty;
     datasetCreationProperty.setChunk(rank, chunkDimensions);
 
-    auto dataset = file.createDataSet(datasetPath, H5T_NATIVE_DOUBLE, dataspace,
-                                      datasetCreationProperty);
+    auto dataset = file.createDataSet(datasetPath, H5::PredType::NATIVE_DOUBLE,
+                                      dataspace, datasetCreationProperty);
 }
 
 void hdf5Read2DDoubleHyperslab(const H5::H5File &file,
@@ -346,7 +346,7 @@ void hdf5Read2DDoubleHyperslab(const H5::H5File &file,
 
     H5::DataSpace memspace(2, count);
 
-    dataset.read(buffer.data(), H5T_NATIVE_DOUBLE, memspace, dataspace);
+    dataset.read(buffer.data(), H5::PredType::NATIVE_DOUBLE, memspace, dataspace);
 }
 
 std::vector<int> hdf5Read1DIntegerHyperslab(H5::H5File const& file,
