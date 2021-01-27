@@ -185,7 +185,7 @@ std::vector<double> OptimizationOptions::getStartingPoint(H5::H5File const& file
         if (dims[1] < static_cast<hsize_t>(index)) {
             logmessage(LOGLVL_ERROR,
                        "Requested starting point index %d out of bounds (%d)",
-                       static_cast<int>(index), static_cast<int>(dims[1]));
+                       index, static_cast<int>(dims[1]));
             return startingPoint;
         }
 
@@ -197,7 +197,7 @@ std::vector<double> OptimizationOptions::getStartingPoint(H5::H5File const& file
                 startingPoint);
 
 
-    }  catch (H5::Exception&) {
+    }  catch (H5::Exception const&) {
         if (H5Eget_num(H5E_DEFAULT)) {
             error("Problem in OptimizationOptions::getStartingPoint\n");
             H5Ewalk2(H5E_DEFAULT, H5E_WALK_DOWNWARD, hdf5ErrorStackWalker_cb, nullptr);

@@ -82,7 +82,7 @@ void hdf5CreateGroup(const H5::H5File &file, const std::string &groupPath, bool 
 
     try {
         auto group = file.createGroup(groupPath, groupCreationPropertyList);
-    }  catch (H5::Exception&) {
+    }  catch (H5::Exception const&) {
         throw(HDF5Exception("Failed to create group in hdf5CreateGroup:" +
                             groupPath));
     }
@@ -525,7 +525,7 @@ H5::H5File hdf5CreateFile(const std::string &filename,
         file = H5::H5File(filename, H5F_ACC_TRUNC);
         H5_RESTORE_ERROR_HANDLER;
         return file;
-    }  catch (H5::Exception&) {
+    }  catch (H5::Exception const&) {
         H5Eprint(H5E_DEFAULT, stderr);
         H5_RESTORE_ERROR_HANDLER;
         printBacktrace();
