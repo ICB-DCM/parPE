@@ -32,8 +32,7 @@ MultiConditionDataProviderHDF5::MultiConditionDataProviderHDF5(
     auto lock = hdf5MutexGetLock();
     file_ = hdf5OpenForReading(hdf5Filename);
 
-    optimization_options_ =
-      parpe::OptimizationOptions::fromHDF5(getHdf5FileId());
+    optimization_options_ = parpe::OptimizationOptions::fromHDF5(file_);
 
     hdf5_measurement_path_ = rootPath + "/measurements/y";
     hdf5_measurement_sigma_path_ = rootPath + "/measurements/ysigma";
@@ -456,10 +455,12 @@ MultiConditionDataProviderHDF5::getSimAndPreeqConditions(
     reinitializeFixedParameterInitialStates = tmp[2];
 }
 
-hid_t
-MultiConditionDataProviderHDF5::getHdf5FileId() const
+
+H5::H5File MultiConditionDataProviderHDF5::getHdf5File() const
 {
-    return file_.getId();
+    auto lock = hdf5MutexGetLock();
+    H5::H5File result(file_);
+    return result;
 }
 
 // void MultiConditionDataProvider::printInfo() const {

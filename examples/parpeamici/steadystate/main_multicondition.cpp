@@ -35,7 +35,7 @@
  */
 
 class SteadystateApplication : public parpe::OptimizationApplication {
-  public:
+public:
     using OptimizationApplication::OptimizationApplication;
 
     ~SteadystateApplication() override = default;
@@ -49,10 +49,11 @@ class SteadystateApplication : public parpe::OptimizationApplication {
         logParPEVersion(h5File);
 
         dataProvider = std::make_unique<SteadyStateMultiConditionDataProvider>(
-            amici::generic_model::getModel(), inFileArgument);
+                    amici::generic_model::getModel(), inFileArgument);
 
         // read options from file
-        auto optimizationOptions = parpe::OptimizationOptions::fromHDF5(dataProvider->getHdf5FileId());
+        auto optimizationOptions = parpe::OptimizationOptions::fromHDF5(
+                    dataProvider->getHdf5File());
 
         // Create one instance for the problem, one for the application for clear ownership
         auto multiCondProb = new parpe::MultiConditionProblem(
@@ -100,7 +101,7 @@ class SteadystateApplication : public parpe::OptimizationApplication {
  * in the base class and performs only a single optimization run. This is mostly for debugging.
  */
 class SteadystateLocalOptimizationApplication : public SteadystateApplication {
-  public:
+public:
 
     using SteadystateApplication::SteadystateApplication;
 
