@@ -109,4 +109,4 @@ string(REGEX REPLACE "([^;]+)"
 install(
     FILES ${HEADER_LIST}
     DESTINATION
-    include)
+    include/parpeoptimization)
