@@ -192,8 +192,9 @@ std::unique_ptr<OptimizationProblem> MultiConditionProblemMultiStartOptimization
                     nullptr);
     }
     problem->setOptimizationOptions(options_);
-    problem->setInitialParameters(parpe::OptimizationOptions::getStartingPoint(
-                                      data_provider_->getHdf5FileId(), multiStartIndex));
+    problem->setInitialParameters(
+                parpe::OptimizationOptions::getStartingPoint(
+                    data_provider_->getHdf5File(), multiStartIndex));
 
     if(options_.hierarchicalOptimization)
         return std::unique_ptr<OptimizationProblem>(

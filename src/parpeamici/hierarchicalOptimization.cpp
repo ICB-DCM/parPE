@@ -580,7 +580,7 @@ HierarchicalOptimizationProblemWrapper::HierarchicalOptimizationProblemWrapper(
         new HierarchicalOptimizationWrapper(
             dynamic_cast<AmiciSummedGradientFunction*>(
                 wrappedFun->getWrappedFunction()),
-            dataProvider->getHdf5FileId(),
+            dataProvider->getHdf5File(),
             "/",
             dataProvider->getNumberOfSimulationConditions(),
             model->nytrue,

@@ -32,8 +32,7 @@ MultiConditionDataProviderHDF5::MultiConditionDataProviderHDF5(
     auto lock = hdf5MutexGetLock();
     file_ = hdf5OpenForReading(hdf5Filename);
 
-    optimization_options_ =
-      parpe::OptimizationOptions::fromHDF5(getHdf5FileId());
+    optimization_options_ = parpe::OptimizationOptions::fromHDF5(file_);
 
     hdf5_measurement_path_ = rootPath + "/measurements/y";
     hdf5_measurement_sigma_path_ = rootPath + "/measurements/ysigma";
@@ -81,7 +80,7 @@ MultiConditionDataProviderHDF5::getSimulationToOptimizationParameterMapping(
 {
     std::string path = hdf5_simulation_to_optimization_parameter_mapping_path_;
 
-    if (hdf5DatasetExists(file_, path)) {
+    if (file_.nameExists(path)) {
         return hdf5Read2DIntegerHyperslab(
           file_, path, model_->np(), 1, 0, conditionIdx);
     }
@@ -128,10 +127,10 @@ MultiConditionDataProviderHDF5::mapAndSetOptimizationToSimulationVariables(
     auto mapping = getSimulationToOptimizationParameterMapping(conditionIdx);
 
     std::vector<double> overrides;
-    if (hdf5DatasetExists(file_, hdf5_parameter_overrides_path)) {
+    if (file_.nameExists(hdf5_parameter_overrides_path)) {
         overrides.resize(model_->np());
-        hdf5Read2DDoubleHyperslab(file_.getId(),
-                                  hdf5_parameter_overrides_path.c_str(),
+        hdf5Read2DDoubleHyperslab(file_,
+                                  hdf5_parameter_overrides_path,
                                   model_->np(),
                                   1,
                                   0,
@@ -456,10 +455,12 @@ MultiConditionDataProviderHDF5::getSimAndPreeqConditions(
     reinitializeFixedParameterInitialStates = tmp[2];
 }
 
-hid_t
-MultiConditionDataProviderHDF5::getHdf5FileId() const
+
+H5::H5File MultiConditionDataProviderHDF5::getHdf5File() const
 {
-    return file_.getId();
+    auto lock = hdf5MutexGetLock();
+    H5::H5File result(file_);
+    return result;
 }
 
 // void MultiConditionDataProvider::printInfo() const {
