@@ -19,8 +19,9 @@ set(SRC_LIST
 add_library(${PROJECT_NAME} ${SRC_LIST})
 
 target_include_directories(${PROJECT_NAME}
-    PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/../
-    PUBLIC ${CMAKE_SOURCE_DIR}/include/
+    PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/../>"
+    PUBLIC "$<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include/>"
+           "$<INSTALL_INTERFACE:include>"
     PUBLIC ${HDF5_INCLUDE_DIRS}
     PUBLIC ${GSL_INCLUDE_DIRS}
     )
