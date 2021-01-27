@@ -450,7 +450,7 @@ void hdf5Read3DDoubleHyperslab(H5::H5File const& file,
     dataspace.selectHyperslab(H5S_SELECT_SET, count, offset);
 
     H5::DataSpace memspace(rank, count);
-    dataset.read(buffer.data(), H5T_NATIVE_DOUBLE, memspace, dataspace);
+    dataset.read(buffer.data(), H5::PredType::NATIVE_DOUBLE, memspace, dataspace);
 }
 
 
