@@ -74,8 +74,11 @@ void hdf5CreateGroup(const H5::H5File &file, const std::string &groupPath, bool 
 {
     std::lock_guard<mutexHdfType> lock(mutexHdf);
 
-    H5::LinkCreatPropList groupCreationPropertyList;
-    groupCreationPropertyList.setCreateIntermediateGroup(recursively);
+    // requires HDF5 >=1.10.6, so needs some C here
+    // groupCreationPropertyList.setCreateIntermediateGroup(recursively);
+    auto groupCreationPropertyListTmp = H5Pcreate(H5P_LINK_CREATE);
+    H5Pset_create_intermediate_group(groupCreationPropertyListTmp, recursively);
+    H5::LinkCreatPropList groupCreationPropertyList(groupCreationPropertyListTmp);
 
     try {
         auto group = file.createGroup(groupPath, groupCreationPropertyList);
