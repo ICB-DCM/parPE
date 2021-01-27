@@ -261,9 +261,6 @@ install(
     "${CMAKE_CURRENT_BINARY_DIR}/ParPEConfigVersion.cmake"
     DESTINATION "${LIB_INSTALL_DIR}/cmake/")
 
-configure_file("CMakeModules/ParPEConfig.cmake.in"
-    "${CMAKE_CURRENT_BINARY_DIR}/ParPEConfig.cmake"
-    @ONLY)
 
 # Register package
 if(${PARPE_EXPORT_PACKAGE})
