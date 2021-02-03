@@ -10,9 +10,9 @@ make_opts=${MAKEOPTS-}
 cd "${script_dir}"
 
 # build EIGEN
-eigen_url="http://bitbucket.org/eigen/eigen/get/3.3.3.tar.gz"
+eigen_url="https://gitlab.com/libeigen/eigen/-/archive/3.3.3/eigen-3.3.3.tar.gz"
 eigen_archive="eigen-3.3.3.tar.gz"
-eigen_dir="${script_dir}/eigen-eigen-67e894c6cd8f"
+eigen_dir="${script_dir}/eigen-3.3.3"
 eigen_build_dir="${eigen_dir}/build"
 eigen_install_dir="${eigen_build_dir}/install"
 
