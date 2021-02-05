@@ -80,7 +80,9 @@ ThirdParty/installDeps.sh
 NOTE: When using `ThirdParty/installIpopt.sh` to build Ipopt, you may have to
 download the HSL library separately as described at
 https://coin-or.github.io/Ipopt/INSTALL.html#DOWNLOAD_HSL. Place the HSL
-archive into `ThirdParty` before running `ThirdParty/installIpopt.sh`.
+archive into `ThirdParty` before running `ThirdParty/installIpopt.sh`. If asked
+type in your coinhsl version (e.g. `2019.05.21` if you
+have `coinhsl-2019.05.21.tar.gz`).
 
 
 ## Building
