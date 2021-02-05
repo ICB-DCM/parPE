@@ -36,6 +36,9 @@ if [[ ! -d "${ipopt_dir}" ]]; then
     if [[ -f "${script_dir}/coinhsl-2015.06.23.tar.gz" ]]; then
       tar -xzf "${script_dir}/coinhsl-2015.06.23.tar.gz"
       mv coinhsl-2015.06.23 coinhsl
+    elif [[ -f "${script_dir}/coinhsl-2014.01.10.tar.gz" ]]; then
+      tar -xzf "${script_dir}/coinhsl-2014.01.10.tar.gz"
+      mv coinhsl-2014.01.10 coinhsl
     elif [[ -f "${script_dir}/coinhsl-2019.05.21.tar.gz" ]]; then
       tar -xzf "${script_dir}/coinhsl-2019.05.21.tar.gz"
       mv coinhsl-2019.05.21 coinhsl
