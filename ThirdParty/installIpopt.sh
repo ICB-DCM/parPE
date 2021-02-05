@@ -39,10 +39,20 @@ if [[ ! -d "${ipopt_dir}" ]]; then
     elif [[ -f "${script_dir}/coinhsl-2014.01.10.tar.gz" ]]; then
       tar -xzf "${script_dir}/coinhsl-2014.01.10.tar.gz"
       mv coinhsl-2014.01.10 coinhsl
+    elif [[ -f "${script_dir}/coinhsl-2019.05.21.tar.gz" ]]; then
+      tar -xzf "${script_dir}/coinhsl-2019.05.21.tar.gz"
+      mv coinhsl-2019.05.21 coinhsl
     else
       echo "Did not find coinhsl/ or a known coinhsl archive."
-      echo "Press any key to continue"
-      read -n 1 -s -r
+      echo "Name your coinhsl version."
+      read version
+      if [[ -f "${script_dir}/coinhsl-${version}.tar.gz" ]]; then
+      	tar -xzf "${script_dir}/coinhsl-${version}.tar.gz"
+      	mv coinhsl-${version} coinhsl
+      else
+      	echo "Press any key to continue"
+      	read -n 1 -s -r
+      fi
     fi
   fi
 
