@@ -45,7 +45,7 @@ if [[ ! -d "${ipopt_dir}" ]]; then
       read version
       if [[ -f "${script_dir}/coinhsl-${version}.tar.gz" ]]; then
       	tar -xzf "${script_dir}/coinhsl-${version}.tar.gz"
-      	mv coinhsl-2015.06.23 coinhsl
+      	mv coinhsl-${version} coinhsl
       else
       	echo "Press any key to continue"
       	read -n 1 -s -r
