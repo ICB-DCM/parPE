@@ -56,8 +56,8 @@ void *getLocalOptimumThreadWrapper(void *optimizationProblemVp) {
 
 void optimizationProblemGradientCheckMultiEps(OptimizationProblem *problem,
                                       int numParameterIndicesToCheck
-                                      ) {//perhaps list of epsilons?
-    // set eps (if no default added yet)
+                                      ) {
+    // set eps
     std::vector<double> multi_eps {1e-1, 1e-3, 1e-5, 1e-7, 1e-9};
 
     // setting the number of parameters to the minimum of
@@ -88,13 +88,17 @@ void optimizationProblemGradientCheckMultiEps(OptimizationProblem *problem,
     std::vector<double> thetaTmp(theta);
     // loop through indices, then loop trough epsilons
     for(int curInd : parameterIndices) {
-        double eps_best=0, regRelErr_best=0, absErr_best=0, fd_c_best=0;
+        double eps_best=0.0;
+        double regRelErr_best=0.0;
+        double absErr_best=0.0;
+        double fd_c_best=0.0;
 
         // getting the analytical gradient of current index
         double curGrad = gradient[curInd];
 
         for(double epsilon : multi_eps) {
-            double fb = 0, ff = 0; // f(theta + eps) , f(theta - eps)
+            double fb = 0.0;
+            double ff = 0.0; // f(theta + eps) , f(theta - eps)
 
             thetaTmp[curInd] = theta[curInd] + epsilon;
             problem->cost_fun_->evaluate(gsl::span<double>(thetaTmp), ff,
@@ -108,9 +112,8 @@ void optimizationProblemGradientCheckMultiEps(OptimizationProblem *problem,
             //reverting thetaTmp back to original
             thetaTmp[curInd] = theta[curInd];
 
-            double reg = 1e-5;
             double abs_err = curGrad - fd_c;
-            double regRelError = abs_err / (ff + reg);
+            double regRelError = abs_err / (ff + epsilon);
 
             // comparing results with current best epsilon
             // if better, replace. Also replace if no eps currently saved.
