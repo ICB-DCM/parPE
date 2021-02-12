@@ -10,9 +10,10 @@ make_opts=${MAKEOPTS-}
 cd "${script_dir}"
 
 # build EIGEN
-eigen_url="https://gitlab.com/libeigen/eigen/-/archive/3.3.3/eigen-3.3.3.tar.gz"
-eigen_archive="eigen-3.3.3.tar.gz"
-eigen_dir="${script_dir}/eigen-3.3.3"
+eigen_version="3.3.9"
+eigen_url="https://gitlab.com/libeigen/eigen/-/archive/${eigen_version}/eigen-${eigen_version}.tar.gz"
+eigen_archive="eigen-${eigen_version}.tar.gz"
+eigen_dir="${script_dir}/eigen-${eigen_version}"
 eigen_build_dir="${eigen_dir}/build"
 eigen_install_dir="${eigen_build_dir}/install"
 
@@ -33,9 +34,10 @@ fi
 
 # build CERES
 cd "$script_dir"
-ceres_url="http://ceres-solver.org/ceres-solver-1.13.0.tar.gz"
-ceres_archive="ceres-solver-1.13.0.tar.gz"
-ceres_dir="${script_dir}/ceres-solver-1.13.0"
+ceres_version="2.0.0"
+ceres_url="http://ceres-solver.org/ceres-solver-${ceres_version}.tar.gz"
+ceres_archive="ceres-solver-${ceres_version}.tar.gz"
+ceres_dir="${script_dir}/ceres-solver-${ceres_version}"
 ceres_build_dir="${ceres_dir}/build"
 ceres_install_dir="${ceres_build_dir}/install"
 
@@ -54,9 +56,6 @@ if [[ ! -d "${ceres_dir}" ]]; then
         -DBUILD_EXAMPLES=OFF \
         -DLAPACK=OFF \
         -DGFLAGS=OFF \
-        -DCXX11=ON \
-        -DEIGEN_INCLUDE_DIR="${eigen_dir}" \
-        -DEIGEN_INCLUDE_DIR_HINTS="${eigen_install_dir}/include" \
         -DMINIGLOG=ON \
         ..
 
