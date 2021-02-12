@@ -39,7 +39,7 @@ python/test_*.png
 *.log
 
 /benchmark_collection/*_*[0-9][0-9][0-9][0-9]/
-/benchmark_collection/parpe_*_*[0-9][0-9][0-9][0-9]/
+/benchmark_collection/parpe_*_*[0-9][0-9][0-9][0-9]*/
 
 # breathe-generatd files
 doc/source/api/
@@ -48,7 +48,7 @@ doc/source/api/
 # test files
 tests/petab-test-suite/
 test_*.png
-
+examples/parpeamici/steadystate/*.h5
 # containers
 /container/charliecloud/parpe_base/parpe.tar.gz
 *.sif
