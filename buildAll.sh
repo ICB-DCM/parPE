@@ -25,8 +25,6 @@ mkdir -p "${parpe_build_dir}"
 cd "${parpe_build_dir}"
 cmake \
       -DIPOPT_DIR="${parpe_root}/ThirdParty/Ipopt-3.12.12/install" \
-      -DCERES_LIBRARIES="${ceres_libs}" \
-      -DCERES_INCLUDE_DIRS="${ceres_inc}" \
       "${parpe_root}"
 make -j12
 
