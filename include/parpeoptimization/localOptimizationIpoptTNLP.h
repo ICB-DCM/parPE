@@ -7,6 +7,8 @@
 #define HAVE_CSTDDEF
 #include <IpIpoptApplication.hpp>
 #undef HAVE_CSTDDEF
+#else
+#include <IpIpoptApplication.hpp>
 #endif
 
 #include <cmath>
