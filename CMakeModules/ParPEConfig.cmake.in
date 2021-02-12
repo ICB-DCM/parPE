@@ -14,6 +14,12 @@ find_dependency(PkgConfig REQUIRED)
 pkg_search_module(IPOPT REQUIRED IMPORTED_TARGET GLOBAL ipopt>=3.11.0)
 endif()
 
+if(${PARPE_ENABLE_CERES})
+find_dependency(Ceres COMPONENTS
+    HINTS "${CMAKE_SOURCE_DIR}/ThirdParty/ceres-solver-2.0.0/build/install")
+find_dependency(Eigen3 REQUIRED)
+endif()
+
 find_dependency(Amici REQUIRED)
 find_dependency(OpenMP)
 find_dependency(HDF5 COMPONENTS C CXX HL REQUIRED)
