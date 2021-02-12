@@ -38,13 +38,11 @@ jobs:
 
     - name: Configure parpe
       run: |
-        CC=mpicc CXX=mpiCC \
-          cmake \
+        cmake \
           -S"${PARPE_BASE}" \
           -B"${PARPE_BUILD}" \
           -DIPOPT_INCLUDE_DIRS=/usr/include/coin/ \
           -DIPOPT_LIBRARIES=/usr/lib/libipopt.so \
-          -DMPI_INCLUDE_DIRS=/usr/include/openmpi-x86_64/ \
           -DGCOVR_REPORT=TRUE \
           -DBUILD_TESTING=FALSE
 
