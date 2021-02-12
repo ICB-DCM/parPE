@@ -20,9 +20,7 @@ export PKG_CONFIG_PATH=${parpe_root}/ThirdParty/Ipopt-releases-3.13.3/:${PKG_CON
 parpe_build_dir="${parpe_root}/build"
 mkdir -p "${parpe_build_dir}"
 cd "${parpe_build_dir}"
-cmake \
-      -DIPOPT_DIR="${parpe_root}/ThirdParty/Ipopt-3.12.12/install" \
-      "${parpe_root}"
+cmake "${parpe_root}"
 make -j12
 
 # run tests

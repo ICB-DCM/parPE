@@ -44,6 +44,7 @@ if(${PARPE_ENABLE_CERES})
     list(APPEND HEADER_LIST localOptimizationCeres.h)
     target_link_libraries(${PROJECT_NAME}
         PUBLIC ceres Eigen3::Eigen)
+    target_compile_options(ceres INTERFACE -Wno-error)
     set(PARPE_CERES_MINIGLOG_REDIRECT FALSE CACHE BOOL
         "Custom treatment of Ceres output? Requires miniglog headers in ceres directory.")
     if(${PARPE_CERES_MINIGLOG_REDIRECT})
