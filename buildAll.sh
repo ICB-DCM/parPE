@@ -16,10 +16,7 @@ cd "${amici_dir}"
 "${parpe_root}/ThirdParty/installIpopt.sh"
 
 # build parpe
-ceres_install_dir="${parpe_root}/ThirdParty/ceres-solver-1.13.0/build/install"
-ceres_libs="${ceres_install_dir}/lib/libceres.a;$(pkg-config --libs blas);cxsparse;lapack;cholmod;camd;colamd"
-ceres_inc="${ceres_install_dir}/include/"
-ceres_inc="${ceres_inc};${parpe_root}/ThirdParty/eigen-eigen-67e894c6cd8f/build/install/include/eigen3/"
+export PKG_CONFIG_PATH=${parpe_root}/ThirdParty/Ipopt-releases-3.13.3/:${PKG_CONFIG_PATH:-}
 parpe_build_dir="${parpe_root}/build"
 mkdir -p "${parpe_build_dir}"
 cd "${parpe_build_dir}"
