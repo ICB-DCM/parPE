@@ -38,11 +38,12 @@ if(${PARPE_ENABLE_IPOPT})
 endif(${PARPE_ENABLE_IPOPT})
 
 if(${PARPE_ENABLE_CERES})
+    find_package(Eigen3 REQUIRED)
     target_sources(${PROJECT_NAME}
         PRIVATE localOptimizationCeres.cpp)
     list(APPEND HEADER_LIST localOptimizationCeres.h)
     target_link_libraries(${PROJECT_NAME}
-        PUBLIC ceres)
+        PUBLIC ceres Eigen3::Eigen)
     set(PARPE_CERES_MINIGLOG_REDIRECT FALSE CACHE BOOL
         "Custom treatment of Ceres output? Requires miniglog headers in ceres directory.")
     if(${PARPE_CERES_MINIGLOG_REDIRECT})
