@@ -3,9 +3,11 @@
 
 // This should fix `error "don't have header file for stddef"' with some IpOpt
 // versions
+#ifndef HAVE_CSTDDEF
 #define HAVE_CSTDDEF
 #include <IpIpoptApplication.hpp>
 #undef HAVE_CSTDDEF
+#endif
 
 #include <cmath>
 #include <memory>
