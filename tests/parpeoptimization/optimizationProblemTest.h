@@ -119,7 +119,7 @@ TEST(optimizationProblem, gradientChecker) {
 
     parpe::optimizationProblemGradientCheck(&problem, parameterIndices, 1e-6);
     parpe::optimizationProblemGradientCheckMultiEps(&problem,
-                                                    parameterIndices
+                                                    numParameterIndices
                                                     );
 }
 
