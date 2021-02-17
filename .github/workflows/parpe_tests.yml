@@ -62,17 +62,14 @@ jobs:
 
     - name: Configure parPE
       run: |
-        CC=mpicc CXX=mpiCC \
-          cmake \
-            -S"${PARPE_BASE}" \
-            -B"${PARPE_BUILD}" \
-            -DIPOPT_INCLUDE_DIRS=/usr/include/coin/ \
-            -DIPOPT_LIBRARIES=/usr/lib/libipopt.so \
-            -DCERES_LIBRARIES="/usr/lib/libceres.so;/usr/lib/x86_64-linux-gnu/libglog.so;/usr/lib/x86_64-linux-gnu/libgflags.so" \
-            -DCERES_INCLUDE_DIRS="/usr/include/;/usr/include/eigen3" \
-            -DMPI_INCLUDE_DIRS=/usr/include/openmpi-x86_64/ \
-            -DGCOV_REPORT=TRUE \
-            -DBUILD_TESTING=TRUE
+        cmake \
+          -S"${PARPE_BASE}" \
+          -B"${PARPE_BUILD}" \
+          -DCMAKE_CXX_FLAGS="-Wall -Wextra -Werror -Wno-deprecated-copy" \
+          -DIPOPT_INCLUDE_DIRS=/usr/include/coin/ \
+          -DIPOPT_LIBRARIES=/usr/lib/libipopt.so \
+          -DGCOV_REPORT=TRUE \
+          -DBUILD_TESTING=TRUE
 
     - name: Build parPE
       # with sonar build wrapper

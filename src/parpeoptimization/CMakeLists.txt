@@ -1,7 +1,7 @@
 project(parpeoptimization)
 
 find_package(Ceres COMPONENTS
-    HINTS "${CMAKE_SOURCE_DIR}/ThirdParty/ceres-solver-1.13.0/build/install")
+    HINTS "${CMAKE_SOURCE_DIR}/ThirdParty/ceres-solver-2.0.0/build/install")
 
 if(${PARPE_ENABLE_CERES} AND NOT ${CERES_FOUND})
     message(FATAL_ERROR "Supposed to build with CERES support, "
@@ -38,14 +38,13 @@ if(${PARPE_ENABLE_IPOPT})
 endif(${PARPE_ENABLE_IPOPT})
 
 if(${PARPE_ENABLE_CERES})
+    find_package(Eigen3 REQUIRED)
     target_sources(${PROJECT_NAME}
         PRIVATE localOptimizationCeres.cpp)
     list(APPEND HEADER_LIST localOptimizationCeres.h)
-    target_include_directories(${PROJECT_NAME}
-        PUBLIC ${CERES_INCLUDE_DIRS})
     target_link_libraries(${PROJECT_NAME}
-        PUBLIC ${CERES_LIBRARIES})
-
+        PUBLIC ceres Eigen3::Eigen)
+    target_compile_options(ceres INTERFACE -Wno-error)
     set(PARPE_CERES_MINIGLOG_REDIRECT FALSE CACHE BOOL
         "Custom treatment of Ceres output? Requires miniglog headers in ceres directory.")
     if(${PARPE_CERES_MINIGLOG_REDIRECT})
