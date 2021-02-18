@@ -66,7 +66,7 @@ void optimizationProblemGradientCheckMultiEps(OptimizationProblem *problem,
     numParameterIndicesToCheck =
         std::min(numParameterIndicesToCheck, numParameters);
     // choose random parameters to check
-    std::vector<int> parameterIndices(numParameters); // ask Daniel
+    std::vector<int> parameterIndices(numParameters);
     std::iota(parameterIndices.begin(), parameterIndices.end(), 0);
     std::random_device rd;
     std::mt19937 g(rd());
