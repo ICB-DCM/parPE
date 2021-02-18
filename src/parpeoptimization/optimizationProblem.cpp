@@ -117,8 +117,7 @@ void optimizationProblemGradientCheckMultiEps(OptimizationProblem *problem,
 
             // comparing results with current best epsilon
             // if better, replace. Also replace if no eps currently saved.
-            if((regRelError < regRelErr_best) or //condition 1
-                (regRelErr_best == 0)){ // condition 2
+            if((regRelError < regRelErr_best) || (regRelErr_best == 0)){
                 eps_best = epsilon;
                 regRelErr_best = regRelError;
                 fd_c_best = fd_c;
