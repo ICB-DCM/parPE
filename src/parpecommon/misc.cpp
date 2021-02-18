@@ -75,7 +75,7 @@ int mkpath(char *file_path, mode_t mode) {
 }
 
 int mkpathConstChar(const char *file_path, mode_t mode) {
-    Expects(file_path && *file_path);
+    Expects(file_path);
     char tmp[strlen(file_path) + 1];
 
     strncpy(tmp, file_path, sizeof(tmp) -1);
