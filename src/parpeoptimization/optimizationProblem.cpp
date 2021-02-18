@@ -86,12 +86,12 @@ void optimizationProblemGradientCheckMultiEps(OptimizationProblem *problem,
     problem->cost_fun_->evaluate(theta, fc, gradient);
 
     std::vector<double> thetaTmp(theta);
-    // loop through indices, then loop trough epsilons
+
     for(int curInd : parameterIndices) {
-        double eps_best=0.0;
-        double regRelErr_best=0.0;
-        double absErr_best=0.0;
-        double fd_c_best=0.0;
+        double eps_best = 0.0;
+        double regRelErr_best = 0.0;
+        double absErr_best = 0.0;
+        double fd_c_best = 0.0;
 
         // getting the analytical gradient of current index
         double curGrad = gradient[curInd];
