@@ -201,7 +201,7 @@ std::unique_ptr<OptimizationProblem> MultiConditionProblemMultiStartOptimization
                     new parpe::HierarchicalOptimizationProblemWrapper(
                         std::move(problem), data_provider_));
 
-    return std::move(problem);
+    return problem;
 }
 
 void printSimulationResult(Logger *logger, int jobId,

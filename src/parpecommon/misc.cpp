@@ -44,14 +44,6 @@ bool fileExists(const char *name) {
     return (stat(name, &buffer) == 0);
 }
 
-void createDirectoryIfNotExists(char *dirName) {
-    struct stat st = {};
-
-    if (stat(dirName, &st) == -1) {
-        mkdir(dirName, 0700);
-    }
-}
-
 /**
  * @brief Create the path to the given file. Does not error if path exists.
  * @param file_path File name
