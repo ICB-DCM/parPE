@@ -231,10 +231,8 @@ void OptimizationApplication::runMaster() {
     switch (operationType) {
     case OperationType::gradientCheck: {
         const int numParameterIndicesToCheck = 10000;
-        const double epsilon = 1e-5;
-        optimizationProblemGradientCheck(problem.get(),
-                                         numParameterIndicesToCheck,
-                                         epsilon);
+        optimizationProblemGradientCheckMultiEps(
+                    problem.get(), numParameterIndicesToCheck);
         break;
     }
     case OperationType::parameterEstimation:
@@ -268,10 +266,8 @@ void OptimizationApplication::runSingleProcess() {
     switch (operationType) {
     case OperationType::gradientCheck: {
         const int numParameterIndicesToCheck = 10000;
-        const double epsilon = 1e-5;
-        optimizationProblemGradientCheck(problem.get(),
-                                         numParameterIndicesToCheck,
-                                         epsilon);
+        optimizationProblemGradientCheckMultiEps(
+                    problem.get(), numParameterIndicesToCheck);
         break;
     }
     case OperationType::parameterEstimation:

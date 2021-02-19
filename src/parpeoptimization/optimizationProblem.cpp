@@ -97,8 +97,8 @@ void optimizationProblemGradientCheckMultiEps(OptimizationProblem *problem,
         double curGrad = gradient[curInd];
 
         for(double epsilon : multi_eps) {
-            double fb = 0.0;
-            double ff = 0.0; // f(theta + eps) , f(theta - eps)
+            double fb = 0.0; // f(theta - eps)
+            double ff = 0.0; // f(theta + eps)
 
             thetaTmp[curInd] = theta[curInd] + epsilon;
             problem->cost_fun_->evaluate(gsl::span<double>(thetaTmp), ff,
@@ -112,8 +112,8 @@ void optimizationProblemGradientCheckMultiEps(OptimizationProblem *problem,
             //reverting thetaTmp back to original
             thetaTmp[curInd] = theta[curInd];
 
-            double abs_err = curGrad - fd_c;
-            double regRelError = abs_err / (ff + epsilon);
+            double abs_err = std::fabs(curGrad - fd_c);
+            double regRelError = std::fabs(abs_err / (fd_c + epsilon));
 
             // comparing results with current best epsilon
             // if better, replace. Also replace if no eps currently saved.
@@ -127,11 +127,12 @@ void optimizationProblemGradientCheckMultiEps(OptimizationProblem *problem,
         loglevel ll = LOGLVL_INFO;
         if (fabs(regRelErr_best) > 1e-3)
             ll = LOGLVL_WARNING;
-        if (fabs(regRelErr_best) > 1e-2)
+        if (std::isnan(curGrad) || fabs(regRelErr_best) > 1e-2)
             ll = LOGLVL_ERROR;
-        logmessage(ll, "%5d g: %12.6g  fd_c: %12.6g  Δ/ff: %.6e  abs_err: %12.6g"
-                       "  eps: %12.6g ",
-                   curInd, curGrad, fd_c_best, regRelErr_best, absErr_best, eps_best);
+        logmessage(ll, "%5d g: %12.6g  fd_c: %12.6g  |Δ/fd_c|: %.6e  "
+                       "|Δ|: %12.6g  ϵ: %12.6g ",
+                   curInd, curGrad, fd_c_best, regRelErr_best, absErr_best,
+                   eps_best);
     }
 }
 
