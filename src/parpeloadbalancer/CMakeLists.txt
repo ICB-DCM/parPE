@@ -15,6 +15,8 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 if(${PARPE_ENABLE_MPI})
+    target_compile_options(MPI::MPI_C INTERFACE -Wno-unused-parameter -Wno-error)
+
     target_link_libraries(${PROJECT_NAME}
         PUBLIC MPI::MPI_CXX
         PUBLIC MPI::MPI_C

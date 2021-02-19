@@ -97,9 +97,6 @@ int
 mkpathConstChar(const char* file_path, mode_t mode);
 
 void
-createDirectoryIfNotExists(char* dirName);
-
-void
 strFormatCurrentLocaltime(gsl::span<char> buffer, const char* format);
 
 void
