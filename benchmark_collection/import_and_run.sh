@@ -85,4 +85,5 @@ else
 fi
 
 echo "Checking gradient..."
+echo PARPE_NO_DEBUG=1 "parpe_${MODEL_NAME}/build/estimate_${MODEL_NAME}" -t gradient_check -o "parpe_${MODEL_NAME}_results/gradient_check" "parpe_${MODEL_NAME}/${MODEL_NAME}.h5"
 PARPE_NO_DEBUG=1 "parpe_${MODEL_NAME}/build/estimate_${MODEL_NAME}" -t gradient_check -o "parpe_${MODEL_NAME}_results/gradient_check" "parpe_${MODEL_NAME}/${MODEL_NAME}.h5"
