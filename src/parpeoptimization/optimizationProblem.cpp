@@ -97,8 +97,8 @@ void optimizationProblemGradientCheckMultiEps(OptimizationProblem *problem,
         double curGrad = gradient[curInd];
 
         for(double epsilon : multi_eps) {
-            double fb = 0.0;
-            double ff = 0.0; // f(theta + eps) , f(theta - eps)
+            double fb = 0.0; // f(theta - eps)
+            double ff = 0.0; // f(theta + eps)
 
             thetaTmp[curInd] = theta[curInd] + epsilon;
             problem->cost_fun_->evaluate(gsl::span<double>(thetaTmp), ff,
@@ -112,8 +112,8 @@ void optimizationProblemGradientCheckMultiEps(OptimizationProblem *problem,
             //reverting thetaTmp back to original
             thetaTmp[curInd] = theta[curInd];
 
-            double abs_err = curGrad - fd_c;
-            double regRelError = abs_err / (ff + epsilon);
+            double abs_err = std::fabs(curGrad - fd_c);
+            double regRelError = std::fabs(abs_err / (fd_c + epsilon));
 
             // comparing results with current best epsilon
             // if better, replace. Also replace if no eps currently saved.
