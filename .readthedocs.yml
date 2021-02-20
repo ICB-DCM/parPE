@@ -23,7 +23,7 @@ python:
   install:
     - requirements: doc/requirements_doc.txt
     - method: pip
-      path: ../python/
+      path: python/
 
 build:
   image: latest
