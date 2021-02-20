@@ -69,11 +69,6 @@ TEST(commonMisc, testBacktrace) {
     EXPECT_TRUE(100 < output.size());
 }
 
-TEST(commonMisc, testFilexists) {
-    EXPECT_TRUE(parpe::fileExists("/"));
-    EXPECT_FALSE(parpe::fileExists("/doesntExists"));
-}
-
 TEST(commonMisc, testRandDouble) {
     const int numTests = 100;
     const double min = -1.0;

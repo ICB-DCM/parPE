@@ -9,7 +9,6 @@
 #include <cstdarg>
 #include <cstdio>
 #include <cstring>
-#include <sys/stat.h>
 #include <sys/types.h>
 #include <ctime>
 #include <unistd.h>
@@ -38,11 +37,6 @@
 
 
 namespace parpe {
-
-bool fileExists(const char *name) {
-    struct stat buffer{};
-    return (stat(name, &buffer) == 0);
-}
 
 void strFormatCurrentLocaltime(gsl::span<char> buffer, const char *format) {
     time_t current_time;

@@ -82,14 +82,6 @@ private:
 
 // void printMatlabArray(const double *buffer, int len);
 
-/**
- * @brief Check if file or directory exists
- * @param name
- * @return True if exists, false if not
- */
-bool
-fileExists(const char* name);
-
 void
 strFormatCurrentLocaltime(gsl::span<char> buffer, const char* format);
 
