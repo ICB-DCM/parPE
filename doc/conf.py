@@ -2,7 +2,6 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
 import os
-import subprocess
 
 # -- Path setup --------------------------------------------------------------
 
@@ -29,7 +28,7 @@ if not on_rtd:  # only import and set the theme if we're building docs locally
 # -- Project information -----------------------------------------------------
 
 project = 'parPE'
-copyright = '2020, The parPE developers'
+copyright = '2021, The parPE developers'
 author = 'Daniel Weindl'
 
 # The full version, including alpha/beta/rc tags
@@ -46,13 +45,18 @@ extensions = [
     'sphinx.ext.todo',
     'breathe',
     'exhale',
+    'sphinx.ext.autodoc',
+    'sphinx.ext.intersphinx',
+    'sphinx.ext.autosummary',
+    'sphinx.ext.viewcode',
+    'sphinx_autodoc_typehints',
     # 'recommonmark',
     'IPython.sphinxext.ipython_console_highlighting',
     'm2r2',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['_templates']
+templates_path = ['templates']
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -87,7 +91,7 @@ exhale_args = {
     # These arguments are required
     "containmentFolder": "./exhale_cpp_api",
     "rootFileName": "library_root.rst",
-    "rootFileTitle": "parPE API",
+    "rootFileTitle": "parPE C++ API",
     "doxygenStripFromPath": "..",
     # Suggested optional arguments
     "createTreeView": True,
@@ -100,7 +104,7 @@ exhale_args = {
         "PREDEFINED            += EXHALE_DOXYGEN_SHOULD_SKIP_THIS"
     ]),
     "afterTitleDescription":
-        "parPE C++ and Python library functions",
+        "parPE C++ library functions",
     "verboseBuild": True,
 }
 
@@ -111,3 +115,5 @@ exhale_args = {
 highlight_language = 'cpp'
 
 html_logo = 'logo/parPE.png'
+
+autosummary_generate = True
