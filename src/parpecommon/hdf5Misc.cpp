@@ -9,6 +9,7 @@
 #include <utility>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <filesystem>
 
 #include <H5Tpublic.h>
 
@@ -507,7 +508,10 @@ H5::H5File hdf5CreateFile(const std::string &filename,
                           bool overwrite)
 {
     // Create parent folders
-    mkpathConstChar(filename.c_str(), 0755);
+    std::filesystem::path dirname(filename);
+    dirname.remove_filename();
+    if(!dirname.empty())
+        std::filesystem::create_directories(dirname);
 
     std::lock_guard<mutexHdfType> lock(mutexHdf);
 
@@ -658,7 +662,7 @@ void hdf5CreateOrExtendAndWriteToString1DArray(const H5::H5File &file,
 
 H5::H5File hdf5OpenForReading(const std::string &hdf5Filename)
 {
-    auto lock = hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
 
     H5_SAVE_ERROR_HANDLER;
     try {
@@ -679,7 +683,7 @@ H5::H5File hdf5OpenForReading(const std::string &hdf5Filename)
 
 H5::H5File hdf5OpenForAppending(const std::string &hdf5Filename)
 {
-    auto lock = hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
 
     H5::H5File file;
     H5_SAVE_ERROR_HANDLER;
@@ -699,7 +703,7 @@ H5::H5File hdf5OpenForAppending(const std::string &hdf5Filename)
 std::vector<std::string> hdf5Read1dStringDataset(
         H5::H5File const& file, const std::string &datasetPath)
 {
-    auto lock = hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
     auto dataset = file.openDataSet(datasetPath);
     auto filespace = dataset.getSpace();
 
@@ -728,7 +732,7 @@ void hdf5Write1dStringDataset(
         const H5::H5File &file, const std::string &parentPath,
         const std::string &datasetPath, std::vector<std::string> const& buffer)
 {
-    auto lock = hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
 
     const int dims = 1;
     hsize_t dims0 = buffer.size();

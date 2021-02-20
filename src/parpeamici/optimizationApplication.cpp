@@ -357,7 +357,7 @@ void saveTotalCpuTime(H5::H5File const& file, const double timeInSeconds)
 {
     hsize_t dims[1] = {1};
 
-    auto lock = hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
 
     //std::string pathStr = rootPath + "/totalTimeInSec";
     std::string pathStr = "/totalTimeInSec";

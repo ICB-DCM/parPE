@@ -69,18 +69,6 @@ TEST(commonMisc, testBacktrace) {
     EXPECT_TRUE(100 < output.size());
 }
 
-TEST(commonMisc, testFilexists) {
-    EXPECT_TRUE(parpe::fileExists("/"));
-    EXPECT_FALSE(parpe::fileExists("/doesntExists"));
-}
-
-TEST(commonMisc, testRecursiveMkpath) {
-    std::string name {"parpeTest_testRecursiveMkpath/a/b/c"};
-    auto _ = gsl::finally([name] { rmdir(name.c_str()); });
-
-    parpe::mkpathConstChar(name.c_str(), 0755);
-}
-
 TEST(commonMisc, testRandDouble) {
     const int numTests = 100;
     const double min = -1.0;

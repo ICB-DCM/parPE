@@ -34,7 +34,7 @@ AnalyticalParameterHdf5Reader::AnalyticalParameterHdf5Reader(
     : mapPath(std::move(mapPath))
       , analyticalParameterIndicesPath(std::move(analyticalParameterIndicesPath))
 {
-    auto lock = hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
     this->file = file; // copy while mutex is locked!
     readParameterConditionObservableMappingFromFile();
 }
@@ -62,7 +62,7 @@ AnalyticalParameterHdf5Reader::getObservablesForParameter(
 std::vector<int>
 AnalyticalParameterHdf5Reader::getOptimizationParameterIndices() const
 {
-    auto lock = hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
     std::vector<int> analyticalParameterIndices;
 
     if (file.nameExists(analyticalParameterIndicesPath)) {
@@ -87,7 +87,7 @@ int
 AnalyticalParameterHdf5Reader::getNumAnalyticalParameters() const
 {
     hsize_t numAnalyticalParameters = 0;
-    auto lock = hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
 
     if (file.nameExists(analyticalParameterIndicesPath)) {
         auto dataset = file.openDataSet(analyticalParameterIndicesPath);
@@ -105,7 +105,7 @@ AnalyticalParameterHdf5Reader::getNumAnalyticalParameters() const
 void
 AnalyticalParameterHdf5Reader::readParameterConditionObservableMappingFromFile()
 {
-    auto lock = hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
     H5_SAVE_ERROR_HANDLER;
     try {
         int numScalings = getNumAnalyticalParameters();

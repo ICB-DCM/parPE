@@ -9,7 +9,6 @@
 #include <cstdarg>
 #include <cstdio>
 #include <cstring>
-#include <sys/stat.h>
 #include <sys/types.h>
 #include <ctime>
 #include <unistd.h>
@@ -38,43 +37,6 @@
 
 
 namespace parpe {
-
-bool fileExists(const char *name) {
-    struct stat buffer{};
-    return (stat(name, &buffer) == 0);
-}
-
-/**
- * @brief Create the path to the given file. Does not error if path exists.
- * @param file_path File name
- * @param mode File mode
- * @return 0 on success, -1 otherwise
- */
-int mkpath(char *file_path, mode_t mode) {
-    Expects(file_path && *file_path);
-
-    for (char *p = strchr(file_path + 1, '/'); p; p = strchr(p + 1, '/')) {
-        *p = '\0';
-        if (mkdir(file_path, mode) == -1) {
-            if (errno != EEXIST) {
-                *p = '/';
-                return -1;
-            }
-        }
-        *p = '/';
-    }
-    return 0;
-}
-
-int mkpathConstChar(const char *file_path, mode_t mode) {
-    Expects(file_path);
-    char tmp[strlen(file_path) + 1];
-
-    strncpy(tmp, file_path, sizeof(tmp) -1);
-    tmp[sizeof(tmp) - 1] = '\0';
-
-    return mkpath(tmp, mode);
-}
 
 void strFormatCurrentLocaltime(gsl::span<char> buffer, const char *format) {
     time_t current_time;
@@ -130,7 +92,7 @@ std::string getBacktrace(int nMaxFrames)
             int status = -1;
             if (info.dli_sname[0] == '_')
                 demangled = abi::__cxa_demangle(info.dli_sname, nullptr, nullptr, &status);
-            snprintf(buf, sizeof(buf), "%-3d %*p %s + %zd\n",
+            snprintf(buf, sizeof(buf), "%-3d %*p %s + %td\n",
                      i, int(2 + sizeof(void*) * 2), callstack[i],
                      status == 0 ? demangled :
                      info.dli_sname == nullptr ? symbols[i] : info.dli_sname,

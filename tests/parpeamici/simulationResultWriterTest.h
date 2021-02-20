@@ -37,10 +37,15 @@ TEST(simulationResultWriter, testResultWriter) {
     edata.setObservedData(measurements);
 
     amici::ReturnData rdata(
-        timepoints, 0, 1, nx, nx, nx, 0, nytrue, nytrue, 0, 0, 0, 0, 0, 0,
-        timepoints.size(), 0, 0, std::vector<amici::ParameterScaling>(),
-        amici::SecondOrderMode::none, amici::SensitivityOrder::none,
-        amici::SensitivityMethod::none, amici::RDataReporting::full, true);
+                timepoints,
+                amici::ModelDimensions(nx, nx, nx, nx, 0, 0, 0, nytrue, nytrue,
+                                       0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                       std::vector<int>(), 0, 0, 0),
+                0, 0, timepoints.size(), 0,
+                std::vector<amici::ParameterScaling>(),
+                amici::SecondOrderMode::none, amici::SensitivityOrder::none,
+                amici::SensitivityMethod::none, amici::RDataReporting::full,
+                true);
     std::iota(rdata.x.begin(), rdata.x.end(), 0);
     rdata.llh = 1.2345;
     rdata.y.resize(measurements.size());
