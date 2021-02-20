@@ -92,7 +92,7 @@ std::string getBacktrace(int nMaxFrames)
             int status = -1;
             if (info.dli_sname[0] == '_')
                 demangled = abi::__cxa_demangle(info.dli_sname, nullptr, nullptr, &status);
-            snprintf(buf, sizeof(buf), "%-3d %*p %s + %zd\n",
+            snprintf(buf, sizeof(buf), "%-3d %*p %s + %td\n",
                      i, int(2 + sizeof(void*) * 2), callstack[i],
                      status == 0 ? demangled :
                      info.dli_sname == nullptr ? symbols[i] : info.dli_sname,
