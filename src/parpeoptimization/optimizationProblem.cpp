@@ -131,7 +131,8 @@ void optimizationProblemGradientCheckMultiEps(OptimizationProblem *problem,
             ll = LOGLVL_ERROR;
         logmessage(ll, "%-25s (%d) g: %12.6g  fd_c: %12.6g  |Δ/fd_c|: %.6e  "
                        "|Δ|: %12.6g  ϵ: %12.6g ",
-                   parameter_ids[curInd].c_str(), curInd, curGrad, fd_c_best,
+                   parameter_ids.empty()?"":parameter_ids[curInd].c_str(),
+                   curInd, curGrad, fd_c_best,
                    regRelErr_best, absErr_best, eps_best);
     }
 }
