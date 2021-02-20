@@ -80,7 +80,7 @@ source_suffix = ['.rst', '.md']
 
 # breathe settings
 breathe_projects = {
-    "parPE": "doxy/xml/",
+    "parPE": "_exhale_doxygen_output/xml/",
 }
 
 breathe_default_project = "parPE"
@@ -89,7 +89,7 @@ breathe_default_project = "parPE"
 
 exhale_args = {
     # These arguments are required
-    "containmentFolder": "./exhale_cpp_api",
+    "containmentFolder": "./cpp_api",
     "rootFileName": "library_root.rst",
     "rootFileTitle": "parPE C++ API",
     "doxygenStripFromPath": "..",
