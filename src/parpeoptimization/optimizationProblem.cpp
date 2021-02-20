@@ -84,7 +84,7 @@ void optimizationProblemGradientCheckMultiEps(OptimizationProblem *problem,
     //evaluate the objective function at theta and get analytical gradient
     std::vector<double> gradient(theta.size());
     problem->cost_fun_->evaluate(theta, fc, gradient);
-
+    auto parameter_ids = problem->cost_fun_->getParameterIds();
     std::vector<double> thetaTmp(theta);
 
     for(int curInd : parameterIndices) {
@@ -129,10 +129,10 @@ void optimizationProblemGradientCheckMultiEps(OptimizationProblem *problem,
             ll = LOGLVL_WARNING;
         if (std::isnan(curGrad) || fabs(regRelErr_best) > 1e-2)
             ll = LOGLVL_ERROR;
-        logmessage(ll, "%5d g: %12.6g  fd_c: %12.6g  |Δ/fd_c|: %.6e  "
+        logmessage(ll, "%-10s (%d) g: %12.6g  fd_c: %12.6g  |Δ/fd_c|: %.6e  "
                        "|Δ|: %12.6g  ϵ: %12.6g ",
-                   curInd, curGrad, fd_c_best, regRelErr_best, absErr_best,
-                   eps_best);
+                   parameter_ids[curInd].c_str(), curInd, curGrad, fd_c_best,
+                   regRelErr_best, absErr_best, eps_best);
     }
 }
 
