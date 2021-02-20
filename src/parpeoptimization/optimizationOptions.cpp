@@ -46,23 +46,24 @@ template <typename T> std::string to_string(const T &n) {
 } // namespace patch
 
 
-herr_t optimizationOptionsFromAttribute(hid_t location_id/*in*/,
-                                        const char *attr_name/*in*/,
-                                        const H5A_info_t *ainfo/*in*/,
-                                        void *op_data/*in,out*/) {
+void optimizationOptionsFromAttribute(H5::H5Object& loc,
+                                      const H5std_string attr_name,
+                                      void *op_data) {
     // iterate over attributes and add to OptimizationOptions
 
     auto *o = static_cast<OptimizationOptions*>(op_data);
 
-    hid_t a = H5Aopen(location_id, attr_name, H5P_DEFAULT);
-    hid_t type = H5Aget_type(a);
-    hid_t typeClass = H5Tget_class(type);
-    hid_t nativeType = H5Tget_native_type(type, H5T_DIR_ASCEND);
-    char buf[ainfo->data_size + 1]; // +1 for \0
-    buf[ainfo->data_size] = '\0';
-    H5Aread(a, nativeType, buf);
+    auto a = loc.openAttribute(attr_name);
+    auto type = a.getDataType();
+    auto typeClass = a.getTypeClass();
+    H5A_info_t ainfo;
+    H5Aget_info(a.getId(), &ainfo);
+    char buf[ainfo.data_size + 1]; // +1 for \0
+    buf[ainfo.data_size] = '\0';
+    auto nativeType = H5Tget_native_type(type.getId(), H5T_DIR_ASCEND);
+    a.read(nativeType, buf);
     H5Tclose(nativeType);
-    H5Aclose(a);
+
 
     if (typeClass == H5T_STRING) {
         // NOTE: only works for (fixed-length?) ASCII strings, no unicode
@@ -76,54 +77,49 @@ herr_t optimizationOptionsFromAttribute(hid_t location_id/*in*/,
         // invalid option type
         abort();
     }
-
-    return 0; // continue
 }
 
 Optimizer *OptimizationOptions::createOptimizer() const {
     return optimizerFactory(optimizer);
 }
 
-std::unique_ptr<OptimizationOptions> OptimizationOptions::fromHDF5(
-        const char *fileName) {
-    auto file = hdf5OpenForReading(fileName);
-    return fromHDF5(file.getId());
+std::unique_ptr<OptimizationOptions> OptimizationOptions::fromHDF5(const std::string &fileName) {
+    return fromHDF5(hdf5OpenForReading(fileName));
 }
 
-std::unique_ptr<OptimizationOptions> OptimizationOptions::fromHDF5(
-        hid_t fileId, std::string const& path) {
+std::unique_ptr<OptimizationOptions> OptimizationOptions::fromHDF5(const H5::H5File &file, std::string const& path) {
     auto o = std::make_unique<OptimizationOptions>();
 
     const char *hdf5path = path.c_str();
+    auto fileId = file.getId();
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
 
-    auto lock = hdf5MutexGetLock();
-
-    if (hdf5AttributeExists(fileId, hdf5path, "optimizer")) {
+    if (hdf5AttributeExists(file, path, "optimizer")) {
         int buffer;
         H5LTget_attribute_int(fileId, hdf5path, "optimizer", &buffer);
         o->optimizer = static_cast<parpe::optimizerName>(buffer);
     }
 
-    if (hdf5AttributeExists(fileId, hdf5path, "numStarts")) {
+    if (hdf5AttributeExists(file, hdf5path, "numStarts")) {
         H5LTget_attribute_int(fileId, hdf5path, "numStarts", &o->numStarts);
     }
 
-    if (hdf5AttributeExists(fileId, hdf5path, "retryOptimization")) {
+    if (hdf5AttributeExists(file, hdf5path, "retryOptimization")) {
         H5LTget_attribute_int(fileId, hdf5path, "retryOptimization",
                               &o->retryOptimization);
     }
 
-    if (hdf5AttributeExists(fileId, hdf5path, "hierarchicalOptimization")) {
+    if (hdf5AttributeExists(file, hdf5path, "hierarchicalOptimization")) {
         H5LTget_attribute_int(fileId, hdf5path, "hierarchicalOptimization",
                               &o->hierarchicalOptimization);
     }
 
-    if (hdf5AttributeExists(fileId, hdf5path, "multistartsInParallel")) {
+    if (hdf5AttributeExists(file, hdf5path, "multistartsInParallel")) {
         H5LTget_attribute_int(fileId, hdf5path, "multistartsInParallel",
                               &o->multistartsInParallel);
     }
 
-    if (hdf5AttributeExists(fileId, hdf5path, "maxIter")) {
+    if (hdf5AttributeExists(file, hdf5path, "maxIter")) {
         // this value is overwritten by any optimizer-specific configuration
         H5LTget_attribute_int(fileId, hdf5path, "maxIter", &o->maxOptimizerIterations);
     }
@@ -145,15 +141,9 @@ std::unique_ptr<OptimizationOptions> OptimizationOptions::fromHDF5(
         optimizerPath = std::string(hdf5path) + "/ipopt";
     }
 
-    if(hdf5GroupExists(fileId, optimizerPath.c_str())) {
-        hid_t attributeGroup = H5Gopen1(fileId, optimizerPath.c_str());
-        if(attributeGroup < 0)
-            return o;
-
-        H5Aiterate2(attributeGroup, H5_INDEX_NAME, H5_ITER_NATIVE, nullptr,
-                    optimizationOptionsFromAttribute, o.get());
-
-        H5Gclose(attributeGroup);
+    if(hdf5GroupExists(file, optimizerPath)) {
+        auto group = file.openGroup(optimizerPath);
+        group.iterateAttrs(optimizationOptionsFromAttribute, nullptr, o.get());
     }
     return o;
 }
@@ -170,50 +160,49 @@ std::unique_ptr<OptimizationOptions> OptimizationOptions::fromHDF5(
  * @return The selected starting point or NULL if the dataset did not exist or
  * had less columns than `ìndex`
  */
-std::vector<double> OptimizationOptions::getStartingPoint(hid_t fileId,
+std::vector<double> OptimizationOptions::getStartingPoint(H5::H5File const& file,
                                                           int index) {
     std::vector<double> startingPoint;
 
     const char *path = "/optimizationOptions/randomStarts";
 
-    auto lock = hdf5MutexGetLock();
-    H5_SAVE_ERROR_HANDLER;
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
 
-    hid_t dataset = -1;
-    if (hdf5DatasetExists(fileId, path)) {
-        dataset = H5Dopen2(fileId, path, H5P_DEFAULT);
-    }
-
-    if (dataset < 0) {
+    if (!file.nameExists(path)) {
         logmessage(LOGLVL_DEBUG, "No initial parameters found in %s", path);
-        H5Eclear1();
-        goto freturn;
+        return startingPoint;
     }
 
-    {
+    H5_SAVE_ERROR_HANDLER;
+    try {
+        auto dataset = file.openDataSet(path);
         // read dimensions
-        hid_t dataspace = H5Dget_space(dataset);
-        const int ndims = H5Sget_simple_extent_ndims(dataspace);
+        auto dataspace = dataset.getSpace();
+        const int ndims = dataspace.getSimpleExtentNdims();
         Expects(ndims == 2);
         hsize_t dims[ndims];
-        H5Sget_simple_extent_dims(dataspace, dims, nullptr);
-        if (dims[1] < static_cast<hsize_t>(index))
-            goto freturn;
+        dataspace.getSimpleExtentDims(dims);
+        if (dims[1] < static_cast<hsize_t>(index)) {
+            logmessage(LOGLVL_ERROR,
+                       "Requested starting point index %d out of bounds (%d)",
+                       index, static_cast<int>(dims[1]));
+            return startingPoint;
+        }
 
         logmessage(LOGLVL_INFO, "Reading random initial theta %d from %s",
                    index, path);
 
         startingPoint.resize(dims[0]);
-        hdf5Read2DDoubleHyperslab(fileId, path, dims[0], 1, 0, index,
+        hdf5Read2DDoubleHyperslab(file, path, dims[0], 1, 0, index,
                 startingPoint);
-    }
 
-freturn:
-    if (H5Eget_num(H5E_DEFAULT)) {
-        error("Problem in OptimizationOptions::getStartingPoint\n");
-        H5Ewalk2(H5E_DEFAULT, H5E_WALK_DOWNWARD, hdf5ErrorStackWalker_cb, nullptr);
-    }
 
+    }  catch (H5::Exception const&) {
+        if (H5Eget_num(H5E_DEFAULT)) {
+            error("Problem in OptimizationOptions::getStartingPoint\n");
+            H5Ewalk2(H5E_DEFAULT, H5E_WALK_DOWNWARD, hdf5ErrorStackWalker_cb, nullptr);
+        }
+    }
     H5_RESTORE_ERROR_HANDLER;
 
     return startingPoint;

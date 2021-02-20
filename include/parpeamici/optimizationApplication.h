@@ -134,7 +134,7 @@ class OptimizationApplication {
      */
     virtual void printUsage(char* const argZero);
 
-    virtual void logParPEVersion(hid_t file_id) const;
+    virtual void logParPEVersion(const H5::H5File &file) const;
 
 private:
     /**
@@ -150,15 +150,15 @@ protected:
     // command line option parsing
     const char *shortOptions = "dhvmt:o:s:";
     struct option const longOptions[9] = {
-        {"debug", no_argument, NULL, 'd'},
-        {"print-worklist", no_argument, NULL, 'p'},
-        {"help", no_argument, NULL, 'h'},
-        {"version", no_argument, NULL, 'v'},
-        {"mpi", no_argument, NULL, 'm'},
-        {"task", required_argument, NULL, 't'},
-        {"outfile-prefix", required_argument, NULL, 'o'},
-        {"first-start-idx", required_argument, NULL, 's'},
-        {NULL, 0, NULL, 0}};
+        {"debug", no_argument, nullptr, 'd'},
+        {"print-worklist", no_argument, nullptr, 'p'},
+        {"help", no_argument, nullptr, 'h'},
+        {"version", no_argument, nullptr, 'v'},
+        {"mpi", no_argument, nullptr, 'm'},
+        {"task", required_argument, nullptr, 't'},
+        {"outfile-prefix", required_argument, nullptr, 'o'},
+        {"first-start-idx", required_argument, nullptr, 's'},
+        {nullptr, 0, nullptr, 0}};
 
     enum class OperationType {
         parameterEstimation,
@@ -173,7 +173,7 @@ protected:
     // the need to be filled in by sub
     std::unique_ptr<MultiStartOptimizationProblem> multiStartOptimizationProblem;
     std::unique_ptr<OptimizationProblem> problem;
-    hid_t file_id = 0;
+    H5::H5File h5File = 0;
     OperationType operationType = OperationType::parameterEstimation;
     LoadBalancerMaster loadBalancer;
     bool withMPI = false;
@@ -182,10 +182,10 @@ protected:
 
 /**
  * @brief CPU time for whole application run
- * @param file_id
+ * @param file
  * @param timeInSeconds
  */
-void saveTotalCpuTime(hid_t file_id, const double timeInSeconds);
+void saveTotalCpuTime(const H5::H5File &file, const double timeInSeconds);
 
 
 } // namespace parpe

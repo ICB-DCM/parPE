@@ -44,25 +44,13 @@ std::unique_lock<mutexHdfType> hdf5MutexGetLock();
 herr_t
 hdf5ErrorStackWalker_cb(unsigned int n, const H5E_error_t *err_desc, void *);
 
-bool hdf5DatasetExists(hid_t file_id, std::string const& datasetName);
-
-bool hdf5DatasetExists(hid_t file_id, const char *datasetName);
-
-bool hdf5DatasetExists(H5::H5File const& file, const std::string &datasetName);
-
-bool hdf5GroupExists(hid_t file_id, const char *groupName);
-
 bool hdf5GroupExists(H5::H5File const& file,
                      const std::string &groupName);
-
-void hdf5EnsureGroupExists(hid_t file_id, const char *groupName);
-
-void hdf5EnsureGroupExists(hid_t file_id, const std::string &groupName);
 
 void hdf5EnsureGroupExists(H5::H5File const& file,
                            const std::string &groupName);
 
-void hdf5CreateGroup(hid_t file_id, const char *groupPath, bool recursively = false);
+void hdf5CreateGroup(H5::H5File const& file, std::string const& groupPath, bool recursively = false);
 
 /**
  * @brief Create and open HDF5 file for writing.
@@ -74,75 +62,73 @@ void hdf5CreateGroup(hid_t file_id, const char *groupPath, bool recursively = fa
  * throws HDF5Exception on failure.
  * @return HDF5 file handle of the created/opened file
  */
-hid_t hdf5CreateFile(const char *filename,
-                     bool overwrite = false);
-
-hid_t hdf5CreateFile(std::string const& filename,
-                     bool overwrite = false);
+H5::H5File hdf5CreateFile(std::string const& filename,
+                          bool overwrite = false);
 
 H5::H5File hdf5OpenForReading(std::string const& hdf5Filename);
 
 H5::H5File hdf5OpenForAppending(const std::string &hdf5Filename);
 
-void closeHDF5File(hid_t file_id);
-
-void hdf5CreateExtendableDouble2DArray(hid_t file_id, const char *datasetPath,
+void hdf5CreateExtendableDouble2DArray(H5::H5File const& file, std::string const& datasetPath,
                                        hsize_t stride);
 
-void hdf5CreateExtendableInt2DArray(hid_t file_id, const char *datasetPath,
+void hdf5CreateExtendableInt2DArray(H5::H5File const& file, std::string const& datasetPath,
                                     hsize_t stride);
 
-void hdf5CreateExtendableDouble3DArray(hid_t file_id, const char *datasetPath,
+void hdf5CreateExtendableDouble3DArray(H5::H5File const& file, std::string const& datasetPath,
                                        hsize_t stride1, hsize_t stride2);
 
-void hdf5CreateExtendableString1DArray(hid_t file_id, const char *datasetPath);
+void hdf5CreateExtendableString1DArray(H5::H5File const& file, std::string const& datasetPath);
 
-void hdf5Extend2ndDimensionAndWriteToDouble2DArray(hid_t file_id,
-                                                   const char *datasetPath,
+void hdf5Extend2ndDimensionAndWriteToDouble2DArray(H5::H5File const& file,
+                                                   std::string const& datasetPath,
                                                    gsl::span<const double> buffer);
 
-void hdf5Extend2ndDimensionAndWriteToInt2DArray(hid_t file_id,
-                                                const char *datasetPath,
+void hdf5Extend2ndDimensionAndWriteToInt2DArray(H5::H5File const& file,
+                                                std::string const& datasetPath,
                                                 gsl::span<const int> buffer);
 
-void hdf5ExtendAndWriteToString1DArray(hid_t file_id,
-                                       const char *datasetPath,
+void hdf5ExtendAndWriteToString1DArray(H5::H5File const& file,
+                                       std::string const& datasetPath,
                                        std::string const& buffer);
 
-void hdf5CreateOrExtendAndWriteToDouble2DArray(hid_t file_id,
-                                               const char *parentPath,
-                                               const char *datasetName,
+void hdf5CreateOrExtendAndWriteToDouble2DArray(H5::H5File const& file,
+                                               std::string const& parentPath,
+                                               std::string const& datasetName,
                                                gsl::span<const double> buffer);
 
-void hdf5CreateOrExtendAndWriteToInt2DArray(hid_t file_id,
-                                            const char *parentPath,
-                                            const char *datasetName,
+void hdf5CreateOrExtendAndWriteToInt2DArray(H5::H5File const& file,
+                                            std::string const& parentPath,
+                                            std::string const& datasetName,
                                             gsl::span<const int> buffer);
 
-void hdf5CreateOrExtendAndWriteToDouble3DArray(hid_t file_id,
-                                               const char *parentPath,
-                                               const char *datasetName,
+void hdf5CreateOrExtendAndWriteToDouble3DArray(H5::H5File const& file,
+                                               std::string const& parentPath,
+                                               std::string const& datasetName,
                                                gsl::span<const double> buffer,
                                                hsize_t stride1,
                                                hsize_t stride2);
+void hdf5Extend3rdDimensionAndWriteToDouble3DArray(const H5::H5File &file,
+                                                   std::string const& datasetPath,
+                                                   gsl::span<const double> buffer);
 
-void hdf5CreateOrExtendAndWriteToString1DArray(hid_t file_id,
-                                               const char *parentPath,
-                                               const char *datasetName,
+void hdf5CreateOrExtendAndWriteToString1DArray(H5::H5File const& file,
+                                               std::string const& parentPath,
+                                               std::string const& datasetName,
                                                std::string const& buffer);
 
-int hdf5Read2DDoubleHyperslab(hid_t file_id, const char *path, hsize_t size0,
+void hdf5Read2DDoubleHyperslab(H5::H5File const& file, std::string const& path, hsize_t size0,
                               hsize_t size1, hsize_t offset0, hsize_t offset1,
                               gsl::span<double> buffer);
 
-int hdf5Read3DDoubleHyperslab(hid_t file_id, const char *path, hsize_t size0,
+void hdf5Read3DDoubleHyperslab(H5::H5File const& file, std::string const& path, hsize_t size0,
                               hsize_t size1, hsize_t size2, hsize_t offset0,
                               hsize_t offset1, hsize_t offset2,
                               gsl::span<double> buffer);
 
-std::vector<double> hdf5Get3DDoubleHyperslab(hid_t file_id, const char *path, hsize_t size0,
-                              hsize_t size1, hsize_t size2, hsize_t offset0,
-                              hsize_t offset1, hsize_t offset2);
+std::vector<double> hdf5Get3DDoubleHyperslab(H5::H5File const& file, std::string const& path, hsize_t size0,
+                                             hsize_t size1, hsize_t size2, hsize_t offset0,
+                                             hsize_t offset1, hsize_t offset2);
 
 std::vector<int> hdf5Read1DIntegerHyperslab(
         const H5::H5File &file, std::string const& path,
@@ -152,17 +138,17 @@ std::vector<int> hdf5Read2DIntegerHyperslab(
         H5::H5File const& file, std::string const& path,
         hsize_t size0, hsize_t size1, hsize_t offset0, hsize_t offset1);
 
-void hdf5GetDatasetDimensions(hid_t file_id, const char *path,
+void hdf5GetDatasetDimensions(H5::H5File const& file, std::string const& path,
                               hsize_t nDimsExpected,
                               int *d1 = nullptr, int *d2 = nullptr,
                               int *d3 = nullptr, int *d4 = nullptr);
 
-bool hdf5AttributeExists(hid_t fileId, const char *datasetPath,
-                        const char *attributeName);
+bool hdf5AttributeExists(H5::H5File const& file, std::string const& datasetPath,
+                         std::string const& attributeName);
 
-void hdf5WriteStringAttribute(hid_t fileId, const char *datasetPath,
-                             const char *attributeName,
-                             const char *attributeValue);
+void hdf5WriteStringAttribute(H5::H5File const& file, std::string const& datasetPath,
+                              std::string const& attributeName,
+                              std::string const& attributeValue);
 
 std::vector<std::string> hdf5Read1dStringDataset(
         const H5::H5File &file, std::string const& datasetPath);

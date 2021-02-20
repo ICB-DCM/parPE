@@ -203,8 +203,7 @@ class HDF5DataGenerator:
         # Allows for checking in C++ code whether we are likely to use the
         # correct model
         g = self.f.require_group('/model')
-        # TODO: only available from module, not from pointer
-        # g.attrs['model_name'] = self.amici_model.getName()
+        g.attrs['model_name'] = self.amici_model.getName()
         write_string_array(g, "observableIds",
                            self.amici_model.getObservableIds())
         write_string_array(g, "parameterIds",

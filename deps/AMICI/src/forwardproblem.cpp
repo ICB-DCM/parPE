@@ -53,6 +53,8 @@ void ForwardProblem::workForwardProblem() {
         model->initialize(x_, dx_, sx_, sdx_,
                           solver->getSensitivityOrder() >=
                           SensitivityOrder::first);
+    else if (model->ne)
+        model->initHeaviside(x_, dx_);
 
     /* compute initial time and setup solver for (pre-)simulation */
     auto t0 = model->t0();
@@ -67,6 +69,8 @@ void ForwardProblem::workForwardProblem() {
                                " is currently not implemented.");
         handlePresimulation();
         t_ = model->t0();
+        if (model->ne)
+            model->initHeaviside(x_, dx_);
     }
     /* when computing adjoint sensitivity analysis with presimulation,
      we need to store sx after the reinitialization after preequilibration
@@ -135,13 +139,13 @@ void ForwardProblem::handlePresimulation()
 
 
 void ForwardProblem::handleEvent(realtype *tlastroot, const bool seflag) {
-    /* store heaviside information at event occurence */
+    /* store Heaviside information at event occurrence */
     model->froot(t_, x_, dx_, rootvals_);
 
-    /* store timepoint at which the event occured*/
+    /* store timepoint at which the event occurred*/
     discs_.push_back(t_);
 
-    /* extract and store which events occured */
+    /* extract and store which events occurred */
     if (!seflag) {
         solver->getRootInfo(roots_found_.data());
     }

@@ -15,28 +15,26 @@
 namespace amici {
 
 ReturnData::ReturnData(Solver const &solver, const Model &model)
-    : ReturnData(model.getTimepoints(), model.np(), model.nk(), model.nx_rdata,
-                 model.nx_solver, model.nxtrue_rdata, model.nx_solver_reinit,
-                 model.ny, model.nytrue, model.nz, model.nztrue, model.ne,
-                 model.nJ, model.nplist(), model.nMaxEvent(), model.nt(),
-                 solver.getNewtonMaxSteps(), model.nw,
+    : ReturnData(model.getTimepoints(),
+                 ModelDimensions(static_cast<ModelDimensions const&>(model)),
+                 model.nplist(), model.nMaxEvent(), model.nt(),
+                 solver.getNewtonMaxSteps(),
                  model.getParameterScale(), model.o2mode,
                  solver.getSensitivityOrder(), solver.getSensitivityMethod(),
                  solver.getReturnDataReportingMode(), model.hasQuadraticLLH()) {
 }
 
-ReturnData::ReturnData(std::vector<realtype> ts, int np, int nk, int nx,
-                       int nx_solver, int nxtrue, int nx_solver_reinit, int ny,
-                       int nytrue, int nz, int nztrue, int ne, int nJ,
-                       int nplist, int nmaxevent, int nt, int newton_maxsteps,
-                       int nw, std::vector<ParameterScaling> pscale,
+ReturnData::ReturnData(std::vector<realtype> ts,
+                       ModelDimensions const& model_dimensions,
+                       int nplist, int nmaxevent,
+                       int nt, int newton_maxsteps,
+                       std::vector<ParameterScaling> pscale,
                        SecondOrderMode o2mode, SensitivityOrder sensi,
                        SensitivityMethod sensi_meth, RDataReporting rdrm,
                        bool quadratic_llh)
-    : ts(std::move(ts)), np(np), nk(nk), nx(nx), nx_solver(nx_solver),
-      nxtrue(nxtrue), nx_solver_reinit(nx_solver_reinit), ny(ny),
-      nytrue(nytrue), nz(nz), nztrue(nztrue), ne(ne), nJ(nJ), nplist(nplist),
-      nmaxevent(nmaxevent), nt(nt), nw(nw), newton_maxsteps(newton_maxsteps),
+    : ModelDimensions(model_dimensions), ts(std::move(ts)), nx(nx_rdata),
+      nxtrue(nxtrue_rdata), nplist(nplist),
+      nmaxevent(nmaxevent), nt(nt), newton_maxsteps(newton_maxsteps),
       pscale(std::move(pscale)), o2mode(o2mode), sensi(sensi),
       sensi_meth(sensi_meth), rdata_reporting(rdrm), x_solver_(nx_solver),
       sx_solver_(nx_solver, nplist), x_rdata_(nx), sx_rdata_(nx, nplist),
@@ -256,7 +254,7 @@ void ReturnData::processForwardProblem(ForwardProblem const &fwd, Model &model,
             writeSlice(sx_rdata_[ip], slice(sx0, ip, nx));
     }
 
-    // process timpoint data
+    // process timepoint data
     realtype tf = fwd.getFinalTime();
     for (int it = 0; it < model.nt(); it++) {
         if (model.getTimepoint(it) <= tf) {
@@ -274,7 +272,7 @@ void ReturnData::processForwardProblem(ForwardProblem const &fwd, Model &model,
         auto rootidx = fwd.getRootIndexes();
         for (int iroot = 0; iroot <= fwd.getEventCounter(); iroot++) {
             readSimulationState(fwd.getSimulationStateEvent(iroot), model);
-            getEventOutput(iroot, t_, rootidx.at(iroot), model, edata);
+            getEventOutput(t_, rootidx.at(iroot), model, edata);
         }
     }
 }
@@ -336,7 +334,7 @@ void ReturnData::getDataSensisFSA(int it, Model &model, ExpData const *edata) {
     }
 }
 
-void ReturnData::getEventOutput(int iroot, realtype t, std::vector<int> rootidx,
+void ReturnData::getEventOutput(realtype t, std::vector<int> rootidx,
                                 Model &model, ExpData const *edata) {
 
     for (int ie = 0; ie < ne; ie++) {
@@ -371,7 +369,7 @@ void ReturnData::getEventOutput(int iroot, realtype t, std::vector<int> rootidx,
 
         if (sensi >= SensitivityOrder::first) {
             if (sensi_meth == SensitivityMethod::forward) {
-                getEventSensisFSA(iroot, ie, t, model, edata);
+                getEventSensisFSA(ie, t, model, edata);
             } else if (edata && !sllh.empty()) {
                 model.addPartialEventObjectiveSensitivity(
                     sllh, s2llh, ie, nroots_.at(ie), t, x_solver_, *edata);
@@ -381,7 +379,7 @@ void ReturnData::getEventOutput(int iroot, realtype t, std::vector<int> rootidx,
     }
 }
 
-void ReturnData::getEventSensisFSA(int iroot, int ie, realtype t, Model &model,
+void ReturnData::getEventSensisFSA(int ie, realtype t, Model &model,
                                    ExpData const *edata) {
     if (t == model.getTimepoint(nt - 1)) {
         // call from fillEvent at last timepoint
@@ -585,7 +583,7 @@ void ReturnData::applyChainRuleFactorToSimulationResults(const Model &model) {
     }
 
     if (sensi >= SensitivityOrder::first) {
-        // recover first order sensitivies from states for adjoint sensitivity
+        // recover first order sensitivities from states for adjoint sensitivity
         // analysis
         if (sensi == SensitivityOrder::second
             && o2mode == SecondOrderMode::full
@@ -805,7 +803,7 @@ void ReturnData::fFIM(int it, Model &model, const ExpData &edata) {
     model.getObservableSigma(sigmay_it, it, &edata);
     std::vector<realtype> ssigmay_it(ny * nplist, 0.0);
     model.getObservableSigmaSensitivity(ssigmay_it, it, &edata);
-    
+
     /*
      * https://www.wolframalpha.com/input/?i=d%2Fdu+d%2Fdv+0.5*log%282+*+pi+*+s%28u%2Cv%29%5E2%29+%2B+0.5+*+%28%28y%28u%2Cv%29+-+m%29%2Fs%28u%2Cv%29%29%5E2
      * r = (m - y)
@@ -836,7 +834,7 @@ void ReturnData::fFIM(int it, Model &model, const ExpData &edata) {
      * -3*(s_dv*y_du + s_du*y_dv)*r/s^3 is missing from 2222 and
      * -2*s_du*s_dv*r^2/s^4 is missing from 3333
      */
-    
+
     auto observedData = edata.getObservedDataPtr(it);
 
     for (int iy = 0; iy < nytrue; ++iy) {

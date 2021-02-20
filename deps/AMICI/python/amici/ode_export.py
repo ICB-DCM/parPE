@@ -31,7 +31,8 @@ from typing import (
     Set, Any
 )
 from string import Template
-from sympy.printing.codeprinter import cxxcode
+from sympy.printing import cxxcode
+from sympy.printing.cxx import _CXXCodePrinterBase
 from sympy.matrices.immutable import ImmutableDenseMatrix
 from sympy.matrices.dense import MutableDenseMatrix
 from sympy.logic.boolalg import BooleanAtom
@@ -44,7 +45,7 @@ from . import (
 )
 from .logging import get_logger, log_execution_time, set_log_level
 from .constants import SymbolId
-
+from .import_utils import smart_subs_dict
 
 # Template for model simulation main.cpp file
 CXX_MAIN_TEMPLATE_FILE = os.path.join(amiciSrcPath, 'main.template.cpp')
@@ -89,6 +90,11 @@ functions = {
             'const realtype *k, const realtype *y, '
             'const realtype *sigmay, const realtype *my)',
         'flags': ['sparse']
+    },
+    'root': {
+        'signature':
+            '(realtype *root, const realtype t, const realtype *x, '
+            'const realtype *p, const realtype *k, const realtype *h)'
     },
     'dwdp': {
         'signature':
@@ -154,6 +160,42 @@ functions = {
             '(realtype *sigmay, const realtype t, const realtype *p, '
             'const realtype *k)',
     },
+    'sroot': {
+        'signature':
+            '(realtype *stau, const realtype t, const realtype *x, '
+            'const realtype *p, const realtype *k, const realtype *h, '
+            'const realtype *sx, const int ip, const int ie)',
+        'flags': ['dont_generate_body']
+    },
+    'drootdt': {
+        'signature': '()',
+        'flags': ['dont_generate_body']
+    },
+    'drootdt_total': {
+        'signature': '()',
+        'flags': ['dont_generate_body']
+    },
+    'drootdp': {
+        'signature': '()',
+        'flags': ['dont_generate_body']
+    },
+    'drootdx': {
+        'signature': '()',
+        'flags': ['dont_generate_body']
+    },
+    'stau': {
+        'signature':
+            '(realtype *stau, const realtype t, const realtype *x, '
+            'const realtype *p, const realtype *k, const realtype *h, '
+            'const realtype *sx, const int ip, const int ie)'
+    },
+    'deltasx': {
+        'signature':
+            '(realtype *deltasx, const realtype t, const realtype *x, '
+            'const realtype *p, const realtype *k, const realtype *h, '
+            'const realtype *w, const int ip, const int ie, const realtype *xdot, '
+            'const realtype *xdot_old, const realtype *sx, const realtype *stau)'
+    },
     'w': {
         'signature':
             '(realtype *w, const realtype t, const realtype *x, '
@@ -169,7 +211,8 @@ functions = {
     'x0_fixedParameters': {
         'signature':
             '(realtype *x0_fixedParameters, const realtype t, '
-            'const realtype *p, const realtype *k)',
+            'const realtype *p, const realtype *k, '
+            'gsl::span<const int> reinitialization_state_idxs)',
     },
     'sx0': {
         'signature':
@@ -180,7 +223,7 @@ functions = {
         'signature':
             '(realtype *sx0_fixedParameters, const realtype t, '
             'const realtype *x0, const realtype *p, const realtype *k, '
-            'const int ip)',
+            'const int ip, gsl::span<const int> reinitialization_state_idxs)',
     },
     'xdot': {
         'signature':
@@ -188,6 +231,10 @@ functions = {
             'const realtype *p, const realtype *k, const realtype *h, '
             'const realtype *w)',
         'flags': ['assume_pow_positivity']
+    },
+    'xdot_old': {
+        'signature': '()',
+        'flags': ['dont_generate_body'],
     },
     'y': {
         'signature':
@@ -224,6 +271,11 @@ sensi_functions = [
     function for function in functions
     if 'const int ip' in functions[function]['signature']
     and function != 'sxdot'
+]
+# list of event functions
+event_functions = [
+    function for function in functions
+    if 'const int ie' in functions[function]['signature']
 ]
 # list of multiobs functions
 multiobs_functions = [
@@ -340,6 +392,15 @@ class ModelQuantity:
             value of the ModelQuantity
         """
         return self._value
+
+    def set_val(self, val: sp.Expr):
+        """
+        Set ModelQuantity value
+
+        :return:
+            value of the ModelQuantity
+        """
+        self._value = cast_to_sym(val, 'value')
 
 
 class State(ModelQuantity):
@@ -626,6 +687,46 @@ class LogLikelihood(ModelQuantity):
         """
         super(LogLikelihood, self).__init__(identifier, name, value)
 
+class Event(ModelQuantity):
+    """
+    An Event defines either a SBML event or a root of the argument of a
+    Heaviside function. The Heaviside functions will be tracked via the
+    vector `h` during simulation and are needed to inform the ODE solver about
+    a discontinuity in either the right hand side or the states themselves,
+    causing a reinitialization of the solver.
+    """
+
+    def __init__(self,
+                 identifier: sp.Symbol,
+                 name: str,
+                 value: sp.Expr,
+                 state_update: Union[sp.Expr, None],
+                 event_observable: Union[sp.Expr, None]):
+        """
+        Create a new Event instance.
+
+        :param identifier:
+            unique identifier of the Event
+
+        :param name:
+            individual name of the Event (does not need to be unique)
+
+        :param value:
+            formula for the root / trigger function
+
+        :param state_update:
+            formula for the bolus function (None for Heaviside functions,
+            zero vector for events without bolus)
+
+        :param event_observable:
+            formula a potential observable linked to the event
+            (None for Heaviside functions, empty events without observable)
+        """
+        super(Event, self).__init__(identifier, name, value)
+        # add the Event specific components
+        self._state_update = state_update
+        self._observable = event_observable
+
 
 # defines the type of some attributes in ODEModel
 symbol_to_type = {
@@ -636,6 +737,7 @@ symbol_to_type = {
     SymbolId.SIGMAY: SigmaY,
     SymbolId.LLHY: LogLikelihood,
     SymbolId.EXPRESSION: Expression,
+    SymbolId.EVENT: Event
 }
 
 
@@ -827,6 +929,7 @@ class ODEModel:
         self._loglikelihoods: List[LogLikelihood] = []
         self._expressions: List[Expression] = []
         self._conservationlaws: List[ConservationLaw] = []
+        self._events: List[Event] = []
         self._symboldim_funs: Dict[str, Callable[[], int]] = {
             'sx': self.num_states_solver,
             'v': self.num_states_solver,
@@ -834,7 +937,7 @@ class ODEModel:
             'xB': self.num_states_solver,
             'sigmay': self.num_obs,
         }
-        self._eqs: Dict[str, sp.Matrix] = dict()
+        self._eqs: Dict[str, Union[sp.Matrix, List[sp.Matrix]]] = dict()
         self._sparseeqs: Dict[str, Union[sp.Matrix, List[sp.Matrix]]] = dict()
         self._vals: Dict[str, List[float]] = dict()
         self._names: Dict[str, List[str]] = dict()
@@ -850,7 +953,8 @@ class ODEModel:
             'y': '_observables',
             'Jy': '_loglikelihoods',
             'w': '_expressions',
-            'sigmay': '_sigmays',
+            'root': '_events',
+            'sigmay': '_sigmays'
         }
         self._variable_prototype: Dict[str, str] = {
             'tcl': '_conservationlaws',
@@ -859,7 +963,8 @@ class ODEModel:
             'p': '_parameters',
             'k': '_constants',
             'w': '_expressions',
-            'sigmay': '_sigmays'
+            'sigmay': '_sigmays',
+            'h': '_events'
         }
         self._value_prototype: Dict[str, str] = {
             'p': '_parameters',
@@ -873,6 +978,12 @@ class ODEModel:
                     'var': 'p',
                     'dxdz_name': 'sx',
                 },
+                'sroot': {
+                    'eq': 'root',
+                    'chainvars': ['x'],
+                    'var': 'p',
+                    'dxdz_name': 'sx',
+                }
             }
 
         self._lock_total_derivative: List[str] = list()
@@ -1063,6 +1174,16 @@ class ODEModel:
 
         # fill in 'self._sym' based on prototypes and components in ode_model
         self.generate_basic_variables(from_sbml=True)
+        # substitute 'w' expressions into event expressions now, to avoid
+        # rewriting '{model_name}_root.cpp' headers to include 'w.h'
+        for index, event in enumerate(self._events):
+            self._events[index] = Event(
+                identifier=event.get_id(),
+                name=event.get_name(),
+                value=event.get_val().subs(zip(self._syms['w'], self.eq('w'))),
+                state_update=event._state_update,
+                event_observable=event._observable,
+            )
         self._has_quadratic_nllh = all(
             llh['dist'] in ['normal', 'lin-normal']
             for llh in si.symbols[SymbolId.LLHY].values()
@@ -1081,7 +1202,7 @@ class ODEModel:
             may refer to other components of the same type.
         """
         for comp_type in [Observable, Expression, Parameter, Constant, State,
-                          LogLikelihood, SigmaY, ConservationLaw]:
+                          LogLikelihood, SigmaY, ConservationLaw, Event]:
             if isinstance(component, comp_type):
                 component_list = getattr(
                     self, f'_{type(component).__name__.lower()}s'
@@ -1222,6 +1343,15 @@ class ODEModel:
             number of expression symbols
         """
         return len(self.sym('w'))
+
+    def num_events(self) -> int:
+        """
+        Number of Events.
+
+        :return:
+            number of event symbols (length of the root vector in AMICI)
+        """
+        return len(self.sym('h'))
 
     def sym(self,
             name: str,
@@ -1398,13 +1528,10 @@ class ODEModel:
             # generated by pysb (if compiling a pysb model). To ensure
             # correctness of derivatives, the same assumptions as in pysb
             # have to be used (currently no assumptions)
-            # NB if we are compiling a SBML model,
-            #    then it will be the same as the "non-stripped"
-            #    in order to preserve assumptions
-            if from_sbml:
-                self._strippedsyms[name] = self._syms[name]
-            else:
-                self._strippedsyms[name] = sp.Matrix([
+            # NB if we are compiling a SBML model, then it will be the same
+            # as the "non-stripped" in order to preserve assumptions
+            self._strippedsyms[name] = self._syms[name] if from_sbml \
+                else sp.Matrix([
                     sp.Symbol(comp.get_name())
                     for comp in getattr(self, component)
                 ])
@@ -1440,6 +1567,8 @@ class ODEModel:
                 for tcl in self._conservationlaws
             ])
             return
+        elif name == 'xdot_old':
+            length = len(self.eq('xdot'))
         elif name in sparse_functions:
             self._generate_sparse_symbol(name)
             return
@@ -1459,11 +1588,36 @@ class ODEModel:
         Generates the symbolic identifiers for all variables in
         ODEModel.variable_prototype
         """
+
+        # We need to process events and Heaviside functions in the ODE Model,
+        # before adding it to ODEExporter
+        self.parse_events()
+
         for var in self._variable_prototype:
             if var not in self._syms:
                 self._generate_symbol(var, from_sbml=from_sbml)
 
         self._generate_symbol('x', from_sbml=from_sbml)
+
+    def parse_events(self) -> None:
+        """
+        This functions checks the right hand side for roots of Heaviside
+        functions or events, collects the roots, removes redundant roots,
+        and replaces the formulae of the found roots by identifiers of AMICI's
+        Heaviside function implementation in the right hand side
+        """
+
+        # Track all roots functions in the right hand side
+        roots = []
+        for state in self._states:
+            state.set_dt(_process_heavisides(state.get_dt(), roots))
+
+        for expr in self._expressions:
+            expr.set_val(_process_heavisides(expr.get_val(), roots))
+
+        # Now add the found roots to the model components
+        for root in roots:
+            self.add_component(root)
 
     def get_appearance_counts(self, idxs: List[int]) -> List[int]:
         """
@@ -1557,6 +1711,7 @@ class ODEModel:
 
         """
         match_deriv = re.match(r'd([\w_]+)d([a-z_]+)', name)
+        time_symbol = sp.Matrix([symbol_with_assumptions('t')])
 
         if name in self._equation_prototype:
             self._equation_from_component(name, self._equation_prototype[name])
@@ -1653,11 +1808,46 @@ class ODEModel:
             # force symbols
             self._derivative('xdot', 'p', name=name)
 
+        elif name == 'drootdt':
+            self._eqs[name] = smart_jacobian(self.eq('root'), time_symbol)
+
+        elif name == 'drootdt_total':
+            # backsubstitution of optimized right hand side terms into RHS
+            # calling subs() is costly. Due to looping over events though, the
+            # following lines are only evaluated if a model has events
+            tmp_xdot = self._eqs['xdot'].subs(zip(self._syms['w'],
+                                                  self._eqs['w']))
+            self._eqs[name] = smart_multiply(self.eq('drootdx'), tmp_xdot) + \
+                              self.eq('drootdt')
+
+        elif name == 'stau':
+            self._eqs[name] = [
+                -self.eq('sroot')[ie, :] / self.eq('drootdt_total')[ie]
+                for ie in range(self.num_events())
+            ]
+
+        elif name == 'deltasx':
+            self._eqs[name] = [
+                smart_multiply((self.eq('xdot_old') - self.eq('xdot')),
+                               self.eq('stau')[ie])
+                for ie in range(self.num_events())
+            ]
+
+        elif name == 'xdot_old':
+            # force symbols
+            self._eqs[name] = self.sym(name)
+
+
         elif match_deriv:
             self._derivative(match_deriv.group(1), match_deriv.group(2))
 
         else:
             raise ValueError(f'Unknown equation {name}')
+
+        if name == 'root':
+            # Events are processed after the ODE model has been set up.
+            # Equations are there, but symbols for roots must be added
+            self.sym('h')
 
         if name in ['Jy', 'dydx']:
             # do not transpose if we compute the partial derivative as part of
@@ -1667,7 +1857,11 @@ class ODEModel:
 
         if self._simplify:
             dec = log_execution_time(f'simplifying {name}', logger)
-            self._eqs[name] = dec(self._eqs[name].applyfunc)(self._simplify)
+            if isinstance(self._eqs[name], list):
+                self._eqs[name] = [dec(sub_eq.applyfunc)(self._simplify)
+                                   for sub_eq in self._eqs[name]]
+            else:
+                self._eqs[name] = dec(self._eqs[name].applyfunc)(self._simplify)
 
     def sym_names(self) -> List[str]:
         """
@@ -2051,7 +2245,13 @@ def _print_with_exception(math: sp.Expr) -> str:
     user_functions = {fun['sympy']: fun['c++'] for fun in CUSTOM_FUNCTIONS}
 
     try:
-        ret = cxxcode(math, standard='c++11', user_functions=user_functions)
+        # Required until https://github.com/sympy/sympy/pull/20558 is released
+        with _monkeypatched(_CXXCodePrinterBase, '_print_Max',
+                            _custom_print_max),\
+                _monkeypatched(_CXXCodePrinterBase, '_print_Min',
+                               _custom_print_min):
+            ret = cxxcode(math, standard='c++11',
+                          user_functions=user_functions)
         ret = re.sub(r'(^|\W)M_PI(\W|$)', r'\1amici::pi\2', ret)
         return ret
     except TypeError as e:
@@ -2211,7 +2411,6 @@ class ODEExporter:
 
         # Signatures and properties of generated model functions (see
         # include/amici/model.h for details)
-
         self.model: ODEModel = ode_model
 
         # To only generate a subset of functions, apply subselection here
@@ -2429,6 +2628,7 @@ class ODEExporter:
             '#include "amici/defines.h"',
             '#include "sundials/sundials_types.h"',
             '',
+            '#include <gsl/gsl-lite.hpp>',
             '#include <array>',
         ]
 
@@ -2469,8 +2669,8 @@ class ODEExporter:
         lines.extend([
             '}',
             '',
-            '} // namespace amici',
             f'}} // namespace model_{self.model_name}',
+            '} // namespace amici\n',
         ])
 
         # check custom functions
@@ -2560,8 +2760,8 @@ class ODEExporter:
         lines.extend([
             '}'
             '',
-            '} // namespace amici',
             f'}} // namespace model_{self.model_name}',
+            '} // namespace amici\n',
         ])
 
         filename = f'{self.model_name}_{function}_{indextype}.cpp'
@@ -2617,8 +2817,11 @@ class ODEExporter:
                 #  switch statement below only needs to handle non-zero entries
                 #  (which usually reduces file size and speeds up
                 #  compilation significantly).
-                "    for(auto idx: _x0_fixedParameters_idxs) {",
-                "        sx0_fixedParameters[idx] = 0.0;",
+                "    for(auto idx: reinitialization_state_idxs) {",
+                "        if(std::find(_x0_fixedParameters_idxs.cbegin(), "
+                "_x0_fixedParameters_idxs.cend(), idx) != "
+                "_x0_fixedParameters_idxs.cend())\n"
+                "            sx0_fixedParameters[idx] = 0.0;",
                 "    }"])
 
             cases = dict()
@@ -2629,9 +2832,14 @@ class ODEExporter:
                         equations[:, ipar]
                 ):
                     if not formula.is_zero:
-                        expressions.append(
-                            f'{function}[{index}] = '
-                            f'{_print_with_exception(formula)};')
+                        expressions.extend([
+                            f'if(std::find('
+                            'reinitialization_state_idxs.cbegin(), '
+                            f'reinitialization_state_idxs.cend(), {index}) != '
+                            'reinitialization_state_idxs.cend())',
+                            f'    {function}[{index}] = '
+                            f'{_print_with_exception(formula)};'
+                        ])
                 cases[ipar] = expressions
             lines.extend(get_switch_statement('ip', cases, 1))
 
@@ -2640,8 +2848,26 @@ class ODEExporter:
                     self.model._x0_fixedParameters_idx,
                     equations
             ):
-                lines.append(f'{function}[{index}] = '
-                             f'{_print_with_exception(formula)};')
+                lines.append(
+                    f'    if(std::find(reinitialization_state_idxs.cbegin(), '
+                    f'reinitialization_state_idxs.cend(), {index}) != '
+                    'reinitialization_state_idxs.cend())\n        '
+                    f'{function}[{index}] = '
+                    f'{_print_with_exception(formula)};')
+
+        elif function in event_functions:
+            outer_cases = {}
+            for ie, inner_equations in enumerate(equations):
+                inner_lines = []
+                inner_cases = {
+                    ipar: _get_sym_lines_array(inner_equations[:, ipar],
+                                               function, 0)
+                    for ipar in range(self.model.num_par())
+                    if not smart_is_zero_matrix(inner_equations[:, ipar])}
+                inner_lines.extend(get_switch_statement(
+                    'ip', inner_cases, 0))
+                outer_cases[ie] = copy.copy(inner_lines)
+            lines.extend(get_switch_statement('ie', outer_cases, 1))
 
         elif function in sensi_functions:
             cases = {ipar: _get_sym_lines_array(equations[:, ipar], function,
@@ -2714,7 +2940,7 @@ class ODEExporter:
             'NYTRUE': str(self.model.num_obs()),
             'NZ': '0',
             'NZTRUE': '0',
-            'NEVENT': '0',
+            'NEVENT': str(self.model.num_events()),
             'NOBJECTIVE': '1',
             'NW': str(len(self.model.sym('w'))),
             'NDWDP': str(len(self.model.sparsesym('dwdp'))),
@@ -2745,6 +2971,8 @@ class ODEExporter:
                 self._get_symbol_name_initializer_list('k'),
             'OBSERVABLE_NAMES_INITIALIZER_LIST':
                 self._get_symbol_name_initializer_list('y'),
+            'EXPRESSION_NAMES_INITIALIZER_LIST':
+                self._get_symbol_name_initializer_list('w'),
             'PARAMETER_IDS_INITIALIZER_LIST':
                 self._get_symbol_id_initializer_list('p'),
             'STATE_IDS_INITIALIZER_LIST':
@@ -2753,6 +2981,8 @@ class ODEExporter:
                 self._get_symbol_id_initializer_list('k'),
             'OBSERVABLE_IDS_INITIALIZER_LIST':
                 self._get_symbol_id_initializer_list('y'),
+            'EXPRESSION_IDS_INITIALIZER_LIST':
+                self._get_symbol_id_initializer_list('w'),
             'REINIT_FIXPAR_INITCOND':
                 'true' if self.allow_reinit_fixpar_initcond else
                 'false',
@@ -3341,47 +3571,6 @@ def cast_to_sym(value: Union[SupportsFloat, sp.Expr, BooleanAtom],
     return value
 
 
-SymbolDef = Dict[sp.Symbol, Union[Dict[str, sp.Expr], sp.Expr]]
-
-
-def smart_subs_dict(sym: sp.Expr,
-                    subs: SymbolDef,
-                    field: Optional[str] = None,
-                    reverse: bool = True) -> sp.Expr:
-    """
-    Subsitutes expressions completely flattening them out. Requires
-    sorting of expressions with toposort.
-
-    :param sym:
-        Symbolic expression in which expressions will be substituted
-
-    :param subs:
-        Substitutions
-
-    :param field:
-        Field of substitution expressions in subs.values(), if applicable
-
-    :param reverse:
-        Whether ordering in subs should be reversed. Note that substitution
-        requires the reverse order of what is required for evaluation.
-
-    :return:
-        Substituted symbolic expression
-    """
-    s = [
-        (eid, expr[field] if field is not None else expr)
-        for eid, expr in subs.items()
-    ]
-    if reverse:
-        s.reverse()
-    for substitution in s:
-        # note that substitution may change free symbols, so we have to do
-        # this recursively
-        if substitution[0] in sym.free_symbols:
-            sym = sym.subs(*substitution)
-    return sym
-
-
 @contextlib.contextmanager
 def _monkeypatched(obj: object, name: str, patch: Any):
     """
@@ -3430,3 +3619,115 @@ def _custom_pow_eval_derivative(self, s):
         (self.base, sp.And(sp.Eq(self.base, 0), sp.Eq(dbase, 0))),
         (part2, True)
     )
+
+
+def _custom_print_max(self, expr):
+    """
+    Custom Max printing function, see https://github.com/sympy/sympy/pull/20558
+    """
+    from sympy import Max
+    if len(expr.args) == 1:
+        return self._print(expr.args[0])
+    return "%smax(%s, %s)" % (self._ns, self._print(expr.args[0]),
+                              self._print(Max(*expr.args[1:])))
+
+
+def _custom_print_min(self, expr):
+    """
+    Custom Min printing function, see https://github.com/sympy/sympy/pull/20558
+    """
+    from sympy import Min
+    if len(expr.args) == 1:
+        return self._print(expr.args[0])
+    return "%smin(%s, %s)" % (self._ns, self._print(expr.args[0]),
+                              self._print(Min(*expr.args[1:])))
+
+
+def _collect_heaviside_roots(args: Sequence[sp.Expr]) -> List[sp.Expr]:
+    """
+    Recursively checks an expression for the occurrence of Heaviside
+    functions and return all roots found
+
+    :param args:
+        args attribute of the expanded expression
+
+    :returns:
+        root functions that were extracted from Heaviside function arguments
+    """
+    root_funs = []
+    for arg in args:
+        if arg.func == sp.Heaviside:
+            root_funs.append(arg.args[0])
+        elif arg.has(sp.Heaviside):
+            root_funs.extend(_collect_heaviside_roots(arg.args))
+
+    return root_funs
+
+
+def _get_unique_root(root_found: sp.Expr, roots: List[Event]) -> sp.Symbol:
+    """
+    Collects roots of Heaviside functions and events and stores them in
+    the roots list. It checks for redundancy to not store symbolically
+    equivalent root functions more than once.
+
+    :param root_found:
+        equation of the root function
+    :param roots:
+        list of already known root functions with identifier
+
+    :returns:
+        unique identifier for root
+    """
+    for root in roots:
+        if sp.simplify(root_found - root.get_val()) == 0:
+            return root.get_id()
+
+    # create an event for a new root function
+    root_symstr = f'Heaviside_{len(roots)}'
+    roots.append(Event(
+        identifier=sp.Symbol(root_symstr),
+        name=root_symstr,
+        value=root_found,
+        state_update=None,
+        event_observable=None
+    ))
+    return roots[-1].get_id()
+
+
+def _process_heavisides(dxdt: sp.Expr, roots: List[Event]) -> sp.Expr:
+    """
+    Parses the RHS of a state variable, checks for Heaviside functions,
+    collects unique roots functions that can be tracked by SUNDIALS and
+    replaces Heaviside Functions by amici helper variables that will be
+    updated based on SUNDIALS root tracking.
+
+    :param dxdt:
+        right hand side of state variable
+    :param roots:
+        list of known root functions with identifier
+
+    :returns:
+        dxdt with Heaviside functions replaced by amici helper variables
+    """
+
+    # expanding the rhs will in general help to collect the same
+    # heaviside function
+    dt_expanded = dxdt.expand()
+    # track all the old Heaviside expressions in tmp_roots_old
+    # replace them later by the new expressions
+    heavisides = []
+    # run through the expression tree and get the roots
+    tmp_roots_old = _collect_heaviside_roots(dt_expanded.args)
+    for tmp_old in tmp_roots_old:
+        # we want unique identifiers for the roots
+        tmp_new = _get_unique_root(tmp_old, roots)
+        # For Heavisides, we need to add the negative function as well
+        _get_unique_root(sp.sympify(- tmp_old), roots)
+        heavisides.append((sp.Heaviside(tmp_old), tmp_new))
+
+    if heavisides:
+        # only apply subs if necessary
+        for heaviside_sympy, heaviside_amici in heavisides:
+            dxdt = dxdt.subs(heaviside_sympy, heaviside_amici)
+
+    return dxdt

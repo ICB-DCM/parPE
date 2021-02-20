@@ -27,15 +27,16 @@ public:
                               "Reading options and data from '%s'.",
                               inFileArgument.c_str());
 
-        file_id = parpe::hdf5CreateFile(outFileArgument.c_str(), true);
-        logParPEVersion(file_id);
+        auto h5Outfile = parpe::hdf5CreateFile(outFileArgument, true);
+        logParPEVersion(h5Outfile);
 
         // setup data and problem
         dataProvider = std::make_unique<parpe::MultiConditionDataProviderHDF5>(
             amici::generic_model::getModel(), inFileArgument);
 
         // read options from file
-        auto optimizationOptions = parpe::OptimizationOptions::fromHDF5(dataProvider->getHdf5FileId());
+        auto h5Infile = dataProvider->getHdf5File();
+        auto optimizationOptions = parpe::OptimizationOptions::fromHDF5(h5Infile);
 
         // Create one instance for the problem, one for the application for clear ownership
         auto multiCondProb = new parpe::MultiConditionProblem(
@@ -43,7 +44,7 @@ public:
                     std::make_unique<parpe::Logger>(),
                     // TODO remove this resultwriter
                     std::make_unique<parpe::OptimizationResultWriter>(
-                        file_id,
+                        h5Outfile,
                         std::string("/multistarts/"))
                     );
 
@@ -61,7 +62,7 @@ public:
 
         // On master, copy input data to result file
         if(parpe::getMpiRank() < 1)
-            dataProvider->copyInputData(file_id);
+            dataProvider->copyInputData(h5Outfile);
 
         auto ms = new parpe::MultiConditionProblemMultiStartOptimizationProblem(
                     dataProvider.get(),

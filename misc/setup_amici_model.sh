@@ -41,11 +41,10 @@ echo "Setting up build ..."
 
 amici_root=${AMICI_ROOT:-${script_path}/../deps/AMICI/}
 
-CC=mpicc CXX=mpiCC \
-  cmake -S "${output_dir}" \
-        -B "${output_dir}/build" \
-        -DAmici_DIR="${amici_root}/build" \
-        -DParPE_DIR="${script_path}/../build"
+cmake -S "${output_dir}" \
+      -B "${output_dir}/build" \
+      -DAmici_DIR="${amici_root}/build" \
+      -DParPE_DIR="${script_path}/../build"
 
 echo "Building ..."
 cmake --build "${output_dir}/build" -- VERBOSE=1

@@ -230,9 +230,12 @@ class AbstractModel {
      * @param t initial time
      * @param p parameter vector
      * @param k constant vector
+     * @param reinitialization_state_idxs Indices of states to be reinitialized
+     * based on provided constants / fixed parameters.
      */
     virtual void fx0_fixedParameters(realtype *x0, const realtype t,
-                                     const realtype *p, const realtype *k);
+                                     const realtype *p, const realtype *k,
+                                     gsl::span<const int> reinitialization_state_idxs);
 
     /**
      * @brief Model specific implementation of fsx0_fixedParameters
@@ -242,10 +245,13 @@ class AbstractModel {
      * @param p parameter vector
      * @param k constant vector
      * @param ip sensitivity index
+     * @param reinitialization_state_idxs Indices of states to be reinitialized
+     * based on provided constants / fixed parameters.
      */
     virtual void fsx0_fixedParameters(realtype *sx0, const realtype t,
                                       const realtype *x0, const realtype *p,
-                                      const realtype *k, int ip);
+                                      const realtype *k, int ip,
+                                      gsl::span<const int> reinitialization_state_idxs);
 
     /**
      * @brief Model specific implementation of fsx0
@@ -626,7 +632,7 @@ class AbstractModel {
     virtual void fdJydy(realtype *dJydy, int iy, const realtype *p,
                         const realtype *k, const realtype *y,
                         const realtype *sigmay, const realtype *my);
-                        
+
     /**
      * @brief Model-specific implementation of fdJydy colptrs
      * @param dJydy sparse matrix to which colptrs will be written
@@ -800,7 +806,7 @@ class AbstractModel {
      * @param dwdx sparse matrix to which rowvals will be written
      */
     virtual void fdwdx_rowvals(SUNMatrixWrapper &dwdx);
-    
+
     /**
      * @brief Model specific implementation of fdwdw, no w chainrule (Py)
      * @param dwdw partial derivative w wrt w
@@ -808,7 +814,7 @@ class AbstractModel {
      * @param x Vector with the states
      * @param p parameter vector
      * @param k constants vector
-     * @param h heavyside vector
+     * @param h Heaviside vector
      * @param w vector with helper variables
      * @param tcl Total abundances for conservation laws
      */

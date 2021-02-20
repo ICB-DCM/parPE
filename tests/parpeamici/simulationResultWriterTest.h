@@ -37,10 +37,15 @@ TEST(simulationResultWriter, testResultWriter) {
     edata.setObservedData(measurements);
 
     amici::ReturnData rdata(
-        timepoints, 0, 1, nx, nx, nx, 0, nytrue, nytrue, 0, 0, 0, 0, 0, 0,
-        timepoints.size(), 0, 0, std::vector<amici::ParameterScaling>(),
-        amici::SecondOrderMode::none, amici::SensitivityOrder::none,
-        amici::SensitivityMethod::none, amici::RDataReporting::full, true);
+                timepoints,
+                amici::ModelDimensions(nx, nx, nx, nx, 0, 0, 0, nytrue, nytrue,
+                                       0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                       std::vector<int>(), 0, 0, 0),
+                0, 0, timepoints.size(), 0,
+                std::vector<amici::ParameterScaling>(),
+                amici::SecondOrderMode::none, amici::SensitivityOrder::none,
+                amici::SensitivityMethod::none, amici::RDataReporting::full,
+                true);
     std::iota(rdata.x.begin(), rdata.x.end(), 0);
     rdata.llh = 1.2345;
     rdata.y.resize(measurements.size());
@@ -52,11 +57,11 @@ TEST(simulationResultWriter, testResultWriter) {
     rw.createDatasets(numSimulations);
 
     EXPECT_TRUE(parpe::hdf5GroupExists(file, "/testResultWriter/"));
-    EXPECT_TRUE(parpe::hdf5DatasetExists(file, rw.llhPath));
-    EXPECT_TRUE(parpe::hdf5DatasetExists(file, rw.xPath));
-    EXPECT_TRUE(parpe::hdf5DatasetExists(file, rw.yMesPath));
-    EXPECT_TRUE(parpe::hdf5DatasetExists(file, rw.ySimPath));
-    EXPECT_TRUE(parpe::hdf5DatasetExists(file, rw.timePath));
+    EXPECT_TRUE(file.nameExists(rw.llhPath));
+    EXPECT_TRUE(file.nameExists(rw.xPath));
+    EXPECT_TRUE(file.nameExists(rw.yMesPath));
+    EXPECT_TRUE(file.nameExists(rw.ySimPath));
+    EXPECT_TRUE(file.nameExists(rw.timePath));
 
     rw.saveSimulationResults(&edata, &rdata, 1);
 

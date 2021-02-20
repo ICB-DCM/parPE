@@ -192,15 +192,16 @@ std::unique_ptr<OptimizationProblem> MultiConditionProblemMultiStartOptimization
                     nullptr);
     }
     problem->setOptimizationOptions(options_);
-    problem->setInitialParameters(parpe::OptimizationOptions::getStartingPoint(
-                                      data_provider_->getHdf5FileId(), multiStartIndex));
+    problem->setInitialParameters(
+                parpe::OptimizationOptions::getStartingPoint(
+                    data_provider_->getHdf5File(), multiStartIndex));
 
     if(options_.hierarchicalOptimization)
         return std::unique_ptr<OptimizationProblem>(
                     new parpe::HierarchicalOptimizationProblemWrapper(
                         std::move(problem), data_provider_));
 
-    return std::move(problem);
+    return problem;
 }
 
 void printSimulationResult(Logger *logger, int jobId,
@@ -254,7 +255,7 @@ void saveSimulation(const H5::H5File &file, std::string const& pathStr,
     // TODO replace by SimulationResultWriter
     const char *fullGroupPath = pathStr.c_str();
 
-    auto lock = hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
 
     hdf5CreateOrExtendAndWriteToDouble2DArray(
         file.getId(), fullGroupPath, "simulationLogLikelihood",

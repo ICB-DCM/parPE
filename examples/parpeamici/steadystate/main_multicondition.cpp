@@ -35,7 +35,7 @@
  */
 
 class SteadystateApplication : public parpe::OptimizationApplication {
-  public:
+public:
     using OptimizationApplication::OptimizationApplication;
 
     ~SteadystateApplication() override = default;
@@ -45,14 +45,15 @@ class SteadystateApplication : public parpe::OptimizationApplication {
     {
 
         // The same file should only be opened/created once, an then only be reopened
-        file_id = parpe::hdf5CreateFile(outFileArgument.c_str(), true);
-        logParPEVersion(file_id);
+        h5File = parpe::hdf5CreateFile(outFileArgument, true);
+        logParPEVersion(h5File);
 
         dataProvider = std::make_unique<SteadyStateMultiConditionDataProvider>(
-            amici::generic_model::getModel(), inFileArgument);
+                    amici::generic_model::getModel(), inFileArgument);
 
         // read options from file
-        auto optimizationOptions = parpe::OptimizationOptions::fromHDF5(dataProvider->getHdf5FileId());
+        auto optimizationOptions = parpe::OptimizationOptions::fromHDF5(
+                    dataProvider->getHdf5File());
 
         // Create one instance for the problem, one for the application for clear ownership
         auto multiCondProb = new parpe::MultiConditionProblem(
@@ -61,7 +62,7 @@ class SteadystateApplication : public parpe::OptimizationApplication {
                     std::make_unique<parpe::Logger>(),
                     // TODO remove this resultwriter
                     std::make_unique<parpe::OptimizationResultWriter>(
-                        file_id,
+                        h5File,
                         std::string("/multistarts/"))
                     );
 
@@ -79,7 +80,7 @@ class SteadystateApplication : public parpe::OptimizationApplication {
 
         // On master, copy input data to result file
         if(parpe::getMpiRank() < 1)
-            dataProvider->copyInputData(file_id);
+            dataProvider->copyInputData(h5File);
 
         // TODO: we can set the correct start?
         auto ms = new parpe::MultiConditionProblemMultiStartOptimizationProblem(
@@ -100,7 +101,7 @@ class SteadystateApplication : public parpe::OptimizationApplication {
  * in the base class and performs only a single optimization run. This is mostly for debugging.
  */
 class SteadystateLocalOptimizationApplication : public SteadystateApplication {
-  public:
+public:
 
     using SteadystateApplication::SteadystateApplication;
 
