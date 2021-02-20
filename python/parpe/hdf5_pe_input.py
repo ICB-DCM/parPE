@@ -1,9 +1,11 @@
 """Functions for generating parPE parameter estimation HDF5 input files"""
 import argparse
+import logging
 import sys
 from typing import Any, Collection, Optional, Dict, Tuple
 
 import amici
+import coloredlogs
 import h5py
 import numpy as np
 import pandas as pd
@@ -23,7 +25,8 @@ from .hierarchical_optimization import (get_candidates_for_hierarchical,
                                         get_analytical_parameter_table)
 from .misc import get_amici_model, unique_ordered
 
-# TODO: use logging
+logger = logging.getLogger(__name__)
+
 # TODO: transpose all datasets?
 
 
@@ -38,9 +41,9 @@ UNMAPPED_PARAMETER: int = -1
 
 def requires_preequilibration(measurement_df: DataFrame) -> bool:
     return ptc.PREEQUILIBRATION_CONDITION_ID in measurement_df \
-            and not np.issubdtype(
-                measurement_df[ptc.PREEQUILIBRATION_CONDITION_ID].dtype,
-                np.number)
+           and not np.issubdtype(
+        measurement_df[ptc.PREEQUILIBRATION_CONDITION_ID].dtype,
+        np.number)
 
 
 class HDF5DataGenerator:
@@ -115,23 +118,23 @@ class HDF5DataGenerator:
         self._collect_simulation_conditions()
         self._process_condition_table()
 
-        print(Fore.GREEN + "Generating simulation condition list...")
+        logger.info(Fore.GREEN + "Generating simulation condition list...")
         self._generate_simulation_condition_map()
 
-        print(Fore.GREEN + "Generating parameter list...")
+        logger.info(Fore.GREEN + "Generating parameter list...")
         self._generate_parameter_list()
         self._generate_simulation_to_optimization_parameter_mapping()
 
-        print(Fore.GREEN + "Generating measurement matrix...")
+        logger.info(Fore.GREEN + "Generating measurement matrix...")
         self._generate_measurement_matrices()
 
-        print(Fore.GREEN + "Handling scaling parameters...")
+        logger.info(Fore.GREEN + "Handling scaling parameters...")
         self._generate_hierarchical_optimization_data()
 
-        print(Fore.GREEN + "Copying default AMICI options...")
+        logger.info(Fore.GREEN + "Copying default AMICI options...")
         self._write_amici_options()
 
-        print(Fore.GREEN + "Writing default optimization options...")
+        logger.info(Fore.GREEN + "Writing default optimization options...")
         write_optimization_options(self.f)
         self._write_bounds()
         self._write_starting_points()
@@ -142,8 +145,8 @@ class HDF5DataGenerator:
         """
         measurement_df = self.petab_problem.measurement_df
         if self.verbose:
-            print(Fore.CYAN + "Number of data points:",
-                  measurement_df.shape[0])
+            logger.info(f"{Fore.CYAN}Number of data points:{Fore.RESET} "
+                        f"{measurement_df.shape[0]}")
 
         # Get list of used conditions vectors
         self.condition_ids = unique_ordered(
@@ -163,10 +166,11 @@ class HDF5DataGenerator:
         # setting
         self.unique_timepoints = sorted(measurement_df[ptc.TIME].unique())
 
-        print(Fore.CYAN + "Num condition vectors: ",
-              self.num_condition_vectors)
-        print(Fore.CYAN + "Num timepoints: ", self.unique_timepoints,
-              len(self.unique_timepoints))
+        logger.info(f"{Fore.CYAN}Num condition vectors:{Fore.RESET} "
+                    f"{self.num_condition_vectors}")
+        logger.info(f"{Fore.CYAN}Num timepoints:{Fore.RESET} "
+                    f"{len(self.unique_timepoints)}")
+        logger.debug(f"Timepoints: {self.unique_timepoints}")
 
     def _process_condition_table(self) -> None:
         """
@@ -178,15 +182,15 @@ class HDF5DataGenerator:
             # later on
             condition_df.drop(columns=ptc.PARAMETER_NAME)
 
-        print(Fore.CYAN + "Conditions original: ",
-              condition_df.shape)
+        logger.info(f"{Fore.CYAN}Conditions original:{Fore.RESET} "
+                    f"{condition_df.shape}")
 
         # drop conditions that do not have measurements
         drop_rows = [label for label in condition_df.index
                      if label not in self.condition_ids]
         condition_df.drop(index=drop_rows, inplace=True)
-        print(Fore.CYAN + "Conditions with data: ",
-              condition_df.shape)
+        logger.info(f"{Fore.CYAN}Conditions with data:{Fore.RESET} "
+                    f"{condition_df.shape}")
 
     def _save_metadata(self):
         """Save some extra information in the generated file"""
@@ -223,8 +227,8 @@ class HDF5DataGenerator:
         # TODO: rename to "ID"
         write_string_array(self.f, "/parameters/modelParameterNames",
                            model_parameter_ids)
-        print(Fore.CYAN + "Number of model parameters:",
-              len(model_parameter_ids))
+        logger.info(f"{Fore.CYAN}Number of model parameters: {Fore.RESET}"
+                    f"{len(model_parameter_ids)}")
 
         self.problem_parameter_ids = self.petab_problem \
             .get_optimization_parameters()
@@ -232,14 +236,14 @@ class HDF5DataGenerator:
         # sanity check: estimated parameters should not be AMICI fixed
         # parameters
         fixed_opt_pars = set(self.problem_parameter_ids) \
-            & set(self.amici_model.getFixedParameterIds())
+                         & set(self.amici_model.getFixedParameterIds())
         if fixed_opt_pars:
             raise RuntimeError(f"Parameter {fixed_opt_pars} are to be "
                                "optimized, but are fixed parameters in the "
                                "model. This should not happen.")
 
-        print(Fore.CYAN + "Number of optimization parameters:",
-              len(self.problem_parameter_ids))
+        logger.info(f"{Fore.CYAN}Number of optimization parameters: "
+                    f"{Fore.RESET}{len(self.problem_parameter_ids)}")
 
         write_string_array(self.f, "/parameters/parameterNames",
                            self.problem_parameter_ids)
@@ -253,14 +257,14 @@ class HDF5DataGenerator:
         # get list of tuple of parameters dicts for all conditions
         self.parameter_mapping = self.petab_problem \
             .get_optimization_to_simulation_parameter_mapping(
-                warn_unmapped=False, scaled_parameters=False)
+            warn_unmapped=False, scaled_parameters=False)
 
         variable_par_ids = self.amici_model.getParameterIds()
         fixed_par_ids = self.amici_model.getFixedParameterIds()
 
         # Translate parameter ID mapping to index mapping
         # create inverse mapping for faster lookup
-        print(self.problem_parameter_ids)
+        logger.debug(f"Problem parameters: {self.problem_parameter_ids}")
         optimization_parameter_name_to_index = {
             name: idx for idx, name in enumerate(self.problem_parameter_ids)}
         self.optimization_parameter_name_to_index = \
@@ -278,8 +282,8 @@ class HDF5DataGenerator:
 
         # AMICI fixed parameters
         self.nk = len(fixed_par_ids)
-        print(Fore.CYAN + "Number of fixed parameters:",
-              len(fixed_par_ids))
+        logger.info(f"{Fore.CYAN}Number of fixed parameters:{Fore.RESET} "
+                    f"{len(fixed_par_ids)}")
         # TODO: can fixed parameter differ between same condition vector used
         #  in different sim x preeq combinations?
         fixed_parameter_matrix = np.full(
@@ -301,7 +305,10 @@ class HDF5DataGenerator:
             preeq_cond_id = self.condition_ids[preeq_cond_idx] \
                 if preeq_cond_idx != NO_PREEQ_CONDITION_IDX else None
             sim_cond_id = self.condition_ids[sim_cond_idx]
-            print(preeq_cond_idx, preeq_cond_id, sim_cond_idx, sim_cond_id)
+            logger.debug(f"preeq_cond_idx: {preeq_cond_idx}, "
+                         f"preeq_cond_id: {preeq_cond_id}, "
+                         f"sim_cond_idx: {sim_cond_idx}, "
+                         f"sim_cond_id: {sim_cond_id}")
 
             if len(condition_map_preeq) != len(condition_scale_map_preeq) \
                     or len(condition_map_sim) != len(condition_scale_map_sim):
@@ -349,7 +356,7 @@ class HDF5DataGenerator:
                         except KeyError:
                             # otherwise look up in parameter table
                             if (self.petab_problem.parameter_df.loc[
-                                        value, ptc.ESTIMATE] == 0):
+                                value, ptc.ESTIMATE] == 0):
                                 par_map[init_par_id] = \
                                     self.petab_problem.parameter_df.loc[
                                         value, ptc.NOMINAL_VALUE]
@@ -387,7 +394,8 @@ class HDF5DataGenerator:
                             condition_map_preeq,
                             condition_scale_map_preeq)
                         # enable state reinitialization
-                        self.f['/fixedParameters/simulationConditions'][condition_idx, 2] = 1
+                        self.f['/fixedParameters/simulationConditions'][
+                            condition_idx, 2] = 1
 
                     # for simulation
                     init_par_id = f'initial_{species_id}_sim'
@@ -396,7 +404,8 @@ class HDF5DataGenerator:
                         condition_map_sim,
                         condition_scale_map_sim)
 
-            print(condition_map_preeq, condition_map_sim)
+            logger.debug(f"condition_map_preeq: {condition_map_preeq}, "
+                         f"condition_map_sim: {condition_map_sim}")
 
             # split into fixed and variable parameters:
             condition_map_preeq_var = condition_scale_map_preeq_var = None
@@ -423,7 +432,6 @@ class HDF5DataGenerator:
                     condition_scale_map_preeq_var, condition_scale_map_sim_var,
                     condition_idx)
 
-            print(self.problem_parameter_ids)
             # mapping for each model parameter
             for model_parameter_idx, model_parameter_id \
                     in enumerate(variable_par_ids):
@@ -437,9 +445,11 @@ class HDF5DataGenerator:
                     override_matrix[model_parameter_idx, condition_idx] = \
                         override
                 except IndexError as e:
-                    print(Fore.RED + "Error in parameter mapping:", e)
-                    print(model_parameter_idx, mapped_parameter)
-                    print(self.parameter_mapping)
+                    logger.critical(f"{Fore.RED}Error in parameter mapping: "
+                                    f"{Fore.RESET} {e}")
+                    logger.critical(f"{model_parameter_idx}, "
+                                    f"{mapped_parameter}")
+                    logger.critical(f"{self.parameter_mapping}")
                     raise e
 
             # Set parameter scales for simulation
@@ -449,12 +459,13 @@ class HDF5DataGenerator:
 
             fixed_parameter_matrix[:, self.condition_map[condition_idx, 1]] = \
                 np.array([condition_map_sim_fix[par_id]
-                         for par_id in fixed_par_ids])
+                          for par_id in fixed_par_ids])
 
             if condition_map_preeq:
-                fixed_parameter_matrix[:, self.condition_map[condition_idx, 0]] = \
+                fixed_parameter_matrix[:,
+                self.condition_map[condition_idx, 0]] = \
                     np.array([condition_map_preeq_fix[par_id]
-                             for par_id in fixed_par_ids])
+                              for par_id in fixed_par_ids])
 
         # write to file
         self.create_fixed_parameter_dataset_and_write_attributes(
@@ -569,14 +580,14 @@ class HDF5DataGenerator:
                     condition_map[sim_idx, 0] = condition_id_to_idx[preeq_id]
                 condition_map[sim_idx, 1] = condition_id_to_idx[sim_id]
 
-        print(Fore.CYAN + "Number of simulation conditions:",
-              len(simulations))
+        logger.info(f"{Fore.CYAN}Number of simulation conditions: {Fore.RESET}"
+                    f" {len(simulations)}")
 
         self.condition_map = condition_map
 
         # append third column for state reinitialization
         _condition_map = np.zeros((condition_map.shape[0],
-                                  condition_map.shape[1] + 1),)
+                                   condition_map.shape[1] + 1), )
         _condition_map[:, :-1] = condition_map
         self.f.create_dataset("/fixedParameters/simulationConditions",
                               dtype="<i4",
@@ -602,7 +613,7 @@ class HDF5DataGenerator:
         write_string_array(self.f, "/measurements/observableNames",
                            self.observable_ids)
 
-        print(Fore.CYAN + "Number of observables:", self.ny)
+        logger.info(f"{Fore.CYAN}Number of observables:{Fore.RESET} {self.ny}")
 
         self.write_measurements()
         self.f.flush()
@@ -668,7 +679,7 @@ class HDF5DataGenerator:
         measurement_df = self.petab_problem.measurement_df
 
         row_filter = measurement_df[ptc.SIMULATION_CONDITION_ID] \
-            == self.condition_ids[sim_cond_idx]
+                     == self.condition_ids[sim_cond_idx]
         if ptc.PREEQUILIBRATION_CONDITION_ID in measurement_df:
             if preeq_cond_idx == self.NO_PREEQ_CONDITION_IDX:
                 row_filter &= \
@@ -694,14 +705,13 @@ class HDF5DataGenerator:
 
         parameter_df = self.petab_problem.parameter_df
         if 'hierarchicalOptimization' not in parameter_df:
-            print(Fore.YELLOW + 'Missing hierarchicalOptimization column in '
-                  'parameter table. Skipping.')
+            logger.warning("Missing hierarchicalOptimization column in "
+                           "parameter table. Skipping.")
             return
 
         if verbose:
-            print(Fore.CYAN + "Observables:")
-            print(self.petab_problem.observable_df)
-            print()
+            logger.info(f"{Fore.CYAN}Observables:")
+            logger.info(f"{self.petab_problem.observable_df}")
 
         offset_candidates, scaling_candidates, sigma_candidates = \
             get_candidates_for_hierarchical(
@@ -709,9 +719,12 @@ class HDF5DataGenerator:
                 observable_df=self.petab_problem.observable_df,
                 parameter_df=self.petab_problem.parameter_df)
 
-        print(Fore.CYAN + "offset_candidates:", offset_candidates)
-        print(Fore.CYAN + "scaling_candidates:", scaling_candidates)
-        print(Fore.CYAN + "sigma_candidates:", sigma_candidates)
+        logger.info(f"{Fore.CYAN}offset_candidates:{Fore.RESET} "
+                    f"{offset_candidates}")
+        logger.info(f"{Fore.CYAN}scaling_candidates:{Fore.RESET} "
+                    f"{scaling_candidates}")
+        logger.info(f"{Fore.CYAN}sigma_candidates:{Fore.RESET} "
+                    f"{sigma_candidates}")
 
         self._handle_proportionality_factors(scaling_candidates)
         # must call after _handle_proportionality_factors
@@ -743,8 +756,8 @@ class HDF5DataGenerator:
 
         # TODO: smarter check
         if df.isnull().values.any():
-            print(Fore.YELLOW + "Couldn't verify that parameter selection "
-                                "for hierarchical optimization is ok.")
+            logger.warning("Couldn't verify that parameter selection "
+                           "for hierarchical optimization is ok.")
         else:
             df_grouped = \
                 df.groupby(['scaling_id', 'sigma_id']).size().reset_index()
@@ -774,9 +787,9 @@ class HDF5DataGenerator:
             [offsets_for_hierarchical_indices[i] for i in order]
         offset_candidates = [offset_candidates[i] for i in order]
 
-        print(Fore.CYAN + "Number of offset parameters for hierarchical "
-                          "optimization: %d"
-              % len(offsets_for_hierarchical_indices))
+        logger.info(f"{Fore.CYAN}Number of offset parameters for hierarchical "
+                    f"optimization:{Fore.RESET} "
+                    f"{len(offsets_for_hierarchical_indices)}")
 
         self.f.require_dataset("/offsetParameterIndices",
                                shape=(len(offsets_for_hierarchical_indices),),
@@ -814,9 +827,9 @@ class HDF5DataGenerator:
                                shape=(len(scalings_for_hierarchical_indices),),
                                dtype='<i4',
                                data=scalings_for_hierarchical_indices)
-        print(Fore.CYAN, "Number of proportionality factors for "
-                         "hierarchical optimization: %d"
-              % len(scalings_for_hierarchical_indices))
+        logger.info(f"{Fore.CYAN}Number of proportionality factors for "
+                    f"hierarchical optimization:{Fore.RESET} "
+                    f"{len(scalings_for_hierarchical_indices)}")
 
         # find usages for the selected parameters
         use = get_analytical_parameter_table(
@@ -856,8 +869,9 @@ class HDF5DataGenerator:
                                shape=(len(sigmas_for_hierarchical_indices),),
                                dtype='<i4',
                                data=sigmas_for_hierarchical_indices)
-        print(Fore.CYAN + "Number of sigmas for hierarchical optimization: %d"
-              % len(sigmas_for_hierarchical_indices))
+        logger.info(f"{Fore.CYAN}Number of sigmas for hierarchical "
+                    f"optimization:{Fore.RESET} "
+                    f"{len(sigmas_for_hierarchical_indices)}")
 
         # find usages for the selected parameters
         use = get_analytical_parameter_table(
@@ -941,11 +955,11 @@ class HDF5DataGenerator:
         lower_bound = np.array([petab.scale(
             self.petab_problem.parameter_df.loc[par_id, ptc.LOWER_BOUND],
             self.petab_problem.parameter_df.loc[par_id, ptc.PARAMETER_SCALE])
-                       for par_id in self.problem_parameter_ids])
+            for par_id in self.problem_parameter_ids])
         upper_bound = np.array([petab.scale(
             self.petab_problem.parameter_df.loc[par_id, ptc.UPPER_BOUND],
             self.petab_problem.parameter_df.loc[par_id, ptc.PARAMETER_SCALE])
-                       for par_id in self.problem_parameter_ids])
+            for par_id in self.problem_parameter_ids])
 
         self.f.require_dataset('/parameters/lowerBound',
                                shape=lower_bound.shape,
@@ -1078,6 +1092,9 @@ def parse_cli_args():
 def main():
     """Generate HDF5 file based on CLI options"""
     init_colorama(autoreset=True)
+    coloredlogs.DEFAULT_LEVEL_STYLES['debug'] = dict(color='white',
+                                                     faint='true')
+    coloredlogs.install(level='DEBUG', logger=logger)
 
     args = parse_cli_args()
 
