@@ -4,8 +4,9 @@ CMakeLists.txt.user
 /data/*
 /ThirdParty/*
 /doc/Doxyfile
-/doc/doxy/*
-/doc/exhale_cpp_api/
+/doc/_exhale_doxygen_output/
+/doc/cpp_api/
+/doc/_autosummary/
 .project
 .pydevproject
 .idea/*
@@ -18,7 +19,6 @@ __pycache__/
 .directory
 */swig/*_wrap.cpp
 /amici/examples/steadystate/model_steadystate_scaled
-/amici/examples/lucarelli/lucarelli_12/lucarelli_12/
 /activate
 
 # snakemake

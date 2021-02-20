@@ -15,8 +15,8 @@ Welcome to parPE's documentation!
 
    usage
 
-   exhale_cpp_api/library_root
-
+   cpp_api/library_root
+   Python package <python_modules>
 
 Indices and tables
 ==================
