@@ -9,6 +9,7 @@
 #include <utility>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <filesystem>
 
 #include <H5Tpublic.h>
 
@@ -507,7 +508,10 @@ H5::H5File hdf5CreateFile(const std::string &filename,
                           bool overwrite)
 {
     // Create parent folders
-    mkpathConstChar(filename.c_str(), 0755);
+    std::filesystem::path dirname(filename);
+    dirname.remove_filename();
+    if(!dirname.empty())
+        std::filesystem::create_directories(dirname);
 
     std::lock_guard<mutexHdfType> lock(mutexHdf);
 

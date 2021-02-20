@@ -90,12 +90,6 @@ private:
 bool
 fileExists(const char* name);
 
-int
-mkpath(char* file_path, mode_t mode);
-
-int
-mkpathConstChar(const char* file_path, mode_t mode);
-
 void
 strFormatCurrentLocaltime(gsl::span<char> buffer, const char* format);
 
