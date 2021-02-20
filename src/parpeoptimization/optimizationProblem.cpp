@@ -129,7 +129,7 @@ void optimizationProblemGradientCheckMultiEps(OptimizationProblem *problem,
             ll = LOGLVL_WARNING;
         if (std::isnan(curGrad) || fabs(regRelErr_best) > 1e-2)
             ll = LOGLVL_ERROR;
-        logmessage(ll, "%-10s (%d) g: %12.6g  fd_c: %12.6g  |Δ/fd_c|: %.6e  "
+        logmessage(ll, "%-25s (%d) g: %12.6g  fd_c: %12.6g  |Δ/fd_c|: %.6e  "
                        "|Δ|: %12.6g  ϵ: %12.6g ",
                    parameter_ids[curInd].c_str(), curInd, curGrad, fd_c_best,
                    regRelErr_best, absErr_best, eps_best);
