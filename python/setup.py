@@ -22,7 +22,8 @@ setup(
                       'h5py>=3.0.0',
                       'python-libsbml>=5.17.0',
                       'jinja2>=2.11.1',
-                      'snakemake>=5.10.0'
+                      'snakemake>=5.10.0',
+                      'coloredlogs>=15.0',
                       ],
     entry_points=ENTRY_POINTS,
 )
