@@ -22,6 +22,8 @@ python:
   version: 3.8
   install:
     - requirements: doc/requirements_doc.txt
+    - method: pip
+      path: ../python/
 
 build:
   image: latest
