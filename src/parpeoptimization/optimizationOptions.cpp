@@ -92,7 +92,7 @@ std::unique_ptr<OptimizationOptions> OptimizationOptions::fromHDF5(const H5::H5F
 
     const char *hdf5path = path.c_str();
     auto fileId = file.getId();
-    auto lock = hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
 
     if (hdf5AttributeExists(file, path, "optimizer")) {
         int buffer;
@@ -166,7 +166,7 @@ std::vector<double> OptimizationOptions::getStartingPoint(H5::H5File const& file
 
     const char *path = "/optimizationOptions/randomStarts";
 
-    auto lock = hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
 
     if (!file.nameExists(path)) {
         logmessage(LOGLVL_DEBUG, "No initial parameters found in %s", path);

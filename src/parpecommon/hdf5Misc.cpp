@@ -662,7 +662,7 @@ void hdf5CreateOrExtendAndWriteToString1DArray(const H5::H5File &file,
 
 H5::H5File hdf5OpenForReading(const std::string &hdf5Filename)
 {
-    auto lock = hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
 
     H5_SAVE_ERROR_HANDLER;
     try {
@@ -683,7 +683,7 @@ H5::H5File hdf5OpenForReading(const std::string &hdf5Filename)
 
 H5::H5File hdf5OpenForAppending(const std::string &hdf5Filename)
 {
-    auto lock = hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
 
     H5::H5File file;
     H5_SAVE_ERROR_HANDLER;
@@ -703,7 +703,7 @@ H5::H5File hdf5OpenForAppending(const std::string &hdf5Filename)
 std::vector<std::string> hdf5Read1dStringDataset(
         H5::H5File const& file, const std::string &datasetPath)
 {
-    auto lock = hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
     auto dataset = file.openDataSet(datasetPath);
     auto filespace = dataset.getSpace();
 
@@ -732,7 +732,7 @@ void hdf5Write1dStringDataset(
         const H5::H5File &file, const std::string &parentPath,
         const std::string &datasetPath, std::vector<std::string> const& buffer)
 {
-    auto lock = hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
 
     const int dims = 1;
     hsize_t dims0 = buffer.size();
