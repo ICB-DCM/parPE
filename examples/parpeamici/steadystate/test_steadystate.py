@@ -114,7 +114,7 @@ def test_mpi_optimization():
     ret = subprocess.run(cmd, capture_output=True,
                          check=True, encoding="utf-8")
 
-    assert os.path.isfile(sim_file)
+    assert os.path.isfile(sim_file), ret
     assert '[ERR]' not in ret.stdout
     assert '[WRN]' not in ret.stdout
     assert 'exception' not in ret.stdout
@@ -133,7 +133,7 @@ def test_mpi_optimization():
            '--at-optimum', '--mpi', '--compute-inner']
     ret = subprocess.run(cmd, capture_output=True,
                          check=True, encoding="utf-8")
-    assert os.path.isfile(sim_file)
+    assert os.path.isfile(sim_file), ret
     assert '[ERR]' not in ret.stdout
     assert '[WRN]' not in ret.stdout
     assert 'exception' not in ret.stdout
