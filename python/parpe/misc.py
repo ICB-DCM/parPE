@@ -1,3 +1,4 @@
+"""Various helper functions"""
 import h5py
 import numpy as np
 from typing import Optional, Union, Iterable, List, Any

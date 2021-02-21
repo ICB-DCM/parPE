@@ -1,9 +1,8 @@
-"""Workflow for optimization and analysis of PEtab model"""
+"""Workflow for optimization and analysis of PEtab problems"""
 
 from snakemake.utils import min_version, validate
-min_version("3.2")
+min_version("5.0.0")
 
-from pprint import pprint
 import os
 
 import matplotlib
@@ -22,8 +21,7 @@ def process_config(config):
         config['petab']['root'] = os.path.expandvars(config['petab']['root'])
 
         # Make prepend root path if not absolute path
-        for x in ['sbml_file', 'measurement_file',
-                  'condition_file', 'parameter_file']:
+        for x in ['yaml_file']:
             if not config['petab'][x].startswith('/'):
                 config['petab'][x] = os.path.join(config['petab']['root'],
                                                   config['petab'][x])
@@ -36,9 +34,12 @@ def process_config(config):
 
     # Set additional variables
     # TODO: allow setting in config file
-    config['amici_model_dir'] = f'amici_{config["model_name"]}'
-    config['parpe_model_dir'] = f'parpe_{config["model_name"]}'
-    config['hdf5_training_file'] = config['model_name'] + '.h5'
+    config['amici_model_dir'] = os.path.join(
+        'results', f'amici_{config["model_name"]}')
+    config['parpe_model_dir'] = os.path.join(
+        'results', f'parpe_{config["model_name"]}')
+    config['hdf5_training_file'] = os.path.join(
+        'results', config['model_name'] + '.h5')
 
 process_config(config)
 
@@ -46,84 +47,36 @@ process_config(config)
 rule show_config:
     """Print configuration"""
     run:
+        from pprint import pprint
         pprint(config)
-
-
-rule preprocess:
-    """Prepare for optimization"""
-    input:
-        # All inputs of optimize (TODO: deduplicate)
-        optim_exe=os.path.join(
-            config['parpe_model_dir'], 'build',
-            f'estimate_{config["amici_model_dir"]}'),
-        parpe_model_dir=config["parpe_model_dir"],
-        hdf5_training=config['hdf5_training_file']
-
-
-rule optimize:
-    """Run optimization"""
-    input:
-        optim_exe=os.path.join(
-            config['parpe_model_dir'], 'build',
-            f'estimate_{config["amici_model_dir"]}'),
-        #parpe_model_dir=config['parpe_model_dir'],
-        hdf5_training=config['hdf5_training_file']
-    output:
-        "deleteme/_rank00000.h5"
-    shell:
-        "{input.optim_exe} -o deleteme/ {input.hdf5_training}"
-
-
-rule gradient_check:
-    """Run finite difference gradient check"""
-    input:
-        optim_exe=os.path.join(
-            config['parpe_model_dir'], 'build',
-            f'estimate_{config["amici_model_dir"]}'),
-        #parpe_model_dir=config['parpe_model_dir'],
-        hdf5_training=config['hdf5_training_file']
-    output:
-        "deletemegc/_rank00000.h5"
-    shell:
-        "{input.optim_exe} -t gradient_check -o deletemegc/ {input.hdf5_training}"
-
-
-# TODO: separate by per-optimization and combined
-rule postprocess:
-    """Postprocessing of results"""
-    input:
-        # TODO dynamic input
-        "deleteme/_rank00000.h5"
-    # TODO: data analysis script
-    output: "test.png"
-    run:
-        filename = 'deleteme/_rank00000.h5'
-        import parpe
-
-        trajectories = parpe.getCostTrajectories(filename)
-        #print(repr(trajectories))
-        parpe.plotting.plotCostTrajectory(trajectories, log=False)
-        plt.savefig('test.png')
-
 
 rule generate_amici_model:
     """Generate AMICI model from petab files"""
     input:
-        sbml_file=config['petab']['sbml_file'],
-        measurement_file=config['petab']['measurement_file'],
-        condition_file=config['petab']['condition_file'],
-        parameter_file=config['petab']['parameter_file']
+        yaml_file=config['petab']['yaml_file'],
     output:
         directory(config['amici_model_dir'])
     shell:
-        "amici_import_petab.py --verbose "
+        "amici_import_petab --verbose "
         "-n {config[model_name]} "
-        "-s {config[petab][sbml_file]} "
-        "-c {config[petab][condition_file]} "
-        "-m {config[petab][measurement_file]} "
-        "-p {config[petab][parameter_file]} "
+        "-y {input.yaml_file} "
         "-o {output}"
 
+rule create_hdf5_file:
+    """Create parPE hdf5 file"""
+    # TODO: apply num_starts, etc.
+    input:
+        yaml_file=config['petab']['yaml_file'],
+        amici_model_dir=config['amici_model_dir']
+    output:
+        config['hdf5_training_file']
+    shell:
+        "parpe_petab_to_hdf5 "
+        "-o {config[hdf5_training_file]} "
+        "-y {input.yaml_file} "
+        "-d {input.amici_model_dir} "
+        "-n {config[model_name]} "
+        # "&& "
 
 rule setup_parpe_model:
     """Setup AMICI model for use with parPE and compile"""
@@ -131,8 +84,9 @@ rule setup_parpe_model:
         config['amici_model_dir']
     output:
         #directory(config['parpe_model_dir']),
-        os.path.join(config['parpe_model_dir'], 'build',
-                     f'estimate_{config["amici_model_dir"]}')
+        estimate_exe=os.path.join(
+            config['parpe_model_dir'], 'build',
+            f'estimate_amici_{config["model_name"]}')
     shell:
         # delete since this will be created by snakemake and will
         # result in failure of following script
@@ -140,42 +94,58 @@ rule setup_parpe_model:
         "{config[parpe_src_dir]}/misc/setup_amici_model.sh "
         "\"{input}\" \"{config[parpe_model_dir]}\""
 
-
-rule create_hdf5_file:
-    """Create parPE hdf5 file"""
-    # TODO: apply num_starts, etc.
+rule optimize:
+    """Run optimization"""
     input:
-        sbml_file=config['petab']['sbml_file'],
-        measurement_file=config['petab']['measurement_file'],
-        condition_file=config['petab']['condition_file'],
-        parameter_file=config['petab']['parameter_file'],
-        amici_model_dir=config['amici_model_dir']
+        optim_exe=rules.setup_parpe_model.output.estimate_exe,
+        hdf5_training=rules.create_hdf5_file.output
     output:
-        config['hdf5_training_file']
+        first_file="results/optimization/_rank00000.h5"
+    params:
+        out_dir=lambda wildcards, output:
+        f"{os.path.dirname(output.first_file)}{os.path.sep}"
     shell:
-        "generateHDF5DataFileFromText "
-        "-o {config[hdf5_training_file]} "
-        "-s {input.sbml_file} "
-        "-d {config[amici_model_dir]} "
-        "-m {input.measurement_file} "
-        "-c {input.condition_file} "
-        "-n {config[model_name]} "
-        "-p {input.parameter_file}"
+        "{input.optim_exe} -o {params.out_dir} {input.hdf5_training}"
+
+rule preprocess:
+    """Prepare for optimization"""
+    input:
+        rules.optimize.input
+
+rule gradient_check:
+    """Run finite difference gradient check"""
+    input:
+        optim_exe=rules.setup_parpe_model.output.estimate_exe,
+        #parpe_model_dir=config['parpe_model_dir'],
+        hdf5_training=config['hdf5_training_file']
+    output:
+        first_file="results/gradient_check/_rank00000.h5"
+    params:
+        out_dir=lambda wildcards, output:
+        f"{os.path.dirname(output.first_file)}{os.path.sep}"
+    shell:
+        "{input.optim_exe} -t gradient_check -o {params.out_dir} {input.hdf5_training}"
 
 
-#rule create_setup_job:
-#    """Create Loadleveler job file for creating the model"""
+# TODO: separate by per-optimization and combined
+rule postprocess:
+    """Postprocessing of results"""
+    input:
+        first_file=rules.optimize.output.first_file
+    # TODO dynamic input
+    # TODO: data analysis script
+    output:
+        cost_trajectory_file="results/figures/cost_trajectory.png"
+    run:
+        filename = input.first_file
+        import parpe
+
+        trajectories = parpe.getCostTrajectories(filename)
+        #print(repr(trajectories))
+        parpe.plotting.plotCostTrajectory(trajectories, log=False)
+        plt.savefig(output.cost_trajectory_file)
+
 """
-rule create_job_files:
-    output:
-        directory(job_files)
-    input:
-        pass
-
-rule submit_jobs:
-    input:
-    shell:
-
 # rule merge_results
 
 rule analyze_results:
@@ -194,5 +164,4 @@ rule import_and_run:
 rule clean:
     shell:
         "ls -d */ | grep -P '^(parpe_)?[A-Z]\w+_\w+.*\d{{4}}/$' | xargs -d\"\n\" rm -r"
-
 """

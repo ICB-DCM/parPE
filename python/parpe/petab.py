@@ -1,4 +1,4 @@
-"""Function related to handling of PEtab files"""
+"""Functions related to handling of PEtab files"""
 from numbers import Number
 from typing import Tuple, Dict, List
 

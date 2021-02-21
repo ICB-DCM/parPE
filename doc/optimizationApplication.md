@@ -1,4 +1,7 @@
-# Running parameter optimization for an AMICI model using parpe::OptimizationApplication
+# Running parameter optimization for an AMICI model using `parpe::OptimizationApplication`
+
+This document describes the output and options of parPE executables based on
+`parpe::OptimizationApplication`.
 
 **TODO** 
 
@@ -17,7 +20,7 @@ Run the created executable with the `-h`/`--help` argument.
  ^timestamp            ^loglvl ^rank/hostname ^optimizerProgress
 ```
 
-- Log level: one of debug (DBG), information (INF), warning (WRN), error (ERR), critical (CRI)
+- Log level: one of debug ('DBG'), information ('INF'), warning ('WRN'), error ('ERR'), critical ('CRI')
 - Rank: MPI rank. Master is 0. For non-MPI runs this is -1. 
 - Optimizer progress: Number after 'o' a running index of optimizer runs, number after 'i' is the current iteration
 - 'iter': current iteration
@@ -34,7 +37,7 @@ Run the created executable with the `-h`/`--help` argument.
 - *see above*
 - Optimizer progress: *see above* + Number after 'c' is the current condition index
 - messageID: internal use only
-- llh: Loglikelihood as provided by AMICI
+- llh: Log-likelihood as provided by AMICI
 - status: AMICI status
 - time: simulation wall-time
 - gradientFlag: '+' indicates simulation with gradient, '-' indicates simulation without gradient   

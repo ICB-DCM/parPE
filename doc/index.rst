@@ -11,12 +11,12 @@ Welcome to parPE's documentation!
    :caption: Contents:
 
    About parPE <readme_link>
-   FAQ.md
-
    usage
 
-   exhale_cpp_api/library_root
+   cpp_api/library_root
+   Python package <python_modules>
 
+   FAQ.md
 
 Indices and tables
 ==================

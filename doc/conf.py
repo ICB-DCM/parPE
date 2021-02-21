@@ -2,19 +2,19 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
 import os
-import subprocess
 
 # -- Path setup --------------------------------------------------------------
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-#
-# import sys
-# sys.path.insert(0, os.path.abspath('.'))
+
+import sys
+sys.path.insert(0, os.path.abspath('../python/'))
 
 github_doc_root = 'https://github.com/ICB_DCM/parPE/tree/master/doc/'
 
+autodoc_mock_imports = ['amici', 'libsbml']
 
 # RTD
 
@@ -29,7 +29,7 @@ if not on_rtd:  # only import and set the theme if we're building docs locally
 # -- Project information -----------------------------------------------------
 
 project = 'parPE'
-copyright = '2020, The parPE developers'
+copyright = '2021, The parPE developers'
 author = 'Daniel Weindl'
 
 # The full version, including alpha/beta/rc tags
@@ -46,7 +46,13 @@ extensions = [
     'sphinx.ext.todo',
     'breathe',
     'exhale',
+    'sphinx.ext.autodoc',
+    'sphinx.ext.intersphinx',
+    'sphinx.ext.autosummary',
+    'sphinx.ext.viewcode',
+    'sphinx_autodoc_typehints',
     # 'recommonmark',
+    'nbsphinx',
     'IPython.sphinxext.ipython_console_highlighting',
     'm2r2',
 ]
@@ -57,7 +63,11 @@ templates_path = ['_templates']
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ['logo/LICENSE.md', 'README.md']
+exclude_patterns = [
+    'logo/LICENSE.md',
+    'README.md',
+    '**/collapsible-lists/**',
+]
 source_suffix = ['.rst', '.md']
 
 # -- Options for HTML output -------------------------------------------------
@@ -76,7 +86,7 @@ source_suffix = ['.rst', '.md']
 
 # breathe settings
 breathe_projects = {
-    "parPE": "doxy/xml/",
+    "parPE": "_exhale_doxygen_output/xml/",
 }
 
 breathe_default_project = "parPE"
@@ -85,9 +95,9 @@ breathe_default_project = "parPE"
 
 exhale_args = {
     # These arguments are required
-    "containmentFolder": "./exhale_cpp_api",
+    "containmentFolder": "./cpp_api",
     "rootFileName": "library_root.rst",
-    "rootFileTitle": "parPE API",
+    "rootFileTitle": "parPE C++ API",
     "doxygenStripFromPath": "..",
     # Suggested optional arguments
     "createTreeView": True,
@@ -100,7 +110,7 @@ exhale_args = {
         "PREDEFINED            += EXHALE_DOXYGEN_SHOULD_SKIP_THIS"
     ]),
     "afterTitleDescription":
-        "parPE C++ and Python library functions",
+        "parPE C++ library functions",
     "verboseBuild": True,
 }
 
@@ -111,3 +121,6 @@ exhale_args = {
 highlight_language = 'cpp'
 
 html_logo = 'logo/parPE.png'
+
+autosummary_generate = True
+
