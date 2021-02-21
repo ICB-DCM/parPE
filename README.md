@@ -48,7 +48,7 @@ described in [doc/petab_model_import.md](doc/petab_model_import.md).
 
 For full functionality, parPE requires the following libraries:
 
-* CMAKE (>=3.6)
+* CMAKE (>=3.10)
 * MPI ([OpenMPI](https://www.open-mpi.org/),
   [MPICH](https://www.mpich.org/), ...)
 * PTHREADS
@@ -60,7 +60,7 @@ For full functionality, parPE requires the following libraries:
 * [AMICI](https://github.com/ICB-DCM/AMICI) (included in this repository)
   (uses SuiteSparse, Sundials)
 * C++17 compiler
-* Python >= 3.6, including header files
+* Python >= 3.7, including header files
 
 On Debian-based systems, dependencies can be installed via:
 ```shell
@@ -97,7 +97,7 @@ Other sample build scripts are provided as `/build*.sh`.
 
 ## Recently tested compilers
 
-* GCC 8.3.0
+* GCC 10.2.0
 * Intel icpc (ICC) 17.0.6
 
 ## Docker
