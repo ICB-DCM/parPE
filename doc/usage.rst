@@ -5,9 +5,10 @@ Usage
    :maxdepth: 3
    :caption: Usage:
 
-   hdf5.md
-   optimizationApplication.md
-   parpe_with_charliecloud.md
+   examples
    petab_model_import.md
-   snakemake_workflow.md
+   optimizationApplication.md
    standaloneSimulator.md
+   parpe_with_charliecloud.md
+   snakemake_workflow.md
+   hdf5.md

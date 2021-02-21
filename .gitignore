@@ -23,7 +23,7 @@ __pycache__/
 
 # snakemake
 .snakemake/
-
+/snakemake/results
 # amici
 deps/AMICI/python/sdist/amici.egg-info/
 deps/AMICI/python/sdist/amici/amici.py

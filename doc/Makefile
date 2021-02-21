@@ -15,8 +15,9 @@ help:
 .PHONY: help Makefile clean
 
 clean:
-	rm -rf exhale_cpp_api/
-	#rm -rf doxyoutput/
+	rm -rf _autosummary
+	rm -rf cpp_api
+	rm -rf _exhale_doxygen_output
 	@$(SPHINXBUILD) -M clean "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
 # Catch-all target: route all unknown targets to Sphinx using the new

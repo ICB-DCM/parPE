@@ -1,23 +1,23 @@
-# Parameter estimation for *PEtab* models using *parPE*
+# Parameter estimation for *PEtab/SBML* models using *parPE*
 
 
 ## Introduction
 
-This document describes how to setup and use parPE to estimate parameters for
-a model in the PEtab format. This is currently the most streamlined use case
-parPE.
+This document describes how to set up and use parPE to estimate parameters for
+a model in the [PEtab](https://github.com/petab-dev/PEtab) format. This is
+currently the most streamlined use case parPE.
 
-[PEtab](https://github.com/ICB-DCM/PEtab) is a convention to specify systems
+[PEtab](https://github.com/petab-dev/PEtab) is a convention to specify systems
 biology parameter estimation problems in a machine-readable way. It is based
 on [SBML](http://sbml.org/) models and a set of tab-separated values files.
-If you already have an SBML model, it should be rather easy to generate a set
-of PEtab files. Further information and a detailed format description are
-provided in the PEtab repository.
+Further information and a detailed format description are provided in the PEtab
+repository.
 
-For testing purposes, you can also use the example shipped with PEtab
+For testing, there is also an example shipped with parPE
 [../examples/parpeamici/steadystate/](../examples/parpeamici/steadystate/)
-or a model from the collection of
-[Benchmark Problems for Dynamic Modeling of Intracellular Processes](https://github.com/LoosC/Benchmark-Models/).
+and there is a collection of
+[Benchmark Problems for Dynamic Modeling of Intracellular Processes](https://github.com/Benchmarking-Initiative/Benchmark-Models-PEtab) with a variety of example
+problems.
 
 
 ## Workflow overview
@@ -31,7 +31,7 @@ The principal steps are:
 
 1. Building parPE as described in the [documentation](../README.md)
 
-2. Generating model C++ code and Python module (using `amici_import_petab.py`
+2. Generating model C++ code and Python module (using `amici_import_petab`
    from [AMICI](https://github.com/ICB-DCM/AMICI/))
 
 3. Setting up a project for building parameter estimation (and other)
@@ -40,7 +40,7 @@ The principal steps are:
 
 4. Generating an HDF5 input file for parPE with data and options for parameter
    estimation based on the PEtab problem definition (using
-   [../misc/generateHDF5DataFileFromText.py](../misc/generateHDF5DataFileFromText.py))
+   `parpe_petab_to_hdf5` from the parPE Python package.
 
 5. Running the desired optimization and further analysis
 
@@ -50,7 +50,6 @@ present the simplest use case.
 NOTE: This workflow is to be simplified and converted to a configurable
 [Snakemake-based](https://snakemake.readthedocs.io/en/stable/) workflow. A
 scaffold is provided in [../snakemake/](../snakemake/).
-As for the overall project: contributions are welcome.
 
 
 ## Notation
@@ -62,17 +61,8 @@ required values.
 
 We will refer to the following artifacts:
 
-- `${PETAB_SBML_MODEL}`: The PEtab-coherent SBML model for which for perform
-  parameter estimation
-
-- `${PETAB_CONDITION_FILE}`: The PEtab TSV file defining simulation/experimental
-  conditions
-
-- `${PETAB_MEASUREMENT_FILE}`: The PEtab TSV file with measurements / training
-  data
-
-- `${PETAB_PARAMETER_FILE}`: The PEtab TSV file listing optimization parameters,
-  bounds, etc.
+- `${PETAB_YAML_FILE}`: The PEtab YAML file (references all PEtab files
+  belonging to the given parameter estimation problem)
 
 - `${AMICI_MODEL_DIR}`: Output directory to be created where AMICI model code
   will be written to
@@ -98,16 +88,15 @@ Build parPE as described in the [documentation](../README.md).
 ## Model processing
 
 Although generally any kind of model can be used with parPE after, we will only
-describe the simplest case of using [AMICI](https://github.com/ICB-DCM/AMICI/)
+describe the simplest case of using [AMICI](https://github.com/AMICI-dev/AMICI/)
 models.
-We assume that there already a set of PEtab files with the problem definition.
+We assume that there is already a set of PEtab files with the problem definition.
 (This is not strictly necessary for using parPE, but will require significant
 additional effort).
 
-We will use the `amici_import_petab.py` helper script for generating AMICI C++
-files and Python package for the respective model. After installing AMICI, this
-script should be added to your PATH automatically. If not, adapt the paths in
-this example accordingly.
+We will use `amici_import_petab` for generating AMICI C++ model files and
+Python package for the respective model. After installing AMICI, this
+script should in your `$PATH` automatically.
 
 *NOTE*: Use the AMICI version shipped with parPE (`deps/AMICI`). Do not try to
 mix different versions of AMICI-generated models and AMICI base files. This
@@ -116,18 +105,16 @@ will likely lead to crashes and/or undefined behaviour.
 Run:
 
 ```shell
-amici_import_petab.py -o ${AMICI_MODEL_DIR} \
-                      -n ${MODEL_NAME} \
-                      -s ${PETAB_SBML_MODEL} \
-                      -m ${PETAB_MEASUREMENT_FILE} \
-                      -c ${PETAB_CONDITION_FILE} \
-                      -p ${PETAB_PARAMETER_FILE}
+amici_import_petab -v \
+  -o ${AMICI_MODEL_DIR} \
+  -n ${MODEL_NAME} \
+  -y ${PETAB_YAML_FILE}
 ```
 
 Which will create `${AMICI_MODEL_DIR}` containing model C++ files and a Python
 package for the model.
 
-Run `amici_import_petab.py -h` for further command line options.
+Run `amici_import_petab -h` for further command line options.
 
 
 ## Building parameter estimation executable
@@ -151,27 +138,24 @@ To simplify notation:
 export ESTIMATE=${PARPE_MODEL_DIR}/build/estimate${MODEL_NAME}
 ```
 
-## Generating in HDF5 input file for parPE parameter optimization
+## Generating an HDF5 input file for parPE parameter optimization
 
-The default workflow requires a training data and optimization options to be
-provided in an HDF5 file. Based on the PEtab problem definition we can simply
-create this using
-[../misc/generateHDF5DataFileFromText.py](../misc/generateHDF5DataFileFromText.py):
+The default workflow requires training data and optimization options to be
+provided in an HDF5 file. Based on the PEtab problem definition, we can simply
+create this using the `parpe_petab_to_hdf5` script from the parPE Python
+package:
 
 ```shell
-    ${PARPE_SOURCE_ROOT}/misc/generateHDF5DataFileFromText.py \
-        -n ${MODEL_NAME} \
-        -s ${PETAB_SBML_MODEL} \
-        -m ${PETAB_MEASUREMENT_FILE} \
-        -c ${PETAB_CONDITION_FILE} \
-        -p ${PETAB_PARAMETER_FILE} \
-        -d ${AMICI_MODEL_DIR} \
-        -o ${H5_PE_INPUT}
+parpe_petab_to_hdf5 \
+    -n ${MODEL_NAME} \
+    -y ${PETAB_YAML_FILE} \
+    -d ${AMICI_MODEL_DIR} \
+    -o ${H5_PE_INPUT}
 ```
 
 This should create `${H5_PE_INPUT}`. The file format is described in
 [hdf5.md](hdf5.md) This file will contain some default
-settings. Those can be adapted using hdfview, your programming language of
+settings. Those can be adapted using [hdfview](https://www.hdfgroup.org/downloads/hdfview/), your programming language of
 choice, or from the command line using
 [../misc/optimizationOptions.py](../misc/optimizationOptions.py) (`-h` for
 usage information).
@@ -190,7 +174,7 @@ For running parameter estimation with default settings on a single node, run:
     ${ESTIMATE} -o test_output_dir/ ${H5_PE_INPUT}
 ```
 
-Note that, depending on your model and data, this might take a long time.
+Note that, depending on your model and data, this may take a long time.
 The results will be written to HDF5 files in `test_output_dir/`. The output
 format is described in [hdf5.md](hdf5.md).
 
