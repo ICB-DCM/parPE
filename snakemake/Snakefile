@@ -69,14 +69,16 @@ rule create_hdf5_file:
         yaml_file=config['petab']['yaml_file'],
         amici_model_dir=config['amici_model_dir']
     output:
-        config['hdf5_training_file']
+        h5=config['hdf5_training_file']
     shell:
         "parpe_petab_to_hdf5 "
-        "-o {config[hdf5_training_file]} "
+        "-o {output.h5} "
         "-y {input.yaml_file} "
         "-d {input.amici_model_dir} "
         "-n {config[model_name]} "
-        # "&& "
+        "&& {config[parpe_src_dir]}/misc/optimizationOptions.py {output.h5} -s numStarts {config[optimization][num_starts]} "
+        "&& {config[parpe_src_dir]}/misc/optimizationOptions.py {output.h5} -s maxIter {config[optimization][max_iter]} "
+        "&& {config[parpe_src_dir]}/misc/optimizationOptions.py {output.h5} -s ipopt/max_iter "
 
 rule setup_parpe_model:
     """Setup AMICI model for use with parPE and compile"""
@@ -105,7 +107,7 @@ rule optimize:
         out_dir=lambda wildcards, output:
         f"{os.path.dirname(output.first_file)}{os.path.sep}"
     shell:
-        "{input.optim_exe} -o {params.out_dir} {input.hdf5_training}"
+        "PARPE_NO_DEBUG=1 {input.optim_exe} -o {params.out_dir} {input.hdf5_training}"
 
 rule preprocess:
     """Prepare for optimization"""

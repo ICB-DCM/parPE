@@ -1,6 +1,6 @@
 petab:
-    root: '${HOME}/src/parPE/build/examples/parpeamici/steadystate/steadystate_scaled-prefix/src/steadystate_scaled/'
-    yaml_file: 'model_steadystate.yaml'
+  root: '${HOME}/src/parPE/build/examples/parpeamici/steadystate/steadystate_scaled-prefix/src/steadystate_scaled/'
+  yaml_file: 'model_steadystate.yaml'
 
 model_name: 'steadystate'
 amici_build_dir: '${HOME}/src/src/parPE/deps/AMICI/build'
@@ -9,5 +9,5 @@ parpe_build_dir: '${HOME}/src/parPE/build'
 parpe_src_dir: '${HOME}/src/parPE/'
 
 optimization:
-    num_starts: 2
-    max_iter: 3
+  num_starts: 10
+  max_iter: 20
