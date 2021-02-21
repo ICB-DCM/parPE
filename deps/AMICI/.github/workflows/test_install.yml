@@ -1,0 +1,78 @@
+name: Installation
+on: [push, pull_request, workflow_dispatch]
+
+jobs:
+  archive:
+    name: Archive Install
+
+    runs-on: ubuntu-20.04
+
+    steps:
+    - uses: actions/checkout@master
+    - run: git fetch --prune --unshallow
+
+    - run: echo "AMICI_DIR=$(pwd)" >> $GITHUB_ENV
+
+    # install amici dependencies
+    - name: apt
+      run: |
+        sudo apt-get update \
+          && sudo apt-get install -y \
+            cmake \
+            g++ \
+            libatlas-base-dev \
+            libboost-serialization-dev \
+            libhdf5-serial-dev \
+            swig
+
+    - name: Build suitesparse
+      run: |
+        scripts/buildSuiteSparse.sh
+
+    - name: Build sundials
+      run: |
+        scripts/buildSundials.sh
+
+    - name: Build cpputest
+      run: |
+        scripts/buildCpputest.sh
+
+    - name: Build AMICI
+      run: |
+        scripts/buildAmici.sh
+
+    - name: Install python archive
+      run: |
+        scripts/installAmiciArchive.sh
+
+  sdist:
+    name: sdist Install
+
+    runs-on: ubuntu-20.04
+
+    steps:
+    - uses: actions/checkout@master
+    - run: git fetch --prune --unshallow
+
+    - run: echo "AMICI_DIR=$(pwd)" >> $GITHUB_ENV
+
+    # install amici dependencies
+    - name: apt
+      run: |
+        sudo apt-get update \
+          && sudo apt-get install -y \
+            g++ \
+            libatlas-base-dev \
+            libboost-serialization-dev \
+            libhdf5-serial-dev \
+            swig
+
+    - name: Create AMICI sdist
+      run: |
+        scripts/buildSdist.sh
+
+    - name: Install python sdist
+      run: |
+        pip3 install -v --user $(ls -t python/sdist/dist/amici-*.tar.gz | head -1)
+
+

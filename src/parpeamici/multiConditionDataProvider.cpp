@@ -29,11 +29,10 @@ MultiConditionDataProviderHDF5::MultiConditionDataProviderHDF5(
   , root_path_(rootPath)
 {
 
-    auto lock = hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
     file_ = hdf5OpenForReading(hdf5Filename);
 
-    optimization_options_ =
-      parpe::OptimizationOptions::fromHDF5(getHdf5FileId());
+    optimization_options_ = parpe::OptimizationOptions::fromHDF5(file_);
 
     hdf5_measurement_path_ = rootPath + "/measurements/y";
     hdf5_measurement_sigma_path_ = rootPath + "/measurements/ysigma";
@@ -66,7 +65,7 @@ MultiConditionDataProviderHDF5::getNumberOfSimulationConditions() const
     // -> won't need different file for testing/validation splits
     // TODO: cache
 
-    auto lock = hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
 
     int d1, d2;
     hdf5GetDatasetDimensions(
@@ -81,7 +80,7 @@ MultiConditionDataProviderHDF5::getSimulationToOptimizationParameterMapping(
 {
     std::string path = hdf5_simulation_to_optimization_parameter_mapping_path_;
 
-    if (hdf5DatasetExists(file_, path)) {
+    if (file_.nameExists(path)) {
         return hdf5Read2DIntegerHyperslab(
           file_, path, model_->np(), 1, 0, conditionIdx);
     }
@@ -128,10 +127,10 @@ MultiConditionDataProviderHDF5::mapAndSetOptimizationToSimulationVariables(
     auto mapping = getSimulationToOptimizationParameterMapping(conditionIdx);
 
     std::vector<double> overrides;
-    if (hdf5DatasetExists(file_, hdf5_parameter_overrides_path)) {
+    if (file_.nameExists(hdf5_parameter_overrides_path)) {
         overrides.resize(model_->np());
-        hdf5Read2DDoubleHyperslab(file_.getId(),
-                                  hdf5_parameter_overrides_path.c_str(),
+        hdf5Read2DDoubleHyperslab(file_,
+                                  hdf5_parameter_overrides_path,
                                   model_->np(),
                                   1,
                                   0,
@@ -158,7 +157,7 @@ MultiConditionDataProviderHDF5::mapAndSetOptimizationToSimulationVariables(
 std::vector<amici::ParameterScaling>
 MultiConditionDataProviderHDF5::getParameterScaleOpt() const
 {
-    auto lock = hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
     auto resInt = amici::hdf5::getIntDataset1D(
       file_, hdf5_parameter_scale_optimization_path_);
     std::vector<amici::ParameterScaling> res(resInt.size());
@@ -252,7 +251,7 @@ MultiConditionDataProviderHDF5::readFixedSimulationParameters(
     if (!model_->nk())
         return;
 
-    auto lock = hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
 
     H5_SAVE_ERROR_HANDLER;
 
@@ -287,7 +286,7 @@ std::unique_ptr<amici::ExpData> MultiConditionDataProviderHDF5::getExperimentalD
         int simulationIdx) const {
     auto edata = std::make_unique<amici::ExpData>(*model_);
 
-    auto lock = hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
     edata->setTimepoints(
                 amici::hdf5::getDoubleDataset1D(
                     file_, root_path_ + "/measurements/t/"
@@ -326,7 +325,7 @@ MultiConditionDataProviderHDF5::getSigmaForSimulationIndex(
   int simulationIdx) const
 {
     hsize_t dim1, dim2;
-    auto lock = hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
     return amici::hdf5::getDoubleDataset2D(file_,
                                            hdf5_measurement_sigma_path_ + "/" +
                                              std::to_string(simulationIdx),
@@ -339,7 +338,7 @@ MultiConditionDataProviderHDF5::getMeasurementForSimulationIndex(
   int simulationIdx) const
 {
     hsize_t dim1, dim2;
-    auto lock = hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
     return amici::hdf5::getDoubleDataset2D(file_,
                                            hdf5_measurement_path_ + "/" +
                                              std::to_string(simulationIdx),
@@ -351,7 +350,7 @@ void
 MultiConditionDataProviderHDF5::getOptimizationParametersLowerBounds(
   gsl::span<double> buffer) const
 {
-    auto lock = hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
 
     auto dataset = file_.openDataSet(hdf5_parameter_min_path_);
 
@@ -369,7 +368,7 @@ void
 MultiConditionDataProviderHDF5::getOptimizationParametersUpperBounds(
   gsl::span<double> buffer) const
 {
-    auto lock = hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
 
     auto dataset = file_.openDataSet(hdf5_parameter_max_path_);
 
@@ -402,7 +401,7 @@ std::unique_ptr<amici::Solver>
 MultiConditionDataProviderHDF5::getSolver() const
 {
     auto solver = model_->getSolver();
-    auto lock = hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
 
     amici::hdf5::readSolverSettingsFromHDF5(
       file_, *solver, hdf5_amici_options_path_);
@@ -456,10 +455,12 @@ MultiConditionDataProviderHDF5::getSimAndPreeqConditions(
     reinitializeFixedParameterInitialStates = tmp[2];
 }
 
-hid_t
-MultiConditionDataProviderHDF5::getHdf5FileId() const
+
+H5::H5File MultiConditionDataProviderHDF5::getHdf5File() const
 {
-    return file_.getId();
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
+    H5::H5File result(file_);
+    return result;
 }
 
 // void MultiConditionDataProvider::printInfo() const {
@@ -510,7 +511,7 @@ MultiConditionDataProviderHDF5::checkDataIntegrity() const
 
     int d1, d2; //, d3;
 
-    auto lock = hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
 
     Ensures(
       H5Lexists(file_.getId(), hdf5_measurement_path_.c_str(), H5P_DEFAULT));

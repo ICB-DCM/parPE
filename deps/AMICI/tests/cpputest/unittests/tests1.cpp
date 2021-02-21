@@ -51,30 +51,35 @@ TEST_GROUP(model)
     std::vector<int> plist{ 1 };
     std::vector<realtype> idlist{ 0 };
     std::vector<int> z2event{ 0, 0, 0 };
-    Model_Test model = Model_Test(nx,
-                                  nx,
-                                  nx,
-                                  nx,
-                                  0,
-                                  ny,
-                                  ny,
-                                  nz,
-                                  nz,
-                                  nmaxevent,
-                                  0,
-                                  0,
-                                  0,
-                                  0,
-                                  0,
-                                  0,
-                                  0,
-                                  0,
-                                  SecondOrderMode::none,
-                                  p,
-                                  k,
-                                  plist,
-                                  idlist,
-                                  z2event);
+    Model_Test model = Model_Test(
+                ModelDimensions(
+                    nx,        // nx_rdata
+                    nx,        // nxtrue_rdata
+                    nx,        // nx_solver
+                    nx,        // nxtrue_solver
+                    0,         // nx_solver_reinit
+                    static_cast<int>(p.size()),  // np
+                    static_cast<int>(k.size()),  // nk
+                    ny,        // ny
+                    ny,        // nytrue
+                    nz,        // nz
+                    nz,        // nztrue
+                    nmaxevent, // ne
+                    0,         // nJ
+                    0,         // nw
+                    0,         // ndwdx
+                    0,         // ndwdp
+                    0,         // dwdw
+                    0,         // ndxdotdw
+                    {},         // ndJydy
+                    0,         // nnz
+                    0,         // ubw
+                    0          // lbw
+                    ),
+                SimulationParameters(k, p, plist),
+                SecondOrderMode::none,
+                idlist,
+                z2event);
 
     std::vector<double> unscaled{ NAN };
 
@@ -191,7 +196,7 @@ TEST(symbolicFunctions, testSign)
 TEST(symbolicFunctions, testHeaviside)
 {
     CHECK_EQUAL(0, heaviside(-1));
-    CHECK_EQUAL(0, heaviside(0));
+    CHECK_EQUAL(1, heaviside(0));
     CHECK_EQUAL(1, heaviside(1));
 }
 
@@ -285,30 +290,39 @@ TEST_GROUP(edata)
 
     std::unique_ptr<amici::Model> model = amici::generic_model::getModel();
 
-    Model_Test testModel = Model_Test(nx,
-                                      nx,
-                                      nx,
-                                      nx,
-                                      0,
-                                      ny,
-                                      ny,
-                                      nz,
-                                      nz,
-                                      nmaxevent,
-                                      0,
-                                      0,
-                                      0,
-                                      0,
-                                      0,
-                                      0,
-                                      0,
-                                      0,
-                                      SecondOrderMode::none,
-                                      std::vector<realtype>(1, 0.0),
-                                      std::vector<realtype>(3, 0),
-                                      std::vector<int>(2, 1),
-                                      std::vector<realtype>(0, 0.0),
-                                      std::vector<int>(0, 1));
+    Model_Test testModel = Model_Test(
+                ModelDimensions(
+                    nx,        // nx_rdata
+                    nx,        // nxtrue_rdata
+                    nx,        // nx_solver
+                    nx,        // nxtrue_solver
+                    0,         // nx_solver_reinit
+                    1,  // np
+                    3,  // nk
+                    ny,        // ny
+                    ny,        // nytrue
+                    nz,        // nz
+                    nz,        // nztrue
+                    nmaxevent, // ne
+                    0,         // nJ
+                    0,         // nw
+                    0,         // ndwdx
+                    0,         // ndwdp
+                    0,         // dwdw
+                    0,         // ndxdotdw
+                    {},         // ndJydy
+                    0,         // nnz
+                    0,         // ubw
+                    0          // lbw
+                    ),
+                SimulationParameters(
+                    std::vector<realtype>(3, 0.0),
+                    std::vector<realtype>(1, 0.0),
+                    std::vector<int>(2, 1)
+                ),
+                SecondOrderMode::none,
+                std::vector<realtype>(),
+                std::vector<int>());
     void setup()
     {
         model->setTimepoints(timepoints);
@@ -591,32 +605,41 @@ TEST_GROUP(solver)
     InternalSensitivityMethod ism;
     InterpolationType interp;
 
-    Model_Test testModel = Model_Test(nx,
-                                      nx,
-                                      nx,
-                                      nx,
-                                      0,
-                                      ny,
-                                      ny,
-                                      nz,
-                                      nz,
-                                      ne,
-                                      0,
-                                      0,
-                                      0,
-                                      0,
-                                      0,
-                                      1,
-                                      0,
-                                      0,
-                                      SecondOrderMode::none,
-                                      std::vector<realtype>(1, 0.0),
-                                      std::vector<realtype>(3, 0),
-                                      std::vector<int>(2, 1),
-                                      std::vector<realtype>(0, 0.0),
-                                      std::vector<int>(0, 1));
+    Model_Test testModel = Model_Test(
+                ModelDimensions(
+                    nx,        // nx_rdata
+                    nx,        // nxtrue_rdata
+                    nx,        // nx_solver
+                    nx,        // nxtrue_solver
+                    0,         // nx_solver_reinit
+                    1,         // np
+                    3,         // nk
+                    ny,        // ny
+                    ny,        // nytrue
+                    nz,        // nz
+                    nz,        // nztrue
+                    ne,        // ne
+                    0,         // nJ
+                    0,         // nw
+                    0,         // ndwdx
+                    0,         // ndwdp
+                    0,         // dwdw
+                    0,         // ndxdotdw
+                    {},         // ndJydy
+                    1,         // nnz
+                    0,         // ubw
+                    0         // lbw
+                    ),
+                SimulationParameters(
+                    std::vector<realtype>(3, 0.0),
+                    std::vector<realtype>(1, 0.0),
+                    std::vector<int>(2, 1)
+                ),
+                SecondOrderMode::none,
+                std::vector<realtype>(0, 0.0),
+                std::vector<int>());
 
-    CVodeSolver solver = CVodeSolver();
+            CVodeSolver solver = CVodeSolver();
 
     void setup()
     {
@@ -809,16 +832,38 @@ TEST_GROUP(sunmatrixwrapper)
     std::vector<double> a{0.82, 0.91, 0.13};
     std::vector<double> b{0.77, 0.80};
     SUNMatrixWrapper A = SUNMatrixWrapper(3, 2);
+    SUNMatrixWrapper B = SUNMatrixWrapper(4, 4, 7, CSC_MAT);
     // result
     std::vector<double> d{1.3753, 1.5084, 1.1655};
 
     void setup() {
-        SM_ELEMENT_D(A.get(), 0, 0) = 0.69;
-        SM_ELEMENT_D(A.get(), 1, 0) = 0.32;
-        SM_ELEMENT_D(A.get(), 2, 0) = 0.95;
-        SM_ELEMENT_D(A.get(), 0, 1) = 0.03;
-        SM_ELEMENT_D(A.get(), 1, 1) = 0.44;
-        SM_ELEMENT_D(A.get(), 2, 1) = 0.38;
+        A.set_data(0, 0, 0.69);
+        A.set_data(1, 0, 0.32);
+        A.set_data(2, 0, 0.95);
+        A.set_data(0, 1, 0.03);
+        A.set_data(1, 1, 0.44);
+        A.set_data(2, 1, 0.38);
+
+        B.set_indexptr(0, 0);
+        B.set_indexptr(1, 2);
+        B.set_indexptr(2, 4);
+        B.set_indexptr(3, 5);
+        B.set_indexptr(4, 7);
+        B.set_data(0, 3);
+        B.set_data(1, 1);
+        B.set_data(2, 3);
+        B.set_data(3, 7);
+        B.set_data(4, 1);
+        B.set_data(5, 2);
+        B.set_data(6, 9);
+        B.set_indexval(0, 1);
+        B.set_indexval(1, 3);
+        B.set_indexval(2, 0);
+        B.set_indexval(3, 2);
+        B.set_indexval(4, 0);
+        B.set_indexval(5, 1);
+        B.set_indexval(6, 3);
+
     }
 
     void teardown() {}
@@ -826,15 +871,25 @@ TEST_GROUP(sunmatrixwrapper)
 
 TEST(sunmatrixwrapper, sparse_multiply)
 {
-    auto A_sparse = SUNMatrixWrapper(A, 0.0, CSR_MAT);
+
+    auto A_sparse = SUNMatrixWrapper(A, 0.0, CSC_MAT);
     auto c(a); //copy c
     A_sparse.multiply(c, b);
     checkEqualArray(d, c, TEST_ATOL, TEST_RTOL, "multiply");
+}
 
-    A_sparse = SUNMatrixWrapper(A, 0.0, CSC_MAT);
-    c = a; //copy c
+TEST(sunmatrixwrapper, sparse_multiply_empty)
+{
+    // Ensure empty Matrix vector multiplication succeeds
+    auto A_sparse = SUNMatrixWrapper(1, 1, 0, CSR_MAT);
+    std::vector<double> b {0.1};
+    std::vector<double> c {0.1};
     A_sparse.multiply(c, b);
-    checkEqualArray(d, c, TEST_ATOL, TEST_RTOL, "multiply");
+    CHECK_TRUE(c[0] == 0.1);
+
+    A_sparse = SUNMatrixWrapper(1, 1, 0, CSC_MAT);
+    A_sparse.multiply(c, b);
+    CHECK_TRUE(c[0] == 0.1);
 }
 
 TEST(sunmatrixwrapper, dense_multiply)
@@ -846,17 +901,8 @@ TEST(sunmatrixwrapper, dense_multiply)
 
 TEST(sunmatrixwrapper, multiply_throws)
 {
-    CHECK_THROWS(std::invalid_argument, A.multiply(b, a));
-    CHECK_THROWS(std::invalid_argument, A.multiply(a, a));
-    CHECK_THROWS(std::invalid_argument, A.multiply(b, b));
     auto b_amivector = AmiVector(b);
     auto a_amivector = AmiVector(a);
-    CHECK_THROWS(std::invalid_argument, A.multiply(b_amivector.getNVector(),
-                                          a_amivector.getNVector()));
-    CHECK_THROWS(std::invalid_argument, A.multiply(a_amivector.getNVector(),
-                                          a_amivector.getNVector()));
-    CHECK_THROWS(std::invalid_argument, A.multiply(b_amivector.getNVector(),
-                                          b_amivector.getNVector()));
 }
 
 TEST(sunmatrixwrapper, transform_throws)
@@ -864,4 +910,30 @@ TEST(sunmatrixwrapper, transform_throws)
     CHECK_THROWS(std::invalid_argument, SUNMatrixWrapper(A, 0.0, 13));
     auto A_sparse = SUNMatrixWrapper(A, 0.0, CSR_MAT);
     CHECK_THROWS(std::invalid_argument, SUNMatrixWrapper(A_sparse, 0.0, CSR_MAT));
+}
+
+TEST(sunmatrixwrapper, block_transpose)
+{
+    auto B_sparse = SUNMatrixWrapper(4, 4, 7, CSR_MAT);
+    CHECK_THROWS(std::domain_error, B.transpose(B_sparse, 1.0, 4));
+
+    B_sparse = SUNMatrixWrapper(4, 4, 7, CSC_MAT);
+    B.transpose(B_sparse, -1.0, 2);
+    for (int idx = 0; idx < 7; idx++) {
+        CHECK_TRUE(SM_INDEXVALS_S(B.get())[idx]
+                   == SM_INDEXVALS_S(B_sparse.get())[idx]);
+        if (idx == 1) {
+            CHECK_TRUE(SM_DATA_S(B.get())[idx]
+                       == -SM_DATA_S(B_sparse.get())[3]);
+        } else if (idx == 3) {
+            CHECK_TRUE(SM_DATA_S(B.get())[idx]
+                       == -SM_DATA_S(B_sparse.get())[1]);
+        } else {
+            CHECK_TRUE(SM_DATA_S(B.get())[idx]
+                       == -SM_DATA_S(B_sparse.get())[idx]);
+        }
+    }
+    for (int icol = 0; icol <= 4; icol++)
+        CHECK_TRUE(SM_INDEXPTRS_S(B.get())[icol]
+                   == SM_INDEXPTRS_S(B_sparse.get())[icol]);
 }

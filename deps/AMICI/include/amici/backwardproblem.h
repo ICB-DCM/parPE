@@ -44,7 +44,7 @@ class BackwardProblem {
      * @return t
      */
     realtype gett() const {
-        return t;
+        return t_;
     }
 
     /**
@@ -68,26 +68,26 @@ class BackwardProblem {
      * @return dJydx
      */
     std::vector<realtype> const& getdJydx() const {
-        return dJydx;
+        return dJydx_;
     }
-    
+
     /**
      * @brief Accessor for xB
      * @return xB
      */
     AmiVector const& getAdjointState() const {
-        return xB;
+        return xB_;
     }
-    
+
     /**
      * @brief Accessor for xQB
      * @return xQB
      */
     AmiVector const& getAdjointQuadrature() const {
-        return xQB;
+        return xQB_;
     }
 
-  private:
+private:
     /**
      * @brief Execute everything necessary for the handling of events
      * for the backward problem
@@ -98,7 +98,7 @@ class BackwardProblem {
      * @brief Execute everything necessary for the handling of data
      * points for the backward problems
      *
-     * @param it index of data point @type int
+     * @param it index of data point
      */
     void handleDataPointB(int it);
 
@@ -109,46 +109,44 @@ class BackwardProblem {
      * This is the maximum of tdata and troot but also takes into account if
      * it<0 or iroot<0 where these expressions do not necessarily make sense.
      *
-     * @param it index of next data point @type int
-     * @return tnext next timepoint @type realtype
+     * @param it index of next data point
+     * @return tnext next timepoint
      */
     realtype getTnext(int it);
 
-    Model *model;
-    Solver *solver;
-    const ExpData *edata;
+    Model *model_;
+    Solver *solver_;
+    const ExpData *edata_;
 
     /** current time */
-    realtype t;
-    /** parameter derivative of likelihood array */
-    std::vector<realtype> llhS0;
+    realtype t_;
     /** adjoint state vector */
-    AmiVector xB;
+    AmiVector xB_;
     /** differential adjoint state vector */
-    AmiVector dxB;
+    AmiVector dxB_;
     /** quadrature state vector */
-    AmiVector xQB;
+    AmiVector xQB_;
     /** array of state vectors at discontinuities*/
-    std::vector<AmiVector> x_disc;
+    std::vector<AmiVector> x_disc_;
     /** array of differential state vectors at discontinuities*/
-    std::vector<AmiVector> xdot_disc;
+    std::vector<AmiVector> xdot_disc_;
     /** array of old differential state vectors at discontinuities*/
-    std::vector<AmiVector> xdot_old_disc;
+    std::vector<AmiVector> xdot_old_disc_;
     /** sensitivity state vector array */
-    AmiVectorArray sx0;
+    AmiVectorArray sx0_;
     /** array of number of found roots for a certain event type */
-    std::vector<int> nroots;
+    std::vector<int> nroots_;
     /** array containing the time-points of discontinuities*/
-    std::vector<realtype> discs;
+    std::vector<realtype> discs_;
     /** index of the backward problem */
     int which = 0;
     /** array of index which root has been found */
-    std::vector<std::vector<int>> rootidx;
+    std::vector<std::vector<int>> root_idx_;
 
     /** state derivative of data likelihood */
-    std::vector<realtype> dJydx;
+    std::vector<realtype> dJydx_;
     /** state derivative of event likelihood */
-    const std::vector<realtype> dJzdx;
+    const std::vector<realtype> dJzdx_;
 };
 
 } // namespace amici

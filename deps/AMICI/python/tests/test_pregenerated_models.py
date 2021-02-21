@@ -14,6 +14,8 @@ from amici.gradient_check import check_derivatives, check_results
 import pytest
 
 
+options_file = os.path.join(os.path.dirname(__file__), '..', '..',
+                                     'tests', 'cpputest', 'testOptions.h5')
 expected_results_file = os.path.join(os.path.dirname(__file__), '..', '..',
                                      'tests', 'cpputest', 'expectedResults.h5')
 expected_results = h5py.File(expected_results_file, 'r')
@@ -27,6 +29,8 @@ def assert_fun(x):
     assert x
 
 
+@pytest.mark.skipif(os.environ.get('AMICI_SKIP_CMAKE_TESTS', '') == 'TRUE',
+                    reason='skipping cmake based test')
 @pytest.mark.parametrize("sub_test,case", model_cases)
 def test_pregenerated_model(sub_test, case):
     """Tests models that were pregenerated using the the matlab code
@@ -51,11 +55,11 @@ def test_pregenerated_model(sub_test, case):
     model = test_model_module.getModel()
     solver = model.getSolver()
     amici.readModelDataFromHDF5(
-        expected_results_file, model.get(),
+        options_file, model.get(),
         f'/{sub_test}/{case}/options'
     )
     amici.readSolverSettingsFromHDF5(
-        expected_results_file, solver.get(),
+        options_file, solver.get(),
         f'/{sub_test}/{case}/options'
     )
 

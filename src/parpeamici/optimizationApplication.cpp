@@ -157,10 +157,9 @@ void OptimizationApplication::printUsage(char * const argZero)
     printAvailableOptimizers("  ");
 }
 
-void OptimizationApplication::logParPEVersion(hid_t file_id) const
+void OptimizationApplication::logParPEVersion(H5::H5File const& file) const
 {
-    hdf5WriteStringAttribute(file_id, "/", "PARPE_VERSION",
-                             PARPE_VERSION);
+    hdf5WriteStringAttribute(file, "/", "PARPE_VERSION", PARPE_VERSION);
 }
 
 void OptimizationApplication::initMPI(int *argc, char ***argv) {
@@ -232,10 +231,8 @@ void OptimizationApplication::runMaster() {
     switch (operationType) {
     case OperationType::gradientCheck: {
         const int numParameterIndicesToCheck = 10000;
-        const double epsilon = 1e-5;
-        optimizationProblemGradientCheck(problem.get(),
-                                         numParameterIndicesToCheck,
-                                         epsilon);
+        optimizationProblemGradientCheckMultiEps(
+                    problem.get(), numParameterIndicesToCheck);
         break;
     }
     case OperationType::parameterEstimation:
@@ -269,10 +266,8 @@ void OptimizationApplication::runSingleProcess() {
     switch (operationType) {
     case OperationType::gradientCheck: {
         const int numParameterIndicesToCheck = 10000;
-        const double epsilon = 1e-5;
-        optimizationProblemGradientCheck(problem.get(),
-                                         numParameterIndicesToCheck,
-                                         epsilon);
+        optimizationProblemGradientCheckMultiEps(
+                    problem.get(), numParameterIndicesToCheck);
         break;
     }
     case OperationType::parameterEstimation:
@@ -302,7 +297,7 @@ void OptimizationApplication::finalizeTiming(double wallTimeSeconds, double cpuT
     if (mpiRank < 1) {
         logmessage(LOGLVL_INFO, "Walltime on master: %fs, CPU time of all processes: %fs",
                    wallTimeSeconds, totalCpuTimeInSeconds);
-        saveTotalCpuTime(file_id, totalCpuTimeInSeconds);
+        saveTotalCpuTime(h5File, totalCpuTimeInSeconds);
     }
 #else
     logmessage(LOGLVL_INFO, "Total walltime: %fs, CPU time: %fs",
@@ -350,8 +345,7 @@ bool OptimizationApplication::isWorker() { return getMpiRank() > 0; }
 OptimizationApplication::~OptimizationApplication() {
     // objects must be destroyed before MPI_Finalize is called
     // and Hdf5 mutex is destroyed
-    if(file_id)
-        closeHDF5File(file_id);
+    h5File.close();
     problem.reset(nullptr);
 #ifdef PARPE_ENABLE_MPI
     if(getMpiActive())
@@ -359,15 +353,15 @@ OptimizationApplication::~OptimizationApplication() {
 #endif
 }
 
-void saveTotalCpuTime(hid_t file_id, const double timeInSeconds)
+void saveTotalCpuTime(H5::H5File const& file, const double timeInSeconds)
 {
     hsize_t dims[1] = {1};
 
-    auto lock = hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
 
     //std::string pathStr = rootPath + "/totalTimeInSec";
     std::string pathStr = "/totalTimeInSec";
-    H5LTmake_dataset(file_id, pathStr.c_str(), 1, dims, H5T_NATIVE_DOUBLE,
+    H5LTmake_dataset(file.getId(), pathStr.c_str(), 1, dims, H5T_NATIVE_DOUBLE,
                      &timeInSeconds);
 
 }

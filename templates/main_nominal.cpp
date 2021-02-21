@@ -45,7 +45,7 @@ int main(int argc, char **argv) {
     // setup data and problem
     MultiConditionDataProviderHDF5 dataProvider(
         amici::generic_model::getModel(), inFileArgument);
-    auto options = OptimizationOptions::fromHDF5(dataProvider.getHdf5FileId());
+    auto options = OptimizationOptions::fromHDF5(dataProvider.getHdf5File());
 
     std::unique_ptr<OptimizationResultWriter> rw;
     if(!outFileArgument.empty()) {
@@ -58,7 +58,7 @@ int main(int argc, char **argv) {
 
     // Read nominal parameters
     auto optimizationParams = amici::hdf5::getDoubleDataset1D(
-                dataProvider.getHdf5FileId(), "/parameters/nominalValues");
+                dataProvider.getHdf5File(), "/parameters/nominalValues");
 
     double fval = NAN;
     std::vector<double> gradient(optimizationParams.size(), NAN);

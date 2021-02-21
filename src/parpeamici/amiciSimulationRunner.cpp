@@ -94,7 +94,7 @@ AmiciSimulationRunner::runDistributedMemory(LoadBalancerMaster* loadBalancer,
 
 int
 AmiciSimulationRunner::runSharedMemory(const messageHandlerFunc& messageHandler,
-                                       bool sequential)
+                                       [[maybe_unused]] bool sequential)
 {
 #ifdef PARPE_SIMULATION_RUNNER_DEBUG
     printf("runSharedMemory\n");

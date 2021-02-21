@@ -44,7 +44,7 @@ TEST(localOptimizationCeres, testOptimization) {
 }
 
 /* Different number of calls for older versions (will fail on shippable) */
-#if (CERES_VERSION_MAJOR < 1 || CERES_VERSION_MINOR < 13)
+#if (CERES_VERSION_MAJOR < 1 && CERES_VERSION_MINOR < 13)
 IGNORE_TEST(localOptimizationCeres, testReporterCalled) {
 #else
 TEST(localOptimizationCeres, testReporterCalled) {

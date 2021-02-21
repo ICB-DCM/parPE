@@ -114,24 +114,22 @@ TEST(optimizationOptions, fromHDF5) {
     }, stdout);
 
     // create file
-    hid_t fileId = parpe::hdf5CreateFile(tmpName, false);
-    parpe::hdf5CreateGroup(fileId, "/optimizationOptions/ceres", true);
+    auto file = parpe::hdf5CreateFile(tmpName, false);
+    parpe::hdf5CreateGroup(file, "/optimizationOptions/ceres", true);
     int optimizer = 1;
-    H5LTset_attribute_int(fileId, "/optimizationOptions", "optimizer",
+    H5LTset_attribute_int(file.getId(), "/optimizationOptions", "optimizer",
                           &optimizer, 1);
-    H5LTset_attribute_int(fileId, "/optimizationOptions/ceres", "someOption",
+    H5LTset_attribute_int(file.getId(), "/optimizationOptions/ceres", "someOption",
                           &optimizer, 1);
     hsize_t dims[] = {2, 3};
     double buf[] = {1, 2, 3,
                     4, 5, 6};
-    H5LTmake_dataset_double(fileId, "/optimizationOptions/randomStarts", 2,
+    H5LTmake_dataset_double(file.getId(), "/optimizationOptions/randomStarts", 2,
                             dims, buf);
 
-    auto startingPoint = parpe::OptimizationOptions::getStartingPoint(fileId,
-                                                                      0);
+    auto startingPoint = parpe::OptimizationOptions::getStartingPoint(file, 0);
     EXPECT_EQ(1, startingPoint[0]);
     EXPECT_EQ(4, startingPoint[1]);
-    H5Fclose(fileId);
 
     auto o = parpe::OptimizationOptions::fromHDF5(tmpName);
     EXPECT_EQ(optimizer, static_cast<int>(o->optimizer));

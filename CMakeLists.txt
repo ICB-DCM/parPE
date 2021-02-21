@@ -51,12 +51,6 @@ set(BUILD_PYTHON_MODULE FALSE CACHE BOOL "Build Python module?")
 set(BLAS "CBLAS" CACHE STRING "BLAS library to use")
 set_property(CACHE BLAS PROPERTY STRINGS "CBLAS" "MKL")
 set(PARPE_ENABLE_MPI TRUE CACHE BOOL "Use MPI?")
-set(IPOPT_DIR "" CACHE PATH "IpOpt root directory")
-set(IPOPT_INCLUDE_DIRS "${IPOPT_DIR}/include/coin/"
-    CACHE PATH "IpOpt include directory")
-set(IPOPT_LIBRARIES "${IPOPT_DIR}/lib/libipopt.a"
-    "${IPOPT_DIR}/lib/libcoinhsl.a" "gfortran"
-    CACHE STRING "IpOpt library")
 set(PARPE_ENABLE_IPOPT TRUE CACHE BOOL "Enable ipopt optimizer?")
 set(PARPE_ENABLE_CERES TRUE CACHE BOOL "Enable ceres optimizer?")
 set(PARPE_ENABLE_DLIB FALSE CACHE BOOL "Enable dlib optimizers?")
@@ -71,13 +65,11 @@ find_package(OpenMP)
 # Enable MPI?
 if(${PARPE_ENABLE_MPI})
     find_package(MPI REQUIRED)
-    if(IS_DIRECTORY ${MPI_INCLUDE_DIRS})
-        # may be undefined. will be provided by MPI compiler wrapped.
-        # this is only added for convenient IDE integration
-        include_directories(${MPI_INCLUDE_DIRS})
-    endif()
 endif(${PARPE_ENABLE_MPI})
 # </Build options>
+
+find_package(PkgConfig)
+pkg_search_module(IPOPT REQUIRED IMPORTED_TARGET GLOBAL ipopt>=3.11.0 )
 
 if(${ENABLE_DLIB})
     set(DLIB_DIR "${CMAKE_CURRENT_LIST_DIR}/ThirdParty/dlib-19.7"
@@ -233,7 +225,6 @@ add_library(${PROJECT_NAME} /dev/null)
 target_link_libraries(${PROJECT_NAME}
     PUBLIC parpecommon parpeloadbalancer parpeoptimization parpeamici)
 
-
 # <Export cmake configuration>
 install(TARGETS ${PROJECT_NAME} EXPORT ParPETargets
     LIBRARY DESTINATION lib
@@ -267,9 +258,6 @@ install(
     "${CMAKE_CURRENT_BINARY_DIR}/ParPEConfigVersion.cmake"
     DESTINATION "${LIB_INSTALL_DIR}/cmake/")
 
-configure_file("CMakeModules/ParPEConfig.cmake.in"
-    "${CMAKE_CURRENT_BINARY_DIR}/ParPEConfig.cmake"
-    @ONLY)
 
 # Register package
 if(${PARPE_EXPORT_PACKAGE})

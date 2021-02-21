@@ -19,10 +19,17 @@
 #include <boost/iostreams/device/back_inserter.hpp>
 #include <boost/iostreams/stream.hpp>
 
-/* Helper functions and forward declarations for boost::serialization */
+/** @file serialization.h Helper functions and forward declarations for
+ * boost::serialization */
 namespace boost {
 namespace serialization {
 
+/**
+ * @brief Serialize a raw array to a boost archive
+ * @param ar archive
+ * @param p Pointer to array
+ * @param size Size of p
+ */
 template <class Archive, typename T>
 void archiveVector(Archive &ar, T **p, int size) {
     if (Archive::is_loading::value) {
@@ -37,102 +44,113 @@ void archiveVector(Archive &ar, T **p, int size) {
     ar &make_array<T>(*p, size);
 }
 
+#ifndef EXHALE_DOXYGEN_SHOULD_SKIP_THIS
+/**
+ * @brief Serialize amici::Solver to boost archive
+ * @param ar Archive
+ * @param s Solver instance to serialize
+ */
 template <class Archive>
-void serialize(Archive &ar, amici::Solver &u, const unsigned int version) {
-    ar &u.sensi;
-    ar &u.atol;
-    ar &u.rtol;
-    ar &u.atolB;
-    ar &u.rtolB;
-    ar &u.atol_fsa;
-    ar &u.rtol_fsa;
-    ar &u.quad_atol;
-    ar &u.quad_rtol;
-    ar &u.ss_atol;
-    ar &u.ss_rtol;
-    ar &u.ss_atol_sensi;
-    ar &u.ss_rtol_sensi;
-    ar &u.maxsteps;
-    ar &u.maxstepsB;
-    ar &u.requires_preequilibration;
-    ar &u.newton_maxsteps;
-    ar &u.newton_maxlinsteps;
-    ar &u.newton_damping_factor_mode;
-    ar &u.newton_damping_factor_lower_bound;
-    ar &u.ism;
-    ar &u.sensi_meth;
-    ar &u.linsol;
-    ar &u.interpType;
-    ar &u.lmm;
-    ar &u.iter;
-    ar &u.stldet;
-    ar &u.ordering;
-    ar &u.cpu_time;
-    ar &u.cpu_timeB;
-    ar &u.rdata_mode;
+void serialize(Archive &ar, amici::Solver &s, const unsigned int /*version*/) {
+    ar &s.sensi_;
+    ar &s.atol_;
+    ar &s.rtol_;
+    ar &s.atolB_;
+    ar &s.rtolB_;
+    ar &s.atol_fsa_;
+    ar &s.rtol_fsa_;
+    ar &s.quad_atol_;
+    ar &s.quad_rtol_;
+    ar &s.ss_atol_;
+    ar &s.ss_rtol_;
+    ar &s.ss_atol_sensi_;
+    ar &s.ss_rtol_sensi_;
+    ar &s.maxsteps_;
+    ar &s.maxstepsB_;
+    ar &s.requires_preequilibration_;
+    ar &s.newton_maxsteps_;
+    ar &s.newton_maxlinsteps_;
+    ar &s.newton_damping_factor_mode_;
+    ar &s.newton_damping_factor_lower_bound_;
+    ar &s.ism_;
+    ar &s.sensi_meth_;
+    ar &s.linsol_;
+    ar &s.interp_type_;
+    ar &s.lmm_;
+    ar &s.iter_;
+    ar &s.stldet_;
+    ar &s.ordering_;
+    ar &s.cpu_time_;
+    ar &s.cpu_timeB_;
+    ar &s.rdata_mode_;
+}
+
+/**
+ * @brief Serialize amici::CVodeSolver to boost archive
+ * @param ar Archive
+ * @param s Solver instance to serialize
+ */
+template <class Archive>
+void serialize(Archive &ar, amici::CVodeSolver &s, const unsigned int /*version*/) {
+    ar & static_cast<amici::Solver&>(s);
+}
+
+/**
+ * @brief Serialize amici::Model to boost archive
+ * @param ar Archive
+ * @param m Model instance to serialize
+ */
+template <class Archive>
+void serialize(Archive &ar, amici::Model &m, const unsigned int /*version*/) {
+    ar &dynamic_cast<amici::ModelDimensions&>(m);
+    ar &m.simulation_parameters_;
+    ar &m.o2mode;
+    ar &m.z2event_;
+    ar &m.idlist;
+    ar &m.state_.h;
+    ar &m.state_.unscaledParameters;
+    ar &m.state_.fixedParameters;
+    ar &m.state_.plist;
+    ar &m.x0data_;
+    ar &m.sx0data_;
+    ar &m.nmaxevent_;
+    ar &m.state_is_non_negative_;
+    ar &m.pythonGenerated;
 }
 
 
+/**
+ * @brief Serialize amici::SimulationParameters to boost archive
+ * @param ar Archive
+ * @param s amici::SimulationParameters instance to serialize
+ */
 template <class Archive>
-void serialize(Archive &ar, amici::CVodeSolver &u, const unsigned int version) {
-    ar & static_cast<amici::Solver&>(u);
+void serialize(Archive &ar, amici::SimulationParameters &s, const unsigned int /*version*/) {
+    ar &s.fixedParameters;
+    ar &s.fixedParametersPreequilibration;
+    ar &s.fixedParametersPresimulation;
+    ar &s.parameters;
+    ar &s.x0;
+    ar &s.sx0;
+    ar &s.pscale;
+    ar &s.plist;
+    ar &s.ts_;
+    ar &s.tstart_;
+    ar &s.t_presim;
+    ar &s.reinitializeFixedParameterInitialStates;
 }
 
-template <class Archive>
-void serialize(Archive &ar, amici::Model &u, const unsigned int version) {
-    ar &u.nx_rdata;
-    ar &u.nxtrue_rdata;
-    ar &u.nx_solver;
-    ar &u.nxtrue_solver;
-    ar &u.nx_solver_reinit;
-    ar &u.ny;
-    ar &u.nytrue;
-    ar &u.nz;
-    ar &u.nztrue;
-    ar &u.ne;
-    ar &u.nw;
-    ar &u.ndwdx;
-    ar &u.ndwdp;
-    ar &u.ndxdotdw;
-    ar &u.nnz;
-    ar &u.nJ;
-    ar &u.ubw;
-    ar &u.lbw;
-    ar &u.o2mode;
-    ar &u.z2event;
-    ar &u.idlist;
-    ar &u.state.h;
-    ar &u.state.unscaledParameters;
-    ar &u.originalParameters;
-    ar &u.state.fixedParameters;
-    ar &u.reinitializeFixedParameterInitialStates;
-    ar &u.state.plist;
-    ar &u.x0data;
-    ar &u.sx0data;
-    ar &u.ts;
-    ar &u.nmaxevent;
-    ar &u.pscale;
-    ar &u.tstart;
-    ar &u.stateIsNonNegative;
-    ar &u.pythonGenerated;
-    ar &u.ndxdotdp_explicit;
-    ar &u.ndxdotdp_implicit;
-}
-
+/**
+ * @brief Serialize amici::ReturnData to boost archive
+ * @param ar Archive
+ * @param r ReturnData instance to serialize
+ */
 
 template <class Archive>
-void serialize(Archive &ar, amici::ReturnData &r, const unsigned int version) {
-    ar &r.np;
-    ar &r.nk;
+void serialize(Archive &ar, amici::ReturnData &r, const unsigned int /*version*/) {
+    ar &dynamic_cast<amici::ModelDimensions&>(r);
     ar &r.nx;
-    ar &r.nx_solver;
     ar &r.nxtrue;
-    ar &r.ny;
-    ar &r.nytrue;
-    ar &r.nz;
-    ar &r.nztrue;
-    ar &r.ne;
-    ar &r.nJ;
     ar &r.nplist;
     ar &r.nmaxevent;
     ar &r.nt;
@@ -191,21 +209,54 @@ void serialize(Archive &ar, amici::ReturnData &r, const unsigned int version) {
 }
 
 
+/**
+ * @brief Serialize amici::ModelDimensions to boost archive
+ * @param ar Archive
+ * @param m ModelDimensions instance to serialize
+ */
+
+template <class Archive>
+void serialize(Archive &ar, amici::ModelDimensions &m, const unsigned int /*version*/) {
+    ar &m.nx_rdata;
+    ar &m.nxtrue_rdata;
+    ar &m.nx_solver;
+    ar &m.nxtrue_solver;
+    ar &m.nx_solver_reinit;
+    ar &m.np;
+    ar &m.nk;
+    ar &m.ny;
+    ar &m.nytrue;
+    ar &m.nz;
+    ar &m.nztrue;
+    ar &m.ne;
+    ar &m.nw;
+    ar &m.ndwdx;
+    ar &m.ndwdp;
+    ar &m.ndwdw;
+    ar &m.ndxdotdw;
+    ar &m.ndJydy;
+    ar &m.nnz;
+    ar &m.nJ;
+    ar &m.ubw;
+    ar &m.lbw;
+}
+#endif
 } // namespace serialization
 } // namespace boost
 
 namespace amici {
 
+/**
+ * @brief Serialize object to char array
+ *
+ * @param data input object
+ * @param size maximum char length
+ *
+ * @return The object serialized as char
+ */
 template <typename T>
 char *serializeToChar(T const& data, int *size) {
-    /**
-     * @brief Serialize object to char array
-     *
-     * @param data input object
-     * @param size maximum char length
-     *
-     * @return The object serialized as char
-     */
+
     try {
         std::string serialized;
         ::boost::iostreams::back_insert_device<std::string> inserter(serialized);
@@ -228,17 +279,17 @@ char *serializeToChar(T const& data, int *size) {
 }
 
 
+/**
+ * @brief Deserialize object that has been serialized using serializeToChar
+ *
+ * @param buffer serialized object
+ * @param size length of buffer
+ *
+ * @return The deserialized object
+ */
 
 template <typename T>
 T deserializeFromChar(const char *buffer, int size) {
-    /**
-     * @brief Deserialize object that has been serialized using serializeToChar
-     *
-     * @param buffer serialized object
-     * @param size length of buffer
-     *
-     * @return The deserialized object
-     */
     try {
         ::boost::iostreams::basic_array_source<char> device(buffer, size);
         ::boost::iostreams::stream<::boost::iostreams::basic_array_source<char>> s(
@@ -253,16 +304,16 @@ T deserializeFromChar(const char *buffer, int size) {
     }
 }
 
+/**
+ * @brief Serialize object to string
+ *
+ * @param data input object
+ *
+ * @return The object serialized as string
+ */
 
 template <typename T>
 std::string serializeToString(T const& data) {
-    /**
-     * @brief Serialize object to string
-     *
-     * @param data input object
-     *
-     * @return The object serialized as string
-     */
     try {
         std::string serialized;
         ::boost::iostreams::back_insert_device<std::string> inserter(serialized);
@@ -280,15 +331,16 @@ std::string serializeToString(T const& data) {
     }
 }
 
+/**
+ * @brief Serialize object to std::vector<char>
+ *
+ * @param data input object
+ *
+ * @return The object serialized as std::vector<char>
+ */
+
 template <typename T>
 std::vector<char> serializeToStdVec(T const& data) {
-    /**
-     * @brief Serialize object to std::vector<char>
-     *
-     * @param data input object
-     *
-     * @return The object serialized as std::vector<char>
-     */
     try{
         std::string serialized;
         ::boost::iostreams::back_insert_device<std::string> inserter(serialized);
@@ -307,15 +359,16 @@ std::vector<char> serializeToStdVec(T const& data) {
     }
 }
 
+/**
+ * @brief Deserialize object that has been serialized using serializeToString
+ *
+ * @param serialized serialized object
+ *
+ * @return The deserialized object
+ */
+
 template <typename T>
 T deserializeFromString(std::string const& serialized) {
-    /**
-     * @brief Deserialize object that has been serialized using serializeToString
-     *
-     * @param serialized serialized object
-     *
-     * @return The deserialized object
-     */
     try{
         ::boost::iostreams::basic_array_source<char> device(serialized.data(),
                                                           serialized.size());

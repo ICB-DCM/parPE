@@ -162,7 +162,10 @@ HierarchicalOptimizationWrapper::evaluate(
 
     if (numProportionalityFactors() == 0 && numOffsetParameters() == 0 &&
         numSigmaParameters() == 0) {
-        // nothing to do, just pass through
+        // nothing to do, only fill parameters / gradient and pass through
+        fullParameters.assign(reducedParameters.begin(),
+                              reducedParameters.end());
+        fullGradient.assign(gradient.begin(), gradient.end());
 
         // evaluate for all conditions
         std::vector<int> dataIndices(numConditions);
@@ -572,12 +575,12 @@ HierarchicalOptimizationProblemWrapper::HierarchicalOptimizationProblemWrapper(
 
     auto model = dataProvider->getModel();
 
-    auto lock = hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
     cost_fun_.reset(
         new HierarchicalOptimizationWrapper(
             dynamic_cast<AmiciSummedGradientFunction*>(
                 wrappedFun->getWrappedFunction()),
-            dataProvider->getHdf5FileId(),
+            dataProvider->getHdf5File(),
             "/",
             dataProvider->getNumberOfSimulationConditions(),
             model->nytrue,

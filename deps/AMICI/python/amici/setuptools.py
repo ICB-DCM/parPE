@@ -8,7 +8,6 @@ import os
 import sys
 import shlex
 import subprocess
-import shutil
 
 from distutils import log
 from .swig import find_swig, get_swig_version
@@ -192,7 +191,7 @@ def add_coverage_flags_if_required(cxx_flags: List[str],
         list of existing linker flags
     """
     if 'ENABLE_GCOV_COVERAGE' in os.environ and \
-            os.environ['ENABLE_GCOV_COVERAGE'] == 'TRUE':
+            os.environ['ENABLE_GCOV_COVERAGE'].upper() == 'TRUE':
         log.info("ENABLE_GCOV_COVERAGE was set to TRUE."
                  " Building AMICI with coverage symbols.")
         cxx_flags.extend(['-g', '-O0', '--coverage'])
@@ -215,15 +214,16 @@ def add_debug_flags_if_required(cxx_flags: List[str],
             and os.environ['ENABLE_AMICI_DEBUGGING'] == 'TRUE':
         log.info("ENABLE_AMICI_DEBUGGING was set to TRUE."
                  " Building AMICI with debug symbols.")
-        cxx_flags.extend(['-g', '-O0'])
+        cxx_flags.extend(['-g', '-O0', '-UNDEBUG'])
         linker_flags.extend(['-g'])
 
 
-def generate_swig_interface_files() -> None:
+def generate_swig_interface_files(swig_outdir: str = None,
+                                  with_hdf5: bool = None) -> None:
     """
     Compile the swig python interface to amici
     """
-    swig_outdir = '%s/amici' % os.path.abspath(os.getcwd())
+
     swig_exe = find_swig()
     swig_version = get_swig_version(swig_exe)
 
@@ -232,40 +232,32 @@ def generate_swig_interface_files() -> None:
         '-python',
         '-py3',
         '-threads',
-        '-Iamici/swig', '-Iamici/include',
+        '-Wall',
+        f'-Iamici{os.sep}swig',
+        f'-Iamici{os.sep}include',
     ]
 
     log.info(f"Found SWIG version {swig_version}")
 
-    # Swig AMICI interface without HDF5 dependency
-    swig_cmd = [swig_exe,
-                *swig_args,
-                '-DAMICI_SWIG_WITHOUT_HDF5',
-                '-outdir', swig_outdir,
-                '-o', 'amici/amici_wrap_without_hdf5.cxx',
-                'amici/swig/amici.i']
+    # Are HDF5 includes available to generate the wrapper?
+    if with_hdf5 is None:
+        with_hdf5 = get_hdf5_config()['found']
+
+    if not with_hdf5:
+        swig_args.append('-DAMICI_SWIG_WITHOUT_HDF5')
+
+    if swig_outdir is not None:
+        swig_args.extend(['-outdir', swig_outdir])
 
     # Do we have -doxygen?
     if swig_version >= (4, 0, 0):
-        swig_cmd.insert(1, '-doxygen')
+        swig_args.append('-doxygen')
 
-    log.info(f"Running SWIG: {' '.join(swig_cmd)}")
-    sp = subprocess.run(swig_cmd, stdout=subprocess.PIPE,
-                        stderr=sys.stdout.buffer)
-    if not sp.returncode == 0:
-        raise AssertionError('Swigging AMICI failed:\n'
-                             + sp.stdout.decode('utf-8'))
-    shutil.move(os.path.join(swig_outdir, 'amici.py'),
-                os.path.join(swig_outdir, 'amici_without_hdf5.py'))
-
-    # Swig AMICI interface with HDF5 dependency
     swig_cmd = [swig_exe,
                 *swig_args,
-                '-outdir', swig_outdir,
-                '-o', 'amici/amici_wrap.cxx',
-                'amici/swig/amici.i']
-    if swig_version >= (4, 0, 0):
-        swig_cmd.insert(1, '-doxygen')
+                '-o', os.path.join("amici", "amici_wrap.cxx"),
+                os.path.join("amici", "swig", "amici.i")]
+
     log.info(f"Running SWIG: {' '.join(swig_cmd)}")
     sp = subprocess.run(swig_cmd, stdout=subprocess.PIPE,
                         stderr=sys.stdout.buffer)
@@ -280,13 +272,13 @@ def add_openmp_flags(cxx_flags: List, ldflags: List) -> None:
     # Enable OpenMP support for Linux / OSX:
     if sys.platform == 'linux':
         log.info("Adding OpenMP flags...")
-        cxx_flags.append("-fopenmp")
-        ldflags.append("-fopenmp")
+        cxx_flags.insert(0, "-fopenmp")
+        ldflags.insert(0, "-fopenmp")
     elif sys.platform == 'darwin':
         if os.path.exists('/usr/local/lib/libomp.a'):
             log.info("Adding OpenMP flags...")
-            cxx_flags.extend(["-Xpreprocessor", "-fopenmp"])
-            ldflags.extend(["-Xpreprocessor", "-fopenmp", "-lomp"])
+            cxx_flags[0:0] = ["-Xpreprocessor", "-fopenmp"]
+            ldflags[0:0] = ["-Xpreprocessor", "-fopenmp", "-lomp"]
         else:
             log.info("Not adding OpenMP flags, because /usr/local/lib/libomp.a"
                      " does not exist. To enable, run `brew install libomp` "

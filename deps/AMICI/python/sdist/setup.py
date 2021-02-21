@@ -5,60 +5,22 @@ All sources are compiled anew.
 
 This file expects to be run from within its directory.
 
-Requires:
+Non-python-package requirements:
 - swig3.0
-- setuptools
-- pkgconfig python+executables
-- hdf5 libraries and headers
+- Optional: hdf5 libraries and headers
 """
 
 import os
-import subprocess
 import sys
 
-import setup_clibs  # Must run from within containing directory
-
-from distutils import log
-
-
-def try_install(package: str) -> None:
-    """Try installing the given package using pip. Exit on error."""
-
-    log.info(f"Missing required package {package}. Trying to install...")
-    errno = subprocess.call([sys.executable, "-m", "pip", "install", package])
-    if errno:
-        log.error(f"Failed trying to install {package}. "
-                  "Please install manually before installing AMICI.")
-        raise SystemExit(errno)
-
-    import importlib
-    importlib.invalidate_caches()
-    globals()[package] = importlib.import_module(package)
-
-
-try:
-    # Required for numpy include directory, and for importing anything from
-    # the `amici` package. Therefore, try before any amici import.
-    import numpy as np
-except ImportError:
-    # We need numpy, but setup_requires fires too late
-    try_install('numpy')
-    # retry
-    import numpy as np
-
-try:
-    # Required for customizing installation, but setup_requires fires too late
-    from setuptools import find_packages, setup, Extension
-except ImportError:
-    try_install('setuptools')
-    from setuptools import find_packages, setup, Extension
-
-
-# Add current directory to path, as we need some modules from the AMICI
+# Add containing directory to path, as we need some modules from the AMICI
 # package already for installation
-sys.path.insert(0, os.getcwd())
+sys.path.insert(0, os.path.dirname(__file__))
 
-from amici import __version__
+import numpy as np
+import setup_clibs  # Must run from within containing directory
+from setuptools import find_packages, setup, Extension
+
 from amici.custom_commands import (
     AmiciInstall, AmiciBuildCLib, AmiciDevelop,
     AmiciInstallLib, AmiciBuildExt, AmiciSDist)
@@ -69,12 +31,6 @@ from amici.setuptools import (
     add_debug_flags_if_required,
     add_openmp_flags,
 )
-
-
-# Python version check. We need >= 3.6 due to e.g. f-strings
-if sys.version_info < (3, 6):
-    sys.exit('amici requires at least Python version 3.6')
-
 
 def main():
     # Extra compiler flags
@@ -90,6 +46,10 @@ def main():
         f'-l{lib}' for lib in blaspkgcfg['libraries'])
     define_macros.extend(blaspkgcfg['define_macros'])
 
+    extension_sources = [
+        'amici/amici_wrap.cxx',  # swig interface
+    ]
+
     h5pkgcfg = get_hdf5_config()
 
     if h5pkgcfg['found']:
@@ -100,15 +60,10 @@ def main():
         amici_module_linker_flags.extend(
             [f'-l{lib}' for lib in
              ['hdf5_hl_cpp', 'hdf5_hl', 'hdf5_cpp', 'hdf5']])
-        extension_sources = [
-            'amici/amici_wrap.cxx',  # swig interface
-        ]
         define_macros.extend(h5pkgcfg['define_macros'])
     else:
         print("HDF5 library NOT found. Building AMICI WITHOUT HDF5 support.")
-        extension_sources = [
-            'amici/amici_wrap_without_hdf5.cxx',  # swig interface
-        ]
+        define_macros.append(('AMICI_SWIG_WITHOUT_HDF5', None))
 
     add_coverage_flags_if_required(
         cxx_flags,
@@ -174,7 +129,6 @@ def main():
 
     # Install
     setup(
-        name='amici',
         cmdclass={
             'install': AmiciInstall,
             'sdist': AmiciSDist,
@@ -183,67 +137,10 @@ def main():
             'install_lib': AmiciInstallLib,
             'develop': AmiciDevelop,
         },
-        version=__version__,
-        description='Advanced multi-language Interface to CVODES and IDAS',
         long_description=long_description,
         long_description_content_type="text/markdown",
-        url='https://github.com/ICB-DCM/AMICI',
-        author='Fabian Froehlich, Jan Hasenauer, Daniel Weindl and '
-               'Paul Stapor',
-        author_email='fabian_froehlich@hms.harvard.edu',
-        license='BSD',
         libraries=[libamici, libsundials, libsuitesparse],
         ext_modules=[amici_module],
-        py_modules=['amici/amici',  # the swig interface
-                    'amici/amici_without_hdf5',  # the swig interface
-                    ],
-        packages=find_packages(),
-        package_dir={'amici': 'amici'},
-        entry_points={
-            'console_scripts': [
-                'amici_import_petab = amici.petab_import:main',
-                # for backwards compatibility
-                'amici_import_petab.py = amici.petab_import:main'
-            ]
-        },
-        install_requires=['sympy>=1.6.0',
-                          'python-libsbml',
-                          'h5py',
-                          'pandas',
-                          'pkgconfig',
-                          'wurlitzer'],
-        setup_requires=['setuptools>=40.6.3'],
-        python_requires='>=3.6',
-        extras_require={
-            'petab': ['petab==0.1.7'],
-            'pysb': ['pysb>=1.11.0']
-        },
-        package_data={
-            'amici': ['amici/include/amici/*',
-                      'src/*template*',
-                      'swig/*',
-                      'libs/*',
-                      'amici.py',
-                      'amici_without_hdf5.py',
-                      'setup.py.template',
-                      ],
-        },
-        zip_safe=False,
-        include_package_data=True,
-        exclude_package_data={
-            '': ['README.txt'],
-        },
-        test_suite="tests",
-        classifiers=[
-            'Development Status :: 5 - Production/Stable',
-            'Intended Audience :: Science/Research',
-            'License :: OSI Approved :: BSD License',
-            'Operating System :: POSIX :: Linux',
-            'Operating System :: MacOS :: MacOS X',
-            'Programming Language :: Python',
-            'Programming Language :: C++',
-            'Topic :: Scientific/Engineering :: Bio-Informatics',
-        ],
     )
 
 

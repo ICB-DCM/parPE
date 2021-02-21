@@ -15,17 +15,16 @@ protected:
         H5::H5Library::dontAtExit();
         parpe::initHDF5Mutex();
 
-        fileId = parpe::hdf5CreateFile(tempFileName, false);
+        file = parpe::hdf5CreateFile(tempFileName, true);
     }
 
     void TearDown() override {
-        if(fileId)
-            H5Fclose(fileId);
+        file.close();
         std::remove(tempFileName.c_str());
     }
 
     std::string tempFileName {"parpeTest_hdf5Misc.h5"};
-    hid_t fileId = 0;
+    H5::H5File file;
 };
 
 
@@ -37,8 +36,8 @@ TEST_F(hdf5Misc, testOpenExistingFileNoOverwrite) {
 
 
 TEST_F(hdf5Misc, testOpenExistingFileOverwrite) {
-    H5Fclose(fileId);
-    fileId = parpe::hdf5CreateFile(tempFileName, true);
+    file.close();
+    file = parpe::hdf5CreateFile(tempFileName, true);
 }
 
 
@@ -69,19 +68,19 @@ TEST_F(hdf5Misc, testErrorStackWalker) {
 TEST_F(hdf5Misc, testCreateGroup) {
     const char *groupName = "/test";
 
-    EXPECT_FALSE(parpe::hdf5GroupExists(fileId, groupName));
+    EXPECT_FALSE(parpe::hdf5GroupExists(file, groupName));
 
-    parpe::hdf5CreateGroup(fileId, groupName, false);
+    parpe::hdf5CreateGroup(file, groupName, false);
 
-    EXPECT_TRUE(parpe::hdf5GroupExists(fileId, groupName));
+    EXPECT_TRUE(parpe::hdf5GroupExists(file, groupName));
 }
 
 
 TEST_F(hdf5Misc, testCreateExistingGroup) {
-    parpe::hdf5CreateGroup(fileId, "/test", false);
+    parpe::hdf5CreateGroup(file, "/test", false);
 
     H5_SAVE_ERROR_HANDLER;
-    EXPECT_THROW(parpe::hdf5CreateGroup(fileId, "/test", false),
+    EXPECT_THROW(parpe::hdf5CreateGroup(file, "/test", false),
                  parpe::HDF5Exception);
     H5_RESTORE_ERROR_HANDLER;
 }
@@ -90,13 +89,13 @@ TEST_F(hdf5Misc, testCreateExistingGroup) {
 TEST_F(hdf5Misc, testEnsureGroupExists) {
     const char *groupName = "/test";
 
-    EXPECT_FALSE(parpe::hdf5GroupExists(fileId, groupName));
+    EXPECT_FALSE(parpe::hdf5GroupExists(file, groupName));
 
-    parpe::hdf5EnsureGroupExists(fileId, groupName);
+    parpe::hdf5EnsureGroupExists(file, groupName);
 
-    EXPECT_TRUE(parpe::hdf5GroupExists(fileId, groupName));
+    EXPECT_TRUE(parpe::hdf5GroupExists(file, groupName));
 
-    parpe::hdf5EnsureGroupExists(fileId, groupName);
+    parpe::hdf5EnsureGroupExists(file, groupName);
 }
 
 TEST_F(hdf5Misc, testStringAttribute) {
@@ -104,20 +103,20 @@ TEST_F(hdf5Misc, testStringAttribute) {
     const char *attrName = "testA";
     const char *expAttrValue = "adsf";
 
-    EXPECT_FALSE(parpe::hdf5AttributeExists(fileId, groupName, attrName));
+    EXPECT_FALSE(parpe::hdf5AttributeExists(file, groupName, attrName));
 
-    parpe::hdf5WriteStringAttribute(fileId, groupName, attrName, expAttrValue);
+    parpe::hdf5WriteStringAttribute(file, groupName, attrName, expAttrValue);
 
-    EXPECT_TRUE(parpe::hdf5AttributeExists(fileId, groupName, attrName));
+    EXPECT_TRUE(parpe::hdf5AttributeExists(file, groupName, attrName));
 
     H5T_class_t type_class;
     size_t size = 0;
-    int ret = H5LTget_attribute_info(fileId, groupName, attrName, nullptr,
+    int ret = H5LTget_attribute_info(file.getId(), groupName, attrName, nullptr,
                                      &type_class, &size);
     EXPECT_TRUE(ret >= 0);
     char actValue[size];
 
-    H5LTget_attribute_string(fileId, groupName, attrName, actValue);
+    H5LTget_attribute_string(file.getId(), groupName, attrName, actValue);
     EXPECT_EQ(std::string(expAttrValue), std::string(actValue));
 }
 
@@ -128,19 +127,19 @@ TEST_F(hdf5Misc, testDatasetDimensions) {
     const hsize_t dims[rank] = {1,2,3};
     const int buffer[6] = {1};
 
-    EXPECT_FALSE(parpe::hdf5DatasetExists(fileId, datasetName));
+    EXPECT_FALSE(file.nameExists(datasetName));
 
     EXPECT_THROW(parpe::hdf5GetDatasetDimensions(
-                     fileId, datasetName, rank,
+                     file, datasetName, rank,
                      nullptr, nullptr, nullptr, nullptr),
                  H5::Exception);
 
-    EXPECT_TRUE(H5LTmake_dataset_int(fileId, datasetName, rank, dims, buffer) >= 0);
+    EXPECT_TRUE(H5LTmake_dataset_int(file.getId(), datasetName, rank, dims, buffer) >= 0);
 
-    EXPECT_TRUE(parpe::hdf5DatasetExists(fileId, datasetName));
+    EXPECT_TRUE(file.nameExists(datasetName));
 
     int d0 = 0, d1 = 0, d2 = 0, d3 = 0;
-    parpe::hdf5GetDatasetDimensions(fileId, datasetName, rank,
+    parpe::hdf5GetDatasetDimensions(file, datasetName, rank,
                                     &d0, &d1, &d2, &d3);
     EXPECT_EQ((signed)dims[0], d0);
     EXPECT_EQ((signed)dims[1], d1);

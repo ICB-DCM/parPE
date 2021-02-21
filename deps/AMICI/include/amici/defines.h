@@ -1,20 +1,61 @@
 #ifndef AMICI_DEFINES_H
 #define AMICI_DEFINES_H
 
-#include <cmath>
+#if !defined(_USE_MATH_DEFINES)
+#define _USE_MATH_DEFINES
+#endif
+
 #include <functional>
 #include <string>
+#include <cmath>
+
+/* Math constants in case _USE_MATH_DEFINES is not supported */
+#if defined(_USE_MATH_DEFINES)
+#if !defined(M_E)
+#define M_E        2.71828182845904523536
+#endif
+#if !defined(M_LOG2E)
+#define M_LOG2E    1.44269504088896340736
+#endif
+#if !defined(M_LOG10E)
+#define M_LOG10E   0.434294481903251827651
+#endif
+#if !defined(M_LN2)
+#define M_LN2      0.693147180559945309417
+#endif
+#if !defined(M_LN10)
+#define M_LN10     2.30258509299404568402
+#endif
+#if !defined(M_PI)
+#define M_PI       3.14159265358979323846
+#endif
+#if !defined(M_PI_2)
+#define M_PI_2     1.57079632679489661923
+#endif
+#if !defined(M_PI_4)
+#define M_PI_4     0.785398163397448309616
+#endif
+#if !defined(M_1_PI)
+#define M_1_PI     0.318309886183790671538
+#endif
+#if !defined(M_2_PI)
+#define M_2_PI     0.636619772367581343076
+#endif
+#if !defined(M_2_SQRTPI)
+#define M_2_SQRTPI 1.12837916709551257390
+#endif
+#if !defined(M_SQRT2)
+#define M_SQRT2    1.41421356237309504880
+#endif
+#if !defined(M_SQRT1_2)
+#define M_SQRT1_2  0.707106781186547524401
+#endif
+#endif
 
 namespace amici {
 
-#define _USE_MATH_DEFINES
-#ifdef M_PI
-/** pi definition from MATH_DEFINES */
 constexpr double pi = M_PI;
-#else
-/** MS definition of PI and other constants */
-constexpr double pi = 3.14159265358979323846;
-#endif
+
 
 // clang-format off
 
@@ -31,7 +72,7 @@ constexpr int AMICI_ILL_INPUT=               -22;
 constexpr int AMICI_ERROR=                   -99;
 constexpr int AMICI_NO_STEADY_STATE=         -81;
 constexpr int AMICI_DAMPING_FACTOR_ERROR=    -86;
-constexpr int AMICI_SINGULAR_JACOBIAN=      -807;
+constexpr int AMICI_SINGULAR_JACOBIAN=      -809;
 constexpr int AMICI_NOT_IMPLEMENTED=        -999;
 constexpr int AMICI_SUCCESS=                   0;
 constexpr int AMICI_DATA_RETURN=               1;
@@ -41,10 +82,6 @@ constexpr int AMICI_NORMAL=                    1;
 constexpr int AMICI_ONE_STEP=                  2;
 
 constexpr int AMICI_PREEQUILIBRATE=           -1;
-
-#ifndef booleantype
-#define booleantype int
-#endif
 
 /** defines variable type for simulation variables
  * (determines numerical accuracy) */

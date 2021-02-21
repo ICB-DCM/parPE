@@ -1,0 +1,50 @@
+name: Benchmark Collection
+on:
+  push:
+    branches:
+      - develop
+      - master
+
+  pull_request:
+    branches:
+      - master
+      - develop
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Benchmark Collection
+
+    runs-on: ubuntu-20.04
+
+    steps:
+    - uses: actions/checkout@v1
+      with:
+        fetch-depth: 20
+
+    # install dependencies
+    - name: apt
+      run: |
+        sudo apt-get update \
+          && sudo apt-get install -y swig libatlas-base-dev
+
+    - run: pip3 install pytest shyaml
+
+    - run: echo "${HOME}/.local/bin/" >> $GITHUB_PATH
+    - run: echo "${GITHUB_WORKSPACE}/tests/performance/" >> $GITHUB_PATH
+
+    # install AMICI
+    - name: Create AMICI sdist
+      run: |
+        pip3 install build && cd python/sdist && python3 -m build --sdist
+    - name: Install AMICI sdist
+      run: |
+        AMICI_PARALLEL_COMPILE=2 pip3 install -v --user \
+            $(ls -t python/sdist/dist/amici-*.tar.gz | head -1)[petab]
+
+    # retrieve test models
+    - name: Download and test benchmark collection
+      run: |
+        git clone --depth 1 https://github.com/benchmarking-initiative/Benchmark-Models-PEtab.git \
+          && export BENCHMARK_COLLECTION="$(pwd)/Benchmark-Models-PEtab/Benchmark-Models/" \
+          && AMICI_PARALLEL_COMPILE=2 tests/benchmark-models/test_benchmark_collection.sh

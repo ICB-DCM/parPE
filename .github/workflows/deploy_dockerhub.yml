@@ -1,6 +1,6 @@
 # https://github.com/marketplace/actions/publish-docker
 name: Deploy to dockerhub
-on: [push]
+on: [push, workflow_dispatch]
 jobs:
   build:
     name: Deploy to dockerhub

@@ -192,15 +192,16 @@ std::unique_ptr<OptimizationProblem> MultiConditionProblemMultiStartOptimization
                     nullptr);
     }
     problem->setOptimizationOptions(options_);
-    problem->setInitialParameters(parpe::OptimizationOptions::getStartingPoint(
-                                      data_provider_->getHdf5FileId(), multiStartIndex));
+    problem->setInitialParameters(
+                parpe::OptimizationOptions::getStartingPoint(
+                    data_provider_->getHdf5File(), multiStartIndex));
 
     if(options_.hierarchicalOptimization)
         return std::unique_ptr<OptimizationProblem>(
                     new parpe::HierarchicalOptimizationProblemWrapper(
                         std::move(problem), data_provider_));
 
-    return std::move(problem);
+    return problem;
 }
 
 void printSimulationResult(Logger *logger, int jobId,
@@ -254,7 +255,7 @@ void saveSimulation(const H5::H5File &file, std::string const& pathStr,
     // TODO replace by SimulationResultWriter
     const char *fullGroupPath = pathStr.c_str();
 
-    auto lock = hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
 
     hdf5CreateOrExtendAndWriteToDouble2DArray(
         file.getId(), fullGroupPath, "simulationLogLikelihood",
@@ -415,7 +416,7 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
              * better exception handling, we check those fields to deduce where
              * the error occurred
              */
-            bool forwardFailed = std::isnan(rdata->x[rdata->x.size() - 1]);
+            bool forwardFailed = std::isnan(rdata->llh);
             bool backwardFailed = solver->getSensitivityOrder() >= amici::SensitivityOrder::first
                     && solver->getSensitivityMethod() == amici::SensitivityMethod::adjoint
                     && !rdata->sllh.empty() && std::isnan(rdata->sllh[0]);
@@ -537,7 +538,7 @@ FunctionEvaluationStatus getModelOutputsAndSigmas(
         auto results =
                 amici::deserializeFromChar<AmiciSummedGradientFunction::ResultMap> (
                     job->recvBuffer.data(), job->recvBuffer.size());
-        job->recvBuffer = std::vector<char>(); // free buffer
+        std::vector<char>().swap(job->recvBuffer); // free buffer
 
         for (auto const& result : results) {
             errors += result.second.status;
@@ -788,7 +789,7 @@ int AmiciSummedGradientFunction::aggregateLikelihood(
     auto results =
             amici::deserializeFromChar<ResultMap> (
                 data.recvBuffer.data(), data.recvBuffer.size());
-    data.recvBuffer = std::vector<char>(); // free buffer
+    std::vector<char>().swap(data.recvBuffer); // free buffer
 
 
     for (auto const& result : results) {
