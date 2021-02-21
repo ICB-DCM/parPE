@@ -5,6 +5,7 @@ Usage
    :maxdepth: 3
    :caption: Usage:
 
+   examples
    petab_model_import.md
    optimizationApplication.md
    standaloneSimulator.md

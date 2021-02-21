@@ -11,7 +11,6 @@ Welcome to parPE's documentation!
    :caption: Contents:
 
    About parPE <readme_link>
-   workflow
    usage
 
    cpp_api/library_root

@@ -5,6 +5,7 @@ exhale>=0.2.3
 IPython>=7.19.0
 m2r2>=0.2.7
 sphinx-autodoc-typehints>=1.10.3
+nbsphinx>=0.8.1
 
 # to import parpe package:
 numpy
