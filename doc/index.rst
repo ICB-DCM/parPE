@@ -11,12 +11,13 @@ Welcome to parPE's documentation!
    :caption: Contents:
 
    About parPE <readme_link>
-   FAQ.md
-
+   workflow
    usage
 
    cpp_api/library_root
    Python package <python_modules>
+
+   FAQ.md
 
 Indices and tables
 ==================
