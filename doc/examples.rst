@@ -6,6 +6,6 @@ The following examples demonstrate some functionalities and usage patterns of pa
 .. toctree::
    :maxdepth: 1
 
-   example_notebooks/parpeExampleSteadystateBasic.ipynb
-   example_notebooks/parpeExampleSteadystateHierarchical.ipynb
-   example_notebooks/parpeExampleSteadystateMinibatch.ipynb
+   Model simulation, optimization, analysis <example_notebooks/parpeExampleSteadystateBasic>
+   Hierarchical optimization <example_notebooks/parpeExampleSteadystateHierarchical>
+   Mini-batch optimization <example_notebooks/parpeExampleSteadystateMinibatch>
