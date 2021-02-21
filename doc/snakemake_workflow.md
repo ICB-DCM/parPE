@@ -22,14 +22,15 @@ provided in `snakemake/config.schema.yaml`.
 
 After that you can run the full workflow with:
 
-    cd snakemake
-    snakemake --configfile parpe_optimize_petab_steadystate.yaml -- postprocess
+```shell
+cd snakemake
+snakemake --configfile parpe_optimize_petab_steadystate.yaml -- postprocess
+```
 
 This generates C++ code of the model, builds model specific binaries for
 parameter estimation, runs parameter estimation, and processes the results.
-After successful completion, you should see a file `test.png` in your working
-directory showing the optimization trajectory (as well as other files, once
-this gets extended).
+After successful completion, you should see a file
+`results/figures/cost_trajectory.png` showing the optimizer trajectory.
 
 The different snakemake targets are explained in the Snakefile and can be
 accessed using `snakemake --list` from the directory in which the `Snakefile`
