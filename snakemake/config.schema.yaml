@@ -10,18 +10,9 @@ properties:
       root:
         type: string
         description: Directory with PEtab files
-      sbml_file:
+      yaml_file:
         type: string
-        description: PEtab SBML file
-      measurement_file:
-        type: string
-        description: PEtab measurement file
-      condition_file:
-        type: string
-        description: PEtab condition file
-      parameter_file:
-        type: string
-        description: PEtab parameter file
+        description: PEtab YAML file
 
   model_name:
     type: string
