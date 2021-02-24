@@ -110,6 +110,9 @@ int OptimizationApplication::parseCliOptionsPostMpiInit(int argc, char **argv) {
             if (strcmp(optarg, "gradient_check") == 0)
                 operationType = OperationType::gradientCheck;
             break;
+        case 'g':
+            operationType = OperationType::gradientCheck;
+            num_parameter_checks = std::stoi(optarg);
         case 'o':
             resultFileName = processResultFilenameCommandLineArgument(optarg);
             break;
@@ -230,9 +233,8 @@ int OptimizationApplication::run(int argc, char **argv) {
 void OptimizationApplication::runMaster() {
     switch (operationType) {
     case OperationType::gradientCheck: {
-        const int numParameterIndicesToCheck = 10000;
-        optimizationProblemGradientCheckMultiEps(
-                    problem.get(), numParameterIndicesToCheck);
+        optimizationProblemGradientCheckMultiEps(problem.get(),
+                                         num_parameter_checks);
         break;
     }
     case OperationType::parameterEstimation:
@@ -266,8 +268,10 @@ void OptimizationApplication::runSingleProcess() {
     switch (operationType) {
     case OperationType::gradientCheck: {
         const int numParameterIndicesToCheck = 10000;
-        optimizationProblemGradientCheckMultiEps(
-                    problem.get(), numParameterIndicesToCheck);
+        const double epsilon = 1e-5;
+        optimizationProblemGradientCheck(problem.get(),
+                                         numParameterIndicesToCheck,
+                                         epsilon);
         break;
     }
     case OperationType::parameterEstimation:
@@ -357,7 +361,7 @@ void saveTotalCpuTime(H5::H5File const& file, const double timeInSeconds)
 {
     hsize_t dims[1] = {1};
 
-    [[maybe_unused]] auto lock = hdf5MutexGetLock();
+    auto lock = hdf5MutexGetLock();
 
     //std::string pathStr = rootPath + "/totalTimeInSec";
     std::string pathStr = "/totalTimeInSec";
