@@ -19,6 +19,8 @@
 #include <random>
 #include <csignal>
 #include <cstdlib>
+#include <sstream>
+#include <iostream>
 
 namespace parpe {
 
@@ -112,7 +114,19 @@ int OptimizationApplication::parseCliOptionsPostMpiInit(int argc, char **argv) {
             break;
         case 'g':
             operationType = OperationType::gradientCheck;
-            num_parameter_checks = std::stoi(optarg);
+            /*
+                Assuming the next argument is of the type n1,n2,...,nX.
+                This will be a string of comma separated ints, that need
+                to be converted to std::vector<int>.
+             */
+            std::stringstream ss(optarg);
+            std::vector<int> para_ind;
+
+            for(int i; ss >> i;){
+                para_ind.push_back(i);
+                if(ss.peek()==',')
+                    ss.ignore();
+            }
         case 'o':
             resultFileName = processResultFilenameCommandLineArgument(optarg);
             break;
@@ -361,7 +375,7 @@ void saveTotalCpuTime(H5::H5File const& file, const double timeInSeconds)
 {
     hsize_t dims[1] = {1};
 
-    auto lock = hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
 
     //std::string pathStr = rootPath + "/totalTimeInSec";
     std::string pathStr = "/totalTimeInSec";

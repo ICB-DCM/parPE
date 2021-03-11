@@ -150,16 +150,16 @@ protected:
     // command line option parsing
     const char *shortOptions = "dhvmt:o:s:";
     struct option const longOptions[10] = {
-        {"debug", no_argument, NULL, 'd'},
-        {"print-worklist", no_argument, NULL, 'p'},
-        {"help", no_argument, NULL, 'h'},
-        {"version", no_argument, NULL, 'v'},
-        {"mpi", no_argument, NULL, 'm'},
-        {"task", required_argument, NULL, 't'},
-        {"gradient-check", required_argument, NULL, 'g'},
-        {"outfile-prefix", required_argument, NULL, 'o'},
-        {"first-start-idx", required_argument, NULL, 's'},
-        {NULL, 0, NULL, 0}};
+        {"debug", no_argument, nullptr, 'd'},
+        {"print-worklist", no_argument, nullptr, 'p'},
+        {"help", no_argument, nullptr, 'h'},
+        {"version", no_argument, nullptr, 'v'},
+        {"mpi", no_argument, nullptr, 'm'},
+        {"task", required_argument, nullptr, 't'},
+        {"gradient-check", required_argument, nullptr, 'g'},
+        {"outfile-prefix", required_argument, nullptr, 'o'},
+        {"first-start-idx", required_argument, nullptr, 's'},
+        {nullptr, 0, nullptr, 0}};
 
     enum class OperationType {
         parameterEstimation,
