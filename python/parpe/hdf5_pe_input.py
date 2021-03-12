@@ -352,6 +352,7 @@ class HDF5DataGenerator:
                     value = petab.to_float_if_float(
                         self.petab_problem.condition_df.loc[
                             condition_id, species_id])
+
                     if isinstance(value, float):
                         # numeric initial state
                         par_map[init_par_id] = value
@@ -396,12 +397,25 @@ class HDF5DataGenerator:
                         value = petab.to_float_if_float(
                             self.petab_problem.condition_df.loc[
                                 preeq_cond_id, species_id])
+
                         if isinstance(value, float):
                             condition_map_sim[init_par_id] = value
                         _set_initial_concentration(
                             preeq_cond_id, species_id, init_par_id,
                             condition_map_preeq,
                             condition_scale_map_preeq)
+
+                        value_sim = petab.to_float_if_float(
+                            self.petab_problem.condition_df.loc[
+                                sim_cond_id, species_id])
+
+                        if not isinstance(value_sim, float) \
+                                or not np.isnan(value_sim):
+                            # mark for reinitialization,
+                            #  unless the value is nan
+                            species_idx = state_id_to_idx[species_id]
+                            state_idxs_for_reinitialization_cur.append(
+                                species_idx)
 
                     # for simulation
                     init_par_id = f'initial_{species_id}_sim'
@@ -410,9 +424,6 @@ class HDF5DataGenerator:
                         condition_map_sim,
                         condition_scale_map_sim)
 
-                    # mark for reinitialization
-                    species_idx = state_id_to_idx[species_id]
-                    state_idxs_for_reinitialization_cur.append(species_idx)
             state_idxs_reinitialization_all.append(state_idxs_for_reinitialization_cur)
             logger.debug(f"condition_map_preeq: {condition_map_preeq}, "
                          f"condition_map_sim: {condition_map_sim}")
