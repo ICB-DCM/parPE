@@ -295,6 +295,11 @@ class HDF5DataGenerator:
             col for col in self.petab_problem.condition_df
             if self.petab_problem.sbml_model.getSpecies(col) is not None]
 
+        # for reinitialization
+        state_id_to_idx = {
+            id: i for i, id in enumerate(self.amici_model.getStateIds())}
+        state_idxs_reinitialization_all = []
+
         # Merge and preeq and sim parameters, filter fixed parameters
         for condition_idx, \
             (condition_map_preeq, condition_map_sim,
@@ -372,7 +377,7 @@ class HDF5DataGenerator:
                                 scale_map[init_par_id] = \
                                     self.petab_problem.parameter_df.loc[
                                         value, ptc.PARAMETER_SCALE]
-
+                state_idxs_for_reinitialization_cur = []
                 for species_id in species_in_condition_table:
                     # for preequilibration
                     init_par_id = f'initial_{species_id}_preeq'
@@ -404,6 +409,10 @@ class HDF5DataGenerator:
                         condition_map_sim,
                         condition_scale_map_sim)
 
+                    # mark for reinitialization
+                    species_idx = state_id_to_idx[species_id]
+                    state_idxs_for_reinitialization_cur.append(species_idx)
+                state_idxs_reinitialization_all.append(state_idxs_for_reinitialization_cur)
             logger.debug(f"condition_map_preeq: {condition_map_preeq}, "
                          f"condition_map_sim: {condition_map_sim}")
 
@@ -488,6 +497,15 @@ class HDF5DataGenerator:
         self.f.require_dataset('/parameters/pscaleOptimization',
                                shape=pscale_opt_par.shape, dtype="<i4",
                                data=pscale_opt_par)
+
+        # Ragged array of state indices for reinitialization
+        data_type = h5py.vlen_dtype(np.dtype('int32'))
+        dset = self.f.create_dataset(
+            '/fixedParameters/reinitializationIndices',
+            shape=(self.condition_map.shape[0],),
+            dtype=data_type)
+        for i, state_idxs in enumerate(state_idxs_reinitialization_all):
+            dset[i] = state_idxs
 
         self.f.flush()
 
@@ -586,6 +604,7 @@ class HDF5DataGenerator:
         self.condition_map = condition_map
 
         # append third column for state reinitialization
+        # TODO : drop third column
         _condition_map = np.zeros((condition_map.shape[0],
                                    condition_map.shape[1] + 1), )
         _condition_map[:, :-1] = condition_map
