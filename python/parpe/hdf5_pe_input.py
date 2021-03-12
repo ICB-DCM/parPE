@@ -402,9 +402,6 @@ class HDF5DataGenerator:
                             preeq_cond_id, species_id, init_par_id,
                             condition_map_preeq,
                             condition_scale_map_preeq)
-                        # enable state reinitialization
-                        self.f['/fixedParameters/simulationConditions'][
-                            condition_idx, 2] = 1
 
                     # for simulation
                     init_par_id = f'initial_{species_id}_sim'
@@ -608,14 +605,9 @@ class HDF5DataGenerator:
 
         self.condition_map = condition_map
 
-        # append third column for state reinitialization
-        # TODO : drop third column
-        _condition_map = np.zeros((condition_map.shape[0],
-                                   condition_map.shape[1] + 1), )
-        _condition_map[:, :-1] = condition_map
         self.f.create_dataset("/fixedParameters/simulationConditions",
                               dtype="<i4",
-                              data=_condition_map)
+                              data=condition_map)
 
     def _generate_measurement_matrices(self):
         """

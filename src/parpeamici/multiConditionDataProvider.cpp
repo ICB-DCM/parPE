@@ -453,7 +453,7 @@ MultiConditionDataProviderHDF5::getSimAndPreeqConditions(
   int& simulationConditionIdx) const
 {
     auto tmp = hdf5Read2DIntegerHyperslab(
-      file_, hdf5_reference_condition_path_, 1, 3, simulationIdx, 0);
+      file_, hdf5_reference_condition_path_, 1, 2, simulationIdx, 0);
     preequilibrationConditionIdx = tmp[0];
     simulationConditionIdx = tmp[1];
 }
