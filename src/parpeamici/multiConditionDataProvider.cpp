@@ -481,7 +481,7 @@ std::vector<int> MultiConditionDataProviderHDF5::getReinitializationIndices(
     hvl_t buffer;
     dataset.read(&buffer, memtype, memspace, filespace);
 
-    Expects(buffer.p);
+    Expects(buffer.len == 0 || buffer.p);
     auto int_ptr  = static_cast<int *>(buffer.p);
 
     return std::vector<int>(&int_ptr[0], &int_ptr[buffer.len]);
