@@ -510,6 +510,7 @@ class HDF5DataGenerator:
             dtype=data_type)
         for i, state_idxs in enumerate(state_idxs_reinitialization_all):
             dset[i] = state_idxs
+            logger.debug(f"Reinitialization [{i}]: {dset[i]}")
 
         self.f.flush()
 

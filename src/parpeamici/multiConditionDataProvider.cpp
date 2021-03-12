@@ -462,23 +462,29 @@ std::vector<int> MultiConditionDataProviderHDF5::getReinitializationIndices(
     const int simulationIdx) const {
     [[maybe_unused]] auto lock = hdf5MutexGetLock();
     auto dataset = file_.openDataSet(hdf5_reinitialization_idxs_path_);
-    auto dataspace = dataset.getSpace();
+
+    auto filespace = dataset.getSpace();
+    Expects(filespace.getSimpleExtentNdims() == 1);
+    hsize_t num_simulation_conditions;
+    filespace.getSimpleExtentDims(&num_simulation_conditions);
+    Expects(simulationIdx >= 0
+            && (hsize_t) simulationIdx < num_simulation_conditions);
 
     // read only for one condition
     const hsize_t len = 1;
     const hsize_t offset = simulationIdx;
-    dataspace.selectHyperslab(H5S_SELECT_SET, &len, &offset);
+    filespace.selectHyperslab(H5S_SELECT_SET, &len, &offset);
     H5::DataSpace memspace(1, &len);
 
     auto memtype = H5::VarLenType(H5::PredType::NATIVE_INT);
 
     hvl_t buffer;
-    dataset.read(&buffer, memtype, memspace, dataspace);
+    dataset.read(&buffer, memtype, memspace, filespace);
 
     Expects(buffer.p);
     auto int_ptr  = static_cast<int *>(buffer.p);
 
-    return std::vector<int>(int_ptr[0], int_ptr[buffer.len]);
+    return std::vector<int>(&int_ptr[0], &int_ptr[buffer.len]);
 }
 
 H5::H5File MultiConditionDataProviderHDF5::getHdf5File() const
