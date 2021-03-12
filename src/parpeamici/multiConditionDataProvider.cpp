@@ -227,13 +227,14 @@ MultiConditionDataProviderHDF5::updateFixedSimulationParameters(
         edata.fixedParametersPreequilibration.resize(model_->nk());
         readFixedSimulationParameters(conditionIdxPreeq,
                                       edata.fixedParametersPreequilibration);
+        edata.reinitialization_state_idxs_sim =
+            getReinitializationIndices(simulationIdx);
+
     } else {
         edata.fixedParametersPreequilibration.resize(0);
+        edata.reinitialization_state_idxs_sim .clear();
     }
     readFixedSimulationParameters(conditionIdxSim, edata.fixedParameters);
-
-    edata.reinitialization_state_idxs_sim =
-        getReinitializationIndices(simulationIdx);
 }
 
 void MultiConditionDataProviderHDF5::setModel(std::unique_ptr<amici::Model> model)

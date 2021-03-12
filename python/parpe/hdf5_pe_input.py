@@ -329,6 +329,10 @@ class HDF5DataGenerator:
                     "Number of parameters for preequilibration "
                     "and simulation do not match.")
 
+            # state indices for reinitialization
+            #  for current simulation condition
+            state_idxs_for_reinitialization_cur = []
+
             # TODO: requires special handling of initial concentrations
             if species_in_condition_table:
                 # set indicator fixed parameter for preeq
@@ -377,7 +381,7 @@ class HDF5DataGenerator:
                                 scale_map[init_par_id] = \
                                     self.petab_problem.parameter_df.loc[
                                         value, ptc.PARAMETER_SCALE]
-                state_idxs_for_reinitialization_cur = []
+
                 for species_id in species_in_condition_table:
                     # for preequilibration
                     init_par_id = f'initial_{species_id}_preeq'
@@ -412,7 +416,7 @@ class HDF5DataGenerator:
                     # mark for reinitialization
                     species_idx = state_id_to_idx[species_id]
                     state_idxs_for_reinitialization_cur.append(species_idx)
-                state_idxs_reinitialization_all.append(state_idxs_for_reinitialization_cur)
+            state_idxs_reinitialization_all.append(state_idxs_for_reinitialization_cur)
             logger.debug(f"condition_map_preeq: {condition_map_preeq}, "
                          f"condition_map_sim: {condition_map_sim}")
 
