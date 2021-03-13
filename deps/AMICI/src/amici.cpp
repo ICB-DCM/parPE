@@ -34,6 +34,10 @@ static_assert(amici::AMICI_NORMAL == CV_NORMAL,
               "AMICI_NORMAL != CV_NORMAL");
 static_assert(amici::AMICI_ONE_STEP == CV_ONE_STEP,
               "AMICI_ONE_STEP != CV_ONE_STEP");
+static_assert(amici::AMICI_SINGULAR_JACOBIAN == SUNLS_PACKAGE_FAIL_UNREC,
+              "AMICI_SINGULAR_JACOBIAN != SUNLS_PACKAGE_FAIL_UNREC");
+static_assert(amici::AMICI_SINGULAR_JACOBIAN == SUNLS_PACKAGE_FAIL_UNREC,
+              "AMICI_SINGULAR_JACOBIAN != SUNLS_PACKAGE_FAIL_UNREC");
 static_assert(std::is_same<amici::realtype, realtype>::value,
               "Definition of realtype does not match");
 
@@ -107,14 +111,12 @@ AmiciApplication::runAmiciSimulation(Solver& solver,
     std::unique_ptr<ReturnData> rdata = std::make_unique<ReturnData>(solver,
                                                                      model);
 
-    if (model.nx_solver <= 0) {
-        return rdata;
-    }
-
     std::unique_ptr<SteadystateProblem> preeq {};
     std::unique_ptr<ForwardProblem> fwd {};
     std::unique_ptr<BackwardProblem> bwd {};
     std::unique_ptr<SteadystateProblem> posteq {};
+    // tracks whether backwards integration finished without exceptions
+    bool bwd_success = true;
 
     try {
         if (solver.getPreequilibration() ||
@@ -148,10 +150,12 @@ AmiciApplication::runAmiciSimulation(Solver& solver,
                                                        bwd.get());
             }
 
+            bwd_success = false;
 
             bwd = std::make_unique<BackwardProblem>(*fwd, posteq.get());
             bwd->workBackwardProblem();
 
+            bwd_success = true;
 
             if (preeq) {
                 ConditionContext cc2(&model, edata,
@@ -186,13 +190,15 @@ AmiciApplication::runAmiciSimulation(Solver& solver,
         if (rethrow)
             throw;
         warningF("AMICI:simulation",
-                 "AMICI simulation failed:\n%s\nError occured in:\n%s",
+                 "AMICI simulation failed:\n%s\nError occurred in:\n%s",
                  ex.what(),
                  ex.getBacktrace());
     }
 
-    rdata->processSimulationObjects(preeq.get(), fwd.get(), bwd.get(),
-                                    posteq.get(), model, solver, edata);
+    rdata->processSimulationObjects(
+        preeq.get(), fwd.get(),
+        bwd_success ? bwd.get() : nullptr,
+        posteq.get(), model, solver, edata);
     return rdata;
 }
 
@@ -264,17 +270,17 @@ AmiciApplication::checkFinite(gsl::span<const realtype> array, const char* fun)
     for (int idx = 0; idx < (int)array.size(); idx++) {
         if (isNaN(array[idx])) {
             warningF("AMICI:NaN",
-                     "AMICI encountered a NaN value at index %i of %i in %s!",
+                     "AMICI encountered a NaN value at index %i/%i in %s!",
                      idx,
-                     (int)array.size(),
+                     (int)array.size()-1,
                      fun);
             return AMICI_RECOVERABLE_ERROR;
         }
         if (isInf(array[idx])) {
             warningF("AMICI:Inf",
-                     "AMICI encountered an Inf value at index %i of %i in %s!",
+                     "AMICI encountered an Inf value at index %i/%i in %s!",
                      idx,
-                     (int)array.size(),
+                     (int)array.size()-1,
                      fun);
             return AMICI_RECOVERABLE_ERROR;
         }

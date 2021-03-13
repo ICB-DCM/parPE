@@ -27,7 +27,7 @@ int main(int argc, char **argv) {
     // setup data and problem
     MultiConditionDataProviderHDF5 dataProvider(
         amici::generic_model::getModel(), inFileArgument);
-    auto options = OptimizationOptions::fromHDF5(dataProvider.getHdf5FileId());
+    auto options = OptimizationOptions::fromHDF5(dataProvider.getHdf5File());
 
 
     auto model = dataProvider.getModel();
@@ -37,7 +37,7 @@ int main(int argc, char **argv) {
     int condition_idx = 0;
     int start_idx = 0;
 
-    auto optimizationParams = options->getStartingPoint(dataProvider.getHdf5FileId(), start_idx);
+    auto optimizationParams = options->getStartingPoint(dataProvider.getHdf5File(), start_idx);
     dataProvider.updateSimulationParametersAndScale(condition_idx, optimizationParams, *model);
     auto edata = dataProvider.getExperimentalDataForCondition(condition_idx);
 

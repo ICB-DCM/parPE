@@ -65,9 +65,6 @@ int main(int argc, char **argv) {
     std::string resultPath = argv[6];
     std::string simulationMode = argv[7];
 
-    // TODO: testing-only remove result file
-    remove(resultFileName.c_str());
-
     parpe::MultiConditionDataProviderHDF5 dp(
         amici::generic_model::getModel(),
         conditionFileName,

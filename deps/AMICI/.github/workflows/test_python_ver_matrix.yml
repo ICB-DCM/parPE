@@ -1,0 +1,68 @@
+name: Python Tests
+on:
+  push:
+    branches:
+      - develop
+      - master
+
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Python Version Matrix
+
+    runs-on: ubuntu-20.04
+    continue-on-error: ${{ matrix.experimental }}
+    env:
+      AMICI_SKIP_CMAKE_TESTS: "TRUE"
+
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [3.7, 3.8, 3.9]
+        experimental: [false]
+# Temporarily disabled because the respective jobs somehow runs infinitely
+#        include:
+#          - python-version:  3.10.0-alpha.5
+#            experimental: true
+
+    steps:
+    - run: echo "AMICI_DIR=$(pwd)" >> $GITHUB_ENV
+    - run: echo "BNGPATH=${AMICI_DIR}/ThirdParty/BioNetGen-2.5.2" >> $GITHUB_ENV
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - uses: actions/checkout@v1
+      with:
+        fetch-depth: 20
+
+    # install dependencies
+    - name: apt
+      run: |
+        sudo apt-get update \
+          && sudo apt-get install -y \
+          swig \
+          libatlas-base-dev \
+          libhdf5-serial-dev \
+          libboost-math-dev
+
+    # install AMICI
+    - name: Build BNGL
+      run: |
+        scripts/buildBNGL.sh
+    - name: Install python package
+      run: |
+        scripts/installAmiciSource.sh
+
+    - name: Python tests
+      run: |
+        source build/venv/bin/activate \
+          && pip3 install pytest \
+          && pip3 install git+https://github.com/pysb/pysb \
+          && python3 -m pytest --ignore-glob=*petab* ${AMICI_DIR}/python/tests

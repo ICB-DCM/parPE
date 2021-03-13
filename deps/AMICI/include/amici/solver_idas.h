@@ -16,14 +16,19 @@ class IDASolver;
 namespace boost {
 namespace serialization {
 template <class Archive>
-void serialize(Archive &ar, amici::IDASolver &u, unsigned int version);
+void serialize(Archive &ar, amici::IDASolver &s, unsigned int version);
 }
 } // namespace boost::serialization
 
 namespace amici {
 
+/**
+ * @brief The IDASolver class is a wrapper around the SUNDIALS IDAS solver.
+ */
 class IDASolver : public Solver {
   public:
+    using Solver::Solver;
+
     ~IDASolver() override = default;
 
     /**
@@ -102,7 +107,15 @@ class IDASolver : public Solver {
     void setNonLinearSolverB(int which) const override;
 
   protected:
-    void reInitPostProcess(void *ami_mem, realtype *t, AmiVector *yout,
+    /**
+     * @brief Postprocessing of the solver memory after a discontinuity
+     * @param ida_mem pointer to IDAS solver memory object
+     * @param t pointer to integration time
+     * @param yout new state vector
+     * @param ypout new state derivative vector
+     * @param tout anticipated next integration timepoint.
+     */
+    void reInitPostProcess(void *ida_mem, realtype *t, AmiVector *yout,
                            AmiVector *ypout, realtype tout) const;
 
     void allocateSolver() const override;
@@ -135,6 +148,12 @@ class IDASolver : public Solver {
 
     void setSuppressAlg(bool flag) const override;
 
+    /**
+     * @brief resetState reset the IDAS solver to restart integration after a rhs discontinuity.
+     * @param ida_mem pointer to IDAS solver memory object
+     * @param yy0 new state vector
+     * @param yp0 new state derivative vector
+     */
     void resetState(void *ida_mem, const_N_Vector yy0,
                     const_N_Vector yp0) const;
 
@@ -209,4 +228,4 @@ class IDASolver : public Solver {
 
 } // namespace amici
 
-#endif /* idawrap_h */
+#endif /* AMICI_SOLVER_IDAS_h */

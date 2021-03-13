@@ -54,6 +54,88 @@ void *getLocalOptimumThreadWrapper(void *optimizationProblemVp) {
     return result;
 }
 
+void optimizationProblemGradientCheckMultiEps(OptimizationProblem *problem,
+                                      int numParameterIndicesToCheck
+                                      ) {
+    // set eps
+    std::vector<double> multi_eps {1e-1, 1e-3, 1e-5, 1e-7, 1e-9};
+
+    // setting the number of parameters to the minimum of
+    // numParamaterIndicesToCheck and dimension of the problem
+    int numParameters = problem->cost_fun_->numParameters();
+    numParameterIndicesToCheck =
+        std::min(numParameterIndicesToCheck, numParameters);
+    // choose random parameters to check
+    std::vector<int> parameterIndices(numParameterIndicesToCheck);
+    std::iota(parameterIndices.begin(), parameterIndices.end(), 0);
+    std::random_device rd;
+    std::mt19937 g(rd());
+
+    optimizationProblemGradientCheckMultiEps(problem, parameterIndices, multi_eps);
+}
+
+void optimizationProblemGradientCheckMultiEps(OptimizationProblem *problem,
+                                              gsl::span<const int> parameterIndices,
+                                              gsl::span<double> multi_eps){
+    //get a random theta
+    std::vector<double> theta(problem->cost_fun_->numParameters());
+    problem->fillInitialParameters(theta);
+    double fc = 0; // f(theta)
+    //evaluate the objective function at theta and get analytical gradient
+    std::vector<double> gradient(theta.size());
+    problem->cost_fun_->evaluate(theta, fc, gradient);
+    auto parameter_ids = problem->cost_fun_->getParameterIds();
+    std::vector<double> thetaTmp(theta);
+
+    for(int curInd : parameterIndices) {
+        double eps_best = 0.0;
+        double regRelErr_best = 0.0;
+        double absErr_best = 0.0;
+        double fd_c_best = 0.0;
+
+        // getting the analytical gradient of current index
+        double curGrad = gradient[curInd];
+
+        for(double epsilon : multi_eps) {
+            double fb = 0.0; // f(theta - eps)
+            double ff = 0.0; // f(theta + eps)
+
+            thetaTmp[curInd] = theta[curInd] + epsilon;
+            problem->cost_fun_->evaluate(gsl::span<double>(thetaTmp), ff,
+                                         gsl::span<double>());
+
+            thetaTmp[curInd] = theta[curInd] - epsilon;
+            problem->cost_fun_->evaluate(gsl::span<double>(thetaTmp), fb,
+                                         gsl::span<double>());
+            // calculating the finite difference
+            double fd_c = (ff - fb) / (2 * epsilon);
+            //reverting thetaTmp back to original
+            thetaTmp[curInd] = theta[curInd];
+
+            double abs_err = std::fabs(curGrad - fd_c);
+            double regRelError = std::fabs(abs_err / (fd_c + epsilon));
+
+            // comparing results with current best epsilon
+            // if better, replace. Also replace if no eps currently saved.
+            if((regRelError < regRelErr_best) || (regRelErr_best == 0)){
+                eps_best = epsilon;
+                regRelErr_best = regRelError;
+                fd_c_best = fd_c;
+                absErr_best = abs_err;
+            }
+        }
+        loglevel ll = LOGLVL_INFO;
+        if (fabs(regRelErr_best) > 1e-3)
+            ll = LOGLVL_WARNING;
+        if (std::isnan(curGrad) || fabs(regRelErr_best) > 1e-2)
+            ll = LOGLVL_ERROR;
+        logmessage(ll, "%-25s (%d) g: %12.6g  fd_c: %12.6g  |Δ/fd_c|: %.6e  "
+                       "|Δ|: %12.6g  ϵ: %12.6g ",
+                   parameter_ids.empty()?"":parameter_ids[curInd].c_str(),
+                   curInd, curGrad, fd_c_best,
+                   regRelErr_best, absErr_best, eps_best);
+    }
+}
 
 void optimizationProblemGradientCheck(OptimizationProblem *problem,
                                       int numParameterIndicesToCheck,
@@ -62,7 +144,7 @@ void optimizationProblemGradientCheck(OptimizationProblem *problem,
     numParameterIndicesToCheck =
             std::min(numParameterIndicesToCheck, numParameters);
     // choose random parameters to check
-    std::vector<int> parameterIndices(numParameters);
+    std::vector<int> parameterIndices(numParameterIndicesToCheck);
     std::iota(parameterIndices.begin(), parameterIndices.end(), 0);
     std::random_device rd;
     std::mt19937 g(rd());

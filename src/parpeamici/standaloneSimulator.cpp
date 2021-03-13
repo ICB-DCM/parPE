@@ -69,7 +69,7 @@ StandaloneSimulator::run(const std::string& resultFile,
     auto resultFileH5 = rw.reopenFile();
     hdf5EnsureGroupExists(resultFileH5.getId(), resultPath.c_str());
     {
-        auto lock = hdf5MutexGetLock();
+        [[maybe_unused]] auto lock = hdf5MutexGetLock();
         hdf5Write1dStringDataset(resultFileH5,
                                  resultPath,
                                  "stateIds",
@@ -168,7 +168,7 @@ StandaloneSimulator::run(const std::string& resultFile,
                     std::map<int,
                              AmiciSimulationRunner::AmiciResultPackageSimple>>(
                     job.recvBuffer.data(), job.recvBuffer.size());
-                job.recvBuffer = std::vector<char>(); // free buffer
+                std::vector<char>().swap(job.recvBuffer); // free buffer
                 for (auto& result : results) {
                     swap(simulationResults[result.first], result.second);
                     modelOutputs[result.first] =
@@ -209,7 +209,7 @@ StandaloneSimulator::run(const std::string& resultFile,
                 offsets,
                 sigmas);
             {
-                auto lock = hdf5MutexGetLock();
+                [[maybe_unused]] auto lock = hdf5MutexGetLock();
                 amici::hdf5::createAndWriteDouble1DDataset(
                     resultFileH5, resultPath + "/problemParameters", parameterValues);
             }
@@ -280,7 +280,7 @@ StandaloneSimulator::run(const std::string& resultFile,
         Expects(parameterValues.size() == (unsigned)wrappedFun->numParameters());
 
         {
-            auto lock = hdf5MutexGetLock();
+            [[maybe_unused]] auto lock = hdf5MutexGetLock();
             amici::hdf5::createAndWriteDouble1DDataset(
                 resultFileH5, resultPath + "/problemParameters", parameterValues);
         }
@@ -293,7 +293,7 @@ StandaloneSimulator::run(const std::string& resultFile,
                     int,
                     AmiciSimulationRunner::AmiciResultPackageSimple>>(
                     job->recvBuffer.data(), job->recvBuffer.size());
-                job->recvBuffer = std::vector<char>(); // free buffer
+                std::vector<char>().swap(job->recvBuffer); // free buffer
 
                 for (auto const& result : results) {
                     errors += result.second.status;
@@ -439,7 +439,7 @@ StandaloneSimulator::runSimulation(int conditionIdx,
 std::vector<double>
 getFinalParameters(std::string const& startIndex, H5::H5File const& file)
 {
-    auto lock = hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
 
     // find last iteration /multistarts/$/iteration/$/costFunParameters
     std::string iterationPath =
@@ -447,9 +447,8 @@ getFinalParameters(std::string const& startIndex, H5::H5File const& file)
     int iteration = 0;
     while (
         hdf5GroupExists(file, iterationPath + std::to_string(iteration)) &&
-        hdf5DatasetExists(file,
-                          iterationPath + std::to_string(iteration) +
-                              "/costFunParameters")) {
+        file.nameExists(iterationPath + std::to_string(iteration)
+                        + "/costFunParameters")) {
         ++iteration;
     }
     --iteration; // last one did not exist
@@ -543,7 +542,7 @@ getFunctionEvaluationWithMinimalCost(std::string const& datasetPath,
 std::vector<std::vector<double>>
 getParameterTrajectory(std::string const& startIndex, H5::H5File const& file)
 {
-    auto lock = hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
 
     std::string parameterPath =
         std::string("/multistarts/") + startIndex + "/iterCostFunParameters";
@@ -592,7 +591,7 @@ runFinalParameters(StandaloneSimulator& sim,
                    std::string const& resultPath,
                    LoadBalancerMaster* loadBalancer, bool computeInnerParameters)
 {
-    auto lock = hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
     H5::H5File parameterFile(parameterFileName, H5F_ACC_RDONLY);
     H5::H5File conditionFile(conditionFileName, H5F_ACC_RDONLY);
     std::vector<std::string> parameterNames;
@@ -653,7 +652,7 @@ runAlongTrajectory(StandaloneSimulator& sim,
                    std::string const& resultPath,
                    LoadBalancerMaster* loadBalancer, bool computeInnerParameters)
 {
-    auto lock = hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
     H5::H5File parameterFile(parameterFileName, H5F_ACC_RDONLY);
     H5::H5File conditionFile(conditionFileName, H5F_ACC_RDONLY);
     std::vector<std::string> parameterNames;
@@ -720,7 +719,7 @@ runNominalParameters(StandaloneSimulator& sim,
                      LoadBalancerMaster* loadBalancer,
                      bool computeInnerParameters)
 {
-    auto lock = hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
     H5::H5File parameterFile(parameterFileName, H5F_ACC_RDONLY);
     H5::H5File conditionFile(conditionFileName, H5F_ACC_RDONLY);
     lock.unlock();
@@ -777,7 +776,7 @@ runSimulationTasks(StandaloneSimulator& sim,
                   <<parameterFileName<<":"<<parameterFilePath<<"\n\t> "
                   <<resultFileName<<":"<<resultPath<<std::endl;
         // copy input data
-        auto lock = hdf5MutexGetLock();
+        [[maybe_unused]] auto lock = hdf5MutexGetLock();
         H5::H5File conditionFile = hdf5OpenForReading(conditionFileName);
         H5::H5File resultFile = hdf5OpenForAppending(resultFileName);
 

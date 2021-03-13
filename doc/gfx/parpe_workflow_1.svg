@@ -1,6 +1,4 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!-- Created with Inkscape (http://www.inkscape.org/) -->
-
 <svg
    xmlns:i="http://ns.adobe.com/AdobeIllustrator/10.0/"
    xmlns:dc="http://purl.org/dc/elements/1.1/"
@@ -16,11 +14,11 @@
    viewBox="0 0 247.05383 72.890846"
    version="1.1"
    id="svg2414"
-   inkscape:version="0.92.4 (5da689c313, 2019-01-14)"
+   inkscape:version="1.0.1 (3bc2e813f5, 2020-09-07)"
    sodipodi:docname="parpe_workflow_1.svg"
    inkscape:export-filename="/home/dweindl/src/parPE_2/doc/gfx/parpe_workflow_1.png"
-   inkscape:export-xdpi="180.15706"
-   inkscape:export-ydpi="180.15706">
+   inkscape:export-xdpi="150"
+   inkscape:export-ydpi="150">
   <defs
      id="defs2408">
     <marker
@@ -626,11 +624,11 @@
      borderopacity="1.0"
      inkscape:pageopacity="1"
      inkscape:pageshadow="2"
-     inkscape:zoom="0.35355339"
-     inkscape:cx="250.7285"
-     inkscape:cy="-17.363388"
+     inkscape:zoom="0.70710678"
+     inkscape:cx="446.68109"
+     inkscape:cy="223.37084"
      inkscape:document-units="mm"
-     inkscape:current-layer="layer1"
+     inkscape:current-layer="g8260"
      showgrid="false"
      inkscape:window-width="1920"
      inkscape:window-height="976"
@@ -640,7 +638,8 @@
      fit-margin-top="0"
      fit-margin-left="0"
      fit-margin-right="0"
-     fit-margin-bottom="0" />
+     fit-margin-bottom="0"
+     inkscape:document-rotation="0" />
   <metadata
      id="metadata2411">
     <rdf:RDF>
@@ -969,7 +968,6 @@
                  x="460.48969"
                  sodipodi:role="line"
                  id="tspan4512">problem</tspan><tspan
-                 style="font-style:normal;font-weight:normal;font-size:15px;line-height:1.25;text-align:center;text-anchor:middle"
                  y="267.03772"
                  x="460.48969"
                  sodipodi:role="line"
@@ -1588,37 +1586,36 @@
       <text
          id="text5465"
          y="128.75005"
-         x="140.39389"
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.38666677px;line-height:0%;font-family:Arial;-inkscape-font-specification:'Arial, Normal';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.28222224px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         x="140.92305"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.38667px;line-height:0%;font-family:Arial;-inkscape-font-specification:'Arial, Normal';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.282222px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
          xml:space="preserve"><tspan
-           style="font-size:4.23333359px;line-height:1.25;text-align:center;text-anchor:middle;fill:#000000;fill-opacity:1;stroke-width:0.28222224px"
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:4.23333px;line-height:1.25;font-family:monospace;-inkscape-font-specification:monospace;text-align:center;text-anchor:middle;fill:#000000;fill-opacity:1;stroke-width:0.282222px"
            y="128.75005"
-           x="140.39389"
+           x="140.92305"
            sodipodi:role="line"
-           id="tspan3334">amici_import_petab.py</tspan><tspan
-           style="font-size:4.23333359px;line-height:1.25;text-align:center;text-anchor:middle;fill:#000000;fill-opacity:1;stroke-width:0.28222224px"
-           y="131.16241"
-           x="140.39389"
+           id="tspan3334">amici_import_petab</tspan><tspan
+           y="131.20888"
+           x="140.92305"
            sodipodi:role="line"
            id="tspan8547" /><tspan
-           style="font-size:4.23333359px;line-height:1.25;text-align:center;text-anchor:middle;fill:#000000;fill-opacity:1;stroke-width:0.28222224px"
-           y="134.04172"
-           x="140.39389"
+           style="font-size:4.23333px;line-height:1.25;text-align:center;text-anchor:middle;fill:#000000;fill-opacity:1;stroke-width:0.282222px"
+           y="134.08818"
+           x="140.92305"
            sodipodi:role="line"
            id="tspan8549">Python/AMICI</tspan></text>
       <path
          sodipodi:nodetypes="cc"
          inkscape:connector-curvature="0"
          id="path5430"
-         d="m 112.96115,129.88466 h 51.39468"
-         style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.28222224px;stroke-linecap:round;stroke-linejoin:bevel;stroke-opacity:1;marker-end:url(#marker5434)" />
+         d="M 112.96115,129.88466 H 169.6475"
+         style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.282222px;stroke-linecap:round;stroke-linejoin:bevel;stroke-opacity:1;marker-end:url(#marker5434)" />
       <text
          id="text5834"
          y="136.58492"
          x="187.27652"
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.38666677px;line-height:0%;font-family:Arial;-inkscape-font-specification:'Arial, Normal';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.28222224px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.38667px;line-height:0%;font-family:Arial;-inkscape-font-specification:'Arial, Normal';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.282222px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
          xml:space="preserve"><tspan
-           style="font-size:4.23333359px;line-height:1.25;stroke-width:0.28222224px"
+           style="font-size:4.23333px;line-height:1.25;stroke-width:0.282222px"
            y="136.58492"
            x="187.27652"
            id="tspan5836"
@@ -1627,15 +1624,15 @@
          id="text7147"
          y="112.95058"
          x="164.28127"
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.38666677px;line-height:0%;font-family:Arial;-inkscape-font-specification:'Arial, Normal';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.28222224px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.38667px;line-height:0%;font-family:Arial;-inkscape-font-specification:'Arial, Normal';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.282222px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
          xml:space="preserve"><tspan
-           style="font-size:4.23333359px;line-height:1.25;text-align:center;text-anchor:middle;stroke-width:0.28222224px"
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:4.23333px;line-height:1.25;font-family:monospace;-inkscape-font-specification:monospace;text-align:center;text-anchor:middle;stroke-width:0.282222px"
            y="112.95058"
            x="164.28127"
            id="tspan7149"
-           sodipodi:role="line">generateHDF5DataFileFromText.py</tspan><tspan
-           style="font-size:4.23333359px;line-height:1.25;text-align:center;text-anchor:middle;stroke-width:0.28222224px"
-           y="118.24224"
+           sodipodi:role="line">parpe_petab_to_hdf5</tspan><tspan
+           style="font-size:4.23333px;line-height:1.25;text-align:center;text-anchor:middle;stroke-width:0.282222px"
+           y="118.2887"
            x="164.28127"
            sodipodi:role="line"
            id="tspan7151">Python</tspan></text>
@@ -1736,8 +1733,7 @@
              id="tspan1514"
              sodipodi:role="line"
              x="1119.6843"
-             y="323.94934"
-             style="font-weight:normal;font-size:15px;line-height:1.25;text-align:center;text-anchor:middle" /><tspan
+             y="323.94934" /><tspan
              id="tspan1518"
              sodipodi:role="line"
              x="1121.7644"
@@ -1757,23 +1753,8 @@
            xml:space="preserve"
            style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;line-height:0%;font-family:Arial;-inkscape-font-specification:'Arial, Normal';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
            x="1119.9663"
-           y="258.36105"
+           y="271.87238"
            id="text4401"><tspan
-             style="font-size:15px;line-height:1.25;text-align:center;text-anchor:middle"
-             id="tspan4405"
-             sodipodi:role="line"
-             x="1119.9663"
-             y="261.6701" /><tspan
-             id="tspan4295"
-             style="font-size:15px;line-height:1.25;text-align:center;text-anchor:middle"
-             sodipodi:role="line"
-             x="1119.9663"
-             y="261.6701" /><tspan
-             id="tspan4297"
-             style="font-weight:normal;font-size:15px;line-height:1.25;text-align:center;text-anchor:middle"
-             sodipodi:role="line"
-             x="1119.9663"
-             y="261.6701" /><tspan
              id="tspan4311"
              style="font-weight:normal;font-size:15px;line-height:1.25;text-align:center;text-anchor:middle"
              sodipodi:role="line"
@@ -1785,11 +1766,9 @@
              x="1119.9663"
              y="290.62238">Model</tspan><tspan
              id="tspan3458"
-             style="font-size:15px;line-height:1.25;text-align:center;text-anchor:middle"
              sodipodi:role="line"
              x="1119.9663"
              y="299.1701" /><tspan
-             style="font-size:15px;line-height:1.25;text-align:center;text-anchor:middle"
              sodipodi:role="line"
              x="1119.9663"
              y="299.1701"
@@ -1817,15 +1796,10 @@
              sodipodi:role="line">build</tspan></text>
         <text
            id="text4309"
-           y="207.73604"
+           y="221.24736"
            x="1119.9333"
            style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;line-height:0%;font-family:Arial;-inkscape-font-specification:'Arial, Normal';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
            xml:space="preserve"><tspan
-             y="211.04509"
-             x="1119.9333"
-             sodipodi:role="line"
-             id="tspan4299"
-             style="font-size:15px;line-height:1.25;text-align:center;text-anchor:middle" /><tspan
              y="221.24736"
              x="1119.9333"
              sodipodi:role="line"
@@ -1839,13 +1813,11 @@
              y="248.54509"
              x="1119.9333"
              sodipodi:role="line"
-             style="font-size:15px;line-height:1.25;text-align:center;text-anchor:middle"
              id="tspan4305" /><tspan
              id="tspan4307"
              y="248.54509"
              x="1119.9333"
-             sodipodi:role="line"
-             style="font-size:15px;line-height:1.25;text-align:center;text-anchor:middle" /></text>
+             sodipodi:role="line" /></text>
         <path
            sodipodi:nodetypes="cc"
            inkscape:connector-curvature="0"

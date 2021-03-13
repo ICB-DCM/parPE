@@ -46,10 +46,10 @@ class OptimizationOptions {
     /** Maximum number of optimizer iterations*/
     int maxOptimizerIterations = 100;
 
-    static std::unique_ptr<OptimizationOptions> fromHDF5(const char *fileName);
-    static std::unique_ptr<OptimizationOptions> fromHDF5(hid_t fileId, const std::string &path = "/optimizationOptions");
+    static std::unique_ptr<OptimizationOptions> fromHDF5(std::string const& fileName);
+    static std::unique_ptr<OptimizationOptions> fromHDF5(const H5::H5File &file, const std::string &path = "/optimizationOptions");
 
-    static std::vector<double> getStartingPoint(hid_t fileId, int index);
+    static std::vector<double> getStartingPoint(const H5::H5File &file, int index);
 
     /** Number of starts for local optimization (only used for multi-start
      * optimization */

@@ -1,0 +1,35 @@
+name: Deploy
+on:
+  release:
+    types:
+      - published
+
+jobs:
+  pypi:
+    name: Deploy PyPI
+
+    runs-on: ubuntu-20.04
+
+    steps:
+    - uses: actions/checkout@v1
+      with:
+        fetch-depth: 20
+
+    - run: echo "AMICI_DIR=$(pwd)" >> $GITHUB_ENV
+    - run: echo "SWIG=${AMICI_DIR}/ThirdParty/swig-4.0.1/install/bin/swig" >> $GITHUB_ENV
+
+    - name: Build swig4
+      run: |
+        sudo scripts/downloadAndBuildSwig.sh
+
+    - name: sdist
+      run: |
+        scripts/buildSdist.sh
+
+    - name: Publish a Python distribution to PyPI
+      uses: pypa/gh-action-pypi-publish@master
+      with:
+        user: __token__
+        password: ${{ secrets.pypi_password }}
+        packages_dir: python/sdist/dist
+

@@ -2,6 +2,7 @@
 #define _amici_TPL_MODELNAME_h
 #include <cmath>
 #include <memory>
+#include <gsl/gsl-lite.hpp>
 
 #include "amici/model_ode.h"
 #include "amici/solver_cvodes.h"
@@ -18,30 +19,13 @@ extern std::array<const char*, TPL_NP> parameterNames;
 extern std::array<const char*, TPL_NK> fixedParameterNames;
 extern std::array<const char*, TPL_NX_RDATA> stateNames;
 extern std::array<const char*, TPL_NY> observableNames;
+extern std::array<const char*, TPL_NW> expressionNames;
 extern std::array<const char*, TPL_NP> parameterIds;
 extern std::array<const char*, TPL_NK> fixedParameterIds;
 extern std::array<const char*, TPL_NX_RDATA> stateIds;
 extern std::array<const char*, TPL_NY> observableIds;
+extern std::array<const char*, TPL_NW> expressionIds;
 
-
-extern void J_TPL_MODELNAME(realtype *J, const realtype t, const realtype *x,
-                            const realtype *p, const realtype *k,
-                            const realtype *h, const realtype *w,
-                            const realtype *dwdx);
-extern void JB_TPL_MODELNAME(realtype *JB, const realtype t, const realtype *x,
-                             const realtype *p, const realtype *k,
-                             const realtype *h, const realtype *xB,
-                             const realtype *w, const realtype *dwdx);
-extern void JDiag_TPL_MODELNAME(realtype *JDiag, const realtype t,
-                                const realtype *x, const realtype *p,
-                                const realtype *k, const realtype *h,
-                                const realtype *w, const realtype *dwdx);
-TPL_JSPARSE_DEF
-TPL_JSPARSE_COLPTRS_DEF
-TPL_JSPARSE_ROWVALS_DEF
-TPL_JSPARSEB_DEF
-TPL_JSPARSEB_COLPTRS_DEF
-TPL_JSPARSEB_ROWVALS_DEF
 extern void Jy_TPL_MODELNAME(realtype *nllh, const int iy, const realtype *p,
                              const realtype *k, const realtype *y,
                              const realtype *sigmay, const realtype *my);
@@ -52,20 +36,29 @@ extern void dJydsigmay_TPL_MODELNAME(realtype *dJydsigmay, const int iy,
 TPL_DJYDY_DEF
 TPL_DJYDY_COLPTRS_DEF
 TPL_DJYDY_ROWVALS_DEF
+
+extern void root_TPL_MODELNAME(realtype *root, const realtype t,
+                               const realtype *x, const realtype *p,
+                               const realtype *k, const realtype *h);
+
 TPL_DWDP_DEF
 TPL_DWDP_COLPTRS_DEF
 TPL_DWDP_ROWVALS_DEF
 TPL_DWDX_DEF
 TPL_DWDX_COLPTRS_DEF
 TPL_DWDX_ROWVALS_DEF
+TPL_DWDW_DEF
+TPL_DWDW_COLPTRS_DEF
+TPL_DWDW_ROWVALS_DEF
 TPL_DXDOTDW_DEF
 TPL_DXDOTDW_COLPTRS_DEF
 TPL_DXDOTDW_ROWVALS_DEF
 TPL_DXDOTDP_EXPLICIT_DEF
 TPL_DXDOTDP_EXPLICIT_COLPTRS_DEF
 TPL_DXDOTDP_EXPLICIT_ROWVALS_DEF
-TPL_DXDOTDP_IMPLICIT_COLPTRS_DEF
-TPL_DXDOTDP_IMPLICIT_ROWVALS_DEF
+TPL_DXDOTDX_EXPLICIT_DEF
+TPL_DXDOTDX_EXPLICIT_COLPTRS_DEF
+TPL_DXDOTDX_EXPLICIT_ROWVALS_DEF
 
 extern void dydx_TPL_MODELNAME(realtype *dydx, const realtype t,
                                const realtype *x, const realtype *p,
@@ -86,14 +79,16 @@ extern void x0_TPL_MODELNAME(realtype *x0, const realtype t, const realtype *p,
                              const realtype *k);
 extern void x0_fixedParameters_TPL_MODELNAME(realtype *x0, const realtype t,
                                              const realtype *p,
-                                             const realtype *k);
+                                             const realtype *k,
+                                             gsl::span<const int> reinitialization_state_idxs);
 extern void sx0_TPL_MODELNAME(realtype *sx0, const realtype t,
                               const realtype *x0, const realtype *p,
                               const realtype *k, const int ip);
 extern void sx0_fixedParameters_TPL_MODELNAME(realtype *sx0, const realtype t,
                                               const realtype *x0,
                                               const realtype *p,
-                                              const realtype *k, const int ip);
+                                              const realtype *k, const int ip,
+                                              gsl::span<const int> reinitialization_state_idxs);
 extern void xdot_TPL_MODELNAME(realtype *xdot, const realtype t,
                                const realtype *x, const realtype *p,
                                const realtype *k, const realtype *h,
@@ -101,6 +96,17 @@ extern void xdot_TPL_MODELNAME(realtype *xdot, const realtype t,
 extern void y_TPL_MODELNAME(realtype *y, const realtype t, const realtype *x,
                             const realtype *p, const realtype *k,
                             const realtype *h, const realtype *w);
+extern void stau_TPL_MODELNAME(realtype *stau, const realtype t,
+                               const realtype *x, const realtype *p,
+                               const realtype *k, const realtype *h,
+                               const realtype *sx, const int ip, const int ie);
+extern void deltasx_TPL_MODELNAME(realtype *deltasx, const realtype t,
+                                  const realtype *x, const realtype *p,
+                                  const realtype *k, const realtype *h,
+                                  const realtype *w, const int ip,
+                                  const int ie, const realtype *xdot,
+                                  const realtype *xdot_old, const realtype *sx,
+                                  const realtype *stau);
 TPL_X_RDATA_DEF
 TPL_X_SOLVER_DEF
 TPL_TOTAL_CL_DEF
@@ -115,34 +121,41 @@ class Model_TPL_MODELNAME : public amici::Model_ODE {
      */
     Model_TPL_MODELNAME()
         : amici::Model_ODE(
-              TPL_NX_RDATA,                                // nx_rdata
-              TPL_NXTRUE_RDATA,                            // nxtrue_rdata
-              TPL_NX_SOLVER,                               // nx_solver
-              TPL_NXTRUE_SOLVER,                           // nxtrue_solver
-              TPL_NX_SOLVER_REINIT,                        // nx_solver_reinit
-              TPL_NY,                                      // ny
-              TPL_NYTRUE,                                  // nytrue
-              TPL_NZ,                                      // nz
-              TPL_NZTRUE,                                  // nztrue
-              TPL_NEVENT,                                  // nevent
-              TPL_NOBJECTIVE,                              // nobjective
-              TPL_NW,                                      // nw
-              TPL_NDWDX,                                   // ndwdx
-              TPL_NDWDP,                                   // ndwdp
-              TPL_NDXDOTDW,                                // ndxdotdw
-              TPL_NDJYDY,                                  // ndjydy
-              TPL_NNZ,                                     // nnz
-              TPL_UBW,                                     // ubw
-              TPL_LBW,                                     // lbw
+              amici::ModelDimensions(
+                  TPL_NX_RDATA,                            // nx_rdata
+                  TPL_NXTRUE_RDATA,                        // nxtrue_rdata
+                  TPL_NX_SOLVER,                           // nx_solver
+                  TPL_NXTRUE_SOLVER,                       // nxtrue_solver
+                  TPL_NX_SOLVER_REINIT,                    // nx_solver_reinit
+                  TPL_NP,                                  // np
+                  TPL_NK,                                  // nk
+                  TPL_NY,                                  // ny
+                  TPL_NYTRUE,                              // nytrue
+                  TPL_NZ,                                  // nz
+                  TPL_NZTRUE,                              // nztrue
+                  TPL_NEVENT,                              // nevent
+                  TPL_NOBJECTIVE,                          // nobjective
+                  TPL_NW,                                  // nw
+                  TPL_NDWDX,                               // ndwdx
+                  TPL_NDWDP,                               // ndwdp
+                  TPL_NDWDW,                               // ndwdw
+                  TPL_NDXDOTDW,                            // ndxdotdw
+                  TPL_NDJYDY,                              // ndjydy
+                  0,                                       // nnz
+                  TPL_UBW,                                 // ubw
+                  TPL_LBW                                  // lbw
+              ),
+              amici::SimulationParameters(
+                  std::vector<realtype>{TPL_FIXED_PARAMETERS}, // fixedParameters
+                  std::vector<realtype>{TPL_PARAMETERS}        // dynamic parameters
+              ),
               TPL_O2MODE,                                  // o2mode
-              std::vector<realtype>{TPL_PARAMETERS},       // dynamic parameters
-              std::vector<realtype>{TPL_FIXED_PARAMETERS}, // fixedParameters
-              std::vector<int>{},                          // plist
               std::vector<realtype>(TPL_NX_SOLVER, 0.0),   // idlist
               std::vector<int>{},                          // z2event
               true,                                        // pythonGenerated
               TPL_NDXDOTDP_EXPLICIT,                       // ndxdotdp_explicit
-              TPL_NDXDOTDP_IMPLICIT                        // ndxdotdp_implicit
+              TPL_NDXDOTDX_EXPLICIT,                       // ndxdotdx_explicit
+              TPL_W_RECURSION_DEPTH                        // w_recursion_depth
           ) {}
 
     /**
@@ -152,68 +165,6 @@ class Model_TPL_MODELNAME : public amici::Model_ODE {
     virtual amici::Model *clone() const override {
         return new Model_TPL_MODELNAME(*this);
     }
-
-    /** model specific implementation for fJ
-     * @param J Matrix to which the Jacobian will be written
-     * @param t timepoint
-     * @param x Vector with the states
-     * @param p parameter vector
-     * @param k constants vector
-     * @param h heaviside vector
-     * @param w vector with helper variables
-     * @param dwdx derivative of w wrt x
-     **/
-    virtual void fJ(realtype *J, const realtype t, const realtype *x,
-                    const realtype *p, const realtype *k, const realtype *h,
-                    const realtype *w, const realtype *dwdx) override {
-        J_TPL_MODELNAME(J, t, x, p, k, h, w, dwdx);
-    }
-
-    /** model specific implementation for fJB
-     * @param JB Matrix to which the Jacobian will be written
-     * @param t timepoint
-     * @param x Vector with the states
-     * @param p parameter vector
-     * @param k constants vector
-     * @param h heaviside vector
-     * @param xB Vector with the adjoint states
-     * @param w vector with helper variables
-     * @param dwdx derivative of w wrt x
-     **/
-    virtual void fJB(realtype *JB, const realtype t, const realtype *x,
-                     const realtype *p, const realtype *k, const realtype *h,
-                     const realtype *xB, const realtype *w,
-                     const realtype *dwdx) override {
-        JB_TPL_MODELNAME(JB, t, x, p, k, h, xB, w, dwdx);
-    }
-
-    /** model specific implementation for fJDiag
-     * @param JDiag Matrix to which the Jacobian will be written
-     * @param t timepoint
-     * @param x Vector with the states
-     * @param p parameter vector
-     * @param k constants vector
-     * @param h heaviside vector
-     * @param w vector with helper variables
-     * @param dwdx derivative of w wrt x
-     **/
-    virtual void fJDiag(realtype *JDiag, const realtype t, const realtype *x,
-                        const realtype *p, const realtype *k, const realtype *h,
-                        const realtype *w, const realtype *dwdx) override {
-        JDiag_TPL_MODELNAME(JDiag, t, x, p, k, h, w, dwdx);
-    }
-
-    TPL_JSPARSE_IMPL
-
-    TPL_JSPARSE_COLPTRS_IMPL
-
-    TPL_JSPARSE_ROWVALS_IMPL
-
-    TPL_JSPARSEB_IMPL
-
-    TPL_JSPARSEB_COLPTRS_IMPL
-
-    TPL_JSPARSEB_ROWVALS_IMPL
 
     /** model specific implementation of fJrz
      * @param nllh regularization for event measurements z
@@ -368,7 +319,10 @@ class Model_TPL_MODELNAME : public amici::Model_ODE {
                           const realtype *k, const realtype *h,
                           const realtype *w, const int ip, const int ie,
                           const realtype *xdot, const realtype *xdot_old,
-                          const realtype *sx, const realtype *stau) override {}
+                          const realtype *sx, const realtype *stau) override {
+        deltasx_TPL_MODELNAME(deltasx, t, x, p, k, h, w, ip, ie, xdot,
+                              xdot_old, sx, stau);
+    }
 
     /** model specific implementation of fdeltax
      * @param deltax state update
@@ -462,30 +416,28 @@ class Model_TPL_MODELNAME : public amici::Model_ODE {
     TPL_DJYDY_ROWVALS_IMPL
 
     TPL_DWDP_IMPL
-
     TPL_DWDP_COLPTRS_IMPL
-
     TPL_DWDP_ROWVALS_IMPL
 
     TPL_DWDX_IMPL
-
     TPL_DWDX_COLPTRS_IMPL
-
     TPL_DWDX_ROWVALS_IMPL
+
+    TPL_DWDW_IMPL
+    TPL_DWDW_COLPTRS_IMPL
+    TPL_DWDW_ROWVALS_IMPL
 
     TPL_DXDOTDW_IMPL
     TPL_DXDOTDW_COLPTRS_IMPL
     TPL_DXDOTDW_ROWVALS_IMPL
 
     TPL_DXDOTDP_EXPLICIT_IMPL
-
     TPL_DXDOTDP_EXPLICIT_COLPTRS_IMPL
-
     TPL_DXDOTDP_EXPLICIT_ROWVALS_IMPL
 
-    TPL_DXDOTDP_IMPLICIT_COLPTRS_IMPL
-
-    TPL_DXDOTDP_IMPLICIT_ROWVALS_IMPL
+    TPL_DXDOTDX_EXPLICIT_IMPL
+    TPL_DXDOTDX_EXPLICIT_COLPTRS_IMPL
+    TPL_DXDOTDX_EXPLICIT_ROWVALS_IMPL
 
     /** model specific implementation of fdydx
      * @param dydx partial derivative of observables y w.r.t. model states x
@@ -556,7 +508,9 @@ class Model_TPL_MODELNAME : public amici::Model_ODE {
      **/
     virtual void froot(realtype *root, const realtype t, const realtype *x,
                        const realtype *p, const realtype *k,
-                       const realtype *h) override {}
+                       const realtype *h) override {
+        root_TPL_MODELNAME(root, t, x, p, k, h);
+    }
 
     /** model specific implementation of frz
      * @param rz value of root function at current timepoint (non-output events
@@ -622,7 +576,9 @@ class Model_TPL_MODELNAME : public amici::Model_ODE {
     virtual void fstau(realtype *stau, const realtype t, const realtype *x,
                        const realtype *p, const realtype *k, const realtype *h,
                        const realtype *sx, const int ip,
-                       const int ie) override {}
+                       const int ie) override {
+        stau_TPL_MODELNAME(stau, t, x, p, k, h, sx, ip, ie);
+    }
 
     /** model specific implementation of fsx0
      * @param sx0 initial state sensitivities
@@ -649,8 +605,10 @@ class Model_TPL_MODELNAME : public amici::Model_ODE {
     virtual void fsx0_fixedParameters(realtype *sx0, const realtype t,
                                       const realtype *x0, const realtype *p,
                                       const realtype *k,
-                                      const int ip) override {
-        sx0_fixedParameters_TPL_MODELNAME(sx0, t, x0, p, k, ip);
+                                      const int ip,
+                                      gsl::span<const int> reinitialization_state_idxs
+                                      ) override {
+        sx0_fixedParameters_TPL_MODELNAME(sx0, t, x0, p, k, ip, reinitialization_state_idxs);
     }
 
     /** model specific implementation of fsz
@@ -690,8 +648,10 @@ class Model_TPL_MODELNAME : public amici::Model_ODE {
      **/
     virtual void fx0_fixedParameters(realtype *x0, const realtype t,
                                      const realtype *p,
-                                     const realtype *k) override {
-        x0_fixedParameters_TPL_MODELNAME(x0, t, p, k);
+                                     const realtype *k,
+                                     gsl::span<const int> reinitialization_state_idxs
+                                     ) override {
+        x0_fixedParameters_TPL_MODELNAME(x0, t, p, k, reinitialization_state_idxs);
     }
 
     /** model specific implementation for fxdot
@@ -782,6 +742,15 @@ class Model_TPL_MODELNAME : public amici::Model_ODE {
     }
 
     /**
+     * @brief Get names of model expressions
+     * @return Expression names
+     */
+    virtual std::vector<std::string> getExpressionNames() const override {
+        return std::vector<std::string>(expressionNames.begin(),
+                                        expressionNames.end());
+    }
+
+    /**
      * @brief Get ids of the model parameters
      * @return the ids
      */
@@ -817,9 +786,18 @@ class Model_TPL_MODELNAME : public amici::Model_ODE {
     }
 
     /**
+     * @brief Get IDs of model expressions
+     * @return Expression IDs
+     */
+    virtual std::vector<std::string> getExpressionIds() const override {
+        return std::vector<std::string>(expressionIds.begin(),
+                                        expressionIds.end());
+    }
+
+    /**
      * @brief function indicating whether reinitialization of states depending on
      fixed parameters is permissible
-     * @return flag inidication whether reinitialization of states depending on
+     * @return flag indicating whether reinitialization of states depending on
      fixed parameters is permissible
      */
     virtual bool isFixedParameterStateReinitializationAllowed() const override {
@@ -840,6 +818,10 @@ class Model_TPL_MODELNAME : public amici::Model_ODE {
      */
     virtual const std::string getAmiciCommit() const override {
         return "TPL_AMICI_COMMIT_STRING";
+    }
+
+    virtual bool hasQuadraticLLH() const override {
+        return TPL_QUADRATIC_LLH;
     }
 };
 

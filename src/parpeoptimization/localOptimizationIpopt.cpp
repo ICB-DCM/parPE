@@ -22,7 +22,7 @@ namespace parpe {
 
 // https://www.coin-or.org/Ipopt/documentation/node40.html
 // grep -A1 -r "roptions->Add" ../ThirdParty/Ipopt-3.12.7
-const std::vector<std::string> strOpts = {
+const std::array<const char*, 91> strOpts = {
     "accept_every_trial_step",
     "adaptive_mu_globalization",
     "adaptive_mu_kkt_norm_type",
@@ -115,7 +115,7 @@ const std::vector<std::string> strOpts = {
     "wsmp_skip_inertia_check",
 };
 
-const std::vector<std::string> intOpts = {
+const std::array<const char*, 59> intOpts = {
     "acceptable_iter",
     "accept_after_max_steps",
     "accept_every_trial_step",
@@ -177,7 +177,7 @@ const std::vector<std::string> intOpts = {
     "wsmp_write_matrix_iteration",
 };
 
-const std::vector<std::string> dblOpts = {
+const std::array<const char*, 149> dblOpts = {
     "acceptable_compl_inf_tol",
     "acceptable_constr_viol_tol",
     "acceptable_dual_inf_tol",
@@ -420,9 +420,9 @@ std::tuple<int, double, std::vector<double> > OptimizerIpOpt::optimize(Optimizat
         } catch (IpoptException& e) {
             logmessage(LOGLVL_ERROR, "IpOpt exception: %s",  e.Message().c_str());
         } catch (std::exception& e) {
-            logmessage(LOGLVL_ERROR, "Unknown exception occured during optimization: %s", e.what());
+            logmessage(LOGLVL_ERROR, "Unknown exception occurred during optimization: %s", e.what());
         } catch (...) {
-            logmessage(LOGLVL_ERROR, "Unknown exception occured during optimization");
+            logmessage(LOGLVL_ERROR, "Unknown exception occurred during optimization");
         }
         finalCost = optimizationController->getFinalCost();
         finalParameters = optimizationController->getFinalParameters();

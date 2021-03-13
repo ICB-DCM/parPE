@@ -575,12 +575,12 @@ HierarchicalOptimizationProblemWrapper::HierarchicalOptimizationProblemWrapper(
 
     auto model = dataProvider->getModel();
 
-    auto lock = hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
     cost_fun_.reset(
         new HierarchicalOptimizationWrapper(
             dynamic_cast<AmiciSummedGradientFunction*>(
                 wrappedFun->getWrappedFunction()),
-            dataProvider->getHdf5FileId(),
+            dataProvider->getHdf5File(),
             "/",
             dataProvider->getNumberOfSimulationConditions(),
             model->nytrue,

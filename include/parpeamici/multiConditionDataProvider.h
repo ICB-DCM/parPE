@@ -363,15 +363,16 @@ class MultiConditionDataProviderHDF5 : public MultiConditionDataProvider
     void getSimAndPreeqConditions(
       const int simulationIdx,
       int& preequilibrationConditionIdx,
-      int& simulationConditionIdx,
-      bool& reinitializeFixedParameterInitialStates) const;
+      int& simulationConditionIdx
+    ) const;
+
+    std::vector<int> getReinitializationIndices(const int simulationIdx) const;
 
     /**
-     * @brief Get the identifier of the used HDF5 file. Does not reopen.
-     * Does not close file.
-     * @return The file ID
+     * @brief Get a copy of the HDF5 file handle.
+     * @return File handle
      */
-    hid_t getHdf5FileId() const;
+    H5::H5File getHdf5File() const;
 
     void setModel(std::unique_ptr<amici::Model> model);
 
@@ -379,7 +380,7 @@ class MultiConditionDataProviderHDF5 : public MultiConditionDataProvider
 
   protected:
     /**
-     * @brief Update the contstants in AMICI ExpData object. Reads a slab for the
+     * @brief Update the constants in AMICI ExpData object. Reads a slab for the
      * given simulation from fixed parameters matrix.
      *
      * @param simulationIdx Index of the experimental condition for which the
@@ -414,6 +415,7 @@ class MultiConditionDataProviderHDF5 : public MultiConditionDataProvider
     std::string hdf5_simulation_to_optimization_parameter_mapping_path_;
     std::string hdf5_parameter_overrides_path;
     std::string hdf5_parameter_ids_path_;
+    std::string hdf5_reinitialization_idxs_path_;
 
     /**
      * @brief HDF5 file handles for C++ and C API

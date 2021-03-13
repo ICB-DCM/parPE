@@ -12,7 +12,7 @@ SimulationResultWriter::SimulationResultWriter(H5::H5File const& file,
                                                std::string rootPath)
     : rootPath(std::move(rootPath))
 {
-    auto lock = hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
     this->file = file;
 
     updatePaths();
@@ -31,7 +31,7 @@ SimulationResultWriter::SimulationResultWriter(const std::string &hdf5FileName,
 void SimulationResultWriter::createDatasets(hsize_t numSimulations)
 {
 
-    auto lock = parpe::hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = parpe::hdf5MutexGetLock();
 
 
     double fillValueDbl = NAN;   /* Fill value for the dataset */
@@ -54,7 +54,7 @@ void SimulationResultWriter::createDatasets(hsize_t numSimulations)
     // Individual datasets will be created per condition, since we need
     // condition-specific number of timepoints
     // Can only create llh dataset in advance
-    if(saveLlh && !hdf5DatasetExists(file, llhPath)) {
+    if(saveLlh && !file.nameExists(llhPath)) {
         hsize_t dims[] = {numSimulations};
         H5::DataSpace dataspace(1, dims);
         hsize_t one = 1;
@@ -85,7 +85,7 @@ void SimulationResultWriter::saveSimulationResults(
     saveStates(rdata->x, rdata->nt, rdata->nx, simulationIdx);
     saveLikelihood(rdata->llh, simulationIdx);
     // TODO: model or edata? saveParameters(edata->parameters)
-    auto lock = parpe::hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = parpe::hdf5MutexGetLock();
 
     file.flush(H5F_SCOPE_LOCAL);
 }
@@ -96,7 +96,7 @@ void SimulationResultWriter::saveTimepoints(gsl::span<const double> timepoints,
     if(timepoints.empty())
         return;
 
-    auto lock = parpe::hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = parpe::hdf5MutexGetLock();
 
     // Create dataset
     constexpr int rank = 1;
@@ -121,7 +121,7 @@ void SimulationResultWriter::saveMeasurements(
     Expects(measurements.size() ==
                 static_cast<decltype(measurements)::index_type>(nt * nytrue));
 
-    auto lock = parpe::hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = parpe::hdf5MutexGetLock();
 
     // Create dataset
     constexpr int rank = 2;
@@ -146,7 +146,7 @@ void SimulationResultWriter::saveModelOutputs(
     Expects(outputs.size() ==
             static_cast<decltype(outputs)::index_type>(nt * nytrue));
 
-    auto lock = parpe::hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = parpe::hdf5MutexGetLock();
 
     // Create dataset
     constexpr int rank = 2;
@@ -171,7 +171,7 @@ void SimulationResultWriter::saveStates(
     Expects(states.size() ==
                 static_cast<decltype(states)::index_type>(nt * nx));
 
-    auto lock = parpe::hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = parpe::hdf5MutexGetLock();
 
     // Create dataset
     constexpr int rank = 2;
@@ -190,7 +190,7 @@ void SimulationResultWriter::saveParameters(gsl::span<const double> parameters, 
     if(parameters.empty())
         return;
 
-    auto lock = parpe::hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = parpe::hdf5MutexGetLock();
 
     // Create dataset
     constexpr int rank = 1;
@@ -210,7 +210,7 @@ void SimulationResultWriter::saveLikelihood(double llh, int simulationIdx) const
         return;
     }
 
-    auto lock = parpe::hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = parpe::hdf5MutexGetLock();
 
     auto dataset = file.openDataSet(llhPath);
 
@@ -229,8 +229,8 @@ void SimulationResultWriter::saveLikelihood(double llh, int simulationIdx) const
 
 H5::H5File SimulationResultWriter::reopenFile()
 {
-    auto lock = hdf5MutexGetLock();
-    return H5::H5File(file.getId());
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
+    return H5::H5File(file);
 }
 
 

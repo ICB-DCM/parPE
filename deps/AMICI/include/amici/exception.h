@@ -18,15 +18,9 @@ public:
     /**
      * @brief Constructor with printf style interface
      * @param fmt error message with printf format
-     * @param ... printf formating variables
+     * @param ... printf formatting variables
      */
     explicit AmiException(char const* fmt, ...);
-
-    /**
-     * @brief Move constructor
-     * @param old object to move from
-     */
-    AmiException(AmiException&& old) noexcept;
 
     /**
      * @brief Override of default error message function
@@ -47,8 +41,8 @@ public:
     void storeBacktrace(int nMaxFrames);
 
 private:
-    std::array<char, 500> msg;
-    std::array<char, 500> trace;
+    std::array<char, 500> msg_;
+    std::array<char, 500> trace_;
 };
 
 
@@ -83,7 +77,7 @@ public:
 /**
  * @brief Integration failure exception for the forward problem
  *
- * This exception should be thrown when an integration failure occured
+ * This exception should be thrown when an integration failure occurred
  * for this exception we can assume that we can recover from the exception
  * and return a solution struct to the user
  */
@@ -107,7 +101,7 @@ class IntegrationFailure : public AmiException  {
 /**
  * @brief Integration failure exception for the backward problem
  *
- * This exception should be thrown when an integration failure occured
+ * This exception should be thrown when an integration failure occurred
  * for this exception we can assume that we can recover from the exception
  * and return a solution struct to the user
  */
@@ -156,7 +150,7 @@ class NewtonFailure : public AmiException {
 public:
     /**
      * @brief Constructor, simply calls AmiException constructor
-     * @param function name of the function in which the error occured
+     * @param function name of the function in which the error occurred
      * @param code error code
      */
     NewtonFailure(int code, const char *function);

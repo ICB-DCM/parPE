@@ -219,7 +219,7 @@ class AbstractModel {
     /**
      * @brief Function indicating whether reinitialization of states depending
      * on fixed parameters is permissible
-     * @return flag inidication whether reinitialization of states depending on
+     * @return flag indicating whether reinitialization of states depending on
      * fixed parameters is permissible
      */
     virtual bool isFixedParameterStateReinitializationAllowed() const;
@@ -230,9 +230,12 @@ class AbstractModel {
      * @param t initial time
      * @param p parameter vector
      * @param k constant vector
+     * @param reinitialization_state_idxs Indices of states to be reinitialized
+     * based on provided constants / fixed parameters.
      */
     virtual void fx0_fixedParameters(realtype *x0, const realtype t,
-                                     const realtype *p, const realtype *k);
+                                     const realtype *p, const realtype *k,
+                                     gsl::span<const int> reinitialization_state_idxs);
 
     /**
      * @brief Model specific implementation of fsx0_fixedParameters
@@ -242,10 +245,13 @@ class AbstractModel {
      * @param p parameter vector
      * @param k constant vector
      * @param ip sensitivity index
+     * @param reinitialization_state_idxs Indices of states to be reinitialized
+     * based on provided constants / fixed parameters.
      */
     virtual void fsx0_fixedParameters(realtype *sx0, const realtype t,
                                       const realtype *x0, const realtype *p,
-                                      const realtype *k, int ip);
+                                      const realtype *k, int ip,
+                                      gsl::span<const int> reinitialization_state_idxs);
 
     /**
      * @brief Model specific implementation of fsx0
@@ -275,7 +281,7 @@ class AbstractModel {
      * @param x current state
      * @param p parameter vector
      * @param k constant vector
-     * @param h heavyside vector
+     * @param h Heaviside vector
      * @param sx current state sensitivity
      * @param ip sensitivity index
      * @param ie event index
@@ -291,7 +297,7 @@ class AbstractModel {
      * @param x current state
      * @param p parameter vector
      * @param k constant vector
-     * @param h heavyside vector
+     * @param h Heaviside vector
      * @param w repeating elements vector
      */
     virtual void fy(realtype *y, const realtype t, const realtype *x,
@@ -305,7 +311,7 @@ class AbstractModel {
      * @param x current state
      * @param p parameter vector
      * @param k constant vector
-     * @param h heavyside vector
+     * @param h Heaviside vector
      * @param ip parameter index w.r.t. which the derivative is requested
      * @param w repeating elements vector
      * @param dwdp Recurring terms in xdot, parameter derivative
@@ -321,7 +327,7 @@ class AbstractModel {
      * @param x current state
      * @param p parameter vector
      * @param k constant vector
-     * @param h heavyside vector
+     * @param h Heaviside vector
      * @param w repeating elements vector
      * @param dwdx Recurring terms in xdot, state derivative
      */
@@ -337,7 +343,7 @@ class AbstractModel {
      * @param x current state
      * @param p parameter vector
      * @param k constant vector
-     * @param h heavyside vector
+     * @param h Heaviside vector
      */
     virtual void fz(realtype *z, int ie, const realtype t, const realtype *x,
                     const realtype *p, const realtype *k, const realtype *h);
@@ -350,7 +356,7 @@ class AbstractModel {
      * @param x current state
      * @param p parameter vector
      * @param k constant vector
-     * @param h heavyside vector
+     * @param h Heaviside vector
      * @param sx current state sensitivity
      * @param ip sensitivity index
      */
@@ -367,7 +373,7 @@ class AbstractModel {
      * @param x current state
      * @param p parameter vector
      * @param k constant vector
-     * @param h heavyside vector
+     * @param h Heaviside vector
      */
     virtual void frz(realtype *rz, int ie, const realtype t, const realtype *x,
                      const realtype *p, const realtype *k, const realtype *h);
@@ -381,7 +387,7 @@ class AbstractModel {
      * @param p parameter vector
      * @param k constant vector
      * @param sx current state sensitivity
-     * @param h heavyside vector
+     * @param h Heaviside vector
      * @param ip sensitivity index
      */
     virtual void fsrz(realtype *srz, int ie, const realtype t,
@@ -397,7 +403,7 @@ class AbstractModel {
      * @param x current state
      * @param p parameter vector
      * @param k constant vector
-     * @param h heavyside vector
+     * @param h Heaviside vector
      * @param ip parameter index w.r.t. which the derivative is requested
      */
     virtual void fdzdp(realtype *dzdp, int ie, const realtype t,
@@ -413,7 +419,7 @@ class AbstractModel {
      * @param x current state
      * @param p parameter vector
      * @param k constant vector
-     * @param h heavyside vector
+     * @param h Heaviside vector
      */
     virtual void fdzdx(realtype *dzdx, int ie, const realtype t,
                        const realtype *x, const realtype *p, const realtype *k,
@@ -428,7 +434,7 @@ class AbstractModel {
      * @param x current state
      * @param p parameter vector
      * @param k constant vector
-     * @param h heavyside vector
+     * @param h Heaviside vector
      * @param ip parameter index w.r.t. which the derivative is requested
      */
     virtual void fdrzdp(realtype *drzdp, int ie, const realtype t,
@@ -443,7 +449,7 @@ class AbstractModel {
      * @param x current state
      * @param p parameter vector
      * @param k constant vector
-     * @param h heavyside vector
+     * @param h Heaviside vector
      */
     virtual void fdrzdx(realtype *drzdx, int ie, const realtype t,
                         const realtype *x, const realtype *p, const realtype *k,
@@ -456,7 +462,7 @@ class AbstractModel {
      * @param x current state
      * @param p parameter vector
      * @param k constant vector
-     * @param h heavyside vector
+     * @param h Heaviside vector
      * @param ie event index
      * @param xdot new model right hand side
      * @param xdot_old previous model right hand side
@@ -473,7 +479,7 @@ class AbstractModel {
      * @param x current state
      * @param p parameter vector
      * @param k constant vector
-     * @param h heavyside vector
+     * @param h Heaviside vector
      * @param w repeating elements vector
      * @param ip sensitivity index
      * @param ie event index
@@ -496,7 +502,7 @@ class AbstractModel {
      * @param x current state
      * @param p parameter vector
      * @param k constant vector
-     * @param h heavyside vector
+     * @param h Heaviside vector
      * @param ie event index
      * @param xdot new model right hand side
      * @param xdot_old previous model right hand side
@@ -515,7 +521,7 @@ class AbstractModel {
      * @param x current state
      * @param p parameter vector
      * @param k constant vector
-     * @param h heavyside vector
+     * @param h Heaviside vector
      * @param ip sensitivity index
      * @param ie event index
      * @param xdot new model right hand side
@@ -628,6 +634,20 @@ class AbstractModel {
                         const realtype *sigmay, const realtype *my);
 
     /**
+     * @brief Model-specific implementation of fdJydy colptrs
+     * @param dJydy sparse matrix to which colptrs will be written
+     * @param index ytrue index
+     */
+    virtual void fdJydy_colptrs(SUNMatrixWrapper &dJydy, int index);
+
+    /**
+     * @brief Model-specific implementation of fdJydy rowvals
+     * @param dJydy sparse matrix to which rowvals will be written
+     * @param index `ytrue` index
+     */
+    virtual void fdJydy_rowvals(SUNMatrixWrapper &dJydy, int index);
+
+    /**
      * @brief Model specific implementation of fdJydsigma
      * @param dJydsigma Sensitivity of time-resolved measurement negative
      * log-likelihood Jy w.r.t. standard deviation sigmay
@@ -706,8 +726,8 @@ class AbstractModel {
      * @param x vector with the states
      * @param p parameter vector
      * @param k constants vector
-     * @param h heavyside vector
-     * @param tcl total abundances for conservations laws
+     * @param h Heaviside vector
+     * @param tcl total abundances for conservation laws
      */
     virtual void fw(realtype *w, const realtype t, const realtype *x,
                     const realtype *p, const realtype *k, const realtype *h,
@@ -720,10 +740,10 @@ class AbstractModel {
      * @param x vector with the states
      * @param p parameter vector
      * @param k constants vector
-     * @param h heavyside vector
+     * @param h Heaviside vector
      * @param w vector with helper variables
-     * @param tcl total abundances for conservations laws
-     * @param stcl sensitivities of total abundances for conservations laws
+     * @param tcl total abundances for conservation laws
+     * @param stcl sensitivities of total abundances for conservation laws
      */
     virtual void fdwdp(realtype *dwdp, const realtype t, const realtype *x,
                        const realtype *p, const realtype *k, const realtype *h,
@@ -732,15 +752,15 @@ class AbstractModel {
 
     /**
      * @brief Model specific implementation for dwdp, column pointers
-     * @param indexptrs column pointers
+     * @param dwdp sparse matrix to which colptrs will be written
      */
-    virtual void fdwdp_colptrs(sunindextype *indexptrs);
+    virtual void fdwdp_colptrs(SUNMatrixWrapper &dwdp);
 
     /**
      * @brief Model specific implementation for dwdp, row values
-     * @param indexvals row values
+     * @param dwdp sparse matrix to which rowvals will be written
      */
-    virtual void fdwdp_rowvals(sunindextype *indexvals);
+    virtual void fdwdp_rowvals(SUNMatrixWrapper &dwdp);
 
     /**
      * @brief Model specific sensitivity implementation of dwdp
@@ -749,10 +769,10 @@ class AbstractModel {
      * @param x vector with the states
      * @param p parameter vector
      * @param k constants vector
-     * @param h heavyside vector
+     * @param h Heaviside vector
      * @param w vector with helper variables
-     * @param tcl total abundances for conservations laws
-     * @param stcl sensitivities of total abundances for conservations laws
+     * @param tcl total abundances for conservation laws
+     * @param stcl sensitivities of total abundances for conservation laws
      * @param ip sensitivity parameter index
      */
     virtual void fdwdp(realtype *dwdp, const realtype t, const realtype *x,
@@ -767,9 +787,9 @@ class AbstractModel {
      * @param x vector with the states
      * @param p parameter vector
      * @param k constants vector
-     * @param h heavyside vector
+     * @param h Heaviside vector
      * @param w vector with helper variables
-     * @param tcl total abundances for conservations laws
+     * @param tcl total abundances for conservation laws
      */
     virtual void fdwdx(realtype *dwdx, const realtype t, const realtype *x,
                        const realtype *p, const realtype *k, const realtype *h,
@@ -777,15 +797,42 @@ class AbstractModel {
 
     /**
      * @brief Model specific implementation for dwdx, column pointers
-     * @param indexptrs column pointers
+     * @param dwdx sparse matrix to which colptrs will be written
      */
-    virtual void fdwdx_colptrs(sunindextype *indexptrs);
+    virtual void fdwdx_colptrs(SUNMatrixWrapper &dwdx);
 
     /**
      * @brief Model specific implementation for dwdx, row values
-     * @param indexvals row values
+     * @param dwdx sparse matrix to which rowvals will be written
      */
-    virtual void fdwdx_rowvals(sunindextype *indexvals);
+    virtual void fdwdx_rowvals(SUNMatrixWrapper &dwdx);
+
+    /**
+     * @brief Model specific implementation of fdwdw, no w chainrule (Py)
+     * @param dwdw partial derivative w wrt w
+     * @param t timepoint
+     * @param x Vector with the states
+     * @param p parameter vector
+     * @param k constants vector
+     * @param h Heaviside vector
+     * @param w vector with helper variables
+     * @param tcl Total abundances for conservation laws
+     */
+    virtual void fdwdw(realtype *dwdw, realtype t, const realtype *x,
+                       const realtype *p, const realtype *k, const realtype *h,
+                       const realtype *w, const realtype *tcl);
+
+    /**
+     * @brief Model specific implementation of fdwdw, colptrs part
+     * @param dwdw sparse matrix to which colptrs will be written
+     */
+    virtual void fdwdw_colptrs(SUNMatrixWrapper &dwdw);
+
+    /**
+     * @brief Model specific implementation of fdwdw, rowvals part
+     * @param dwdw sparse matrix to which rowvals will be written
+     */
+    virtual void fdwdw_rowvals(SUNMatrixWrapper &dwdw);
 };
 
 } // namespace amici

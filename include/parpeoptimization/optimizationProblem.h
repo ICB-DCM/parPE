@@ -227,6 +227,13 @@ int getLocalOptimum(OptimizationProblem *problem);
 
 void *getLocalOptimumThreadWrapper(void *optimizationProblemVp);
 
+void optimizationProblemGradientCheckMultiEps(OptimizationProblem *problem,
+                                              int numParameterIndicesToCheck);
+
+void optimizationProblemGradientCheckMultiEps(OptimizationProblem *problem,
+                                              gsl::span<const int> parameterIndices,
+                                              gsl::span<double> multi_eps);
+
 void optimizationProblemGradientCheck(OptimizationProblem *problem,
                                       int numParameterIndicesToCheck,
                                       double epsilon);
