@@ -691,11 +691,12 @@ H5::H5File hdf5OpenForAppending(const std::string &hdf5Filename)
     // Open for append or create
     try {
         file = H5::H5File(hdf5Filename, H5F_ACC_RDWR);
+        H5_RESTORE_ERROR_HANDLER;
     } catch (H5::FileIException const&) {
+        H5_RESTORE_ERROR_HANDLER;
         // create if doesn't exist
         file = H5::H5File(hdf5Filename, H5F_ACC_EXCL);
     }
-    H5_RESTORE_ERROR_HANDLER;
 
     return file;
 }

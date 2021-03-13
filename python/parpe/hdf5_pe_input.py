@@ -295,6 +295,11 @@ class HDF5DataGenerator:
             col for col in self.petab_problem.condition_df
             if self.petab_problem.sbml_model.getSpecies(col) is not None]
 
+        # for reinitialization
+        state_id_to_idx = {
+            id: i for i, id in enumerate(self.amici_model.getStateIds())}
+        state_idxs_reinitialization_all = []
+
         # Merge and preeq and sim parameters, filter fixed parameters
         for condition_idx, \
             (condition_map_preeq, condition_map_sim,
@@ -324,6 +329,10 @@ class HDF5DataGenerator:
                     "Number of parameters for preequilibration "
                     "and simulation do not match.")
 
+            # state indices for reinitialization
+            #  for current simulation condition
+            state_idxs_for_reinitialization_cur = []
+
             # TODO: requires special handling of initial concentrations
             if species_in_condition_table:
                 # set indicator fixed parameter for preeq
@@ -343,6 +352,7 @@ class HDF5DataGenerator:
                     value = petab.to_float_if_float(
                         self.petab_problem.condition_df.loc[
                             condition_id, species_id])
+
                     if isinstance(value, float):
                         # numeric initial state
                         par_map[init_par_id] = value
@@ -387,15 +397,25 @@ class HDF5DataGenerator:
                         value = petab.to_float_if_float(
                             self.petab_problem.condition_df.loc[
                                 preeq_cond_id, species_id])
+
                         if isinstance(value, float):
                             condition_map_sim[init_par_id] = value
                         _set_initial_concentration(
                             preeq_cond_id, species_id, init_par_id,
                             condition_map_preeq,
                             condition_scale_map_preeq)
-                        # enable state reinitialization
-                        self.f['/fixedParameters/simulationConditions'][
-                            condition_idx, 2] = 1
+
+                        value_sim = petab.to_float_if_float(
+                            self.petab_problem.condition_df.loc[
+                                sim_cond_id, species_id])
+
+                        if not isinstance(value_sim, float) \
+                                or not np.isnan(value_sim):
+                            # mark for reinitialization,
+                            #  unless the value is nan
+                            species_idx = state_id_to_idx[species_id]
+                            state_idxs_for_reinitialization_cur.append(
+                                species_idx)
 
                     # for simulation
                     init_par_id = f'initial_{species_id}_sim'
@@ -404,6 +424,7 @@ class HDF5DataGenerator:
                         condition_map_sim,
                         condition_scale_map_sim)
 
+            state_idxs_reinitialization_all.append(state_idxs_for_reinitialization_cur)
             logger.debug(f"condition_map_preeq: {condition_map_preeq}, "
                          f"condition_map_sim: {condition_map_sim}")
 
@@ -488,6 +509,16 @@ class HDF5DataGenerator:
         self.f.require_dataset('/parameters/pscaleOptimization',
                                shape=pscale_opt_par.shape, dtype="<i4",
                                data=pscale_opt_par)
+
+        # Ragged array of state indices for reinitialization
+        data_type = h5py.vlen_dtype(np.dtype('int32'))
+        dset = self.f.create_dataset(
+            '/fixedParameters/reinitializationIndices',
+            shape=(self.condition_map.shape[0],),
+            dtype=data_type)
+        for i, state_idxs in enumerate(state_idxs_reinitialization_all):
+            dset[i] = state_idxs
+            logger.debug(f"Reinitialization [{i}]: {dset[i]}")
 
         self.f.flush()
 
@@ -585,13 +616,9 @@ class HDF5DataGenerator:
 
         self.condition_map = condition_map
 
-        # append third column for state reinitialization
-        _condition_map = np.zeros((condition_map.shape[0],
-                                   condition_map.shape[1] + 1), )
-        _condition_map[:, :-1] = condition_map
         self.f.create_dataset("/fixedParameters/simulationConditions",
                               dtype="<i4",
-                              data=_condition_map)
+                              data=condition_map)
 
     def _generate_measurement_matrices(self):
         """

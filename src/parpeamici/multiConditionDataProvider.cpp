@@ -51,6 +51,8 @@ MultiConditionDataProviderHDF5::MultiConditionDataProviderHDF5(
       rootPath + "/parameters/optimizationSimulationMapping";
     hdf5_parameter_overrides_path = rootPath + "/parameters/parameterOverrides";
     hdf5_parameter_ids_path_ = rootPath + "/parameters/parameterNames";
+    hdf5_reinitialization_idxs_path_ =
+        rootPath + "/fixedParameters/reinitializationIndices";
     checkDataIntegrity();
 
     amici::hdf5::readModelDataFromHDF5(
@@ -218,16 +220,19 @@ MultiConditionDataProviderHDF5::updateFixedSimulationParameters(
     int conditionIdxPreeq, conditionIdxSim;
     getSimAndPreeqConditions(simulationIdx,
                              conditionIdxPreeq,
-                             conditionIdxSim,
-                             edata.reinitializeFixedParameterInitialStates);
+                             conditionIdxSim);
 
     if (conditionIdxPreeq >= 0) {
         // -1 means no preequilibration
         edata.fixedParametersPreequilibration.resize(model_->nk());
         readFixedSimulationParameters(conditionIdxPreeq,
                                       edata.fixedParametersPreequilibration);
+        edata.reinitialization_state_idxs_sim =
+            getReinitializationIndices(simulationIdx);
+
     } else {
         edata.fixedParametersPreequilibration.resize(0);
+        edata.reinitialization_state_idxs_sim .clear();
     }
     readFixedSimulationParameters(conditionIdxSim, edata.fixedParameters);
 }
@@ -445,16 +450,42 @@ void
 MultiConditionDataProviderHDF5::getSimAndPreeqConditions(
   const int simulationIdx,
   int& preequilibrationConditionIdx,
-  int& simulationConditionIdx,
-  bool& reinitializeFixedParameterInitialStates) const
+  int& simulationConditionIdx) const
 {
     auto tmp = hdf5Read2DIntegerHyperslab(
-      file_, hdf5_reference_condition_path_, 1, 3, simulationIdx, 0);
+      file_, hdf5_reference_condition_path_, 1, 2, simulationIdx, 0);
     preequilibrationConditionIdx = tmp[0];
     simulationConditionIdx = tmp[1];
-    reinitializeFixedParameterInitialStates = tmp[2];
 }
 
+std::vector<int> MultiConditionDataProviderHDF5::getReinitializationIndices(
+    const int simulationIdx) const {
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
+    auto dataset = file_.openDataSet(hdf5_reinitialization_idxs_path_);
+
+    auto filespace = dataset.getSpace();
+    Expects(filespace.getSimpleExtentNdims() == 1);
+    hsize_t num_simulation_conditions;
+    filespace.getSimpleExtentDims(&num_simulation_conditions);
+    Expects(simulationIdx >= 0
+            && (hsize_t) simulationIdx < num_simulation_conditions);
+
+    // read only for one condition
+    const hsize_t len = 1;
+    const hsize_t offset = simulationIdx;
+    filespace.selectHyperslab(H5S_SELECT_SET, &len, &offset);
+    H5::DataSpace memspace(1, &len);
+
+    auto memtype = H5::VarLenType(H5::PredType::NATIVE_INT);
+
+    hvl_t buffer;
+    dataset.read(&buffer, memtype, memspace, filespace);
+
+    Expects(buffer.len == 0 || buffer.p);
+    auto int_ptr  = static_cast<int *>(buffer.p);
+
+    return std::vector<int>(&int_ptr[0], &int_ptr[buffer.len]);
+}
 
 H5::H5File MultiConditionDataProviderHDF5::getHdf5File() const
 {
