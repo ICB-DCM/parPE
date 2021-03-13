@@ -1,3 +1,4 @@
+"""Reading parPE input files"""
 import amici
 import h5py
 import numpy as np

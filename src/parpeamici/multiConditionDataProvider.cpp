@@ -29,7 +29,7 @@ MultiConditionDataProviderHDF5::MultiConditionDataProviderHDF5(
   , root_path_(rootPath)
 {
 
-    auto lock = hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
     file_ = hdf5OpenForReading(hdf5Filename);
 
     optimization_options_ = parpe::OptimizationOptions::fromHDF5(file_);
@@ -51,6 +51,8 @@ MultiConditionDataProviderHDF5::MultiConditionDataProviderHDF5(
       rootPath + "/parameters/optimizationSimulationMapping";
     hdf5_parameter_overrides_path = rootPath + "/parameters/parameterOverrides";
     hdf5_parameter_ids_path_ = rootPath + "/parameters/parameterNames";
+    hdf5_reinitialization_idxs_path_ =
+        rootPath + "/fixedParameters/reinitializationIndices";
     checkDataIntegrity();
 
     amici::hdf5::readModelDataFromHDF5(
@@ -65,7 +67,7 @@ MultiConditionDataProviderHDF5::getNumberOfSimulationConditions() const
     // -> won't need different file for testing/validation splits
     // TODO: cache
 
-    auto lock = hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
 
     int d1, d2;
     hdf5GetDatasetDimensions(
@@ -157,7 +159,7 @@ MultiConditionDataProviderHDF5::mapAndSetOptimizationToSimulationVariables(
 std::vector<amici::ParameterScaling>
 MultiConditionDataProviderHDF5::getParameterScaleOpt() const
 {
-    auto lock = hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
     auto resInt = amici::hdf5::getIntDataset1D(
       file_, hdf5_parameter_scale_optimization_path_);
     std::vector<amici::ParameterScaling> res(resInt.size());
@@ -218,16 +220,19 @@ MultiConditionDataProviderHDF5::updateFixedSimulationParameters(
     int conditionIdxPreeq, conditionIdxSim;
     getSimAndPreeqConditions(simulationIdx,
                              conditionIdxPreeq,
-                             conditionIdxSim,
-                             edata.reinitializeFixedParameterInitialStates);
+                             conditionIdxSim);
 
     if (conditionIdxPreeq >= 0) {
         // -1 means no preequilibration
         edata.fixedParametersPreequilibration.resize(model_->nk());
         readFixedSimulationParameters(conditionIdxPreeq,
                                       edata.fixedParametersPreequilibration);
+        edata.reinitialization_state_idxs_sim =
+            getReinitializationIndices(simulationIdx);
+
     } else {
         edata.fixedParametersPreequilibration.resize(0);
+        edata.reinitialization_state_idxs_sim .clear();
     }
     readFixedSimulationParameters(conditionIdxSim, edata.fixedParameters);
 }
@@ -251,7 +256,7 @@ MultiConditionDataProviderHDF5::readFixedSimulationParameters(
     if (!model_->nk())
         return;
 
-    auto lock = hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
 
     H5_SAVE_ERROR_HANDLER;
 
@@ -286,7 +291,7 @@ std::unique_ptr<amici::ExpData> MultiConditionDataProviderHDF5::getExperimentalD
         int simulationIdx) const {
     auto edata = std::make_unique<amici::ExpData>(*model_);
 
-    auto lock = hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
     edata->setTimepoints(
                 amici::hdf5::getDoubleDataset1D(
                     file_, root_path_ + "/measurements/t/"
@@ -325,7 +330,7 @@ MultiConditionDataProviderHDF5::getSigmaForSimulationIndex(
   int simulationIdx) const
 {
     hsize_t dim1, dim2;
-    auto lock = hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
     return amici::hdf5::getDoubleDataset2D(file_,
                                            hdf5_measurement_sigma_path_ + "/" +
                                              std::to_string(simulationIdx),
@@ -338,7 +343,7 @@ MultiConditionDataProviderHDF5::getMeasurementForSimulationIndex(
   int simulationIdx) const
 {
     hsize_t dim1, dim2;
-    auto lock = hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
     return amici::hdf5::getDoubleDataset2D(file_,
                                            hdf5_measurement_path_ + "/" +
                                              std::to_string(simulationIdx),
@@ -350,7 +355,7 @@ void
 MultiConditionDataProviderHDF5::getOptimizationParametersLowerBounds(
   gsl::span<double> buffer) const
 {
-    auto lock = hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
 
     auto dataset = file_.openDataSet(hdf5_parameter_min_path_);
 
@@ -368,7 +373,7 @@ void
 MultiConditionDataProviderHDF5::getOptimizationParametersUpperBounds(
   gsl::span<double> buffer) const
 {
-    auto lock = hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
 
     auto dataset = file_.openDataSet(hdf5_parameter_max_path_);
 
@@ -401,7 +406,7 @@ std::unique_ptr<amici::Solver>
 MultiConditionDataProviderHDF5::getSolver() const
 {
     auto solver = model_->getSolver();
-    auto lock = hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
 
     amici::hdf5::readSolverSettingsFromHDF5(
       file_, *solver, hdf5_amici_options_path_);
@@ -445,20 +450,46 @@ void
 MultiConditionDataProviderHDF5::getSimAndPreeqConditions(
   const int simulationIdx,
   int& preequilibrationConditionIdx,
-  int& simulationConditionIdx,
-  bool& reinitializeFixedParameterInitialStates) const
+  int& simulationConditionIdx) const
 {
     auto tmp = hdf5Read2DIntegerHyperslab(
-      file_, hdf5_reference_condition_path_, 1, 3, simulationIdx, 0);
+      file_, hdf5_reference_condition_path_, 1, 2, simulationIdx, 0);
     preequilibrationConditionIdx = tmp[0];
     simulationConditionIdx = tmp[1];
-    reinitializeFixedParameterInitialStates = tmp[2];
 }
 
+std::vector<int> MultiConditionDataProviderHDF5::getReinitializationIndices(
+    const int simulationIdx) const {
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
+    auto dataset = file_.openDataSet(hdf5_reinitialization_idxs_path_);
+
+    auto filespace = dataset.getSpace();
+    Expects(filespace.getSimpleExtentNdims() == 1);
+    hsize_t num_simulation_conditions;
+    filespace.getSimpleExtentDims(&num_simulation_conditions);
+    Expects(simulationIdx >= 0
+            && (hsize_t) simulationIdx < num_simulation_conditions);
+
+    // read only for one condition
+    const hsize_t len = 1;
+    const hsize_t offset = simulationIdx;
+    filespace.selectHyperslab(H5S_SELECT_SET, &len, &offset);
+    H5::DataSpace memspace(1, &len);
+
+    auto memtype = H5::VarLenType(H5::PredType::NATIVE_INT);
+
+    hvl_t buffer;
+    dataset.read(&buffer, memtype, memspace, filespace);
+
+    Expects(buffer.len == 0 || buffer.p);
+    auto int_ptr  = static_cast<int *>(buffer.p);
+
+    return std::vector<int>(&int_ptr[0], &int_ptr[buffer.len]);
+}
 
 H5::H5File MultiConditionDataProviderHDF5::getHdf5File() const
 {
-    auto lock = hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
     H5::H5File result(file_);
     return result;
 }
@@ -511,7 +542,7 @@ MultiConditionDataProviderHDF5::checkDataIntegrity() const
 
     int d1, d2; //, d3;
 
-    auto lock = hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
 
     Ensures(
       H5Lexists(file_.getId(), hdf5_measurement_path_.c_str(), H5P_DEFAULT));

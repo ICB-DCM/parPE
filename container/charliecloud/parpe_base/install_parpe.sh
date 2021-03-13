@@ -55,8 +55,6 @@ mpi_cmd="$mpi_cmd;--mca;orte_base_help_aggregate;0"
 CC=mpicc CXX=mpiCC cmake \
       -DIPOPT_INCLUDE_DIRS=/usr/include/coin/ \
       -DIPOPT_LIBRARIES=/usr/lib/libipopt.so \
-      -DCERES_LIBRARIES="$ceres_libs" \
-      -DCERES_INCLUDE_DIRS="/usr/include/;/usr/include/eigen3" \
       -DMPI_INCLUDE_DIRS=/usr/include/openmpi-x86_64/ \
       -DBUILD_TESTING=ON \
       -DTESTS_MPIEXEC_COMMAND="$mpi_cmd" \

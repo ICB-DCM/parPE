@@ -15,7 +15,7 @@ protected:
         H5::H5Library::dontAtExit();
         parpe::initHDF5Mutex();
 
-        file = parpe::hdf5CreateFile(tempFileName, false);
+        file = parpe::hdf5CreateFile(tempFileName, true);
     }
 
     void TearDown() override {

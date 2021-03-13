@@ -65,9 +65,6 @@ find_package(OpenMP)
 # Enable MPI?
 if(${PARPE_ENABLE_MPI})
     find_package(MPI REQUIRED)
-    if(IS_DIRECTORY ${MPI_C_HEADER_DIR})
-        include_directories(${MPI_C_HEADER_DIR})
-    endif()
 endif(${PARPE_ENABLE_MPI})
 # </Build options>
 

@@ -16,7 +16,7 @@ namespace parpe {
 OptimizationResultWriter::OptimizationResultWriter(const H5::H5File& file,
                                                    std::string rootPath) :
     rootPath(std::move(rootPath)) {
-    auto lock = hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
     this->file = file;
 
     hdf5EnsureGroupExists(file, this->rootPath);
@@ -36,7 +36,7 @@ OptimizationResultWriter::OptimizationResultWriter(const std::string &filename,
 OptimizationResultWriter::OptimizationResultWriter(
         const OptimizationResultWriter &other)
     : rootPath(other.rootPath) {
-    auto lock = hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
     file = other.file;
     hdf5EnsureGroupExists(file, rootPath);
 }
@@ -176,7 +176,7 @@ void OptimizationResultWriter::starting(
 }
 
 void OptimizationResultWriter::flushResultWriter() const {
-    auto lock = hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
 
     file.flush(H5F_SCOPE_LOCAL);
 }
@@ -194,7 +194,7 @@ void OptimizationResultWriter::saveOptimizerResults(
     std::string fullGroupPath;
     hsize_t dimensions[1] = { 1 };
 
-    auto lock = hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
 
     fullGroupPath = (optimPath + "/finalCost");
     H5LTmake_dataset(file.getId(), fullGroupPath.c_str(), 1, dimensions,

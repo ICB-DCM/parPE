@@ -9,6 +9,7 @@
 #include <utility>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <filesystem>
 
 #include <H5Tpublic.h>
 
@@ -105,8 +106,8 @@ void hdf5CreateExtendableDouble2DArray(const H5::H5File &file,
     H5::DSetCreatPropList dSetCreatPropList;
     dSetCreatPropList.setChunk(rank, chunkDimensions);
 
-    auto dataset = file.createDataSet(datasetPath, H5T_NATIVE_DOUBLE, dataspace,
-                                      dSetCreatPropList);
+    auto dataset = file.createDataSet(datasetPath, H5::PredType::NATIVE_DOUBLE,
+                                      dataspace, dSetCreatPropList);
 }
 
 void hdf5Extend2ndDimensionAndWriteToDouble2DArray(const H5::H5File &file, const std::string &datasetPath, gsl::span<const double> buffer)
@@ -142,7 +143,7 @@ void hdf5Extend2ndDimensionAndWriteToDouble2DArray(const H5::H5File &file, const
     filespace.selectHyperslab(H5S_SELECT_SET, slabsize, offset);
 
     H5::DataSpace memspace(rank, slabsize);
-    dataset.write(buffer.data(), H5T_NATIVE_DOUBLE, memspace, filespace);
+    dataset.write(buffer.data(), H5::PredType::NATIVE_DOUBLE, memspace, filespace);
 }
 
 void hdf5Extend3rdDimensionAndWriteToDouble3DArray(const H5::H5File &file,
@@ -174,7 +175,7 @@ void hdf5Extend3rdDimensionAndWriteToDouble3DArray(const H5::H5File &file,
 
     auto memspace = H5::DataSpace(rank, slabsize);
 
-    dataset.write(buffer.data(), H5T_NATIVE_DOUBLE, memspace, filespace);
+    dataset.write(buffer.data(), H5::PredType::NATIVE_DOUBLE, memspace, filespace);
 }
 
 void hdf5CreateOrExtendAndWriteToDouble2DArray(const H5::H5File &file,
@@ -265,7 +266,7 @@ void hdf5Extend2ndDimensionAndWriteToInt2DArray(const H5::H5File &file,
     filespace.selectHyperslab(H5S_SELECT_SET, slabsize, offset);
 
     H5::DataSpace memspace(rank, slabsize);
-    dataset.write(buffer.data(), H5T_NATIVE_INT, memspace, filespace);
+    dataset.write(buffer.data(), H5::PredType::NATIVE_INT, memspace, filespace);
 }
 
 void hdf5CreateExtendableInt2DArray(const H5::H5File &file,
@@ -286,8 +287,8 @@ void hdf5CreateExtendableInt2DArray(const H5::H5File &file,
     datasetCreationProperty.setChunk(rank, chunkDimensions);
 
     Expects(H5Tget_size(H5T_NATIVE_INT) == sizeof(int));
-    auto dataset = file.createDataSet(datasetPath, H5T_NATIVE_INT, dataspace,
-                                      datasetCreationProperty);
+    auto dataset = file.createDataSet(datasetPath, H5::PredType::NATIVE_INT,
+                                      dataspace, datasetCreationProperty);
 
 }
 
@@ -310,8 +311,8 @@ void hdf5CreateExtendableDouble3DArray(const H5::H5File &file,
     H5::DSetCreatPropList datasetCreationProperty;
     datasetCreationProperty.setChunk(rank, chunkDimensions);
 
-    auto dataset = file.createDataSet(datasetPath, H5T_NATIVE_DOUBLE, dataspace,
-                                      datasetCreationProperty);
+    auto dataset = file.createDataSet(datasetPath, H5::PredType::NATIVE_DOUBLE,
+                                      dataspace, datasetCreationProperty);
 }
 
 void hdf5Read2DDoubleHyperslab(const H5::H5File &file,
@@ -346,7 +347,7 @@ void hdf5Read2DDoubleHyperslab(const H5::H5File &file,
 
     H5::DataSpace memspace(2, count);
 
-    dataset.read(buffer.data(), H5T_NATIVE_DOUBLE, memspace, dataspace);
+    dataset.read(buffer.data(), H5::PredType::NATIVE_DOUBLE, memspace, dataspace);
 }
 
 std::vector<int> hdf5Read1DIntegerHyperslab(H5::H5File const& file,
@@ -507,7 +508,10 @@ H5::H5File hdf5CreateFile(const std::string &filename,
                           bool overwrite)
 {
     // Create parent folders
-    mkpathConstChar(filename.c_str(), 0755);
+    std::filesystem::path dirname(filename);
+    dirname.remove_filename();
+    if(!dirname.empty())
+        std::filesystem::create_directories(dirname);
 
     std::lock_guard<mutexHdfType> lock(mutexHdf);
 
@@ -519,15 +523,9 @@ H5::H5File hdf5CreateFile(const std::string &filename,
             throw HDF5Exception("Result file exists " + filename);
     }
 
-    H5_SAVE_ERROR_HANDLER;
-    H5::H5File file;
     try {
-        file = H5::H5File(filename, H5F_ACC_TRUNC);
-        H5_RESTORE_ERROR_HANDLER;
-        return file;
-    }  catch (H5::Exception const&) {
-        H5Eprint(H5E_DEFAULT, stderr);
-        H5_RESTORE_ERROR_HANDLER;
+        return H5::H5File(filename, H5F_ACC_TRUNC);
+    }  catch (H5::Exception const& e) {
         printBacktrace();
         throw HDF5Exception("hdf5CreateFile: Failed to create file %s. "
                             "Is this file opened by another process?",
@@ -664,7 +662,7 @@ void hdf5CreateOrExtendAndWriteToString1DArray(const H5::H5File &file,
 
 H5::H5File hdf5OpenForReading(const std::string &hdf5Filename)
 {
-    auto lock = hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
 
     H5_SAVE_ERROR_HANDLER;
     try {
@@ -685,7 +683,7 @@ H5::H5File hdf5OpenForReading(const std::string &hdf5Filename)
 
 H5::H5File hdf5OpenForAppending(const std::string &hdf5Filename)
 {
-    auto lock = hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
 
     H5::H5File file;
     H5_SAVE_ERROR_HANDLER;
@@ -693,11 +691,12 @@ H5::H5File hdf5OpenForAppending(const std::string &hdf5Filename)
     // Open for append or create
     try {
         file = H5::H5File(hdf5Filename, H5F_ACC_RDWR);
+        H5_RESTORE_ERROR_HANDLER;
     } catch (H5::FileIException const&) {
+        H5_RESTORE_ERROR_HANDLER;
         // create if doesn't exist
         file = H5::H5File(hdf5Filename, H5F_ACC_EXCL);
     }
-    H5_RESTORE_ERROR_HANDLER;
 
     return file;
 }
@@ -705,7 +704,7 @@ H5::H5File hdf5OpenForAppending(const std::string &hdf5Filename)
 std::vector<std::string> hdf5Read1dStringDataset(
         H5::H5File const& file, const std::string &datasetPath)
 {
-    auto lock = hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
     auto dataset = file.openDataSet(datasetPath);
     auto filespace = dataset.getSpace();
 
@@ -734,7 +733,7 @@ void hdf5Write1dStringDataset(
         const H5::H5File &file, const std::string &parentPath,
         const std::string &datasetPath, std::vector<std::string> const& buffer)
 {
-    auto lock = hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
 
     const int dims = 1;
     hsize_t dims0 = buffer.size();

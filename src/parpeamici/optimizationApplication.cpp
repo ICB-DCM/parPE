@@ -239,10 +239,8 @@ void OptimizationApplication::runMaster() {
     switch (operationType) {
     case OperationType::gradientCheck: {
         const int numParameterIndicesToCheck = 10000;
-        const double epsilon = 1e-5;
-        optimizationProblemGradientCheck(problem.get(),
-                                         numParameterIndicesToCheck,
-                                         epsilon);
+        optimizationProblemGradientCheckMultiEps(
+                    problem.get(), numParameterIndicesToCheck);
         break;
     }
     case OperationType::parameterEstimation:
@@ -276,10 +274,8 @@ void OptimizationApplication::runSingleProcess() {
     switch (operationType) {
     case OperationType::gradientCheck: {
         const int numParameterIndicesToCheck = 10000;
-        const double epsilon = 1e-5;
-        optimizationProblemGradientCheck(problem.get(),
-                                         numParameterIndicesToCheck,
-                                         epsilon);
+        optimizationProblemGradientCheckMultiEps(
+                    problem.get(), numParameterIndicesToCheck);
         break;
     }
     case OperationType::parameterEstimation:
@@ -369,7 +365,7 @@ void saveTotalCpuTime(H5::H5File const& file, const double timeInSeconds)
 {
     hsize_t dims[1] = {1};
 
-    auto lock = hdf5MutexGetLock();
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
 
     //std::string pathStr = rootPath + "/totalTimeInSec";
     std::string pathStr = "/totalTimeInSec";

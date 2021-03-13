@@ -33,7 +33,7 @@ def parse_cli_args():
                         help='Name of HDF5 file to generate')
 
     parser.add_argument('-p', dest='petab_dir',
-                        default='steadstate_petab',
+                        default='steadystate_petab',
                         help='Directory to write PEtab files to')
 
     args = parser.parse_args()
@@ -419,9 +419,9 @@ def main():
     measurement_file_name = 'example_data.tsv'
     condition_file_name = 'example_data_fixed.tsv'
     parameter_file_name = 'example_data_parameter.tsv'
-    observable_file_name = 'model_steasystate_observables.tsv'
-    yaml_file_name = 'model_steasystate.yaml'
-    yaml_file_name_test = 'model_steasystate_test.yaml'
+    observable_file_name = 'model_steadystate_observables.tsv'
+    yaml_file_name = 'model_steadystate.yaml'
+    yaml_file_name_test = 'model_steadystate_test.yaml'
 
     print(f'{__file__} running in {os.getcwd()}')
     print(f'Processing model {sbml_file_name}')
