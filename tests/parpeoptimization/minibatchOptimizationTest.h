@@ -177,7 +177,7 @@ TEST_F(minibatchOptimizationLinearModel, linearModelCheckCostGradient) {
     auto p = getOptimizationProblem();
 
     for(int i = 0; i < 10; ++i)
-    parpe::optimizationProblemGradientCheck(p.get(), 10, 1e-1);
+        parpe::optimizationProblemGradientCheck(p.get(), 10, 1e-1);
 
     // TODO: check results automatically
 }

@@ -146,7 +146,7 @@ AmiciSimulationRunner::queueSimulation(
   int jobIdx,
   std::vector<double> const& optimizationParameters,
   amici::SensitivityOrder sensitivityOrder,
-  std::vector<int> const& conditionIndices)
+  std::vector<int> const& conditionIndices) const
 {
     // TODO avoid copy optimizationParameters; reuse;; for const& in work
     // package need to split into(de)serialize

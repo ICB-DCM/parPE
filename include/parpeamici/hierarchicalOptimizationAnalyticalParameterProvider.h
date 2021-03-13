@@ -17,7 +17,7 @@ namespace parpe {
 class AnalyticalParameterProvider
 {
   public:
-    virtual ~AnalyticalParameterProvider() {}
+    virtual ~AnalyticalParameterProvider() = default;
 
     /**
      * @brief Get vector of condition indices for which the parameter with the
@@ -25,7 +25,7 @@ class AnalyticalParameterProvider
      * @param parameterIndex referring to the index in the analytical parameter
      * list in the hdf5 file
      * (*not* the optimization parameter index).
-     * @return Vector of condition indice
+     * @return Vector of condition indices
      */
     virtual std::vector<int> getConditionsForParameter(
         int parameterIndex) const = 0;
