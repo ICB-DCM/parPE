@@ -2,6 +2,7 @@
 import argparse
 import logging
 import sys
+from numbers import Number
 from typing import Any, Collection, Optional, Dict, Tuple
 
 import amici
@@ -353,7 +354,7 @@ class HDF5DataGenerator:
                         self.petab_problem.condition_df.loc[
                             condition_id, species_id])
 
-                    if isinstance(value, float):
+                    if isinstance(value, Number):
                         # numeric initial state
                         par_map[init_par_id] = value
                         scale_map[init_par_id] = ptc.LIN
@@ -398,7 +399,7 @@ class HDF5DataGenerator:
                             self.petab_problem.condition_df.loc[
                                 preeq_cond_id, species_id])
 
-                        if isinstance(value, float):
+                        if isinstance(value, Number):
                             condition_map_sim[init_par_id] = value
                         _set_initial_concentration(
                             preeq_cond_id, species_id, init_par_id,
@@ -409,7 +410,7 @@ class HDF5DataGenerator:
                             self.petab_problem.condition_df.loc[
                                 sim_cond_id, species_id])
 
-                        if not isinstance(value_sim, float) \
+                        if not isinstance(value_sim, Number) \
                                 or not np.isnan(value_sim):
                             # mark for reinitialization,
                             #  unless the value is nan
@@ -688,7 +689,8 @@ class HDF5DataGenerator:
                             f' time {row[ptc.TIME]}\n' + str(cur_mes_df))
                 mes[time_idx, observable_idx] = float(row[ptc.MEASUREMENT])
                 sigma = to_float_if_float(row[ptc.NOISE_PARAMETERS])
-                if isinstance(sigma, float):
+                print(row, sigma)
+                if isinstance(sigma, Number):
                     sd[time_idx, observable_idx] = sigma
 
             # write to file
