@@ -7,14 +7,16 @@
 
 # Confirmed to be working
 models="
+Beer_MolBioSystems2014
 Boehm_JProteomeRes2014
 Borghans_BiophysChem1997
+Crauste_CellSystems2017
 Elowitz_Nature2000
-Schwen_PONE2014
 Fujita_SciSignal2010
+Schwen_PONE2014
 Sneyd_PNAS2002
-Zheng_PNAS2012
-Weber_BMC2015"
+Weber_BMC2015
+Zheng_PNAS2012"
 
 #
 # Not matching reference for unclear reasons
@@ -28,9 +30,7 @@ Weber_BMC2015"
 #
 # no reference value:
 # Alkan_SciSignal2018
-# Beer_MolBioSystems2014
 # Blasi_CellSystems2016
-# Crauste_CellSystems2017
 # Hass_PONE2017
 # Korkut_eLIFE2015
 # Perelson_Science1996
