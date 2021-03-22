@@ -631,7 +631,8 @@ class HDF5DataGenerator:
         """
 
         if petab.measurement_table_has_timepoint_specific_mappings(
-                self.petab_problem.measurement_df):
+                self.petab_problem.measurement_df,
+                allow_scalar_numeric_noise_parameters=True):
             raise RuntimeError("Timepoint-specific overrides are not yet "
                                "supported.")
 
@@ -689,7 +690,6 @@ class HDF5DataGenerator:
                             f' time {row[ptc.TIME]}\n' + str(cur_mes_df))
                 mes[time_idx, observable_idx] = float(row[ptc.MEASUREMENT])
                 sigma = to_float_if_float(row[ptc.NOISE_PARAMETERS])
-                print(row, sigma)
                 if isinstance(sigma, Number):
                     sd[time_idx, observable_idx] = sigma
 
