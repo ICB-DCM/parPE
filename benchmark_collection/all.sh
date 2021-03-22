@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Import, build, and run benchmark models
 
-set -e
+set -eou pipefail
 
+# Path to benchmark collection model directory
 [[ -n "${BENCHMARK_COLLECTION}" ]] && model_dir="${BENCHMARK_COLLECTION}"
 
 # all_models=$(ls -1d ${model_dir}/*/)
@@ -16,13 +17,13 @@ Zheng_PNAS2012"
 # Fujita_SciSignal2010 "Timepoint-specific parameter overrides currently unsupported." in PEtab parameter mapping
 # Schwen_PONE2014 Chen_MSB2009
 
-for MODEL in $expected_to_work; do
+for model_name in $expected_to_work; do
   printf '=%.0s' {1..20}
-  printf %s "${MODEL}"
+  printf %s "${model_name}"
   printf '=%.0s' {1..20}
   echo
-  echo ./import_and_run.sh "${model_dir}"/"${MODEL}"
-  ./import_and_run.sh "${model_dir}"/"${MODEL}"
+  echo ./import_and_run.sh "${model_dir}"/"${model_name}"
+  ./import_and_run.sh "${model_dir}"/"${model_name}"
   printf '=%.0s' {1..100}
   echo
 done

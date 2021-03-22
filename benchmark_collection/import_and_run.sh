@@ -1,89 +1,96 @@
 #!/usr/bin/env bash
 # Import, build, and run model from the benchmark collection
 
-set -e
+set -eou pipefail
 
 get_abs_filename() {
   # $1 : relative filename
   echo "$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"
 }
 
+check_output() {
+  # Check output
+  local nllh=$(grep Likelihood "${output_file}" | tr -cd '[:print:]' | sed -r 's/.*Likelihood: (.*)\[.*/\1/')
+  rm "${output_file}"
+  local reference_file="${AMICI_ROOT}/tests/benchmark-models/benchmark_models.yaml"
+  local ref=$(shyaml get-value "${model_name}".llh <"$reference_file")
+  local abs="define abs(i) {\\nif (i < 0) return (-i) \nreturn (i)\n}\n"
+
+  # Do we match within tolerance?
+  # LLH VS nllh!
+  if (($(echo -e "${abs}\nabs($nllh + $ref) < 0.001 * abs($ref)" | bc))); then
+    echo "OKAY: Expected llh $ref, got nllh $nllh"
+  else
+    echo "FAILED: Expected llh $ref, got nllh $nllh"
+    exit 1
+  fi
+}
+
 if [[ $# -lt 1 ]] || [[ $# -gt 1 ]]; then
-    echo "Import, build, and run model from the benchmark collection"
-    echo "USAGE: $(basename "$0") /path/to/model/dir"
-    exit 1;
+  echo "Import, build, and run model from the benchmark collection"
+  echo "USAGE: $(basename "$0") /path/to/model/dir"
+  exit 1
 fi
 
-PETAB_MODEL_DIR=$1
-SCRIPT_PATH=$(get_abs_filename "$(dirname "$BASH_SOURCE")")
-PARPE_DIR=${SCRIPT_PATH}/..
-MODEL_NAME=$(basename "${PETAB_MODEL_DIR}")
-AMICI_MODEL_DIR=${SCRIPT_PATH}/${MODEL_NAME}
-petab_yaml=${MODEL_NAME}.yaml
-if [[ -z "${AMICI_ROOT}" ]]
-    then AMICI_ROOT=${PARPE_DIR}/deps/AMICI/
+petab_model_dir=$1
+script_path=$(get_abs_filename "$(dirname "$BASH_SOURCE")")
+parpe_dir=${script_path}/..
+model_name=$(basename "${petab_model_dir}")
+amici_model_dir=${script_path}/${model_name}
+petab_yaml=${model_name}.yaml
+output_file=tmp.out
+hdf5_infile="parpe_${model_name}/${model_name}.h"
+estimate_exe="parpe_${model_name}/build/estimate_${model_name}"
+
+if [[ -z "${AMICI_ROOT}" ]]; then
+  AMICI_ROOT=${parpe_dir}/deps/AMICI/
 fi
 
-
-cd "${PETAB_MODEL_DIR}"
+cd "${petab_model_dir}"
 
 echo "Running petablint on ${petab_yaml}..."
-petablint -v -y "${MODEL_NAME}".yaml
+petablint -v -y "${model_name}".yaml
 
 # import AMICI model
-if [[ ! -d ${AMICI_MODEL_DIR} ]]; then
-    echo "Importing model..."
-    CMD="amici_import_petab.py --verbose -y ${MODEL_NAME}.yaml -o ${AMICI_MODEL_DIR}"
-    echo "${CMD}"
-    ${CMD}
+if [[ ! -d ${amici_model_dir} ]]; then
+  echo "Importing model..."
+  cmd="amici_import_petab.py --verbose -y ${model_name}.yaml -n ${model_name} -o ${amici_model_dir}"
+  echo "${cmd}"
+  ${cmd}
 fi
 
-cd "${SCRIPT_PATH}"
+cd "${script_path}"
 
 # parPE build
-if [[ ! -d parpe_${MODEL_NAME} ]]; then
-    echo "Setting up parPE..."
-    "${PARPE_DIR}"/misc/setup_amici_model.sh "${AMICI_MODEL_DIR}" parpe_"${MODEL_NAME}"
+if [[ ! -d parpe_${model_name} ]]; then
+  echo "Setting up parPE..."
+  "${parpe_dir}"/misc/setup_amici_model.sh "${amici_model_dir}" parpe_"${model_name}"
 else
-    (cd parpe_"${MODEL_NAME}"/build && cmake -DAmici_DIR="${AMICI_ROOT}"/build .. && make)
+  (cd parpe_"${model_name}"/build && cmake -DAmici_DIR="${AMICI_ROOT}"/build .. && make)
 fi
 
 # generate data file
 echo "Importing data..."
-CMD="parpe_petab_to_hdf5 \
-    -o parpe_${MODEL_NAME}/${MODEL_NAME}.h5 \
-    -d ${AMICI_MODEL_DIR} \
-    -y ${PETAB_MODEL_DIR}/${MODEL_NAME}.yaml \
-    -n ${MODEL_NAME}"
-echo "$CMD"
-$CMD
+cmd="parpe_petab_to_hdf5 \
+    -o ${hdf5_infile} \
+    -d ${amici_model_dir} \
+    -y ${petab_model_dir}/${model_name}.yaml \
+    -n ${model_name}"
+echo "$cmd"
+$cmd
 
 echo ""
 echo "Start parameter estimation by:"
-echo "parpe_${MODEL_NAME}/build/estimate_${MODEL_NAME} -o parpe_${MODEL_NAME}_results/ parpe_${MODEL_NAME}/${MODEL_NAME}.h5"
+echo "${estimate_exe} -o parpe_${model_name}_results/ ${hdf5_infile}"
 
 echo ""
 echo "Running simulation with nominal parameters..."
-cmd="parpe_${MODEL_NAME}/build/simulateNominal_${MODEL_NAME} parpe_${MODEL_NAME}/${MODEL_NAME}.h5"
+cmd="parpe_${model_name}/build/simulateNominal_${model_name} ${hdf5_infile}"
 echo "$cmd"
-$cmd  |& tee tmp.out
+$cmd |& tee "${output_file}"
 
-# Check output
-NLLH=$(grep Likelihood tmp.out | tr -cd '[:print:]' | sed -r 's/.*Likelihood: (.*)\[.*/\1/')
-rm tmp.out
-REFERENCE_FILE="${AMICI_ROOT}/tests/benchmark-models/benchmark_models.yaml"
-REF=$(shyaml get-value "${MODEL_NAME}".llh < "$REFERENCE_FILE")
-ABS="define abs(i) {\\nif (i < 0) return (-i) \nreturn (i)\n}\n"
-
-# Do we match within tolerance?
-# LLH VS NLLH!
-if (( $(echo -e "${ABS}\nabs($NLLH + $REF) < 0.001 * abs($REF)" | bc) )); then
-  echo "OKAY: Expected llh $REF, got nllh $NLLH"
-else
-  echo "FAILED: Expected llh $REF, got nllh $NLLH"
-  exit 1
-fi
+check_output
 
 echo "Checking gradient..."
-echo PARPE_NO_DEBUG=1 "parpe_${MODEL_NAME}/build/estimate_${MODEL_NAME}" -t gradient_check -o "parpe_${MODEL_NAME}_results/gradient_check" "parpe_${MODEL_NAME}/${MODEL_NAME}.h5"
-PARPE_NO_DEBUG=1 "parpe_${MODEL_NAME}/build/estimate_${MODEL_NAME}" -t gradient_check -o "parpe_${MODEL_NAME}_results/gradient_check" "parpe_${MODEL_NAME}/${MODEL_NAME}.h5"
+echo PARPE_NO_DEBUG=1 "${estimate_exe}" -t gradient_check -o "parpe_${model_name}_results/gradient_check" "${hdf5_infile}"
+PARPE_NO_DEBUG=1 "${estimate_exe}" -t gradient_check -o "parpe_${model_name}_results/gradient_check" "${hdf5_infile}"
