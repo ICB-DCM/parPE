@@ -75,6 +75,7 @@ def _test_case(case: Union[int, str]) -> None:
     # create amici model from PEtab
     cmd = ['amici_import_petab', '-y', yaml_file, '-o', amici_model_dir,
            '-n', model_name]
+    print(" ".join(cmd))
     check_run(cmd)
 
     # must not exist when calling setup_amici_model.sh
@@ -84,20 +85,23 @@ def _test_case(case: Union[int, str]) -> None:
     # set up for parPE
     cmd = [os.path.join(parpe_dir, 'misc', 'setup_amici_model.sh'),
            amici_model_dir, parpe_model_dir]
+    print(" ".join(cmd))
     check_run(cmd)
 
     # create input hdf5 file
     cmd = ['parpe_petab_to_hdf5',
            '-y', yaml_file, '-d', amici_model_dir,
            '-n', model_name, '-o', hdf5_input]
+    print(" ".join(cmd))
     check_run(cmd)
 
     # simulate model using nominal parameters
     cmd = [os.path.join(parpe_model_dir, 'build',
                         f'simulateNominal_{model_name}'),
            hdf5_input, hdf5_output]
+    print(" ".join(cmd))
     ret = check_run(cmd)
-    print(' '.join(cmd))
+
     # check output
     g = re.search(r'Likelihood: (\d+\.\d+)', ret.stdout).group(0)
     llh_actual = - float(g.split(' ')[1])
