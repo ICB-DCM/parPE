@@ -12,7 +12,7 @@ check_output() {
   # Check output
   local nllh=$(grep Likelihood "${output_file}" | tr -cd '[:print:]' | sed -r 's/.*Likelihood: (.*)\[.*/\1/')
   rm "${output_file}"
-  local reference_file="${AMICI_ROOT}/tests/benchmark-models/benchmark_models.yaml"
+  local reference_file="${amici_root}/tests/benchmark-models/benchmark_models.yaml"
   local ref=$(shyaml get-value "${model_name}".llh <"$reference_file")
   local abs="define abs(i) {\\nif (i < 0) return (-i) \nreturn (i)\n}\n"
 
@@ -42,9 +42,7 @@ output_file=tmp.out
 hdf5_infile="parpe_${model_name}/${model_name}.h"
 estimate_exe="parpe_${model_name}/build/estimate_${model_name}"
 
-if [[ -z "${AMICI_ROOT}" ]]; then
-  AMICI_ROOT=${parpe_dir}/deps/AMICI/
-fi
+amici_root="${AMICI_ROOT:-${parpe_dir}/deps/AMICI/}"
 
 cd "${petab_model_dir}"
 
@@ -66,7 +64,7 @@ if [[ ! -d parpe_${model_name} ]]; then
   echo "Setting up parPE..."
   "${parpe_dir}"/misc/setup_amici_model.sh "${amici_model_dir}" parpe_"${model_name}"
 else
-  (cd parpe_"${model_name}"/build && cmake -DAmici_DIR="${AMICI_ROOT}"/build .. && make)
+  (cd parpe_"${model_name}"/build && cmake -DAmici_DIR="${amici_root}"/build .. && make)
 fi
 
 # generate data file
