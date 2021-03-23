@@ -112,7 +112,7 @@ int OptimizationApplication::parseCliOptionsPostMpiInit(int argc, char **argv) {
             if (strcmp(optarg, "gradient_check") == 0)
                 operationType = OperationType::gradientCheck;
             break;
-        case 'g':
+        case 'g': {
             operationType = OperationType::gradientCheck;
             /*
                 Assuming the next argument is of the type n1,n2,...,nX.
@@ -122,11 +122,12 @@ int OptimizationApplication::parseCliOptionsPostMpiInit(int argc, char **argv) {
             std::stringstream ss(optarg);
             std::vector<int> para_ind;
 
-            for(int i; ss >> i;){
+            for (int i; ss >> i;) {
                 para_ind.push_back(i);
-                if(ss.peek()==',')
+                if (ss.peek() == ',')
                     ss.ignore();
             }
+        }
         case 'o':
             resultFileName = processResultFilenameCommandLineArgument(optarg);
             break;
