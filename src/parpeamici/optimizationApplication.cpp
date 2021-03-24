@@ -60,7 +60,7 @@ int OptimizationApplication::init(int argc, char **argv) {
     return status;
 }
 
-void OptimizationApplication::runMultiStarts()
+void OptimizationApplication::runMultiStarts() const
 {
     // TODO: use uniqe_ptr, not ref
     MultiStartOptimization optimizer(*multiStartOptimizationProblem, true,

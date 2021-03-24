@@ -112,15 +112,15 @@ class HierarchicalOptimizationWrapper : public GradientFunction
      * @brief Get parameters for initial function evaluation
      * @return
      */
-    std::vector<double> getDefaultScalingFactors() const;
+    [[nodiscard]] std::vector<double> getDefaultScalingFactors() const;
 
     /**
      * @brief Get parameters for initial function evaluation
      * @return
      */
-    std::vector<double> getDefaultOffsetParameters() const;
+    [[nodiscard]] std::vector<double> getDefaultOffsetParameters() const;
 
-    std::vector<double> getDefaultSigmaParameters() const;
+    [[nodiscard]] std::vector<double> getDefaultSigmaParameters() const;
 
     /**
      * @brief Run simulations with scaling parameters set to 1.0 and collect
@@ -130,7 +130,7 @@ class HierarchicalOptimizationWrapper : public GradientFunction
      * @return Vector of double vectors containing AMICI ReturnData::y (nt x ny,
      * column-major)
      */
-    std::tuple<std::vector<std::vector<double>>,
+    [[nodiscard]] std::tuple<std::vector<std::vector<double>>,
                std::vector<std::vector<double>>>
     getUnscaledModelOutputsAndSigmas(
         const gsl::span<double const> reducedParameters,
@@ -142,7 +142,7 @@ class HierarchicalOptimizationWrapper : public GradientFunction
      * @param modelOutputs Model outputs as provided by getModelOutputs
      * @return the computed scaling factors
      */
-    std::vector<double> computeAnalyticalScalings(
+    [[nodiscard]] std::vector<double> computeAnalyticalScalings(
         std::vector<std::vector<double>> const& measurements,
         std::vector<std::vector<double>> const& modelOutputsUnscaled) const;
 
@@ -155,11 +155,11 @@ class HierarchicalOptimizationWrapper : public GradientFunction
      * @param modelOutputs Model outputs as provided by getModelOutputs
      * @return the computed offset parameters
      */
-    std::vector<double> computeAnalyticalOffsets(
+    [[nodiscard]] std::vector<double> computeAnalyticalOffsets(
         const std::vector<std::vector<double>>& measurements,
         std::vector<std::vector<double>>& modelOutputsUnscaled) const;
 
-    std::vector<double> computeAnalyticalSigmas(
+    [[nodiscard]] std::vector<double> computeAnalyticalSigmas(
         std::vector<std::vector<double>> const& measurements,
         const std::vector<std::vector<double>>& modelOutputsScaled) const;
 
@@ -207,25 +207,25 @@ class HierarchicalOptimizationWrapper : public GradientFunction
      * @brief Get number of parameters the function expects
      * @return That
      */
-    virtual int numParameters() const override;
+    [[nodiscard]] int numParameters() const override;
 
-    int numProportionalityFactors() const;
+    [[nodiscard]] int numProportionalityFactors() const;
 
-    std::vector<int> const& getProportionalityFactorIndices() const;
+    [[nodiscard]] std::vector<int> const& getProportionalityFactorIndices() const;
 
-    int numOffsetParameters() const;
+    [[nodiscard]] int numOffsetParameters() const;
 
-    int numSigmaParameters() const;
+    [[nodiscard]] int numSigmaParameters() const;
 
-    std::vector<int> const& getOffsetParameterIndices() const;
+    [[nodiscard]] std::vector<int> const& getOffsetParameterIndices() const;
 
-    std::vector<int> const& getSigmaParameterIndices() const;
+    [[nodiscard]] std::vector<int> const& getSigmaParameterIndices() const;
 
-    std::vector<int> getAnalyticalParameterIndices() const;
+    [[nodiscard]] std::vector<int> getAnalyticalParameterIndices() const;
 
-    AmiciSummedGradientFunction* getWrappedFunction() const;
+    [[nodiscard]] AmiciSummedGradientFunction* getWrappedFunction() const;
 
-    std::vector<std::string> getParameterIds() const override;
+    [[nodiscard]] std::vector<std::string> getParameterIds() const override;
 
   private:
     void init();

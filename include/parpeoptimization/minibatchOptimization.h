@@ -576,7 +576,7 @@ public:
      * @param oldGradient cost function gradient before last step
      * @param cost new cost function value after interception
      * @param subsequentFails number of iterations during rescue interceptor
-     * @param f Function to minize
+     * @param f Function to minimize
      * @param data Full data set on which f will be evaluated
      * @param logger Logger instance for status messages
      * @param reporter OptimizationReporter instance for tracking progress

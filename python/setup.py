@@ -17,7 +17,7 @@ setup(
     install_requires=['numpy>=1.18.1',
                       'termcolor>=1.1.0',
                       'colorama>=0.4.3',
-                      'petab>=0.1.14',
+                      'petab>=0.1.17',
                       'amici>=0.11.12',
                       'h5py>=3.0.0',
                       'python-libsbml>=5.17.0',
