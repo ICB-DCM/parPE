@@ -258,7 +258,8 @@ class HDF5DataGenerator:
         # get list of tuple of parameters dicts for all conditions
         self.parameter_mapping = self.petab_problem \
             .get_optimization_to_simulation_parameter_mapping(
-            warn_unmapped=False, scaled_parameters=False)
+            warn_unmapped=False, scaled_parameters=False,
+            allow_timepoint_specific_numeric_noise_parameters=True)
 
         variable_par_ids = self.amici_model.getParameterIds()
         fixed_par_ids = self.amici_model.getFixedParameterIds()
