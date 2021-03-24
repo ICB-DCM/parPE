@@ -166,6 +166,8 @@ protected:
         gradientCheck
     };
 
+    std::vector<int> para_ind {};
+
     std::string dataFileName;
     std::string resultFileName;
 

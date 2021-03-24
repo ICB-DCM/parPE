@@ -120,7 +120,6 @@ int OptimizationApplication::parseCliOptionsPostMpiInit(int argc, char **argv) {
                 to be converted to std::vector<int>.
              */
             std::stringstream ss(optarg);
-            std::vector<int> para_ind;
 
             for (int i; ss >> i;) {
                 para_ind.push_back(i);
