@@ -248,8 +248,10 @@ int OptimizationApplication::run(int argc, char **argv) {
 void OptimizationApplication::runMaster() {
     switch (operationType) {
     case OperationType::gradientCheck: {
+        std::vector<double> multi_eps {1e-1, 1e-3, 1e-4, 1e-5, 1e-7};
         optimizationProblemGradientCheckMultiEps(problem.get(),
-                                         num_parameter_checks);
+                                                 para_ind,
+                                                 multi_eps);
         break;
     }
     case OperationType::parameterEstimation:
