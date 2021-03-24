@@ -39,7 +39,7 @@ model_name=$(basename "${petab_model_dir}")
 amici_model_dir=${script_path}/${model_name}
 petab_yaml=${model_name}.yaml
 output_file=tmp.out
-hdf5_infile="parpe_${model_name}/${model_name}.h"
+hdf5_infile="parpe_${model_name}/${model_name}.h5"
 estimate_exe="parpe_${model_name}/build/estimate_${model_name}"
 
 amici_root="${AMICI_ROOT:-${parpe_dir}/deps/AMICI/}"
