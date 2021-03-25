@@ -149,13 +149,14 @@ private:
 protected:
     // command line option parsing
     const char *shortOptions = "dhvmt:o:s:";
-    struct option const longOptions[9] = {
+    struct option const longOptions[10] = {
         {"debug", no_argument, nullptr, 'd'},
         {"print-worklist", no_argument, nullptr, 'p'},
         {"help", no_argument, nullptr, 'h'},
         {"version", no_argument, nullptr, 'v'},
         {"mpi", no_argument, nullptr, 'm'},
         {"task", required_argument, nullptr, 't'},
+        {"gradient-check", required_argument, nullptr, 'g'},
         {"outfile-prefix", required_argument, nullptr, 'o'},
         {"first-start-idx", required_argument, nullptr, 's'},
         {nullptr, 0, nullptr, 0}};
@@ -164,6 +165,8 @@ protected:
         parameterEstimation,
         gradientCheck
     };
+
+    std::vector<int> para_ind {};
 
     std::string dataFileName;
     std::string resultFileName;
@@ -175,6 +178,7 @@ protected:
     std::unique_ptr<OptimizationProblem> problem;
     H5::H5File h5File = 0;
     OperationType operationType = OperationType::parameterEstimation;
+    int num_parameter_checks = 1;
     LoadBalancerMaster loadBalancer;
     bool withMPI = false;
 };

@@ -19,6 +19,8 @@
 #include <random>
 #include <csignal>
 #include <cstdlib>
+#include <sstream>
+#include <iostream>
 
 namespace parpe {
 
@@ -110,6 +112,21 @@ int OptimizationApplication::parseCliOptionsPostMpiInit(int argc, char **argv) {
             if (strcmp(optarg, "gradient_check") == 0)
                 operationType = OperationType::gradientCheck;
             break;
+        case 'g': {
+            operationType = OperationType::gradientCheck;
+            /*
+                Assuming the next argument is of the type n1,n2,...,nX.
+                This will be a string of comma separated ints, that need
+                to be converted to std::vector<int>.
+             */
+            std::stringstream ss(optarg);
+
+            for (int i; ss >> i;) {
+                para_ind.push_back(i);
+                if (ss.peek() == ',')
+                    ss.ignore();
+            }
+        } break;
         case 'o':
             resultFileName = processResultFilenameCommandLineArgument(optarg);
             break;
@@ -230,9 +247,10 @@ int OptimizationApplication::run(int argc, char **argv) {
 void OptimizationApplication::runMaster() {
     switch (operationType) {
     case OperationType::gradientCheck: {
-        const int numParameterIndicesToCheck = 10000;
-        optimizationProblemGradientCheckMultiEps(
-                    problem.get(), numParameterIndicesToCheck);
+        std::vector<double> multi_eps {1e-1, 1e-3, 1e-4, 1e-5, 1e-7};
+        optimizationProblemGradientCheckMultiEps(problem.get(),
+                                                 para_ind,
+                                                 multi_eps);
         break;
     }
     case OperationType::parameterEstimation:
@@ -266,8 +284,10 @@ void OptimizationApplication::runSingleProcess() {
     switch (operationType) {
     case OperationType::gradientCheck: {
         const int numParameterIndicesToCheck = 10000;
-        optimizationProblemGradientCheckMultiEps(
-                    problem.get(), numParameterIndicesToCheck);
+        const double epsilon = 1e-5;
+        optimizationProblemGradientCheck(problem.get(),
+                                         numParameterIndicesToCheck,
+                                         epsilon);
         break;
     }
     case OperationType::parameterEstimation:
