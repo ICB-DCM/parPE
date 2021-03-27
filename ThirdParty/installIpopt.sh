@@ -63,8 +63,8 @@ if [[ ! -d "${ipopt_dir}" ]]; then
 
   # Use Intel MKL for lapack?
   lapack_lflags=""
-  if [[ -v MKL_LIB ]]; then
-    lapack_lflags="--with-lapack-lflags=${MKL_LIB}"
+  if [[ -v MKL_SHLIB ]]; then
+    lapack_lflags="--with-lapack-lflags=${MKL_SHLIB}"
   fi
 
   ./configure --prefix="${hsl_install_dir}" --with-lapack "${lapack_lflags}"  # --enable-static --disable-shared
