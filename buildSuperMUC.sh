@@ -34,6 +34,7 @@ build_amici() {
 build_3rd_party_deps() {
   # build dependencies
   cd "${parpe_root}/ThirdParty"
+  ./installIpopt.sh
   #./installCeres.sh
   #./installCpputest.sh
   #  ceres_base=${parpe_root}/ThirdParty/ceres-solver-1.13.0/
