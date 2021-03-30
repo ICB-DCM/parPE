@@ -75,6 +75,6 @@ parpe_root=$(cd "${parpe_root}" && pwd)
 make_opts=${MAKEOPTS--j12}
 
 build_cpputest
-#build_amici
+build_amici
 build_3rd_party_deps
 build_parpe
