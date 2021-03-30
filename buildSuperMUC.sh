@@ -3,6 +3,11 @@
 #
 # Assumes all relevant modules are loaded with compatible versions.
 # Assumes there is Python>=3.7 available on $PATH.
+#
+# Known issues:
+# * With CMake<3.16, linking IpOpt compiled with MKL via pkg-config info may
+#   result in "ld: cannot find -lpkgcfg_lib_IPOPT_iomp5-NOTFOUND"
+#   -> use newer CMake
 
 build_cpputest() {
   #cpputest
