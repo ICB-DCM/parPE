@@ -57,7 +57,8 @@ build_parpe() {
   BOOST_ROOT=${BOOST_BASE} \
   MPI_HOME=${MPI_BASE} \
   cmake -S .. \
-    -DBoost_USE_STATIC_LIBS=TRUE
+    -DBoost_USE_STATIC_LIBS=TRUE \
+    -DBUILD_TESTING=OFF
   make ${make_opts}
 }
 
