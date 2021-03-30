@@ -659,7 +659,7 @@ void hdf5ExtendAndWriteToString1DArray(const H5::H5File &file, const std::string
     H5::StrType strType(0, H5T_VARIABLE);
     H5::DataSpace memspace(rank, slabsize);
 
-    dataset.write(buffer.c_str(), strType, memspace, filespace);
+    dataset.write(buffer, strType, memspace, filespace);
 }
 
 void hdf5CreateOrExtendAndWriteToString1DArray(const H5::H5File &file,
