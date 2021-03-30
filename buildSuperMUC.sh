@@ -53,9 +53,12 @@ build_parpe() {
   echo "Building parPE..."
   cd "${parpe_root}"
   mkdir -p build && cd build
+  ipopt_root=${parpe_root}/ThirdParty/Ipopt-releases-3.13.3/
   HDF5_ROOT=${HDF5_BASE} \
   BOOST_ROOT=${BOOST_BASE} \
   MPI_HOME=${MPI_BASE} \
+  PKG_CONFIG_PATH=${PKG_CONFIG_PATH}:${ipopt_root}/install/lib/pkgconfig/:${ipopt_root}/ThirdParty-HSL/install/lib/pkgconfig/:${parpe_root}/ThirdParty/eigen-3.3.9/build/install/share/pkgconfig/ \
+
   cmake -S .. \
     -DBoost_USE_STATIC_LIBS=TRUE \
     -DBUILD_TESTING=OFF
