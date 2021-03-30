@@ -63,12 +63,16 @@ if [[ ! -d "${ipopt_dir}" ]]; then
 
   # Use Intel MKL for lapack?
   lapack_lflags=""
+  blas_lflags=""
   if [[ -v MKL_LIB ]]; then
-    # will require F77=ifort when using intel compilers
-    lapack_lflags="--with-lapack-lflags=${MKL_LIB}"
+    # Will require F77=ifort when using intel compilers.
+    # Flags are added twice intentionally because of wrong order of flags... 
+    lapack_lflags="--with-lapack-lflags=${MKL_LIB} ${MKL_F90_LIB:-} ${MKL_LIB} ${MKL_F90_LIB:-}"
   fi
 
-  ./configure --prefix="${hsl_install_dir}" --with-lapack "${lapack_lflags}" --enable-static --disable-shared
+  ./configure --prefix="${hsl_install_dir}" \
+    --with-lapack "${lapack_lflags}" \
+    --enable-static --disable-shared
   make $make_opts
   make install
 
@@ -82,7 +86,7 @@ if [[ ! -d "${ipopt_dir}" ]]; then
     --with-hsl \
     --disable-linear-solver-loader \
     --with-lapack "${lapack_lflags}"
-    make $make_opts
+  make $make_opts
   make $make_opts install
 else
   echo "Skipping building Ipopt. Directory already exists."
