@@ -18,7 +18,6 @@
 #include <utility>
 #include <unistd.h>
 #include <sys/stat.h>
-#include <version>
 
 #ifdef __has_include
 #  if __has_include(<filesystem>)
