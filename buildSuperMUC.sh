@@ -61,6 +61,7 @@ build_parpe() {
   PKG_CONFIG_PATH=${PKG_CONFIG_PATH}:${ipopt_root}/install/lib/pkgconfig/:${ipopt_root}/ThirdParty-HSL/install/lib/pkgconfig/:${parpe_root}/ThirdParty/eigen-3.3.9/build/install/share/pkgconfig/ \
 
   cmake -S .. \
+    -DPARPE_ENABLE_CERES=OFF \
     -DBoost_USE_STATIC_LIBS=TRUE \
     -DBUILD_TESTING=OFF
   make ${make_opts}
