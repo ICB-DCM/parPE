@@ -15,8 +15,8 @@ build_cpputest() {
 build_amici() {
   amici_path=${parpe_root}/deps/AMICI
 
-  "$(amici_path)/scripts/buildSuiteSparse.sh"
-  "$(amici_path)/scripts/buildSundials.sh"
+  "${amici_path}/scripts/buildSuiteSparse.sh"
+  "${amici_path}/scripts/buildSundials.sh"
 
   python_exec=$(which python3)
   export PYTHON_EXECUTABLE=${python_exec}
