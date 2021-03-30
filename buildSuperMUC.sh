@@ -27,9 +27,7 @@ build_amici() {
     -DBLAS=MKL \
     -DBLAS_LIBRARIES="${MKL_LIB}" \
     -DBLAS_INCLUDE_DIRS="${MKL_INCDIR}" \
-    -DBUILD_TESTS=OFF \
-    -DBUILD_TESTING=OFF
-
+    -DBUILD_TESTS=OFF
   make ${make_opts} amici
 }
 
@@ -69,7 +67,7 @@ set -eou pipefail
 parpe_root=$(dirname "$BASH_SOURCE")
 parpe_root=$(cd "${parpe_root}" && pwd)
 
-make_opts=${MAKEOPTS-}
+make_opts=${MAKEOPTS--j12}
 
 build_cpputest
 build_amici
