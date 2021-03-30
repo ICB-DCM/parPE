@@ -1,61 +1,77 @@
 #!/bin/bash
-set -e
-PARPE_ROOT="`dirname \"$BASH_SOURCE\"`"
-PARPE_ROOT="`( cd \"${PARPE_ROOT}\" && pwd )`"
+# Build parPE on SuperMUC
 
-MAKE_OPTS=-j12
-# load modules
+build_cpputest() {
+  #cpputest
+  #CPPUTEST_PATH=${amici_path}/ThirdParty/cpputest-master
+  #cd ${CPPUTEST_PATH}
+  # -DC++11=ON breaks compilation of some `_override` for no obvious reason
+  #cmake -DC++11=OFF -DCMAKE_INSTALL_PREFIX=`pwd`
+  #make ${make_opts}
+  #make install
+  :
+}
 
-# build AMICI
-AMICI_PATH=${PARPE_ROOT}/deps/AMICI
+build_amici() {
+  amici_path=${parpe_root}/deps/AMICI
 
-#cpputest
-#CPPUTEST_PATH=${AMICI_PATH}/ThirdParty/cpputest-master
-#cd ${CPPUTEST_PATH}
-# -DC++11=ON breaks compilation of some `_override` for no obvious reason
-#cmake -DC++11=OFF -DCMAKE_INSTALL_PREFIX=`pwd`
-#make ${MAKE_OPTS}
-#make install
+  "$(amici_path)/scripts/buildSuiteSparse.sh"
+  "$(amici_path)/scripts/buildSundials.sh"
 
-deps/AMICI/scripts/buildSuiteSparse.sh
-deps/AMICI/scripts/buildSundials.sh
+  python_exec=$(which python3)
+  export PYTHON_EXECUTABLE=${python_exec}
+  mkdir -p "${amici_path}/build"
+  cd "${amici_path}/build"
+  cmake -S .. \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DBLAS=MKL \
+    -DBLAS_LIBRARIES="${MKL_LIB}" \
+    -DBLAS_INCLUDE_DIRS="${MKL_INCDIR}" \
+    -DBUILD_TESTS=OFF \
+    -DBUILD_TESTING=OFF
 
-export PYTHON_EXECUTABLE=$(which python3)
-mkdir -p ${AMICI_PATH}/build
-cd ${AMICI_PATH}/build
-cmake -DCMAKE_BUILD_TYPE=Release \
-        -DBLAS=MKL \
-        -DBLAS_LIBRARIES="${MKL_LIB}" \
-        -DBLAS_INCLUDE_DIRS="${MKL_INCDIR}" \
-	-DBUILD_TESTING=OFF \
-        ..
-make ${MAKE_OPTS} amici
+  make ${make_opts} amici
+}
 
-# build dependencies
-cd ${PARPE_ROOT}/ThirdParty
-#./installCeres.sh
-#./installCpputest.sh
-# requires download of additional packages ./installIpopt.sh
+build_3rd_party_deps() {
+  # build dependencies
+  cd "${parpe_root}/ThirdParty"
+  #./installCeres.sh
+  #./installCpputest.sh
+  #  ceres_base=${parpe_root}/ThirdParty/ceres-solver-1.13.0/
+  #  ceres_install_dir=${ceres_base}/build/install/
+  #  if [[ -d ${ceres_base} ]]; then
+  #    echo "Found CERES. Building..."
+  #    mkdir -p "${ceres_base}/build"
+  #    cd "${ceres_base}/build"
+  #    make ${make_opts}
+  #  else
+  #    echo "CERES sources not found. Skipping..."
+  #  fi
+}
 
-CERES_BASE=${PARPE_ROOT}/ThirdParty/ceres-solver-1.13.0/
-CERES_INSTALL_DIR=${CERES_BASE}/build/install/
-if [[ -d ${CERES_BASE} ]]; then
-    echo "Found CERES. Building..."
-    mkdir -p ${CERES_BASE}/build
-    cd ${CERES_BASE}/build
-    make ${MAKE_OPTS}
-else
-   echo "CERES sources not found. Skipping..."
-fi
+build_parpe() {
+  echo
+  echo "Building parPE..."
+  cd "${parpe_root}"
+  mkdir -p build && cd build
+  HDF5_ROOT=${HDF5_BASE} \
+  BOOST_ROOT=${BOOST_BASE} \
+  MPI_HOME=${MPI_BASE} \
+  cmake -S .. \
+    -DBoost_USE_STATIC_LIBS=TRUE
+  make ${make_opts}
+}
 
-echo
-echo "Building parPE..."
-cd $PARPE_ROOT
-mkdir -p build && cd build
-CC=mpicc CXX=mpiCC HDF5_ROOT=${HDF5_BASE} BOOST_ROOT=${BOOST_BASE} MPI_HOME=${MPI_BASE} cmake \
-      -DBoost_USE_STATIC_LIBS=TRUE \
-      -DIPOPT_DIR=`pwd`/../ThirdParty/Ipopt-3.12.9/install \
-      -DCERES_LIBRARIES="${CERES_INSTALL_DIR}/lib64/libceres.a;${MKL_LIB}" \
-      -DCERES_INCLUDE_DIRS="${CERES_INSTALL_DIR}/include/;${CERES_INSTALL_DIR}/include/ceres/internal/miniglog/;`pwd`/../ThirdParty/eigen-eigen-67e894c6cd8f/build/install/include/eigen3/" \
-      ..
-make ${MAKE_OPTS}
+set -eou pipefail
+
+# absolute path to parpe repository base directory
+parpe_root=$(dirname "$BASH_SOURCE")
+parpe_root=$(cd "${parpe_root}" && pwd)
+
+make_opts=${MAKEOPTS-}
+
+build_cpputest
+build_amici
+build_3rd_party_deps
+build_parpe
