@@ -20,16 +20,20 @@
 #include <sys/stat.h>
 #include <version>
 
-#ifdef __cpp_lib_filesystem
-#include <filesystem>
+#ifdef __has_include
+#  if __has_include(<filesystem>)
+#    include <filesystem>
 using std::filesystem::path;
 using std::filesystem::create_directories;
-#elif __cpp_lib_experimental_filesystem
-#include <experimental/filesystem>
+#  elif __has_include(<experimental/filesystem>)
+#    include <experimental/optional>
 using std::experimental::filesystem::path;
 using std::experimental::filesystem::create_directories;
+#  else
+#     error "Missing <filesystem>"
+#  endif
 #else
-#error "no filesystem support"
+#error "Missing <filesystem>"
 #endif
 
 #include <H5Tpublic.h>
