@@ -63,11 +63,9 @@ if [[ ! -d "${ipopt_dir}" ]]; then
 
   # Use Intel MKL for lapack?
   lapack_lflags=""
-  blas_lflags=""
-  if [[ -v MKL_LIB ]]; then
+  if [[ -v MKL_SHLIB ]]; then
     # Will require F77=ifort when using intel compilers.
-    # Flags are added twice intentionally because of wrong order of flags... 
-    lapack_lflags="--with-lapack-lflags=${MKL_LIB} ${MKL_F90_LIB:-} ${MKL_LIB} ${MKL_F90_LIB:-}"
+    lapack_lflags="--with-lapack-lflags=${MKL_SHLIB}"
   fi
 
   ./configure --prefix="${hsl_install_dir}" \
