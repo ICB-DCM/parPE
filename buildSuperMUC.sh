@@ -1,5 +1,8 @@
 #!/bin/bash
 # Build parPE on SuperMUC
+#
+# Assumes all relevant modules are loaded with compatible versions.
+# Assumes there is Python>=3.7 available on $PATH.
 
 build_cpputest() {
   #cpputest
@@ -58,7 +61,7 @@ build_parpe() {
   HDF5_ROOT=${HDF5_BASE} \
   BOOST_ROOT=${BOOST_BASE} \
   MPI_HOME=${MPI_BASE} \
-  PKG_CONFIG_PATH=${PKG_CONFIG_PATH}:${ipopt_root}/install/lib/pkgconfig/:${ipopt_root}/ThirdParty-HSL/install/lib/pkgconfig/:${parpe_root}/ThirdParty/eigen-3.3.9/build/install/share/pkgconfig/ \
+  PKG_CONFIG_PATH=${PKG_CONFIG_PATH}:${ipopt_root}/install/lib/pkgconfig/:${ipopt_root}/ThirdParty-HSL/install/lib/pkgconfig/ \
 
   cmake -S .. \
     -DPARPE_ENABLE_CERES=OFF \

@@ -64,26 +64,24 @@ if [[ ! -d "${ipopt_dir}" ]]; then
   # Use Intel MKL for lapack?
   lapack_lflags=""
   if [[ -v MKL_LIB ]]; then
+    # will require F77=ifort when using intel compilers
     lapack_lflags="--with-lapack-lflags=${MKL_LIB}"
   fi
 
   ./configure --prefix="${hsl_install_dir}" --with-lapack "${lapack_lflags}" --enable-static --disable-shared
-  make
+  make $make_opts
   make install
-  # For some versions of HSL, the library may have the wrong name
-  # (cd "${hsl_install_dir}/lib" && test ! -e libhsl.so && ln -s libcoinhsl.so libhsl.so || true)
 
   cd "${ipopt_dir}"
 
-  PKG_CONFIG_PATH=$PKG_CONFIG_PATH:${hsl_install_dir}/lib/pkgconfig/ ./configure --prefix="${ipopt_install_dir}" \
+  PKG_CONFIG_PATH=$PKG_CONFIG_PATH:${hsl_install_dir}/lib/pkgconfig/ \
+  ./configure --prefix="${ipopt_install_dir}" \
     --enable-static \
     --disable-shared \
     --with-pic \
     --with-hsl \
     --disable-linear-solver-loader \
     --with-lapack "${lapack_lflags}"
-#    --with-hsl-cflags=-I${hsl_install_dir}/include/coin-or/hsl \
-#    --with-hsl-lflags="-L${hsl_install_dir}/lib/ -lcoinhsl" \
     make $make_opts
   make $make_opts install
 else
