@@ -9,7 +9,16 @@
 #include <utility>
 #include <unistd.h>
 #include <sys/stat.h>
+
+#ifndef __INTEL_COMPILER
+#include <filesystem>
+using std::filesystem::path;
+using std::filesystem::create_directories;
+#else
 #include <experimental/filesystem>
+using std::experimental::filesystem::path;
+using std::experimental::filesystem::create_directories;
+#endif
 
 #include <H5Tpublic.h>
 
@@ -508,10 +517,10 @@ H5::H5File hdf5CreateFile(const std::string &filename,
                           bool overwrite)
 {
     // Create parent folders
-    std::experimental::filesystem::path dirname(filename);
+    path dirname(filename);
     dirname.remove_filename();
     if(!dirname.empty())
-        std::experimental::filesystem::create_directories(dirname);
+        create_directories(dirname);
 
     std::lock_guard<mutexHdfType> lock(mutexHdf);
 
