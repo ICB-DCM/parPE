@@ -18,15 +18,18 @@
 #include <utility>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <version>
 
-#ifndef __INTEL_COMPILER
+#ifdef __cpp_lib_filesystem
 #include <filesystem>
 using std::filesystem::path;
 using std::filesystem::create_directories;
-#else
+#elif __cpp_lib_experimental_filesystem
 #include <experimental/filesystem>
 using std::experimental::filesystem::path;
 using std::experimental::filesystem::create_directories;
+#else
+#error "no filesystem support"
 #endif
 
 #include <H5Tpublic.h>
