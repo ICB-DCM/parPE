@@ -71,10 +71,10 @@ endif(${PARPE_ENABLE_MPI})
 find_package(PkgConfig)
 pkg_search_module(IPOPT REQUIRED IMPORTED_TARGET GLOBAL ipopt>=3.11.0 )
 
-if(${ENABLE_DLIB})
+if(${PARPE_ENABLE_DLIB})
     set(DLIB_DIR "${CMAKE_CURRENT_LIST_DIR}/ThirdParty/dlib-19.7"
         CACHE FILEPATH "DLIB base directory")
-endif(${ENABLE_DLIB})
+endif(${PARPE_ENABLE_DLIB})
 
 # PThreads
 set(THREADS_PREFER_PTHREAD_FLAG ON)
