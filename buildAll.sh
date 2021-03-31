@@ -5,6 +5,8 @@ set -euo pipefail
 parpe_root=$(dirname "$0")
 parpe_root=$(cd "${parpe_root}" && pwd)
 
+make_opts=${MAKEOPTS--j12}
+
 # Build amici
 amici_dir="${parpe_root}/deps/AMICI/"
 cd "${amici_dir}"
@@ -21,7 +23,7 @@ parpe_build_dir="${parpe_root}/build"
 mkdir -p "${parpe_build_dir}"
 cd "${parpe_build_dir}"
 cmake "${parpe_root}"
-make -j12
+make ${make_opts}
 
 # run tests
 make test

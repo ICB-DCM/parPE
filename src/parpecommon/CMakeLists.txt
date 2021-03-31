@@ -28,6 +28,7 @@ target_include_directories(${PROJECT_NAME}
 
 target_link_libraries(${PROJECT_NAME}
     PUBLIC ${HDF5_LIBRARIES}
+    PRIVATE stdc++fs
     )
 
 if(${PARPE_ENABLE_MPI})
