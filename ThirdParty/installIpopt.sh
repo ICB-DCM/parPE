@@ -70,7 +70,7 @@ if [[ ! -d "${ipopt_dir}" ]]; then
 
   ./configure --prefix="${hsl_install_dir}" \
     --with-lapack "${lapack_lflags}" \
-    --enable-static --disable-shared
+    --disable-static --enable-shared
   make $make_opts
   make install
 
@@ -78,8 +78,8 @@ if [[ ! -d "${ipopt_dir}" ]]; then
 
   PKG_CONFIG_PATH=$PKG_CONFIG_PATH:${hsl_install_dir}/lib/pkgconfig/ \
   ./configure --prefix="${ipopt_install_dir}" \
-    --enable-static \
-    --disable-shared \
+    --disable-static \
+    --enable-shared \
     --with-pic \
     --with-hsl \
     --disable-linear-solver-loader \
