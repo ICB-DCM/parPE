@@ -27,7 +27,7 @@ def test_case(case: Union[int, str]) -> None:
         _test_case(case)
     except Exception as e:
         if isinstance(e, NotImplementedError) \
-                or "Timepoint-specific parameter overrides" in str(e):
+                or "models with timepoint specific mappings" in str(e):
             logger.info(f"Case {case} expectedly failed. "
                         "Required functionality is not yet "
                         f"implemented: {e}")
