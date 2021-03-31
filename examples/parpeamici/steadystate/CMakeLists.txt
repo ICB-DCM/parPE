@@ -133,12 +133,9 @@ if(${BUILD_TESTING})
     add_test (NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME} -c)
 
     set(SRC_LIST_CPP
-        main_test.cpp
         exampleSteadystateScaledTest.h
         ${CMAKE_SOURCE_DIR}/tests/parpecommon/testingMisc.cpp
         steadystateProblem.cpp
-        ${GTestSrc}/src/gtest-all.cc
-        ${GMockSrc}/src/gmock-all.cc
     )
 
     add_executable(${PROJECT_NAME} ${SRC_LIST_CPP})
