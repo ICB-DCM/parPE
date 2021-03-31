@@ -42,10 +42,12 @@ build_amici() {
 build_boost() {
   # Build custom boost (with CXX11 ABI!)
   cd "${parpe_root}/ThirdParty"
+  # NOTE 1.70.0 has broken CMake config
   local archive_name=boost_1_71_0.tar.gz
   local boost_dir=${parpe_root}/ThirdParty/boost_1_71_0
   local url="https://dl.bintray.com/boostorg/release/1.71.0/source/${archive_name}"
   boost_install_dir=${boost_dir}/install
+
   if [[ ! -d ${boost_dir} ]]; then
     if [[ ! -f ${archive_name} ]];
       then wget $url -O "${archive_name}"
@@ -60,7 +62,6 @@ build_boost() {
   else
     echo "Skipping boost - ${boost_dir} already exists"
   fi
-  export BOOST_BASE=${boost_install_dir}
 }
 
 build_3rd_party_deps() {
