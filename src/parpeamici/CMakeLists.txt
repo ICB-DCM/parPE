@@ -2,12 +2,12 @@
 find_package(Amici
     HINTS ${CMAKE_SOURCE_DIR}/deps/AMICI/build)
 
-# dependency: BOOST
+# dependecy: BOOST
 if(CMAKE_BUILD_TYPE MATCHES Release)
-    set(Boost_USE_STATIC_LIBS ON)
+    set(Boost_USE_STATIC_LIBS TRUE)
 else()
     # For python module we need -fPIC which is only the case with shared libs
-    set(Boost_USE_STATIC_LIBS ON)
+    set(Boost_USE_STATIC_LIBS FALSE)
 endif()
 find_package(Boost COMPONENTS serialization REQUIRED)
 
