@@ -42,9 +42,9 @@ build_amici() {
 build_boost() {
   # Build custom boost (with CXX11 ABI!)
   cd "${parpe_root}/ThirdParty"
-  local archive_name=boost_1_70_0.tar.gz
-  local boost_dir=${parpe_root}/ThirdParty/boost_1_70_0
-  local url="https://dl.bintray.com/boostorg/release/1.70.0/source/${archive_name}"
+  local archive_name=boost_1_71_0.tar.gz
+  local boost_dir=${parpe_root}/ThirdParty/boost_1_71_0
+  local url="https://dl.bintray.com/boostorg/release/1.71.0/source/${archive_name}"
   boost_install_dir=${boost_dir}/install
   if [[ ! -d ${boost_dir} ]]; then
     if [[ ! -f ${archive_name} ]];
