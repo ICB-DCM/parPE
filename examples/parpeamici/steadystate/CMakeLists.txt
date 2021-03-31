@@ -142,6 +142,7 @@ if(${BUILD_TESTING})
     add_dependencies(${PROJECT_NAME} ${MODEL_NAME})
     target_link_libraries(${PROJECT_NAME}
         parpeamici
+        gmock_main
         ${MODEL_LIBRARIES}
         ${GCOV_LIBRARY}
     )

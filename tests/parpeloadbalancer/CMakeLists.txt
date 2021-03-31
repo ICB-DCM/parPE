@@ -11,6 +11,6 @@ add_executable(${PROJECT_NAME} ${SRC_LIST})
 target_link_libraries(${PROJECT_NAME}
     ${CMAKE_THREAD_LIBS_INIT}
     parpeloadbalancer
-    gtest_main
+    gmock_main
     ${GCOV_LIBRARY}
 )

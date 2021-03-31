@@ -24,7 +24,7 @@ add_dependencies(${PROJECT_NAME} prepare_test_hierarchical_optimization)
 
 target_link_libraries(${PROJECT_NAME}
     parpeamici
-    gtest_main
+    gmock_main
     ${GCOV_LIBRARY}
 )
 
