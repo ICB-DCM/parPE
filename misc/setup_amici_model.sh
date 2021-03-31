@@ -15,6 +15,7 @@ model_dir="$1"
 output_dir="$2"
 template_dir="${script_path}/../templates"
 model_name=$(basename "${model_dir}")
+make_opts="${MAKE_OPTS:-}"
 
 if [[ ! -d "${model_dir}" ]]; then
     echo "ERROR: Model directory ${model_dir} does not exist."
@@ -47,4 +48,4 @@ cmake -S "${output_dir}" \
       -DParPE_DIR="${script_path}/../build"
 
 echo "Building ..."
-cmake --build "${output_dir}/build" -- VERBOSE=1
+cmake --build "${output_dir}/build" ${make_opts} -- VERBOSE=1

@@ -27,7 +27,7 @@ rm -f "${amici_dir}/python/sdist/amici/amici.py"
 rm -f "${amici_dir}/python/sdist/amici/amici_wrap_without_hdf5.cxx"
 rm -f "${amici_dir}/python/sdist/amici/amici_wrap.cxx"
 rm -f "${amici_dir}"/python/sdist/amici/_amici.*.so
-ls -l ${amici_dir}/python/sdist/amici
+ls -l "${amici_dir}/python/sdist/amici"
 # rebuild
 "${amici_dir}/scripts/buildAmici.sh"
 
