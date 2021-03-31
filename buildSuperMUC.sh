@@ -45,7 +45,7 @@ build_boost() {
   local archive_name=boost_1_70_0.tar.gz
   local boost_dir=${parpe_root}/ThirdParty/boost_1_70_0
   local url="https://dl.bintray.com/boostorg/release/1.70.0/source/${archive_name}"
-  local boost_install_dir=${boost_dir}/install
+  boost_install_dir=${boost_dir}/install
   if [[ ! -d ${boost_dir} ]]; then
     if [[ ! -f ${archive_name} ]];
       then wget $url -O "${archive_name}"
