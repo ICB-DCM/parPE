@@ -39,9 +39,34 @@ build_amici() {
   make ${make_opts} amici
 }
 
+build_boost() {
+  # Build custom boost (with CXX11 ABI!)
+  cd "${parpe_root}/ThirdParty"
+  local archive_name=boost_1_70_0.tar.gz
+  local boost_dir=${parpe_root}/ThirdParty/boost_1_70_0
+  local url="https://dl.bintray.com/boostorg/release/1.70.0/source/${archive_name}"
+  local boost_install_dir=${boost_dir}/install
+  if [[ ! -d ${boost_dir} ]]; then
+    if [[ ! -f ${archive_name} ]];
+      then wget $url -O "${archive_name}"
+    fi
+
+    tar -xzf $archive_name
+    cd "${boost_dir}"
+    ./bootstrap.sh \
+      --prefix="${boost_install_dir}" \
+      --with-libraries=filesystem,program_options,regex,serialization,system
+    ./b2 install -j 20
+  else
+    echo "Skipping boost - ${boost_dir} already exists"
+  fi
+  export BOOST_BASE=${boost_install_dir}
+}
+
 build_3rd_party_deps() {
   # build dependencies
   cd "${parpe_root}/ThirdParty"
+  build_boost
   ./installIpopt.sh
   #./installCeres.sh
   #./installCpputest.sh
@@ -84,6 +109,6 @@ parpe_root=$(cd "${parpe_root}" && pwd)
 make_opts=${MAKEOPTS--j12}
 
 build_cpputest
-build_amici
 build_3rd_party_deps
+build_amici
 build_parpe
