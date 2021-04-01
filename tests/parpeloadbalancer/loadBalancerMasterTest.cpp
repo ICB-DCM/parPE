@@ -51,7 +51,7 @@ public:
     }
 };
 
-class queuemaster : public ::testing::Test {
+class LoadBalancer : public ::testing::Test {
 
 protected:
     MockMPI mockMpi;
@@ -60,7 +60,7 @@ protected:
 
 #include <loadBalancerMaster.cpp>
 
-TEST_F(queuemaster, test_queueinit) {
+TEST_F(LoadBalancer, QueueInited) {
     EXPECT_CALL(mockMpi, MPI_Comm_size(_, _)).Times(1);
     // Can happen or not, depending on how quick it's terminated
     // mock().expectOneCall("MPI_Testany");
@@ -71,7 +71,7 @@ TEST_F(queuemaster, test_queueinit) {
     lbm.terminate();
 }
 
-TEST_F(queuemaster, test_queue) {
+TEST_F(LoadBalancer, Queues) {
     EXPECT_CALL(mockMpi, MPI_Comm_size(_, _)).Times(1);
     parpe::LoadBalancerMaster lbm;
     lbm.run();
@@ -89,7 +89,7 @@ TEST_F(queuemaster, test_queue) {
     lbm.terminate();
 }
 
-TEST_F(queuemaster, test_terminateMasterQueue_noInit) {
+TEST_F(LoadBalancer, TerminateMasterWithoutInitSucceeds) {
     // terminate uninitialized masterQueue should not fail
     parpe::LoadBalancerMaster lbm;
     lbm.terminate();

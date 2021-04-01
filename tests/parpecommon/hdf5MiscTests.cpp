@@ -7,7 +7,7 @@
 #include <cstdio>
 #include <H5Cpp.h>
 
-class hdf5Misc : public ::testing::Test {
+class HDF5 : public ::testing::Test {
 
 protected:
     void SetUp() override {
@@ -29,24 +29,24 @@ protected:
 
 
 
-TEST_F(hdf5Misc, testOpenExistingFileNoOverwrite) {
+TEST_F(HDF5, OpenExistingFileNoOverwrite) {
     EXPECT_THROW(parpe::hdf5CreateFile(tempFileName, false),
                  parpe::HDF5Exception);
 }
 
 
-TEST_F(hdf5Misc, testOpenExistingFileOverwrite) {
+TEST_F(HDF5, OpenExistingFileOverwrite) {
     file.close();
     file = parpe::hdf5CreateFile(tempFileName, true);
 }
 
 
-TEST_F(hdf5Misc, testMutexGetLock) {
+TEST_F(HDF5, MutexGetLock) {
     parpe::hdf5MutexGetLock();
 }
 
 
-TEST_F(hdf5Misc, testErrorStackWalker) {
+TEST_F(HDF5, ErrorStackWalker) {
     H5_SAVE_ERROR_HANDLER;
 
     // provoke error by asking to truncate a file that is already open
@@ -65,7 +65,7 @@ TEST_F(hdf5Misc, testErrorStackWalker) {
 }
 
 
-TEST_F(hdf5Misc, testCreateGroup) {
+TEST_F(HDF5, CreateGroup) {
     const char *groupName = "/test";
 
     EXPECT_FALSE(parpe::hdf5GroupExists(file, groupName));
@@ -76,7 +76,7 @@ TEST_F(hdf5Misc, testCreateGroup) {
 }
 
 
-TEST_F(hdf5Misc, testCreateExistingGroup) {
+TEST_F(HDF5, CreateExistingGroup) {
     parpe::hdf5CreateGroup(file, "/test", false);
 
     H5_SAVE_ERROR_HANDLER;
@@ -86,7 +86,7 @@ TEST_F(hdf5Misc, testCreateExistingGroup) {
 }
 
 
-TEST_F(hdf5Misc, testEnsureGroupExists) {
+TEST_F(HDF5, EnsureGroupExists) {
     const char *groupName = "/test";
 
     EXPECT_FALSE(parpe::hdf5GroupExists(file, groupName));
@@ -98,7 +98,7 @@ TEST_F(hdf5Misc, testEnsureGroupExists) {
     parpe::hdf5EnsureGroupExists(file, groupName);
 }
 
-TEST_F(hdf5Misc, testStringAttribute) {
+TEST_F(HDF5, StringAttribute) {
     const char *groupName = "/";
     const char *attrName = "testA";
     const char *expAttrValue = "adsf";
@@ -121,7 +121,7 @@ TEST_F(hdf5Misc, testStringAttribute) {
 }
 
 
-TEST_F(hdf5Misc, testDatasetDimensions) {
+TEST_F(HDF5, DatasetDimensions) {
     const char datasetName[] = "bla";
     const int rank = 3;
     const hsize_t dims[rank] = {1,2,3};
@@ -146,16 +146,3 @@ TEST_F(hdf5Misc, testDatasetDimensions) {
     EXPECT_EQ((signed)dims[2], d2);
     EXPECT_EQ(0, d3);
 }
-
-// TODO:
-// hdf5CreateExtendableDouble2DArray
-// hdf5CreateOrExtendAndWriteToDouble2DArray
-// hdf5CreateOrExtendAndWriteToDouble3DArray
-// hdf5CreateOrExtendAndWriteToInt2DArray
-// hdf5CreateExtendableInt2DArray
-// hdf5CreateExtendableDouble3DArray
-// hdf5Extend2ndDimensionAndWriteToDouble2DArray
-// hdf5Extend3rdDimensionAndWriteToDouble3DArray
-// hdf5Extend2ndDimensionAndWriteToInt2DArray
-// hdf5Read2DDoubleHyperslab
-// hdf5Read3DDoubleHyperslab
