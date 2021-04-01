@@ -76,10 +76,10 @@ endif(${PARPE_ENABLE_FIDES})
 find_package(PkgConfig)
 pkg_search_module(IPOPT REQUIRED IMPORTED_TARGET GLOBAL ipopt>=3.11.0 )
 
-if(${ENABLE_DLIB})
+if(${PARPE_ENABLE_DLIB})
     set(DLIB_DIR "${CMAKE_CURRENT_LIST_DIR}/ThirdParty/dlib-19.7"
         CACHE FILEPATH "DLIB base directory")
-endif(${ENABLE_DLIB})
+endif(${PARPE_ENABLE_DLIB})
 
 # PThreads
 set(THREADS_PREFER_PTHREAD_FLAG ON)
@@ -105,25 +105,6 @@ if(${BUILD_TESTING})
     # --allow-run-as-root is required for running on shippable systems
     set(TESTS_MPIEXEC_COMMAND
         mpiexec --allow-run-as-root --oversubscribe -n 4 CACHE STRING "")
-
-    # googletest
-    add_definitions(-DGTEST_LANGUAGE_CXX11)
-    find_package(Threads REQUIRED)
-    if ($ENV{GOOGLETEST_DIR})
-        set(GOOGLETEST_DIR $ENV{GOOGLETEST_DIR})
-    else()
-        set(GOOGLETEST_DIR "${CMAKE_CURRENT_LIST_DIR}/ThirdParty/googletest")
-    endif()
-    if (EXISTS ${GOOGLETEST_DIR})
-        set(GTestSrc ${GOOGLETEST_DIR}/googletest)
-        set(GMockSrc ${GOOGLETEST_DIR}/googlemock)
-    else ()
-        message(FATAL_ERROR "No googletest src dir found - set GOOGLETEST_DIR "
-            "or run ../ThirdParty/installGoogleTest.sh to enable!"
-            " (Or disable building tests with BUILD_TESTING=OFF)")
-    endif ()
-    include_directories(${GTestSrc} "${GTestSrc}/include"
-        ${GMockSrc} "${GMockSrc}/include")
 
     # <Coverage>
     # Create test coverage reports?

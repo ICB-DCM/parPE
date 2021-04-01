@@ -11,7 +11,7 @@
 
 using ::testing::NiceMock;
 
-TEST(multiStartOptimization, testMultiStartOptimization) {
+TEST(MultiStartOptimization, MultiStartOptimization) {
     int numStarts = 10;
 
     // exit status may change depending on starting point -> ignore

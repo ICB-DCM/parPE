@@ -7,7 +7,7 @@
 
 #include <amici/amici.h>
 
-TEST(simulationWorkerAmici, testSerializeResultPackageMessage)
+TEST(SimulationWorkerAmici, SerializeResultPackageMessage)
 {
     parpe::AmiciSimulationRunner::AmiciResultPackageSimple results = {
         1.1,

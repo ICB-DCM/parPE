@@ -14,7 +14,7 @@
 #include <amici/solver_cvodes.h>
 
 
-TEST(simulationResultWriter, testResultWriter) {
+TEST(SimulationResultWriter, ResultWriter) {
     // setup ResultWriter
     const char* tmpName = "parpeTest_testResultWriter.h5";
     auto _ = gsl::finally([tmpName] { remove(tmpName); });
@@ -74,7 +74,7 @@ TEST(simulationResultWriter, testResultWriter) {
     parpe::checkEqualArray(measurements.data(), yMesAct.data(), yMesAct.size(), 1e-16, 1e-16);
 }
 
-TEST(simulationResultWriter, testResultWriterNewExistingFile) {
+TEST(SimulationResultWriter, ResultWriterNewExistingFile) {
     const char* tmpName = "parpeTest_testResultWriterNewExistingFile.h5";
     auto _ = gsl::finally([tmpName] { remove(tmpName); });
 
