@@ -14,7 +14,7 @@
 #include <algorithm>
 
 
-TEST(minibatchOptimization, getBatches) {
+TEST(MinibatchOptimization, CreatesBatches) {
 
     int numElements = 10;
     std::vector<int> input(numElements);
@@ -41,7 +41,7 @@ TEST(minibatchOptimization, getBatches) {
     EXPECT_TRUE(std::vector<int>(input.begin() + batchSize, input.end()) == batchesAct[1]);
 }
 
-TEST(minibatchOptimization, updateParameters) {
+TEST(MinibatchOptimization, UpdatesParameters) {
     // Test whether the most simple parameter updater works reliably
     std::vector<double> gradient {3.0, 4.0};
     std::vector<double> parameters {2.0, 3.0};
@@ -71,7 +71,7 @@ TEST(minibatchOptimization, updateParameters) {
 
 
 
-class minibatchOptimizationLinearModel : public ::testing::Test {
+class MinibatchOptimizationLinearModel : public ::testing::Test {
 
 protected:
     void SetUp() override {
@@ -137,7 +137,7 @@ protected:
 };
 
 
-TEST_F(minibatchOptimizationLinearModel, testCostWithTrueParametersIsZeroIndivdually) {
+TEST_F(MinibatchOptimizationLinearModel, CostWithTrueParametersIsZeroIndivdually) {
     // verify cost gradient with true parameters is 0
     auto lm2 = getLinearModelMSE();
     double mse = NAN;
@@ -149,7 +149,7 @@ TEST_F(minibatchOptimizationLinearModel, testCostWithTrueParametersIsZeroIndivdu
     }
 }
 
-TEST_F(minibatchOptimizationLinearModel, testCostWithTrueParametersIsZeroFull) {
+TEST_F(MinibatchOptimizationLinearModel, CostWithTrueParametersIsZeroFull) {
     // verify cost gradient with true parameters is 0
     auto lm2 = getLinearModelMSE();
     double mse = NAN;
@@ -159,7 +159,7 @@ TEST_F(minibatchOptimizationLinearModel, testCostWithTrueParametersIsZeroFull) {
     EXPECT_TRUE(std::vector<double>(trueParameters.size(), 0.0) == gradient);
 }
 
-TEST_F(minibatchOptimizationLinearModel, testMinibatchSucceedFromOptimum) {
+TEST_F(MinibatchOptimizationLinearModel, MinibatchSucceedFromOptimum) {
     // verify optimization succeeds with true parameters
     auto lm2 = getLinearModelMSE();
     parpe::MinibatchOptimizer<int> mb;
@@ -172,7 +172,7 @@ TEST_F(minibatchOptimizationLinearModel, testMinibatchSucceedFromOptimum) {
     EXPECT_TRUE(trueParameters == std::get<2>(result));
 }
 
-TEST_F(minibatchOptimizationLinearModel, linearModelCheckCostGradient) {
+TEST_F(MinibatchOptimizationLinearModel, LinearModelCheckCostGradient) {
     // use gradient checker
     auto p = getOptimizationProblem();
 
@@ -184,7 +184,7 @@ TEST_F(minibatchOptimizationLinearModel, linearModelCheckCostGradient) {
 
 #ifdef PARPE_ENABLE_IPOPT
 #include <parpeoptimization/localOptimizationIpopt.h>
-TEST_F(minibatchOptimizationLinearModel, linearModelTestBatchOptimizerSucceeds) {
+TEST_F(MinibatchOptimizationLinearModel, linearModelDoesBatchOptimizerSucceed) {
     // test batch optimizer
     auto p = getOptimizationProblem();
 
@@ -201,7 +201,7 @@ TEST_F(minibatchOptimizationLinearModel, linearModelTestBatchOptimizerSucceeds) 
 }
 #endif
 
-TEST_F(minibatchOptimizationLinearModel, linearModel) {
+TEST_F(MinibatchOptimizationLinearModel, LinearModel) {
     // optimization/tests/unittests_optimization -sg minibatchOptimizationLinearModel -sn linearModel
     std::cout<<"True parameters "<<trueParameters<<std::endl;
 

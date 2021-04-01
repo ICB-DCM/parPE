@@ -6,7 +6,7 @@
 #include <cstdio>
 #include <H5Cpp.h>
 
-TEST(optimizationResultWriter, testResultWriter) {
+TEST(OptimizationResultWriter, ResultWriter) {
     const char* tmpFilename = "deleteme.h5";
 
     parpe::OptimizationResultWriter w(tmpFilename, true, "/bla/");
