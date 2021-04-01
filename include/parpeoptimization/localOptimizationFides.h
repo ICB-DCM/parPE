@@ -6,7 +6,8 @@
 
 namespace parpe {
 
-class OptimizerFides: public Optimizer {
+class OptimizerFides : public Optimizer
+{
   public:
     OptimizerFides() = default;
 
@@ -18,7 +19,8 @@ class OptimizerFides: public Optimizer {
      * @return .
      */
 
-    std::tuple<int, double, std::vector<double>> optimize(OptimizationProblem *problem) override;
+    std::tuple<int, double, std::vector<double>> optimize(
+      OptimizationProblem* problem) override;
 };
 
 } // namespace parpe

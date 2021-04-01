@@ -4,44 +4,132 @@
 #include "parpeoptimization/optimizationOptions.h"
 #include "parpeoptimization/optimizationProblem.h"
 
-#include <fides/minimize.hpp>
 #include <blaze/math/CustomVector.h>
+#include <fides/minimize.hpp>
 
+using blaze::columnVector;
+using blaze::CustomVector;
+using blaze::DynamicVector;
 using blaze::unaligned;
 using blaze::unpadded;
-using blaze::CustomVector;
-using blaze::columnVector;
-using blaze::DynamicVector;
-using UnalignedUnpadded = CustomVector<int,unaligned,unpadded,columnVector>;
+using UnalignedUnpadded = CustomVector<int, unaligned, unpadded, columnVector>;
 
 namespace gsl {
-template< typename Type, bool TF, typename Alloc, typename Tag >
-auto make_span(DynamicVector<Type,TF,Alloc,Tag> & dv) {
+
+template<typename Type, bool TF, typename Alloc, typename Tag>
+auto
+make_span(DynamicVector<Type, TF, Alloc, Tag>& dv)
+{
     return gsl::span<Type>(dv.data(), dv.size());
 }
 
-template< typename Type, bool TF, typename Alloc, typename Tag >
-auto make_span(DynamicVector<Type,TF,Alloc,Tag> const& dv) {
+template<typename Type, bool TF, typename Alloc, typename Tag>
+auto
+make_span(DynamicVector<Type, TF, Alloc, Tag> const& dv)
+{
     return gsl::span<const Type>(dv.data(), dv.size());
 }
 
-}
+} // namespace gsl
+
 namespace parpe {
 
-
-
-std::tuple<int, double, std::vector<double>> OptimizerFides::optimize(OptimizationProblem *problem)
+fides::Options
+get_optimization_options(OptimizationOptions const& parpe_options)
 {
-    int numParams = problem->cost_fun_->numParameters();
+    fides::Options fides_options;
+    fides_options.maxiter = parpe_options.maxOptimizerIterations;
 
-    DynamicVector<double> x0(static_cast<std::size_t>(numParams));
-    problem->fillInitialParameters(gsl::make_span(x0));
+    parpe_options.for_each<fides::Options&>(
+      [](const std::pair<const std::string, const std::string>& pair,
+         fides::Options& options) {
+          const std::string& key = pair.first;
+          const std::string& val = pair.second;
 
-    DynamicVector<double> lb(static_cast<std::size_t>(numParams));
-    problem->fillParametersMin(gsl::make_span(lb));
+          if (key == "maxiter") {
+              options.maxiter = std::stoi(val);
+          } else if (key == "maxtime") {
+              options.maxtime = std::chrono::seconds(std::stoi(val));
+          } else if (key == "fatol") {
+              options.fatol = std::stod(val);
+          } else if (key == "frtol") {
+              options.frtol = std::stod(val);
+          } else if (key == "xtol") {
+              options.xtol = std::stod(val);
+          } else if (key == "gatol") {
+              options.gatol = std::stod(val);
+          } else if (key == "grtol") {
+              options.grtol = std::stod(val);
+          } else if (key == "subspace_solver") {
+              auto result = std::find_if(
+                fides::subspace_dim_to_str.cbegin(),
+                fides::subspace_dim_to_str.cend(),
+                [key](const auto& kv) { return kv.second == key; });
+              if (result != fides::subspace_dim_to_str.cend())
+                  options.subspace_solver = result->first;
+              else
+                  logmessage(LOGLVL_WARNING,
+                             "Invalid value %s provided for option "
+                             "'subspace_solver'. Ignoring.",
+                             val.c_str());
+          } else if (key == "stepback_strategy") {
+              auto result = std::find_if(
+                fides::step_back_strategy_str.cbegin(),
+                fides::step_back_strategy_str.cend(),
+                [key](const auto& kv) { return kv.second == key; });
+              if (result != fides::step_back_strategy_str.cend())
+                  options.stepback_strategy = result->first;
+              else
+                  logmessage(LOGLVL_WARNING,
+                             "Invalid value %s provided for option "
+                             "'stepback_strategy'. Ignoring.",
+                             val.c_str());
+          } else if (key == "theta_max") {
+              options.theta_max = std::stoi(val);
+          } else if (key == "delta_init") {
+              options.delta_init = std::stoi(val);
+          } else if (key == "mu") {
+              options.mu = std::stoi(val);
+          } else if (key == "eta") {
+              options.eta = std::stoi(val);
+          } else if (key == "gamma1") {
+              options.gamma1 = std::stoi(val);
+          } else if (key == "gamma2") {
+              options.gamma2 = std::stoi(val);
+          } else if (key == "refine_stepback") {
+              options.refine_stepback = std::stoi(val);
+          } else {
+              logmessage(LOGLVL_WARNING,
+                         "Ignoring unknown optimization option %s.",
+                         key.c_str());
+              return;
+          }
 
-    DynamicVector<double> ub(static_cast<std::size_t>(numParams));
-    problem->fillParametersMax(gsl::make_span(ub));
+          logmessage(LOGLVL_DEBUG,
+                     "Set optimization option %s to %s.",
+                     key.c_str(),
+                     val.c_str());
+      },
+      fides_options);
+
+    return fides_options;
+}
+
+std::tuple<int, double, std::vector<double>>
+OptimizerFides::optimize(OptimizationProblem* problem)
+{
+    auto reporter = problem->getReporter();
+    auto numParams =
+      static_cast<std::size_t>(problem->cost_fun_->numParameters());
+
+    DynamicVector<double> x0(numParams);
+    problem->fillInitialParameters(x0);
+
+    DynamicVector<double> lb(numParams);
+    problem->fillParametersMin(lb);
+
+    DynamicVector<double> ub(numParams);
+    problem->fillParametersMax(ub);
 
     WallTimer optimization_timer;
 
@@ -50,23 +138,26 @@ std::tuple<int, double, std::vector<double>> OptimizerFides::optimize(Optimizati
         ++numFunctionCalls;
         DynamicVector<double> g(x.size(), NAN);
         double fval = NAN;
-        problem->cost_fun_->evaluate(gsl::make_span(x), fval,
-                                     gsl::make_span(g), nullptr, nullptr);
+        problem->cost_fun_->evaluate(
+          gsl::make_span(x), fval, gsl::make_span(g), nullptr, nullptr);
 
         return std::make_tuple(fval, g, blaze::DynamicMatrix<double>());
     };
 
-    auto parpe_options = problem->getOptimizationOptions();
-    fides::Options fides_options;
-    fides_options.maxiter = parpe_options.maxOptimizerIterations;
-
+    auto fides_options =
+      get_optimization_options(problem->getOptimizationOptions());
+    // TODO to config
     fides::BFGS hessian_approximation;
-    fides::Optimizer optimizer(fun, lb, ub, 10, fides_options,
-                               &hessian_approximation);
+    fides::Optimizer optimizer(
+      fun, lb, ub, 10, fides_options, &hessian_approximation);
+
+    reporter->starting(x0);
     auto [fval, x, grad, hess] = optimizer.minimize(x0);
-    return std::make_tuple(
-        static_cast<int>(optimizer.exit_flag_) > 0,
-        fval, std::vector<double>(x.begin(), x.end()));
+    reporter->finished(fval, x, static_cast<int>(optimizer.exit_flag_));
+
+    return std::make_tuple(static_cast<int>(optimizer.exit_flag_) <= 0,
+                           fval,
+                           std::vector<double>(x.begin(), x.end()));
 }
 
 } // namespace parpe
