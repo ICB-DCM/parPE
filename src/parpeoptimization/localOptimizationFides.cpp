@@ -149,7 +149,7 @@ OptimizerFides::optimize(OptimizationProblem* problem)
     // TODO to config
     fides::BFGS hessian_approximation;
     fides::Optimizer optimizer(
-      fun, lb, ub, 10, fides_options, &hessian_approximation);
+      fun, lb, ub, fides_options, &hessian_approximation);
 
     reporter->starting(x0);
     auto [fval, x, grad, hess] = optimizer.minimize(x0);
