@@ -45,7 +45,7 @@ TEST(SimulationResultWriter, ResultWriter) {
                 std::vector<amici::ParameterScaling>(),
                 amici::SecondOrderMode::none, amici::SensitivityOrder::none,
                 amici::SensitivityMethod::none, amici::RDataReporting::full,
-                true);
+                true, true, 50);
     std::iota(rdata.x.begin(), rdata.x.end(), 0);
     rdata.llh = 1.2345;
     rdata.y.resize(measurements.size());
