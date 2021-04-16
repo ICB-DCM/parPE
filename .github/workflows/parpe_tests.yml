@@ -59,7 +59,7 @@ jobs:
 
     - name: "Install parPE deps: fides"
       run: |
-        ${PARPE_BASE}/ThirdParty/installFides.sh
+        sudo apt install libspdlog-dev && ${PARPE_BASE}/ThirdParty/installFides.sh
 
     - name: Configure parPE
       run: |
