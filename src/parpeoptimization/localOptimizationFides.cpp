@@ -40,12 +40,11 @@ get_optimization_options(OptimizationOptions const& parpe_options)
     fides::Options fides_options;
     fides_options.maxiter = parpe_options.maxOptimizerIterations;
 
-    parpe_options.for_each<fides::Options&>(
-      [](const std::pair<const std::string, const std::string>& pair,
-         fides::Options& options) {
+    parpe_options.for_each<int>(
+      [&fides_options](const std::pair<const std::string, const std::string>& pair, int) {
           const std::string& key = pair.first;
           const std::string& val = pair.second;
-
+          auto &options = fides_options;
           if (key == "maxiter") {
               options.maxiter = std::stoi(val);
           } else if (key == "maxtime") {
@@ -110,7 +109,7 @@ get_optimization_options(OptimizationOptions const& parpe_options)
                      key.c_str(),
                      val.c_str());
       },
-      fides_options);
+      0);
 
     return fides_options;
 }
