@@ -40,10 +40,10 @@ TEST(LocalOptimizationFides, FindsOptimum)
       .Times(AtLeast(1));
 
     parpe::OptimizerFides optimizer;
-    auto result = optimizer.optimize(&problem);
+    auto [status, fval, parameters]= optimizer.optimize(&problem);
 
     // check status, cost, parameter
-    EXPECT_EQ(0, std::get<0>(result));
-    EXPECT_NEAR(42.0, std::get<1>(result), 1e-12);
-    EXPECT_NEAR(-1.0, std::get<2>(result).at(0), xtol);
+    EXPECT_EQ(0, status);
+    EXPECT_NEAR(42.0, fval, 1e-12);
+    EXPECT_NEAR(-1.0, parameters.at(0), xtol);
 }
