@@ -18,7 +18,7 @@ if [[ ! -d "${blaze_dir}" ]]; then
     wget https://bitbucket.org/blaze-lib/blaze/downloads/blaze-3.8.tar.gz
   fi
   tar -xzf blaze-3.8.tar.gz
-  cd blaze-3.8 \
+  cd blaze-3.8
   cmake -S . -B build/ -DCMAKE_INSTALL_PREFIX=/usr/local/
   cd build
   sudo make -j2 install
