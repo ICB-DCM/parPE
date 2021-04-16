@@ -50,5 +50,5 @@ TEST(LocalOptimizationFides, FindsOptimum)
     // check status, cost, parameter
     EXPECT_EQ(0, status);
     EXPECT_NEAR(42.0, fval, 1e-12);
-    EXPECT_NEAR(-1.0, parameters.at(0), xtol);
+    EXPECT_NEAR(-1.0, parameters.at(0), xtol * 10.0);
 }
