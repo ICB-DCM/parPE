@@ -21,11 +21,13 @@ TEST(LocalOptimizationFides, FindsOptimum)
     auto xtol = 1e-8;
     // should not trigger termination
     auto fatol = 1e-16;
+    auto frtol = 1e-16;
     auto gatol = 1e-16;
 
     auto optimization_options = problem.getOptimizationOptions();
     optimization_options.setOption("xtol", xtol);
     optimization_options.setOption("fatol", fatol);
+    optimization_options.setOption("frtol", frtol);
     optimization_options.setOption("gatol", gatol);
     problem.setOptimizationOptions(optimization_options);
 
