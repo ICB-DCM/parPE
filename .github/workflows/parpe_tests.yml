@@ -57,6 +57,10 @@ jobs:
       run: |
         pip install -r ${PARPE_BASE}/python/requirements.txt
 
+    - name: "Install parPE deps: fides"
+      run: |
+        ${PARPE_BASE}/ThirdParty/installFides.sh
+
     - name: Configure parPE
       run: |
         cmake \
@@ -66,7 +70,8 @@ jobs:
           -DIPOPT_INCLUDE_DIRS=/usr/include/coin/ \
           -DIPOPT_LIBRARIES=/usr/lib/libipopt.so \
           -DGCOV_REPORT=TRUE \
-          -DBUILD_TESTING=TRUE
+          -DBUILD_TESTING=TRUE \
+          -DENABLE_FIDES=TRUE
 
     - name: Build parPE
       # with sonar build wrapper
