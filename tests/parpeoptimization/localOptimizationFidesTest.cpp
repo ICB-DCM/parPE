@@ -18,17 +18,22 @@ TEST(LocalOptimizationFides, FindsOptimum)
     parpe::QuadraticTestProblem problem;
 
     // should trigger termination
-    auto xtol = 1e-8;
+    auto fatol = 1e-12;
+
     // should not trigger termination
-    auto fatol = 1e-16;
-    auto frtol = 1e-16;
-    auto gatol = 1e-16;
+    auto xtol = 1e-16;
+    auto frtol = 0.0;
+    auto gatol = -1.0;
+    auto grtol = -1.0;
+
 
     auto optimization_options = problem.getOptimizationOptions();
     optimization_options.setOption("xtol", xtol);
     optimization_options.setOption("fatol", fatol);
     optimization_options.setOption("frtol", frtol);
     optimization_options.setOption("gatol", gatol);
+    optimization_options.setOption("grtol", grtol);
+    optimization_options.setOption("maxiter", 25);
     problem.setOptimizationOptions(optimization_options);
 
     EXPECT_CALL(*problem.reporter, starting(_));
@@ -51,6 +56,6 @@ TEST(LocalOptimizationFides, FindsOptimum)
 
     // check status, cost, parameter
     EXPECT_EQ(0, status);
-    EXPECT_NEAR(42.0, fval, 1e-12);
-    EXPECT_NEAR(-1.0, parameters.at(0), xtol * 10.0);
+    EXPECT_NEAR(42.0, fval, fatol * 10.0);
+    EXPECT_NEAR(-1.0, parameters.at(0), 1e-6);
 }
