@@ -25,7 +25,10 @@ if [[ ! -d "${blaze_dir}" ]]; then
 fi
 
 if [ ! -d "${fides_dir}" ]; then
-  cd "${script_dir}" && git clone https://github.com/dweindl/fides-cpp.git
+  cd "${script_dir}"
+  git clone https://github.com/dweindl/fides-cpp.git
+  cd "${fides_dir}"
+  git checkout develop
 fi
 
 cd "${fides_dir}"
