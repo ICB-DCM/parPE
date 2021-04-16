@@ -31,4 +31,4 @@ fi
 cd "${fides_dir}"
 cmake -S . -B build
 cd build
-make ${make_opts} fides
+make ${make_opts}
