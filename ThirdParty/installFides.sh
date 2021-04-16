@@ -29,6 +29,6 @@ if [ ! -d "${fides_dir}" ]; then
 fi
 
 cd "${fides_dir}"
-cmake -S . -B build
+cmake -S . -B build -DBUILD_TESTING=OFF
 cd build
 make ${make_opts}
