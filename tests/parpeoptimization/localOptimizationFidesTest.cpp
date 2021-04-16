@@ -21,9 +21,12 @@ TEST(LocalOptimizationFides, FindsOptimum)
     auto xtol = 1e-8;
     // should not trigger termination
     auto ftol = 1e-16;
+    auto gtol = 1e-16;
+
     auto optimization_options = problem.getOptimizationOptions();
     optimization_options.setOption("xtol", xtol);
     optimization_options.setOption("ftol", ftol);
+    optimization_options.setOption("gtol", gtol);
     EXPECT_CALL(*problem.reporter, starting(_));
     EXPECT_CALL(*problem.reporter,
                 finished(_, _, static_cast<int>(fides::ExitStatus::ftol)));
