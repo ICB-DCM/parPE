@@ -19,7 +19,7 @@
 namespace parpe {
 
 /**
- * @brief Return status for minibatch optimizer
+ * @brief Return status for mini-batch optimizer
  */
 enum class minibatchExitStatus {
     gradientNormConvergence, maxEpochsExceeded, invalidNumber
@@ -72,7 +72,7 @@ public:
 };
 
 /**
- * @brief learning rate updaters for minibatch optimizers
+ * @brief learning rate updaters for mini-batch optimizers
  *
  * The LearningRateUpdater provides the possibility to reduce the learning rate per epoch
  * and makes it possible to adapt the learning rate according to success or failure of
@@ -119,7 +119,7 @@ private:
     /** Learning rate, i.e. step size, at the moment of optimization */
     double currentLearningRate = 0.0;
 
-    /** If an optimization step is not succesful, the learning rate, i.e., step size, will be reduced by this factor */
+    /** If an optimization step is not successful, the learning rate, i.e., step size, will be reduced by this factor */
     double reductionFactor = 4.0;
 
     /** Learning rate, i.e. step size, at the beginning of optimization */
@@ -133,7 +133,7 @@ private:
 };
 
 /**
- * @brief Interface for parameter updaters for minibatch optimizers
+ * @brief Interface for parameter updaters for mini-batch optimizers
  */
 class ParameterUpdater {
 public:
@@ -157,7 +157,7 @@ public:
     /** If the ODE is repeatedly non-integrable, a cold restart is performed using this method */
     virtual void clearCache() = 0;
 
-    /** Intialize the parameter updater */
+    /** Initialize the parameter updater */
     virtual void initialize(unsigned int numParameters) = 0;
 
     virtual ~ParameterUpdater() = default;
@@ -165,7 +165,7 @@ public:
 };
 
 /**
- * @brief Minibatch optimizer: Vanilla SGD Updater
+ * @brief Mini-batch optimizer: Vanilla SGD Updater
  * The simplest mini batch algorithm.
  */
 class ParameterUpdaterVanilla: public ParameterUpdater {
@@ -187,7 +187,7 @@ public:
 };
 
 /**
- * @brief Minibatch optimizer: RMSProp Updater
+ * @brief Mini-batch optimizer: RMSProp Updater
  * A so-called adaptive mini batching algorithm without momentum
  */
 class ParameterUpdaterRmsProp: public ParameterUpdater {
@@ -212,7 +212,7 @@ private:
     /** Rate for memorizing gradient norms (between 0 and 1, high rates mean long memory) */
     double decayRate = 0.9;
 
-    /** Stabilization factor for gradient normalization (avoid deviding by 0) */
+    /** Stabilization factor for gradient normalization (avoid dividing by 0) */
     double delta = 1e-7;
 
     /** Memorized gradient norms (decaying average) from last steps */
@@ -223,7 +223,7 @@ private:
 };
 
 /**
- * @brief Minibatch optimizer: Momentum Updater
+ * @brief Mini-batch optimizer: Momentum Updater
  * A classical gradient based optimizer using a vanilla momentum formula
  */
 class ParameterUpdaterMomentum: public ParameterUpdater {
@@ -256,7 +256,7 @@ private:
 };
 
  /**
- * @brief Minibatch optimizer: Adam Updater
+ * @brief Mini-batch optimizer: Adam Updater
  * A momentum-based and so-called adaptive mini batching algorithm
  */
 class ParameterUpdaterAdam: public ParameterUpdater {
@@ -284,7 +284,7 @@ private:
     /** Rate for memorizing gradient norms (between 0 and 1, high rates mean long memory) */
     double decayRateGradientNorm = 0.9;
 
-    /** Stabilization factor for gradient normalization (avoid deviding by 0) */
+    /** Stabilization factor for gradient normalization (avoid dividing by 0) */
     double delta = 1e-7;
 
     /** Memorized gradient norms (decaying average) from last steps */
@@ -301,7 +301,7 @@ private:
 };
 
 /**
- * @brief Minibatch optimizer: Adam Classic Updater
+ * @brief Mini-batch optimizer: Adam Classic Updater
  * A momentum-based and so-called adaptive mini batching algorithm,
  * using the original settings from the literature
  */
@@ -405,7 +405,7 @@ public:
     /**
      * @brief Minimize the given function using mini-batch gradient descent.
      *
-     * @param f Function to minize
+     * @param f Function to minimize
      * @param data Full data set on which f will be evaluated
      * @param initialParameters Starting point for optimization
      * @param reporter OptimizationReporter instance for tracking progress
@@ -467,7 +467,7 @@ public:
                 batchLogger->logmessage(LOGLVL_DEBUG, ss.str().c_str());
 
                 if (status == functionEvaluationFailure) {
-                    // Check, if the interceptor should be used (should alwayss be the case, except for study purpose...
+                    // Check, if the interceptor should be used (should always be the case, except for study purpose...
                     if (interceptor > interceptType::none)
                         status = rescueInterceptor(parameters, oldParameters, gradient, oldGradient,
                                                    lowerParameterBounds, upperParameterBounds, cost, subsequentFails,
@@ -478,7 +478,7 @@ public:
                         return finish(cost, parameters, minibatchExitStatus::invalidNumber, reporter, batchLogger.get());
 
                 } else {
-                    // Cost function evaluation was succeful, so we can increase the step size
+                    // Cost function evaluation was successful, so we can increase the step size
                     subsequentFails = std::max(subsequentFails - 1, 0);
                     learningRateUpdater->increaseLearningRate();
 
@@ -493,7 +493,7 @@ public:
 
             }
 
-            // epoch finished, write the values in hdf5-file
+            // epoch finished, write the values in HDF5-file
             if (reporter)
                 reporter->iterationFinished(parameters, cost, gradient);
 
@@ -551,7 +551,7 @@ public:
         if (logger) {
             switch (status) {
             case minibatchExitStatus::invalidNumber:
-                logger->logmessage(LOGLVL_ERROR, "Minibatch cost function evaluation failed.");
+                logger->logmessage(LOGLVL_ERROR, "Mini-batch cost function evaluation failed.");
                 break;
             case minibatchExitStatus::gradientNormConvergence:
                 logger->logmessage(LOGLVL_INFO, "Convergence: gradientNormThreshold reached.");
@@ -639,7 +639,7 @@ public:
 
             // If nothing helps and no cold restart wanted: cancel optimization
             if (initialFail or (finalFail and interceptor != interceptType::reduceStepAndRestart)) {
-                logger->logmessage(LOGLVL_DEBUG, "Failure at intial point of optimization. Stopping.");
+                logger->logmessage(LOGLVL_DEBUG, "Failure at initial point of optimization. Stopping.");
                 return functionEvaluationFailure;
             }
 
@@ -658,7 +658,7 @@ public:
             }
 
             // debug output
-            ss << ": Interceptor, before new evalaluation: " << std::endl
+            ss << ": Interceptor, before new evaluation: " << std::endl
                 << " New cost: " << cost
                 << ", new |g|2: " << getVectorNorm(gradient)
                 << ", new LearningRate: " << learningRate
@@ -678,7 +678,7 @@ public:
             parDifference = getVectorDifference(parameters, oldParameters);
 
             // debug output
-            ss << ": Interceptor, after new evalaluation: " << std::endl
+            ss << ": Interceptor, after new evaluation: " << std::endl
                 << " New Cost: " << cost
                 << " new |g|2: " << getVectorNorm(gradient)
                 << " new LearningRate: " << learningRate
@@ -701,7 +701,7 @@ public:
      * @param oldGradient cost function gradient before last step
      * @param cost new cost function value after interception
      * @param subsequentFails number of iterations during rescue interceptor
-     * @param f Function to minize
+     * @param f Function to minimize
      * @param data Full data set on which f will be evaluated
      * @param logger Logger instance for status messages
      * @param reporter OptimizationReporter instance for tracking progress
@@ -740,7 +740,7 @@ public:
 
             parameterUpdater->updateParameters(alpha, iteration, gradient, parameters,
                                                lowerParameterBounds, upperParameterBounds);
-            /* Write new cost funtion value and return */
+            /* Write new cost function value and return */
             double newCost = NAN;
             evaluate(f, parameters, datasets, newCost, gsl::span<double>(), logger, reporter);
             return newCost;
@@ -807,9 +807,9 @@ public:
                 cost1 = evalLineSearch(stepLength);
                 parabola_ss << " Step adaption did not work..." << std::endl;
             }
-            parabola_ss << "   cost0: " << cost << " (steplength: " << getVectorNorm(parDifference)
-                << "),   cost1: " << cost1 << " (steplength: " << stepLength
-                << "),   cost2: " << cost2 << " (steplength: " << newStepLength
+            parabola_ss << "   cost0: " << cost << " (step length: " << getVectorNorm(parDifference)
+                << "),   cost1: " << cost1 << " (step length: " << stepLength
+                << "),   cost2: " << cost2 << " (step length: " << newStepLength
                 << ") " << std::endl;
             if (logger)
                 logger->logmessage(LOGLVL_DEBUG, parabola_ss.str().c_str());
@@ -827,9 +827,9 @@ public:
         // Debugging output
         if (logger) {
             line_ss << " Line-Search: two steps were done, results are: " << std::endl
-                << "   cost0: " << cost << " (steplength: " << getVectorNorm(parDifference)
-                << "),   cost1: " << cost1 << " (steplength: " << stepLength
-                << "),   cost2: " << cost2 << " (steplength: " << newStepLength
+                << "   cost0: " << cost << " (step length: " << getVectorNorm(parDifference)
+                << "),   cost1: " << cost1 << " (step length: " << stepLength
+                << "),   cost2: " << cost2 << " (step length: " << newStepLength
                 << ")" << std::endl;
             logger->logmessage(LOGLVL_DEBUG, line_ss.str().c_str());
         }
@@ -861,8 +861,9 @@ public:
     }
 
     /**
-     * @brief Perform line search according to interpolation algo by [Dennis and Schnabel,
-     * Numerical Methods for Unconstrained Optimization and Non-linear Equations, 1993].
+     * @brief Perform line search according to interpolation algorithm by
+     * [Dennis and Schnabel, Numerical Methods for Unconstrained Optimization
+     * and Non-linear Equations, 1993].
      *
      * @param alpha1 step length of first step
      * @param alpha2 step length of second step
@@ -890,7 +891,7 @@ public:
          *
          * alpha3 = -b + sqrt(b*b - 3*a*dirGradient ) / (3*a)
          *
-         * Possibly, we have to iterrate this process. */
+         * Possibly, we have to iterate this process. */
 
         /* Declare variables which will be needed outside the loop */
         double cost3 = NAN;
@@ -960,7 +961,7 @@ void setMinibatchOption(const std::pair<const std::string, const std::string> &p
                         MinibatchOptimizer<int>* optimizer);
 
 /**
- * @brief Create and setup a minibatch optimizer according to the given options
+ * @brief Create and setup a mini-batch optimizer according to the given options
  * @param options
  * @return
  */

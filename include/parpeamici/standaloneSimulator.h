@@ -34,7 +34,7 @@ class StandaloneSimulator
      * @param resultPath HDF5 file root group name
      * @param optimizationParameters Parameters for simulation (results from
      * hierarchical or standard optimization
-     * @param loadBalancer LoadBalander instance for distributed memory
+     * @param loadBalancer LoadBalancer instance for distributed memory
      * parallel, or nullptr for shared memory parallel or sequential
      * @param inputFile File with simulation options and data used for
      * optimization

@@ -78,7 +78,7 @@ AmiciSimulationRunner::runDistributedMemory(LoadBalancerMaster* loadBalancer,
     pthread_mutex_lock(&simulationsMutex);
     while (numJobsFinished < numJobsTotal) // TODO don't wait for all to
                                            // complete; stop early if errors
-                                           // occured
+                                           // occurred
         pthread_cond_wait(&simulationsCond, &simulationsMutex);
     pthread_mutex_unlock(&simulationsMutex);
     pthread_mutex_destroy(&simulationsMutex);
@@ -112,7 +112,7 @@ AmiciSimulationRunner::runSharedMemory(const messageHandlerFunc& messageHandler,
     for (int simulationIdx = 0;
          simulationIdx < (signed)condition_indices_.size();
          ++simulationIdx) {
-        // to reuse the parallel code and for debugging we still serialze the
+        // to reuse the parallel code and for debugging we still serialize the
         // job data here
         auto curConditionIndices = std::vector<int>{ simulationIdx };
         AmiciWorkPackageSimple work{ optimization_parameters_,

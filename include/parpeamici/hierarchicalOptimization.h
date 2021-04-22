@@ -87,13 +87,6 @@ class HierarchicalOptimizationWrapper : public GradientFunction
 
     using GradientFunction::evaluate;
 
-    /**
-     * @brief See base class
-     * @param parameters
-     * @param fval
-     * @param gradient
-     * @return
-     */
     FunctionEvaluationStatus evaluate(gsl::span<double const> parameters,
                                       double& fval,
                                       gsl::span<double> gradient,
@@ -355,7 +348,7 @@ class HierarchicalOptimizationReporter : public OptimizationReporter
     // TODO should override other functions as well
     // TODO: in all functions, we need to check of the provided parameters or
     // function values match To cached ones, if we want to provide all together
-    // to downstreams
+    // to downstream
 };
 
 /**

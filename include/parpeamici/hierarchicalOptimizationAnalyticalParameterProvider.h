@@ -83,7 +83,7 @@ class AnalyticalParameterHdf5Reader : public AnalyticalParameterProvider
     /**
      * @brief AnalyticalParameterHdf5Reader
      * @param file
-     * @param scalingParameterIndicesPath location in hdf5 file of the list of
+     * @param scalingParameterIndicesPath location in HDF5 file of the list of
      * indices of the analytically determined parameters within the overall
      * optimization parameters
      * @param mapPath path of to the dataset with the
