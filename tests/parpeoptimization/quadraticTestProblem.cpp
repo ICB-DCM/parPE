@@ -14,8 +14,9 @@ namespace parpe {
 
 QuadraticTestProblem::QuadraticTestProblem(std::unique_ptr<Logger> logger)
     : OptimizationProblem(
-          std::unique_ptr<GradientFunction>(
-              new NiceMock<QuadraticGradientFunctionMock>()), std::move(logger)) {
+          std::make_unique<NiceMock<QuadraticGradientFunctionMock>>(),
+          std::move(logger)
+          ) {
 
     auto options = getOptimizationOptions();
     options.maxOptimizerIterations = 12;
@@ -30,7 +31,6 @@ QuadraticTestProblem::QuadraticTestProblem(std::unique_ptr<Logger> logger)
 void QuadraticTestProblem::fillParametersMin(gsl::span<double> buffer) const
 {
     buffer[0] = -1e5;
-
 }
 
 void QuadraticTestProblem::fillParametersMax(gsl::span<double> buffer) const
@@ -49,9 +49,8 @@ QuadraticOptimizationMultiStartProblem::getLocalProblem(
         int  multiStartIndex) const {
     auto loggerPrefix = std::string("[start ")
             + std::to_string(multiStartIndex) + "]";
-    auto p = std::unique_ptr<OptimizationProblem>(
-                new QuadraticTestProblem(
-                    std::make_unique<Logger>(loggerPrefix)));
+    auto p = std::make_unique<QuadraticTestProblem>(
+        std::make_unique<Logger>(loggerPrefix));
     p->setOptimizationOptions(options);
     return p;
 }

@@ -33,7 +33,7 @@ class OptimizationOptions {
     OptimizationOptions() = default;
 
     /** Optimizer factory method depending on OptimizationOptions::optimizer */
-    Optimizer *createOptimizer() const;
+    std::unique_ptr<Optimizer> createOptimizer() const;
 
     /** Optimizer to use */
     optimizerName optimizer = optimizerName::OPTIMIZER_IPOPT;
@@ -87,12 +87,12 @@ private:
     std::map<std::string, std::string> options;
 };
 
-Optimizer* optimizerFactory(optimizerName optimizer);
+std::unique_ptr<Optimizer> optimizerFactory(optimizerName optimizer);
 
 /**
  * @brief Print list of supported optimizers
  */
-void printAvailableOptimizers(std::string prefix = "");
+void printAvailableOptimizers(const std::string &prefix = "");
 } // namespace parpe
 
 #endif // OPTIMIZATIONOPTIONS_H

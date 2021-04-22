@@ -17,7 +17,7 @@ namespace parpe {
  * ./simulate --at-optimum : use parameters from last iteration of all
  *                           multi-start optimization runs
  *            --parameter-matrix : using arbitrary parameters from some matrix
- *                                 in hdf5 file
+ *                                 in HDF5 file
  *            --along-trajectory : use parameters along the optimization
  *                                 trajectory of all multi-start optimization
  *                                 runs

@@ -83,7 +83,7 @@ void optimizationOptionsFromAttribute(H5::H5Object& loc,
     }
 }
 
-Optimizer *OptimizationOptions::createOptimizer() const {
+std::unique_ptr<Optimizer> OptimizationOptions::createOptimizer() const {
     return optimizerFactory(optimizer);
 }
 
@@ -265,7 +265,7 @@ void OptimizationOptions::setOption(const std::string& key, std::string value)
     options[key] = std::move(value);
 }
 
-Optimizer* optimizerFactory(optimizerName optimizer)
+std::unique_ptr<Optimizer> optimizerFactory(optimizerName optimizer)
 {
     switch (optimizer) {
     case optimizerName::OPTIMIZER_FIDES:
@@ -276,44 +276,44 @@ Optimizer* optimizerFactory(optimizerName optimizer)
 #endif
     case optimizerName::OPTIMIZER_IPOPT:
 #ifdef PARPE_ENABLE_IPOPT
-        return new OptimizerIpOpt();
+        return std::make_unique<OptimizerIpOpt>();
 #else
         return nullptr;
 #endif
     case optimizerName::OPTIMIZER_CERES:
 #ifdef PARPE_ENABLE_CERES
-        return new OptimizerCeres();
+        return std::make_unique<OptimizerCeres>();
 #else
         return nullptr;
 #endif
     case optimizerName::OPTIMIZER_DLIB:
 #ifdef PARPE_ENABLE_DLIB
-        return new OptimizerDlibLineSearch();
+        return std::make_unique<OptimizerDlibLineSearch>();
 #else
         return nullptr;
 #endif
     case optimizerName::OPTIMIZER_TOMS611:
 #ifdef PARPE_ENABLE_TOMS611
-        return new OptimizerToms611TrustRegionSumsl();
+        return std::make_unique<OptimizerToms611TrustRegionSumsl>();
 #else
         return nullptr;
 #endif
     case optimizerName::OPTIMIZER_FSQP:
 #ifdef PARPE_ENABLE_FSQP
-        return new OptimizerFsqp();
+        return std::make_unique<OptimizerFsqp>();
 #else
         return nullptr;
 #endif
     case optimizerName::OPTIMIZER_MINIBATCH_1:
         throw ParPEException("optimizerFactory() cannot be used with "
-                             "minibatch optimizer.");
+                             "mini-batch optimizer.");
     }
 
     return nullptr;
 }
 
 
-void printAvailableOptimizers(std::string prefix)
+void printAvailableOptimizers(std::string const& prefix)
 {
     optimizerName optimizer {optimizerName::OPTIMIZER_IPOPT};
 
