@@ -1,5 +1,5 @@
-cmake_minimum_required(VERSION 3.10) # for GoogleTest
-cmake_policy(VERSION 3.10)
+cmake_minimum_required(VERSION 3.13) # pkg_search_module GLOBAL
+cmake_policy(VERSION 3.13)
 
 if(POLICY CMP0074)
   # Use package_ROOT environment variables

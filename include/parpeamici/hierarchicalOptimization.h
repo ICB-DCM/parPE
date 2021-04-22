@@ -475,26 +475,32 @@ removeInnerParameters(const gsl::span<T const> allParameters,
         allParameters.size() - proportionalityFactorIndices.size() -
         offsetParameterIndices.size() - sigmaParameterIndices.size());
 
-    int idxOuter = 0;
+    int nextOuterIdx = 0;
     for(int idxFull = 0; idxFull < static_cast<int>(allParameters.size());
          ++idxFull) {
+
+        // skip if current parameter is scaling/offset/sigma
         if(std::find(proportionalityFactorIndices.begin(),
-                      proportionalityFactorIndices.end(), idxOuter)
+                      proportionalityFactorIndices.end(), idxFull)
             != std::end(proportionalityFactorIndices))
             continue;
+
         if(std::find(offsetParameterIndices.begin(),
-                      offsetParameterIndices.end(), idxOuter)
+                      offsetParameterIndices.end(), idxFull)
             != std::end(offsetParameterIndices))
             continue;
+
         if(std::find(sigmaParameterIndices.begin(),
-                      sigmaParameterIndices.end(), idxOuter)
+                      sigmaParameterIndices.end(), idxFull)
             != std::end(sigmaParameterIndices))
             continue;
-        outerParameters[idxOuter] = allParameters[idxFull];
-        ++idxOuter;
+
+        // otherwise copy
+        outerParameters[nextOuterIdx] = allParameters[idxFull];
+        ++nextOuterIdx;
     }
 
-    Ensures(idxOuter == static_cast<int>(outerParameters.size()));
+    Ensures(nextOuterIdx == static_cast<int>(outerParameters.size()));
     return outerParameters;
 }
 
