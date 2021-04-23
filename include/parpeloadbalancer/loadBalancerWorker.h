@@ -15,11 +15,11 @@ class LoadBalancerWorker {
     LoadBalancerWorker() = default;
 
     /**
-     * messageHandler is called by run when a message is received. The
-     * message is contained in buffer.
+     * Callback function for when a message is received.
+     *
      * @param buffer The message
-     * @param jobId is a message identifier, unique over the range of MAX_INT
-     * messages
+     * @param jobId A message identifier, unique over the range of MAX_INT
+     * messages.
      */
     using messageHandlerFunc = std::function<void (std::vector<char> &buffer, int jobId)>;
 
@@ -27,8 +27,8 @@ class LoadBalancerWorker {
 
   private:
     /**
-     * @brief waitForAndHandleJobs
-     * @return true: received termination signal
+     * @brief Probe for and dispatch the next incoming job
+     * @return `true` if the termination signal was received, `false` otherwise.
      */
     bool waitForAndHandleJobs(const messageHandlerFunc& messageHandler);
 };

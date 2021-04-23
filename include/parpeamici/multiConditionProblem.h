@@ -188,7 +188,7 @@ protected:// for testing
                                double *cpuTime) const;
 
     /**
-     * @brief Aggregates loglikelihood received from workers.
+     * @brief Aggregates log-likelihood received from workers.
      * @param data Simulation job result
      * @param negLogLikelihood output argument to which *negative*
      * log likelihood is added
@@ -206,7 +206,7 @@ protected:// for testing
 
 
     /**
-     * @brief Aggregates loglikelihood gradient received from workers.
+     * @brief Aggregates log-likelihood gradient received from workers.
      * @param conditionIdx
      * @param simulationGradient log-likelihood gradient from simulation
      * @param objectiveFunctionGradient output to which *negative*
