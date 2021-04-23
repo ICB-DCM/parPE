@@ -270,7 +270,7 @@ std::unique_ptr<Optimizer> optimizerFactory(optimizerName optimizer)
     switch (optimizer) {
     case optimizerName::OPTIMIZER_FIDES:
 #ifdef PARPE_ENABLE_FIDES
-        return new OptimizerFides();
+        return std::make_unique<OptimizerFides>();
 #else
         return nullptr;
 #endif
