@@ -148,7 +148,7 @@ private:
 
 protected:
     // command line option parsing
-    const char *shortOptions = "dhvmt:o:s:";
+    const char *shortOptions = "dhvmt:o:s:g:";
     struct option const longOptions[10] = {
         {"debug", no_argument, nullptr, 'd'},
         {"print-worklist", no_argument, nullptr, 'p'},
