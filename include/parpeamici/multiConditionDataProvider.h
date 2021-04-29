@@ -127,7 +127,8 @@ class MultiConditionDataProviderDefault : public MultiConditionDataProvider
     /**
      * @brief Provides the number of conditions for which data is available and
      * simulations need to be run.
-     * This is determined from the dimensions of the hdf5MeasurementPath
+     * This is determined from the dimensions of the
+     * MultiConditionDataProviderDefault::hdf5MeasurementPath
      * dataset.
      * @return Number of conditions
      */
@@ -348,10 +349,12 @@ class MultiConditionDataProviderHDF5 : public MultiConditionDataProvider
 
     /**
      * @brief Based on the array of optimization parameters, set the simulation
-     * parameters in the given Model object to the ones for condition index.
-     * @param conditionIndex
-     * @param optimizationParams
-     * @param udata
+     * parameters in the given Model object to the ones for simulation index.
+     * @param simulationIdx Index of the simulation condition for which to set
+     * model parameters.
+     * @param optimizationParams Problem parameters from which to extract
+     * simulation parameters.
+     * @param model Model on which to set parameter values and scale
      */
     void updateSimulationParametersAndScale(
       int simulationIdx,

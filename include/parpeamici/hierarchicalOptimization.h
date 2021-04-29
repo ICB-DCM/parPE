@@ -17,7 +17,7 @@ namespace parpe {
 enum class ErrorModel
 {
     normal
-}; // TODO logNormal, laplace
+}; // TODO logNormal, Laplace
 
 class AnalyticalParameterProvider;
 class AnalyticalParameterHdf5Reader;
@@ -87,13 +87,6 @@ class HierarchicalOptimizationWrapper : public GradientFunction
 
     using GradientFunction::evaluate;
 
-    /**
-     * @brief See base class
-     * @param parameters
-     * @param fval
-     * @param gradient
-     * @return
-     */
     FunctionEvaluationStatus evaluate(gsl::span<double const> parameters,
                                       double& fval,
                                       gsl::span<double> gradient,
@@ -247,7 +240,7 @@ class HierarchicalOptimizationWrapper : public GradientFunction
 
     /** Total number of conditions used in `fun` */
     int numConditions;
-    /** Total number of observables occuring in `fun` */
+    /** Total number of observables occurring in `fun` */
     int numObservables;
 
     /** Error model to use for computing analytical parameters and negative
@@ -258,7 +251,7 @@ class HierarchicalOptimizationWrapper : public GradientFunction
 
 /**
  * @brief The HierarchicalOptimizationProblemWrapper class wraps an
- * OptimizationProblem and hides the analytically optimizated parameters (from
+ * OptimizationProblem and hides the analytically optimized parameters (from
  * starting point, parameter bounds, ...)
  *
  */
@@ -354,8 +347,8 @@ class HierarchicalOptimizationReporter : public OptimizationReporter
     mutable std::vector<double> cached_full_gradient_;
     // TODO should override other functions as well
     // TODO: in all functions, we need to check of the provided parameters or
-    // functio nvalues match To cached ones, if we want to provide all together
-    // to downstreams
+    // function values match To cached ones, if we want to provide all together
+    // to downstream
 };
 
 /**
@@ -506,7 +499,7 @@ removeInnerParameters(const gsl::span<T const> allParameters,
 
 /**
  * @brief From the given parameter vector, extract outer optimization
- * parameters, as defined in the file HDF5 file parameterFile
+ * parameters, as defined in the file HDF5 file `parameterFile`
  * @param fullParameters
  * @param parameterFile
  * @param parameterPath
@@ -548,7 +541,7 @@ computeNegLogLikelihood(std::vector<double> const& measurements,
 
 /**
  * @brief If sensitivities are computed w.r.t. analytically computed parameters
- * (which is unneccessary), this function checks they are below the given
+ * (which is unnecessary), this function checks they are below the given
  * threshold.
  * @param gradient
  * @param analyticalIndices

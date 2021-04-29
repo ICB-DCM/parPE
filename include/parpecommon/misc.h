@@ -177,7 +177,7 @@ class InverseUniqueLock
 };
 
 /**
- * @brief Check if a and b are equal to machine precission
+ * @brief Check if a and b are equal to machine precision
  * @param a
  * @param b
  * @return

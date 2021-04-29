@@ -55,8 +55,6 @@ public:
      * @brief Create results datasets.
      *
      * Must be called before first call to `save*`
-     * @param udata
-     * @param edata
      * @param numSimulations
      */
     void createDatasets(hsize_t numSimulations);
@@ -65,7 +63,6 @@ public:
 
     /**
      * @brief Save results for a single simulation to HDF5 file.
-     * @param udata
      * @param edata
      * @param rdata
      * @param simulationIdx If >= 0: write results in the selected

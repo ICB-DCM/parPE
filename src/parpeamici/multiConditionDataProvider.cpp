@@ -63,7 +63,7 @@ int
 MultiConditionDataProviderHDF5::getNumberOfSimulationConditions() const
 {
     // TODO: add additional layer for selection of condition indices (for
-    // testing and later for minibatch)
+    // testing and later for mini-batch)
     // -> won't need different file for testing/validation splits
     // TODO: cache
 
@@ -378,7 +378,7 @@ MultiConditionDataProviderHDF5::getOptimizationParametersUpperBounds(
     auto dataset = file_.openDataSet(hdf5_parameter_max_path_);
 
     auto dataspace = dataset.getSpace();
-    // hdf5ParameterMaxPath dimensions dont match
+    // hdf5ParameterMaxPath dimensions don't match
     Expects(dataspace.getSimpleExtentNdims() == 1);
     hsize_t dim = 0;
     dataspace.getSimpleExtentDims(&dim);

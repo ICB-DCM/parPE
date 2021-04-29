@@ -46,7 +46,6 @@ public:
     /**
      * @brief Is called just before the optimizer starts. Must be called before
      * other functions.
-     * @param numParameters
      * @param initialParameters
      * @return Quit optimization?
      */
@@ -54,9 +53,9 @@ public:
 
     /**
      * @brief Is called after each iteration except for the last one
-     * @param numParameters
      * @param parameters
-     * @param currentIter
+     * @param objectiveFunctionValue
+     * @param objectiveFunctionGradient
      * @return Quit optimization?
      */
     virtual bool iterationFinished(gsl::span<const double> parameters,

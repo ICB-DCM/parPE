@@ -94,7 +94,7 @@ class LoadBalancerMaster {
     void sendTerminationSignalToAllWorkers();
 
     /**
-     * @brief Retuns whether we are ready to accept jobs (`run` was called, but
+     * @brief Returns whether we are ready to accept jobs (`run` was called, but
      * `terminate` was not).
      * @return true if running, false otherwise
      */
@@ -204,7 +204,7 @@ class LoadBalancerMaster {
     std::vector<MPI_Request> sendRequests;
 
     /** Jobs that have been sent to workers. Required for handling replies and
-     * signalling the client that processing has completed. */
+     * signaling the client that processing has completed. */
     std::vector<JobData *> sentJobsData;
 
     /** Mutex to protect access to `queue`. */

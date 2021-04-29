@@ -114,12 +114,12 @@ TEST(Common, Mpi) {
     EXPECT_EQ(-1, parpe::getMpiCommSize());
 
     // MPI initialized
-    MPI_Init(0, nullptr);
+    MPI_Init(nullptr, nullptr);
     EXPECT_EQ(0, parpe::getMpiRank());
     EXPECT_EQ(1, parpe::getMpiCommSize());
     MPI_Finalize();
 
-    // Should not make invalid calls after mpi_finalize
+    // Should not make invalid calls after MPI_Finalize
     EXPECT_EQ(-1, parpe::getMpiRank());
     EXPECT_EQ(-1, parpe::getMpiCommSize());
 }

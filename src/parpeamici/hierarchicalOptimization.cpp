@@ -86,7 +86,7 @@ void
 HierarchicalOptimizationWrapper::init()
 {
     if (errorModel != ErrorModel::normal) {
-        throw ParPEException("Only gaussian noise is supported so far.");
+        throw ParPEException("Only Gaussian noise is supported so far.");
     }
 
     /* Some functions currently expect these lists to be sorted, therefore
@@ -1304,7 +1304,7 @@ HierarchicalOptimizationReporter::iterationFinished(
             // We don't have the full parameter vector, only the outer
             // parameters so we can't append them due to different dimension
             // TODO: save both, outer + combined? can easily save outer + inner
-            // separetly
+            // separately
             std::vector<double> nanParameters(cached_full_parameters_.size(),
                                               NAN);
 
