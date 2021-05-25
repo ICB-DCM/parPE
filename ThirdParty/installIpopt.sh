@@ -76,7 +76,7 @@ if [[ ! -d "${ipopt_dir}" ]]; then
 
   cd "${ipopt_dir}"
 
-  PKG_CONFIG_PATH=$PKG_CONFIG_PATH:${hsl_install_dir}/lib/pkgconfig/ \
+  PKG_CONFIG_PATH=${PKG_CONFIG_PATH-}:${hsl_install_dir}/lib/pkgconfig/ \
   ./configure --prefix="${ipopt_install_dir}" \
     --disable-static \
     --enable-shared \
