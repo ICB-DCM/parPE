@@ -18,7 +18,8 @@ cd "${amici_dir}"
 "${parpe_root}/ThirdParty/installIpopt.sh"
 
 # build parpe
-export PKG_CONFIG_PATH=${parpe_root}/ThirdParty/Ipopt-releases-3.13.3/:${PKG_CONFIG_PATH:-}
+ipopt_root=${parpe_root}/ThirdParty/Ipopt-releases-3.13.3/
+export PKG_CONFIG_PATH=${PKG_CONFIG_PATH:-}:${ipopt_root}/install/lib/pkgconfig/:${ipopt_root}/ThirdParty-HSL/install/lib/pkgconfig/
 parpe_build_dir="${parpe_root}/build"
 mkdir -p "${parpe_build_dir}"
 cd "${parpe_build_dir}"
