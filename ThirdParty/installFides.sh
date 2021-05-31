@@ -21,7 +21,7 @@ build_fides() {
     cd "${script_dir}"
     git clone https://github.com/dweindl/fides-cpp.git
     cd "${fides_dir}"
-    git checkout develop
+    git checkout 9906bdac6a1966ddd4b37b96f98ad8f89770c128
   fi
 
   cd "${fides_dir}"
