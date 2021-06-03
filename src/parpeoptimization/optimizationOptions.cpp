@@ -5,6 +5,10 @@
 #include <parpeoptimization/localOptimizationCeres.h>
 #endif
 
+#ifdef PARPE_ENABLE_FIDES
+#include <parpeoptimization/localOptimizationFides.h>
+#endif
+
 #ifdef PARPE_ENABLE_IPOPT
 #include <parpeoptimization/localOptimizationIpopt.h>
 #endif
@@ -127,6 +131,9 @@ std::unique_ptr<OptimizationOptions> OptimizationOptions::fromHDF5(const H5::H5F
     std::string optimizerPath;
 
     switch(o->optimizer) {
+    case optimizerName::OPTIMIZER_FIDES:
+        optimizerPath = std::string(hdf5path) + "/fides";
+        break;
     case optimizerName::OPTIMIZER_CERES:
         optimizerPath = std::string(hdf5path) + "/ceres";
         break;
@@ -261,6 +268,12 @@ void OptimizationOptions::setOption(const std::string& key, std::string value)
 std::unique_ptr<Optimizer> optimizerFactory(optimizerName optimizer)
 {
     switch (optimizer) {
+    case optimizerName::OPTIMIZER_FIDES:
+#ifdef PARPE_ENABLE_FIDES
+        return std::make_unique<OptimizerFides>();
+#else
+        return nullptr;
+#endif
     case optimizerName::OPTIMIZER_IPOPT:
 #ifdef PARPE_ENABLE_IPOPT
         return std::make_unique<OptimizerIpOpt>();
@@ -307,6 +320,17 @@ void printAvailableOptimizers(std::string const& prefix)
     // Note: Keep fall-through switch statement, so compiler will warn us about
     // any addition to optimizerName
     switch (optimizer) {
+    case optimizerName::OPTIMIZER_FIDES:
+#ifdef PARPE_ENABLE_FIDES
+        std::cout<<prefix<<std::left<<std::setw(22)<<"OPTIMIZER_FIDES\t"
+                  <<static_cast<int>(optimizerName::OPTIMIZER_FIDES)
+                  <<" enabled\n";
+#else
+        std::cout<<prefix<<std::left<<std::setw(22)<<"OPTIMIZER_FIDES"
+                  <<static_cast<int>(optimizerName::OPTIMIZER_FIDES)
+                  <<" disabled\n";
+#endif
+        [[fallthrough]];
     case optimizerName::OPTIMIZER_IPOPT:
 #ifdef PARPE_ENABLE_IPOPT
         std::cout<<prefix<<std::left<<std::setw(22)<<"OPTIMIZER_IPOPT\t"

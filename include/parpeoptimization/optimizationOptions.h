@@ -20,6 +20,7 @@ enum class optimizerName {
     OPTIMIZER_DLIB,
     OPTIMIZER_TOMS611,
     OPTIMIZER_FSQP,
+    OPTIMIZER_FIDES,
     OPTIMIZER_MINIBATCH_1 = 10
 };
 

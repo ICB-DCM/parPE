@@ -21,6 +21,11 @@ target_link_libraries(${PROJECT_NAME}
     ${GCOV_LIBRARY}
 )
 
+if(${PARPE_ENABLE_FIDES})
+    target_sources(${PROJECT_NAME}
+        PRIVATE localOptimizationFidesTest.cpp)
+endif()
+
 if(${PARPE_ENABLE_IPOPT})
     target_sources(${PROJECT_NAME}
         PRIVATE localOptimizationIpoptTest.cpp)
