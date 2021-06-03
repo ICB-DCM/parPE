@@ -15,7 +15,7 @@ using ::testing::Ne;
 using ::testing::AtLeast;
 
 
-TEST(localOptimizationCeres, testOptimization) {
+TEST(LocalOptimizationCeres, Optimization) {
     parpe::QuadraticTestProblem problem;
 
     EXPECT_CALL(*problem.reporter, starting(_));
@@ -47,7 +47,7 @@ TEST(localOptimizationCeres, testOptimization) {
 #if (CERES_VERSION_MAJOR < 1 && CERES_VERSION_MINOR < 13)
 IGNORE_TEST(localOptimizationCeres, testReporterCalled) {
 #else
-TEST(localOptimizationCeres, testReporterCalled) {
+TEST(LocalOptimizationCeres, IsReporterCalled) {
 #endif
     parpe::QuadraticTestProblem problem;
     auto o = problem.getOptimizationOptions();

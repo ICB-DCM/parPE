@@ -2,6 +2,7 @@
 import argparse
 import logging
 import sys
+from numbers import Number
 from typing import Any, Collection, Optional, Dict, Tuple
 
 import amici
@@ -257,7 +258,8 @@ class HDF5DataGenerator:
         # get list of tuple of parameters dicts for all conditions
         self.parameter_mapping = self.petab_problem \
             .get_optimization_to_simulation_parameter_mapping(
-            warn_unmapped=False, scaled_parameters=False)
+            warn_unmapped=False, scaled_parameters=False,
+            allow_timepoint_specific_numeric_noise_parameters=True)
 
         variable_par_ids = self.amici_model.getParameterIds()
         fixed_par_ids = self.amici_model.getFixedParameterIds()
@@ -353,7 +355,7 @@ class HDF5DataGenerator:
                         self.petab_problem.condition_df.loc[
                             condition_id, species_id])
 
-                    if isinstance(value, float):
+                    if isinstance(value, Number):
                         # numeric initial state
                         par_map[init_par_id] = value
                         scale_map[init_par_id] = ptc.LIN
@@ -398,7 +400,7 @@ class HDF5DataGenerator:
                             self.petab_problem.condition_df.loc[
                                 preeq_cond_id, species_id])
 
-                        if isinstance(value, float):
+                        if isinstance(value, Number):
                             condition_map_sim[init_par_id] = value
                         _set_initial_concentration(
                             preeq_cond_id, species_id, init_par_id,
@@ -409,7 +411,7 @@ class HDF5DataGenerator:
                             self.petab_problem.condition_df.loc[
                                 sim_cond_id, species_id])
 
-                        if not isinstance(value_sim, float) \
+                        if not isinstance(value_sim, Number) \
                                 or not np.isnan(value_sim):
                             # mark for reinitialization,
                             #  unless the value is nan
@@ -630,7 +632,8 @@ class HDF5DataGenerator:
         """
 
         if petab.measurement_table_has_timepoint_specific_mappings(
-                self.petab_problem.measurement_df):
+                self.petab_problem.measurement_df,
+                allow_scalar_numeric_noise_parameters=True):
             raise RuntimeError("Timepoint-specific overrides are not yet "
                                "supported.")
 
@@ -688,7 +691,7 @@ class HDF5DataGenerator:
                             f' time {row[ptc.TIME]}\n' + str(cur_mes_df))
                 mes[time_idx, observable_idx] = float(row[ptc.MEASUREMENT])
                 sigma = to_float_if_float(row[ptc.NOISE_PARAMETERS])
-                if isinstance(sigma, float):
+                if isinstance(sigma, Number):
                     sd[time_idx, observable_idx] = sigma
 
             # write to file

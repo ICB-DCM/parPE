@@ -17,7 +17,7 @@ namespace parpe {
  * ./simulate --at-optimum : use parameters from last iteration of all
  *                           multi-start optimization runs
  *            --parameter-matrix : using arbitrary parameters from some matrix
- *                                 in hdf5 file
+ *                                 in HDF5 file
  *            --along-trajectory : use parameters along the optimization
  *                                 trajectory of all multi-start optimization
  *                                 runs
@@ -34,7 +34,7 @@ class StandaloneSimulator
      * @param resultPath HDF5 file root group name
      * @param optimizationParameters Parameters for simulation (results from
      * hierarchical or standard optimization
-     * @param loadBalancer LoadBalander instance for distributed memory
+     * @param loadBalancer LoadBalancer instance for distributed memory
      * parallel, or nullptr for shared memory parallel or sequential
      * @param inputFile File with simulation options and data used for
      * optimization

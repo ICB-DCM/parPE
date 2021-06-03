@@ -27,7 +27,7 @@ void setCeresOption(const std::pair<const std::string, const std::string> &pair,
 #endif
 
 
-TEST(optimizationOptions, setGetOptionStr) {
+TEST(OptimizationOptions, setGetOptionStr) {
     parpe::OptimizationOptions o;
     std::string key = "str";
     std::string expVal = "testStr";
@@ -37,7 +37,7 @@ TEST(optimizationOptions, setGetOptionStr) {
     EXPECT_EQ(expVal, actVal);
 }
 
-TEST(optimizationOptions, setGetOptionInt) {
+TEST(OptimizationOptions, setGetOptionInt) {
     parpe::OptimizationOptions o;
     std::string key = "str";
     double expVal = 1.23;
@@ -47,7 +47,7 @@ TEST(optimizationOptions, setGetOptionInt) {
     EXPECT_NEAR(expVal, actVal, 1e-15);
 }
 
-TEST(optimizationOptions, setGetOptionDouble) {
+TEST(OptimizationOptions, setGetOptionDouble) {
     parpe::OptimizationOptions o;
     std::string key = "str";
     auto expVal = 123;
@@ -58,14 +58,14 @@ TEST(optimizationOptions, setGetOptionDouble) {
 }
 
 
-TEST(optimizationOptions, getNonExistingOption) {
+TEST(OptimizationOptions, getNonExistingOption) {
     parpe::OptimizationOptions o;
 
     EXPECT_THROW(o.getIntOption("missingKey"), std::invalid_argument);
 }
 
 #ifdef PARPE_ENABLE_IPOPT
-TEST(optimizationOptions, setIpOptOptions) {
+TEST(OptimizationOptions, setIpOptOptions) {
     std::string key = "max_iter";
     int expVal = 10;
 
@@ -84,7 +84,7 @@ TEST(optimizationOptions, setIpOptOptions) {
 #endif
 
 #ifdef PARPE_ENABLE_CERES
-TEST(optimizationOptions, setCeresOptions) {
+TEST(OptimizationOptions, setCeresOptions) {
     std::string key = "max_num_iterations";
     int expVal = 10;
 
@@ -103,7 +103,7 @@ TEST(optimizationOptions, setCeresOptions) {
 }
 #endif
 
-TEST(optimizationOptions, fromHDF5) {
+TEST(OptimizationOptions, fromHDF5) {
     const char* tmpName = "parpeTest_fromHDF5.h5";
     auto _ = gsl::finally([tmpName] { remove(tmpName); });
 

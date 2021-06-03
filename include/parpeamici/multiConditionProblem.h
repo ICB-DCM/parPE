@@ -114,7 +114,7 @@ public:
 
     virtual ~AmiciSummedGradientFunction() = default;
 
-    virtual FunctionEvaluationStatus evaluate(
+    FunctionEvaluationStatus evaluate(
             gsl::span<const double> parameters,
             int dataset,
             double &fval,
@@ -122,7 +122,7 @@ public:
             Logger *logger,
             double *cpuTime) const override;
 
-    virtual FunctionEvaluationStatus evaluate(
+    FunctionEvaluationStatus evaluate(
             gsl::span<const double> parameters,
             std::vector<int> datasets,
             double &fval,
@@ -134,9 +134,9 @@ public:
      * @brief Number of optimization parameters
      * @return
      */
-    virtual int numParameters() const override;
+    [[nodiscard]] int numParameters() const override;
 
-    std::vector<std::string> getParameterIds() const override;
+    [[nodiscard]] std::vector<std::string> getParameterIds() const override;
 
     /**
      * @brief Run simulations (no gradient) with given parameters and collect
@@ -154,7 +154,7 @@ public:
         Logger *logger,
         double *cpuTime) const;
 
-    virtual std::vector<std::vector<double>> getAllMeasurements() const;
+    [[nodiscard]] virtual std::vector<std::vector<double>> getAllMeasurements() const;
 
     /**
      * @brief Callback function for LoadBalancer
@@ -163,7 +163,7 @@ public:
      */
     virtual void messageHandler(std::vector<char> &buffer, int jobId) const;
 
-    virtual amici::ParameterScaling getParameterScaling(int parameterIndex) const;
+    [[nodiscard]] virtual amici::ParameterScaling getParameterScaling(int parameterIndex) const;
 
     /** Include model states in result package */
     bool sendStates = false;
@@ -188,7 +188,7 @@ protected:// for testing
                                double *cpuTime) const;
 
     /**
-     * @brief Aggregates loglikelihood received from workers.
+     * @brief Aggregates log-likelihood received from workers.
      * @param data Simulation job result
      * @param negLogLikelihood output argument to which *negative*
      * log likelihood is added
@@ -206,7 +206,7 @@ protected:// for testing
 
 
     /**
-     * @brief Aggregates loglikelihood gradient received from workers.
+     * @brief Aggregates log-likelihood gradient received from workers.
      * @param conditionIdx
      * @param simulationGradient log-likelihood gradient from simulation
      * @param objectiveFunctionGradient output to which *negative*

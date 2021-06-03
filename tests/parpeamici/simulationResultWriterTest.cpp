@@ -14,7 +14,7 @@
 #include <amici/solver_cvodes.h>
 
 
-TEST(simulationResultWriter, testResultWriter) {
+TEST(SimulationResultWriter, ResultWriter) {
     // setup ResultWriter
     const char* tmpName = "parpeTest_testResultWriter.h5";
     auto _ = gsl::finally([tmpName] { remove(tmpName); });
@@ -45,7 +45,7 @@ TEST(simulationResultWriter, testResultWriter) {
                 std::vector<amici::ParameterScaling>(),
                 amici::SecondOrderMode::none, amici::SensitivityOrder::none,
                 amici::SensitivityMethod::none, amici::RDataReporting::full,
-                true);
+                true, true, 50);
     std::iota(rdata.x.begin(), rdata.x.end(), 0);
     rdata.llh = 1.2345;
     rdata.y.resize(measurements.size());
@@ -74,7 +74,7 @@ TEST(simulationResultWriter, testResultWriter) {
     parpe::checkEqualArray(measurements.data(), yMesAct.data(), yMesAct.size(), 1e-16, 1e-16);
 }
 
-TEST(simulationResultWriter, testResultWriterNewExistingFile) {
+TEST(SimulationResultWriter, ResultWriterNewExistingFile) {
     const char* tmpName = "parpeTest_testResultWriterNewExistingFile.h5";
     auto _ = gsl::finally([tmpName] { remove(tmpName); });
 

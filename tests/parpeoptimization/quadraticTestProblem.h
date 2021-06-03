@@ -146,7 +146,7 @@ private:
 
 class QuadraticTestProblem : public OptimizationProblem {
 public:
-    QuadraticTestProblem(std::unique_ptr<Logger> logger = std::make_unique<Logger>());
+    explicit QuadraticTestProblem(std::unique_ptr<Logger> logger = std::make_unique<Logger>());
     void fillParametersMin(gsl::span<double> buffer) const override;
     void fillParametersMax(gsl::span<double> buffer) const override;
 

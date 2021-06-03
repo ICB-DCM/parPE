@@ -14,13 +14,14 @@ class OptimizerDlibLineSearch : public Optimizer {
      * @brief Minimize an objective function given as OptimizationProblem using
      * dlib line search algorithm
      *
-     * TODO: no options are specifyable for the moment
+     * TODO: no options are specifiable for the moment
      *
      * @param problem
      * @return Returns 0 on success.
      */
 
-    int optimize(OptimizationProblem *problem) override;
+    std::tuple<int, double, std::vector<double> >
+    optimize(OptimizationProblem *problem) override;
 };
 
 } // namespace parpe

@@ -17,15 +17,15 @@ namespace parpe {
 class AnalyticalParameterProvider
 {
   public:
-    virtual ~AnalyticalParameterProvider() {}
+    virtual ~AnalyticalParameterProvider() = default;
 
     /**
      * @brief Get vector of condition indices for which the parameter with the
      * given index is used.
      * @param parameterIndex referring to the index in the analytical parameter
-     * list in the hdf5 file
+     * list in the HDF5 file
      * (*not* the optimization parameter index).
-     * @return Vector of condition indice
+     * @return Vector of condition indices
      */
     virtual std::vector<int> getConditionsForParameter(
         int parameterIndex) const = 0;
@@ -65,7 +65,7 @@ class AnalyticalParameterProviderDefault : public AnalyticalParameterProvider
     // TODO private
     std::vector<std::vector<int>> conditionsForParameter;
     std::vector<int> optimizationParameterIndices;
-    // x[scalingIdx][conditionIdx] -> std::vector of observableIndicies
+    // x[scalingIdx][conditionIdx] -> std::vector of observableIndices
     std::vector<std::map<int, std::vector<int>>> mapping;
 };
 
@@ -83,11 +83,11 @@ class AnalyticalParameterHdf5Reader : public AnalyticalParameterProvider
     /**
      * @brief AnalyticalParameterHdf5Reader
      * @param file
-     * @param scalingParameterIndicesPath location in hdf5 file of the list of
+     * @param scalingParameterIndicesPath location in HDF5 file of the list of
      * indices of the analytically determined parameters within the overall
      * optimization parameters
      * @param mapPath path of to the dataset with the
-     * parameter-oberservable-condition mapping
+     * parameter-observable-condition mapping
      */
     AnalyticalParameterHdf5Reader(const H5::H5File& file,
                                   std::string analyticalParameterIndicesPath,
@@ -100,9 +100,9 @@ class AnalyticalParameterHdf5Reader : public AnalyticalParameterProvider
      * @brief Get vector of condition indices for which the parameter with the
      * given index is used.
      * @param parameterIndex referring to the index in the analytical parameter
-     * list in the hdf5 file
+     * list in the HDF5 file
      * (*not* the optimization parameter index).
-     * @return Vector of condition indice
+     * @return Vector of condition indices
      */
     std::vector<int> getConditionsForParameter(
         int parameterIndex) const override;
@@ -151,7 +151,7 @@ class AnalyticalParameterHdf5Reader : public AnalyticalParameterProvider
     std::string mapPath;
     std::string analyticalParameterIndicesPath;
 
-    // x[scalingIdx][conditionIdx] -> std::vector of observableIndicies
+    // x[scalingIdx][conditionIdx] -> std::vector of observableIndices
     std::vector<std::map<int, std::vector<int>>> mapping;
 };
 

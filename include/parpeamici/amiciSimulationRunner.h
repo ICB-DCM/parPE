@@ -127,7 +127,7 @@ class AmiciSimulationRunner
                          int jobIdx,
                          const std::vector<double>& optimizationParameters,
                          amici::SensitivityOrder sensitivityOrder,
-                         const std::vector<int>& conditionIndices);
+                         const std::vector<int>& conditionIndices) const;
 #endif
 
     std::vector<double> const& optimization_parameters_;

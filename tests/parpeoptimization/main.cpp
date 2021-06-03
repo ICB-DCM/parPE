@@ -10,6 +10,10 @@
 #include "localOptimizationIpoptTest.h"
 #endif
 
+#ifdef PARPE_ENABLE_FIDES
+#include "localOptimizationFidesTest.h"
+#endif
+
 #ifdef PARPE_ENABLE_CERES
 #include "localOptimizationCeresTest.h"
 #endif
