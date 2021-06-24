@@ -43,6 +43,8 @@ namespace parpe {
 static mutexHdfType mutexHdf;
 
 void initHDF5Mutex() {
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
+
     // TODO: check if still required
     H5dont_atexit();
 }
@@ -57,6 +59,7 @@ herr_t hdf5ErrorStackWalker_cb(unsigned int n, const H5E_error_t *err_desc,
     Ensures(err_desc != nullptr);
     const int indent = 2;
 
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
     std::unique_ptr<char, decltype(std::free) *>
             maj_str { H5Eget_major(err_desc->maj_num), &std::free };
     std::unique_ptr<char, decltype(std::free) *>

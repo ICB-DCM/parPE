@@ -136,10 +136,12 @@ AnalyticalParameterHdf5Reader::readParameterConditionObservableMappingFromFile()
 }
 
 std::vector<int>
-AnalyticalParameterHdf5Reader::readRawMap(H5::DataSet& dataset,
+AnalyticalParameterHdf5Reader::readRawMap(H5::DataSet const& dataset,
                                           hsize_t& nRows,
                                           hsize_t& nCols)
 {
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
+
     auto dataspace = dataset.getSpace();
     auto ndims = dataspace.getSimpleExtentNdims();
     if (ndims != 2)

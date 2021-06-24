@@ -142,7 +142,7 @@ class AnalyticalParameterHdf5Reader : public AnalyticalParameterProvider
      * - observableIdx: index of model output
      */
     void readParameterConditionObservableMappingFromFile();
-    std::vector<int> readRawMap(H5::DataSet& dataset,
+    std::vector<int> readRawMap(const H5::DataSet &dataset,
                                 hsize_t& nRows,
                                 hsize_t& nCols);
 

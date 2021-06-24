@@ -50,7 +50,7 @@ template <typename T> std::string to_string(const T &n) {
 } // namespace patch
 
 
-void optimizationOptionsFromAttribute(H5::H5Object& loc,
+void optimizationOptionsFromAttribute(H5::H5Object & loc,
                                       const H5std_string attr_name,
                                       void *op_data) {
     // iterate over attributes and add to OptimizationOptions
@@ -96,7 +96,7 @@ std::unique_ptr<OptimizationOptions> OptimizationOptions::fromHDF5(const std::st
 std::unique_ptr<OptimizationOptions> OptimizationOptions::fromHDF5(const H5::H5File &file, std::string const& path) {
     auto o = std::make_unique<OptimizationOptions>();
 
-    const char *hdf5path = path.c_str();
+    auto hdf5path = path.c_str();
     [[maybe_unused]] auto lock = hdf5MutexGetLock();
     auto fileId = file.getId();
 
@@ -173,7 +173,7 @@ std::vector<double> OptimizationOptions::getStartingPoint(H5::H5File const& file
                                                           int index) {
     std::vector<double> startingPoint;
 
-    const char *path = "/optimizationOptions/randomStarts";
+    auto path = "/optimizationOptions/randomStarts";
 
     [[maybe_unused]] auto lock = hdf5MutexGetLock();
 

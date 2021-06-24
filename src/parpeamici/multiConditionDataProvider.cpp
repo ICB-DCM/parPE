@@ -523,6 +523,7 @@ H5::H5File MultiConditionDataProviderHDF5::getHdf5File() const
 void
 MultiConditionDataProviderHDF5::checkDataIntegrity() const
 {
+
     // check matching IDs
     std::string modelParameterIdsPath = root_path_ + "/model/parameterIds";
     auto dataParameterIds =
@@ -686,6 +687,8 @@ std::vector<std::vector<double>>
 MultiConditionDataProviderDefault::getAllMeasurements() const
 {
     std::vector<std::vector<double>> measurements;
+    measurements.reserve(edata_.size());
+
     for (const auto& e : edata_) {
         measurements.push_back(e.getObservedData());
     }
@@ -696,6 +699,7 @@ std::vector<std::vector<double>>
 MultiConditionDataProviderDefault::getAllSigmas() const
 {
     std::vector<std::vector<double>> sigmas;
+    sigmas.reserve(edata_.size());
     for (const auto& e : edata_) {
         sigmas.push_back(e.getObservedDataStdDev());
     }

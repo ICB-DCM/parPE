@@ -28,7 +28,7 @@ OptimizationResultWriter::OptimizationResultWriter(const std::string &filename,
     rootPath(std::move(rootPath)) {
     logmessage(LOGLVL_DEBUG, "Writing results to %s.", filename.c_str());
 
-    file = hdf5CreateFile(filename.c_str(), overwrite);
+    file = hdf5CreateFile(filename, overwrite);
 
     hdf5EnsureGroupExists(file, this->rootPath);
 }
@@ -168,11 +168,10 @@ void OptimizationResultWriter::setLoggingEachFunctionEvaluation(
 void OptimizationResultWriter::starting(
         gsl::span<double const> initialParameters) {
     if (!initialParameters.empty()) {
-        std::string const& pathStr = getRootPath();
-        const char *fullGroupPath = pathStr.c_str();
+        const auto& root_path = getRootPath();
 
         hdf5CreateOrExtendAndWriteToDouble2DArray(
-                    file, fullGroupPath, "initialParameters",
+                    file, root_path, "initialParameters",
                     initialParameters);
         flushResultWriter();
     }
