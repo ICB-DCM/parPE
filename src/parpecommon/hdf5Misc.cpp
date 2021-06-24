@@ -207,6 +207,8 @@ void hdf5CreateOrExtendAndWriteToDouble2DArray(const H5::H5File &file,
                                                const std::string &datasetName,
                                                gsl::span<const double> buffer)
 {
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
+
     hdf5EnsureGroupExists(file, parentPath);
 
     std::string fullDatasetPath = std::string(parentPath) + "/" + datasetName;
@@ -226,6 +228,8 @@ void hdf5CreateOrExtendAndWriteToDouble3DArray(const H5::H5File &file,
                                                gsl::span<const double> buffer,
                                                hsize_t stride1,
                                                hsize_t stride2) {
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
+
     hdf5EnsureGroupExists(file, parentPath);
 
     std::string fullDatasetPath = std::string(parentPath) + "/" + datasetName;
@@ -673,6 +677,8 @@ void hdf5CreateOrExtendAndWriteToString1DArray(const H5::H5File &file,
                                                const std::string &datasetName,
                                                const std::string &buffer)
 {
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
+
     hdf5EnsureGroupExists(file, parentPath);
 
     std::string fullDatasetPath = std::string(parentPath) + "/" + datasetName;

@@ -70,8 +70,8 @@ MultiConditionDataProviderHDF5::getNumberOfSimulationConditions() const
     [[maybe_unused]] auto lock = hdf5MutexGetLock();
 
     int d1, d2;
-    hdf5GetDatasetDimensions(
-      file_.getId(), hdf5_reference_condition_path_.c_str(), 2, &d1, &d2);
+    hdf5GetDatasetDimensions(file_, hdf5_reference_condition_path_,
+                             2, &d1, &d2);
 
     return d1;
 }
@@ -81,6 +81,8 @@ MultiConditionDataProviderHDF5::getSimulationToOptimizationParameterMapping(
   int conditionIdx) const
 {
     std::string path = hdf5_simulation_to_optimization_parameter_mapping_path_;
+
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
 
     if (file_.nameExists(path)) {
         return hdf5Read2DIntegerHyperslab(
@@ -129,15 +131,20 @@ MultiConditionDataProviderHDF5::mapAndSetOptimizationToSimulationVariables(
     auto mapping = getSimulationToOptimizationParameterMapping(conditionIdx);
 
     std::vector<double> overrides;
-    if (file_.nameExists(hdf5_parameter_overrides_path)) {
-        overrides.resize(model_->np());
-        hdf5Read2DDoubleHyperslab(file_,
-                                  hdf5_parameter_overrides_path,
-                                  model_->np(),
-                                  1,
-                                  0,
-                                  conditionIdx,
-                                  overrides);
+
+    {
+        [[maybe_unused]] auto lock = hdf5MutexGetLock();
+
+        if (file_.nameExists(hdf5_parameter_overrides_path)) {
+            overrides.resize(model_->np());
+            hdf5Read2DDoubleHyperslab(file_,
+                                      hdf5_parameter_overrides_path,
+                                      model_->np(),
+                                      1,
+                                      0,
+                                      conditionIdx,
+                                      overrides);
+        }
     }
 
     for (int i = 0; i < model_->np(); ++i) {
@@ -260,8 +267,8 @@ MultiConditionDataProviderHDF5::readFixedSimulationParameters(
 
     H5_SAVE_ERROR_HANDLER;
 
-    hdf5Read2DDoubleHyperslab(file_.getId(),
-                              hdf5_condition_path_.c_str(),
+    hdf5Read2DDoubleHyperslab(file_,
+                              hdf5_condition_path_,
                               model_->nk(),
                               1,
                               0,
@@ -392,7 +399,7 @@ MultiConditionDataProviderHDF5::getNumOptimizationParameters() const
 {
     std::string path = root_path_ + "/parameters/parameterNames";
     int size = 0;
-    hdf5GetDatasetDimensions(file_.getId(), path.c_str(), 1, &size);
+    hdf5GetDatasetDimensions(file_, path, 1, &size);
     return size;
 }
 
@@ -436,6 +443,7 @@ MultiConditionDataProviderHDF5::updateSimulationParametersAndScale(
 void
 MultiConditionDataProviderHDF5::copyInputData(H5::H5File const& target)
 {
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
 
     H5Ocopy(file_.getId(),
             "/",
@@ -565,7 +573,7 @@ MultiConditionDataProviderHDF5::checkDataIntegrity() const
 
     if (model_->nk()) {
         parpe::hdf5GetDatasetDimensions(
-          file_.getId(), hdf5_condition_path_.c_str(), 2, &d1, &d2);
+          file_, hdf5_condition_path_, 2, &d1, &d2);
         Expects(d1 == model_->nk());
     }
 }

@@ -57,6 +57,8 @@ void optimizationOptionsFromAttribute(H5::H5Object& loc,
 
     auto *o = static_cast<OptimizationOptions*>(op_data);
 
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
+
     auto a = loc.openAttribute(attr_name);
     auto type = a.getDataType();
     auto typeClass = a.getTypeClass();
@@ -95,8 +97,8 @@ std::unique_ptr<OptimizationOptions> OptimizationOptions::fromHDF5(const H5::H5F
     auto o = std::make_unique<OptimizationOptions>();
 
     const char *hdf5path = path.c_str();
-    auto fileId = file.getId();
     [[maybe_unused]] auto lock = hdf5MutexGetLock();
+    auto fileId = file.getId();
 
     if (hdf5AttributeExists(file, path, "optimizer")) {
         int buffer;
