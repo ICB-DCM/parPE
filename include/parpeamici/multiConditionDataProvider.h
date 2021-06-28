@@ -249,7 +249,7 @@ class MultiConditionDataProviderHDF5 : public MultiConditionDataProvider
     MultiConditionDataProviderHDF5(MultiConditionDataProviderHDF5 const&) =
       delete;
 
-    virtual ~MultiConditionDataProviderHDF5() override = default;
+    virtual ~MultiConditionDataProviderHDF5() override;;
 
     /**
      * @brief Get the number of simulations required for objective function
