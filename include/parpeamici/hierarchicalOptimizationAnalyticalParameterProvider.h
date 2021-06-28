@@ -124,7 +124,7 @@ class AnalyticalParameterHdf5Reader : public AnalyticalParameterProvider
      */
     std::vector<int> getOptimizationParameterIndices() const override;
 
-    ~AnalyticalParameterHdf5Reader();
+    ~AnalyticalParameterHdf5Reader() override;
 
   private:
     /**
@@ -146,7 +146,7 @@ class AnalyticalParameterHdf5Reader : public AnalyticalParameterProvider
     void readParameterConditionObservableMappingFromFile();
     std::vector<int> readRawMap(const H5::DataSet &dataset,
                                 hsize_t& nRows,
-                                hsize_t& nCols);
+                                hsize_t& nCols) const;
 
     H5::H5File file;
     std::string rootPath;
