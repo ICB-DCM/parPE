@@ -18,6 +18,12 @@ SimulationResultWriter::SimulationResultWriter(H5::H5File const& file,
     updatePaths();
 }
 
+SimulationResultWriter::~SimulationResultWriter()
+{
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
+    file.close();
+}
+
 
 SimulationResultWriter::SimulationResultWriter(const std::string &hdf5FileName,
                                                std::string rootPath)

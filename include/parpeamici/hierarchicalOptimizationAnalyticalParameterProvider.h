@@ -124,6 +124,8 @@ class AnalyticalParameterHdf5Reader : public AnalyticalParameterProvider
      */
     std::vector<int> getOptimizationParameterIndices() const override;
 
+    ~AnalyticalParameterHdf5Reader() override;
+
   private:
     /**
      * @brief Get number of analytically computed parameters
@@ -142,9 +144,9 @@ class AnalyticalParameterHdf5Reader : public AnalyticalParameterProvider
      * - observableIdx: index of model output
      */
     void readParameterConditionObservableMappingFromFile();
-    std::vector<int> readRawMap(H5::DataSet& dataset,
+    std::vector<int> readRawMap(const H5::DataSet &dataset,
                                 hsize_t& nRows,
-                                hsize_t& nCols);
+                                hsize_t& nCols) const;
 
     H5::H5File file;
     std::string rootPath;

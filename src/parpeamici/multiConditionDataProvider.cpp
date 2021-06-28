@@ -21,8 +21,13 @@ MultiConditionDataProviderHDF5::MultiConditionDataProviderHDF5(
   : MultiConditionDataProviderHDF5(std::move(model), hdf5Filename, "")
 {}
 
+MultiConditionDataProviderHDF5::~MultiConditionDataProviderHDF5() {
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
+    file_.close();
+}
+
 MultiConditionDataProviderHDF5::MultiConditionDataProviderHDF5(
-  std::unique_ptr<amici::Model> model,
+    std::unique_ptr<amici::Model> model,
   std::string const& hdf5Filename,
   std::string const& rootPath)
   : model_(std::move(model))
@@ -70,8 +75,8 @@ MultiConditionDataProviderHDF5::getNumberOfSimulationConditions() const
     [[maybe_unused]] auto lock = hdf5MutexGetLock();
 
     int d1, d2;
-    hdf5GetDatasetDimensions(
-      file_.getId(), hdf5_reference_condition_path_.c_str(), 2, &d1, &d2);
+    hdf5GetDatasetDimensions(file_, hdf5_reference_condition_path_,
+                             2, &d1, &d2);
 
     return d1;
 }
@@ -81,6 +86,8 @@ MultiConditionDataProviderHDF5::getSimulationToOptimizationParameterMapping(
   int conditionIdx) const
 {
     std::string path = hdf5_simulation_to_optimization_parameter_mapping_path_;
+
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
 
     if (file_.nameExists(path)) {
         return hdf5Read2DIntegerHyperslab(
@@ -129,15 +136,20 @@ MultiConditionDataProviderHDF5::mapAndSetOptimizationToSimulationVariables(
     auto mapping = getSimulationToOptimizationParameterMapping(conditionIdx);
 
     std::vector<double> overrides;
-    if (file_.nameExists(hdf5_parameter_overrides_path)) {
-        overrides.resize(model_->np());
-        hdf5Read2DDoubleHyperslab(file_,
-                                  hdf5_parameter_overrides_path,
-                                  model_->np(),
-                                  1,
-                                  0,
-                                  conditionIdx,
-                                  overrides);
+
+    {
+        [[maybe_unused]] auto lock = hdf5MutexGetLock();
+
+        if (file_.nameExists(hdf5_parameter_overrides_path)) {
+            overrides.resize(model_->np());
+            hdf5Read2DDoubleHyperslab(file_,
+                                      hdf5_parameter_overrides_path,
+                                      model_->np(),
+                                      1,
+                                      0,
+                                      conditionIdx,
+                                      overrides);
+        }
     }
 
     for (int i = 0; i < model_->np(); ++i) {
@@ -260,8 +272,8 @@ MultiConditionDataProviderHDF5::readFixedSimulationParameters(
 
     H5_SAVE_ERROR_HANDLER;
 
-    hdf5Read2DDoubleHyperslab(file_.getId(),
-                              hdf5_condition_path_.c_str(),
+    hdf5Read2DDoubleHyperslab(file_,
+                              hdf5_condition_path_,
                               model_->nk(),
                               1,
                               0,
@@ -392,7 +404,7 @@ MultiConditionDataProviderHDF5::getNumOptimizationParameters() const
 {
     std::string path = root_path_ + "/parameters/parameterNames";
     int size = 0;
-    hdf5GetDatasetDimensions(file_.getId(), path.c_str(), 1, &size);
+    hdf5GetDatasetDimensions(file_, path, 1, &size);
     return size;
 }
 
@@ -436,6 +448,7 @@ MultiConditionDataProviderHDF5::updateSimulationParametersAndScale(
 void
 MultiConditionDataProviderHDF5::copyInputData(H5::H5File const& target)
 {
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
 
     H5Ocopy(file_.getId(),
             "/",
@@ -515,6 +528,7 @@ H5::H5File MultiConditionDataProviderHDF5::getHdf5File() const
 void
 MultiConditionDataProviderHDF5::checkDataIntegrity() const
 {
+
     // check matching IDs
     std::string modelParameterIdsPath = root_path_ + "/model/parameterIds";
     auto dataParameterIds =
@@ -565,7 +579,7 @@ MultiConditionDataProviderHDF5::checkDataIntegrity() const
 
     if (model_->nk()) {
         parpe::hdf5GetDatasetDimensions(
-          file_.getId(), hdf5_condition_path_.c_str(), 2, &d1, &d2);
+          file_, hdf5_condition_path_, 2, &d1, &d2);
         Expects(d1 == model_->nk());
     }
 }
@@ -678,6 +692,8 @@ std::vector<std::vector<double>>
 MultiConditionDataProviderDefault::getAllMeasurements() const
 {
     std::vector<std::vector<double>> measurements;
+    measurements.reserve(edata_.size());
+
     for (const auto& e : edata_) {
         measurements.push_back(e.getObservedData());
     }
@@ -688,6 +704,7 @@ std::vector<std::vector<double>>
 MultiConditionDataProviderDefault::getAllSigmas() const
 {
     std::vector<std::vector<double>> sigmas;
+    sigmas.reserve(edata_.size());
     for (const auto& e : edata_) {
         sigmas.push_back(e.getObservedDataStdDev());
     }
