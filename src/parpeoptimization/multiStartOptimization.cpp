@@ -59,8 +59,14 @@ void MultiStartOptimization::runMultiThreaded()
                    "Spawning thread for local optimization #%d (%d)",
                    lastStartIdx, ms);
 
-        pthread_create(&localOptimizationThreads.at(ms), &threadAttr,
-                       getLocalOptimumThreadWrapper, static_cast<void *>(localProblems[ms]));
+        auto ret = pthread_create(
+            &localOptimizationThreads.at(ms), &threadAttr,
+            getLocalOptimumThreadWrapper,
+            static_cast<void *>(localProblems[ms]));
+        if(ret) {
+            throw ParPEException("Failure during thread creation: "
+                                 + std::to_string(ret));
+        }
     }
 
     int numCompleted = 0;
@@ -109,9 +115,14 @@ void MultiStartOptimization::runMultiThreaded()
                                 LOGLVL_DEBUG,
                                 "Spawning thread for local optimization #%d (%d)",
                                 lastStartIdx, ms);
-                    pthread_create(&localOptimizationThreads[ms], &threadAttr,
-                                   getLocalOptimumThreadWrapper,
-                                   static_cast<void *>(localProblems[ms]));
+                    auto ret = pthread_create(
+                        &localOptimizationThreads[ms], &threadAttr,
+                        getLocalOptimumThreadWrapper,
+                        static_cast<void *>(localProblems[ms]));
+                    if(ret) {
+                        throw ParPEException("Failure during thread creation: "
+                                             + std::to_string(ret));
+                    }
                 }
 #endif
                 delete threadStatus;
