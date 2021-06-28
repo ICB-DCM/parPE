@@ -66,7 +66,7 @@ build_boost() {
 
 build_3rd_party_deps() {
   # build dependencies
-  build_boost
+  # build_boost
   "${parpe_root}/ThirdParty/installIpopt.sh"
   #./installCeres.sh
   #./installCpputest.sh
@@ -89,8 +89,8 @@ build_parpe() {
   mkdir -p build && cd build
   ipopt_root=${parpe_root}/ThirdParty/Ipopt-releases-3.13.3/
 
+  #BOOST_ROOT=${boost_install_dir} \
   HDF5_ROOT=${HDF5_BASE} \
-  BOOST_ROOT=${boost_install_dir} \
   MPI_HOME=${MPI_BASE} \
   PKG_CONFIG_PATH=${PKG_CONFIG_PATH:-}:${ipopt_root}/install/lib/pkgconfig/:${ipopt_root}/ThirdParty-HSL/install/lib/pkgconfig/ \
   cmake -S .. \
