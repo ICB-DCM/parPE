@@ -144,7 +144,7 @@ AnalyticalParameterHdf5Reader::readParameterConditionObservableMappingFromFile()
 std::vector<int>
 AnalyticalParameterHdf5Reader::readRawMap(H5::DataSet const& dataset,
                                           hsize_t& nRows,
-                                          hsize_t& nCols)
+                                          hsize_t& nCols) const
 {
     [[maybe_unused]] auto lock = hdf5MutexGetLock();
 
