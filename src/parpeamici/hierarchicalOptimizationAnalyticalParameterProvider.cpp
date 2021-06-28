@@ -83,6 +83,12 @@ AnalyticalParameterHdf5Reader::getOptimizationParameterIndices() const
     return analyticalParameterIndices;
 }
 
+AnalyticalParameterHdf5Reader::~AnalyticalParameterHdf5Reader()
+{
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
+    file.close();
+}
+
 int
 AnalyticalParameterHdf5Reader::getNumAnalyticalParameters() const
 {

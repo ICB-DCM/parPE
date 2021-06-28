@@ -124,6 +124,8 @@ class AnalyticalParameterHdf5Reader : public AnalyticalParameterProvider
      */
     std::vector<int> getOptimizationParameterIndices() const override;
 
+    ~AnalyticalParameterHdf5Reader();
+
   private:
     /**
      * @brief Get number of analytically computed parameters

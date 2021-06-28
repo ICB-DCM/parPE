@@ -21,8 +21,13 @@ MultiConditionDataProviderHDF5::MultiConditionDataProviderHDF5(
   : MultiConditionDataProviderHDF5(std::move(model), hdf5Filename, "")
 {}
 
+MultiConditionDataProviderHDF5::~MultiConditionDataProviderHDF5() {
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
+    file_.close();
+}
+
 MultiConditionDataProviderHDF5::MultiConditionDataProviderHDF5(
-  std::unique_ptr<amici::Model> model,
+    std::unique_ptr<amici::Model> model,
   std::string const& hdf5Filename,
   std::string const& rootPath)
   : model_(std::move(model))

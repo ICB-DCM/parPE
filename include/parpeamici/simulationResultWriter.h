@@ -51,6 +51,8 @@ public:
     // Implement me
     SimulationResultWriter(SimulationResultWriter const&) = delete;
 
+    ~SimulationResultWriter();
+
     /**
      * @brief Create results datasets.
      *

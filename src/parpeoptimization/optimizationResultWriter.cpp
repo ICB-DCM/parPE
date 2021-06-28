@@ -41,6 +41,11 @@ OptimizationResultWriter::OptimizationResultWriter(
     hdf5EnsureGroupExists(file, rootPath);
 }
 
+OptimizationResultWriter::~OptimizationResultWriter() {
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
+    file.close();
+}
+
 const std::string &OptimizationResultWriter::getRootPath() const {
     return rootPath;
 }
