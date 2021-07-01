@@ -389,9 +389,12 @@ class HDF5DataGenerator:
                     # for preequilibration
                     init_par_id = f'initial_{species_id}_preeq'
 
-                    # need to set dummy value for preeq parameter anyways, as it
-                    #  is expected below (set to 0, not nan, because will be
-                    #  multiplied with indicator variable in initial assignment)
+                    # preeq initial parameter is always added during PEtab
+                    #  import, independently of whether preeq is used. Need to
+                    #  set dummy value for preeq parameter anyways, as
+                    #  it is expected in parameter mapping below
+                    #  (set to 0, not nan, because will be multiplied with
+                    #  indicator variable in initial assignment)
                     condition_map_sim[init_par_id] = 0.0
                     condition_scale_map_sim[init_par_id] = ptc.LIN
 
@@ -400,8 +403,6 @@ class HDF5DataGenerator:
                             self.petab_problem.condition_df.loc[
                                 preeq_cond_id, species_id])
 
-                        if isinstance(value, Number):
-                            condition_map_sim[init_par_id] = value
                         _set_initial_concentration(
                             preeq_cond_id, species_id, init_par_id,
                             condition_map_preeq,
@@ -418,18 +419,19 @@ class HDF5DataGenerator:
                             species_idx = state_id_to_idx[species_id]
                             state_idxs_for_reinitialization_cur.append(
                                 species_idx)
-                        else:
-                            # If the state for the current species is not
-                            #  reinitialized, this parameter should never be
-                            #  used. We can set it to the same value as for
-                            #  preequilibration, to avoid issues with AMICI,
-                            #  where we cannot provide different values for
-                            #  dynamic parameter for preequilibration and
-                            #  simulation.
-                            condition_map_sim[init_par_id] = \
-                                condition_map_preeq[init_par_id]
-                            condition_scale_map_sim[init_par_id] = \
-                                condition_scale_map_preeq[init_par_id]
+
+                        # Set the preequilibration value also for simulation.
+                        #  Either it will be overwritten in the next step,
+                        #  or it will not be used anywhere.
+                        #  Setting it to the same value as for
+                        #  preequilibration avoids issues with AMICI,
+                        #  where we cannot provide different values for
+                        #  dynamic parameter for preequilibration and
+                        #  simulation.
+                        condition_map_sim[init_par_id] = \
+                            condition_map_preeq[init_par_id]
+                        condition_scale_map_sim[init_par_id] = \
+                            condition_scale_map_preeq[init_par_id]
 
                     # for simulation
                     init_par_id = f'initial_{species_id}_sim'
