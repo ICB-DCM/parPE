@@ -418,6 +418,18 @@ class HDF5DataGenerator:
                             species_idx = state_id_to_idx[species_id]
                             state_idxs_for_reinitialization_cur.append(
                                 species_idx)
+                        else:
+                            # If the state for the current species is not
+                            #  reinitialized, this parameter should never be
+                            #  used. We can set it to the same value as for
+                            #  preequilibration, to avoid issues with AMICI,
+                            #  where we cannot provide different values for
+                            #  dynamic parameter for preequilibration and
+                            #  simulation.
+                            condition_map_sim[init_par_id] = \
+                                condition_map_preeq[init_par_id]
+                            condition_scale_map_sim[init_par_id] = \
+                                condition_scale_map_preeq[init_par_id]
 
                     # for simulation
                     init_par_id = f'initial_{species_id}_sim'
