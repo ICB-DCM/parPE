@@ -58,7 +58,7 @@ int OptimizationApplication::init(int argc, char **argv) {
     return status;
 }
 
-void OptimizationApplication::runMultiStarts()
+void OptimizationApplication::runMultiStarts() const
 {
     // TODO: use uniqe_ptr, not ref
     MultiStartOptimization optimizer(*multiStartOptimizationProblem, true,
@@ -345,6 +345,7 @@ bool OptimizationApplication::isWorker() { return getMpiRank() > 0; }
 OptimizationApplication::~OptimizationApplication() {
     // objects must be destroyed before MPI_Finalize is called
     // and Hdf5 mutex is destroyed
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
     h5File.close();
     problem.reset(nullptr);
 #ifdef PARPE_ENABLE_MPI

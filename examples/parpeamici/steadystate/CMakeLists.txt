@@ -133,18 +133,16 @@ if(${BUILD_TESTING})
     add_test (NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME} -c)
 
     set(SRC_LIST_CPP
-        main_test.cpp
         exampleSteadystateScaledTest.h
         ${CMAKE_SOURCE_DIR}/tests/parpecommon/testingMisc.cpp
         steadystateProblem.cpp
-        ${GTestSrc}/src/gtest-all.cc
-        ${GMockSrc}/src/gmock-all.cc
     )
 
     add_executable(${PROJECT_NAME} ${SRC_LIST_CPP})
     add_dependencies(${PROJECT_NAME} ${MODEL_NAME})
     target_link_libraries(${PROJECT_NAME}
         parpeamici
+        gmock_main
         ${MODEL_LIBRARIES}
         ${GCOV_LIBRARY}
     )

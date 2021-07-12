@@ -27,6 +27,14 @@ set(HEADER_LIST
 
 add_library(${PROJECT_NAME} ${SRC_LIST})
 
+if(${PARPE_ENABLE_FIDES})
+    target_sources(${PROJECT_NAME}
+        PRIVATE localOptimizationFides.cpp)
+    list(APPEND HEADER_LIST
+        localOptimizationFides.h)
+    target_link_libraries(${PROJECT_NAME} PUBLIC Fides::fides)
+endif(${PARPE_ENABLE_FIDES})
+
 if(${PARPE_ENABLE_IPOPT})
     target_sources(${PROJECT_NAME}
         PRIVATE localOptimizationIpopt.cpp

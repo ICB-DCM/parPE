@@ -18,11 +18,11 @@
 
 using namespace parpe;
 
-TEST(testingMisc, testTenToMinusInf) {
+TEST(Testing, TenToMinusInf) {
     ASSERT_EQ(0.0, pow(10, -INFINITY));
 }
 
-TEST(testingMisc, testWithinTolerance) {
+TEST(Testing, WithinTolerance) {
     captureStreamToString([](){
         double atol = 0.1;
         double rtol = 0.1;
@@ -43,7 +43,7 @@ TEST(testingMisc, testWithinTolerance) {
     }, stderr, STDERR_FILENO);
 }
 
-TEST(testingMisc, testCheckEqualArray) {
+TEST(Testing, CheckEqualArray) {
     const double expected[] = {1.0, 2.0, 3.0};
     const double actual[] = {1.0, 2.0, 3.0};
 
@@ -51,7 +51,7 @@ TEST(testingMisc, testCheckEqualArray) {
     checkEqualArray(nullptr, nullptr, 3, 1e-16, 1e-16);
 }
 
-TEST(testingMisc, testRandInt) {
+TEST(Testing, RandInt) {
     const int numTests = 100;
     const int min = -1;
     const int max = 1;
@@ -62,14 +62,14 @@ TEST(testingMisc, testRandInt) {
     }
 }
 
-TEST(commonMisc, testBacktrace) {
+TEST(Common, Backtrace) {
     std::string output = captureStreamToString([]() {
         parpe::printBacktrace(5);
     }, stderr, STDERR_FILENO);
     EXPECT_TRUE(100 < output.size());
 }
 
-TEST(commonMisc, testRandDouble) {
+TEST(Common, RandDouble) {
     const int numTests = 100;
     const double min = -1.0;
     const double max = 1.0;
@@ -80,7 +80,7 @@ TEST(commonMisc, testRandDouble) {
     }
 }
 
-TEST(commonMisc, testFillArrayRandomDoubleSameInterval) {
+TEST(Common, FillArrayRandomDoubleSameInterval) {
     const int numTests = 100;
     const double min = -1.0;
     const double max = 1.0;
@@ -93,7 +93,7 @@ TEST(commonMisc, testFillArrayRandomDoubleSameInterval) {
     }
 }
 
-TEST(commonMisc, testFillArrayRandomDoubleIndividualInterval) {
+TEST(Common, FillArrayRandomDoubleIndividualInterval) {
     const int numTests = 100;
     const double min[numTests] = {-1.0, 0.0, 1.0};
     const double max[numTests] = {-0.5, 0.5, 1.5};
@@ -108,25 +108,25 @@ TEST(commonMisc, testFillArrayRandomDoubleIndividualInterval) {
 
 
 #ifdef PARPE_ENABLE_MPI
-TEST(commonMisc, testMpi) {
+TEST(Common, Mpi) {
     // Before MPI initialized
     EXPECT_EQ(-1, parpe::getMpiRank());
     EXPECT_EQ(-1, parpe::getMpiCommSize());
 
     // MPI initialized
-    MPI_Init(0, nullptr);
+    MPI_Init(nullptr, nullptr);
     EXPECT_EQ(0, parpe::getMpiRank());
     EXPECT_EQ(1, parpe::getMpiCommSize());
     MPI_Finalize();
 
-    // Should not make invalid calls after mpi_finalize
+    // Should not make invalid calls after MPI_Finalize
     EXPECT_EQ(-1, parpe::getMpiRank());
     EXPECT_EQ(-1, parpe::getMpiCommSize());
 }
 #endif
 
 
-TEST(commonMisc, runInParallelAndWaitForFinish) {
+TEST(Common, RunInParallelAndWaitForFinish) {
     captureStreamToString([](){
         const int numThreads = 15;
         void* args[numThreads];
@@ -136,7 +136,7 @@ TEST(commonMisc, runInParallelAndWaitForFinish) {
     }, stdout);
 }
 
-TEST(commonMisc, strFormatCurrentLocaltime) {
+TEST(Common, StrFormatCurrentLocaltime) {
     int buflen = 10;
     char buf[buflen];
     parpe::strFormatCurrentLocaltime(gsl::make_span(buf, buflen), "abc");
@@ -144,13 +144,13 @@ TEST(commonMisc, strFormatCurrentLocaltime) {
 }
 
 
-TEST(logging, printDebugInfoAndWait) {
+TEST(Logging, PrintDebugInfoAndWait) {
     captureStreamToString([](){
         parpe::printDebugInfoAndWait(0);
     }, stdout);
 }
 
-TEST(logging, misc) {
+TEST(Logging, MessageIsPrinted) {
     captureStreamToString([](){
         parpe::warning("bla");
         parpe::error("bla");
@@ -158,7 +158,7 @@ TEST(logging, misc) {
     }, stdout);
 }
 
-TEST(logging, printMPIInfo) {
+TEST(Logging, PrintMPIInfo) {
     std::string s = captureStreamToString([](){
         parpe::printMPIInfo();
     }, stdout);
@@ -166,7 +166,7 @@ TEST(logging, printMPIInfo) {
     EXPECT_TRUE(s.size() > 20);
 }
 
-TEST(logging, logProcessStats) {
+TEST(Logging, LogProcessStats) {
     std::string s = captureStreamToString([](){
         parpe::logProcessStats();
     }, stdout);
@@ -178,7 +178,7 @@ TEST(logging, logProcessStats) {
 #include <parpecommon/costFunction.h>
 #include <parpecommon/model.h>
 
-TEST(costFunction, mseZero) {
+TEST(CostFunction, MseZero) {
     parpe::MeanSquaredError mse;
     std::vector<double> label = {1.0, 1.0};
     std::vector<double> prediction = {1.0, 1.0};
@@ -203,7 +203,7 @@ TEST(costFunction, mseZero) {
 
 }
 
-TEST(costFunction, mseNonzero) {
+TEST(CostFunction, MseNonzero) {
     parpe::MeanSquaredError mse;
     std::vector<double> label = {1.0, 1.0};
     std::vector<double> prediction = {1.0, 2.0};
@@ -228,7 +228,7 @@ TEST(costFunction, mseNonzero) {
 }
 
 
-TEST(costFunction, linearModel) {
+TEST(CostFunction, LinearModel) {
     std::vector<double> parameters = { 3.0, 2.0 }; // x = 3.0, b = 2.0
     std::vector<std::vector<double>> features = { { 4.0 } };
     // y = A x + b = 4.0 * 3.0 + 2.0 = 14.0
@@ -250,7 +250,7 @@ TEST(costFunction, linearModel) {
     EXPECT_TRUE(gradExp == gradAct);
 }
 
-TEST(costFunction, linearModel2) {
+TEST(CostFunction, LinearModel2) {
     std::vector<double> parameters = { 3.0, 1.0, 2.0 };
     std::vector<std::vector<double>> features = { { 4.0, 1.0 } };
     // y = A x + b = 4.0 * 3.0 + 1.0*1.0 + 2.0 = 15.0
@@ -272,7 +272,7 @@ TEST(costFunction, linearModel2) {
     EXPECT_TRUE(gradExp == gradAct);
 }
 
-TEST(costFunction, linearModel3) {
+TEST(CostFunction, LinearModel3) {
     std::vector<double> parameters = { 3.0, 1.0, 2.0 };
     std::vector<std::vector<double>> features = { { 4.0, 1.0 },  { 8.0, 2.0 }};
     // y = A x + b = 4.0 * 3.0 + 1.0*1.0 + 2.0 = 15.0

@@ -17,7 +17,7 @@ namespace parpe {
 enum class ErrorModel
 {
     normal
-}; // TODO logNormal, laplace
+}; // TODO logNormal, Laplace
 
 class AnalyticalParameterProvider;
 class AnalyticalParameterHdf5Reader;
@@ -87,13 +87,6 @@ class HierarchicalOptimizationWrapper : public GradientFunction
 
     using GradientFunction::evaluate;
 
-    /**
-     * @brief See base class
-     * @param parameters
-     * @param fval
-     * @param gradient
-     * @return
-     */
     FunctionEvaluationStatus evaluate(gsl::span<double const> parameters,
                                       double& fval,
                                       gsl::span<double> gradient,
@@ -112,15 +105,15 @@ class HierarchicalOptimizationWrapper : public GradientFunction
      * @brief Get parameters for initial function evaluation
      * @return
      */
-    std::vector<double> getDefaultScalingFactors() const;
+    [[nodiscard]] std::vector<double> getDefaultScalingFactors() const;
 
     /**
      * @brief Get parameters for initial function evaluation
      * @return
      */
-    std::vector<double> getDefaultOffsetParameters() const;
+    [[nodiscard]] std::vector<double> getDefaultOffsetParameters() const;
 
-    std::vector<double> getDefaultSigmaParameters() const;
+    [[nodiscard]] std::vector<double> getDefaultSigmaParameters() const;
 
     /**
      * @brief Run simulations with scaling parameters set to 1.0 and collect
@@ -130,7 +123,7 @@ class HierarchicalOptimizationWrapper : public GradientFunction
      * @return Vector of double vectors containing AMICI ReturnData::y (nt x ny,
      * column-major)
      */
-    std::tuple<std::vector<std::vector<double>>,
+    [[nodiscard]] std::tuple<std::vector<std::vector<double>>,
                std::vector<std::vector<double>>>
     getUnscaledModelOutputsAndSigmas(
         const gsl::span<double const> reducedParameters,
@@ -142,7 +135,7 @@ class HierarchicalOptimizationWrapper : public GradientFunction
      * @param modelOutputs Model outputs as provided by getModelOutputs
      * @return the computed scaling factors
      */
-    std::vector<double> computeAnalyticalScalings(
+    [[nodiscard]] std::vector<double> computeAnalyticalScalings(
         std::vector<std::vector<double>> const& measurements,
         std::vector<std::vector<double>> const& modelOutputsUnscaled) const;
 
@@ -155,11 +148,11 @@ class HierarchicalOptimizationWrapper : public GradientFunction
      * @param modelOutputs Model outputs as provided by getModelOutputs
      * @return the computed offset parameters
      */
-    std::vector<double> computeAnalyticalOffsets(
+    [[nodiscard]] std::vector<double> computeAnalyticalOffsets(
         const std::vector<std::vector<double>>& measurements,
         std::vector<std::vector<double>>& modelOutputsUnscaled) const;
 
-    std::vector<double> computeAnalyticalSigmas(
+    [[nodiscard]] std::vector<double> computeAnalyticalSigmas(
         std::vector<std::vector<double>> const& measurements,
         const std::vector<std::vector<double>>& modelOutputsScaled) const;
 
@@ -207,25 +200,25 @@ class HierarchicalOptimizationWrapper : public GradientFunction
      * @brief Get number of parameters the function expects
      * @return That
      */
-    virtual int numParameters() const override;
+    [[nodiscard]] int numParameters() const override;
 
-    int numProportionalityFactors() const;
+    [[nodiscard]] int numProportionalityFactors() const;
 
-    std::vector<int> const& getProportionalityFactorIndices() const;
+    [[nodiscard]] std::vector<int> const& getProportionalityFactorIndices() const;
 
-    int numOffsetParameters() const;
+    [[nodiscard]] int numOffsetParameters() const;
 
-    int numSigmaParameters() const;
+    [[nodiscard]] int numSigmaParameters() const;
 
-    std::vector<int> const& getOffsetParameterIndices() const;
+    [[nodiscard]] std::vector<int> const& getOffsetParameterIndices() const;
 
-    std::vector<int> const& getSigmaParameterIndices() const;
+    [[nodiscard]] std::vector<int> const& getSigmaParameterIndices() const;
 
-    std::vector<int> getAnalyticalParameterIndices() const;
+    [[nodiscard]] std::vector<int> getAnalyticalParameterIndices() const;
 
-    AmiciSummedGradientFunction* getWrappedFunction() const;
+    [[nodiscard]] AmiciSummedGradientFunction* getWrappedFunction() const;
 
-    std::vector<std::string> getParameterIds() const override;
+    [[nodiscard]] std::vector<std::string> getParameterIds() const override;
 
   private:
     void init();
@@ -247,7 +240,7 @@ class HierarchicalOptimizationWrapper : public GradientFunction
 
     /** Total number of conditions used in `fun` */
     int numConditions;
-    /** Total number of observables occuring in `fun` */
+    /** Total number of observables occurring in `fun` */
     int numObservables;
 
     /** Error model to use for computing analytical parameters and negative
@@ -258,7 +251,7 @@ class HierarchicalOptimizationWrapper : public GradientFunction
 
 /**
  * @brief The HierarchicalOptimizationProblemWrapper class wraps an
- * OptimizationProblem and hides the analytically optimizated parameters (from
+ * OptimizationProblem and hides the analytically optimized parameters (from
  * starting point, parameter bounds, ...)
  *
  */
@@ -354,8 +347,8 @@ class HierarchicalOptimizationReporter : public OptimizationReporter
     mutable std::vector<double> cached_full_gradient_;
     // TODO should override other functions as well
     // TODO: in all functions, we need to check of the provided parameters or
-    // functio nvalues match To cached ones, if we want to provide all together
-    // to downstreams
+    // function values match To cached ones, if we want to provide all together
+    // to downstream
 };
 
 /**
@@ -475,32 +468,38 @@ removeInnerParameters(const gsl::span<T const> allParameters,
         allParameters.size() - proportionalityFactorIndices.size() -
         offsetParameterIndices.size() - sigmaParameterIndices.size());
 
-    int idxOuter = 0;
+    int nextOuterIdx = 0;
     for(int idxFull = 0; idxFull < static_cast<int>(allParameters.size());
          ++idxFull) {
+
+        // skip if current parameter is scaling/offset/sigma
         if(std::find(proportionalityFactorIndices.begin(),
-                      proportionalityFactorIndices.end(), idxOuter)
+                      proportionalityFactorIndices.end(), idxFull)
             != std::end(proportionalityFactorIndices))
             continue;
+
         if(std::find(offsetParameterIndices.begin(),
-                      offsetParameterIndices.end(), idxOuter)
+                      offsetParameterIndices.end(), idxFull)
             != std::end(offsetParameterIndices))
             continue;
+
         if(std::find(sigmaParameterIndices.begin(),
-                      sigmaParameterIndices.end(), idxOuter)
+                      sigmaParameterIndices.end(), idxFull)
             != std::end(sigmaParameterIndices))
             continue;
-        outerParameters[idxOuter] = allParameters[idxFull];
-        ++idxOuter;
+
+        // otherwise copy
+        outerParameters[nextOuterIdx] = allParameters[idxFull];
+        ++nextOuterIdx;
     }
 
-    Ensures(idxOuter == static_cast<int>(outerParameters.size()));
+    Ensures(nextOuterIdx == static_cast<int>(outerParameters.size()));
     return outerParameters;
 }
 
 /**
  * @brief From the given parameter vector, extract outer optimization
- * parameters, as defined in the file HDF5 file parameterFile
+ * parameters, as defined in the file HDF5 file `parameterFile`
  * @param fullParameters
  * @param parameterFile
  * @param parameterPath
@@ -542,7 +541,7 @@ computeNegLogLikelihood(std::vector<double> const& measurements,
 
 /**
  * @brief If sensitivities are computed w.r.t. analytically computed parameters
- * (which is unneccessary), this function checks they are below the given
+ * (which is unnecessary), this function checks they are below the given
  * threshold.
  * @param gradient
  * @param analyticalIndices
