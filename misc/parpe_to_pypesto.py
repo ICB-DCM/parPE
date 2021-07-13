@@ -22,10 +22,14 @@ def write_pypesto_history(fn_parpe,
 
     for i_iter in range(iterations):
         iteration = get_or_create_group(trace_grp, str(i_iter))
-        iteration['fval'] = f[f'multistarts/{i_ms}/iterCostFunCost'][:, i_iter]
-        iteration['grad'] = f[f'multistarts/{i_ms}/iterCostFunGradient'][:, i_iter]
-        iteration['x'] = f[f'multistarts/{i_ms}/iterCostFunParameters'][:, i_iter]
-        iteration['time'] = f[f'multistarts/{i_ms}/iterCostFunWallSec'][:, i_iter]
+        iteration['fval'] = \
+            f[f'multistarts/{i_ms}/iterCostFunCost'][:, i_iter]
+        iteration['grad'] = \
+            f[f'multistarts/{i_ms}/iterCostFunGradient'][:, i_iter]
+        iteration['x'] = \
+            f[f'multistarts/{i_ms}/iterCostFunParameters'][:, i_iter]
+        iteration['time'] = \
+            f[f'multistarts/{i_ms}/iterCostFunWallSec'][:, i_iter]
 
     f.close()
     g.close()
@@ -49,8 +53,10 @@ def get_optimizer_result_from_parPE(fn_parpe,
         result.n_fval = 0
         result.n_grad = 0
         for i_iter in f[f'multistarts/{i_ms}/iteration']:
-            result.n_grad += f[f'multistarts/{i_ms}/iteration/{i_iter}/costFunGradient'].shape[1]
-            result.n_fval += f[f'multistarts/{i_ms}/iteration/{i_iter}/costFunCost'].shape[1]
+            result.n_grad += f[f'multistarts/{i_ms}/'
+                               f'iteration/{i_iter}/costFunGradient'].shape[1]
+            result.n_fval += f[f'multistarts/{i_ms}/'
+                               f'iteration/{i_iter}/costFunCost'].shape[1]
         result.exitflag = f[f'multistarts/{i_ms}/exitStatus'][()]
 
     return result
@@ -68,5 +74,7 @@ def parpe_to_pypesto_history(fn_parpe,
             write_pypesto_history(fn_parpe=fn_parpe,
                                   fn_pypesto=fn_pypesto,
                                   i_ms=i_ms)
-            result.optimize_result.append(get_optimizer_result_from_parPE(fn_parpe, i_ms))
-        write_result(result, fn_pypesto, problem=False, sample=False, profile=False)
+            result.optimize_result.append(
+                get_optimizer_result_from_parPE(fn_parpe, i_ms))
+        write_result(result,
+                     fn_pypesto, problem=False, sample=False, profile=False)
