@@ -44,6 +44,7 @@ extensions = [
     # 'sphinx.ext.pngmath'
     'sphinx.ext.mathjax',
     'sphinx.ext.todo',
+    'sphinx.ext.napoleon',
     'breathe',
     'exhale',
     'sphinx.ext.autodoc',
