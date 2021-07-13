@@ -24,7 +24,7 @@ using ::testing::ReturnRefOfCopy;
 using ::testing::SetArgReferee;
 using ::testing::DoAll;
 
-TEST(hierarchicalOptimization1, reader) {
+TEST(HierarchicalOptimization1, Reader) {
     // mappingToObservable = np.array([[ 0, 1, 0], [ 0, 2, 0], [ 1, 1, 1], [1, 2, 1], [1, 3, 1]])
 
     parpe::AnalyticalParameterHdf5Reader r(H5::H5File(TESTFILE, H5F_ACC_RDONLY),
@@ -90,7 +90,7 @@ public:
 };
 
 
-class hierarchicalOptimization : public ::testing::Test {
+class HierarchicalOptimization : public ::testing::Test {
 
 protected:
     int numParameters_ = 4;
@@ -126,7 +126,7 @@ protected:
 
 
 
-TEST_F(hierarchicalOptimization, hierarchicalOptimization) {
+TEST_F(HierarchicalOptimization, HierarchicalOptimization) {
     auto funUnqiue = std::make_unique<AmiciSummedGradientFunctionMock>();
     auto fun = funUnqiue.get();
     ON_CALL(*fun, numParameters()).WillByDefault(Return(numParameters_));
@@ -229,7 +229,7 @@ TEST_F(hierarchicalOptimization, hierarchicalOptimization) {
     EXPECT_EQ(2, hierarchicalOptimizationWrapper.numParameters());
 }
 
-TEST_F(hierarchicalOptimization, testNoAnalyticalParameters) {
+TEST_F(HierarchicalOptimization, NoAnalyticalParameters) {
     // Should only call fun::evaluate, nothing else
 
     // setup
@@ -262,7 +262,7 @@ TEST_F(hierarchicalOptimization, testNoAnalyticalParameters) {
 }
 
 
-TEST_F(hierarchicalOptimization, testComputeAnalyticalScalings) {
+TEST_F(HierarchicalOptimization, ComputeAnalyticalScalings) {
     /* data
      * measurement  = data * 10
      * check scaling = 10
@@ -325,7 +325,7 @@ TEST_F(hierarchicalOptimization, testComputeAnalyticalScalings) {
 }
 
 
-TEST_F(hierarchicalOptimization, testComputeAnalyticalOffsets) {
+TEST_F(HierarchicalOptimization, ComputeAnalyticalOffsets) {
     /* data
      * measurement  = data + 10
      * check offset = 10
@@ -370,7 +370,7 @@ TEST_F(hierarchicalOptimization, testComputeAnalyticalOffsets) {
     EXPECT_EQ(1.0, scaledOffset2);
 }
 
-TEST_F(hierarchicalOptimization, applyOptimalScaling) {
+TEST_F(HierarchicalOptimization, ApplyOptimalScaling) {
     constexpr int numObservables = 2;
     // constexpr int numTimepoints = 2;
     constexpr int scalingIdx = 0;
@@ -398,7 +398,7 @@ TEST_F(hierarchicalOptimization, applyOptimalScaling) {
 }
 
 
-TEST_F(hierarchicalOptimization, applyOptimalOffset) {
+TEST_F(HierarchicalOptimization, ApplyOptimalOffset) {
     constexpr int numObservables = 2;
     // constexpr int numTimepoints = 2;
     constexpr int offsetIdx = 0;
@@ -425,7 +425,7 @@ TEST_F(hierarchicalOptimization, applyOptimalOffset) {
 }
 
 
-TEST_F(hierarchicalOptimization, testScaling) {
+TEST_F(HierarchicalOptimization, Scaling) {
     EXPECT_EQ(42.0,
               amici::getUnscaledParameter(42.0, amici::ParameterScaling::none));
     EXPECT_EQ(42.0,
@@ -444,7 +444,7 @@ TEST_F(hierarchicalOptimization, testScaling) {
                                                  amici::ParameterScaling::ln));
 }
 
-TEST(hierarchicalOptimization1, spliceParameters) {
+TEST(HierarchicalOptimization1, SpliceParameters) {
     const std::vector<double>
             fullParametersExp {0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0};
 
@@ -466,7 +466,7 @@ TEST(hierarchicalOptimization1, spliceParameters) {
     EXPECT_EQ(fullParametersExp, fullParametersAct);
 }
 
-TEST(hierarchicalOptimization1, spliceParametersNothingToDo) {
+TEST(HierarchicalOptimization1, SpliceParametersNothingToDo) {
     const std::vector<double> fullParametersExp {0.0, 1.0, 2.0};
 
     const std::vector<double> reducedParameters {0.0, 1.0, 2.0};
@@ -489,7 +489,7 @@ TEST(hierarchicalOptimization1, spliceParametersNothingToDo) {
 }
 
 
-TEST(hierarchicalOptimization1, fillFilteredParams) {
+TEST(HierarchicalOptimization1, FillFilteredParams) {
     const std::vector<double> resultExp {1.0, 2.0, 3.0, 4.0, 5.0};
     const std::vector<double>
             valuesToFilter {9.0, 1.0, 2.0, 9.0, 9.0, 3.0, 4.0, 5.0, 9.0};
@@ -504,7 +504,7 @@ TEST(hierarchicalOptimization1, fillFilteredParams) {
 }
 
 
-TEST_F(hierarchicalOptimization, testWrappedFunIsCalledWithGradient) {
+TEST_F(HierarchicalOptimization, WrappedFunIsCalledWithGradient) {
     // setup
     auto fun = std::make_unique<AmiciSummedGradientFunctionMock>();
     auto funNonOwning = fun.get();
@@ -577,7 +577,7 @@ TEST_F(hierarchicalOptimization, testWrappedFunIsCalledWithGradient) {
     hierarchicalWrapper.evaluate(parameters, fval, gsl::span<double>(), nullptr, nullptr);
 }
 
-TEST(hierarchicalOptimization1, likelihoodOfMatchingData) {
+TEST(HierarchicalOptimization1, LikelihoodOfMatchingData) {
     const std::vector<double> data {1.0, 2.0, 3.0};
     const std::vector<double> sigmas {1.0, 1.0, 1.0};
 
@@ -590,7 +590,7 @@ TEST(hierarchicalOptimization1, likelihoodOfMatchingData) {
 }
 
 
-TEST_F(hierarchicalOptimization, problemWrapper) {
+TEST_F(HierarchicalOptimization, ProblemWrapper) {
     //std::unique_ptr<parpe::OptimizationProblem> problem(new parpe::QuadraticTestProblem());
     //auto hCost = std::make_unique<parpe::HierarchicalOptimizationWrapper>();
     //auto wrappedFun = dynamic_cast<SummedGradientFunctionGradientFunctionAdapter<int>*>(wrappedProblem->costFun.get());

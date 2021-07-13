@@ -1,16 +1,13 @@
 project(unittests_amici)
 
 set(SRC_LIST_CPP
-    main.cpp
     ../parpecommon/testingMisc.cpp
     ../parpeoptimization/quadraticTestProblem.cpp
-    amiciSimulationRunnerTest.h
-    multiConditionDataProviderTest.h
-    multiConditionProblemTest.h
-    simulationResultWriterTest.h
-    hierarchicalOptimizationTest.h
-    ${GTestSrc}/src/gtest-all.cc
-    ${GMockSrc}/src/gmock-all.cc
+    amiciSimulationRunnerTest.cpp
+    multiConditionDataProviderTest.cpp
+    multiConditionProblemTest.cpp
+    simulationResultWriterTest.cpp
+    hierarchicalOptimizationTest.cpp
 )
 
 add_executable(${PROJECT_NAME} ${SRC_LIST_CPP})
@@ -27,6 +24,7 @@ add_dependencies(${PROJECT_NAME} prepare_test_hierarchical_optimization)
 
 target_link_libraries(${PROJECT_NAME}
     parpeamici
+    gmock_main
     ${GCOV_LIBRARY}
 )
 

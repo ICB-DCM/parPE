@@ -15,5 +15,3 @@ cd "$script_dir"
 ./installCeres.sh
 
 ./installIpopt.sh
-
-./installGoogleTest.sh

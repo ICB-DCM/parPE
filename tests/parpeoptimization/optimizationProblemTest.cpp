@@ -94,7 +94,7 @@ public:
 };
 
 
-TEST(optimizationProblem, quadraticTestFunction) {
+TEST(OptimizationProblem, quadraticTestFunction) {
     // Test QuadraticGradientFunction for f(-1) = 42
     parpe::QuadraticGradientFunction f {};
     double parameter = -1;
@@ -112,7 +112,7 @@ TEST(optimizationProblem, quadraticTestFunction) {
 
 
 
-TEST(optimizationProblem, gradientChecker) {
+TEST(OptimizationProblem, gradientChecker) {
     parpe::QuadraticTestProblem problem {};
     constexpr int numParameterIndices {1};
     int parameterIndices[numParameterIndices] {0};
@@ -124,7 +124,7 @@ TEST(optimizationProblem, gradientChecker) {
 }
 
 
-TEST(optimizationProblem, linearModel) {
+TEST(OptimizationProblem, linearModel) {
     // Test if the linear model produces correct results
     SummedGradientFunctionLinearModelTest model;
 
@@ -145,7 +145,7 @@ TEST(optimizationProblem, linearModel) {
 }
 
 
-TEST(optimizationProblem, linearModelToGradientFun) {
+TEST(OptimizationProblem, linearModelToGradientFun) {
     // Test that the SummedGradientFunction <-> GradientFunction Adapter works
     // with the linear model
     std::vector<double> dataset {2.0, 3.0};
@@ -166,7 +166,7 @@ TEST(optimizationProblem, linearModelToGradientFun) {
 
 
 #ifdef PARPE_ENABLE_IPOPT
-TEST(optimizationProblem, linearModelToGradientFunOptimization) {
+TEST(OptimizationProblem, linearModelToGradientFunOptimization) {
     // create optimization problem for the linear model
     // does not do anything meaningful yet
     std::vector<double> dataset {2.0, 3.0};

@@ -30,9 +30,6 @@ cmake \
 
 #- cd $PARPE_BASE/ThirdParty && ./installCeres.sh
 
-# For google-test for parPE tests
-cd "${PARPE_BASE}" && ThirdParty/installGoogleTest.sh
-
 # install parPE python requirements
 pip3 install -r "${PARPE_BASE}"/python/requirements.txt
 

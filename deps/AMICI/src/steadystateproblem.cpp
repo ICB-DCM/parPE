@@ -101,9 +101,6 @@ void SteadystateProblem::workSteadyStateBackwardProblem(Solver *solver,
     clock_t starttime = clock();
     computeSteadyStateQuadrature(newtonSolver.get(), solver, model);
     cpu_timeB_ = (double)((clock() - starttime) * 1000) / CLOCKS_PER_SEC;
-
-    /* Finalize by setting adjoint state to zero (its steady state) */
-    xB_.zero();
 }
 
 void SteadystateProblem::findSteadyState(Solver *solver,
@@ -285,6 +282,9 @@ void SteadystateProblem::getQuadratureByLinSolve(NewtonSolver *newtonSolver,
         computeQBfromQ(model, xQ_, xQB_);
         /* set flag that quadratures is available (for processing in rdata) */
         hasQuadrature_ = true;
+        
+        /* Finalize by setting adjoint state to zero (its steady state) */
+        xB_.zero();
     } catch (NewtonFailure const &) {
         hasQuadrature_ = false;
     }
@@ -374,6 +374,10 @@ bool SteadystateProblem::getSensitivityFlag(const Model *model,
         steady_state_status_[1] == SteadyStateStatus::success &&
         model->getSteadyStateSensitivityMode() == SteadyStateSensitivityMode::simulationFSA;
 
+    bool simulationStartedInSteadystate =
+        steady_state_status_[0] == SteadyStateStatus::success &&
+        numsteps_[0] == 0;
+
     /* Do we need forward sensis for postequilibration? */
     bool needForwardSensisPosteq = !preequilibration &&
         !forwardSensisAlreadyComputed &&
@@ -388,7 +392,8 @@ bool SteadystateProblem::getSensitivityFlag(const Model *model,
 
     /* Do we need to do the linear system solve to get forward sensitivities? */
     bool needForwardSensisNewton =
-        needForwardSensisPreeq || needForwardSensisPosteq;
+        (needForwardSensisPreeq || needForwardSensisPosteq) &&
+        !simulationStartedInSteadystate;
 
     /* When we're creating a new solver object */
     bool needForwardSensiAtCreation = needForwardSensisPreeq &&
@@ -400,7 +405,9 @@ bool SteadystateProblem::getSensitivityFlag(const Model *model,
             return needForwardSensisNewton;
 
         case SteadyStateContext::sensiStorage:
-            return needForwardSensisNewton || forwardSensisAlreadyComputed;
+            return needForwardSensisNewton ||
+                forwardSensisAlreadyComputed ||
+                simulationStartedInSteadystate;
 
         case SteadyStateContext::solverCreation:
             return needForwardSensiAtCreation;

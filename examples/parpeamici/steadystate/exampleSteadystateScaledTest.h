@@ -95,7 +95,7 @@ TEST_F(steadystateProblemTests, testSteadystateMultiCond) {
     parpe::MultiConditionDataProviderDefault dp(std::move(model),
                                                 modelNonOwning->getSolver());
 
-    dp.edata_.push_back(amici::ExpData(*modelNonOwning));
+    dp.edata_.emplace_back(amici::ExpData(*modelNonOwning));
     dp.edata_[0].fixedParameters = modelNonOwning->getFixedParameters();
     dp.edata_[0].setObservedData(yExp);
     dp.edata_[0].setObservedDataStdDev(std::vector<double>(yExp.size(), 1.0));
@@ -126,7 +126,7 @@ TEST_F(steadystateProblemTests, testSteadystateHierarchical) {
     yScaledExp[offsettedObservableIdx] = offsetExp + yExp[1];
     parpe::MultiConditionDataProviderDefault dp(std::move(model), modelNonOwning->getSolver());
     // x0?
-    dp.edata_.push_back(amici::ExpData(*modelNonOwning));
+    dp.edata_.emplace_back(amici::ExpData(*modelNonOwning));
     dp.edata_[0].fixedParameters = modelNonOwning->getFixedParameters();
     dp.edata_[0].setObservedData(yScaledExp);
     dp.edata_[0].setObservedDataStdDev(std::vector<double>(yExp.size(), 1.0));

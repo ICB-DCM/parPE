@@ -15,6 +15,7 @@ import pytest
 # General setup
 script_path = os.path.dirname(os.path.abspath(__name__))
 # test executables are expected in working directory
+#  (i.e. working dir is build/examples/parpeamici/steadystate)
 cwd = os.getcwd()
 HDF5_FILE = os.path.join(
     cwd, 'steadystate_scaled-prefix/src/steadystate_scaled/',
@@ -22,7 +23,9 @@ HDF5_FILE = os.path.join(
 HDF5_FILE_TEST = os.path.join(
     cwd, 'steadystate_scaled-prefix/src/steadystate_scaled/',
     'example_data-testset.h5')
-
+# build directory is expected to be a direct subdirectory of the parPE root dir
+parpe_root = os.path.join(script_path, "../../../..")
+OPTIM_OPT = os.path.join(parpe_root, "misc/optimizationOptions.py")
 MPIEXEC = os.environ.get('PARPE_TESTS_MPIEXEC',
                          "mpiexec -n 5 --oversubscribe").split(" ")
 optim_exe = './example_steadystate_multi'
@@ -32,16 +35,20 @@ print('Files:', HDF5_FILE, HDF5_FILE_TEST, MPIEXEC)
 result_filename = '_rank00000.h5'
 
 
-def test_nompi_gradient_check():
+@pytest.mark.parametrize("hierarchical", [False, True])
+def test_nompi_gradient_check(hierarchical):
     """Test gradient check without MPI"""
 
-    outdir = 'example_steadystate_multi-test-gradient'
+    outdir = f'example_steadystate_multi-test-gradient-{int(hierarchical)}'
     shutil.rmtree(outdir, ignore_errors=True)
 
+    subprocess.run([OPTIM_OPT, HDF5_FILE, '-s', 'hierarchicalOptimization',
+                    str(int(hierarchical))],
+                   capture_output=True, check=True, encoding="utf-8")
     # Gradient check may fail in certain parameter regimes. Therefore, try
     # multiple times.
     max_tries = 4
-    for i_try in range(max_tries):
+    for _ in range(max_tries):
         ret = subprocess.run(f'{optim_exe} -t gradient_check'
                              f' -o {outdir}/ {HDF5_FILE}'.split(' '),
                              capture_output=True,

@@ -144,7 +144,7 @@ private:
      */
     int init(int argc, char **argv);
 
-    void runMultiStarts();
+    void runMultiStarts() const;
 
 protected:
     // command line option parsing

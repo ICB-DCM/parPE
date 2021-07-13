@@ -83,6 +83,12 @@ AnalyticalParameterHdf5Reader::getOptimizationParameterIndices() const
     return analyticalParameterIndices;
 }
 
+AnalyticalParameterHdf5Reader::~AnalyticalParameterHdf5Reader()
+{
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
+    file.close();
+}
+
 int
 AnalyticalParameterHdf5Reader::getNumAnalyticalParameters() const
 {
@@ -136,10 +142,12 @@ AnalyticalParameterHdf5Reader::readParameterConditionObservableMappingFromFile()
 }
 
 std::vector<int>
-AnalyticalParameterHdf5Reader::readRawMap(H5::DataSet& dataset,
+AnalyticalParameterHdf5Reader::readRawMap(H5::DataSet const& dataset,
                                           hsize_t& nRows,
-                                          hsize_t& nCols)
+                                          hsize_t& nCols) const
 {
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
+
     auto dataspace = dataset.getSpace();
     auto ndims = dataspace.getSimpleExtentNdims();
     if (ndims != 2)

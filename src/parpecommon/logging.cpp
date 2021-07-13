@@ -31,12 +31,10 @@ std::string printfToString(const char *fmt, va_list ap) {
     ++size;
 
     // actual formatting
-    auto buf = new char[size];
-    size = vsnprintf(buf, size, fmt, ap);
-    std::string str(buf, size);
-    delete[] buf;
+    auto buf = std::make_unique<char []>(size);
+    size = vsnprintf(buf.get(), size, fmt, ap);
 
-    return str;
+    return std::string(buf.get(), size);
 }
 
 void logmessage(loglevel lvl, const char *format, ...)

@@ -5,6 +5,10 @@
 #include <parpeoptimization/localOptimizationCeres.h>
 #endif
 
+#ifdef PARPE_ENABLE_FIDES
+#include <parpeoptimization/localOptimizationFides.h>
+#endif
+
 #ifdef PARPE_ENABLE_IPOPT
 #include <parpeoptimization/localOptimizationIpopt.h>
 #endif
@@ -46,12 +50,14 @@ template <typename T> std::string to_string(const T &n) {
 } // namespace patch
 
 
-void optimizationOptionsFromAttribute(H5::H5Object& loc,
+void optimizationOptionsFromAttribute(H5::H5Object & loc,
                                       const H5std_string attr_name,
                                       void *op_data) {
     // iterate over attributes and add to OptimizationOptions
 
     auto *o = static_cast<OptimizationOptions*>(op_data);
+
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
 
     auto a = loc.openAttribute(attr_name);
     auto type = a.getDataType();
@@ -79,7 +85,7 @@ void optimizationOptionsFromAttribute(H5::H5Object& loc,
     }
 }
 
-Optimizer *OptimizationOptions::createOptimizer() const {
+std::unique_ptr<Optimizer> OptimizationOptions::createOptimizer() const {
     return optimizerFactory(optimizer);
 }
 
@@ -90,9 +96,9 @@ std::unique_ptr<OptimizationOptions> OptimizationOptions::fromHDF5(const std::st
 std::unique_ptr<OptimizationOptions> OptimizationOptions::fromHDF5(const H5::H5File &file, std::string const& path) {
     auto o = std::make_unique<OptimizationOptions>();
 
-    const char *hdf5path = path.c_str();
-    auto fileId = file.getId();
+    auto hdf5path = path.c_str();
     [[maybe_unused]] auto lock = hdf5MutexGetLock();
+    auto fileId = file.getId();
 
     if (hdf5AttributeExists(file, path, "optimizer")) {
         int buffer;
@@ -127,6 +133,9 @@ std::unique_ptr<OptimizationOptions> OptimizationOptions::fromHDF5(const H5::H5F
     std::string optimizerPath;
 
     switch(o->optimizer) {
+    case optimizerName::OPTIMIZER_FIDES:
+        optimizerPath = std::string(hdf5path) + "/fides";
+        break;
     case optimizerName::OPTIMIZER_CERES:
         optimizerPath = std::string(hdf5path) + "/ceres";
         break;
@@ -164,7 +173,7 @@ std::vector<double> OptimizationOptions::getStartingPoint(H5::H5File const& file
                                                           int index) {
     std::vector<double> startingPoint;
 
-    const char *path = "/optimizationOptions/randomStarts";
+    auto path = "/optimizationOptions/randomStarts";
 
     [[maybe_unused]] auto lock = hdf5MutexGetLock();
 
@@ -258,55 +267,72 @@ void OptimizationOptions::setOption(const std::string& key, std::string value)
     options[key] = std::move(value);
 }
 
-Optimizer* optimizerFactory(optimizerName optimizer)
+std::unique_ptr<Optimizer> optimizerFactory(optimizerName optimizer)
 {
     switch (optimizer) {
+    case optimizerName::OPTIMIZER_FIDES:
+#ifdef PARPE_ENABLE_FIDES
+        return std::make_unique<OptimizerFides>();
+#else
+        return nullptr;
+#endif
     case optimizerName::OPTIMIZER_IPOPT:
 #ifdef PARPE_ENABLE_IPOPT
-        return new OptimizerIpOpt();
+        return std::make_unique<OptimizerIpOpt>();
 #else
         return nullptr;
 #endif
     case optimizerName::OPTIMIZER_CERES:
 #ifdef PARPE_ENABLE_CERES
-        return new OptimizerCeres();
+        return std::make_unique<OptimizerCeres>();
 #else
         return nullptr;
 #endif
     case optimizerName::OPTIMIZER_DLIB:
 #ifdef PARPE_ENABLE_DLIB
-        return new OptimizerDlibLineSearch();
+        return std::make_unique<OptimizerDlibLineSearch>();
 #else
         return nullptr;
 #endif
     case optimizerName::OPTIMIZER_TOMS611:
 #ifdef PARPE_ENABLE_TOMS611
-        return new OptimizerToms611TrustRegionSumsl();
+        return std::make_unique<OptimizerToms611TrustRegionSumsl>();
 #else
         return nullptr;
 #endif
     case optimizerName::OPTIMIZER_FSQP:
 #ifdef PARPE_ENABLE_FSQP
-        return new OptimizerFsqp();
+        return std::make_unique<OptimizerFsqp>();
 #else
         return nullptr;
 #endif
     case optimizerName::OPTIMIZER_MINIBATCH_1:
         throw ParPEException("optimizerFactory() cannot be used with "
-                             "minibatch optimizer.");
+                             "mini-batch optimizer.");
     }
 
     return nullptr;
 }
 
 
-void printAvailableOptimizers(std::string prefix)
+void printAvailableOptimizers(std::string const& prefix)
 {
     optimizerName optimizer {optimizerName::OPTIMIZER_IPOPT};
 
     // Note: Keep fall-through switch statement, so compiler will warn us about
     // any addition to optimizerName
     switch (optimizer) {
+    case optimizerName::OPTIMIZER_FIDES:
+#ifdef PARPE_ENABLE_FIDES
+        std::cout<<prefix<<std::left<<std::setw(22)<<"OPTIMIZER_FIDES\t"
+                  <<static_cast<int>(optimizerName::OPTIMIZER_FIDES)
+                  <<" enabled\n";
+#else
+        std::cout<<prefix<<std::left<<std::setw(22)<<"OPTIMIZER_FIDES"
+                  <<static_cast<int>(optimizerName::OPTIMIZER_FIDES)
+                  <<" disabled\n";
+#endif
+        [[fallthrough]];
     case optimizerName::OPTIMIZER_IPOPT:
 #ifdef PARPE_ENABLE_IPOPT
         std::cout<<prefix<<std::left<<std::setw(22)<<"OPTIMIZER_IPOPT\t"

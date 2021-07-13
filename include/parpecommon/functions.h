@@ -74,7 +74,7 @@ public:
      * @param gradient Preallocated space for the gradient of size
      * dim(parameters). Or gsl::span<double>() for evaluation without gradient.
      * @param logger Optional Logger instance used for output
-     * @param cputime Optional output argument to reoprt cpuTime consumed by the
+     * @param cputime Optional output argument to report cpuTime consumed by the
      * the function
      * @return Evaluation status
      */
@@ -94,7 +94,7 @@ public:
      * @param gradient Preallocated space for the gradient of size
      * dim(parameters). Or gsl::span<double>() for evaluation without gradient.
      * @param logger Optional Logger instance used for output
-     * @param cputime Optional output argument to reoprt cpuTime consumed by the
+     * @param cputime Optional output argument to report cpuTime consumed by the
      * the function
      * @return Evaluation status
      */

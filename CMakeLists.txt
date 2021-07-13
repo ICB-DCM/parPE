@@ -1,5 +1,5 @@
-cmake_minimum_required(VERSION 3.10) # for GoogleTest
-cmake_policy(VERSION 3.10)
+cmake_minimum_required(VERSION 3.13) # pkg_search_module GLOBAL
+cmake_policy(VERSION 3.13)
 
 if(POLICY CMP0074)
   # Use package_ROOT environment variables
@@ -51,6 +51,7 @@ set(BUILD_PYTHON_MODULE FALSE CACHE BOOL "Build Python module?")
 set(BLAS "CBLAS" CACHE STRING "BLAS library to use")
 set_property(CACHE BLAS PROPERTY STRINGS "CBLAS" "MKL")
 set(PARPE_ENABLE_MPI TRUE CACHE BOOL "Use MPI?")
+set(PARPE_ENABLE_FIDES FALSE CACHE BOOL "Enable fides optimizer?")
 set(PARPE_ENABLE_IPOPT TRUE CACHE BOOL "Enable ipopt optimizer?")
 set(PARPE_ENABLE_CERES TRUE CACHE BOOL "Enable ceres optimizer?")
 set(PARPE_ENABLE_DLIB FALSE CACHE BOOL "Enable dlib optimizers?")
@@ -68,13 +69,17 @@ if(${PARPE_ENABLE_MPI})
 endif(${PARPE_ENABLE_MPI})
 # </Build options>
 
+if(${PARPE_ENABLE_FIDES})
+    find_package(Fides REQUIRED)
+endif(${PARPE_ENABLE_FIDES})
+
 find_package(PkgConfig)
 pkg_search_module(IPOPT REQUIRED IMPORTED_TARGET GLOBAL ipopt>=3.11.0 )
 
-if(${ENABLE_DLIB})
+if(${PARPE_ENABLE_DLIB})
     set(DLIB_DIR "${CMAKE_CURRENT_LIST_DIR}/ThirdParty/dlib-19.7"
         CACHE FILEPATH "DLIB base directory")
-endif(${ENABLE_DLIB})
+endif(${PARPE_ENABLE_DLIB})
 
 # PThreads
 set(THREADS_PREFER_PTHREAD_FLAG ON)
@@ -100,25 +105,6 @@ if(${BUILD_TESTING})
     # --allow-run-as-root is required for running on shippable systems
     set(TESTS_MPIEXEC_COMMAND
         mpiexec --allow-run-as-root --oversubscribe -n 4 CACHE STRING "")
-
-    # googletest
-    add_definitions(-DGTEST_LANGUAGE_CXX11)
-    find_package(Threads REQUIRED)
-    if ($ENV{GOOGLETEST_DIR})
-        set(GOOGLETEST_DIR $ENV{GOOGLETEST_DIR})
-    else()
-        set(GOOGLETEST_DIR "${CMAKE_CURRENT_LIST_DIR}/ThirdParty/googletest")
-    endif()
-    if (EXISTS ${GOOGLETEST_DIR})
-        set(GTestSrc ${GOOGLETEST_DIR}/googletest)
-        set(GMockSrc ${GOOGLETEST_DIR}/googlemock)
-    else ()
-        message(FATAL_ERROR "No googletest src dir found - set GOOGLETEST_DIR "
-            "or run ../ThirdParty/installGoogleTest.sh to enable!"
-            " (Or disable building tests with BUILD_TESTING=OFF)")
-    endif ()
-    include_directories(${GTestSrc} "${GTestSrc}/include"
-        ${GMockSrc} "${GMockSrc}/include")
 
     # <Coverage>
     # Create test coverage reports?
