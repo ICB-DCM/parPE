@@ -39,7 +39,7 @@ public:
 
     OptimizationResultWriter(OptimizationResultWriter const& other);
 
-    virtual ~OptimizationResultWriter() = default;
+    virtual ~OptimizationResultWriter();
 
     /**
      * @brief Function to be called after each objective function f(x) or

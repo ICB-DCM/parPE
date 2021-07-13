@@ -258,31 +258,31 @@ void saveSimulation(const H5::H5File &file, std::string const& pathStr,
     [[maybe_unused]] auto lock = hdf5MutexGetLock();
 
     hdf5CreateOrExtendAndWriteToDouble2DArray(
-        file.getId(), fullGroupPath, "simulationLogLikelihood",
+        file, fullGroupPath, "simulationLogLikelihood",
                 gsl::make_span<double>(&llh, 1));
 
     hdf5CreateOrExtendAndWriteToInt2DArray(
-                file.getId(), fullGroupPath, "jobId",
+                file, fullGroupPath, "jobId",
                 gsl::make_span<const int>(&jobId, 1));
 
     if (!gradient.empty()) {
         hdf5CreateOrExtendAndWriteToDouble2DArray(
-            file.getId(), fullGroupPath, "simulationLogLikelihoodGradient",
+            file, fullGroupPath, "simulationLogLikelihoodGradient",
                     gradient);
     } else if(!parameters.empty()) {
         double dummyGradient[parameters.size()];
         std::fill_n(dummyGradient, parameters.size(), NAN);
         hdf5CreateOrExtendAndWriteToDouble2DArray(
-            file.getId(), fullGroupPath, "simulationLogLikelihoodGradient",
+            file, fullGroupPath, "simulationLogLikelihoodGradient",
             gsl::make_span<const double>(dummyGradient, parameters.size()));
     }
 
     if (!parameters.empty())
         hdf5CreateOrExtendAndWriteToDouble2DArray(
-            file.getId(), fullGroupPath, "simulationParameters", parameters);
+            file, fullGroupPath, "simulationParameters", parameters);
 
     hdf5CreateOrExtendAndWriteToDouble2DArray(
-                file.getId(), fullGroupPath, "simulationWallTimeInSec",
+                file, fullGroupPath, "simulationWallTimeInSec",
                 gsl::make_span<const double>(&timeElapsedInSeconds, 1));
 
     // TODO: This was broken by allowing different numbers of timepoints
@@ -302,10 +302,10 @@ void saveSimulation(const H5::H5File &file, std::string const& pathStr,
     //            stateSensi.size() / parameters.size(), parameters.size());
 
     hdf5CreateOrExtendAndWriteToInt2DArray(
-                file.getId(), fullGroupPath, "simulationStatus",
+                file, fullGroupPath, "simulationStatus",
                 gsl::make_span<const int>(&status, 1));
 
-    hdf5CreateOrExtendAndWriteToString1DArray(file.getId(), fullGroupPath,
+    hdf5CreateOrExtendAndWriteToString1DArray(file, fullGroupPath,
                                            "simulationLabel", label);
 
     file.flush(H5F_SCOPE_LOCAL);

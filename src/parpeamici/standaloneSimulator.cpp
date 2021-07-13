@@ -520,6 +520,8 @@ std::pair<int, double>
 getFunctionEvaluationWithMinimalCost(std::string const& datasetPath,
                                      H5::H5File const& file)
 {
+    [[maybe_unused]] auto lock = hdf5MutexGetLock();
+
     H5::DataSet dataset = file.openDataSet(datasetPath);
 
     H5::DataSpace filespace = dataset.getSpace();
@@ -534,7 +536,7 @@ getFunctionEvaluationWithMinimalCost(std::string const& datasetPath,
     std::vector<double> cost(numFunctionEvalations, INFINITY);
 
     parpe::hdf5Read2DDoubleHyperslab(
-        file.getId(), datasetPath.c_str(), 1, numFunctionEvalations, 0, 0, cost);
+        file, datasetPath, 1, numFunctionEvalations, 0, 0, cost);
     int minIndex = std::min_element(cost.begin(), cost.end()) - cost.begin();
     return { minIndex, cost[minIndex] };
 }
@@ -561,8 +563,8 @@ getParameterTrajectory(std::string const& startIndex, H5::H5File const& file)
 
     for (int iter = 0; iter < numIter; ++iter) {
         parameters[iter] = std::vector<double>(numParam);
-        parpe::hdf5Read2DDoubleHyperslab(file.getId(),
-                                         parameterPath.c_str(),
+        parpe::hdf5Read2DDoubleHyperslab(file,
+                                         parameterPath,
                                          numParam,
                                          1,
                                          0,
@@ -577,7 +579,7 @@ int
 getNumStarts(H5::H5File const& file, std::string const& rootPath)
 {
     auto o = parpe::OptimizationOptions::fromHDF5(
-        file.getId(), rootPath + "/optimizationOptions");
+        file, rootPath + "/optimizationOptions");
     return o->numStarts;
 }
 
@@ -722,7 +724,6 @@ runNominalParameters(StandaloneSimulator& sim,
     [[maybe_unused]] auto lock = hdf5MutexGetLock();
     H5::H5File parameterFile(parameterFileName, H5F_ACC_RDONLY);
     H5::H5File conditionFile(conditionFileName, H5F_ACC_RDONLY);
-    lock.unlock();
 
     int errors = 0;
 
@@ -731,9 +732,11 @@ runNominalParameters(StandaloneSimulator& sim,
               <<parameterFilePath + "/parameters/nominalValues"<< std::endl;
     // Read nominal parameters
     auto parameterValues = amici::hdf5::getDoubleDataset1D(
-        parameterFile.getId(), parameterFilePath + "/parameters/nominalValues");
+        parameterFile, parameterFilePath + "/parameters/nominalValues");
     auto parameterNames = hdf5Read1dStringDataset(
         parameterFile, parameterFilePath + "/parameters/parameterNames");
+    lock.unlock();
+
     Expects(parameterValues.size() == parameterNames.size());
     std::map<std::string, double> parameters;
     for(int i = 0; i < static_cast<int>(parameterValues.size()); ++i)
