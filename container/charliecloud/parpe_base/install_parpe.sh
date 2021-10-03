@@ -25,7 +25,8 @@ cmake \
   -DBUILD_TESTS=OFF \
   .. && make -j12
 
-#- cd $PARPE_BASE/ThirdParty && ./installCeres.sh
+# install fides optimizer
+cd $PARPE_BASE/ThirdParty && ./installFides.sh
 
 # install parPE python requirements
 pip install -r "${PARPE_BASE}"/python/requirements.txt
@@ -47,6 +48,7 @@ mpi_cmd="$mpi_cmd;--mca;btl_tcp_if_include;lo;"
 mpi_cmd="$mpi_cmd;--mca;orte_base_help_aggregate;0"
 
 CC=mpicc CXX=mpiCC cmake \
+      -DPARPE_ENABLE_FIDES=ON \
       -DIPOPT_INCLUDE_DIRS=/usr/include/coin/ \
       -DIPOPT_LIBRARIES=/usr/lib/libipopt.so \
       -DMPI_INCLUDE_DIRS=/usr/include/openmpi-x86_64/ \
