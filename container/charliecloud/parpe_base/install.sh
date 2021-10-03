@@ -31,6 +31,7 @@ apt-get install -q -y \
   python3-dev \
   python3-pip \
   python3-venv \
+  libspdlog-dev \
   swig3.0 \
   unzip \
   wget
