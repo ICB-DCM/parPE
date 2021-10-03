@@ -66,7 +66,7 @@ On Debian-based systems, dependencies can be installed via:
 ```shell
 sudo apt-get install build-essential cmake cmake-curses-gui \
     coinor-libipopt-dev curl gfortran \
-    libblas-dev libboost-serialization-dev libceres-dev libcpputest-dev \
+    libblas-dev libboost-serialization-dev libceres-dev \
     libmpich-dev libhdf5-dev libpython3-dev python3-pip
 ```
 

@@ -17,15 +17,12 @@ export PARPE_BASE=$(pwd)
 export AMICI_PATH=${PARPE_BASE}/deps/AMICI/
 cd "${AMICI_PATH}" \
   && scripts/buildSuiteSparse.sh \
-  && scripts/buildSundials.sh \
-  && scripts/buildCpputest.sh #&& scripts/buildAmici.sh
+  && scripts/buildSundials.sh
 mkdir -p "${AMICI_PATH}"/build && cd "${AMICI_PATH}"/build
-CPPUTEST_BUILD_DIR=${AMICI_PATH}/ThirdParty/cpputest-master/build/
 cmake \
   -DCMAKE_BUILD_TYPE=Debug \
   -DENABLE_PYTHON=ON \
   -DBUILD_TESTS=OFF \
-  -DCppUTest_DIR="${CPPUTEST_BUILD_DIR}" \
   .. && make -j12
 
 #- cd $PARPE_BASE/ThirdParty && ./installCeres.sh
