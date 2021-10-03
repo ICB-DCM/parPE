@@ -3,12 +3,11 @@
 set -euo pipefail
 set -x
 
+export PARPE_BASE="${PARPE_DIR:-/parPE}"
 
 # unpack git archive
-mkdir /parPE && cd /parPE
+mkdir "$PARPE_BASE" && cd "$PARPE_BASE"
 tar -xzf /u18/parpe.tar.gz
-
-export PARPE_BASE=$(pwd)
 
 # Build dependencies
 

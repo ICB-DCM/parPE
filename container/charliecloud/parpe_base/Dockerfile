@@ -9,3 +9,5 @@ ENV BASH_ENV "/etc/drydock/.env"
 RUN /u18/install_parpe.sh
 
 RUN chmod -R ugo+rwX /root/
+
+ENV PARPE_DIR "/parPE"
