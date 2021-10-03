@@ -3,10 +3,9 @@
 set -euo pipefail
 set -x
 
-cd
 
 # unpack git archive
-mkdir parPE && cd parPE
+mkdir /parPE && cd /parPE
 tar -xzf /u18/parpe.tar.gz
 
 export PARPE_BASE=$(pwd)
@@ -18,7 +17,7 @@ export AMICI_PATH=${PARPE_BASE}/deps/AMICI/
 cd "${AMICI_PATH}" \
   && scripts/buildSuiteSparse.sh \
   && scripts/buildSundials.sh
-mkdir -p "${AMICI_PATH}"/build && cd "${AMICI_PATH}"/build
+mkdir -p "${AMICI_PATH}/build" && cd "${AMICI_PATH}/build"
 cmake \
   -DCMAKE_BUILD_TYPE=Debug \
   -DENABLE_PYTHON=ON \
@@ -26,7 +25,7 @@ cmake \
   .. && make -j12
 
 # install fides optimizer
-cd $PARPE_BASE/ThirdParty && ./installFides.sh
+cd "$PARPE_BASE/ThirdParty" && ./installFides.sh
 
 # install parPE python requirements
 pip3 install -r "${PARPE_BASE}"/python/requirements.txt
