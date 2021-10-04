@@ -46,6 +46,7 @@ mpi_cmd="$mpi_cmd;--mca;btl_tcp_if_include;lo;"
 mpi_cmd="$mpi_cmd;--mca;orte_base_help_aggregate;0"
 
 CC=mpicc CXX=mpiCC cmake \
+      -DPARPE_BUILD_OPTIMIZED=OFF \
       -DPARPE_ENABLE_FIDES=ON \
       -DIPOPT_INCLUDE_DIRS=/usr/include/coin/ \
       -DIPOPT_LIBRARIES=/usr/lib/libipopt.so \
@@ -53,6 +54,7 @@ CC=mpicc CXX=mpiCC cmake \
       -DBUILD_TESTING=ON \
       -DTESTS_MPIEXEC_COMMAND="$mpi_cmd" \
       ..
+
 make -j12 VERBOSE=1
 
 # MPI settings for python tests
