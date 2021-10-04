@@ -24,8 +24,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 # call project to select language and required by some modules
 project(${MODEL_NAME}) # for IDE
 
-set(BUILD_TESTS FALSE CACHE BOOL "Build tests?")
-
 find_package(ParPE REQUIRED)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-unused-function -fopenmp -D_GNU_SOURCE") # -D_GNU_SOURCE for pthread recursive mutex issues
@@ -37,28 +35,11 @@ add_definitions(-DGIT_VERSION="${GIT_VERSION}")
 include_directories(${ParPE_INCLUDE_DIRS})
 
 
-if(${BUILD_TESTS})
-    include (CTest)
-    set(AMICI_DIR "${CMAKE_CURRENT_LIST_DIR}/../parPE/deps/AMICI/")
-    set(CPPUTEST_DIR "${AMICI_DIR}/ThirdParty/cpputest-master/" CACHE PATH "")
-
-    set(CPPUTEST_INCLUDE_DIR "${CPPUTEST_DIR}/include")
-    set(CPPUTEST_LIBRARY "${CPPUTEST_DIR}/lib/libCppUTest.a"
-        "${CPPUTEST_DIR}/lib/libCppUTestExt.a")
-    include_directories(${CPPUTEST_INCLUDE_DIR})
-endif(${BUILD_TESTS})
-
 ################################################
 # AMICI model
 ################################################
 
 add_subdirectory(model)
-
-# unit tests
-if(${BUILD_TESTS})
-#    add_subdirectory(tests)
-endif(${BUILD_TESTS})
-
 
 #################################
 # parameter estimation executable
@@ -73,15 +54,6 @@ target_link_libraries(${PROJECT_NAME}
     model
     Upstream::parpe
 )
-
-if(${BUILD_TESTS})
-    # Run program with sample data as test
-    set(TESTS_MPIEXEC_COMMAND mpiexec -n 4)
-
-    #add_test (NAME ${PROJECT_NAME}
-    #    COMMAND ${TESTS_MPIEXEC_COMMAND} ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME} -o deleteme  ${CMAKE_CURRENT_LIST_DIR}/../data/data4c.h5
-    #    )
-endif(${BUILD_TESTS})
 
 #################################
 # simulation executable

@@ -17,18 +17,16 @@ export PARPE_BASE=$(pwd)
 export AMICI_PATH=${PARPE_BASE}/deps/AMICI/
 cd "${AMICI_PATH}" \
   && scripts/buildSuiteSparse.sh \
-  && scripts/buildSundials.sh \
-  && scripts/buildCpputest.sh #&& scripts/buildAmici.sh
+  && scripts/buildSundials.sh
 mkdir -p "${AMICI_PATH}"/build && cd "${AMICI_PATH}"/build
-CPPUTEST_BUILD_DIR=${AMICI_PATH}/ThirdParty/cpputest-master/build/
 cmake \
   -DCMAKE_BUILD_TYPE=Debug \
   -DENABLE_PYTHON=ON \
   -DBUILD_TESTS=OFF \
-  -DCppUTest_DIR="${CPPUTEST_BUILD_DIR}" \
   .. && make -j12
 
-#- cd $PARPE_BASE/ThirdParty && ./installCeres.sh
+# install fides optimizer
+cd $PARPE_BASE/ThirdParty && ./installFides.sh
 
 # install parPE python requirements
 pip install -r "${PARPE_BASE}"/python/requirements.txt
@@ -50,6 +48,7 @@ mpi_cmd="$mpi_cmd;--mca;btl_tcp_if_include;lo;"
 mpi_cmd="$mpi_cmd;--mca;orte_base_help_aggregate;0"
 
 CC=mpicc CXX=mpiCC cmake \
+      -DPARPE_ENABLE_FIDES=ON \
       -DIPOPT_INCLUDE_DIRS=/usr/include/coin/ \
       -DIPOPT_LIBRARIES=/usr/lib/libipopt.so \
       -DMPI_INCLUDE_DIRS=/usr/include/openmpi-x86_64/ \

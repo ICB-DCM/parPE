@@ -9,17 +9,6 @@
 #   result in "ld: cannot find -lpkgcfg_lib_IPOPT_iomp5-NOTFOUND"
 #   -> use newer CMake
 
-build_cpputest() {
-  #cpputest
-  #CPPUTEST_PATH=${amici_path}/ThirdParty/cpputest-master
-  #cd ${CPPUTEST_PATH}
-  # -DC++11=ON breaks compilation of some `_override` for no obvious reason
-  #cmake -DC++11=OFF -DCMAKE_INSTALL_PREFIX=`pwd`
-  #make ${make_opts}
-  #make install
-  :
-}
-
 build_amici() {
   amici_path=${parpe_root}/deps/AMICI
 
@@ -69,7 +58,6 @@ build_3rd_party_deps() {
   # build_boost
   "${parpe_root}/ThirdParty/installIpopt.sh"
   #./installCeres.sh
-  #./installCpputest.sh
   #  ceres_base=${parpe_root}/ThirdParty/ceres-solver-1.13.0/
   #  ceres_install_dir=${ceres_base}/build/install/
   #  if [[ -d ${ceres_base} ]]; then
@@ -108,7 +96,6 @@ parpe_root=$(cd "${parpe_root}" && pwd)
 
 make_opts=${MAKEOPTS--j12}
 
-build_cpputest
 build_3rd_party_deps
 build_amici
 build_parpe
