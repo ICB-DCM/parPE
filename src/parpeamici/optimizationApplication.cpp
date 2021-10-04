@@ -164,8 +164,13 @@ void OptimizationApplication::logParPEVersion(H5::H5File const& file) const
 
 void OptimizationApplication::initMPI(int *argc, char ***argv) {
 #ifdef PARPE_ENABLE_MPI
+    int thread_support_provided = 0;
+    int mpiErr = MPI_Init_thread(argc, argv, MPI_THREAD_MULTIPLE,
+                                 &thread_support_provided);
 
-    int mpiErr = MPI_Init(argc, argv);
+    if (thread_support_provided != MPI_THREAD_MULTIPLE)
+        throw std::runtime_error("MPI_THREAD_MULTIPLE not supported?");
+
     if (mpiErr != MPI_SUCCESS) {
         logmessage(LOGLVL_CRITICAL, "Problem initializing MPI. Exiting.");
         exit(1);

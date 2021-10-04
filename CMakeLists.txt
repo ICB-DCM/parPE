@@ -14,7 +14,6 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 include(BuildType) # Ensure CMAKE_BUILD_TYPE is always set
-include(BuildOptimized)
 include(CTest)
 
 set(CMAKE_DEBUG_POSTFIX "-dbg")
@@ -59,6 +58,12 @@ set(PARPE_ENABLE_TOMS611 FALSE CACHE BOOL "Enable toms611 optimizer?")
 set(PARPE_ENABLE_FSQP FALSE CACHE BOOL "Enable FSQP optimizer?")
 set(PARPE_EXPORT_PACKAGE FALSE CACHE BOOL
     "Export this build to CMake registry?")
+set(PARPE_BUILD_OPTIMIZED TRUE CACHE BOOL "Optimize for current CPU?")
+
+if(${PARPE_BUILD_OPTIMIZED})
+    include(BuildOptimized)
+endif(${PARPE_BUILD_OPTIMIZED})
+
 
 # OpenMP?
 find_package(OpenMP)

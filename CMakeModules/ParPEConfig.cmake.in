@@ -19,13 +19,13 @@ endif()
 
 if(${PARPE_ENABLE_CERES})
 find_dependency(Ceres COMPONENTS
-    HINTS "${CMAKE_SOURCE_DIR}/ThirdParty/ceres-solver-2.0.0/build/install")
+    HINTS "@Ceres_DIR@")
 find_dependency(Eigen3 REQUIRED)
 endif()
 
 if(${PARPE_ENABLE_FIDES})
 find_dependency(Fides
-    HINTS "${CMAKE_SOURCE_DIR}/ThirdParty/fides-cpp/build/")
+    HINTS "@Fides_DIR@")
 endif()
 
 find_dependency(Amici REQUIRED)
