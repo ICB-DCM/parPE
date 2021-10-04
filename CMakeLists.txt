@@ -78,7 +78,7 @@ pkg_search_module(IPOPT REQUIRED IMPORTED_TARGET GLOBAL ipopt>=3.11.0 )
 
 if(${PARPE_ENABLE_DLIB})
     set(DLIB_DIR "${CMAKE_CURRENT_LIST_DIR}/ThirdParty/dlib-19.7"
-        CACHE FILEPATH "DLIB base directory")
+        CACHE PATH "DLIB base directory")
 endif(${PARPE_ENABLE_DLIB})
 
 # PThreads
