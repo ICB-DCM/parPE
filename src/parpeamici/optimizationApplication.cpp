@@ -164,9 +164,6 @@ void OptimizationApplication::logParPEVersion(H5::H5File const& file) const
 
 void OptimizationApplication::initMPI(int *argc, char ***argv) {
 #ifdef PARPE_ENABLE_MPI
-
-    //int mpiErr = MPI_Init(argc, argv);
-    // TODO thread multiple only on master?
     int thread_support_provided = 0;
     int mpiErr = MPI_Init_thread(argc, argv, MPI_THREAD_MULTIPLE,
                                  &thread_support_provided);
