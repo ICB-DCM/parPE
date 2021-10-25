@@ -5,7 +5,7 @@ on: [push, pull_request, workflow_dispatch]
 jobs:
   container:
     runs-on: ubuntu-latest
-    container: dweindl/parpeci:1902967
+    container: ghcr.io/icb-dcm/custom_ci_image:master
     name: benchmark models
     steps:
     - uses: actions/checkout@master
