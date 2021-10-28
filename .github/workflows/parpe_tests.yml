@@ -5,7 +5,7 @@ on: [push, pull_request, workflow_dispatch]
 jobs:
   container:
     runs-on: ubuntu-latest
-    container: dweindl/parpeci:1902967
+    container: ghcr.io/icb-dcm/custom_ci_image:master
     name: parPE tests
     env:
       # mpiexec prefix for running tests
@@ -22,7 +22,7 @@ jobs:
     - run: echo "AMICI_PATH=${PARPE_BASE}/deps/AMICI/" >> $GITHUB_ENV
 
     # sonar cloud
-    - run: echo "SONAR_SCANNER_VERSION=4.6.0.2311" >> $GITHUB_ENV
+    - run: echo "SONAR_SCANNER_VERSION=4.6.1.2450" >> $GITHUB_ENV
     - run: echo "SONAR_SCANNER_HOME=/root/.sonar/sonar-scanner-$SONAR_SCANNER_VERSION-linux" >> $GITHUB_ENV
     - run: echo "SONAR_SCANNER_OPTS=-server" >> $GITHUB_ENV
     - run: echo "${SONAR_SCANNER_HOME}/bin" >> $GITHUB_PATH
