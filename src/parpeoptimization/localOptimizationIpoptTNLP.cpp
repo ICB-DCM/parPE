@@ -28,7 +28,7 @@ LocalOptimizationIpoptTNLP::get_nlp_info(Index& n,
 {
 
     n = reporter.numParameters();
-    m = 0;                       // number of constrants
+    m = 0;                       // number of constraints
     nnz_jac_g = 0;               // numNonZeroElementsConstraintJacobian
     nnz_h_lag = 0;               // numNonZeroElementsLagrangianHessian
     index_style = TNLP::C_STYLE; // array layout for sparse matrices
@@ -160,8 +160,8 @@ LocalOptimizationIpoptTNLP::intermediate_callback(
     // get current parameters from IpOpt which are not available directly
     gsl::span<double const> parameters;
 
-    auto x = ip_data->curr()->x();
-    if (auto xx = dynamic_cast<const Ipopt::DenseVector*>(Ipopt::GetRawPtr(x)))
+    if (auto x = ip_data->curr()->x();
+        auto xx = dynamic_cast<const Ipopt::DenseVector*>(Ipopt::GetRawPtr(x)))
         parameters = gsl::span<double const>(xx->Values(), xx->Dim());
     else
         logmessage(loglevel::warning,
