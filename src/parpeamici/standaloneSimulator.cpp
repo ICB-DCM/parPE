@@ -402,18 +402,18 @@ StandaloneSimulator::runSimulation(int conditionIdx,
     amiciApp.error = [&logger](std::string const& identifier,
                                std::string const& message) {
         if (!identifier.empty()) {
-            logger.logmessage(LOGLVL_ERROR, "[" + identifier + "] " + message);
+            logger.logmessage(loglevel::error, "[" + identifier + "] " + message);
         } else {
-            logger.logmessage(LOGLVL_ERROR, message);
+            logger.logmessage(loglevel::error, message);
         }
     };
     amiciApp.warning = [&logger](std::string const& identifier,
                                  std::string const& message) {
         if (!identifier.empty()) {
-            logger.logmessage(LOGLVL_WARNING,
+            logger.logmessage(loglevel::warning,
                               "[" + identifier + "] " + message);
         } else {
-            logger.logmessage(LOGLVL_WARNING, message);
+            logger.logmessage(loglevel::warning, message);
         }
     };
     model.app = &amiciApp;  // TODO: may dangle need to unset on exit

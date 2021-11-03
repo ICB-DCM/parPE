@@ -35,19 +35,19 @@ public:
                       const char* message,
                       size_t message_len) override {
         // Map log levels
-        loglevel lvl = LOGLVL_INFO;
+        loglevel lvl = loglevel::info;
         switch (severity) {
         case google::INFO:
-            lvl = LOGLVL_INFO;
+            lvl = loglevel::info;
             break;
         case google::WARNING:
-            lvl = LOGLVL_WARNING;
+            lvl = loglevel::warning;
             break;
         case google::ERROR:
-            lvl = LOGLVL_ERROR;
+            lvl = loglevel::error;
             break;
         case google::FATAL:
-            lvl = LOGLVL_CRITICAL;
+            lvl = loglevel::critical;
             break;
         }
 
@@ -263,11 +263,11 @@ void setCeresOption(const std::pair<const std::string, const std::string> &pair,
     } else if(key == "minimizer_progress_to_stdout") {
         options->minimizer_progress_to_stdout = std::stoi(val);
     } else {
-        logmessage(LOGLVL_WARNING, "Ignoring unknown optimization option %s.", key.c_str());
+        logmessage(loglevel::warning, "Ignoring unknown optimization option %s.", key.c_str());
         return;
     }
 
-    logmessage(LOGLVL_DEBUG, "Set optimization option %s to %s.", key.c_str(), val.c_str());
+    logmessage(loglevel::debug, "Set optimization option %s to %s.", key.c_str(), val.c_str());
 }
 
 

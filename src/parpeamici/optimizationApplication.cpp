@@ -26,7 +26,7 @@ struct sigaction act;
 struct sigaction oldact;
 
 void signalHandler(int sig) {
-    logmessage(LOGLVL_CRITICAL, "Caught signal %d ", sig);
+    logmessage(loglevel::critical, "Caught signal %d ", sig);
     printBacktrace();
 
     // restore previous
@@ -37,7 +37,7 @@ void signalHandler(int sig) {
 int OptimizationApplication::init(int argc, char **argv) {
     // reduce verbosity
     if(std::getenv("PARPE_NO_DEBUG"))
-        minimumLogLevel = LOGLVL_INFO;
+        minimumLogLevel = loglevel::info;
 
     int status = parseCliOptionsPreMpiInit(argc, argv);
     if(status)
@@ -93,11 +93,9 @@ int OptimizationApplication::parseCliOptionsPostMpiInit(int argc, char **argv) {
     // restart from first argument
     optind = 1;
 
-    int c;
-
     while (true) {
         int optionIndex = 0;
-        c = getopt_long(argc, argv, shortOptions, longOptions, &optionIndex);
+        int c = getopt_long(argc, argv, shortOptions, longOptions, &optionIndex);
 
         if (c == -1)
             break; // no more options
@@ -131,7 +129,7 @@ int OptimizationApplication::parseCliOptionsPostMpiInit(int argc, char **argv) {
     if (optind < argc) {
         dataFileName = argv[optind++];
     } else {
-        logmessage(LOGLVL_CRITICAL,
+        logmessage(loglevel::critical,
                    "Must provide input file as first and only argument to %s.",
                    argv[0]);
         return 1;
@@ -172,7 +170,7 @@ void OptimizationApplication::initMPI(int *argc, char ***argv) {
         throw std::runtime_error("MPI_THREAD_MULTIPLE not supported?");
 
     if (mpiErr != MPI_SUCCESS) {
-        logmessage(LOGLVL_CRITICAL, "Problem initializing MPI. Exiting.");
+        logmessage(loglevel::critical, "Problem initializing MPI. Exiting.");
         exit(1);
     }
 
@@ -180,7 +178,7 @@ void OptimizationApplication::initMPI(int *argc, char ***argv) {
 
     if (mpiRank == 0) {
         int commSize = getMpiCommSize();
-        logmessage(LOGLVL_INFO, "Running with %d MPI processes.", commSize);
+        logmessage(loglevel::info, "Running with %d MPI processes.", commSize);
     }
 #endif
 }
@@ -195,7 +193,7 @@ int OptimizationApplication::run(int argc, char **argv) {
         return status;
 
     if (dataFileName.empty()) {
-        logmessage(LOGLVL_CRITICAL,
+        logmessage(loglevel::critical,
                    "No input file provided. Must provide input file as first "
                    "and only argument or set "
                    "OptimizationApplication::inputFileName manually.");
@@ -215,7 +213,7 @@ int OptimizationApplication::run(int argc, char **argv) {
             loadBalancer.terminate();
             loadBalancer.sendTerminationSignalToAllWorkers();
             finalizeTiming(wallTimer.getTotal(), cpuTimer.getTotal());
-            logmessage(LOGLVL_INFO, "Sent termination signal to workers.");
+            logmessage(loglevel::info, "Sent termination signal to workers.");
 
         } else {
             runWorker();
@@ -300,7 +298,7 @@ void OptimizationApplication::finalizeTiming(double wallTimeSeconds, double cpuT
     int mpiRank = getMpiRank();
 
     if (mpiRank < 1) {
-        logmessage(LOGLVL_INFO, "Walltime on master: %fs, CPU time of all processes: %fs",
+        logmessage(loglevel::info, "Walltime on master: %fs, CPU time of all processes: %fs",
                    wallTimeSeconds, totalCpuTimeInSeconds);
         saveTotalCpuTime(h5File, totalCpuTimeInSeconds);
     }

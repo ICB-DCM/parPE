@@ -178,7 +178,7 @@ std::vector<double> OptimizationOptions::getStartingPoint(H5::H5File const& file
     [[maybe_unused]] auto lock = hdf5MutexGetLock();
 
     if (!file.nameExists(path)) {
-        logmessage(LOGLVL_DEBUG, "No initial parameters found in %s", path);
+        logmessage(loglevel::debug, "No initial parameters found in %s", path);
         return startingPoint;
     }
 
@@ -192,13 +192,13 @@ std::vector<double> OptimizationOptions::getStartingPoint(H5::H5File const& file
         hsize_t dims[ndims];
         dataspace.getSimpleExtentDims(dims);
         if (dims[1] < static_cast<hsize_t>(index)) {
-            logmessage(LOGLVL_ERROR,
+            logmessage(loglevel::debug,
                        "Requested starting point index %d out of bounds (%d)",
                        index, static_cast<int>(dims[1]));
             return startingPoint;
         }
 
-        logmessage(LOGLVL_INFO, "Reading random initial theta %d from %s",
+        logmessage(loglevel::info, "Reading random initial theta %d from %s",
                    index, path);
 
         startingPoint.resize(dims[0]);

@@ -61,7 +61,7 @@ bool LoadBalancerWorker::waitForAndHandleJobs(const messageHandlerFunc& messageH
 #ifdef LOADBALANCERWORKER_REPORT_WAITING_TIME
     double endTime = MPI_Wtime();
     double waitedSeconds = (endTime - startTime);
-    logmessage(LOGLVL_DEBUG, "Message received after waiting %fs.", rank, waitedSeconds);
+    logmessage(loglevel::debug, "Message received after waiting %fs.", rank, waitedSeconds);
 #endif
 
     messageHandler(buffer, mpiStatus.MPI_TAG);

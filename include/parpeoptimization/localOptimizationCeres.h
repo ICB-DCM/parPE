@@ -19,7 +19,7 @@ class OptimizerCeres : public Optimizer {
      * @param problem the optimization problem
      * @return Returns 0 on success.
      */
-    virtual std::tuple<int, double, std::vector<double> >
+    std::tuple<int, double, std::vector<double> >
     optimize(OptimizationProblem *problem) override;
 };
 

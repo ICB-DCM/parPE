@@ -281,7 +281,7 @@ MultiConditionDataProviderHDF5::readFixedSimulationParameters(
                               buffer);
 
     if (H5Eget_num(H5E_DEFAULT)) {
-        logmessage(LOGLVL_CRITICAL,
+        logmessage(loglevel::critical,
                    "Problem in readFixedParameters (row %d, nk %d)\n",
                    conditionIdx,
                    model_->nk());
@@ -674,7 +674,7 @@ MultiConditionDataProviderDefault::updateSimulationParametersAndScale(
   gsl::span<const double> optimizationParams,
   amici::Model& model) const
 {
-    logmessage(LOGLVL_WARNING,
+    logmessage(loglevel::warning,
                "MultiConditionDataProviderDefault::updateSimulationParameters: "
                "No proper mapping implemented. Ensure this is correct.");
     model.setParameters(std::vector<double>(optimizationParams.begin(),

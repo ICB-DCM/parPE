@@ -209,14 +209,14 @@ void printSimulationResult(Logger *logger, int jobId,
     if(!rdata) {
         // This should not happen, but apparently we can't rely on AMICI always
         // returning some result object
-        logger->logmessage(LOGLVL_ERROR,
+        logger->logmessage(loglevel::error,
                            "AMICI simulation failed unexpectedly.");
         return;
     }
 
     bool with_sensi = rdata->sensi >= amici::SensitivityOrder::first;
 
-    logger->logmessage(LOGLVL_DEBUG, "Result for %d: %g (%d) (%d/%d/%.4fs%c)",
+    logger->logmessage(loglevel::debug, "Result for %d: %g (%d) (%d/%d/%.4fs%c)",
                        jobId, rdata->llh, rdata->status,
                        rdata->numsteps.empty()?-1:rdata->numsteps[rdata->numsteps.size() - 1],
                        rdata->numstepsB.empty()?-1:rdata->numstepsB[0],
@@ -228,13 +228,13 @@ void printSimulationResult(Logger *logger, int jobId,
     if (with_sensi) {
         for (int i = 0; i < rdata->np; ++i) {
             if (std::isnan(rdata->sllh[i])) {
-                logger->logmessage(LOGLVL_DEBUG,
+                logger->logmessage(loglevel::debug,
                                    "Gradient contains NaN at %d", i);
                 break;
             }
 
             if (std::isinf(rdata->sllh[i])) {
-                logger->logmessage(LOGLVL_DEBUG,
+                logger->logmessage(loglevel::debug,
                                    "Gradient contains Inf at %d", i);
                 break;
             }
@@ -360,19 +360,19 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
             std::string const& identifier,
             std::string const& message){
         if(!identifier.empty()) {
-            logger->logmessage(LOGLVL_ERROR, "[" + identifier + "] " + message);
+            logger->logmessage(loglevel::error, "[" + identifier + "] " + message);
         } else {
-            logger->logmessage(LOGLVL_ERROR, message);
+            logger->logmessage(loglevel::error, message);
         }
     };
     amiciApp.warning = [logger](
             std::string const& identifier,
             std::string const& message){
         if(!identifier.empty()) {
-            logger->logmessage(LOGLVL_WARNING,
+            logger->logmessage(loglevel::warning,
                                "[" + identifier + "] " + message);
         } else {
-            logger->logmessage(LOGLVL_WARNING, message);
+            logger->logmessage(loglevel::warning, message);
         }
     };
     model.app = &amiciApp; // TODO: may dangle need to unset on exit
@@ -405,7 +405,7 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
         }
 
         if(trial - 1 == maxNumTrials) {
-            logger->logmessage(LOGLVL_ERROR,
+            logger->logmessage(loglevel::error,
                                "Simulation trial %d/%d failed. Giving up.",
                                trial, maxNumTrials);
             break;
@@ -445,7 +445,7 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
             }
 
             logger->logmessage(
-                        LOGLVL_WARNING,
+                        loglevel::warning,
                         "Error during simulation (try %d/%d), "
                         "retrying with relaxed error tolerances (*= %g): "
                         "abs: %g rel: %g quadAbs: %g quadRel: %g "
@@ -468,7 +468,7 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
                 status = std::to_string(rdata->status);
             }
             logger->logmessage(
-                        LOGLVL_WARNING, "Error during simulation: %s (%s)",
+                        loglevel::warning, "Error during simulation: %s (%s)",
                 e.what(), status.c_str());
         }
 

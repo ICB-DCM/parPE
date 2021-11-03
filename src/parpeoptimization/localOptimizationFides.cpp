@@ -67,7 +67,7 @@ get_optimization_options(OptimizationOptions const& parpe_options)
               if (result != fides::subspace_dim_to_str.cend())
                   options.subspace_solver = result->first;
               else
-                  logmessage(LOGLVL_WARNING,
+                  logmessage(loglevel::warning,
                              "Invalid value %s provided for option "
                              "'subspace_solver'. Ignoring.",
                              val.c_str());
@@ -79,7 +79,7 @@ get_optimization_options(OptimizationOptions const& parpe_options)
               if (result != fides::step_back_strategy_str.cend())
                   options.stepback_strategy = result->first;
               else
-                  logmessage(LOGLVL_WARNING,
+                  logmessage(loglevel::warning,
                              "Invalid value %s provided for option "
                              "'stepback_strategy'. Ignoring.",
                              val.c_str());
@@ -98,13 +98,13 @@ get_optimization_options(OptimizationOptions const& parpe_options)
           } else if (key == "refine_stepback") {
               options.refine_stepback = std::stoi(val);
           } else {
-              logmessage(LOGLVL_WARNING,
+              logmessage(loglevel::warning,
                          "Ignoring unknown optimization option %s.",
                          key.c_str());
               return;
           }
 
-          logmessage(LOGLVL_DEBUG,
+          logmessage(loglevel::debug,
                      "Set optimization option %s to %s.",
                      key.c_str(),
                      val.c_str());

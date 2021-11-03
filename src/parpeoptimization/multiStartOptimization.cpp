@@ -33,7 +33,7 @@ void MultiStartOptimization::run() {
 
 void MultiStartOptimization::runMultiThreaded()
 {
-    logmessage(LOGLVL_DEBUG,
+    logmessage(loglevel::debug,
                "Starting runParallelMultiStartOptimization with %d starts",
                numberOfStarts);
 
@@ -55,7 +55,7 @@ void MultiStartOptimization::runMultiThreaded()
     for (int ms = 0; ms < numberOfStarts; ++ms) {
         ++lastStartIdx;
 
-        logmessage(LOGLVL_DEBUG,
+        logmessage(loglevel::debug,
                    "Spawning thread for local optimization #%d (%d)",
                    lastStartIdx, ms);
 
@@ -92,10 +92,10 @@ void MultiStartOptimization::runMultiThreaded()
 
                 if (*threadStatus == 0 || !restartOnFailure) {
                     if (*threadStatus == 0) {
-                        logmessage(LOGLVL_DEBUG,
+                        logmessage(loglevel::debug,
                                    "Thread ms #%d finished successfully", ms);
                     } else {
-                        logmessage(LOGLVL_DEBUG, "Thread ms #%d finished "
+                        logmessage(loglevel::debug, "Thread ms #%d finished "
                                                  "unsuccessfully. Not trying "
                                                  "new starting point.",
                                    ms);
@@ -104,7 +104,7 @@ void MultiStartOptimization::runMultiThreaded()
                 }
 #ifndef __APPLE__
                 else {
-                    logmessage(LOGLVL_WARNING, "Thread ms #%d finished "
+                    logmessage(loglevel::warning, "Thread ms #%d finished "
                                                "unsuccessfully... trying new "
                                                "starting point",
                                ms);
@@ -112,7 +112,7 @@ void MultiStartOptimization::runMultiThreaded()
 
                     localProblems[ms] = msProblem.getLocalProblem(lastStartIdx).release();
                     logmessage(
-                                LOGLVL_DEBUG,
+                                loglevel::debug,
                                 "Spawning thread for local optimization #%d (%d)",
                                 lastStartIdx, ms);
                     auto ret = pthread_create(
@@ -132,14 +132,14 @@ void MultiStartOptimization::runMultiThreaded()
         sleep(1); // TODO: replace by condition via ThreadWrapper
     }
 
-    logmessage(LOGLVL_DEBUG, "runParallelMultiStartOptimization finished");
+    logmessage(loglevel::debug, "runParallelMultiStartOptimization finished");
 
     pthread_attr_destroy(&threadAttr);
 }
 
 void MultiStartOptimization::runSingleThreaded()
 {
-    logmessage(LOGLVL_DEBUG,
+    logmessage(loglevel::debug,
                "Starting runParallelMultiStartOptimization with %d starts sequentially",
                numberOfStarts);
 
@@ -156,17 +156,17 @@ void MultiStartOptimization::runSingleThreaded()
         auto problem = msProblem.getLocalProblem(first_start_idx + ms);
         auto result = getLocalOptimum(problem.get());
         if(result) {
-            logmessage(LOGLVL_DEBUG,
+            logmessage(loglevel::debug,
                        "Start #%d finished successfully", ms);
             ++numSucceeded;
         } else {
-            logmessage(LOGLVL_DEBUG, "Thread ms #%d finished "
+            logmessage(loglevel::debug, "Thread ms #%d finished "
                                      "unsuccessfully.",ms);
         }
         ++ms;
     }
 
-    logmessage(LOGLVL_DEBUG, "runParallelMultiStartOptimization finished");
+    logmessage(loglevel::debug, "runParallelMultiStartOptimization finished");
 }
 
 void MultiStartOptimization::setRunParallel(bool runParallel)

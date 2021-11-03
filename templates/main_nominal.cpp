@@ -38,7 +38,7 @@ int main(int argc, char **argv) {
     }
 
 
-    parpe::logmessage(parpe::LOGLVL_INFO,
+    parpe::logmessage(parpe::loglevel::info,
                       "Reading options and data from '%s'.",
                       inFileArgument.c_str());
 
@@ -69,8 +69,8 @@ int main(int argc, char **argv) {
     auto maxAbsGradient = *std::max_element(gradient.begin(), gradient.end());
     std::for_each(gradient.begin(), gradient.end(), [fval](double &d){ d /= std::fabs(fval); });
     auto maxRelGradient = *std::max_element(gradient.begin(), gradient.end());
-    parpe::logmessage(LOGLVL_INFO, "Max(abs(grad)) = " + std::to_string(maxAbsGradient));
-    parpe::logmessage(LOGLVL_INFO, "Max(abs(grad)/fval) = " + std::to_string(maxRelGradient));
+    parpe::logmessage(loglevel::info, "Max(abs(grad)) = " + std::to_string(maxAbsGradient));
+    parpe::logmessage(loglevel::info, "Max(abs(grad)/fval) = " + std::to_string(maxRelGradient));
 
-    parpe::logmessage(LOGLVL_INFO, "Likelihood: " + std::to_string(fval));
+    parpe::logmessage(loglevel::info, "Likelihood: " + std::to_string(fval));
 }

@@ -40,8 +40,8 @@ public:
 
     ~SteadystateApplication() override = default;
 
-    void initProblem(std::string inFileArgument,
-                     std::string outFileArgument) override
+    void initProblem(std::string const& inFileArgument,
+                     std::string const& outFileArgument) override
     {
 
         // The same file should only be opened/created once, an then only be reopened

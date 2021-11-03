@@ -64,9 +64,9 @@ void runInParallelAndWaitForFinish(void *(*function)(void *), void **args,
     // wait for finish
     for (int i = 0; i < numArgs; ++i) {
         pthread_join(threads[i], nullptr);
-        logmessage(LOGLVL_DEBUG, "Thread i %d finished", i);
+        logmessage(loglevel::debug, "Thread i %d finished", i);
     }
-    logmessage(LOGLVL_DEBUG, "All k threads finished.");
+    logmessage(loglevel::debug, "All k threads finished.");
 }
 
 void printBacktrace(int nMaxFrames) {

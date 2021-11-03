@@ -19,11 +19,11 @@ class MyOptimizationApplication : public parpe::OptimizationApplication {
 public:
     using OptimizationApplication::OptimizationApplication;
 
-    virtual void initProblem(std::string inFileArgument,
-                             std::string outFileArgument) override
+    virtual void initProblem(std::string const& inFileArgument,
+                             std::string const& outFileArgument) override
     {
         if (!isWorker())
-            parpe::logmessage(parpe::LOGLVL_INFO,
+            parpe::logmessage(parpe::loglevel::info,
                               "Reading options and data from '%s'.",
                               inFileArgument.c_str());
 
