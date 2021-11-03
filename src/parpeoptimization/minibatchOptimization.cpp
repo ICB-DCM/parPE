@@ -4,16 +4,8 @@
 
 namespace parpe {
 
-double getScalarProduct(gsl::span<const double> v,
-                        gsl::span<const double> w) {
-    double scalarProduct = 0.0;
-    for (unsigned int i = 0; i < v.size(); ++i)
-        scalarProduct += v[i] * w[i];
-    return scalarProduct;
-}
-
 double getVectorNorm(gsl::span<const double> v) {
-    return std::sqrt(getScalarProduct(v, v));
+    return std::sqrt(std::inner_product(v.begin(), v.end(), v.begin(), 0.0));
 }
 
 std::vector<double> getVectorDifference(gsl::span<const double> v,

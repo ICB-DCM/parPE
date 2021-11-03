@@ -14,7 +14,10 @@
 #include <iostream>
 #include <sstream>
 #include <functional>
+#include <numeric>
+
 #include <gsl/gsl-lite.hpp>
+
 
 namespace parpe {
 
@@ -373,15 +376,6 @@ std::vector<std::vector<T>> getBatches(gsl::span<const T> data,
 
     return batches;
 }
-
-/**
- * @brief Get scalar product of two vectors.
- * @param v
- * @param w
- * @return the scalar product
- */
-double getScalarProduct(gsl::span<const double> v,
-                        gsl::span<const double> w);
 
 /**
  * @brief Get Euclidean (l2) norm of vector.
@@ -782,7 +776,8 @@ public:
             direction[i] /= dirNorm;
 
         /* Is the step direction a descent direction? */
-        double dirGradient = getScalarProduct(direction, gradient);
+        double dirGradient = std::inner_product(
+            direction.begin(), direction.end(), gradient.begin(), 0.0);
         if (dirGradient > 0) {
             /* No descent direction, no hope for improvement:
              * Try to do something smart anyway */
