@@ -41,11 +41,11 @@ void setMinibatchOption(const std::pair<const std::string, const std::string> &p
     } else if (key == "lineSearchSteps") {
         optimizer->lineSearchSteps = std::stoi(val);
     } else if (key == "rescueInterceptor") {
-        if (val == "none" or val == "0") {
+        if (val == "none" || val == "0") {
             optimizer->interceptor = parpe::interceptType::none;
-        } else if (val == "reduceStep" or val == "1") {
+        } else if (val == "reduceStep" || val == "1") {
             optimizer->interceptor = parpe::interceptType::reduceStep;
-        } else if (val == "reduceStepAndRestart" or val == "2") {
+        } else if (val == "reduceStepAndRestart" || val == "2") {
             optimizer->interceptor = parpe::interceptType::reduceStepAndRestart;
         }
     } else if (key == "parameterUpdater") {
