@@ -61,7 +61,7 @@ void setMinibatchOption(const std::pair<const std::string, const std::string> &p
             // this might have been set previously if there was an updater-specific option before
             optimizer->parameterUpdater = std::make_unique<ParameterUpdaterAdamClassic>();
         } else {
-            logmessage(LOGLVL_WARNING, "Ignoring unknown Minibatch parameterUpdater %s.", val.c_str());
+            logmessage(loglevel::warning, "Ignoring unknown Minibatch parameterUpdater %s.", val.c_str());
         }
     } else if (key == "learningRateInterpMode") {
         if (val == "linear") {
@@ -79,11 +79,11 @@ void setMinibatchOption(const std::pair<const std::string, const std::string> &p
     } else if (key == "endLearningRate") {
             optimizer->learningRateUpdater->setEndLearningRate(std::stod(val));
     } else {
-        logmessage(LOGLVL_WARNING, "Ignoring unknown optimization option %s.", key.c_str());
+        logmessage(loglevel::warning, "Ignoring unknown optimization option %s.", key.c_str());
         return;
     }
 
-    logmessage(LOGLVL_DEBUG, "Set optimization option %s to %s.", key.c_str(), val.c_str());
+    logmessage(loglevel::debug, "Set optimization option %s to %s.", key.c_str(), val.c_str());
 }
 
 std::tuple<int, double, std::vector<double> > runMinibatchOptimization(MinibatchOptimizationProblem<int> *problem) {

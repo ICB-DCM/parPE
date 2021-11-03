@@ -154,7 +154,7 @@ TEST(Logging, MessageIsPrinted) {
     captureStreamToString([](){
         parpe::warning("bla");
         parpe::error("bla");
-        parpe::logmessage(parpe::LOGLVL_ERROR, "error");
+        parpe::logmessage(parpe::loglevel::error, "error");
     }, stdout);
 }
 

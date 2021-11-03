@@ -164,7 +164,7 @@ LocalOptimizationIpoptTNLP::intermediate_callback(
     if (xx)
         parameters = gsl::span<double const>(xx->Values(), xx->Dim());
     else
-        logmessage(LOGLVL_WARNING,
+        logmessage(loglevel::warning,
                    "Not Ipopt::DenseVector in "
                    "LocalOptimizationIpoptTNLP::intermediate_callback");
 
@@ -174,7 +174,7 @@ LocalOptimizationIpoptTNLP::intermediate_callback(
 
 #ifdef INSTALL_SIGNAL_HANDLER
     if (caughtTerminationSignal) {
-        logmessage(LOGLVL_CRITICAL, "CAUGHT SIGTERM... EXITING.");
+        logmessage(loglevel::critical, "CAUGHT SIGTERM... EXITING.");
         return false;
     }
 #endif

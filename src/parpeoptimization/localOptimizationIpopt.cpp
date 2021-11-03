@@ -353,13 +353,13 @@ void setIpOptOption(const std::pair<const std::string, const std::string> &pair,
     else if(std::find(dblOpts.begin(), dblOpts.end(), key) != dblOpts.end())
         success = options->SetNumericValue(key, std::stod(val));
     else {
-        logmessage(LOGLVL_WARNING, "Ignoring unknown optimization option %s.", key.c_str());
+        logmessage(loglevel::warning, "Ignoring unknown optimization option %s.", key.c_str());
         return;
     }
 
     RELEASE_ASSERT(success, "Problem setting IpOpt option");
 
-    logmessage(LOGLVL_DEBUG, "Set optimization option %s to %s.", key.c_str(), val.c_str());
+    logmessage(loglevel::debug, "Set optimization option %s to %s.", key.c_str(), val.c_str());
 }
 
 void setIpOptOptions(SmartPtr<OptionsList> optionsIpOpt,
@@ -418,11 +418,11 @@ std::tuple<int, double, std::vector<double> > OptimizerIpOpt::optimize(Optimizat
                 // TODO: print where
             }
         } catch (IpoptException& e) {
-            logmessage(LOGLVL_ERROR, "IpOpt exception: %s",  e.Message().c_str());
+            logmessage(loglevel::error, "IpOpt exception: %s",  e.Message().c_str());
         } catch (std::exception& e) {
-            logmessage(LOGLVL_ERROR, "Unknown exception occurred during optimization: %s", e.what());
+            logmessage(loglevel::error, "Unknown exception occurred during optimization: %s", e.what());
         } catch (...) {
-            logmessage(LOGLVL_ERROR, "Unknown exception occurred during optimization");
+            logmessage(loglevel::error, "Unknown exception occurred during optimization");
         }
         finalCost = optimizationController->getFinalCost();
         finalParameters = optimizationController->getFinalParameters();

@@ -26,7 +26,7 @@ OptimizationResultWriter::OptimizationResultWriter(const std::string &filename,
                                                    bool overwrite,
                                                    std::string rootPath) :
     rootPath(std::move(rootPath)) {
-    logmessage(LOGLVL_DEBUG, "Writing results to %s.", filename.c_str());
+    logmessage(loglevel::debug, "Writing results to %s.", filename.c_str());
 
     file = hdf5CreateFile(filename, overwrite);
 

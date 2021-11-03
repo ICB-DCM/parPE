@@ -150,8 +150,7 @@ operator==(AmiciSimulationRunner::AmiciResultPackageSimple const& lhs,
 
 } // namespace parpe
 
-namespace boost {
-namespace serialization {
+namespace boost::serialization {
 
 template<class Archive>
 void
@@ -180,7 +179,6 @@ serialize(Archive& ar,
     ar& u.status;
 }
 
-} // namespace boost
-} // namespace serialization
+} // namespace boost::serialization
 
 #endif // PARPE_AMICI_SIMULATIONRUNNER_H
