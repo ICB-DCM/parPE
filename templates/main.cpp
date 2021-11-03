@@ -23,7 +23,7 @@ public:
                              std::string outFileArgument) override
     {
         if (!isWorker())
-            parpe::logmessage(parpe::LOGLVL_INFO,
+            parpe::logmessage(parpe::loglevel::info,
                               "Reading options and data from '%s'.",
                               inFileArgument.c_str());
 
