@@ -632,7 +632,7 @@ public:
                 finalFail = true;
 
             // If nothing helps and no cold restart wanted: cancel optimization
-            if (initialFail or (finalFail and interceptor != interceptType::reduceStepAndRestart)) {
+            if (initialFail || (finalFail && interceptor != interceptType::reduceStepAndRestart)) {
                 logger->logmessage(loglevel::debug, "Failure at initial point of optimization. Stopping.");
                 return functionEvaluationFailure;
             }

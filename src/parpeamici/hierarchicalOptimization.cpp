@@ -637,11 +637,11 @@ std::unique_ptr<OptimizationReporter>
 HierarchicalOptimizationProblemWrapper::getReporter() const
 {
     auto innerReporter = wrapped_problem_->getReporter();
-    auto outerReporter = std::unique_ptr<OptimizationReporter>(
-        new HierarchicalOptimizationReporter(
-            dynamic_cast<HierarchicalOptimizationWrapper*>(cost_fun_.get()),
-            std::move(innerReporter->result_writer_),
-            std::make_unique<Logger>(*logger_)));
+    auto outerReporter = std::make_unique<HierarchicalOptimizationReporter>(
+        dynamic_cast<HierarchicalOptimizationWrapper*>(cost_fun_.get()),
+        std::move(innerReporter->result_writer_),
+        std::make_unique<Logger>(*logger_)
+        );
     return outerReporter;
 }
 
@@ -715,7 +715,7 @@ computeAnalyticalScalings(
     double denominator = 0.0;
 
     for (auto const conditionIdx : dependentConditions) {
-        auto dependentObservables =
+        auto const& dependentObservables =
             scalingReader.getObservablesForParameter(scalingIdx, conditionIdx);
         int numTimepoints = measurements[conditionIdx].size() / numObservables;
 
@@ -808,7 +808,7 @@ computeAnalyticalOffsets(
     double denominator = 0.0;
 
     for (auto const conditionIdx : dependentConditions) {
-        auto dependentObservables =
+        auto const& dependentObservables =
             offsetReader.getObservablesForParameter(offsetIdx, conditionIdx);
         int numTimepoints = measurements[conditionIdx].size() / numObservables;
         for (auto const observableIdx : dependentObservables) {
@@ -868,7 +868,7 @@ computeAnalyticalSigmas(
     double maxAbsMeasurement = 0.0;
 
     for (auto const conditionIdx : dependentConditions) {
-        auto dependentObservables =
+        auto const& dependentObservables =
             sigmaReader.getObservablesForParameter(sigmaIdx, conditionIdx);
         int numTimepoints = measurements[conditionIdx].size() / numObservables;
         for (auto const observableIdx : dependentObservables) {
@@ -940,7 +940,7 @@ applyOptimalScaling(int scalingIdx,
         scalingReader.getConditionsForParameter(scalingIdx);
     for (auto const conditionIdx : dependentConditions) {
         int numTimepoints = modelOutputs[conditionIdx].size() / numObservables;
-        auto dependentObservables =
+        auto const& dependentObservables =
             scalingReader.getObservablesForParameter(scalingIdx, conditionIdx);
         for (auto const observableIdx : dependentObservables) {
             if (observableIdx >= numObservables) {
@@ -970,7 +970,7 @@ applyOptimalOffset(int offsetIdx,
         offsetReader.getConditionsForParameter(offsetIdx);
     for (auto const conditionIdx : dependentConditions) {
         int numTimepoints = modelOutputs[conditionIdx].size() / numObservables;
-        auto dependentObservables =
+        auto const& dependentObservables =
             offsetReader.getObservablesForParameter(offsetIdx, conditionIdx);
         for (auto const observableIdx : dependentObservables) {
             if (observableIdx >= numObservables) {
@@ -1137,9 +1137,9 @@ HierarchicalOptimizationReporter::HierarchicalOptimizationReporter(
     HierarchicalOptimizationWrapper* gradFun,
     std::unique_ptr<OptimizationResultWriter> rw,
     std::unique_ptr<Logger> logger)
-    : OptimizationReporter(gradFun, std::move(rw), std::move(logger))
+    : OptimizationReporter(gradFun, std::move(rw), std::move(logger)),
+      hierarchical_wrapper_(gradFun)
 {
-    hierarchical_wrapper_ = gradFun;
 }
 
 FunctionEvaluationStatus

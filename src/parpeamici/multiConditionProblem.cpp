@@ -197,9 +197,8 @@ std::unique_ptr<OptimizationProblem> MultiConditionProblemMultiStartOptimization
                     data_provider_->getHdf5File(), multiStartIndex));
 
     if(options_.hierarchicalOptimization)
-        return std::unique_ptr<OptimizationProblem>(
-                    new parpe::HierarchicalOptimizationProblemWrapper(
-                        std::move(problem), data_provider_));
+        return std::make_unique<HierarchicalOptimizationProblemWrapper>(
+            std::move(problem), data_provider_);
 
     return problem;
 }
@@ -540,10 +539,10 @@ FunctionEvaluationStatus getModelOutputsAndSigmas(
                     job->recvBuffer.data(), job->recvBuffer.size());
         std::vector<char>().swap(job->recvBuffer); // free buffer
 
-        for (auto const& result : results) {
-            errors += result.second.status;
-            modelOutputs[result.first] = result.second.modelOutput;
-            modelSigmas[result.first] = result.second.modelSigmas;
+        for (auto const& [condition_idx, result]: results) {
+            errors += result.status;
+            modelOutputs[condition_idx] = result.modelOutput;
+            modelSigmas[condition_idx] = result.modelSigmas;
         }
     };
 

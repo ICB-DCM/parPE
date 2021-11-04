@@ -308,7 +308,7 @@ class MultiConditionDataProviderHDF5 : public MultiConditionDataProvider
     virtual void readFixedSimulationParameters(int conditionIdx,
                                                gsl::span<double> buffer) const;
 
-    virtual std::unique_ptr<amici::ExpData> getExperimentalDataForCondition(
+    std::unique_ptr<amici::ExpData> getExperimentalDataForCondition(
       int conditionIdx) const override;
 
     std::vector<std::vector<double>> getAllMeasurements() const override;

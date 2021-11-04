@@ -1,7 +1,6 @@
 #include <parpecommon/misc.h>
 #include <parpecommon/logging.h>
 
-#include <alloca.h>
 #include <cassert>
 #include <cerrno>
 #include <execinfo.h>
@@ -26,14 +25,6 @@
 #ifdef PARPE_ENABLE_MPI
 #include <mpi.h>
 #endif
-
-// void printMatlabArray(const double *buffer, int len)
-//{
-//    printf("[");
-//    printfArray(buffer, len - 1, "%e, ");
-//    printf("%e]\n", buffer[len - 1]);
-//    fflush(stdout);
-//}
 
 
 namespace parpe {

@@ -46,8 +46,8 @@ AnalyticalParameterHdf5Reader::getConditionsForParameter(
 {
     std::vector<int> result;
     result.reserve(mapping[parameterIndex].size());
-    for (auto const& kvp : mapping[parameterIndex])
-        result.push_back(kvp.first);
+    for (auto const& [k, v] : mapping[parameterIndex])
+        result.push_back(k);
     return result;
 }
 
@@ -69,8 +69,7 @@ AnalyticalParameterHdf5Reader::getOptimizationParameterIndices() const
         auto dataset = file.openDataSet(analyticalParameterIndicesPath);
         auto dataspace = dataset.getSpace();
 
-        auto ndims = dataspace.getSimpleExtentNdims();
-        if (ndims != 1)
+        if (dataspace.getSimpleExtentNdims() != 1)
             throw ParPEException(
                 "Invalid dimension in getOptimizationParameterIndices.");
         hsize_t numScalings = 0;
@@ -98,8 +97,7 @@ AnalyticalParameterHdf5Reader::getNumAnalyticalParameters() const
     if (file.nameExists(analyticalParameterIndicesPath)) {
         auto dataset = file.openDataSet(analyticalParameterIndicesPath);
         auto dataspace = dataset.getSpace();
-        auto ndims = dataspace.getSimpleExtentNdims();
-        if (ndims != 1)
+        if (dataspace.getSimpleExtentNdims() != 1)
             throw ParPEException(
                 "Invalid dimension in getOptimizationParameterIndices.");
         dataspace.getSimpleExtentDims(&numAnalyticalParameters);
@@ -135,7 +133,7 @@ AnalyticalParameterHdf5Reader::readParameterConditionObservableMappingFromFile()
             int observableIdx = rawMap[i * nCols + observableCol];
             mapping[scalingIdx][conditionIdx].push_back(observableIdx);
         }
-    } catch (H5::FileIException&) {
+    } catch (H5::FileIException const&) {
         return;
     }
     H5_RESTORE_ERROR_HANDLER;

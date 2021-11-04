@@ -80,8 +80,6 @@ private:
         abort();                                                               \
     }
 
-// void printMatlabArray(const double *buffer, int len);
-
 void
 strFormatCurrentLocaltime(gsl::span<char> buffer, const char* format);
 

@@ -169,14 +169,14 @@ StandaloneSimulator::run(const std::string& resultFile,
                              AmiciSimulationRunner::AmiciResultPackageSimple>>(
                     job.recvBuffer.data(), job.recvBuffer.size());
                 std::vector<char>().swap(job.recvBuffer); // free buffer
-                for (auto& result : results) {
-                    swap(simulationResults[result.first], result.second);
-                    modelOutputs[result.first] =
-                        simulationResults[result.first].modelOutput;
-                    modelSigmas[result.first] =
-                        simulationResults[result.first].modelSigmas;
-                    modelStates[result.first] =
-                        simulationResults[result.first].modelStates;
+                for (auto& [condition_idx, result] : results) {
+                    swap(simulationResults[condition_idx], result);
+                    modelOutputs[condition_idx] =
+                        simulationResults[condition_idx].modelOutput;
+                    modelSigmas[condition_idx] =
+                        simulationResults[condition_idx].modelSigmas;
+                    modelStates[condition_idx] =
+                        simulationResults[condition_idx].modelStates;
 
                 }
             }
@@ -195,8 +195,7 @@ StandaloneSimulator::run(const std::string& resultFile,
             auto sigmas = hierarchical.computeAnalyticalSigmas(
                 allMeasurements, modelOutputs);
             if (!hierarchical.getSigmaParameterIndices().empty()) {
-                hierarchical.fillInAnalyticalSigmas(modelSigmas,
-                                                    sigmas);
+                hierarchical.fillInAnalyticalSigmas(modelSigmas, sigmas);
             }
 
             // save parameters
@@ -295,34 +294,31 @@ StandaloneSimulator::run(const std::string& resultFile,
                     job->recvBuffer.data(), job->recvBuffer.size());
                 std::vector<char>().swap(job->recvBuffer); // free buffer
 
-                for (auto const& result : results) {
-                    errors += result.second.status;
-                    int conditionIdx = result.first;
+                for (auto const& [condition_idx, result] : results) {
+                    errors += result.status;
                     auto edata =
                         dataProvider->getExperimentalDataForCondition(
-                            conditionIdx);
+                            condition_idx);
 
-                    rw.saveTimepoints(edata->getTimepoints(),
-                                      conditionIdx);
-                    if(!result.second.modelStates.empty()) {
-                        rw.saveStates(result.second.modelStates, edata->nt(),
-                                      model->nx_rdata, conditionIdx);
+                    rw.saveTimepoints(edata->getTimepoints(), condition_idx);
+                    if(!result.modelStates.empty()) {
+                        rw.saveStates(result.modelStates, edata->nt(),
+                                      model->nx_rdata, condition_idx);
                     }
                     rw.saveMeasurements(edata->getObservedData(),
                                         edata->nt(),
                                         edata->nytrue(),
-                                        conditionIdx);
-                    rw.saveModelOutputs(result.second.modelOutput,
+                                        condition_idx);
+                    rw.saveModelOutputs(result.modelOutput,
                                         edata->nt(),
                                         model->nytrue,
-                                        conditionIdx);
-                    rw.saveLikelihood(result.second.llh,
-                                      conditionIdx);
+                                        condition_idx);
+                    rw.saveLikelihood(result.llh, condition_idx);
 
                     // to save simulation parameters
                     dataProvider->updateSimulationParametersAndScale(
-                        conditionIdx, parameterValues, *model);
-                    rw.saveParameters(model->getParameters(), conditionIdx);
+                        condition_idx, parameterValues, *model);
+                    rw.saveParameters(model->getParameters(), condition_idx);
                 }
             };
 
@@ -453,19 +449,20 @@ getFinalParameters(std::string const& startIndex, H5::H5File const& file)
     }
     --iteration; // last one did not exist
 
-    auto bestPairLast = getFunctionEvaluationWithMinimalCost(
+    auto [costFunEvaluationIndexLast, costFunValLast] = getFunctionEvaluationWithMinimalCost(
         iterationPath + std::to_string(iteration) + "/costFunCost", file);
-    int costFunEvaluationIndex = bestPairLast.first;
+    int costFunEvaluationIndex = costFunEvaluationIndexLast;
 
     if (iteration > 0) {
         // If job got killed during line search, the final point of the previous
         // iteration might be better than any line search steps of the current
         // iteration
-        auto bestPairSecondLast = getFunctionEvaluationWithMinimalCost(
-            iterationPath + std::to_string(iteration - 1) + "/costFunCost", file);
-        if (bestPairSecondLast.second < bestPairLast.second) {
+        auto [costFunEvaluationIndexSecondLast, costFunValSecondLast] =
+            getFunctionEvaluationWithMinimalCost(
+                iterationPath + std::to_string(iteration - 1) + "/costFunCost", file);
+        if (costFunValSecondLast < costFunValLast) {
             --iteration;
-            costFunEvaluationIndex = bestPairSecondLast.first;
+            costFunEvaluationIndex = costFunEvaluationIndexSecondLast;
         }
     }
 
