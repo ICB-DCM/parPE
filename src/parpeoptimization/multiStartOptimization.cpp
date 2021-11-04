@@ -59,12 +59,7 @@ void MultiStartOptimization::runMultiThreaded() const
             boost::asio::post(
                 pool,
                 std::packaged_task<std::pair<int, int>()>([this, start_idx] {
-                    logmessage(loglevel::debug,
-                               "Starting local optimization #%d", start_idx);
-
-                    auto problem = this->msProblem.getLocalProblem(start_idx);
-                    return std::make_pair(start_idx,
-                                          getLocalOptimum(problem.get()));
+                    return std::make_pair(start_idx, runStart(start_idx));
                 })));
         ++lastStartIdx;
     }
@@ -73,6 +68,7 @@ void MultiStartOptimization::runMultiThreaded() const
     while ((restartOnFailure && num_successful_starts < numberOfStarts)
            || (!restartOnFailure && num_finished_starts < numberOfStarts)) {
         for (auto &future: futures) {
+            // future value might have been retrieved before
             if(!future.valid()) {
                 continue;
             }
@@ -100,7 +96,7 @@ void MultiStartOptimization::runMultiThreaded() const
                            start_idx);
             } else {
                 // failure, new start
-                logmessage(loglevel::warning,
+                logmessage(loglevel::debug,
                            "Thread ms #%d finished unsuccessfully... "
                            "trying new starting point", start_idx);
                 ++lastStartIdx;
@@ -109,13 +105,7 @@ void MultiStartOptimization::runMultiThreaded() const
                     pool,
                     std::packaged_task<std::pair<int, int>()>(
                         [this, start_idx=lastStartIdx] {
-                            logmessage(loglevel::debug,
-                                       "Starting local optimization #%d",
-                                       start_idx);
-
-                            auto problem = msProblem.getLocalProblem(start_idx);
-                            return std::make_pair(
-                                start_idx, getLocalOptimum(problem.get()));
+                            return std::make_pair(start_idx, runStart(start_idx));
                         }));
             }
         }
@@ -142,14 +132,14 @@ void MultiStartOptimization::runSingleThreaded()
         if(ms == numberOfStarts)
             break;
 
-        auto problem = msProblem.getLocalProblem(first_start_idx + ms);
-        auto result = getLocalOptimum(problem.get());
+        auto result = runStart(ms);
+
         if(result) {
             logmessage(loglevel::debug,
                        "Start #%d finished successfully", ms);
             ++numSucceeded;
         } else {
-            logmessage(loglevel::debug, "Thread ms #%d finished "
+            logmessage(loglevel::debug, "Start ms #%d finished "
                                         "unsuccessfully.",ms);
         }
         ++ms;
@@ -161,6 +151,15 @@ void MultiStartOptimization::runSingleThreaded()
 void MultiStartOptimization::setRunParallel(bool runParallel)
 {
     this->runParallel = runParallel;
+}
+
+int MultiStartOptimization::runStart(int start_idx) const
+{
+    logmessage(loglevel::debug,
+               "Starting local optimization #%d", start_idx);
+
+    auto problem = msProblem.getLocalProblem(first_start_idx + start_idx);
+    return getLocalOptimum(problem.get());
 }
 
 } // namespace parpe

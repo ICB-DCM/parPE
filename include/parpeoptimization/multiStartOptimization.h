@@ -58,6 +58,11 @@ class MultiStartOptimization {
     void setRunParallel(bool runParallel);
 
   private:
+    /**
+     * @brief Optimize local problem for the given start index
+     */
+    int runStart(int start_idx) const;
+
 
     /** Optimization problem to be solved */
     MultiStartOptimizationProblem& msProblem;
