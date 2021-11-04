@@ -1,3 +1,5 @@
+#include <boost/asio.hpp>
+
 #include <parpeoptimization/multiStartOptimization.h>
 #include <parpecommon/logging.h>
 #include <parpecommon/parpeException.h>
@@ -7,14 +9,15 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <cassert>
+#include <future>
 
 namespace parpe {
 
 
 MultiStartOptimization::MultiStartOptimization(
-        MultiStartOptimizationProblem &problem,
-        bool runParallel,
-        int first_start_idx)
+    MultiStartOptimizationProblem &problem,
+    bool runParallel,
+    int first_start_idx)
     : msProblem(problem),
       numberOfStarts(problem.getNumberOfStarts()),
       restartOnFailure(problem.restartOnFailure()),
@@ -33,108 +36,98 @@ void MultiStartOptimization::run() {
 
 void MultiStartOptimization::runMultiThreaded()
 {
+    // Determine thread pool size
+    auto num_threads = std::thread::hardware_concurrency();
+    if(auto env = std::getenv("PARPE_NUM_PARALLEL_STARTS")) {
+        num_threads = std::stod(env);
+    }
+    num_threads = std::min(num_threads,
+                           static_cast<unsigned int>(numberOfStarts));
+
     logmessage(loglevel::debug,
-               "Starting runParallelMultiStartOptimization with %d starts",
-               numberOfStarts);
+               "Running %d starts using %d threads",
+               numberOfStarts, num_threads);
 
-    std::vector<pthread_t> localOptimizationThreads(numberOfStarts);
+    boost::asio::thread_pool pool(num_threads);
 
-    std::vector<OptimizationProblem *> localProblems =
-            createLocalOptimizationProblems();
+    auto num_successful_starts = 0;
+    auto num_finished_starts = 0;
+    auto lastStartIdx = -1;
 
-    if(localProblems.size() != static_cast<std::vector<OptimizationProblem *>::size_type>(numberOfStarts)) {
-        throw ParPEException("Number of problems does not match number of specific starts.");
-    }
+    // submit the minimum number of starts
+    std::vector<std::future<std::pair<int, int>>> futures;
+    futures.reserve(numberOfStarts);
+    for (int start_idx = 0; start_idx < numberOfStarts; ++start_idx) {
+        futures.push_back(
+            boost::asio::post(
+                pool,
+                std::packaged_task<std::pair<int, int>()>([this, start_idx] {
+                    logmessage(loglevel::debug,
+                               "Starting local optimization #%d", start_idx);
 
-    pthread_attr_t threadAttr;
-    pthread_attr_init(&threadAttr);
-    pthread_attr_setdetachstate(&threadAttr, PTHREAD_CREATE_JOINABLE);
-
-    int lastStartIdx = -1;
-    // launch threads for required number of starts
-    for (int ms = 0; ms < numberOfStarts; ++ms) {
+                    auto problem = this->msProblem.getLocalProblem(start_idx);
+                    return std::make_pair(start_idx,
+                                          getLocalOptimum(problem.get()));
+                })));
         ++lastStartIdx;
-
-        logmessage(loglevel::debug,
-                   "Spawning thread for local optimization #%d (%d)",
-                   lastStartIdx, ms);
-
-        auto ret = pthread_create(
-            &localOptimizationThreads.at(ms), &threadAttr,
-            getLocalOptimumThreadWrapper,
-            static_cast<void *>(localProblems[ms]));
-        if(ret) {
-            throw ParPEException("Failure during thread creation: "
-                                 + std::to_string(ret));
-        }
     }
 
-    int numCompleted = 0;
-
-    while (numCompleted < numberOfStarts) {
-        for (int ms = 0; ms < numberOfStarts; ++ms) {
-            // problem still running?
-            if (!localProblems[ms])
+    // Report finished runs and restart if necessary
+    while ((restartOnFailure && num_successful_starts < numberOfStarts)
+           || (!restartOnFailure && num_finished_starts < numberOfStarts)) {
+        for (auto &future: futures) {
+            if(!future.valid()) {
                 continue;
+            }
+            if(auto status = future.wait_for(std::chrono::milliseconds(1));
+                status != std::future_status::ready) {
+                continue;
+            }
+            ++num_finished_starts;
 
-            int *threadStatus = nullptr;
-#ifndef __APPLE__
-            // TODO(#84) pthread_tryjoin_np is not available on macOS. can replace easily by pthread_join, but this would only allow restarting failed threads rather late, so we disable the retry option for now.
-            int joinStatus = pthread_tryjoin_np(localOptimizationThreads[ms],
-                                                reinterpret_cast<void **>(&threadStatus));
-#else
-            int joinStatus = pthread_join(localOptimizationThreads[ms],
-                                                reinterpret_cast<void **>(&threadStatus));
-#endif
-            if (joinStatus == 0) { // joined successful
-                delete localProblems[ms];
-                localProblems[ms] = nullptr;
-
-                if (*threadStatus == 0 || !restartOnFailure) {
-                    if (*threadStatus == 0) {
-                        logmessage(loglevel::debug,
-                                   "Thread ms #%d finished successfully", ms);
-                    } else {
-                        logmessage(loglevel::debug, "Thread ms #%d finished "
-                                                 "unsuccessfully. Not trying "
-                                                 "new starting point.",
-                                   ms);
-                    }
-                    ++numCompleted;
+            auto [start_idx, retval] = future.get();
+            if (retval == 0 || !restartOnFailure) {
+                if (retval == 0) {
+                    logmessage(loglevel::debug,
+                               "Optimization #%d finished successfully",
+                               start_idx);
+                    ++num_successful_starts;
+                } else {
+                    logmessage(loglevel::debug,
+                               "Optimization ms #%d finished "
+                               "unsuccessfully. Not trying "
+                               "new starting point.",
+                               start_idx);
                 }
-#ifndef __APPLE__
-                else {
-                    logmessage(loglevel::warning, "Thread ms #%d finished "
-                                               "unsuccessfully... trying new "
-                                               "starting point",
-                               ms);
-                    ++lastStartIdx;
+            } else {
+                logmessage(loglevel::warning,
+                           "Thread ms #%d finished "
+                           "unsuccessfully... trying new "
+                           "starting point",
+                           start_idx);
+                ++lastStartIdx;
 
-                    localProblems[ms] = msProblem.getLocalProblem(lastStartIdx).release();
-                    logmessage(
-                                loglevel::debug,
-                                "Spawning thread for local optimization #%d (%d)",
-                                lastStartIdx, ms);
-                    auto ret = pthread_create(
-                        &localOptimizationThreads[ms], &threadAttr,
-                        getLocalOptimumThreadWrapper,
-                        static_cast<void *>(localProblems[ms]));
-                    if(ret) {
-                        throw ParPEException("Failure during thread creation: "
-                                             + std::to_string(ret));
-                    }
-                }
-#endif
-                delete threadStatus;
+                future = boost::asio::post(
+                    pool,
+                    std::packaged_task<std::pair<int, int>()>(
+                        [this, start_idx=lastStartIdx] {
+                            logmessage(loglevel::debug,
+                                       "Starting local optimization #%d",
+                                       start_idx);
+
+                            auto problem = msProblem.getLocalProblem(
+                                start_idx);
+                            return std::make_pair(
+                                start_idx,
+                                getLocalOptimum(problem.get()));
+                        }));
             }
         }
-
-        sleep(1); // TODO: replace by condition via ThreadWrapper
     }
 
-    logmessage(loglevel::debug, "runParallelMultiStartOptimization finished");
+    pool.join();
 
-    pthread_attr_destroy(&threadAttr);
+    logmessage(loglevel::debug, "Multi-start optimization finished.");
 }
 
 void MultiStartOptimization::runSingleThreaded()
@@ -161,7 +154,7 @@ void MultiStartOptimization::runSingleThreaded()
             ++numSucceeded;
         } else {
             logmessage(loglevel::debug, "Thread ms #%d finished "
-                                     "unsuccessfully.",ms);
+                                        "unsuccessfully.",ms);
         }
         ++ms;
     }

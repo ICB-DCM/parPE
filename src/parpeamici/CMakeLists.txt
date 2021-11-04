@@ -9,7 +9,7 @@ else()
     # For python module we need -fPIC which is only the case with shared libs
     set(Boost_USE_STATIC_LIBS FALSE)
 endif()
-find_package(Boost COMPONENTS serialization REQUIRED)
+find_package(Boost COMPONENTS serialization thread REQUIRED)
 
 
 project(parpeamici)
