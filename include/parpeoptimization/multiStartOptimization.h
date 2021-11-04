@@ -59,8 +59,6 @@ class MultiStartOptimization {
 
   private:
 
-    std::vector<OptimizationProblem *> createLocalOptimizationProblems();
-
     /** Optimization problem to be solved */
     MultiStartOptimizationProblem& msProblem;
 

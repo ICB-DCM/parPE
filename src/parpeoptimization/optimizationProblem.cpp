@@ -47,13 +47,6 @@ int getLocalOptimum(OptimizationProblem *problem) {
 }
 
 
-void *getLocalOptimumThreadWrapper(void *optimizationProblemVp) {
-    auto problem = static_cast<OptimizationProblem *>(optimizationProblemVp);
-    auto *result = new int;
-    *result = getLocalOptimum(problem);
-    return result;
-}
-
 void optimizationProblemGradientCheckMultiEps(OptimizationProblem *problem,
                                       int numParameterIndicesToCheck
                                       ) {

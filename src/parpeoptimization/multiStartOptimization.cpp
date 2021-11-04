@@ -162,15 +162,4 @@ void MultiStartOptimization::setRunParallel(bool runParallel)
     this->runParallel = runParallel;
 }
 
-std::vector<OptimizationProblem *>
-MultiStartOptimization::createLocalOptimizationProblems() {
-    std::vector<OptimizationProblem *> localProblems(numberOfStarts);
-
-    for (int ms = 0; ms < numberOfStarts; ++ms) {
-        localProblems[ms] = msProblem.getLocalProblem(first_start_idx + ms).release();
-    }
-
-    return localProblems;
-}
-
 } // namespace parpe

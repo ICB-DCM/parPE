@@ -55,7 +55,7 @@ For full functionality, parPE requires the following libraries:
 * IPOPT (>= 1.2.7) (requires coinhsl)
 * CERES (>=1.13)
   ([requires Eigen](http://ceres-solver.org/installation.html#dependencies))
-* [Bosst](https://www.boost.org/) (serialization, thread)
+* [Boost](https://www.boost.org/) (serialization, thread)
 * HDF5 (>= 1.10)
 * CBLAS compatible BLAS (libcblas, Intel MKL, ...)
 * [AMICI](https://github.com/ICB-DCM/AMICI) (included in this repository)
