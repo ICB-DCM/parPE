@@ -86,11 +86,6 @@ void
 strFormatCurrentLocaltime(gsl::span<char> buffer, const char* format);
 
 void
-runInParallelAndWaitForFinish(void* (*function)(void*),
-                              void** args,
-                              int numArgs);
-
-void
 printBacktrace(int nMaxFrames = 20);
 
 std::string

@@ -126,16 +126,6 @@ TEST(Common, Mpi) {
 #endif
 
 
-TEST(Common, RunInParallelAndWaitForFinish) {
-    captureStreamToString([](){
-        const int numThreads = 15;
-        void* args[numThreads];
-
-        parpe::runInParallelAndWaitForFinish(
-                    [](void *) -> void* { return nullptr; }, args, numThreads);
-    }, stdout);
-}
-
 TEST(Common, StrFormatCurrentLocaltime) {
     int buflen = 10;
     char buf[buflen];

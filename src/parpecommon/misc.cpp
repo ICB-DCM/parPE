@@ -47,28 +47,6 @@ void strFormatCurrentLocaltime(gsl::span<char> buffer, const char *format) {
     strftime(buffer.data(), buffer.size(), format, &local_time);
 }
 
-void runInParallelAndWaitForFinish(void *(*function)(void *), void **args,
-                                   int numArgs) {
-    // create threads
-    pthread_attr_t threadAttr;
-    pthread_attr_init(&threadAttr);
-    pthread_attr_setdetachstate(&threadAttr, PTHREAD_CREATE_JOINABLE);
-
-    auto threads = static_cast<pthread_t *>(alloca(numArgs * sizeof(pthread_t)));
-
-    for (int i = 0; i < numArgs; ++i) {
-        pthread_create(&threads[i], &threadAttr, function, args[i]);
-    }
-    pthread_attr_destroy(&threadAttr);
-
-    // wait for finish
-    for (int i = 0; i < numArgs; ++i) {
-        pthread_join(threads[i], nullptr);
-        logmessage(loglevel::debug, "Thread i %d finished", i);
-    }
-    logmessage(loglevel::debug, "All k threads finished.");
-}
-
 void printBacktrace(int nMaxFrames) {
     void *array[nMaxFrames];
     size_t size;
