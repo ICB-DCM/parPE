@@ -6,9 +6,6 @@
 
 #include <cstdlib>
 #include <cstring>
-#include <pthread.h>
-#include <unistd.h>
-#include <cassert>
 #include <future>
 
 namespace parpe {
@@ -115,11 +112,9 @@ void MultiStartOptimization::runMultiThreaded()
                                        "Starting local optimization #%d",
                                        start_idx);
 
-                            auto problem = msProblem.getLocalProblem(
-                                start_idx);
+                            auto problem = msProblem.getLocalProblem(start_idx);
                             return std::make_pair(
-                                start_idx,
-                                getLocalOptimum(problem.get()));
+                                start_idx, getLocalOptimum(problem.get()));
                         }));
             }
         }
