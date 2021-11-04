@@ -31,12 +31,12 @@ void MultiStartOptimization::run() {
         runSingleThreaded();
 }
 
-void MultiStartOptimization::runMultiThreaded()
+void MultiStartOptimization::runMultiThreaded() const
 {
     // Determine thread pool size
     auto num_threads = std::thread::hardware_concurrency();
     if(auto env = std::getenv("PARPE_NUM_PARALLEL_STARTS")) {
-        num_threads = std::stod(env);
+        num_threads = std::stoi(env);
     }
     num_threads = std::min(num_threads,
                            static_cast<unsigned int>(numberOfStarts));
@@ -76,32 +76,33 @@ void MultiStartOptimization::runMultiThreaded()
             if(!future.valid()) {
                 continue;
             }
+
             if(auto status = future.wait_for(std::chrono::milliseconds(1));
                 status != std::future_status::ready) {
                 continue;
             }
-            ++num_finished_starts;
 
+            ++num_finished_starts;
             auto [start_idx, retval] = future.get();
-            if (retval == 0 || !restartOnFailure) {
-                if (retval == 0) {
-                    logmessage(loglevel::debug,
-                               "Optimization #%d finished successfully",
-                               start_idx);
-                    ++num_successful_starts;
-                } else {
-                    logmessage(loglevel::debug,
-                               "Optimization ms #%d finished "
-                               "unsuccessfully. Not trying "
-                               "new starting point.",
-                               start_idx);
-                }
-            } else {
-                logmessage(loglevel::warning,
-                           "Thread ms #%d finished "
-                           "unsuccessfully... trying new "
-                           "starting point",
+
+            if (retval == 0) {
+                // success
+                logmessage(loglevel::debug,
+                           "Optimization #%d finished successfully",
                            start_idx);
+                ++num_successful_starts;
+            } else if (!restartOnFailure) {
+                // failure, no new start
+                logmessage(loglevel::debug,
+                           "Optimization ms #%d finished "
+                           "unsuccessfully. Not trying "
+                           "new starting point.",
+                           start_idx);
+            } else {
+                // failure, new start
+                logmessage(loglevel::warning,
+                           "Thread ms #%d finished unsuccessfully... "
+                           "trying new starting point", start_idx);
                 ++lastStartIdx;
 
                 future = boost::asio::post(

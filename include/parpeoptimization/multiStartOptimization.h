@@ -45,7 +45,7 @@ class MultiStartOptimization {
     /**
      * @brief Run all optimizations in parallel, each in a dedicated thread
      */
-    void runMultiThreaded();
+    void runMultiThreaded() const;
 
     /**
      * @brief Run optimizations sequentially
