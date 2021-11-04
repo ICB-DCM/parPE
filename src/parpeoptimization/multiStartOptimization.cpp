@@ -34,7 +34,8 @@ void MultiStartOptimization::run() {
 void MultiStartOptimization::runMultiThreaded() const
 {
     // Determine thread pool size
-    auto num_threads = std::thread::hardware_concurrency();
+    // (note that hardware_concurrency() may return 0)
+    auto num_threads = std::max(std::thread::hardware_concurrency(), 1U);
     if(auto env = std::getenv("PARPE_NUM_PARALLEL_STARTS")) {
         num_threads = std::stoi(env);
     }
