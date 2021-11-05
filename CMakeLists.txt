@@ -8,7 +8,7 @@ endif(POLICY CMP0074)
 
 project(parpe)
 
-set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/CMakeModules/")
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake/")
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
@@ -35,7 +35,7 @@ add_custom_target(get_version ALL
     COMMAND "${CMAKE_COMMAND}"
     "-DINFILE=${PROJECT_SOURCE_DIR}/src/parpecommon/parpeVersion.h.in"
     "-DOUTFILE=${CMAKE_BINARY_DIR}/src/parpecommon/parpeVersion.h"
-    "-P" "${PROJECT_SOURCE_DIR}/CMakeModules/ConfigureVersion.cmake")
+    "-P" "${PROJECT_SOURCE_DIR}/cmake/ConfigureVersion.cmake")
 
 include("getVersion")
 include("split_version")
@@ -234,7 +234,7 @@ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/ParPETargets.cmake"
 set(LIB_INSTALL_DIR lib)
 include(CMakePackageConfigHelpers)
 configure_package_config_file(
-    "CMakeModules/ParPEConfig.cmake.in"
+    "cmake/ParPEConfig.cmake.in"
     "${CMAKE_CURRENT_BINARY_DIR}/ParPEConfig.cmake"
     INSTALL_DESTINATION "${LIB_INSTALL_DIR}/cmake/")
 
