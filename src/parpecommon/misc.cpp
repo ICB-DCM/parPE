@@ -1,7 +1,6 @@
 #include <parpecommon/misc.h>
 #include <parpecommon/logging.h>
 
-#include <alloca.h>
 #include <cassert>
 #include <cerrno>
 #include <execinfo.h>
@@ -27,14 +26,6 @@
 #include <mpi.h>
 #endif
 
-// void printMatlabArray(const double *buffer, int len)
-//{
-//    printf("[");
-//    printfArray(buffer, len - 1, "%e, ");
-//    printf("%e]\n", buffer[len - 1]);
-//    fflush(stdout);
-//}
-
 
 namespace parpe {
 
@@ -45,28 +36,6 @@ void strFormatCurrentLocaltime(gsl::span<char> buffer, const char *format) {
     localtime_r(&current_time, &local_time);
 
     strftime(buffer.data(), buffer.size(), format, &local_time);
-}
-
-void runInParallelAndWaitForFinish(void *(*function)(void *), void **args,
-                                   int numArgs) {
-    // create threads
-    pthread_attr_t threadAttr;
-    pthread_attr_init(&threadAttr);
-    pthread_attr_setdetachstate(&threadAttr, PTHREAD_CREATE_JOINABLE);
-
-    auto threads = static_cast<pthread_t *>(alloca(numArgs * sizeof(pthread_t)));
-
-    for (int i = 0; i < numArgs; ++i) {
-        pthread_create(&threads[i], &threadAttr, function, args[i]);
-    }
-    pthread_attr_destroy(&threadAttr);
-
-    // wait for finish
-    for (int i = 0; i < numArgs; ++i) {
-        pthread_join(threads[i], nullptr);
-        logmessage(LOGLVL_DEBUG, "Thread i %d finished", i);
-    }
-    logmessage(LOGLVL_DEBUG, "All k threads finished.");
 }
 
 void printBacktrace(int nMaxFrames) {

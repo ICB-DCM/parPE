@@ -17,14 +17,13 @@ constexpr const char ANSI_COLOR_RESET[] = "\x1b[0m";
 
 std::string printfToString(const char *fmt, va_list ap);
 
-// TODO enum class
-typedef enum loglevel_tag {
-    LOGLVL_CRITICAL = 1,
-    LOGLVL_ERROR,
-    LOGLVL_WARNING,
-    LOGLVL_INFO,
-    LOGLVL_DEBUG
-} loglevel;
+enum class loglevel {
+    critical = 1,
+    error,
+    warning,
+    info,
+    debug
+};
 
 // Minimum log level that will be printed
 extern loglevel minimumLogLevel;

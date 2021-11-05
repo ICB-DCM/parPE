@@ -47,13 +47,6 @@ int getLocalOptimum(OptimizationProblem *problem) {
 }
 
 
-void *getLocalOptimumThreadWrapper(void *optimizationProblemVp) {
-    auto problem = static_cast<OptimizationProblem *>(optimizationProblemVp);
-    auto *result = new int;
-    *result = getLocalOptimum(problem);
-    return result;
-}
-
 void optimizationProblemGradientCheckMultiEps(OptimizationProblem *problem,
                                       int numParameterIndicesToCheck
                                       ) {
@@ -124,11 +117,11 @@ void optimizationProblemGradientCheckMultiEps(OptimizationProblem *problem,
                 absErr_best = abs_err;
             }
         }
-        loglevel ll = LOGLVL_INFO;
+        loglevel ll = loglevel::info;
         if (fabs(regRelErr_best) > 1e-3)
-            ll = LOGLVL_WARNING;
+            ll = loglevel::warning;
         if (std::isnan(curGrad) || fabs(regRelErr_best) > 1e-2)
-            ll = LOGLVL_ERROR;
+            ll = loglevel::error;
         logmessage(ll, "%-25s (%d) g: %12.6g  fd_c: %12.6g  |Δ/fd_c|: %.6e  "
                        "|Δ|: %12.6g  ϵ: %12.6g ",
                    parameter_ids.empty()?"":parameter_ids[curInd].c_str(),
@@ -207,11 +200,11 @@ void optimizationProblemGradientCheck(OptimizationProblem *problem,
 
         double reg = 1e-5;
         double regRelError = (curGrad - fd_c) / (ff + reg);
-        loglevel ll = LOGLVL_INFO;
+        loglevel ll = loglevel::info;
         if (fabs(regRelError) > 1e-3)
-            ll = LOGLVL_WARNING;
+            ll = loglevel::warning;
         if (fabs(regRelError) > 1e-2)
-            ll = LOGLVL_ERROR;
+            ll = loglevel::error;
 
         logmessage(ll, "%5d g: %12.6g  fd_c: %12.6g  Δ/ff: %.6e  f: %12.6g",
                    curInd, curGrad, fd_c, regRelError, ff);
@@ -326,7 +319,7 @@ int OptimizationReporter::numParameters() const {
 
 void OptimizationReporter::printObjectiveFunctionFailureMessage() const {
     if (logger_)
-        logger_->logmessage(LOGLVL_ERROR, "Objective function evaluation failed!");
+        logger_->logmessage(loglevel::error, "Objective function evaluation failed!");
 }
 
 bool OptimizationReporter::starting(gsl::span<const double> initialParameters) const {
@@ -353,7 +346,7 @@ bool OptimizationReporter::iterationFinished(gsl::span<const double> parameters,
     double wallTimeOptim = wall_timer_.getTotal();
 
     if (logger_)
-        logger_->logmessage(LOGLVL_INFO,
+        logger_->logmessage(loglevel::info,
                            "iter: %d cost: %g time_iter: wall: %gs cpu: %gs time_optim: wall: %gs cpu: %gs",
                            num_iterations_, objectiveFunctionValue, wallTimeIter,
                            cpu_time_iteration_sec_, wallTimeOptim,
@@ -410,13 +403,13 @@ void OptimizationReporter::finished(double optimalCost,
         // the optimal value is not from the cached parameters and we did not get
         // the optimal parameters from the optimizer. since we don't know them, rather set to nan
         if (logger_)
-            logger_->logmessage(LOGLVL_INFO, "cachedCost != optimalCost && parameters.empty()");
+            logger_->logmessage(loglevel::info, "cachedCost != optimalCost && parameters.empty()");
         cached_parameters_.assign(cached_parameters_.size(), NAN);
         cached_cost_ = optimalCost;
     } // else: our cached parameters were better. use those
 
     if (logger_)
-        logger_->logmessage(LOGLVL_INFO, "Optimizer status %d, final llh: %e, "
+        logger_->logmessage(loglevel::info, "Optimizer status %d, final llh: %e, "
                                         "time: wall: %f cpu: %f.", exitStatus,
                            cached_cost_, timeElapsed, cpu_time_total_sec_);
 

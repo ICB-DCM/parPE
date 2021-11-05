@@ -20,7 +20,7 @@ int main(int argc, char **argv) {
 
     std::string inFileArgument = "/home/dweindl/src/benchmarkProblem/20190205221009_Speedy_v4_Jan2019_generic_degradation_r415549/Speedy_v4_Jan2019_generic_degradation_r415549.bak.h5";
 
-    parpe::logmessage(parpe::LOGLVL_INFO,
+    parpe::logmessage(parpe::loglevel::info,
                       "Reading options and data from '%s'.",
                       inFileArgument.c_str());
 

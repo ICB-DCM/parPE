@@ -126,16 +126,6 @@ TEST(Common, Mpi) {
 #endif
 
 
-TEST(Common, RunInParallelAndWaitForFinish) {
-    captureStreamToString([](){
-        const int numThreads = 15;
-        void* args[numThreads];
-
-        parpe::runInParallelAndWaitForFinish(
-                    [](void *) -> void* { return nullptr; }, args, numThreads);
-    }, stdout);
-}
-
 TEST(Common, StrFormatCurrentLocaltime) {
     int buflen = 10;
     char buf[buflen];
@@ -154,7 +144,7 @@ TEST(Logging, MessageIsPrinted) {
     captureStreamToString([](){
         parpe::warning("bla");
         parpe::error("bla");
-        parpe::logmessage(parpe::LOGLVL_ERROR, "error");
+        parpe::logmessage(parpe::loglevel::error, "error");
     }, stdout);
 }
 

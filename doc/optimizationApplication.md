@@ -44,6 +44,13 @@ Run the created executable with the `-h`/`--help` argument.
 
 ## Environment variables
 
+- **PARPE_NUM_PARALLEL_STARTS**
+
+  Setting `PARPE_NUM_PARALLEL_STARTS=n` will create a maximum of `n` threads
+  for concurrent local optimizations during multi-start optimization.
+  If unset, this defaults to the number of concurrent threads supported by
+  hardware.
+
 - **PARPE_LOG_SIMULATIONS**
 
   Setting `PARPE_LOG_SIMULATIONS=1` will cause every single AMICI simulation to be saved in the result files.

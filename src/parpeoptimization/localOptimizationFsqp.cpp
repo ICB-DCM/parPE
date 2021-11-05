@@ -168,7 +168,7 @@ public:
         static_assert(sizeof(doublereal) >= sizeof(&thisthis), "");
         memcpy(w.data(), &thisthis, 1 * sizeof(&thisthis));
 
-        logmessage(LOGLVL_DEBUG, "w0 %p", &w.data()[0]);
+        logmessage(loglevel::debug, "w0 %p", &w.data()[0]);
 
         problem->fillInitialParameters(x);
         problem->fillParametersMin(bl);
@@ -324,7 +324,7 @@ FsqpProblem *getProblemFromFj(doublereal &fj, integer nparam, integer j) {
     parpe::FsqpProblem *problem = nullptr;
     int nwff = getNwff(nparam, j);
 
-    logmessage(LOGLVL_DEBUG, "w0 obj: %p", &fj - nwff + 1);
+    logmessage(loglevel::debug, "w0 obj: %p", &fj - nwff + 1);
 
     memcpy(&problem, &fj - nwff + 1, sizeof(problem));
 
@@ -344,7 +344,7 @@ FsqpProblem *getProblemFromGradFj(doublereal *gradfj, integer nparam, integer j)
     parpe::FsqpProblem *problem = nullptr;
     int nwgrf = getNwgrf(nparam, j);
 
-    logmessage(LOGLVL_DEBUG, "w0 gradobj: %p", gradfj - nwgrf + 1);
+    logmessage(loglevel::debug, "w0 gradobj: %p", gradfj - nwgrf + 1);
 
     // NOTE: Will have to change that once we want to include constraints
     memcpy(&problem, gradfj - nwgrf + 1, sizeof(problem));

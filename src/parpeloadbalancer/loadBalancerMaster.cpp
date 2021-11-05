@@ -55,6 +55,9 @@ void LoadBalancerMaster::run() {
 LoadBalancerMaster::~LoadBalancerMaster()
 {
     terminate();
+
+    pthread_mutex_destroy(&mutexQueue);
+    sem_destroy(&semQueue);
 }
 
 #ifndef QUEUE_MASTER_TEST
@@ -215,9 +218,6 @@ void LoadBalancerMaster::terminate() {
     pthread_cancel(queueThread);
     // wait until canceled
     pthread_join(queueThread, nullptr);
-
-    pthread_mutex_destroy(&mutexQueue);
-    sem_destroy(&semQueue);
 }
 
 int LoadBalancerMaster::handleReply(MPI_Status *mpiStatus) {
