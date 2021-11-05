@@ -45,7 +45,7 @@ class MultiStartOptimization {
     /**
      * @brief Run all optimizations in parallel, each in a dedicated thread
      */
-    void runMultiThreaded();
+    void runMultiThreaded() const;
 
     /**
      * @brief Run optimizations sequentially
@@ -58,8 +58,11 @@ class MultiStartOptimization {
     void setRunParallel(bool runParallel);
 
   private:
+    /**
+     * @brief Optimize local problem for the given start index
+     */
+    int runStart(int start_idx) const;
 
-    std::vector<OptimizationProblem *> createLocalOptimizationProblems();
 
     /** Optimization problem to be solved */
     MultiStartOptimizationProblem& msProblem;

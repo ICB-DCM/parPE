@@ -55,6 +55,7 @@ For full functionality, parPE requires the following libraries:
 * IPOPT (>= 1.2.7) (requires coinhsl)
 * CERES (>=1.13)
   ([requires Eigen](http://ceres-solver.org/installation.html#dependencies))
+* [Boost](https://www.boost.org/) (serialization, thread)
 * HDF5 (>= 1.10)
 * CBLAS compatible BLAS (libcblas, Intel MKL, ...)
 * [AMICI](https://github.com/ICB-DCM/AMICI) (included in this repository)
@@ -64,10 +65,21 @@ For full functionality, parPE requires the following libraries:
 
 On Debian-based systems, dependencies can be installed via:
 ```shell
-sudo apt-get install build-essential cmake cmake-curses-gui \
-    coinor-libipopt-dev curl gfortran \
-    libblas-dev libboost-serialization-dev libceres-dev \
-    libmpich-dev libhdf5-dev libpython3-dev python3-pip
+sudo apt-get install \
+  build-essential \
+  cmake \
+  cmake-curses-gui \
+  coinor-libipopt-dev \
+  curl \
+  gfortran \
+  libblas-dev \
+  libboost-serialization-dev \
+  libboost-thread-dev \
+  libceres-dev \
+  libmpich-dev \
+  libhdf5-dev \
+  libpython3-dev \
+  python3-pip
 ```
 
 Scripts to fetch and build the remaining dependencies are provided in
