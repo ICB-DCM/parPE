@@ -1,6 +1,6 @@
 """Functions related to hierarchical optimization
 
-https://academic.oup.com/bioinformatics/advance-article/doi/10.1093/bioinformatics/btz581/5538985
+https://doi.org/10.1093/bioinformatics/btz581
 """
 
 from typing import Tuple, Dict, List

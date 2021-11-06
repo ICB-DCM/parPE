@@ -16,7 +16,7 @@ optimization problems requiring up to thousands of simulations per objective
 function evaluation on high performance computing (HPC) systems.
 
 parPE offers easy integration with
-[AMICI](https://github.com/ICB-DCM/AMICI)-generated ordinary differential
+[AMICI](https://github.com/AMICI-dev/AMICI)-generated ordinary differential
 equation (ODE) models.
 
 ## Features
@@ -27,9 +27,9 @@ parPE offers the following features:
 * improved load balancing by intermingling multiple optimization runs
   (multi-start local optimization)
 * simple integration with [SBML](http://sbml.org/) models via
-  [AMICI](https://github.com/ICB-DCM/AMICI) and
+  [AMICI](https://github.com/AMICI-dev/AMICI) and
   [PEtab](https://github.com/PEtab-dev/PEtab)
-* interfaces to [Ipopt](http://www.coin-or.org/Ipopt/),
+* interfaces to [Ipopt](https://www.coin-or.org/Ipopt/),
   [Ceres](http://ceres-solver.org/),
   [FFSQP](https://www.isr.umd.edu/news/news_story.php?id=4088) and
   [SUMSL (CALGO/TOMS 611)](http://www.netlib.org/toms/index.html) optimizers
@@ -41,7 +41,7 @@ parPE offers the following features:
 
 Although various modules of parPE can be used independently, the most
 meaningful and convenient use case is parameter optimization for an SBML model
-specified in the [PEtab](https://github.com/ICB-DCM/PEtab) format. This is
+specified in the [PEtab](https://github.com/PEtab-dev/PEtab) format. This is
 described in [doc/petab_model_import.md](doc/petab_model_import.md).
 
 ## Dependencies
@@ -58,7 +58,7 @@ For full functionality, parPE requires the following libraries:
 * [Boost](https://www.boost.org/) (serialization, thread)
 * HDF5 (>= 1.10)
 * CBLAS compatible BLAS (libcblas, Intel MKL, ...)
-* [AMICI](https://github.com/ICB-DCM/AMICI) (included in this repository)
+* [AMICI](https://github.com/AMICI-dev/AMICI) (included in this repository)
   (uses SuiteSparse, Sundials)
 * C++17 compiler
 * Python >= 3.7, including header files
@@ -155,4 +155,4 @@ parPE has been developed within research projects receiving external funding:
 
 * Computer resources for testing parPE have been provided among others by the 
   Gauss Centre for Supercomputing / Leibniz Supercomputing Centre under grant
-  pr62li.
+  pr62li and pn72go.
