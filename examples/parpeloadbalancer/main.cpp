@@ -4,6 +4,8 @@
 #include <cstdlib>
 #include <cstdio>
 #include <unistd.h>
+#include <mutex>
+#include <condition_variable>
 
 #include <mpi.h>
 
@@ -29,8 +31,8 @@ int master() {
     parpe::JobData jobdata[numJobs];
 
     // mutex to wait for simulations to finish
-    pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
-    pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+    std::condition_variable cond;
+    std::mutex mutex;
 
     for (int i = 0; i < numJobs; ++i) {
         parpe::JobData *job = &jobdata[i];
@@ -43,12 +45,9 @@ int master() {
     }
 
     // wait for simulations to finish
-    pthread_mutex_lock(&mutex);
-    while (numJobsFinished < numJobs)
-        pthread_cond_wait(&cond, &mutex);
-    pthread_mutex_unlock(&mutex);
-    pthread_mutex_destroy(&mutex);
-    pthread_cond_destroy(&cond);
+    std::unique_lock<std::mutex> lock(mutex);
+    cond.wait(lock, [&numJobsFinished, &numJobs]{
+        return numJobsFinished == numJobs;});
 
     // check results
     int errors = 0;

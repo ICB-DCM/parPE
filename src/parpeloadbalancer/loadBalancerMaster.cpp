@@ -4,7 +4,7 @@
 
 #include <cassert>
 #include <climits>
-#include <sched.h>
+#include <chrono>
 
 #include <parpecommon/misc.h>
 #include <parpecommon/parpeException.h>
@@ -43,11 +43,7 @@ void LoadBalancerMaster::run() {
 #endif
     sem_init(&semQueue, 0, queueMaxLength);
 
-    pthread_attr_t threadAttr;
-    pthread_attr_init(&threadAttr);
-    pthread_attr_setdetachstate(&threadAttr, PTHREAD_CREATE_JOINABLE);
-    pthread_create(&queueThread, &threadAttr, threadEntryPoint, this);
-    pthread_attr_destroy(&threadAttr);
+    queueThread = std::thread(&LoadBalancerMaster::loadBalancerThreadRun, this);
 
     isRunning_ = true;
 }
@@ -55,8 +51,6 @@ void LoadBalancerMaster::run() {
 LoadBalancerMaster::~LoadBalancerMaster()
 {
     terminate();
-
-    pthread_mutex_destroy(&mutexQueue);
     sem_destroy(&semQueue);
 }
 
@@ -66,20 +60,15 @@ void LoadBalancerMaster::assertMpiActive() {
 }
 #endif
 
-void *LoadBalancerMaster::threadEntryPoint(void *vpLoadBalancerMaster) {
-    auto master = static_cast<LoadBalancerMaster *>(vpLoadBalancerMaster);
-    master->loadBalancerThreadRun();
-    return nullptr;
-}
 
 void LoadBalancerMaster::loadBalancerThreadRun() {
 
     // dispatch queued work packages
-    while (true) {
+    while (queue_thread_continue_) {
         int freeWorkerIndex = NO_FREE_WORKER;
 
         // empty send queue while there are free workers
-        while((freeWorkerIndex = getNextFreeWorkerIndex()) >= 0
+        while(queue_thread_continue_ && (freeWorkerIndex = getNextFreeWorkerIndex()) >= 0
               && sendQueuedJob(freeWorkerIndex)) {}
 
         // check if any job finished
@@ -114,10 +103,6 @@ int LoadBalancerMaster::handleFinishedJobs() {
 
     // handle all finished jobs, if any
     while (true) {
-        // add cancellation point to avoid invalid reads in
-        // loadBalancer.recvRequests
-        pthread_testcancel();
-
         // check for waiting incoming message
         MPI_Status status;
         int messageWaiting = 0;
@@ -150,15 +135,13 @@ int LoadBalancerMaster::getNextFreeWorkerIndex() {
 
 JobData *LoadBalancerMaster::getNextJob() {
 
-    pthread_mutex_lock(&mutexQueue);
+    std::unique_lock<std::mutex> lock(mutexQueue);
 
     JobData *nextJob = nullptr;
     if (!queue.empty()) {
         nextJob = queue.front();
         queue.pop();
     }
-
-    pthread_mutex_unlock(&mutexQueue);
 
     return nextJob;
 }
@@ -188,7 +171,7 @@ void LoadBalancerMaster::queueJob(JobData *data) {
 
     sem_wait(&semQueue);
 
-    pthread_mutex_lock(&mutexQueue);
+    std::unique_lock<std::mutex> lock(mutexQueue);
 
     if (lastJobId == INT_MAX) // Unlikely, but prevent overflow
         lastJobId = 0;
@@ -202,22 +185,16 @@ void LoadBalancerMaster::queueJob(JobData *data) {
     printf("\x1b[33mQueued job with size %dB. New queue length is %d.\x1b[0m\n", size, queue.size());
 #endif
 
-    pthread_mutex_unlock(&mutexQueue);
 }
 
 void LoadBalancerMaster::terminate() {
-    // avoid double termination
-    pthread_mutex_lock(&mutexQueue);
     if (!isRunning_) {
-        pthread_mutex_unlock(&mutexQueue);
+        // avoid double termination
         return;
     }
     isRunning_ = false;
-    pthread_mutex_unlock(&mutexQueue);
-
-    pthread_cancel(queueThread);
-    // wait until canceled
-    pthread_join(queueThread, nullptr);
+    queue_thread_continue_ = false;
+    queueThread.join();
 }
 
 int LoadBalancerMaster::handleReply(MPI_Status *mpiStatus) {
@@ -254,12 +231,15 @@ int LoadBalancerMaster::handleReply(MPI_Status *mpiStatus) {
 
 
     // signal job done
-    pthread_mutex_lock(data->jobDoneChangedMutex);
+    std::unique_lock<std::mutex> lock;
+    if(data->jobDoneChangedMutex) {
+        lock = std::unique_lock<std::mutex>(*data->jobDoneChangedMutex);
+    }
     if(data->jobDone)
         ++(*data->jobDone);
-    pthread_cond_signal(data->jobDoneChangedCondition);
-    pthread_mutex_unlock(data->jobDoneChangedMutex);
-
+    if (data->jobDoneChangedCondition) {
+        data->jobDoneChangedCondition->notify_all();
+    }
     return workerIdx;
 }
 
@@ -301,6 +281,7 @@ bool LoadBalancerMaster::isRunning() const
 
 int LoadBalancerMaster::getNumQueuedJobs() const
 {
+    std::unique_lock<std::mutex> lock(mutexQueue);
     return queue.size();
 }
 

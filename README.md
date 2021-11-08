@@ -51,7 +51,6 @@ For full functionality, parPE requires the following libraries:
 * CMAKE (>=3.10)
 * MPI ([OpenMPI](https://www.open-mpi.org/),
   [MPICH](https://www.mpich.org/), ...)
-* PTHREADS
 * IPOPT (>= 1.2.7) (requires coinhsl)
 * CERES (>=1.13)
   ([requires Eigen](http://ceres-solver.org/installation.html#dependencies))
