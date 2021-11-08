@@ -22,19 +22,23 @@ int MPI_Comm_size(MPI_Comm comm, int *size) {
     return MPI_SUCCESS;
 }
 
-int MPI_Testany(int count, MPI_Request array_of_requests[], int *index,
-                int *flag, MPI_Status *status) {
-    sleep(1000); // do nothing and wait to be killed
-
+int MPI_Testany(int /*count*/, MPI_Request /*array_of_requests*/[], int */*index*/,
+                int */*flag*/, MPI_Status */*status*/) {
+    sleep(1);
     return 0;
 }
 
-int MPI_Iprobe(int source, int tag, MPI_Comm comm, int *flag,
-               MPI_Status *status) {
-    sleep(1000);
+int MPI_Iprobe(int /*source*/, int /*tag*/, MPI_Comm /*comm*/, int */*flag*/,
+               MPI_Status */*status*/) {
     return 0;
 }
 
+int MPI_Isend(const void */*buf*/, int /*count*/, MPI_Datatype /*datatype*/,
+              int /*dest*/, int /*tag*/, MPI_Comm /*comm*/,
+              MPI_Request */*request*/) {
+    sleep(1);
+    return 0;
+}
 
 class MockMPI {
 public:
@@ -45,6 +49,11 @@ public:
                                         int *flag, MPI_Status *status));
     MOCK_CONST_METHOD5(MPI_Iprobe, int(int source, int tag, MPI_Comm comm,
                                        int *flag, MPI_Status *status));
+
+    MOCK_CONST_METHOD7(MPI_Isend, int(const void *buf, int count,
+                                      MPI_Datatype datatype, int dest,
+                                      int tag, MPI_Comm comm,
+                                      MPI_Request *request));
 
     MockMPI() {
         _MPI_Comm_size = [this](MPI_Comm comm, int *size){ return MPI_Comm_size(comm, size); };
