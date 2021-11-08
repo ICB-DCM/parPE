@@ -142,8 +142,6 @@ TEST(Logging, PrintDebugInfoAndWait) {
 
 TEST(Logging, MessageIsPrinted) {
     captureStreamToString([](){
-        parpe::warning("bla");
-        parpe::error("bla");
         parpe::logmessage(parpe::loglevel::error, "error");
     }, stdout);
 }

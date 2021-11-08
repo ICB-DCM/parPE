@@ -208,7 +208,8 @@ std::vector<double> OptimizationOptions::getStartingPoint(H5::H5File const& file
 
     }  catch (H5::Exception const&) {
         if (H5Eget_num(H5E_DEFAULT)) {
-            error("Problem in OptimizationOptions::getStartingPoint\n");
+            logmessage(loglevel::error,
+                       "Problem in OptimizationOptions::getStartingPoint");
             H5Ewalk2(H5E_DEFAULT, H5E_WALK_DOWNWARD, hdf5ErrorStackWalker_cb, nullptr);
         }
     }

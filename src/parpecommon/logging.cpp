@@ -11,6 +11,7 @@
 #include <cstring>
 #include <unistd.h>
 #include <sstream>
+#include <thread>
 
 #ifdef PARPE_ENABLE_MPI
 #include <mpi.h>
@@ -101,14 +102,6 @@ void printDebugInfoAndWait(int seconds) {
     sleep(seconds);
 }
 
-void error(const char *message) { // exit?
-    logmessage(loglevel::error, message);
-}
-
-void warning(const char *message) {
-    logmessage(loglevel::warning, message);
-}
-
 void logmessage(loglevel lvl, const std::string &msg)
 {
     std::stringstream ss(msg);
@@ -171,8 +164,12 @@ void printlogmessage(loglevel lvl, const char *message)
 #else
     auto procName = "";
 #endif
-    printf("[%*d:%lu/%s] ", 1 + static_cast<int>(log10(mpiCommSize)),
-           mpiRank, pthread_self(), procName );
+    std::ostringstream thread_id_oss;
+    thread_id_oss << std::this_thread::get_id();
+    auto thread_id {thread_id_oss.str()};
+
+    printf("[%*d:%s/%s] ", 1 + static_cast<int>(log10(mpiCommSize)),
+           mpiRank, thread_id.c_str(), procName );
     printf("%s", message);
     printf("%s\n", ANSI_COLOR_RESET);
 

@@ -42,11 +42,6 @@ void printMPIInfo();
 
 void printDebugInfoAndWait(int seconds = 15);
 
-// TODO remove
-void error(const char *message);
-// TODO remove
-void warning(const char *message);
-
 class Logger {
 public:
     Logger() = default;
