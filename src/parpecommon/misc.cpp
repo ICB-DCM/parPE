@@ -18,8 +18,6 @@
 #include <algorithm>
 #include <random>
 
-#include <pthread.h>
-
 #include <gsl/gsl-lite.hpp>
 
 #ifdef PARPE_ENABLE_MPI
@@ -40,8 +38,7 @@ void strFormatCurrentLocaltime(gsl::span<char> buffer, const char *format) {
 
 void printBacktrace(int nMaxFrames) {
     void *array[nMaxFrames];
-    size_t size;
-    size = backtrace(array, nMaxFrames);
+    auto size = backtrace(array, nMaxFrames);
     backtrace_symbols_fd(array, size, STDERR_FILENO);
 }
 
@@ -97,8 +94,8 @@ void fillArrayRandomDoubleIndividualInterval(gsl::span<const double> min,
     Expects(min.size() == max.size());
     Expects(min.size() == buffer.size());
 
-    for (gsl::span<double>::index_type i = 0; i < buffer.size(); ++i)
-        buffer[i] = randDouble(min[i], max[i]);
+    std::transform(min.begin(), min.end(), max.begin(), buffer.begin(),
+                   randDouble);
 }
 
 void fillArrayRandomDoubleSameInterval(double min, double max,
@@ -107,8 +104,7 @@ void fillArrayRandomDoubleSameInterval(double min, double max,
     std::mt19937 gen(rd());
     std::uniform_real_distribution<> dis(min, max);
 
-    for (gsl::span<double>::index_type i = 0; i < buffer.size(); ++i)
-        buffer[i] = dis(gen);
+    std::generate(buffer.begin(), buffer.end(), [&]{ return dis(gen); });
 }
 
 
