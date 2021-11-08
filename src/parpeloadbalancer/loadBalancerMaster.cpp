@@ -281,7 +281,7 @@ bool LoadBalancerMaster::isRunning() const
 
 int LoadBalancerMaster::getNumQueuedJobs() const
 {
-    std::unique_lock<std::mutex> lock(mutexQueue);
+    std::unique_lock lock(mutexQueue);
     return queue.size();
 }
 
