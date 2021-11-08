@@ -76,7 +76,7 @@ AmiciSimulationRunner::runDistributedMemory(LoadBalancerMaster* loadBalancer,
 
     // wait for simulations to finish
     // TODO don't wait for all to complete; stop early if errors occurred
-    std::unique_lock<std::mutex> lock(simulationsMutex);
+    std::unique_lock lock(simulationsMutex);
     simulationsCond.wait(lock, [&numJobsFinished, &numJobsTotal]{
         return numJobsFinished == numJobsTotal;});
 

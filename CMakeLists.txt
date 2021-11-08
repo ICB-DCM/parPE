@@ -17,10 +17,8 @@ include(BuildType) # Ensure CMAKE_BUILD_TYPE is always set
 include(CTest)
 
 set(CMAKE_DEBUG_POSTFIX "-dbg")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} \
-    -std=c99 -Wall -Wno-unused-function")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
-   -Wall -Wno-unused-function")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -Wall -Wno-unused-function")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-unused-function")
 
 if(BUILD_PYTHON_MODULE)
     # Build PIC code to be used for swig/python module

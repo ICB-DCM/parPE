@@ -135,7 +135,7 @@ int LoadBalancerMaster::getNextFreeWorkerIndex() {
 
 JobData *LoadBalancerMaster::getNextJob() {
 
-    std::unique_lock<std::mutex> lock(mutexQueue);
+    std::unique_lock lock(mutexQueue);
 
     JobData *nextJob = nullptr;
     if (!queue.empty()) {
@@ -171,7 +171,7 @@ void LoadBalancerMaster::queueJob(JobData *data) {
 
     sem_wait(&semQueue);
 
-    std::unique_lock<std::mutex> lock(mutexQueue);
+    std::unique_lock lock(mutexQueue);
 
     if (lastJobId == INT_MAX) // Unlikely, but prevent overflow
         lastJobId = 0;
@@ -233,7 +233,7 @@ int LoadBalancerMaster::handleReply(MPI_Status *mpiStatus) {
     // signal job done
     std::unique_lock<std::mutex> lock;
     if(data->jobDoneChangedMutex) {
-        lock = std::unique_lock<std::mutex>(*data->jobDoneChangedMutex);
+        lock = std::unique_lock(*data->jobDoneChangedMutex);
     }
     if(data->jobDone)
         ++(*data->jobDone);

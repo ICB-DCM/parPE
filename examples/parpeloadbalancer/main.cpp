@@ -45,7 +45,7 @@ int master() {
     }
 
     // wait for simulations to finish
-    std::unique_lock<std::mutex> lock(mutex);
+    std::unique_lock lock(mutex);
     cond.wait(lock, [&numJobsFinished, &numJobs]{
         return numJobsFinished == numJobs;});
 
