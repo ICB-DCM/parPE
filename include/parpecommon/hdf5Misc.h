@@ -6,7 +6,6 @@
 #include <hdf5_hl.h>
 #include <H5Cpp.h>
 
-#include <pthread.h>
 #include <exception>
 #include <string>
 #include <mutex>
