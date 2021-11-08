@@ -13,7 +13,6 @@
 
 #include <cstring>
 #include <ctime>
-#include <pthread.h>
 #include <numeric>
 #include <algorithm>
 #include <random>
@@ -39,8 +38,7 @@ int OptimizationApplication::init(int argc, char **argv) {
     if(std::getenv("PARPE_NO_DEBUG"))
         minimumLogLevel = loglevel::info;
 
-    int status = parseCliOptionsPreMpiInit(argc, argv);
-    if(status)
+    if(auto status = parseCliOptionsPreMpiInit(argc, argv))
         return status;
 
     // install signal handler for backtrace on error
@@ -53,9 +51,7 @@ int OptimizationApplication::init(int argc, char **argv) {
     printMPIInfo();
     initHDF5Mutex();
 
-    status = parseCliOptionsPostMpiInit(argc, argv);
-
-    return status;
+    return parseCliOptionsPostMpiInit(argc, argv);
 }
 
 void OptimizationApplication::runMultiStarts() const
@@ -68,11 +64,9 @@ void OptimizationApplication::runMultiStarts() const
 
 int OptimizationApplication::parseCliOptionsPreMpiInit(int argc, char **argv)
 {
-    int c;
-
     while (true) {
         int optionIndex = 0;
-        c = getopt_long(argc, argv, shortOptions, longOptions, &optionIndex);
+        auto c = getopt_long(argc, argv, shortOptions, longOptions, &optionIndex);
 
         if (c == -1)
             break; // no more options
@@ -203,9 +197,7 @@ int OptimizationApplication::run(int argc, char **argv) {
     initProblem(dataFileName, resultFileName);
 
 #ifdef PARPE_ENABLE_MPI
-    int commSize = getMpiCommSize();
-
-    if (commSize > 1) {
+    if (getMpiCommSize() > 1) {
         if (getMpiRank() == 0) {
             loadBalancer.run();
             runMaster();
@@ -295,9 +287,8 @@ void OptimizationApplication::finalizeTiming(double wallTimeSeconds, double cpuT
     } else {
         totalCpuTimeInSeconds = cpuTimeSeconds;
     }
-    int mpiRank = getMpiRank();
 
-    if (mpiRank < 1) {
+    if (getMpiRank() < 1) {
         logmessage(loglevel::info, "Walltime on master: %fs, CPU time of all processes: %fs",
                    wallTimeSeconds, totalCpuTimeInSeconds);
         saveTotalCpuTime(h5File, totalCpuTimeInSeconds);
