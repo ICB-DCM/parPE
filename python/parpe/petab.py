@@ -49,8 +49,10 @@ def get_parameter_override_id_to_placeholder_id(
 
     for obs_id, obs_par, noise_par \
             in zip(measurement_df[ptc.OBSERVABLE_ID],
-                   measurement_df[ptc.OBSERVABLE_PARAMETERS],
-                   measurement_df[ptc.NOISE_PARAMETERS]):
+                   measurement_df.get(ptc.OBSERVABLE_PARAMETERS,
+                                      [None] * measurement_df.shape[0]),
+                   measurement_df.get(ptc.NOISE_PARAMETERS,
+                                      [None] * measurement_df.shape[0])):
         # observable parameters
         overrides = petab.split_parameter_replacement_list(obs_par)
         placeholders = observable_placeholders[obs_id]
