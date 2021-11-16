@@ -581,8 +581,8 @@ class HDF5DataGenerator:
             dset = g.create_dataset("k", dtype='f8', chunks=(nk, 1),
                                     compression=self.compression, data=data)
             # set dimension scales
-            dset.dims.create_scale(g['parameterNames'], 'parameterNames')
-            dset.dims.create_scale(g['conditionNames'], 'conditionNames')
+            g['parameterNames'].make_scale('parameterNames')
+            g['conditionNames'].make_scale('conditionNames')
             dset.dims[0].attach_scale(g['parameterNames'])
             dset.dims[1].attach_scale(g['conditionNames'])
         else:
@@ -750,10 +750,6 @@ class HDF5DataGenerator:
                            "parameter table. Skipping.")
             return
 
-        if verbose:
-            logger.info(f"{Fore.CYAN}Observables:")
-            logger.info(f"{self.petab_problem.observable_df}")
-
         offset_candidates, scaling_candidates, sigma_candidates = \
             get_candidates_for_hierarchical(
                 measurement_df=self.petab_problem.measurement_df,
@@ -840,6 +836,7 @@ class HDF5DataGenerator:
         # find usages for the selected parameters
         use = get_analytical_parameter_table(
             offset_candidates, 'observable', self.condition_id_to_index,
+            self.petab_problem.observable_df,
             self.petab_problem.measurement_df, self.observable_ids,
             self.condition_map, self.NO_PREEQ_CONDITION_IDX)
 
@@ -875,6 +872,7 @@ class HDF5DataGenerator:
         # find usages for the selected parameters
         use = get_analytical_parameter_table(
             scaling_candidates, 'observable', self.condition_id_to_index,
+            self.petab_problem.observable_df,
             self.petab_problem.measurement_df, self.observable_ids,
             self.condition_map, self.NO_PREEQ_CONDITION_IDX
         )
@@ -917,6 +915,7 @@ class HDF5DataGenerator:
         # find usages for the selected parameters
         use = get_analytical_parameter_table(
             sigma_candidates, 'noise', self.condition_id_to_index,
+            self.petab_problem.observable_df,
             self.petab_problem.measurement_df, self.observable_ids,
             self.condition_map, self.NO_PREEQ_CONDITION_IDX
         )
@@ -1125,9 +1124,7 @@ def parse_cli_args():
     parser.add_argument('-o', dest='hdf5_file_name', default='data.h5',
                         help='Name of HDF5 file to generate')
 
-    args = parser.parse_args()
-
-    return args
+    return parser.parse_args()
 
 
 def main():
@@ -1135,7 +1132,7 @@ def main():
     init_colorama(autoreset=True)
     coloredlogs.DEFAULT_LEVEL_STYLES['debug'] = dict(color='white',
                                                      faint='true')
-    coloredlogs.install(level='DEBUG', logger=logger)
+    coloredlogs.install(level='DEBUG', logger=logging.root)
 
     args = parse_cli_args()
 
