@@ -40,8 +40,14 @@ def test_get_analytical_parameter_table():
         ptc.PREEQUILIBRATION_CONDITION_ID: [nan, nan],
         ptc.OBSERVABLE_PARAMETERS: ['scaling_x2', 'scaling_x2;1.0'],
         ptc.NOISE_PARAMETERS: ['noise', ''],
-
     })
+    observable_df = pd.DataFrame(data={
+        ptc.OBSERVABLE_ID: ['x2'],
+        ptc.OBSERVABLE_FORMULA: ['scaling_p1 * p2'],
+        ptc.NOISE_FORMULA: ["sigma"],
+    })
+    observable_df.set_index([ptc.OBSERVABLE_ID], inplace=True)
+
     observable_ids = ('x1', 'x2', 'x3')
     condition_map = [[-1, 0],
                      [-1, 1],
@@ -58,6 +64,24 @@ def test_get_analytical_parameter_table():
         parameter_type="observable",
         condition_id_to_index=condition_id_to_index,
         measurement_df=measurement_df,
+        observable_df=observable_df,
+        observable_ids=observable_ids,
+        condition_map=condition_map,
+        no_preeq_condition_idx=-1
+    )
+
+    assert actual == expected
+
+    actual = get_analytical_parameter_table(
+        hierarchical_candidate_ids=['scaling_p1'],
+        parameter_type="observable",
+        condition_id_to_index=condition_id_to_index,
+        measurement_df=pd.DataFrame(data={
+            ptc.OBSERVABLE_ID: ['x2', 'x2'],
+            ptc.SIMULATION_CONDITION_ID: ['c1', 'c2'],
+            ptc.PREEQUILIBRATION_CONDITION_ID: [nan, nan],
+        }),
+        observable_df=observable_df,
         observable_ids=observable_ids,
         condition_map=condition_map,
         no_preeq_condition_idx=-1
@@ -75,11 +99,28 @@ def test_get_analytical_parameter_table():
         parameter_type="noise",
         condition_id_to_index=condition_id_to_index,
         measurement_df=measurement_df,
+        observable_df=observable_df,
         observable_ids=observable_ids,
         condition_map=condition_map,
         no_preeq_condition_idx=-1
     )
 
+    assert actual == expected
+
+    actual = get_analytical_parameter_table(
+        hierarchical_candidate_ids=['sigma'],
+        parameter_type="noise",
+        condition_id_to_index=condition_id_to_index,
+        measurement_df=pd.DataFrame(data={
+            ptc.OBSERVABLE_ID: ['x2', 'x2'],
+            ptc.SIMULATION_CONDITION_ID: ['c1', 'c2'],
+            ptc.PREEQUILIBRATION_CONDITION_ID: [nan, nan],
+        }),
+        observable_df=observable_df,
+        observable_ids=observable_ids,
+        condition_map=condition_map,
+        no_preeq_condition_idx=-1
+    )
     assert actual == expected
 
     # Test unused parameter
@@ -88,6 +129,7 @@ def test_get_analytical_parameter_table():
             hierarchical_candidate_ids=['unused_par'],
             parameter_type="observable",
             condition_id_to_index=condition_id_to_index,
+            observable_df=observable_df,
             measurement_df=measurement_df,
             observable_ids=observable_ids,
             condition_map=condition_map,
