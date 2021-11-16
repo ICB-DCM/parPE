@@ -104,9 +104,13 @@ def test_get_analytical_parameter_table():
         condition_map=condition_map,
         no_preeq_condition_idx=-1
     )
-
     assert actual == expected
 
+    expected = [
+        # hierarchical_par_idx, condition_idx, observable_idx
+        (0, 1, 1),
+        (0, 2, 1),
+    ]
     actual = get_analytical_parameter_table(
         hierarchical_candidate_ids=['sigma'],
         parameter_type="noise",
