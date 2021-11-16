@@ -581,8 +581,8 @@ class HDF5DataGenerator:
             dset = g.create_dataset("k", dtype='f8', chunks=(nk, 1),
                                     compression=self.compression, data=data)
             # set dimension scales
-            dset.dims.create_scale(g['parameterNames'], 'parameterNames')
-            dset.dims.create_scale(g['conditionNames'], 'conditionNames')
+            g['parameterNames'].make_scale('parameterNames')
+            g['conditionNames'].make_scale('conditionNames')
             dset.dims[0].attach_scale(g['parameterNames'])
             dset.dims[1].attach_scale(g['conditionNames'])
         else:
