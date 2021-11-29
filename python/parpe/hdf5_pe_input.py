@@ -1124,6 +1124,11 @@ def parse_cli_args():
     parser.add_argument('-o', dest='hdf5_file_name', default='data.h5',
                         help='Name of HDF5 file to generate')
 
+    parser.add_argument('--flatten', dest='flatten', default=False,
+                        action='store_true',
+                        help='Flatten measurement specific overrides of '
+                             'observable and noise parameters')
+
     return parser.parse_args()
 
 
@@ -1137,6 +1142,10 @@ def main():
     args = parse_cli_args()
 
     petab_problem = petab.Problem.from_yaml(args.petab_yaml)
+
+    if args.flatten:
+        petab.flatten_timepoint_specific_output_overrides(petab_problem)
+
     amici_model = get_amici_model(model_name=args.model_name,
                                   model_dir=args.model_dir)
     h5gen = HDF5DataGenerator(
