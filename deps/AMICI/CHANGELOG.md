@@ -2,6 +2,63 @@
 
 ## v0.X Series
 
+### v0.11.23 (2022-01-11)
+
+Features:
+* Added overload for Model::setParameterScale with vector<int> by @dilpath in
+  https://github.com/AMICI-dev/AMICI/pull/1614
+* Removed assert_fun argument from gradient checking, improve output 
+  by @dweindl, @FFroehlich in https://github.com/AMICI-dev/AMICI/pull/1609
+* Added get_expressions_as_dataframe by @dweindl in
+  https://github.com/AMICI-dev/AMICI/pull/1621
+* Added `id` field to ExpData and ReturnData by @dweindl in 
+  https://github.com/AMICI-dev/AMICI/pull/1622
+* Included condition id in dataframes by @dweindl in 
+  https://github.com/AMICI-dev/AMICI/pull/1623
+
+Fixes:
+* C++: Fixed SUNMatrixWrapper ctor for size 0 matrices by @dweindl in 
+  https://github.com/AMICI-dev/AMICI/pull/1608
+* Python: Handle TemporaryDirectory cleanup failures on Windows by @dweindl in 
+  https://github.com/AMICI-dev/AMICI/pull/1617
+* Python: pysb.Model.initial_conditions throws a DeprecationWarning by 
+  @PaulJonasJost in https://github.com/AMICI-dev/AMICI/pull/1620
+* Fixed wrong array size in warnings by @dweindl in
+  https://github.com/AMICI-dev/AMICI/pull/1624
+ 
+NOTE: AMICI 0.11.23 requires numpy<1.22.0 
+
+**Full Changelog**:
+https://github.com/AMICI-dev/AMICI/compare/v0.11.22...v0.11.23
+
+### v0.11.22 (2021-12-02)
+
+* **Require sympy>=1.9,pysb>=1.13.1** by @FFroehlich, @dweindl
+  in https://github.com/AMICI-dev/AMICI/pull/1599
+* Fixed sympy deprecation warning by @dweindl in
+  https://github.com/AMICI-dev/AMICI/pull/1600
+* Updated Windows installation instructions for Python>=3.8 by @dweindl
+  in https://github.com/AMICI-dev/AMICI/pull/1597
+* Fixed plot labels by @dweindl in https://github.com/AMICI-dev/AMICI/pull/1598
+
+**Full Changelog**:
+https://github.com/AMICI-dev/AMICI/compare/v0.11.21...v0.11.22
+
+### v0.11.21 (2021-11-21)
+
+Fixes:
+ * Fixed a bug in recursion depth computation for model expressions. This may
+   have resulted in incorrect sensitivities for models with expressions nested
+   more than 2 levels. (#1595)
+ * Fixed improper handling of Piecewise functions in PySB import which may have
+   produced incorrect simulation results. (#1594)
+ * Fixed changed googletest reference which broke the CMake-based build if
+   tests were enabled (#1592)
+
+New:
+ * It's now possible to build AMICI using Ninja (#1593)
+
+
 ### v0.11.20 (2021-11-12)
 
 New: 
