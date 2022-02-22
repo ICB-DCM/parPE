@@ -426,8 +426,6 @@ std::vector<int> hdf5Read2DIntegerHyperslab(const H5::H5File &file,
 
     hsize_t offset[] = {offset0, offset1};
     hsize_t count[] = {size0, size1};
-    // printf("%lld %lld, %lld %lld, %lld %lld\n", dims[0], dims[1], offset0,
-    // offset1, size0, size1);
     if(offset0 >= dims[0] || size0 > dims[0] || offset1 >= dims[1]
             || size1 > dims[1]) {
         std::stringstream ss;
