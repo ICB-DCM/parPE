@@ -9,10 +9,9 @@ from .ode_export import (
     ODEExporter, ODEModel, State, Constant, Parameter, Observable, SigmaY,
     Expression, LogLikelihood, generate_measurement_symbol
 )
-
 from .import_utils import (
     noise_distribution_to_cost_function, _get_str_symbol_identifiers,
-    noise_distribution_to_observable_transformation
+    noise_distribution_to_observable_transformation, _parse_special_functions
 )
 import logging
 from .logging import get_logger, log_execution_time, set_log_level
@@ -243,13 +242,14 @@ def _process_pysb_species(pysb_model: pysb.Model,
 
     for ix, specie in enumerate(pysb_model.species):
         init = sp.sympify('0.0')
-        for ic in pysb_model.odes.model.initial_conditions:
-            if pysb.pattern.match_complex_pattern(ic[0], specie, exact=True):
+        for ic in pysb_model.odes.model.initials:
+            if pysb.pattern.match_complex_pattern(
+                    ic.pattern, specie, exact=True):
                 # we don't want to allow expressions in initial conditions
-                if ic[1] in pysb_model.expressions:
-                    init = pysb_model.expressions[ic[1].name].expand_expr()
+                if ic.value in pysb_model.expressions:
+                    init = pysb_model.expressions[ic.value.name].expand_expr()
                 else:
-                    init = ic[1]
+                    init = ic.value
 
         ode_model.add_component(
             State(
@@ -370,7 +370,7 @@ def _add_expression(
         see :py:func:`_process_pysb_expressions`
     """
     ode_model.add_component(
-        Expression(sym, name, expr)
+        Expression(sym, name, _parse_special_functions(expr))
     )
 
     if name in observables:

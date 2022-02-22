@@ -135,11 +135,10 @@ parPE is being used or has been used in the following projects:
   Bioinformatics, btz581, [doi:10.1093/bioinformatics/btz581](https://doi.org/10.1093/bioinformatics/btz581)
   (preprint: [doi:10.1101/579045](https://www.biorxiv.org/content/10.1101/579045v1)).
 
-- Paul Stapor, Leonard Schmiester, Christoph Wierling, Bodo Lange,
-  Daniel Weindl, and Jan Hasenauer. 2019.
-  *Mini-Batch Optimization Enables Training of Ode Models on Large-Scale Datasets.*
-  bioRxiv. Cold Spring Harbor Laboratory.
-  preprint: [doi:10.1101/859884](https://doi.org/10.1101/859884).
+- Stapor, P., Schmiester, L., Wierling, C. et al. *Mini-batch optimization*
+  *enables training of ODE models on large-scale datasets*. Nat Commun 13, 34
+  (2022). [doi:10.1038/s41467-021-27374-6](https://doi.org/10.1038/s41467-021-27374-6)
+  (preprint: [doi:10.1101/859884](https://doi.org/10.1101/859884)).
 
 - [CanPathPro](http://canpathpro.eu/)
 
