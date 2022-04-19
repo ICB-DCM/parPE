@@ -10,13 +10,25 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  valgrind:
     name: Tests Valgrind
 
     # TODO: prepare image with more deps preinstalled
     runs-on: ubuntu-20.04
 
+    strategy:
+      matrix:
+        python-version: [ 3.8 ]
+
+    env:
+      ENABLE_AMICI_DEBUGGING: "TRUE"
+
     steps:
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+
     - uses: actions/checkout@master
     - run: git fetch --prune --unshallow
 
