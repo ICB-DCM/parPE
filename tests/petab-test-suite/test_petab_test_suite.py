@@ -7,13 +7,14 @@ import re
 import shutil
 import subprocess
 import sys
+from pathlib import Path
 from typing import List, Union
 
 import petabtests
 import pytest
 from _pytest.outcomes import Skipped
-from amici.logging import get_logger, set_log_level
 
+from amici.logging import get_logger, set_log_level
 
 logger = get_logger(__name__, logging.DEBUG)
 set_log_level(get_logger("amici.petab_import"), logging.DEBUG)
@@ -43,7 +44,7 @@ def check_run(cmd: List[str]) -> subprocess.CompletedProcess:
     ret = subprocess.run(cmd, check=False, stdout=subprocess.PIPE,
                          stderr=subprocess.STDOUT, encoding='utf-8')
     if ret.returncode != 0:
-        raise AssertionError(f"{' '.join(cmd)} exited with status "
+        raise AssertionError(f"{' '.join(map(str, cmd))} exited with status "
                              f"{ret.returncode}:\n"
                              f"{ret.stdout}")
 
@@ -62,20 +63,20 @@ def _test_case(case: Union[int, str]) -> None:
     if case in ['0012']:
         raise NotImplementedError(case)
 
-    case_dir = os.path.join(petabtests.CASES_DIR, case)
-    yaml_file = os.path.join(case_dir, petabtests.problem_yaml_name(case))
-    test_dir = os.path.dirname(os.path.abspath(__file__))
-    parpe_dir = os.path.dirname(os.path.dirname(test_dir))
+    case_dir = petabtests.CASES_DIR / case
+    yaml_file = case_dir / petabtests.problem_yaml_name(case)
+    test_dir = Path(__file__).parent.absolute()
+    parpe_dir = test_dir.parents[1]
     model_name = f'model_{case}'
-    amici_model_dir = f'petab_test_models/model_{case}'
-    parpe_model_dir = f'petab_test_models/model_{case}_parpe'
-    hdf5_input = os.path.join(parpe_model_dir, 'input.h5')
-    hdf5_output = os.path.join(parpe_model_dir, 'out.h5')
+    amici_model_dir = Path('petab_test_models') / f'model_{case}'
+    parpe_model_dir = Path('petab_test_models') / f'model_{case}_parpe'
+    hdf5_input = parpe_model_dir / 'input.h5'
+    hdf5_output = parpe_model_dir / 'out.h5'
 
     # create amici model from PEtab
     cmd = ['amici_import_petab', '-y', yaml_file, '-o', amici_model_dir,
            '-n', model_name]
-    print(" ".join(cmd))
+    print(" ".join(map(str, cmd)))
     check_run(cmd)
 
     # must not exist when calling setup_amici_model.sh
@@ -83,27 +84,26 @@ def _test_case(case: Union[int, str]) -> None:
         shutil.rmtree(parpe_model_dir)
 
     # set up for parPE
-    cmd = [os.path.join(parpe_dir, 'misc', 'setup_amici_model.sh'),
+    cmd = [parpe_dir / 'misc' / 'setup_amici_model.sh',
            amici_model_dir, parpe_model_dir]
-    print(" ".join(cmd))
+    print(" ".join(map(str, cmd)))
     check_run(cmd)
 
     # create input hdf5 file
     cmd = ['parpe_petab_to_hdf5',
            '-y', yaml_file, '-d', amici_model_dir,
            '-n', model_name, '-o', hdf5_input]
-    print(" ".join(cmd))
+    print(" ".join(map(str, cmd)))
     check_run(cmd)
 
     # simulate model using nominal parameters
-    cmd = [os.path.join(parpe_model_dir, 'build',
-                        f'simulateNominal_{model_name}'),
+    cmd = [parpe_model_dir / 'build' / f'simulateNominal_{model_name}',
            hdf5_input, hdf5_output]
-    print(" ".join(cmd))
+    print(" ".join(map(str, cmd)))
     ret = check_run(cmd)
 
     # check output
-    g = re.search(r'Likelihood: (\d+\.\d+)', ret.stdout).group(0)
+    g = re.search(r'Likelihood: (\d+\.\d+)', ret.stdout)[0]
     llh_actual = - float(g.split(' ')[1])
     print("Actual llh:", llh_actual)
     solution = petabtests.load_solution(case, 'sbml')
@@ -122,7 +122,8 @@ def run() -> None:
 
     n_success = 0
     n_skipped = 0
-    for case in petabtests.CASES_LIST:
+    all_cases = list(petabtests.get_cases('sbml'))
+    for case in all_cases:
         try:
             test_case(case)
             n_success += 1
@@ -133,9 +134,9 @@ def run() -> None:
             logger.error(f"Case {case} failed.")
             logger.error(e)
 
-    logger.info(f"{n_success} / {len(petabtests.CASES_LIST)} successful, "
+    logger.info(f"{n_success} / {len(all_cases)} successful, "
                 f"{n_skipped} skipped")
-    if n_success != len(petabtests.CASES_LIST):
+    if n_success != len(all_cases):
         sys.exit(1)
 
 
