@@ -25,9 +25,10 @@ foreach(ptr ${_SUNDIALS_ALIAS_TARGETS})
   set(_pointee ${CMAKE_MATCH_2})
   #set_target_properties(SUNDIALS::${_pointee} PROPERTIES IMPORTED_GLOBAL TRUE)
   #add_library(SUNDIALS::${_pointer} ALIAS SUNDIALS::${_pointee})
-  add_library(SUNDIALS::${_pointer} INTERFACE IMPORTED)
-  target_link_libraries(SUNDIALS::${_pointer} INTERFACE SUNDIALS::${_pointee})
-
+  if(NOT TARGET SUNDIALS::${_pointer})
+    add_library(SUNDIALS::${_pointer} INTERFACE IMPORTED)
+    target_link_libraries(SUNDIALS::${_pointer} INTERFACE SUNDIALS::${_pointee})
+  endif()
 endforeach()
 
 ### ------- Create TPL imported targets
