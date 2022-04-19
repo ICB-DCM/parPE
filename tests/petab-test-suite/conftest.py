@@ -15,7 +15,7 @@ def parse_selection(selection_str: str) -> List[int]:
     """
     indices = []
     for group in selection_str.split(','):
-        if not re.match(r'^(?:-?\d+)|(?:\d+(?:-\d+))$', group):
+        if not re.match(r'^(?:-?\d+|\d+-\d+)$', group):
             print("Invalid selection", group)
             sys.exit()
         spl = group.split('-')
@@ -45,6 +45,6 @@ def pytest_generate_tests(metafunc):
             test_numbers = parse_selection(cases)
         else:
             # Run all tests
-            test_numbers = petabtests.CASES_LIST
+            test_numbers = petabtests.get_cases('sbml')
 
         metafunc.parametrize("case", test_numbers)
