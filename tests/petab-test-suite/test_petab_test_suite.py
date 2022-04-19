@@ -60,7 +60,8 @@ def _test_case(case: Union[int, str]) -> None:
     # Ignore some that are not supported by AMICI
     #  0012 compartments
     #  0009 newton failure preeq
-    if case in ['0012']:
+    #  0018 requires fixing import code for RateRules
+    if case in ['0012', '0018']:
         raise NotImplementedError(case)
 
     case_dir = petabtests.CASES_DIR / case
