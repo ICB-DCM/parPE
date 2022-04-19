@@ -952,7 +952,7 @@ class HDF5DataGenerator:
         # Required to handle parametric initial concentrations where newton
         # solver would fail with KLU error
         g.attrs['steadyStateSensitivityMode'] = \
-            amici.SteadyStateSensitivityMode_simulationFSA
+            amici.SteadyStateSensitivityMode.integrationOnly
 
         num_model_parameters = \
             self.f['/parameters/modelParameterNames'].shape[0]

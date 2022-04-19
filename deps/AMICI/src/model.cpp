@@ -234,7 +234,9 @@ void Model::initializeStates(AmiVector &x) {
         fx0(x);
     } else {
         std::vector<realtype> x0_solver(nx_solver, 0.0);
-        ftotal_cl(state_.total_cl.data(), x0data_.data());
+        ftotal_cl(state_.total_cl.data(), x0data_.data(),
+                  state_.unscaledParameters.data(),
+                  state_.fixedParameters.data());
         fx_solver(x0_solver.data(), x0data_.data());
         std::copy(x0_solver.cbegin(), x0_solver.cend(), x.data());
     }
@@ -250,7 +252,11 @@ void Model::initializeStateSensitivities(AmiVectorArray &sx,
         for (int ip = 0; ip < nplist(); ip++) {
             if (ncl() > 0)
                 stcl = &state_.stotal_cl.at(plist(ip) * ncl());
-            fstotal_cl(stcl, &sx0data_.at(ip * nx_rdata), plist(ip));
+            fstotal_cl(stcl, &sx0data_.at(ip * nx_rdata), plist(ip),
+                       derived_state_.x_rdata_.data(),
+                       state_.unscaledParameters.data(),
+                       state_.fixedParameters.data(),
+                       state_.total_cl.data());
             fsx_solver(sx0_solver_slice.data(), &sx0data_.at(ip * nx_rdata));
             for (int ix = 0; ix < nx_solver; ix++) {
                 sx.at(ix, ip) = sx0_solver_slice.at(ix);
@@ -510,6 +516,11 @@ std::vector<std::string> Model::getStateNames() const {
     return std::vector<std::string>();
 }
 
+std::vector<std::string> Model::getStateNamesSolver() const {
+    return std::vector<std::string>();
+}
+
+
 bool Model::hasFixedParameterNames() const {
     return nk() == 0 || !getFixedParameterNames().empty();
 }
@@ -547,6 +558,10 @@ bool Model::hasStateIds() const {
 }
 
 std::vector<std::string> Model::getStateIds() const {
+    return std::vector<std::string>();
+}
+
+std::vector<std::string> Model::getStateIdsSolver() const {
     return std::vector<std::string>();
 }
 
@@ -600,9 +615,17 @@ std::vector<bool> const &Model::getStateIsNonNegative() const {
 }
 
 void Model::setStateIsNonNegative(std::vector<bool> const &nonNegative) {
+    auto any_state_non_negative = std::any_of(nonNegative.begin(),
+                                              nonNegative.end(),
+                                              [](bool x) {
+                                                  return x; });
     if (nx_solver != nx_rdata) {
-        throw AmiException("Non-negative states are not supported with"
-                           " conservation laws enabled");
+        if(any_state_non_negative)
+            throw AmiException("Non-negative states are not supported with"
+                               " conservation laws enabled.");
+        // nothing to do, as `state_is_non_negative_` will always be all-false
+        // in case of conservation laws
+        return;
     }
     if (state_is_non_negative_.size() != static_cast<unsigned long>(nx_rdata)) {
         throw AmiException("Dimension of input stateIsNonNegative (%u) does "
@@ -610,9 +633,7 @@ void Model::setStateIsNonNegative(std::vector<bool> const &nonNegative) {
                            state_is_non_negative_.size(), nx_rdata);
     }
     state_is_non_negative_ = nonNegative;
-    any_state_non_negative_ =
-        std::any_of(state_is_non_negative_.begin(), state_is_non_negative_.end(),
-                    [](bool x) { return x; });
+    any_state_non_negative_ = any_state_non_negative;
 }
 
 void Model::setAllStatesNonNegative() {
@@ -779,9 +800,10 @@ void Model::requireSensitivitiesForAllParameters() {
     initializeVectors();
 }
 
-void Model::getExpression(gsl::span<realtype> w, const realtype t, const AmiVector &x)
+void Model::getExpression(gsl::span<realtype> w, const realtype t,
+                          const AmiVector &x)
 {
-    fw(t, x.data());
+    fw(t, computeX_pos(x));
     writeSlice(derived_state_.w_, w);
 }
 
@@ -831,9 +853,29 @@ void Model::getObservableSigma(gsl::span<realtype> sigmay, const int it,
 }
 
 void Model::getObservableSigmaSensitivity(gsl::span<realtype> ssigmay,
+                                          gsl::span<const realtype> sy,
                                           const int it, const ExpData *edata) {
     fdsigmaydp(it, edata);
     writeSlice(derived_state_.dsigmaydp_, ssigmay);
+
+    if(pythonGenerated) {
+        // ssigmay = dsigmaydy*(dydx_solver*sx+dydp)+dsigmaydp
+        //         = dsigmaydy*sy+dsigmaydp
+
+        fdsigmaydy(it, edata);
+
+        // compute ssigmay = 1.0 * dsigmaydp + 1.0 * dsigmaydy * sy
+        // dsigmaydp C[ny,nplist] += dsigmaydy A[ny,ny] * sy B[ny,nplist]
+        //             M  N                      M  K          K  N
+        //             ldc                       lda           ldb
+        amici_dgemm(BLASLayout::colMajor, BLASTranspose::noTrans,
+                    BLASTranspose::noTrans, ny, nplist(), ny, 1.0,
+                    derived_state_.dsigmaydy_.data(), ny,
+                    sy.data(), ny, 1.0, ssigmay.data(), ny);
+    }
+
+    if (always_check_finite_)
+        checkFinite(ssigmay, "ssigmay");
 }
 
 void Model::addObservableObjective(realtype &Jy, const int it,
@@ -911,9 +953,9 @@ void Model::getEventSensitivity(gsl::span<realtype> sz, const int ie,
                                 const realtype t, const AmiVector &x,
                                 const AmiVectorArray &sx) {
     for (int ip = 0; ip < nplist(); ip++) {
-        fsz(&sz[ip * nz], ie, t, x.data(), state_.unscaledParameters.data(),
-            state_.fixedParameters.data(), state_.h.data(), sx.data(ip),
-            plist(ip));
+        fsz(&sz[ip * nz], ie, t, computeX_pos(x),
+            state_.unscaledParameters.data(), state_.fixedParameters.data(),
+            state_.h.data(), sx.data(ip), plist(ip));
     }
 }
 
@@ -938,8 +980,9 @@ void Model::getEventRegularizationSensitivity(gsl::span<realtype> srz,
                                               const AmiVector &x,
                                               const AmiVectorArray &sx) {
     for (int ip = 0; ip < nplist(); ip++) {
-        fsrz(&srz[ip * nz], ie, t, x.data(), state_.unscaledParameters.data(),
-             state_.fixedParameters.data(), state_.h.data(), sx.data(ip),
+        fsrz(&srz[ip * nz], ie, t, computeX_pos(x),
+             state_.unscaledParameters.data(), state_.fixedParameters.data(),
+             state_.h.data(), sx.data(ip),
              plist(ip));
     }
 }
@@ -1061,8 +1104,9 @@ void Model::getEventTimeSensitivity(std::vector<realtype> &stau,
     std::fill(stau.begin(), stau.end(), 0.0);
 
     for (int ip = 0; ip < nplist(); ip++) {
-        fstau(&stau.at(ip), t, x.data(), state_.unscaledParameters.data(),
-              state_.fixedParameters.data(), state_.h.data(), sx.data(ip),
+        fstau(&stau.at(ip), t, computeX_pos(x),
+              state_.unscaledParameters.data(), state_.fixedParameters.data(),
+              state_.h.data(), state_.total_cl.data(), sx.data(ip),
               plist(ip), ie);
     }
 }
@@ -1073,17 +1117,20 @@ void Model::addStateEventUpdate(AmiVector &x, const int ie, const realtype t,
 
     derived_state_.deltax_.assign(nx_solver, 0.0);
 
+    std::copy_n(computeX_pos(x), nx_solver, x.data());
+
     // compute update
-    fdeltax(derived_state_.deltax_.data(), t, x.data(), state_.unscaledParameters.data(),
-            state_.fixedParameters.data(), state_.h.data(), ie, xdot.data(),
-            xdot_old.data());
+    fdeltax(derived_state_.deltax_.data(), t, x.data(),
+            state_.unscaledParameters.data(), state_.fixedParameters.data(),
+            state_.h.data(), ie, xdot.data(), xdot_old.data());
 
     if (always_check_finite_) {
         app->checkFinite(derived_state_.deltax_, "deltax");
     }
 
     // update
-    amici_daxpy(nx_solver, 1.0, derived_state_.deltax_.data(), 1, x.data(), 1);
+    amici_daxpy(nx_solver, 1.0, derived_state_.deltax_.data(), 1, x.data(),
+                1);
 }
 
 void Model::addStateSensitivityEventUpdate(AmiVectorArray &sx, const int ie,
@@ -1100,9 +1147,11 @@ void Model::addStateSensitivityEventUpdate(AmiVectorArray &sx, const int ie,
 
         // compute update
         fdeltasx(derived_state_.deltasx_.data(), t, x_old.data(),
-                 state_.unscaledParameters.data(), state_.fixedParameters.data(),
+                 state_.unscaledParameters.data(),
+                 state_.fixedParameters.data(),
                  state_.h.data(), derived_state_.w_.data(), plist(ip), ie,
-                 xdot.data(), xdot_old.data(), sx.data(ip), &stau.at(ip));
+                 xdot.data(), xdot_old.data(), sx.data(ip), &stau.at(ip),
+                 state_.total_cl.data());
 
         if (always_check_finite_) {
             app->checkFinite(derived_state_.deltasx_, "deltasx");
@@ -1121,7 +1170,7 @@ void Model::addAdjointStateEventUpdate(AmiVector &xB, const int ie,
     derived_state_.deltaxB_.assign(nx_solver, 0.0);
 
     // compute update
-    fdeltaxB(derived_state_.deltaxB_.data(), t, x.data(),
+    fdeltaxB(derived_state_.deltaxB_.data(), t, computeX_pos(x),
              state_.unscaledParameters.data(),
              state_.fixedParameters.data(), state_.h.data(), ie, xdot.data(),
              xdot_old.data(), xB.data());
@@ -1143,7 +1192,8 @@ void Model::addAdjointQuadratureEventUpdate(
     for (int ip = 0; ip < nplist(); ip++) {
         derived_state_.deltaqB_.assign(nJ, 0.0);
 
-        fdeltaqB(derived_state_.deltaqB_.data(), t, x.data(), state_.unscaledParameters.data(),
+        fdeltaqB(derived_state_.deltaqB_.data(), t, computeX_pos(x),
+                 state_.unscaledParameters.data(),
                  state_.fixedParameters.data(), state_.h.data(), plist(ip), ie,
                  xdot.data(), xdot_old.data(), xB.data());
 
@@ -1195,7 +1245,9 @@ void Model::fx0(AmiVector &x) {
         state_.unscaledParameters.data(),
         state_.fixedParameters.data());
     fx_solver(x.data(), derived_state_.x_rdata_.data());
-    ftotal_cl(state_.total_cl.data(), derived_state_.x_rdata_.data());
+    ftotal_cl(state_.total_cl.data(), derived_state_.x_rdata_.data(),
+              state_.unscaledParameters.data(),
+              state_.fixedParameters.data());
 
     if (always_check_finite_) {
         checkFinite(derived_state_.x_rdata_, "x0 x_rdata");
@@ -1206,11 +1258,14 @@ void Model::fx0(AmiVector &x) {
 void Model::fx0_fixedParameters(AmiVector &x) {
     if (!getReinitializeFixedParameterInitialStates())
         return;
+
     /* we transform to the unreduced states x_rdata and then apply
      x0_fixedparameters to (i) enable updates to states that were removed from
      conservation laws and (ii) be able to correctly compute total abundances
      after updating the state variables */
-    fx_rdata(derived_state_.x_rdata_.data(), x.data(), state_.total_cl.data());
+    fx_rdata(derived_state_.x_rdata_.data(), computeX_pos(x),
+             state_.total_cl.data(), state_.unscaledParameters.data(),
+             state_.fixedParameters.data());
     fx0_fixedParameters(derived_state_.x_rdata_.data(),
                         simulation_parameters_.tstart_,
                         state_.unscaledParameters.data(),
@@ -1219,7 +1274,9 @@ void Model::fx0_fixedParameters(AmiVector &x) {
                         );
     fx_solver(x.data(), derived_state_.x_rdata_.data());
     /* update total abundances */
-    ftotal_cl(state_.total_cl.data(), derived_state_.x_rdata_.data());
+    ftotal_cl(state_.total_cl.data(), derived_state_.x_rdata_.data(),
+              state_.unscaledParameters.data(),
+              state_.fixedParameters.data());
 }
 
 void Model::fsx0(AmiVectorArray &sx, const AmiVector &x) {
@@ -1231,10 +1288,14 @@ void Model::fsx0(AmiVectorArray &sx, const AmiVector &x) {
         std::fill(derived_state_.sx_rdata_.begin(),
                   derived_state_.sx_rdata_.end(), 0.0);
         fsx0(derived_state_.sx_rdata_.data(), simulation_parameters_.tstart_,
-             x.data(), state_.unscaledParameters.data(),
+             computeX_pos(x), state_.unscaledParameters.data(),
              state_.fixedParameters.data(), plist(ip));
         fsx_solver(sx.data(ip), derived_state_.sx_rdata_.data());
-        fstotal_cl(stcl, derived_state_.sx_rdata_.data(), plist(ip));
+        fstotal_cl(stcl, derived_state_.sx_rdata_.data(), plist(ip),
+                   derived_state_.x_rdata_.data(),
+                   state_.unscaledParameters.data(),
+                   state_.fixedParameters.data(),
+                   state_.total_cl.data());
     }
 }
 
@@ -1245,32 +1306,46 @@ void Model::fsx0_fixedParameters(AmiVectorArray &sx, const AmiVector &x) {
     for (int ip = 0; ip < nplist(); ip++) {
         if (ncl() > 0)
             stcl = &state_.stotal_cl.at(plist(ip) * ncl());
-        fsx_rdata(derived_state_.sx_rdata_.data(), sx.data(ip), stcl, plist(ip));
+        fsx_rdata(derived_state_.sx_rdata_.data(), sx.data(ip), stcl,
+                  state_.unscaledParameters.data(),
+                  state_.fixedParameters.data(),
+                  x.data(), state_.total_cl.data(),
+                  plist(ip));
         fsx0_fixedParameters(derived_state_.sx_rdata_.data(),
-                             simulation_parameters_.tstart_, x.data(),
+                             simulation_parameters_.tstart_,
+                             computeX_pos(x),
                              state_.unscaledParameters.data(),
                              state_.fixedParameters.data(),
                              plist(ip),
                              simulation_parameters_.reinitialization_state_idxs_sim);
         fsx_solver(sx.data(ip), derived_state_.sx_rdata_.data());
-        fstotal_cl(stcl, derived_state_.sx_rdata_.data(), plist(ip));
+        fstotal_cl(stcl, derived_state_.sx_rdata_.data(), plist(ip),
+                   derived_state_.x_rdata_.data(),
+                   state_.unscaledParameters.data(),
+                   state_.fixedParameters.data(),
+                   state_.total_cl.data());
     }
 }
 
 void Model::fsdx0() {}
 
 void Model::fx_rdata(AmiVector &x_rdata, const AmiVector &x) {
-    fx_rdata(x_rdata.data(), x.data(), state_.total_cl.data());
+    fx_rdata(x_rdata.data(), computeX_pos(x), state_.total_cl.data(),
+             state_.unscaledParameters.data(), state_.fixedParameters.data());
     if (always_check_finite_)
         checkFinite(x_rdata.getVector(), "x_rdata");
 }
 
-void Model::fsx_rdata(AmiVectorArray &sx_rdata, const AmiVectorArray &sx) {
+void Model::fsx_rdata(AmiVectorArray &sx_rdata, const AmiVectorArray &sx,
+                      AmiVector const& x_solver) {
     realtype *stcl = nullptr;
     for (int ip = 0; ip < nplist(); ip++) {
         if (ncl() > 0)
             stcl = &state_.stotal_cl.at(plist(ip) * ncl());
-        fsx_rdata(sx_rdata.data(ip), sx.data(ip), stcl, ip);
+        fsx_rdata(sx_rdata.data(ip), sx.data(ip), stcl,
+                  state_.unscaledParameters.data(),
+                  state_.fixedParameters.data(), x_solver.data(),
+                  state_.total_cl.data(), plist(ip));
     }
 }
 
@@ -1326,11 +1401,13 @@ void Model::fy(const realtype t, const AmiVector &x) {
     if (!ny)
         return;
 
+    auto x_pos = computeX_pos(x);
+
     derived_state_.y_.assign(ny, 0.0);
 
-    fw(t, x.data());
-    fy(derived_state_.y_.data(), t, x.data(), state_.unscaledParameters.data(),
-       state_.fixedParameters.data(),
+    fw(t, x_pos);
+    fy(derived_state_.y_.data(), t, x_pos,
+       state_.unscaledParameters.data(), state_.fixedParameters.data(),
        state_.h.data(), derived_state_.w_.data());
 
     if (always_check_finite_) {
@@ -1342,19 +1419,22 @@ void Model::fdydp(const realtype t, const AmiVector &x) {
     if (!ny)
         return;
 
+    auto x_pos = computeX_pos(x);
+
     derived_state_.dydp_.assign(ny * nplist(), 0.0);
-    fw(t, x.data());
-    fdwdp(t, x.data());
+    fw(t, x_pos);
+    fdwdp(t, x_pos);
 
     /* get dydp slice (ny) for current time and parameter */
     for (int ip = 0; ip < nplist(); ip++)
         if (pythonGenerated) {
-            fdydp(&derived_state_.dydp_.at(ip * ny), t, x.data(),
+            fdydp(&derived_state_.dydp_.at(ip * ny), t, x_pos,
                   state_.unscaledParameters.data(),
                   state_.fixedParameters.data(), state_.h.data(), plist(ip),
-                  derived_state_.w_.data(), state_.stotal_cl.data());
+                  derived_state_.w_.data(), state_.total_cl.data(),
+                  state_.stotal_cl.data());
         } else {
-            fdydp(&derived_state_.dydp_.at(ip * ny), t, x.data(),
+            fdydp(&derived_state_.dydp_.at(ip * ny), t, x_pos,
                   state_.unscaledParameters.data(),
                   state_.fixedParameters.data(), state_.h.data(), plist(ip),
                   derived_state_.w_.data(), derived_state_.dwdp_.data());
@@ -1369,13 +1449,16 @@ void Model::fdydx(const realtype t, const AmiVector &x) {
     if (!ny)
         return;
 
+    auto x_pos = computeX_pos(x);
+
     derived_state_.dydx_.assign(ny * nx_solver, 0.0);
 
-    fw(t, x.data());
-    fdwdx(t, x.data());
-    fdydx(derived_state_.dydx_.data(), t, x.data(), state_.unscaledParameters.data(),
-          state_.fixedParameters.data(), state_.h.data(),
-          derived_state_.w_.data(), derived_state_.dwdx_.data());
+    fw(t, x_pos);
+    fdwdx(t, x_pos);
+    fdydx(derived_state_.dydx_.data(), t, x_pos,
+          state_.unscaledParameters.data(), state_.fixedParameters.data(),
+          state_.h.data(), derived_state_.w_.data(),
+          derived_state_.dwdx_.data());
 
     if (always_check_finite_) {
         app->checkFinite(derived_state_.dydx_, "dydx");
@@ -1388,8 +1471,11 @@ void Model::fsigmay(const int it, const ExpData *edata) {
 
     derived_state_.sigmay_.assign(ny, 0.0);
 
-    fsigmay(derived_state_.sigmay_.data(), getTimepoint(it), state_.unscaledParameters.data(),
-            state_.fixedParameters.data());
+    fsigmay(derived_state_.sigmay_.data(),
+            getTimepoint(it),
+            state_.unscaledParameters.data(),
+            state_.fixedParameters.data(),
+            derived_state_.y_.data());
 
     if (edata) {
         auto sigmay_edata = edata->getObservedDataStdDevPtr(it);
@@ -1422,6 +1508,7 @@ void Model::fdsigmaydp(const int it, const ExpData *edata) {
         fdsigmaydp(&derived_state_.dsigmaydp_.at(ip * ny), getTimepoint(it),
                    state_.unscaledParameters.data(),
                    state_.fixedParameters.data(),
+                   derived_state_.y_.data(),
                    plist(ip));
 
     // sigmas in edata override model-sigma -> for those sigmas, set dsigmaydp
@@ -1441,6 +1528,36 @@ void Model::fdsigmaydp(const int it, const ExpData *edata) {
     }
 }
 
+void Model::fdsigmaydy(const int it, const ExpData *edata) {
+    if (!ny)
+        return;
+
+    derived_state_.dsigmaydy_.assign(ny * ny, 0.0);
+
+    // get dsigmaydy slice (ny) for current timepoint
+    fdsigmaydy(derived_state_.dsigmaydy_.data(), getTimepoint(it),
+               state_.unscaledParameters.data(),
+               state_.fixedParameters.data(),
+               derived_state_.y_.data());
+
+   // sigmas in edata override model-sigma -> for those sigmas, set dsigmaydy
+   // to zero
+    if (edata) {
+        for (int isigmay = 0; isigmay < nytrue; ++isigmay) {
+            if (!edata->isSetObservedDataStdDev(it, isigmay))
+                continue;
+            for (int iy = 0; iy < nytrue; ++iy) {
+                derived_state_.dsigmaydy_.at(isigmay * ny + iy) = 0.0;
+            }
+        }
+    }
+
+    if (always_check_finite_) {
+        app->checkFinite(derived_state_.dsigmaydy_, "dsigmaydy");
+    }
+}
+
+
 void Model::fdJydy(const int it, const AmiVector &x, const ExpData &edata) {
     if (!ny)
         return;
@@ -1449,6 +1566,10 @@ void Model::fdJydy(const int it, const AmiVector &x, const ExpData &edata) {
     fsigmay(it, &edata);
 
     if (pythonGenerated) {
+        fdJydsigma(it, x, edata);
+        fdsigmaydy(it, &edata);
+        SUNMatrixWrapper tmp_dense(nJ, ny);
+
         for (int iyt = 0; iyt < nytrue; iyt++) {
             if (!derived_state_.dJydy_.at(iyt).capacity())
                 continue;
@@ -1464,6 +1585,25 @@ void Model::fdJydy(const int it, const AmiVector &x, const ExpData &edata) {
                    state_.fixedParameters.data(), derived_state_.y_.data(),
                    derived_state_.sigmay_.data(),
                    edata.getObservedDataPtr(it));
+
+            // dJydy += dJydsigma * dsigmaydy
+            // C(nJ,ny)  A(nJ,ny)  * B(ny,ny)
+            // sparse    dense       dense
+            tmp_dense.zero();
+            amici_dgemm(BLASLayout::colMajor, BLASTranspose::noTrans,
+                        BLASTranspose::noTrans, nJ, ny, ny, 1.0,
+                        &derived_state_.dJydsigma_.at(iyt * nJ * ny), nJ,
+                        derived_state_.dsigmaydy_.data(), ny, 1.0,
+                        tmp_dense.data(), nJ);
+
+            auto tmp_sparse = SUNMatrixWrapper(tmp_dense, 0.0, CSC_MAT);
+            auto ret = SUNMatScaleAdd(1.0, derived_state_.dJydy_.at(iyt).get(),
+                                      tmp_sparse.get());
+            if(ret != SUNMAT_SUCCESS) {
+                throw AmiException("SUNMatScaleAdd failed with status %d in %s",
+                                   ret, __func__);
+            }
+            derived_state_.dJydy_.at(iyt).refresh();
 
             if (always_check_finite_) {
                 app->checkFinite(
@@ -1518,7 +1658,6 @@ void Model::fdJydp(const int it, const AmiVector &x, const ExpData &edata) {
     // dJydy         nJ, nytrue x ny
     // dydp          nplist * ny
     // dJydp         nplist x nJ
-    // dJydsigma
     if (!ny)
         return;
 
@@ -1601,8 +1740,9 @@ void Model::fz(const int ie, const realtype t, const AmiVector &x) {
 
     derived_state_.z_.assign(nz, 0.0);
 
-    fz(derived_state_.z_.data(), ie, t, x.data(), state_.unscaledParameters.data(),
-       state_.fixedParameters.data(), state_.h.data());
+    fz(derived_state_.z_.data(), ie, t, computeX_pos(x),
+       state_.unscaledParameters.data(), state_.fixedParameters.data(),
+       state_.h.data());
 }
 
 void Model::fdzdp(const int ie, const realtype t, const AmiVector &x) {
@@ -1612,7 +1752,7 @@ void Model::fdzdp(const int ie, const realtype t, const AmiVector &x) {
     derived_state_.dzdp_.assign(nz * nplist(), 0.0);
 
     for (int ip = 0; ip < nplist(); ip++) {
-        fdzdp(derived_state_.dzdp_.data(), ie, t, x.data(),
+        fdzdp(derived_state_.dzdp_.data(), ie, t, computeX_pos(x),
               state_.unscaledParameters.data(),
               state_.fixedParameters.data(), state_.h.data(), plist(ip));
     }
@@ -1628,8 +1768,9 @@ void Model::fdzdx(const int ie, const realtype t, const AmiVector &x) {
 
     derived_state_.dzdx_.assign(nz * nx_solver, 0.0);
 
-    fdzdx(derived_state_.dzdx_.data(), ie, t, x.data(), state_.unscaledParameters.data(),
-          state_.fixedParameters.data(), state_.h.data());
+    fdzdx(derived_state_.dzdx_.data(), ie, t, computeX_pos(x),
+          state_.unscaledParameters.data(), state_.fixedParameters.data(),
+          state_.h.data());
 
     if (always_check_finite_) {
         app->checkFinite(derived_state_.dzdx_, "dzdx");
@@ -1640,7 +1781,7 @@ void Model::frz(const int ie, const realtype t, const AmiVector &x) {
 
     derived_state_.rz_.assign(nz, 0.0);
 
-    frz(derived_state_.rz_.data(), ie, t, x.data(),
+    frz(derived_state_.rz_.data(), ie, t, computeX_pos(x),
         state_.unscaledParameters.data(),
         state_.fixedParameters.data(), state_.h.data());
 }
@@ -1652,7 +1793,7 @@ void Model::fdrzdp(const int ie, const realtype t, const AmiVector &x) {
     derived_state_.drzdp_.assign(nz * nplist(), 0.0);
 
     for (int ip = 0; ip < nplist(); ip++) {
-        fdrzdp(derived_state_.drzdp_.data(), ie, t, x.data(),
+        fdrzdp(derived_state_.drzdp_.data(), ie, t, computeX_pos(x),
                state_.unscaledParameters.data(),
                state_.fixedParameters.data(), state_.h.data(), plist(ip));
     }
@@ -1668,8 +1809,9 @@ void Model::fdrzdx(const int ie, const realtype t, const AmiVector &x) {
 
     derived_state_.drzdx_.assign(nz * nx_solver, 0.0);
 
-    fdrzdx(derived_state_.drzdx_.data(), ie, t, x.data(), state_.unscaledParameters.data(),
-           state_.fixedParameters.data(), state_.h.data());
+    fdrzdx(derived_state_.drzdx_.data(), ie, t, computeX_pos(x),
+           state_.unscaledParameters.data(), state_.fixedParameters.data(),
+           state_.h.data());
 
     if (always_check_finite_) {
         app->checkFinite(derived_state_.drzdx_, "drzdx");
@@ -2035,7 +2177,8 @@ void Model::fdwdw(const realtype t, const realtype *x) {
 }
 
 void Model::fx_rdata(realtype *x_rdata, const realtype *x_solver,
-                     const realtype * /*tcl*/) {
+                     const realtype * /*tcl*/, const realtype */*p*/,
+                     const realtype */*k*/) {
     if (nx_solver != nx_rdata)
         throw AmiException(
             "A model that has differing nx_solver and nx_rdata needs "
@@ -2044,8 +2187,43 @@ void Model::fx_rdata(realtype *x_rdata, const realtype *x_solver,
 }
 
 void Model::fsx_rdata(realtype *sx_rdata, const realtype *sx_solver,
-                      const realtype *stcl, const int /*ip*/) {
-    fx_rdata(sx_rdata, sx_solver, stcl);
+                      const realtype *stcl, const realtype *p,
+                      const realtype *k, const realtype *x_solver,
+                      const realtype *tcl,
+                      const int ip) {
+    if (nx_solver == nx_rdata) {
+        std::copy_n(sx_solver, nx_solver, sx_rdata);
+        return;
+    }
+
+    // sx_rdata = dx_rdata/dx_solver * sx_solver
+    //             + dx_rdata/d_tcl * stcl + dxrdata/dp
+
+    // 1) sx_rdata(nx_rdata, 1) = dx_rdatadp
+    std::fill_n(sx_rdata, nx_rdata, 0.0);
+    fdx_rdatadp(sx_rdata, x_solver, tcl, p, k, ip);
+
+
+    // the following could be moved to the calling function, as it's independent
+    //  of `ip`
+
+    // 2) sx_rdata(nx_rdata, 1) +=
+    //          dx_rdata/dx_solver(nx_rdata,nx_solver) * sx_solver(nx_solver, 1)
+    derived_state_.dx_rdatadx_solver.zero();
+    fdx_rdatadx_solver(derived_state_.dx_rdatadx_solver.data(),
+                       x_solver, tcl, p, k);
+    fdx_rdatadx_solver_colptrs(derived_state_.dx_rdatadx_solver);
+    fdx_rdatadx_solver_rowvals(derived_state_.dx_rdatadx_solver);
+    derived_state_.dx_rdatadx_solver.multiply(gsl::make_span(sx_rdata, nx_rdata),
+                                              gsl::make_span(sx_solver, nx_solver));
+
+    // 3) sx_rdata(nx_rdata, 1) += dx_rdata/d_tcl(nx_rdata,ntcl) * stcl
+    derived_state_.dx_rdatadtcl.zero();
+    fdx_rdatadtcl(derived_state_.dx_rdatadtcl.data(), x_solver, tcl, p, k);
+    fdx_rdatadtcl_colptrs(derived_state_.dx_rdatadtcl);
+    fdx_rdatadtcl_rowvals(derived_state_.dx_rdatadtcl);
+    derived_state_.dx_rdatadtcl.multiply(gsl::make_span(sx_rdata, nx_rdata),
+                                         gsl::make_span(stcl, (nx_rdata - nx_solver)));
 }
 
 void Model::fx_solver(realtype *x_solver, const realtype *x_rdata) {
@@ -2063,7 +2241,8 @@ void Model::fsx_solver(realtype *sx_solver, const realtype *sx_rdata) {
     fx_solver(sx_solver, sx_rdata);
 }
 
-void Model::ftotal_cl(realtype * /*total_cl*/, const realtype * /*x_rdata*/) {
+void Model::ftotal_cl(realtype * /*total_cl*/, const realtype * /*x_rdata*/,
+                      const realtype */*p*/, const realtype */*k*/) {
     if (nx_solver != nx_rdata)
         throw AmiException(
             "A model that has differing nx_solver and nx_rdata needs "
@@ -2071,11 +2250,30 @@ void Model::ftotal_cl(realtype * /*total_cl*/, const realtype * /*x_rdata*/) {
 }
 
 void Model::fstotal_cl(realtype *stotal_cl, const realtype *sx_rdata,
-                       const int /*ip*/) {
-    /* for the moment we do not need an implementation of fstotal_cl as
-     * we can simply reuse ftotal_cl and replace states by their
-     * sensitivities */
-    ftotal_cl(stotal_cl, sx_rdata);
+                       const int ip, const realtype *x_rdata,
+                       const realtype *p, const realtype *k,
+                       const realtype *tcl) {
+    if (nx_solver == nx_rdata)
+        return;
+
+    // stotal_cl(ncl,1) =
+    //            dtotal_cl/dp(ncl,1)
+    //          + dtotal_cl/dx_rdata(ncl,nx_rdata) * sx_rdata(nx_rdata,1)
+
+    // 1) stotal_cl = dtotal_cl/dp
+    std::fill_n(stotal_cl, ncl(), 0.0);
+    fdtotal_cldp(stotal_cl, x_rdata, p, k, ip);
+
+
+    // 2) stotal_cl += dtotal_cl/dx_rdata(ncl,nx_rdata) * sx_rdata(nx_rdata,1)
+    derived_state_.dtotal_cldx_rdata.zero();
+    fdtotal_cldx_rdata(derived_state_.dtotal_cldx_rdata.data(),
+                       x_rdata, tcl, p, k);
+    fdtotal_cldx_rdata_colptrs(derived_state_.dtotal_cldx_rdata);
+    fdtotal_cldx_rdata_rowvals(derived_state_.dtotal_cldx_rdata);
+    derived_state_.dtotal_cldx_rdata.multiply(
+        gsl::make_span(stotal_cl, ncl()),
+        gsl::make_span(sx_rdata, nx_rdata));
 }
 
 const_N_Vector Model::computeX_pos(const_N_Vector x) {
@@ -2090,6 +2288,14 @@ const_N_Vector Model::computeX_pos(const_N_Vector x) {
     }
 
     return x;
+}
+
+const realtype *Model::computeX_pos(AmiVector const& x) {
+    if (any_state_non_negative_) {
+        computeX_pos(x.getNVector());
+        return derived_state_.x_pos_tmp_.data();
+    }
+    return x.data();
 }
 
 void Model::setReinitializationStateIdxs(std::vector<int> const& idxs)

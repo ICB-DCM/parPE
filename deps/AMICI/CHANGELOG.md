@@ -2,6 +2,175 @@
 
 ## v0.X Series
 
+### v0.11.28 (2022-04-08)
+
+New features:
+* Added `Solver.setSteadyStateToleranceFactor` and
+  `Solver.setSteadyStateSensiToleranceFactor` to specify a steady state
+  tolerance factor by @dilpath in https://github.com/AMICI-dev/AMICI/pull/1758
+
+  **NOTE: This also relaxed the default steady state (sensitivity)**
+  **tolerances by a factor of 100.**
+* Added support for `pathlib.Path` by @dweindl in
+  https://github.com/AMICI-dev/AMICI/pull/1769
+* Allow specifying initial timepoint with `ExpData` by @dilpath in
+  https://github.com/AMICI-dev/AMICI/pull/1776
+
+Performance:
+* Speedup for models with conservation laws by @FFroehlich in
+  https://github.com/AMICI-dev/AMICI/pull/1765
+* Improved efficiency of newton step convergence check by @FFroehlich in
+  https://github.com/AMICI-dev/AMICI/pull/1775
+
+Fixes:
+* Fixed deprecation warning for pandas.DataFrame.append in
+  `rdatas_to_measurement_df` by @dweindl in
+  https://github.com/AMICI-dev/AMICI/pull/1770
+* Fixed Rule-target handling in PEtab import by @dweindl in
+  https://github.com/AMICI-dev/AMICI/pull/1753
+
+Removed functionality:
+* Removed long deprecated `sbml2amici` arguments `modelName`
+  and `constantParameters` by @dweindl in
+  https://github.com/AMICI-dev/AMICI/pull/1774
+
+**Full Changelog**:
+https://github.com/AMICI-dev/AMICI/compare/v0.11.27...v0.11.28
+
+### v0.11.27 (2022-04-04)
+
+New features:
+* Checking condition number when computing sensitivities via Newton
+  by @FFroehlich in https://github.com/AMICI-dev/AMICI/pull/1730
+* Removed SPBCG solver by @FFroehlich in
+  https://github.com/AMICI-dev/AMICI/pull/1729
+* Added Newton step convergence checks to steadystate solver by @FFroehlich in
+  https://github.com/AMICI-dev/AMICI/pull/1737
+* Removed legacy options/members `amioption.newton_preeq` and `Solver::r… by
+  @dweindl in https://github.com/AMICI-dev/AMICI/pull/1744
+* Added `ReturnData::cpu_time_total` to track total time spent in
+  `runAmiciSimulation` by @dweindl in
+  https://github.com/AMICI-dev/AMICI/pull/1743
+* SBML import: Alternative algorithm for identifying conservation laws by
+  @dweindl in https://github.com/AMICI-dev/AMICI/pull/1748
+* Use `amici.AmiciVersionError` to indicate version mismatch by @dweindl in https://github.com/AMICI-dev/AMICI/pull/1764
+
+Performance:
+* Optional parallel computation of derivatives during model import by @dweindl
+  in https://github.com/AMICI-dev/AMICI/pull/1740
+* Sparsify jacobian by @FFroehlich in https://github.com/AMICI-dev/AMICI/pull/1766
+* Speedup conservation law computation by @FFroehlich in
+  https://github.com/AMICI-dev/AMICI/pull/1754
+* Exploit stoichiometric matrix in pysb import by @FFroehlich in
+  https://github.com/AMICI-dev/AMICI/pull/1761
+* Speedup edata construction from petab problems by @FFroehlich in
+  https://github.com/AMICI-dev/AMICI/pull/1746
+
+Fixes:
+* Fixed `get_model_settings` that would to setting incorrect initial states and
+  initial state sensitivities for models with parameter-dependent initial
+  states by @dweindl in https://github.com/AMICI-dev/AMICI/pull/1751
+* Use correct tolerances for convergence check in Newton solver by @FFroehlich
+  in https://github.com/AMICI-dev/AMICI/pull/1728
+* Harmonized convergence checks by @FFroehlich in
+  https://github.com/AMICI-dev/AMICI/pull/1731
+* Made sundials' KLU_INDEXTYPE match actual klu index type by @dweindl in
+  https://github.com/AMICI-dev/AMICI/pull/1733
+* Fixed `Model::setStateIsNonNegative` logic that would raise exceptions in
+  cases where it shouldn't by @dweindl in
+  https://github.com/AMICI-dev/AMICI/pull/1736
+* Fixed undefined reference to dladdr by @kristianmeyerr in
+  https://github.com/AMICI-dev/AMICI/pull/1738
+* Fixed HDF5 OSX intermediate group creation errors by @dweindl in
+  https://github.com/AMICI-dev/AMICI/pull/1741
+* Fixed recent cmake-based build issues due to changed sundials library
+  directory by @dweindl in https://github.com/AMICI-dev/AMICI/pull/1756
+* Updated Windows installation instructions by @paulflang in
+  https://github.com/AMICI-dev/AMICI/pull/1763
+
+... and other contributions by @FFroehlich, @dweindl
+
+**Full Changelog**:
+https://github.com/AMICI-dev/AMICI/compare/v0.11.26...v0.11.27
+
+### v0.11.26 (2022-03-14)
+
+New features:
+* Import of BioNetGenLanguage (BNGL) models by @FFroehlich in 
+  https://github.com/AMICI-dev/AMICI/pull/1709
+* Added support for observable-dependent sigmas by @dweindl, @FFroehlich in
+  https://github.com/AMICI-dev/AMICI/pull/1692
+* Added support for pysb local functions by @FFroehlich in
+  https://github.com/AMICI-dev/AMICI/pull/1666
+* Added experimental support for conservation laws for non-constant species to
+  SBML import: conservation laws for non-constant species
+  by @stephanmg, @dweindl in https://github.com/AMICI-dev/AMICI/pull/1669
+  Enable this feature by setting environment variable
+  `AMICI_EXPERIMENTAL_SBML_NONCONST_CLS` to any value
+  * Allow using states eliminated by conservation laws to be used in root
+    functions by @dweindl in https://github.com/AMICI-dev/AMICI/pull/1677
+  * Added support for parameter-dependent conservation laws by @dweindl,
+    @FFroehlich in https://github.com/AMICI-dev/AMICI/pull/1678
+* Added optional caching for symbolic simplifications in ODE export by @dilpath
+  in https://github.com/AMICI-dev/AMICI/pull/1672
+* Added CLI option `--no-sensitivities` to `amici_import_petab` by @dweindl in
+  https://github.com/AMICI-dev/AMICI/pull/1688
+
+Fixes:
+* SBML import: Raise in case of nested observables by @dweindl in
+  https://github.com/AMICI-dev/AMICI/pull/1690
+* Sympy 1.10 compatibility by @dweindl in
+  https://github.com/AMICI-dev/AMICI/pull/1694
+
+**Full Changelog**: https://github.com/AMICI-dev/AMICI/compare/v0.11.25...v0.11.26
+
+### v0.11.25 (2022-02-09)
+
+* Fixed a bug
+  where `Model::setStateIsNonNegative(Model::getStateIsNonNegative())` would
+  raise an exception in case conservation laws were enabled - by @dweindl
+  in https://github.com/AMICI-dev/AMICI/pull/1648
+* Fixed a bug where `Model::setStateIsNonNegative` would be ignored in certain
+  model expressions - by @FFroehlich
+  in https://github.com/AMICI-dev/AMICI/pull/1650
+* Fixed a bug where special function parsing inside `min()` and `max()` would
+  not be parsed correctly - by @dweindl
+  in https://github.com/AMICI-dev/AMICI/pull/1655
+* Fixed a numpy dependency issues for Mac+ARM systems - by @dweindl
+  in https://github.com/AMICI-dev/AMICI/pull/1657
+* Fixed convergence check in Newton method - by @plakrisenko
+  in https://github.com/AMICI-dev/AMICI/pull/1663
+* Add `AMICI_CXX_OPTIONS` to pass libamici-specific compiler options during
+  CMake-based builds - by @dweindl
+  in https://github.com/AMICI-dev/AMICI/pull/1664
+* Fixed various warnings and updated documentation - by @dweindl
+
+**Full Changelog**:
+https://github.com/AMICI-dev/AMICI/compare/v0.11.24...v0.11.25
+
+### v0.11.24 (2022-02-01)
+
+Features:
+* Introduced environment variable `AMICI_DLL_DIRS` to control DLL directories
+  on Windows (useful for setting BLAS library directory, as required by
+  Python>=3.8) by @dweindl in https://github.com/AMICI-dev/AMICI/pull/1637
+* Dropped Python3.7 support by @dweindl in
+  https://github.com/AMICI-dev/AMICI/pull/1635
+* Include header files in CMake targets for better IDE integration by @dweindl
+  in https://github.com/AMICI-dev/AMICI/pull/1639
+
+Fixes:
+* Fixed an issue in PEtab import where all-integer parameters would previously
+  result in a TypeError by @stephanmg in
+  https://github.com/AMICI-dev/AMICI/pull/1634
+* Fixed tempdir deletion issues for test suite on Windows by @dweindl in
+  https://github.com/AMICI-dev/AMICI/pull/1636
+* Added functions to provide state IDs/names for x_solver by @dweindl in
+  https://github.com/AMICI-dev/AMICI/pull/1638
+* Fixed docs on RTD by @dweindl in https://github.com/AMICI-dev/AMICI/pull/1643
+
+**Full Changelog**: https://github.com/AMICI-dev/AMICI/compare/v0.11.23...v0.11.24
+
 ### v0.11.23 (2022-01-11)
 
 Features:
