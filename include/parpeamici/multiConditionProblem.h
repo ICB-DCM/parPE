@@ -112,7 +112,7 @@ public:
             LoadBalancerMaster *loadBalancer,
             OptimizationResultWriter *resultWriter);
 
-    virtual ~AmiciSummedGradientFunction() = default;
+    ~AmiciSummedGradientFunction() override = default;
 
     FunctionEvaluationStatus evaluate(
             gsl::span<const double> parameters,

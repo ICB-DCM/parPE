@@ -14,7 +14,10 @@
 #include <iostream>
 #include <sstream>
 #include <functional>
+#include <numeric>
+
 #include <gsl/gsl-lite.hpp>
+
 
 namespace parpe {
 
@@ -58,7 +61,7 @@ public:
 
     MinibatchOptimizationProblem(MinibatchOptimizationProblem const& other) = delete;
 
-    virtual ~MinibatchOptimizationProblem() override = default;
+    ~MinibatchOptimizationProblem() override = default;
 
     /** vector of training data */
     virtual std::vector<T> getTrainingData() const = 0;
@@ -375,15 +378,6 @@ std::vector<std::vector<T>> getBatches(gsl::span<const T> data,
 }
 
 /**
- * @brief Get scalar product of two vectors.
- * @param v
- * @param w
- * @return the scalar product
- */
-double getScalarProduct(gsl::span<const double> v,
-                        gsl::span<const double> w);
-
-/**
  * @brief Get Euclidean (l2) norm of vector.
  * @param v
  * @return the norm
@@ -464,7 +458,7 @@ public:
                 std::stringstream ss;
                 ss << ": Cost: " << cost << " |g|2: " << getVectorNorm(gradient) << " Batch: " << batches[batchIdx]
                         << " LearningRate: " << learningRate << std::endl;
-                batchLogger->logmessage(LOGLVL_DEBUG, ss.str().c_str());
+                batchLogger->logmessage(loglevel::debug, ss.str().c_str());
 
                 if (status == functionEvaluationFailure) {
                     // Check, if the interceptor should be used (should always be the case, except for study purpose...
@@ -551,13 +545,13 @@ public:
         if (logger) {
             switch (status) {
             case minibatchExitStatus::invalidNumber:
-                logger->logmessage(LOGLVL_ERROR, "Mini-batch cost function evaluation failed.");
+                logger->logmessage(loglevel::error, "Mini-batch cost function evaluation failed.");
                 break;
             case minibatchExitStatus::gradientNormConvergence:
-                logger->logmessage(LOGLVL_INFO, "Convergence: gradientNormThreshold reached.");
+                logger->logmessage(loglevel::info, "Convergence: gradientNormThreshold reached.");
                 break;
             case minibatchExitStatus::maxEpochsExceeded:
-                logger->logmessage(LOGLVL_INFO, "Number of epochs exceeded.");
+                logger->logmessage(loglevel::info, "Number of epochs exceeded.");
             }
         }
 
@@ -615,7 +609,7 @@ public:
             std::vector<double> firstDifference = getVectorDifference(parameters, oldParameters);
             std::stringstream first_ss;
             first_ss << " Interceptor is active! Former step size: " << getVectorNorm(firstDifference) << std::endl;
-            logger->logmessage(LOGLVL_DEBUG, first_ss.str().c_str());
+            logger->logmessage(loglevel::debug, first_ss.str().c_str());
         }
 
 
@@ -638,8 +632,8 @@ public:
                 finalFail = true;
 
             // If nothing helps and no cold restart wanted: cancel optimization
-            if (initialFail or (finalFail and interceptor != interceptType::reduceStepAndRestart)) {
-                logger->logmessage(LOGLVL_DEBUG, "Failure at initial point of optimization. Stopping.");
+            if (initialFail || (finalFail && interceptor != interceptType::reduceStepAndRestart)) {
+                logger->logmessage(loglevel::debug, "Failure at initial point of optimization. Stopping.");
                 return functionEvaluationFailure;
             }
 
@@ -685,7 +679,7 @@ public:
                 << "real step length: " << getVectorNorm(parDifference)
                 << std::endl;
             if (logger)
-                logger->logmessage(LOGLVL_DEBUG, ss.str().c_str());
+                logger->logmessage(loglevel::debug, ss.str().c_str());
 
         }
 
@@ -764,7 +758,7 @@ public:
 
         /* Return on improvement */
         if (cost1 <= cost) {
-            logger->logmessage(LOGLVL_DEBUG, " Line-Search: Step was good right away...");
+            logger->logmessage(loglevel::debug, " Line-Search: Step was good right away...");
             return;
         }
 
@@ -782,7 +776,8 @@ public:
             direction[i] /= dirNorm;
 
         /* Is the step direction a descent direction? */
-        double dirGradient = getScalarProduct(direction, gradient);
+        double dirGradient = std::inner_product(
+            direction.begin(), direction.end(), gradient.begin(), 0.0);
         if (dirGradient > 0) {
             /* No descent direction, no hope for improvement:
              * Try to do something smart anyway */
@@ -812,7 +807,7 @@ public:
                 << "),   cost2: " << cost2 << " (step length: " << newStepLength
                 << ") " << std::endl;
             if (logger)
-                logger->logmessage(LOGLVL_DEBUG, parabola_ss.str().c_str());
+                logger->logmessage(loglevel::debug, parabola_ss.str().c_str());
 
             /* We tried all we could */
             return;
@@ -831,7 +826,7 @@ public:
                 << "),   cost1: " << cost1 << " (step length: " << stepLength
                 << "),   cost2: " << cost2 << " (step length: " << newStepLength
                 << ")" << std::endl;
-            logger->logmessage(LOGLVL_DEBUG, line_ss.str().c_str());
+            logger->logmessage(loglevel::debug, line_ss.str().c_str());
         }
 
         /* If we did improve, return, otherwise iterate */
@@ -848,7 +843,7 @@ public:
             std::stringstream line_ss;
             if (logger) {
                 line_ss << " Line-Search: Need to go to third order approximation, looping... " << std::endl;
-                logger->logmessage(LOGLVL_DEBUG, line_ss.str().c_str());
+                logger->logmessage(loglevel::debug, line_ss.str().c_str());
             }
             performLineSearch(stepLength,
                               newStepLength,

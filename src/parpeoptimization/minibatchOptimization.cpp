@@ -4,16 +4,8 @@
 
 namespace parpe {
 
-double getScalarProduct(gsl::span<const double> v,
-                        gsl::span<const double> w) {
-    double scalarProduct = 0.0;
-    for (unsigned int i = 0; i < v.size(); ++i)
-        scalarProduct += v[i] * w[i];
-    return scalarProduct;
-}
-
 double getVectorNorm(gsl::span<const double> v) {
-    return std::sqrt(getScalarProduct(v, v));
+    return std::sqrt(std::inner_product(v.begin(), v.end(), v.begin(), 0.0));
 }
 
 std::vector<double> getVectorDifference(gsl::span<const double> v,
@@ -41,11 +33,11 @@ void setMinibatchOption(const std::pair<const std::string, const std::string> &p
     } else if (key == "lineSearchSteps") {
         optimizer->lineSearchSteps = std::stoi(val);
     } else if (key == "rescueInterceptor") {
-        if (val == "none" or val == "0") {
+        if (val == "none" || val == "0") {
             optimizer->interceptor = parpe::interceptType::none;
-        } else if (val == "reduceStep" or val == "1") {
+        } else if (val == "reduceStep" || val == "1") {
             optimizer->interceptor = parpe::interceptType::reduceStep;
-        } else if (val == "reduceStepAndRestart" or val == "2") {
+        } else if (val == "reduceStepAndRestart" || val == "2") {
             optimizer->interceptor = parpe::interceptType::reduceStepAndRestart;
         }
     } else if (key == "parameterUpdater") {
@@ -61,7 +53,7 @@ void setMinibatchOption(const std::pair<const std::string, const std::string> &p
             // this might have been set previously if there was an updater-specific option before
             optimizer->parameterUpdater = std::make_unique<ParameterUpdaterAdamClassic>();
         } else {
-            logmessage(LOGLVL_WARNING, "Ignoring unknown Minibatch parameterUpdater %s.", val.c_str());
+            logmessage(loglevel::warning, "Ignoring unknown Minibatch parameterUpdater %s.", val.c_str());
         }
     } else if (key == "learningRateInterpMode") {
         if (val == "linear") {
@@ -79,11 +71,11 @@ void setMinibatchOption(const std::pair<const std::string, const std::string> &p
     } else if (key == "endLearningRate") {
             optimizer->learningRateUpdater->setEndLearningRate(std::stod(val));
     } else {
-        logmessage(LOGLVL_WARNING, "Ignoring unknown optimization option %s.", key.c_str());
+        logmessage(loglevel::warning, "Ignoring unknown optimization option %s.", key.c_str());
         return;
     }
 
-    logmessage(LOGLVL_DEBUG, "Set optimization option %s to %s.", key.c_str(), val.c_str());
+    logmessage(loglevel::debug, "Set optimization option %s to %s.", key.c_str(), val.c_str());
 }
 
 std::tuple<int, double, std::vector<double> > runMinibatchOptimization(MinibatchOptimizationProblem<int> *problem) {

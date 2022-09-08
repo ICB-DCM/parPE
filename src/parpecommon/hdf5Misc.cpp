@@ -65,12 +65,12 @@ herr_t hdf5ErrorStackWalker_cb(unsigned int n, const H5E_error_t *err_desc,
     std::unique_ptr<char, decltype(std::free) *>
             min_str { H5Eget_minor(err_desc->min_num), &std::free };
 
-    logmessage(LOGLVL_CRITICAL, "%*s#%03d: %s line %u in %s(): %s", indent, "",
+    logmessage(loglevel::critical, "%*s#%03d: %s line %u in %s(): %s", indent, "",
                n, err_desc->file_name, err_desc->line, err_desc->func_name,
                err_desc->desc);
-    logmessage(LOGLVL_CRITICAL, "%*smajor(%02d): %s", indent * 2, "",
+    logmessage(loglevel::critical, "%*smajor(%02d): %s", indent * 2, "",
                err_desc->maj_num, maj_str.get());
-    logmessage(LOGLVL_CRITICAL, "%*sminor(%02d): %s", indent * 2, "",
+    logmessage(loglevel::critical, "%*sminor(%02d): %s", indent * 2, "",
                err_desc->min_num, min_str.get());
 
     return 0;
@@ -426,8 +426,6 @@ std::vector<int> hdf5Read2DIntegerHyperslab(const H5::H5File &file,
 
     hsize_t offset[] = {offset0, offset1};
     hsize_t count[] = {size0, size1};
-    // printf("%lld %lld, %lld %lld, %lld %lld\n", dims[0], dims[1], offset0,
-    // offset1, size0, size1);
     if(offset0 >= dims[0] || size0 > dims[0] || offset1 >= dims[1]
             || size1 > dims[1]) {
         std::stringstream ss;
@@ -701,7 +699,7 @@ H5::H5File hdf5OpenForReading(const std::string &hdf5Filename)
         H5_RESTORE_ERROR_HANDLER;
         return file;
     } catch (...) {
-        logmessage(LOGLVL_CRITICAL,
+        logmessage(loglevel::critical,
                    "failed to open HDF5 file '%s'.",
                    hdf5Filename.c_str());
         printBacktrace(20);

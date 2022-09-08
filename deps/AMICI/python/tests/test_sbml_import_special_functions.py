@@ -14,10 +14,6 @@ import pytest
 from amici.gradient_check import check_derivatives
 
 
-def assert_fun(x):
-    assert x
-
-
 @pytest.fixture
 def model_special_likelihoods():
     """Test model for special likelihood functions."""
@@ -54,6 +50,8 @@ def model_special_likelihoods():
     shutil.rmtree(outdir, ignore_errors=True)
 
 
+# FD check fails occasionally, so give some extra tries
+@pytest.mark.flaky(reruns=5)
 def test_special_likelihoods(model_special_likelihoods):
     """Test special likelihood functions."""
     model = model_special_likelihoods.getModel()
@@ -69,7 +67,7 @@ def test_special_likelihoods(model_special_likelihoods):
 
     # make sure measurements are smaller for non-degenerate probability
     y = edata.getObservedData()
-    y = tuple([val * np.random.uniform(0, 1) for val in y])
+    y = tuple(val * np.random.uniform(0, 1) for val in y)
     edata.setObservedData(y)
 
     # set sigmas
@@ -104,7 +102,7 @@ def test_special_likelihoods(model_special_likelihoods):
         solver.setSensitivityMethod(sensi_method)
         solver.setSensitivityOrder(amici.SensitivityOrder.first)
         check_derivatives(
-            model, solver, edata, assert_fun, atol=1e-1, rtol=1e-1,
+            model, solver, edata, atol=1e-4, rtol=1e-3,
             check_least_squares=False)
 
     # Test for m > y, i.e. in region with 0 density
@@ -114,7 +112,7 @@ def test_special_likelihoods(model_special_likelihoods):
 
     # make sure measurements are smaller for non-degenerate probability
     y = edata.getObservedData()
-    y = tuple([val * np.random.uniform(0.5, 3) for val in y])
+    y = tuple(val * np.random.uniform(0.5, 3) for val in y)
     edata.setObservedData(y)
     edata.setObservedDataStdDev(sigmas)
 

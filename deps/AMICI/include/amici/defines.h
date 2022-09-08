@@ -6,7 +6,6 @@
 #endif
 
 #include <functional>
-#include <string>
 #include <cmath>
 
 /* Math constants in case _USE_MATH_DEFINES is not supported */
@@ -109,6 +108,13 @@ enum class ParameterScaling {
     log10
 };
 
+/** modes for observable scaling */
+enum class ObservableScaling {
+    lin,
+    log,
+    log10
+};
+
 /** modes for second order sensitivity analysis */
 enum class SecondOrderMode {
     none,
@@ -173,7 +179,8 @@ enum class NonlinearSolverIteration {
 /** Sensitivity computation mode in steadyStateProblem */
 enum class SteadyStateSensitivityMode {
     newtonOnly,
-    simulationFSA
+    integrationOnly,
+    integrateIfNewtonFails
 };
 
 /** State in which the steady state computation finished */
@@ -212,12 +219,6 @@ enum class RDataReporting {
     residuals,
     likelihood,
 };
-
-/**
- * Type for function to process warnings or error messages.
- */
-using outputFunctionType = std::function<void(std::string const& identifier,
-                                              std::string const& message)>;
 
 // clang-format on
 

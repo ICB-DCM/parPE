@@ -13,7 +13,6 @@
 
 #include <cstring>
 #include <ctime>
-#include <pthread.h>
 #include <numeric>
 #include <algorithm>
 #include <random>
@@ -26,7 +25,7 @@ struct sigaction act;
 struct sigaction oldact;
 
 void signalHandler(int sig) {
-    logmessage(LOGLVL_CRITICAL, "Caught signal %d ", sig);
+    logmessage(loglevel::critical, "Caught signal %d ", sig);
     printBacktrace();
 
     // restore previous
@@ -37,10 +36,9 @@ void signalHandler(int sig) {
 int OptimizationApplication::init(int argc, char **argv) {
     // reduce verbosity
     if(std::getenv("PARPE_NO_DEBUG"))
-        minimumLogLevel = LOGLVL_INFO;
+        minimumLogLevel = loglevel::info;
 
-    int status = parseCliOptionsPreMpiInit(argc, argv);
-    if(status)
+    if(auto status = parseCliOptionsPreMpiInit(argc, argv))
         return status;
 
     // install signal handler for backtrace on error
@@ -53,9 +51,7 @@ int OptimizationApplication::init(int argc, char **argv) {
     printMPIInfo();
     initHDF5Mutex();
 
-    status = parseCliOptionsPostMpiInit(argc, argv);
-
-    return status;
+    return parseCliOptionsPostMpiInit(argc, argv);
 }
 
 void OptimizationApplication::runMultiStarts() const
@@ -68,11 +64,9 @@ void OptimizationApplication::runMultiStarts() const
 
 int OptimizationApplication::parseCliOptionsPreMpiInit(int argc, char **argv)
 {
-    int c;
-
     while (true) {
         int optionIndex = 0;
-        c = getopt_long(argc, argv, shortOptions, longOptions, &optionIndex);
+        auto c = getopt_long(argc, argv, shortOptions, longOptions, &optionIndex);
 
         if (c == -1)
             break; // no more options
@@ -93,11 +87,9 @@ int OptimizationApplication::parseCliOptionsPostMpiInit(int argc, char **argv) {
     // restart from first argument
     optind = 1;
 
-    int c;
-
     while (true) {
         int optionIndex = 0;
-        c = getopt_long(argc, argv, shortOptions, longOptions, &optionIndex);
+        int c = getopt_long(argc, argv, shortOptions, longOptions, &optionIndex);
 
         if (c == -1)
             break; // no more options
@@ -131,7 +123,7 @@ int OptimizationApplication::parseCliOptionsPostMpiInit(int argc, char **argv) {
     if (optind < argc) {
         dataFileName = argv[optind++];
     } else {
-        logmessage(LOGLVL_CRITICAL,
+        logmessage(loglevel::critical,
                    "Must provide input file as first and only argument to %s.",
                    argv[0]);
         return 1;
@@ -164,10 +156,15 @@ void OptimizationApplication::logParPEVersion(H5::H5File const& file) const
 
 void OptimizationApplication::initMPI(int *argc, char ***argv) {
 #ifdef PARPE_ENABLE_MPI
+    int thread_support_provided = 0;
+    int mpiErr = MPI_Init_thread(argc, argv, MPI_THREAD_MULTIPLE,
+                                 &thread_support_provided);
 
-    int mpiErr = MPI_Init(argc, argv);
+    if (thread_support_provided != MPI_THREAD_MULTIPLE)
+        throw std::runtime_error("MPI_THREAD_MULTIPLE not supported?");
+
     if (mpiErr != MPI_SUCCESS) {
-        logmessage(LOGLVL_CRITICAL, "Problem initializing MPI. Exiting.");
+        logmessage(loglevel::critical, "Problem initializing MPI. Exiting.");
         exit(1);
     }
 
@@ -175,7 +172,7 @@ void OptimizationApplication::initMPI(int *argc, char ***argv) {
 
     if (mpiRank == 0) {
         int commSize = getMpiCommSize();
-        logmessage(LOGLVL_INFO, "Running with %d MPI processes.", commSize);
+        logmessage(loglevel::info, "Running with %d MPI processes.", commSize);
     }
 #endif
 }
@@ -190,7 +187,7 @@ int OptimizationApplication::run(int argc, char **argv) {
         return status;
 
     if (dataFileName.empty()) {
-        logmessage(LOGLVL_CRITICAL,
+        logmessage(loglevel::critical,
                    "No input file provided. Must provide input file as first "
                    "and only argument or set "
                    "OptimizationApplication::inputFileName manually.");
@@ -200,9 +197,7 @@ int OptimizationApplication::run(int argc, char **argv) {
     initProblem(dataFileName, resultFileName);
 
 #ifdef PARPE_ENABLE_MPI
-    int commSize = getMpiCommSize();
-
-    if (commSize > 1) {
+    if (getMpiCommSize() > 1) {
         if (getMpiRank() == 0) {
             loadBalancer.run();
             runMaster();
@@ -210,7 +205,7 @@ int OptimizationApplication::run(int argc, char **argv) {
             loadBalancer.terminate();
             loadBalancer.sendTerminationSignalToAllWorkers();
             finalizeTiming(wallTimer.getTotal(), cpuTimer.getTotal());
-            logmessage(LOGLVL_INFO, "Sent termination signal to workers.");
+            logmessage(loglevel::info, "Sent termination signal to workers.");
 
         } else {
             runWorker();
@@ -292,10 +287,9 @@ void OptimizationApplication::finalizeTiming(double wallTimeSeconds, double cpuT
     } else {
         totalCpuTimeInSeconds = cpuTimeSeconds;
     }
-    int mpiRank = getMpiRank();
 
-    if (mpiRank < 1) {
-        logmessage(LOGLVL_INFO, "Walltime on master: %fs, CPU time of all processes: %fs",
+    if (getMpiRank() < 1) {
+        logmessage(loglevel::info, "Walltime on master: %fs, CPU time of all processes: %fs",
                    wallTimeSeconds, totalCpuTimeInSeconds);
         saveTotalCpuTime(h5File, totalCpuTimeInSeconds);
     }

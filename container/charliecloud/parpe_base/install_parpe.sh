@@ -3,13 +3,11 @@
 set -euo pipefail
 set -x
 
-cd
+export PARPE_BASE="${PARPE_DIR:-/parPE}"
 
 # unpack git archive
-mkdir parPE && cd parPE
+mkdir "$PARPE_BASE" && cd "$PARPE_BASE"
 tar -xzf /u18/parpe.tar.gz
-
-export PARPE_BASE=$(pwd)
 
 # Build dependencies
 
@@ -18,7 +16,7 @@ export AMICI_PATH=${PARPE_BASE}/deps/AMICI/
 cd "${AMICI_PATH}" \
   && scripts/buildSuiteSparse.sh \
   && scripts/buildSundials.sh
-mkdir -p "${AMICI_PATH}"/build && cd "${AMICI_PATH}"/build
+mkdir -p "${AMICI_PATH}/build" && cd "${AMICI_PATH}/build"
 cmake \
   -DCMAKE_BUILD_TYPE=Debug \
   -DENABLE_PYTHON=ON \
@@ -26,10 +24,10 @@ cmake \
   .. && make -j12
 
 # install fides optimizer
-cd $PARPE_BASE/ThirdParty && ./installFides.sh
+cd "$PARPE_BASE/ThirdParty" && ./installFides.sh
 
 # install parPE python requirements
-pip install -r "${PARPE_BASE}"/python/requirements.txt
+pip3 install -r "${PARPE_BASE}"/python/requirements.txt
 
 # build parPE
 cd "${PARPE_BASE}"
@@ -48,6 +46,7 @@ mpi_cmd="$mpi_cmd;--mca;btl_tcp_if_include;lo;"
 mpi_cmd="$mpi_cmd;--mca;orte_base_help_aggregate;0"
 
 CC=mpicc CXX=mpiCC cmake \
+      -DPARPE_BUILD_OPTIMIZED=OFF \
       -DPARPE_ENABLE_FIDES=ON \
       -DIPOPT_INCLUDE_DIRS=/usr/include/coin/ \
       -DIPOPT_LIBRARIES=/usr/lib/libipopt.so \
@@ -55,6 +54,7 @@ CC=mpicc CXX=mpiCC cmake \
       -DBUILD_TESTING=ON \
       -DTESTS_MPIEXEC_COMMAND="$mpi_cmd" \
       ..
+
 make -j12 VERBOSE=1
 
 # MPI settings for python tests

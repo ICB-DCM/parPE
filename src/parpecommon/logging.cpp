@@ -11,6 +11,7 @@
 #include <cstring>
 #include <unistd.h>
 #include <sstream>
+#include <thread>
 
 #ifdef PARPE_ENABLE_MPI
 #include <mpi.h>
@@ -19,7 +20,7 @@
 namespace parpe {
 
 const char *loglevelShortStr[] = {"", "CRI", "ERR", "WRN", "INF", "DBG"};
-loglevel minimumLogLevel = LOGLVL_DEBUG;
+loglevel minimumLogLevel = loglevel::debug;
 static void printlogmessage(loglevel lvl, const char *message);
 
 std::string printfToString(const char *fmt, va_list ap) {
@@ -58,7 +59,7 @@ void logProcessStats()
         while (std::getline(file, line)) {
             if(line.rfind("Vm", 0) == 0
                     || line.rfind("Rss", 0) == 0) {
-                logmessage(LOGLVL_DEBUG, line);
+                logmessage(loglevel::debug, line);
             }
         }
         file.close();
@@ -78,13 +79,13 @@ void printMPIInfo() {
         int procNameLen;
         MPI_Get_processor_name(procName, &procNameLen);
 
-        logmessage(LOGLVL_DEBUG, "Rank %d/%d running on %s.", mpiRank,
+        logmessage(loglevel::debug, "Rank %d/%d running on %s.", mpiRank,
                    mpiCommSize, procName);
     } else {
-        logmessage(LOGLVL_DEBUG, "MPI not initialized.");
+        logmessage(loglevel::debug, "MPI not initialized.");
     }
 #else
-    logmessage(LOGLVL_DEBUG, "MPI support disabled.");
+    logmessage(loglevel::debug, "MPI support disabled.");
 #endif
 }
 
@@ -93,20 +94,12 @@ void printDebugInfoAndWait(int seconds) {
     //int i = 0;
     char hostname[256];
     gethostname(hostname, sizeof(hostname));
-    logmessage(LOGLVL_DEBUG,
+    logmessage(loglevel::debug,
                "PID %d on %s ready for attach (will wait for %ds)", getpid(),
                hostname, seconds);
     fflush(stdout);
     //while (0 == i)
     sleep(seconds);
-}
-
-void error(const char *message) { // exit?
-    logmessage(LOGLVL_ERROR, message);
-}
-
-void warning(const char *message) {
-    logmessage(LOGLVL_WARNING, message);
 }
 
 void logmessage(loglevel lvl, const std::string &msg)
@@ -127,19 +120,19 @@ void printlogmessage(loglevel lvl, const char *message)
     // TODO: fileLogLevel, consoleLogLevel
     // Coloring
     switch (lvl) {
-    case LOGLVL_CRITICAL:
+    case loglevel::critical:
         printf(ANSI_COLOR_MAGENTA);
         break;
-    case LOGLVL_ERROR:
+    case loglevel::error:
         printf(ANSI_COLOR_RED);
         break;
-    case LOGLVL_WARNING:
+    case loglevel::warning:
         printf(ANSI_COLOR_YELLOW);
         break;
-    case LOGLVL_DEBUG:
+    case loglevel::debug:
         printf(ANSI_COLOR_CYAN);
         break;
-    case LOGLVL_INFO:
+    case loglevel::info:
         printf(ANSI_COLOR_GREEN);
         break;
     }
@@ -171,15 +164,19 @@ void printlogmessage(loglevel lvl, const char *message)
 #else
     auto procName = "";
 #endif
-    printf("[%*d:%lu/%s] ", 1 + static_cast<int>(log10(mpiCommSize)),
-           mpiRank, pthread_self(), procName );
+    std::ostringstream thread_id_oss;
+    thread_id_oss << std::this_thread::get_id();
+    auto thread_id {thread_id_oss.str()};
+
+    printf("[%*d:%s/%s] ", 1 + static_cast<int>(log10(mpiCommSize)),
+           mpiRank, thread_id.c_str(), procName );
     printf("%s", message);
     printf("%s\n", ANSI_COLOR_RESET);
 
     switch (lvl) {
-    case LOGLVL_CRITICAL:
+    case loglevel::critical:
         [[fallthrough]];
-    case LOGLVL_ERROR:
+    case loglevel::error:
         fflush(stdout);
         break;
     default:

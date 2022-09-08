@@ -1,5 +1,7 @@
 """AMICI model package setup"""
 
+
+import contextlib
 import os
 import sys
 from typing import List
@@ -30,9 +32,11 @@ class ModelBuildExt(build_ext):
         #  except for Windows, where this seems to be incompatible with
         #  providing swig files. Not investigated further...
         if sys.platform != 'win32':
-            import distutils.ccompiler
+            import setuptools._distutils.ccompiler
             self.compiler.compile = compile_parallel.__get__(
-                self.compiler, distutils.ccompiler.CCompiler)
+                self.compiler, setuptools._distutils.ccompiler.CCompiler)
+
+        print(f"Building model extension in {os.getcwd()}")
 
         build_ext.build_extension(self, ext)
 
@@ -49,10 +53,8 @@ def get_model_sources() -> List[str]:
     """Get list of source files for the amici base library"""
     import glob
     model_sources = glob.glob('*.cpp')
-    try:
+    with contextlib.suppress(ValueError):
         model_sources.remove('main.cpp')
-    except ValueError:
-        pass
     return model_sources
 
 
@@ -64,7 +66,7 @@ def get_amici_libs() -> List[str]:
 
 
 def get_extension() -> Extension:
-    """Get distutils extension object for this AMICI model package"""
+    """Get setuptools extension object for this AMICI model package"""
 
     cxx_flags = []
     linker_flags = []
@@ -168,7 +170,7 @@ setup(
     packages=find_packages(),
     install_requires=['amici==TPL_AMICI_VERSION'],
     extras_require={'wurlitzer': ['wurlitzer']},
-    python_requires='>=3.7',
+    python_requires='>=3.8',
     package_data={},
     zip_safe=False,
     include_package_data=True,

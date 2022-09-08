@@ -41,8 +41,8 @@ class OptimizationApplication {
      * @param inFileArgument
      * @param outFileArgument
      */
-    virtual void initProblem(std::string inFileArgument,
-                             std::string outFileArgument) = 0;
+    virtual void initProblem(std::string const& inFileArgument,
+                             std::string const& outFileArgument) = 0;
 
     /**
      * @brief Start the optimization run. Must only be called once.

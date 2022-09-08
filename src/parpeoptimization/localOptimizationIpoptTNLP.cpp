@@ -28,7 +28,7 @@ LocalOptimizationIpoptTNLP::get_nlp_info(Index& n,
 {
 
     n = reporter.numParameters();
-    m = 0;                       // number of constrants
+    m = 0;                       // number of constraints
     nnz_jac_g = 0;               // numNonZeroElementsConstraintJacobian
     nnz_h_lag = 0;               // numNonZeroElementsLagrangianHessian
     index_style = TNLP::C_STYLE; // array layout for sparse matrices
@@ -91,7 +91,7 @@ LocalOptimizationIpoptTNLP::eval_f(Index n,
                                    bool /*new_x*/,
                                    Number& obj_value)
 {
-    auto unlockIpOpt = ipOptReleaseLock();
+    [[maybe_unused]] auto unlockIpOpt = ipOptReleaseLock();
 
     return reporter.evaluate(gsl::make_span<double const>(x, n),
                              obj_value,
@@ -104,7 +104,7 @@ LocalOptimizationIpoptTNLP::eval_grad_f(Index n,
                                         bool /*new_x*/,
                                         Number* grad_f)
 {
-    auto unlockIpOpt = ipOptReleaseLock();
+    [[maybe_unused]] auto unlockIpOpt = ipOptReleaseLock();
 
     double obj_value;
     return reporter.evaluate(gsl::make_span<double const>(x, n),
@@ -155,16 +155,16 @@ LocalOptimizationIpoptTNLP::intermediate_callback(
   IpoptCalculatedQuantities* /*ip_cq*/)
 {
 
-    auto unlockIpOpt = ipOptReleaseLock();
+    [[maybe_unused]] auto unlockIpOpt = ipOptReleaseLock();
 
     // get current parameters from IpOpt which are not available directly
     gsl::span<double const> parameters;
-    auto x = ip_data->curr()->x();
-    auto xx = dynamic_cast<const Ipopt::DenseVector*>(Ipopt::GetRawPtr(x));
-    if (xx)
+
+    if (auto x = ip_data->curr()->x();
+        auto xx = dynamic_cast<const Ipopt::DenseVector*>(Ipopt::GetRawPtr(x)))
         parameters = gsl::span<double const>(xx->Values(), xx->Dim());
     else
-        logmessage(LOGLVL_WARNING,
+        logmessage(loglevel::warning,
                    "Not Ipopt::DenseVector in "
                    "LocalOptimizationIpoptTNLP::intermediate_callback");
 
@@ -174,7 +174,7 @@ LocalOptimizationIpoptTNLP::intermediate_callback(
 
 #ifdef INSTALL_SIGNAL_HANDLER
     if (caughtTerminationSignal) {
-        logmessage(LOGLVL_CRITICAL, "CAUGHT SIGTERM... EXITING.");
+        logmessage(loglevel::critical, "CAUGHT SIGTERM... EXITING.");
         return false;
     }
 #endif
@@ -197,7 +197,7 @@ LocalOptimizationIpoptTNLP::finalize_solution(
   IpoptCalculatedQuantities* /*ip_cq*/)
 {
 
-    auto unlockIpOpt = ipOptReleaseLock();
+    [[maybe_unused]] auto unlockIpOpt = ipOptReleaseLock();
     // If we finish with objective value of NAN, IpOpt still passes
     // obj_value 0.0 along with the respective flag. This does not make too
     // much sense. Set to NAN.
@@ -208,16 +208,14 @@ LocalOptimizationIpoptTNLP::finalize_solution(
     reporter.finished(obj_value, gsl::span<double const>(x, n), status);
 }
 
-std::unique_lock<mutexIpOptType>
-ipOptGetLock()
+auto ipOptGetLock() -> std::unique_lock<mutexIpOptType>
 {
-    return std::unique_lock<mutexIpOptType>(mutexIpOpt);
+    return std::unique_lock(mutexIpOpt);
 }
 
-InverseUniqueLock<mutexIpOptType>
-ipOptReleaseLock()
+auto ipOptReleaseLock() -> InverseUniqueLock<mutexIpOptType>
 {
-    return InverseUniqueLock<mutexIpOptType>(&mutexIpOpt);
+    return InverseUniqueLock(&mutexIpOpt);
 }
 
 } // namespace parpe

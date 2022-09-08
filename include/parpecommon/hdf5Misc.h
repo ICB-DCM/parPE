@@ -6,7 +6,6 @@
 #include <hdf5_hl.h>
 #include <H5Cpp.h>
 
-#include <pthread.h>
 #include <exception>
 #include <string>
 #include <mutex>
@@ -20,14 +19,14 @@ public:
 
     explicit HDF5Exception(const char *format, ...);
 
-    const char* what() const noexcept;
+    const char* what() const noexcept override;
 
     std::string msg;
     std::string stackTrace;
 };
 
 
-typedef std::recursive_mutex mutexHdfType;
+using mutexHdfType = std::recursive_mutex;
 
 void initHDF5Mutex();
 

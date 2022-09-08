@@ -1,7 +1,6 @@
 #include <parpecommon/misc.h>
 #include <parpecommon/logging.h>
 
-#include <alloca.h>
 #include <cassert>
 #include <cerrno>
 #include <execinfo.h>
@@ -19,21 +18,11 @@
 #include <algorithm>
 #include <random>
 
-#include <pthread.h>
-
 #include <gsl/gsl-lite.hpp>
 
 #ifdef PARPE_ENABLE_MPI
 #include <mpi.h>
 #endif
-
-// void printMatlabArray(const double *buffer, int len)
-//{
-//    printf("[");
-//    printfArray(buffer, len - 1, "%e, ");
-//    printf("%e]\n", buffer[len - 1]);
-//    fflush(stdout);
-//}
 
 
 namespace parpe {
@@ -47,32 +36,9 @@ void strFormatCurrentLocaltime(gsl::span<char> buffer, const char *format) {
     strftime(buffer.data(), buffer.size(), format, &local_time);
 }
 
-void runInParallelAndWaitForFinish(void *(*function)(void *), void **args,
-                                   int numArgs) {
-    // create threads
-    pthread_attr_t threadAttr;
-    pthread_attr_init(&threadAttr);
-    pthread_attr_setdetachstate(&threadAttr, PTHREAD_CREATE_JOINABLE);
-
-    auto threads = static_cast<pthread_t *>(alloca(numArgs * sizeof(pthread_t)));
-
-    for (int i = 0; i < numArgs; ++i) {
-        pthread_create(&threads[i], &threadAttr, function, args[i]);
-    }
-    pthread_attr_destroy(&threadAttr);
-
-    // wait for finish
-    for (int i = 0; i < numArgs; ++i) {
-        pthread_join(threads[i], nullptr);
-        logmessage(LOGLVL_DEBUG, "Thread i %d finished", i);
-    }
-    logmessage(LOGLVL_DEBUG, "All k threads finished.");
-}
-
 void printBacktrace(int nMaxFrames) {
     void *array[nMaxFrames];
-    size_t size;
-    size = backtrace(array, nMaxFrames);
+    auto size = backtrace(array, nMaxFrames);
     backtrace_symbols_fd(array, size, STDERR_FILENO);
 }
 
@@ -128,8 +94,8 @@ void fillArrayRandomDoubleIndividualInterval(gsl::span<const double> min,
     Expects(min.size() == max.size());
     Expects(min.size() == buffer.size());
 
-    for (gsl::span<double>::index_type i = 0; i < buffer.size(); ++i)
-        buffer[i] = randDouble(min[i], max[i]);
+    std::transform(min.begin(), min.end(), max.begin(), buffer.begin(),
+                   randDouble);
 }
 
 void fillArrayRandomDoubleSameInterval(double min, double max,
@@ -138,8 +104,7 @@ void fillArrayRandomDoubleSameInterval(double min, double max,
     std::mt19937 gen(rd());
     std::uniform_real_distribution<> dis(min, max);
 
-    for (gsl::span<double>::index_type i = 0; i < buffer.size(); ++i)
-        buffer[i] = dis(gen);
+    std::generate(buffer.begin(), buffer.end(), [&]{ return dis(gen); });
 }
 
 

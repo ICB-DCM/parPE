@@ -23,6 +23,7 @@ setup(
                       'python-libsbml>=5.17.0',
                       'snakemake>=5.10.0',
                       'coloredlogs>=15.0',
+                      'scipy',
                       ],
     entry_points=ENTRY_POINTS,
 )

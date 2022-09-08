@@ -272,11 +272,11 @@ class HierarchicalOptimizationProblemWrapper : public OptimizationProblem
     HierarchicalOptimizationProblemWrapper(
         HierarchicalOptimizationProblemWrapper const& other) = delete;
 
-    virtual void fillInitialParameters(gsl::span<double> buffer) const override;
+    void fillInitialParameters(gsl::span<double> buffer) const override;
 
-    virtual void fillParametersMin(gsl::span<double> buffer) const override;
+    void fillParametersMin(gsl::span<double> buffer) const override;
 
-    virtual void fillParametersMax(gsl::span<double> buffer) const override;
+    void fillParametersMax(gsl::span<double> buffer) const override;
 
     void fillFilteredParams(std::vector<double> const& fullParams,
                             gsl::span<double> buffer) const;
@@ -292,7 +292,7 @@ class HierarchicalOptimizationProblemWrapper : public OptimizationProblem
 
     // TODO: need to ensure that this will work with the reduced number of
     // parameters
-    virtual std::unique_ptr<OptimizationReporter> getReporter() const override;
+    std::unique_ptr<OptimizationReporter> getReporter() const override;
 
   private:
     std::unique_ptr<OptimizationProblem> wrapped_problem_;
@@ -322,12 +322,12 @@ class HierarchicalOptimizationReporter : public OptimizationReporter
     // bool starting(gsl::span<const double> initialParameters) const override;
 
     // TODO: always update final parameters
-    virtual bool iterationFinished(
+    bool iterationFinished(
         gsl::span<const double> parameters,
         double objectiveFunctionValue,
         gsl::span<const double> objectiveFunctionGradient) const override;
 
-    virtual bool afterCostFunctionCall(
+    bool afterCostFunctionCall(
         gsl::span<const double> parameters,
         double objectiveFunctionValue,
         gsl::span<double const> objectiveFunctionGradient) const override;

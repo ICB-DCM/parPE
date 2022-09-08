@@ -115,7 +115,7 @@ HierarchicalOptimizationWrapper::init()
            << " proportionality, " << offsetParameterIndices.size()
            << " offset, " << sigmaParameterIndices.size() << " sigma\n";
         Logger logger;
-        logger.logmessage(LOGLVL_DEBUG, ss.str());
+        logger.logmessage(loglevel::debug, ss.str());
     }
 }
 
@@ -203,10 +203,10 @@ HierarchicalOptimizationWrapper::evaluate(
     if (logger) {
         std::stringstream ss;
         ss << "scalings " << scalings;
-        logger->logmessage(LOGLVL_DEBUG, ss.str());
+        logger->logmessage(loglevel::debug, ss.str());
         ss.str(std::string());
         ss << "sigmas " << sigmas;
-        logger->logmessage(LOGLVL_DEBUG, ss.str());
+        logger->logmessage(loglevel::debug, ss.str());
     }
     // splice parameter vector we get from optimizer with analytically
     // computed parameters
@@ -637,11 +637,11 @@ std::unique_ptr<OptimizationReporter>
 HierarchicalOptimizationProblemWrapper::getReporter() const
 {
     auto innerReporter = wrapped_problem_->getReporter();
-    auto outerReporter = std::unique_ptr<OptimizationReporter>(
-        new HierarchicalOptimizationReporter(
-            dynamic_cast<HierarchicalOptimizationWrapper*>(cost_fun_.get()),
-            std::move(innerReporter->result_writer_),
-            std::make_unique<Logger>(*logger_)));
+    auto outerReporter = std::make_unique<HierarchicalOptimizationReporter>(
+        dynamic_cast<HierarchicalOptimizationWrapper*>(cost_fun_.get()),
+        std::move(innerReporter->result_writer_),
+        std::make_unique<Logger>(*logger_)
+        );
     return outerReporter;
 }
 
@@ -715,7 +715,7 @@ computeAnalyticalScalings(
     double denominator = 0.0;
 
     for (auto const conditionIdx : dependentConditions) {
-        auto dependentObservables =
+        auto const& dependentObservables =
             scalingReader.getObservablesForParameter(scalingIdx, conditionIdx);
         int numTimepoints = measurements[conditionIdx].size() / numObservables;
 
@@ -733,7 +733,7 @@ computeAnalyticalScalings(
                                                       timeIdx * numObservables];
                     // std::cout<<scalingIdx<<"\t"<<conditionIdx<<"\t"<<observableIdx<<"\t"<<timeIdx<<"\t"<<mes<<"\t"<<sim<<std::endl;
                     if (std::isnan(sim)) {
-                        logmessage(LOGLVL_WARNING,
+                        logmessage(loglevel::warning,
                                    "In computeAnalyticalScalings %d: "
                                    "Simulation is NaN for condition %d "
                                    "observable %d timepoint %d",
@@ -745,7 +745,7 @@ computeAnalyticalScalings(
                     if (sim < 0 && sim > -1e-18) {
                         // negative values due to numerical errors
                         // TODO: some outputs may be validly < 0
-                        logmessage(LOGLVL_WARNING,
+                        logmessage(loglevel::warning,
                                    "In computeAnalyticalScalings %d: "
                                    "Simulation is %g < 0 for condition %d "
                                    "observable %d timepoint %d. "
@@ -766,7 +766,7 @@ computeAnalyticalScalings(
     }
 
     if (denominator == 0.0) {
-        logmessage(LOGLVL_WARNING,
+        logmessage(loglevel::warning,
                    "In computeAnalyticalScalings: denominator is 0.0 for "
                    "scaling parameter " +
                        std::to_string(scalingIdx) +
@@ -808,7 +808,7 @@ computeAnalyticalOffsets(
     double denominator = 0.0;
 
     for (auto const conditionIdx : dependentConditions) {
-        auto dependentObservables =
+        auto const& dependentObservables =
             offsetReader.getObservablesForParameter(offsetIdx, conditionIdx);
         int numTimepoints = measurements[conditionIdx].size() / numObservables;
         for (auto const observableIdx : dependentObservables) {
@@ -821,7 +821,7 @@ computeAnalyticalOffsets(
                                                      [observableIdx +
                                                       timeIdx * numObservables];
                     if (std::isnan(sim)) {
-                        logmessage(LOGLVL_WARNING,
+                        logmessage(loglevel::warning,
                                    "In computeAnalyticalOffsets %d: "
                                    "Simulation is NaN for condition %d "
                                    "observable %d timepoint %d",
@@ -838,7 +838,7 @@ computeAnalyticalOffsets(
     }
 
     if (denominator == 0.0) {
-        logmessage(LOGLVL_WARNING,
+        logmessage(loglevel::warning,
                    "In computeAnalyticalOffsets: denominator is 0.0 "
                    "for offset parameter " +
                        std::to_string(offsetIdx) +
@@ -868,7 +868,7 @@ computeAnalyticalSigmas(
     double maxAbsMeasurement = 0.0;
 
     for (auto const conditionIdx : dependentConditions) {
-        auto dependentObservables =
+        auto const& dependentObservables =
             sigmaReader.getObservablesForParameter(sigmaIdx, conditionIdx);
         int numTimepoints = measurements[conditionIdx].size() / numObservables;
         for (auto const observableIdx : dependentObservables) {
@@ -885,7 +885,7 @@ computeAnalyticalSigmas(
                         modelOutputsScaled[conditionIdx][flat_index];
 
                     if (std::isnan(scaledSim)) {
-                        logmessage(LOGLVL_WARNING,
+                        logmessage(loglevel::warning,
                                    "In computeAnalyticalSigmas %d: "
                                    "Simulation is NaN for condition %d "
                                    "observable %d timepoint %d",
@@ -905,7 +905,7 @@ computeAnalyticalSigmas(
     }
 
     if (denominator == 0.0) {
-        logmessage(LOGLVL_WARNING,
+        logmessage(loglevel::warning,
                    "In computeAnalyticalSigmas: Denominator is 0.0 for sigma "
                    "parameter " +
                        std::to_string(sigmaIdx) +
@@ -919,7 +919,7 @@ computeAnalyticalSigmas(
 
     if (sigma < epsilonAbs) {
         // Must not return sigma = 0.0
-        logmessage(LOGLVL_WARNING,
+        logmessage(loglevel::warning,
                    "In computeAnalyticalSigmas " + std::to_string(sigmaIdx) +
                        ": Computed sigma < epsilon. Setting to " +
                        std::to_string(epsilonAbs));
@@ -940,7 +940,7 @@ applyOptimalScaling(int scalingIdx,
         scalingReader.getConditionsForParameter(scalingIdx);
     for (auto const conditionIdx : dependentConditions) {
         int numTimepoints = modelOutputs[conditionIdx].size() / numObservables;
-        auto dependentObservables =
+        auto const& dependentObservables =
             scalingReader.getObservablesForParameter(scalingIdx, conditionIdx);
         for (auto const observableIdx : dependentObservables) {
             if (observableIdx >= numObservables) {
@@ -970,7 +970,7 @@ applyOptimalOffset(int offsetIdx,
         offsetReader.getConditionsForParameter(offsetIdx);
     for (auto const conditionIdx : dependentConditions) {
         int numTimepoints = modelOutputs[conditionIdx].size() / numObservables;
-        auto dependentObservables =
+        auto const& dependentObservables =
             offsetReader.getObservablesForParameter(offsetIdx, conditionIdx);
         for (auto const observableIdx : dependentObservables) {
             if (observableIdx >= numObservables) {
@@ -1110,16 +1110,16 @@ computeNegLogLikelihood(std::vector<double> const& measurements,
             double sigmaSquared = sigmas[i] * sigmas[i];
             if (std::isnan(sim)) {
                 logmessage(
-                    LOGLVL_WARNING, "Simulation is NaN for data point %d", i);
+                    loglevel::warning, "Simulation is NaN for data point %d", i);
                 return std::numeric_limits<double>::quiet_NaN();
             }
             if (std::isnan(sigmaSquared)) {
-                logmessage(LOGLVL_WARNING, "Sigma is NaN for data point %d", i);
+                logmessage(loglevel::warning, "Sigma is NaN for data point %d", i);
                 return std::numeric_limits<double>::quiet_NaN();
             }
             if (sigmaSquared < 0.0) {
                 logmessage(
-                    LOGLVL_WARNING, "Negative sigma for data point %d", i);
+                    loglevel::warning, "Negative sigma for data point %d", i);
                 return std::numeric_limits<double>::quiet_NaN();
             }
 
@@ -1137,9 +1137,9 @@ HierarchicalOptimizationReporter::HierarchicalOptimizationReporter(
     HierarchicalOptimizationWrapper* gradFun,
     std::unique_ptr<OptimizationResultWriter> rw,
     std::unique_ptr<Logger> logger)
-    : OptimizationReporter(gradFun, std::move(rw), std::move(logger))
+    : OptimizationReporter(gradFun, std::move(rw), std::move(logger)),
+      hierarchical_wrapper_(gradFun)
 {
-    hierarchical_wrapper_ = gradFun;
 }
 
 FunctionEvaluationStatus
@@ -1230,13 +1230,13 @@ HierarchicalOptimizationReporter::finished(double optimalCost,
         std::copy(
             parameters.begin(), parameters.end(), cached_parameters_.data());
         if (logger_)
-            logger_->logmessage(LOGLVL_INFO, "cachedCost != optimalCost");
+            logger_->logmessage(loglevel::info, "cachedCost != optimalCost");
         cached_cost_ = NAN;
     }
 
     if (logger_)
         logger_->logmessage(
-            LOGLVL_INFO,
+            loglevel::info,
             "Optimizer status %d, final llh: %e, time: wall: %f cpu: %f.",
             exitStatus,
             cached_cost_,
@@ -1267,7 +1267,7 @@ HierarchicalOptimizationReporter::iterationFinished(
     double wallTimeOptim = wall_timer_.getTotal();
 
     if (logger_)
-        logger_->logmessage(LOGLVL_INFO,
+        logger_->logmessage(loglevel::info,
                             "iter: %d cost: %g "
                             "time_iter: wall: %gs cpu: %gs "
                             "time_optim: wall: %gs cpu: %gs",
@@ -1357,7 +1357,7 @@ checkGradientForAnalyticalParameters(const std::vector<double>& gradient,
         auto curGradient = gradient[idx];
         // std::cout<<"    : "<<idx<<"\t"<<curGradient<<std::endl;
         if (std::fabs(curGradient) > threshold)
-            logmessage(LOGLVL_WARNING,
+            logmessage(loglevel::warning,
                        "Gradient w.r.t. analytically computed parameter "
                        "%d is %f, exceeding threshold %g",
                        idx,

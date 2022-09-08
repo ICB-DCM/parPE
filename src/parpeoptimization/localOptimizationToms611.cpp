@@ -81,11 +81,11 @@ void setToms611Option(const std::pair<const std::string, const std::string> &pai
     } else if(key == "xftol") {
         v[xftol] = std::stod(val);
     } else {
-        logmessage(LOGLVL_WARNING, "Ignoring unknown optimization option %s.", key.c_str());
+        logmessage(loglevel::warning, "Ignoring unknown optimization option %s.", key.c_str());
         return;
     }
 
-    logmessage(LOGLVL_DEBUG, "Set optimization option %s to %s.", key.c_str(), val.c_str());
+    logmessage(loglevel::debug, "Set optimization option %s to %s.", key.c_str(), val.c_str());
 }
 
 

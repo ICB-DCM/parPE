@@ -8,13 +8,12 @@ endif(POLICY CMP0074)
 
 project(parpe)
 
-set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/CMakeModules/")
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake/")
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 include(BuildType) # Ensure CMAKE_BUILD_TYPE is always set
-include(BuildOptimized)
 include(CTest)
 
 set(CMAKE_DEBUG_POSTFIX "-dbg")
@@ -36,7 +35,7 @@ add_custom_target(get_version ALL
     COMMAND "${CMAKE_COMMAND}"
     "-DINFILE=${PROJECT_SOURCE_DIR}/src/parpecommon/parpeVersion.h.in"
     "-DOUTFILE=${CMAKE_BINARY_DIR}/src/parpecommon/parpeVersion.h"
-    "-P" "${PROJECT_SOURCE_DIR}/CMakeModules/ConfigureVersion.cmake")
+    "-P" "${PROJECT_SOURCE_DIR}/cmake/ConfigureVersion.cmake")
 
 include("getVersion")
 include("split_version")
@@ -59,6 +58,12 @@ set(PARPE_ENABLE_TOMS611 FALSE CACHE BOOL "Enable toms611 optimizer?")
 set(PARPE_ENABLE_FSQP FALSE CACHE BOOL "Enable FSQP optimizer?")
 set(PARPE_EXPORT_PACKAGE FALSE CACHE BOOL
     "Export this build to CMake registry?")
+set(PARPE_BUILD_OPTIMIZED TRUE CACHE BOOL "Optimize for current CPU?")
+
+if(${PARPE_BUILD_OPTIMIZED})
+    include(BuildOptimized)
+endif(${PARPE_BUILD_OPTIMIZED})
+
 
 # OpenMP?
 find_package(OpenMP)
@@ -229,7 +234,7 @@ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/ParPETargets.cmake"
 set(LIB_INSTALL_DIR lib)
 include(CMakePackageConfigHelpers)
 configure_package_config_file(
-    "CMakeModules/ParPEConfig.cmake.in"
+    "cmake/ParPEConfig.cmake.in"
     "${CMAKE_CURRENT_BINARY_DIR}/ParPEConfig.cmake"
     INSTALL_DESTINATION "${LIB_INSTALL_DIR}/cmake/")
 

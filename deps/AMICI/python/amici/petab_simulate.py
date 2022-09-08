@@ -2,7 +2,10 @@
 PEtab Simulate
 --------------
 Functionality related to the use of AMICI for simulation with PEtab's
-Simulator class. Use cases:
+Simulator class.
+
+Use cases:
+
 - generate data for use with PEtab's plotting methods
 - generate synthetic data
 """
@@ -49,8 +52,8 @@ class PetabSimulator(petab.simulate.Simulator):
         in the Simulator constructor (including the PEtab problem).
         """
         if AMICI_MODEL in {*kwargs, *dir(self)} and (
-                any([k in kwargs for k in
-                     inspect.signature(import_petab_problem).parameters])):
+                any(k in kwargs for k in
+                    inspect.signature(import_petab_problem).parameters)):
             print('Arguments related to the PEtab import are unused if '
                   f'`{AMICI_MODEL}` is specified, or the '
                   '`PetabSimulator.simulate()` method was previously called.')
