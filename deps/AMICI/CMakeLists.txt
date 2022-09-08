@@ -217,7 +217,7 @@ find_package(Matlab)
 # (Set the Matlab_ROOT_DIR cmake variable if CMake cannot find your Matlab
 # installation)
 if (${Matlab_FOUND})
-    add_library(matlabInterface
+    add_library(matlabInterface EXCLUDE_FROM_ALL
         ${matlab_sources}
     )
     set_target_properties(matlabInterface
