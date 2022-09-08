@@ -94,6 +94,8 @@ def _test_case(case: Union[int, str]) -> None:
     cmd = ['parpe_petab_to_hdf5',
            '-y', yaml_file, '-d', amici_model_dir,
            '-n', model_name, '-o', hdf5_input]
+    if case == '0006':
+        cmd.append('--flatten')
     print(" ".join(map(str, cmd)))
     check_run(cmd)
 
