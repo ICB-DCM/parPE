@@ -1,8 +1,10 @@
-#include "amici/model.h"
-#include "amici/amici.h"
-#include "amici/exception.h"
-#include "amici/misc.h"
-#include "amici/symbolic_functions.h"
+#include <amici/model.h>
+#include <amici/amici.h>
+#include <amici/exception.h>
+#include <amici/misc.h>
+#include <amici/symbolic_functions.h>
+#include <amici/cblas.h>
+
 
 #include <algorithm>
 #include <cmath>
@@ -14,6 +16,67 @@
 #include <assert.h>
 
 namespace amici {
+
+/**
+ * @brief Maps ModelQuantity items to their string value
+ */
+const std::map<ModelQuantity, std::string> model_quantity_to_str {
+    {ModelQuantity::J, "J"},
+    {ModelQuantity::JB, "JB"},
+    {ModelQuantity::Jv, "Jv"},
+    {ModelQuantity::JvB, "JvB"},
+    {ModelQuantity::JDiag, "JDiag"},
+    {ModelQuantity::sx, "sx"},
+    {ModelQuantity::sy, "sy"},
+    {ModelQuantity::sz, "sz"},
+    {ModelQuantity::srz, "srz"},
+    {ModelQuantity::ssigmay, "ssigmay"},
+    {ModelQuantity::ssigmaz, "ssigmaz"},
+    {ModelQuantity::xdot, "xdot"},
+    {ModelQuantity::sxdot, "sxdot"},
+    {ModelQuantity::xBdot, "xBdot"},
+    {ModelQuantity::x0, "x0"},
+    {ModelQuantity::x0_rdata, "x0_rdata"},
+    {ModelQuantity::x, "x"},
+    {ModelQuantity::x_rdata, "x_rdata"},
+    {ModelQuantity::dwdw, "dwdw"},
+    {ModelQuantity::dwdx, "dwdx"},
+    {ModelQuantity::dwdp, "dwdp"},
+    {ModelQuantity::y, "y"},
+    {ModelQuantity::dydp, "dydp"},
+    {ModelQuantity::dydx, "dydx"},
+    {ModelQuantity::w, "w"},
+    {ModelQuantity::root, "root"},
+    {ModelQuantity::qBdot, "qBdot"},
+    {ModelQuantity::qBdot_ss, "qBdot_ss"},
+    {ModelQuantity::xBdot_ss, "xBdot_ss"},
+    {ModelQuantity::JSparseB_ss, "JSparseB_ss"},
+    {ModelQuantity::deltax, "deltax"},
+    {ModelQuantity::deltasx, "deltasx"},
+    {ModelQuantity::deltaxB, "deltaxB"},
+    {ModelQuantity::k, "k"},
+    {ModelQuantity::p, "p"},
+    {ModelQuantity::ts, "ts"},
+    {ModelQuantity::dJydy, "dJydy"},
+    {ModelQuantity::dJydy_matlab, "dJydy"},
+    {ModelQuantity::deltaqB, "deltaqB"},
+    {ModelQuantity::dsigmaydp, "dsigmaydp"},
+    {ModelQuantity::dsigmaydy, "dsigmaydy"},
+    {ModelQuantity::dsigmazdp, "dsigmazdp"},
+    {ModelQuantity::dJydsigma, "dJydsigma"},
+    {ModelQuantity::dJydx, "dJydx"},
+    {ModelQuantity::dJrzdx, "dJrzdx"},
+    {ModelQuantity::dJzdx, "dJzdx"},
+    {ModelQuantity::dzdp, "dzdp"},
+    {ModelQuantity::dzdx, "dzdx"},
+    {ModelQuantity::dJrzdsigma, "dJrzdsigma"},
+    {ModelQuantity::dJrzdz, "dJrzdz"},
+    {ModelQuantity::dJzdsigma, "dJzdsigma"},
+    {ModelQuantity::dJzdz, "dJzdz"},
+    {ModelQuantity::drzdp, "drzdp"},
+    {ModelQuantity::drzdx, "drzdx"},
+
+};
 
 /**
  * @brief local helper function to get parameters
@@ -97,7 +160,8 @@ static int setValueByIdRegex(std::vector<std::string> const &ids,
 
 Model::Model(ModelDimensions const & model_dimensions,
              SimulationParameters simulation_parameters,
-             SecondOrderMode o2mode, std::vector<realtype> idlist, std::vector<int> z2event,
+             SecondOrderMode o2mode, std::vector<realtype> idlist,
+             std::vector<int> z2event,
              const bool pythonGenerated, const int ndxdotdp_explicit,
              const int ndxdotdx_explicit, const int w_recursion_depth)
     : ModelDimensions(model_dimensions), pythonGenerated(pythonGenerated),
@@ -107,8 +171,8 @@ Model::Model(ModelDimensions const & model_dimensions,
       state_is_non_negative_(nx_solver, false),
       w_recursion_depth_(w_recursion_depth),
       simulation_parameters_(std::move(simulation_parameters)) {
-    Expects(model_dimensions.np == static_cast<int>(simulation_parameters_.parameters.size()));
-    Expects(model_dimensions.nk == static_cast<int>(simulation_parameters_.fixedParameters.size()));
+    Expects(model_dimensions.np == gsl::narrow<int>(simulation_parameters_.parameters.size()));
+    Expects(model_dimensions.nk == gsl::narrow<int>(simulation_parameters_.fixedParameters.size()));
 
     simulation_parameters.pscale = std::vector<ParameterScaling>(model_dimensions.np, ParameterScaling::none);
 
@@ -120,6 +184,8 @@ Model::Model(ModelDimensions const & model_dimensions,
                       simulation_parameters_.pscale, state_.unscaledParameters);
     state_.fixedParameters = simulation_parameters_.fixedParameters;
     state_.plist = simulation_parameters_.plist;
+
+    root_initial_values_.resize(ne, true);
 
     /* If Matlab wrapped: dxdotdp is a full AmiVector,
        if Python wrapped: dxdotdp_explicit and dxdotdp_implicit are CSC matrices
@@ -139,9 +205,9 @@ Model::Model(ModelDimensions const & model_dimensions,
             dwdx_hierarchical_.emplace_back(
                 SUNMatrixWrapper(nw, nx_solver, irec * ndwdw + ndwdx, CSC_MAT));
         }
-        assert(static_cast<int>(dwdp_hierarchical_.size()) ==
+        assert(gsl::narrow<int>(dwdp_hierarchical_.size()) ==
                w_recursion_depth_ + 1);
-        assert(static_cast<int>(dwdx_hierarchical_.size()) ==
+        assert(gsl::narrow<int>(dwdx_hierarchical_.size()) ==
                w_recursion_depth_ + 1);
 
         derived_state_.dxdotdp_explicit = SUNMatrixWrapper(
@@ -208,7 +274,8 @@ bool operator==(const ModelDimensions &a, const ModelDimensions &b) {
 
 
 void Model::initialize(AmiVector &x, AmiVector &dx, AmiVectorArray &sx,
-                       AmiVectorArray & /*sdx*/, bool computeSensitivities) {
+                       AmiVectorArray & /*sdx*/, bool computeSensitivities,
+                       std::vector<int> &roots_found) {
     initializeStates(x);
     if (computeSensitivities)
         initializeStateSensitivities(sx, x);
@@ -218,7 +285,7 @@ void Model::initialize(AmiVector &x, AmiVector &dx, AmiVectorArray &sx,
         fsdx0();
 
     if (ne)
-        initHeaviside(x, dx);
+        initEvents(x, dx, roots_found);
 }
 
 void Model::initializeB(AmiVector &xB, AmiVector &dxB, AmiVector &xQB,
@@ -265,23 +332,27 @@ void Model::initializeStateSensitivities(AmiVectorArray &sx,
     }
 }
 
-void Model::initHeaviside(AmiVector const &x, AmiVector const &dx) {
+void Model::initEvents(AmiVector const &x, AmiVector const &dx,
+                       std::vector<int> &roots_found) {
     std::vector<realtype> rootvals(ne, 0.0);
     froot(simulation_parameters_.tstart_, x, dx, rootvals);
+    std::fill(roots_found.begin(), roots_found.end(), 0);
     for (int ie = 0; ie < ne; ie++) {
         if (rootvals.at(ie) < 0) {
             state_.h.at(ie) = 0.0;
         } else {
             state_.h.at(ie) = 1.0;
+            if (!root_initial_values_.at(ie)) // only false->true triggers event
+                roots_found.at(ie) = 1;
         }
     }
 }
 
-int Model::nplist() const { return static_cast<int>(state_.plist.size()); }
+int Model::nplist() const { return gsl::narrow<int>(state_.plist.size()); }
 
-int Model::np() const { return static_cast<int>(static_cast<ModelDimensions const&>(*this).np); }
+int Model::np() const { return gsl::narrow<int>(static_cast<ModelDimensions const&>(*this).np); }
 
-int Model::nk() const { return static_cast<int>(state_.fixedParameters.size()); }
+int Model::nk() const { return gsl::narrow<int>(state_.fixedParameters.size()); }
 
 int Model::ncl() const { return nx_rdata - nx_solver; }
 
@@ -293,7 +364,7 @@ int Model::nMaxEvent() const { return nmaxevent_; }
 
 void Model::setNMaxEvent(int nmaxevent) { nmaxevent_ = nmaxevent; }
 
-int Model::nt() const { return static_cast<int>(simulation_parameters_.ts_.size()); }
+int Model::nt() const { return gsl::narrow<int>(simulation_parameters_.ts_.size()); }
 
 const std::vector<ParameterScaling> &Model::getParameterScale() const {
     return simulation_parameters_.pscale;
@@ -627,7 +698,7 @@ void Model::setStateIsNonNegative(std::vector<bool> const &nonNegative) {
         // in case of conservation laws
         return;
     }
-    if (state_is_non_negative_.size() != static_cast<unsigned long>(nx_rdata)) {
+    if (state_is_non_negative_.size() != gsl::narrow<unsigned long>(nx_rdata)) {
         throw AmiException("Dimension of input stateIsNonNegative (%u) does "
                            "not agree with number of state variables (%d)",
                            state_is_non_negative_.size(), nx_rdata);
@@ -829,7 +900,7 @@ void Model::getObservableSensitivity(gsl::span<realtype> sy, const realtype t,
     derived_state_.sx_.resize(nx_solver * nplist());
     sx.flatten_to_vector(derived_state_.sx_);
 
-    // compute sy = 1.0*dydx*sx + 1.0*sy
+    // compute sy = 1.0*dydx*sx + 1.0*dydp
     // dydx A[ny,nx_solver] * sx B[nx_solver,nplist] = sy C[ny,nplist]
     //        M  K                 K  N                     M  N
     //        lda                  ldb                      ldc
@@ -843,7 +914,7 @@ void Model::getObservableSensitivity(gsl::span<realtype> sy, const realtype t,
     writeSlice(derived_state_.dydp_, sy);
 
     if (always_check_finite_)
-        checkFinite(sy, "sy");
+        checkFinite(sy, ModelQuantity::sy, nplist());
 }
 
 void Model::getObservableSigma(gsl::span<realtype> sigmay, const int it,
@@ -875,7 +946,7 @@ void Model::getObservableSigmaSensitivity(gsl::span<realtype> ssigmay,
     }
 
     if (always_check_finite_)
-        checkFinite(ssigmay, "ssigmay");
+        checkFinite(ssigmay, ModelQuantity::ssigmay, nplist());
 }
 
 void Model::addObservableObjective(realtype &Jy, const int it,
@@ -952,10 +1023,37 @@ void Model::getEvent(gsl::span<realtype> z, const int ie, const realtype t,
 void Model::getEventSensitivity(gsl::span<realtype> sz, const int ie,
                                 const realtype t, const AmiVector &x,
                                 const AmiVectorArray &sx) {
-    for (int ip = 0; ip < nplist(); ip++) {
-        fsz(&sz[ip * nz], ie, t, computeX_pos(x),
-            state_.unscaledParameters.data(), state_.fixedParameters.data(),
-            state_.h.data(), sx.data(ip), plist(ip));
+    if (pythonGenerated) {
+        if (!nz)
+            return;
+
+        fdzdx(ie, t, x);
+        fdzdp(ie, t, x);
+
+        derived_state_.sx_.resize(nx_solver * nplist());
+        sx.flatten_to_vector(derived_state_.sx_);
+
+        // compute sz = 1.0*dzdx*sx + 1.0*dzdp
+        // dzdx A[nz,nx_solver] * sx B[nx_solver,nplist] = sz C[nz,nplist]
+        //        M  K                 K  N                     M  N
+        //        lda                  ldb                      ldc
+        amici_dgemm(BLASLayout::colMajor, BLASTranspose::noTrans,
+                    BLASTranspose::noTrans, nz, nplist(), nx_solver, 1.0,
+                    derived_state_.dzdx_.data(), nz,
+                    derived_state_.sx_.data(), nx_solver, 1.0,
+                    derived_state_.dzdp_.data(),
+                    nz);
+
+        addSlice(derived_state_.dzdp_, sz);
+
+        if (always_check_finite_)
+            checkFinite(sz, ModelQuantity::sz, nplist());
+    } else {
+        for (int ip = 0; ip < nplist(); ip++) {
+            fsz(&sz[ip * nz], ie, t, computeX_pos(x),
+                state_.unscaledParameters.data(), state_.fixedParameters.data(),
+                state_.h.data(), sx.data(ip), plist(ip));
+        }
     }
 }
 
@@ -979,11 +1077,38 @@ void Model::getEventRegularizationSensitivity(gsl::span<realtype> srz,
                                               const int ie, const realtype t,
                                               const AmiVector &x,
                                               const AmiVectorArray &sx) {
-    for (int ip = 0; ip < nplist(); ip++) {
-        fsrz(&srz[ip * nz], ie, t, computeX_pos(x),
-             state_.unscaledParameters.data(), state_.fixedParameters.data(),
-             state_.h.data(), sx.data(ip),
-             plist(ip));
+    if (pythonGenerated) {
+        if (!nz)
+            return;
+
+        fdrzdx(ie, t, x);
+        fdrzdp(ie, t, x);
+
+        derived_state_.sx_.resize(nx_solver * nplist());
+        sx.flatten_to_vector(derived_state_.sx_);
+
+        // compute srz = 1.0*drzdx*sx + 1.0*drzdp
+        // drzdx A[nz,nx_solver] * sx B[nx_solver,nplist] = srz C[nz,nplist]
+        //         M  K                 K  N                      M  N
+        //         lda                  ldb                       ldc
+        amici_dgemm(BLASLayout::colMajor, BLASTranspose::noTrans,
+                    BLASTranspose::noTrans, nz, nplist(), nx_solver, 1.0,
+                    derived_state_.drzdx_.data(), nz,
+                    derived_state_.sx_.data(), nx_solver, 1.0,
+                    derived_state_.drzdp_.data(),
+                    nz);
+
+        addSlice(derived_state_.drzdp_, srz);
+
+        if (always_check_finite_)
+            checkFinite(srz, ModelQuantity::srz, nplist());
+    } else {
+        for (int ip = 0; ip < nplist(); ip++) {
+            fsrz(&srz[ip * nz], ie, t, computeX_pos(x),
+                 state_.unscaledParameters.data(), state_.fixedParameters.data(),
+                 state_.h.data(), sx.data(ip),
+                 plist(ip));
+        }
     }
 }
 
@@ -1125,7 +1250,7 @@ void Model::addStateEventUpdate(AmiVector &x, const int ie, const realtype t,
             state_.h.data(), ie, xdot.data(), xdot_old.data());
 
     if (always_check_finite_) {
-        app->checkFinite(derived_state_.deltax_, "deltax");
+        checkFinite(derived_state_.deltax_, ModelQuantity::deltax);
     }
 
     // update
@@ -1154,7 +1279,8 @@ void Model::addStateSensitivityEventUpdate(AmiVectorArray &sx, const int ie,
                  state_.total_cl.data());
 
         if (always_check_finite_) {
-            app->checkFinite(derived_state_.deltasx_, "deltasx");
+            checkFinite(derived_state_.deltasx_, ModelQuantity::deltasx,
+                        nplist());
         }
 
         amici_daxpy(nx_solver, 1.0, derived_state_.deltasx_.data(), 1,
@@ -1176,7 +1302,7 @@ void Model::addAdjointStateEventUpdate(AmiVector &xB, const int ie,
              xdot_old.data(), xB.data());
 
     if (always_check_finite_) {
-        app->checkFinite(derived_state_.deltaxB_, "deltaxB");
+        checkFinite(derived_state_.deltaxB_, ModelQuantity::deltaxB);
     }
 
     // apply update
@@ -1202,7 +1328,7 @@ void Model::addAdjointQuadratureEventUpdate(
     }
 
     if (always_check_finite_) {
-        app->checkFinite(derived_state_.deltaqB_, "deltaqB");
+        checkFinite(derived_state_.deltaqB_, ModelQuantity::deltaqB, nplist());
     }
 }
 
@@ -1218,18 +1344,298 @@ void Model::updateHeavisideB(const int *rootsfound) {
     }
 }
 
-
-int Model::checkFinite(gsl::span<const realtype> array, const char *fun) const {
-    auto result = app->checkFinite(array, fun);
-
-    if (result != AMICI_SUCCESS) {
-        app->checkFinite(state_.fixedParameters, "k");
-        app->checkFinite(state_.unscaledParameters, "p");
-        app->checkFinite(derived_state_.w_, "w");
-        app->checkFinite(simulation_parameters_.ts_, "t");
+int Model::checkFinite(gsl::span<const realtype> array,
+                       ModelQuantity model_quantity) const
+{
+    auto it = std::find_if(array.begin(), array.end(),
+                           [](realtype x){return !std::isfinite(x);});
+    if(it == array.end()) {
+        return AMICI_SUCCESS;
     }
 
-    return result;
+    // there is some issue - produce a meaningful message
+    auto flat_index = it - array.begin();
+
+    std::string msg_id;
+    std::string non_finite_type;
+    if (std::isnan(array[flat_index])) {
+        msg_id = "AMICI:NaN";
+        non_finite_type = "NaN";
+    } else if (std::isinf(array[flat_index])) {
+        msg_id = "AMICI:Inf";
+        non_finite_type = "Inf";
+    }
+    std::string element_id = std::to_string(flat_index);
+
+    switch (model_quantity) {
+    case ModelQuantity::xdot:
+    case ModelQuantity::xBdot:
+    case ModelQuantity::x0:
+    case ModelQuantity::x:
+    case ModelQuantity::x_rdata:
+    case ModelQuantity::x0_rdata:
+    case ModelQuantity::Jv:
+    case ModelQuantity::JvB:
+    case ModelQuantity::JDiag:
+    case ModelQuantity::deltax:
+    case ModelQuantity::deltaxB:
+        if(hasStateIds()) {
+            element_id = getStateIdsSolver()[flat_index];
+        }
+        break;
+    case ModelQuantity::y:
+        if(hasObservableIds()) {
+            element_id = getObservableIds()[flat_index];
+        }
+        break;
+    case ModelQuantity::w:
+        if(hasExpressionIds()) {
+            element_id = getExpressionIds()[flat_index];
+        }
+        break;
+    case ModelQuantity::k:
+        if(hasFixedParameterIds()) {
+            element_id = getFixedParameterIds()[flat_index];
+        }
+        break;
+    case ModelQuantity::p:
+        if(hasParameterIds()) {
+            element_id = getParameterIds()[flat_index];
+        }
+        break;
+    default:
+        break;
+    }
+
+    std::string model_quantity_str;
+    try {
+        model_quantity_str = model_quantity_to_str.at(model_quantity);
+    } catch (std::out_of_range const&) {
+        // Missing model quantity string - terminate if this is a debug build,
+        // but show the quantity number if non-debug.
+        gsl_ExpectsDebug(false);
+        model_quantity_str = std::to_string(static_cast<int>(model_quantity));
+    }
+    app->warningF(msg_id.c_str(),
+                  "AMICI encountered a %s value for %s[%i] (%s)",
+                  non_finite_type.c_str(),
+                  model_quantity_str.c_str(),
+                  gsl::narrow<int>(flat_index),
+                  element_id.c_str()
+                  );
+
+    // check upstream, without infinite recursion
+    if(model_quantity != ModelQuantity::k
+        && model_quantity != ModelQuantity::p
+        && model_quantity != ModelQuantity::ts)
+    {
+        checkFinite(state_.fixedParameters, ModelQuantity::k);
+        checkFinite(state_.unscaledParameters, ModelQuantity::p);
+        checkFinite(simulation_parameters_.ts_, ModelQuantity::ts);
+        if(!always_check_finite_ && model_quantity != ModelQuantity::w) {
+            // don't check twice if always_check_finite_ is true
+            checkFinite(derived_state_.w_, ModelQuantity::w);
+        }
+    }
+    return AMICI_RECOVERABLE_ERROR;
+}
+
+int Model::checkFinite(gsl::span<const realtype> array,
+                       ModelQuantity model_quantity, size_t num_cols) const
+{
+    auto it = std::find_if(array.begin(), array.end(),
+                           [](realtype x){return !std::isfinite(x);});
+    if(it == array.end()) {
+        return AMICI_SUCCESS;
+    }
+
+    // there is some issue - produce a meaningful message
+    auto flat_index = it - array.begin();
+    sunindextype row, col;
+    std::tie(row, col) = unravel_index(flat_index, num_cols);
+    std::string msg_id;
+    std::string non_finite_type;
+    if (std::isnan(array[flat_index])) {
+        msg_id = "AMICI:NaN";
+        non_finite_type = "NaN";
+    } else if (std::isinf(array[flat_index])) {
+        msg_id = "AMICI:Inf";
+        non_finite_type = "Inf";
+    }
+    std::string row_id = std::to_string(row);
+    std::string col_id = std::to_string(col);
+
+    switch (model_quantity) {
+    case ModelQuantity::sy:
+    case ModelQuantity::ssigmay:
+    case ModelQuantity::dydp:
+    case ModelQuantity::dsigmaydp:
+        if(hasObservableIds())
+            row_id += " " + getObservableIds()[row];
+        if(hasParameterIds())
+            col_id += " " + getParameterIds()[plist(col)];
+        break;
+    case ModelQuantity::dydx:
+        if(hasObservableIds())
+            row_id += " " + getObservableIds()[row];
+        if(hasStateIds())
+            col_id += " " + getStateIdsSolver()[col];
+        break;
+    case ModelQuantity::deltasx:
+        if(hasStateIds())
+            row_id += " " + getStateIdsSolver()[row];
+        if(hasParameterIds())
+            col_id += " " + getParameterIds()[plist(col)];
+        break;
+    case ModelQuantity::dJydy:
+    case ModelQuantity::dJydy_matlab:
+    case ModelQuantity::dJydsigma:
+        if(hasObservableIds())
+            col_id += " " + getObservableIds()[col];
+        break;
+    case ModelQuantity::dJydx:
+    case ModelQuantity::dJzdx:
+    case ModelQuantity::dJrzdx:
+    case ModelQuantity::dzdx:
+    case ModelQuantity::drzdx:
+        if(hasStateIds())
+            col_id += " " + getStateIdsSolver()[col];
+        break;
+    case ModelQuantity::deltaqB:
+    case ModelQuantity::sz:
+    case ModelQuantity::dzdp:
+    case ModelQuantity::drzdp:
+    case ModelQuantity::dsigmazdp:
+        if(hasParameterIds())
+            col_id += " " + getParameterIds()[plist(col)];
+        break;
+    case ModelQuantity::dsigmaydy:
+        if(hasObservableIds()) {
+            auto obs_ids = getObservableIds();
+            row_id += " " + obs_ids[row];
+            col_id += " " + obs_ids[col];
+        }
+        break;
+    default:
+        break;
+    }
+
+    std::string model_quantity_str;
+    try {
+        model_quantity_str = model_quantity_to_str.at(model_quantity);
+    } catch (std::out_of_range const&) {
+        // Missing model quantity string - terminate if this is a debug build,
+        // but show the quantity number if non-debug.
+        gsl_ExpectsDebug(false);
+        model_quantity_str = std::to_string(static_cast<int>(model_quantity));
+    }
+
+    app->warningF(msg_id.c_str(),
+                  "AMICI encountered a %s value for %s[%i] (%s, %s)",
+                  non_finite_type.c_str(),
+                  model_quantity_str.c_str(),
+                  gsl::narrow<int>(flat_index),
+                  row_id.c_str(),
+                  col_id.c_str()
+                  );
+
+    // check upstream
+    checkFinite(state_.fixedParameters, ModelQuantity::k);
+    checkFinite(state_.unscaledParameters, ModelQuantity::p);
+    checkFinite(simulation_parameters_.ts_, ModelQuantity::ts);
+    checkFinite(derived_state_.w_, ModelQuantity::w);
+
+    return AMICI_RECOVERABLE_ERROR;
+}
+
+int Model::checkFinite(SUNMatrix m, ModelQuantity model_quantity, realtype t) const
+{
+    // check flat array, to see if there are any issues
+    // (faster, in particular for sparse arrays)
+    auto m_flat = gsl::make_span(m);
+    auto it = std::find_if(m_flat.begin(), m_flat.end(),
+                    [](realtype x){return !std::isfinite(x);});
+    if(it == m_flat.end()) {
+        return AMICI_SUCCESS;
+    }
+
+    // there is some issue - produce a meaningful message
+    auto flat_index = it - m_flat.begin();
+    sunindextype row, col;
+    std::tie(row, col) = unravel_index(flat_index, m);
+    std::string msg_id;
+    std::string non_finite_type;
+    if (std::isnan(m_flat[flat_index])) {
+        msg_id = "AMICI:NaN";
+        non_finite_type = "NaN";
+    } else if (std::isinf(m_flat[flat_index])) {
+        msg_id = "AMICI:Inf";
+        non_finite_type = "Inf";
+    } else {
+        throw std::runtime_error(
+            "Value is not finite, but neither infinite nor NaN.");
+    }
+    std::string row_id = std::to_string(row);
+    std::string col_id = std::to_string(col);
+
+    switch (model_quantity) {
+    case ModelQuantity::J:
+    case ModelQuantity::JB:
+        if(hasStateIds()) {
+            auto state_ids = getStateIdsSolver();
+            row_id += " " + state_ids[row];
+            col_id += " " + state_ids[col];
+        }
+        break;
+    case ModelQuantity::dwdx:
+        if(hasExpressionIds())
+            row_id += " " + getExpressionIds()[row];
+        if(hasStateIds())
+            col_id += " " + getStateIdsSolver()[col];
+        break;
+    case ModelQuantity::dwdw:
+        if(hasExpressionIds()) {
+            auto expr_ids = getExpressionIds();
+            row_id += " " + expr_ids[row];
+            col_id += " " + expr_ids[col];
+        }
+        break;
+    case ModelQuantity::dwdp:
+        if(hasExpressionIds())
+            row_id += " " + getExpressionIds()[row];
+        if(hasParameterIds())
+            col_id += " " + getParameterIds()[plist(col)];
+        break;
+    default:
+        break;
+    }
+
+    std::string model_quantity_str;
+    try {
+        model_quantity_str = model_quantity_to_str.at(model_quantity);
+    } catch (std::out_of_range const&) {
+        // Missing model quantity string - terminate if this is a debug build,
+        // but show the quantity number if non-debug.
+        gsl_ExpectsDebug(false);
+        model_quantity_str = std::to_string(static_cast<int>(model_quantity));
+    }
+    app->warningF(msg_id.c_str(),
+                  "AMICI encountered a %s value for %s[%i] (%s, %s) at t=%g",
+                  non_finite_type.c_str(),
+                  model_quantity_str.c_str(),
+                  gsl::narrow<int>(flat_index),
+                  row_id.c_str(),
+                  col_id.c_str(),
+                  t
+                  );
+
+    // check upstream
+    checkFinite(state_.fixedParameters, ModelQuantity::k);
+    checkFinite(state_.unscaledParameters, ModelQuantity::p);
+    checkFinite(simulation_parameters_.ts_, ModelQuantity::ts);
+    checkFinite(derived_state_.w_, ModelQuantity::w);
+
+    return AMICI_RECOVERABLE_ERROR;
 }
 
 void Model::setAlwaysCheckFinite(bool alwaysCheck) {
@@ -1250,8 +1656,8 @@ void Model::fx0(AmiVector &x) {
               state_.fixedParameters.data());
 
     if (always_check_finite_) {
-        checkFinite(derived_state_.x_rdata_, "x0 x_rdata");
-        checkFinite(x.getVector(), "x0 x");
+        checkFinite(derived_state_.x_rdata_, ModelQuantity::x0_rdata);
+        checkFinite(x.getVector(), ModelQuantity::x0);
     }
 }
 
@@ -1333,7 +1739,7 @@ void Model::fx_rdata(AmiVector &x_rdata, const AmiVector &x) {
     fx_rdata(x_rdata.data(), computeX_pos(x), state_.total_cl.data(),
              state_.unscaledParameters.data(), state_.fixedParameters.data());
     if (always_check_finite_)
-        checkFinite(x_rdata.getVector(), "x_rdata");
+        checkFinite(x_rdata.getVector(), ModelQuantity::x_rdata);
 }
 
 void Model::fsx_rdata(AmiVectorArray &sx_rdata, const AmiVectorArray &sx,
@@ -1382,11 +1788,11 @@ void Model::writeLLHSensitivitySlice(const std::vector<realtype> &dLLhdp,
 
 void Model::checkLLHBufferSize(std::vector<realtype> const &sllh,
                                std::vector<realtype> const &s2llh) const {
-    if (sllh.size() != static_cast<unsigned>(nplist()))
+    if (sllh.size() != gsl::narrow<unsigned>(nplist()))
         throw AmiException("Incorrect sllh buffer size! Was %u, expected %i.",
                            sllh.size(), nplist());
 
-    if (s2llh.size() != static_cast<unsigned>((nJ - 1) * nplist()))
+    if (s2llh.size() != gsl::narrow<unsigned>((nJ - 1) * nplist()))
         throw AmiException("Incorrect s2llh buffer size! Was %u, expected %i.",
                            s2llh.size(), (nJ - 1) * nplist());
 }
@@ -1411,7 +1817,7 @@ void Model::fy(const realtype t, const AmiVector &x) {
        state_.h.data(), derived_state_.w_.data());
 
     if (always_check_finite_) {
-        app->checkFinite(gsl::make_span(derived_state_.y_.data(), ny), "y");
+        checkFinite(gsl::make_span(derived_state_.y_.data(), ny), ModelQuantity::y);
     }
 }
 
@@ -1441,7 +1847,7 @@ void Model::fdydp(const realtype t, const AmiVector &x) {
         }
 
     if (always_check_finite_) {
-        app->checkFinite(derived_state_.dydp_, "dydp");
+        checkFinite(derived_state_.dydp_, ModelQuantity::dydp, nplist());
     }
 }
 
@@ -1461,7 +1867,7 @@ void Model::fdydx(const realtype t, const AmiVector &x) {
           derived_state_.dwdx_.data());
 
     if (always_check_finite_) {
-        app->checkFinite(derived_state_.dydx_, "dydx");
+        checkFinite(derived_state_.dydx_, ModelQuantity::dydx, ny);
     }
 }
 
@@ -1524,7 +1930,8 @@ void Model::fdsigmaydp(const int it, const ExpData *edata) {
     }
 
     if (always_check_finite_) {
-        app->checkFinite(derived_state_.dsigmaydp_, "dsigmaydp");
+        checkFinite(derived_state_.dsigmaydp_, ModelQuantity::dsigmaydp,
+                    nplist());
     }
 }
 
@@ -1553,7 +1960,7 @@ void Model::fdsigmaydy(const int it, const ExpData *edata) {
     }
 
     if (always_check_finite_) {
-        app->checkFinite(derived_state_.dsigmaydy_, "dsigmaydy");
+        checkFinite(derived_state_.dsigmaydy_, ModelQuantity::dsigmaydy, ny);
     }
 }
 
@@ -1606,9 +2013,9 @@ void Model::fdJydy(const int it, const AmiVector &x, const ExpData &edata) {
             derived_state_.dJydy_.at(iyt).refresh();
 
             if (always_check_finite_) {
-                app->checkFinite(
-                            gsl::make_span(derived_state_.dJydy_.at(iyt).get()),
-                            "dJydy");
+                checkFinite(
+                    gsl::make_span(derived_state_.dJydy_.at(iyt).get()),
+                    ModelQuantity::dJydy, ny);
             }
         }
     } else {
@@ -1622,10 +2029,13 @@ void Model::fdJydy(const int it, const AmiVector &x, const ExpData &edata) {
                    state_.fixedParameters.data(), derived_state_.y_.data(),
                    derived_state_.sigmay_.data(),
                    edata.getObservedDataPtr(it));
-        }
-        if (always_check_finite_) {
-            // get dJydy slice (ny) for current timepoint and observable
-            app->checkFinite(derived_state_.dJydy_matlab_, "dJydy");
+            if (always_check_finite_) {
+                // get dJydy slice (ny) for current timepoint and observable
+                checkFinite(
+                    gsl::span<realtype>(
+                        &derived_state_.dJydy_matlab_[iyt * ny * nJ], ny * nJ),
+                    ModelQuantity::dJydy, ny);
+            }
         }
     }
 }
@@ -1640,17 +2050,20 @@ void Model::fdJydsigma(const int it, const AmiVector &x, const ExpData &edata) {
     fsigmay(it, &edata);
 
     for (int iyt = 0; iyt < nytrue; iyt++) {
-        if (edata.isSetObservedData(it, iyt))
+        if (edata.isSetObservedData(it, iyt)) {
             // get dJydsigma slice (ny) for current timepoint and observable
             fdJydsigma(&derived_state_.dJydsigma_.at(iyt * ny * nJ), iyt,
                        state_.unscaledParameters.data(),
                        state_.fixedParameters.data(), derived_state_.y_.data(),
                        derived_state_.sigmay_.data(),
                        edata.getObservedDataPtr(it));
-    }
-
-    if (always_check_finite_) {
-        app->checkFinite(derived_state_.dJydsigma_, "dJydsigma");
+            if (always_check_finite_) {
+                checkFinite(
+                    gsl::span<realtype>(
+                        &derived_state_.dJydsigma_.at(iyt * ny * nJ), ny * nJ),
+                    ModelQuantity::dJydsigma, ny);
+            }
+        }
     }
 }
 
@@ -1732,7 +2145,7 @@ void Model::fdJydx(const int it, const AmiVector &x, const ExpData &edata) {
     }
 
     if (always_check_finite_) {
-        app->checkFinite(derived_state_.dJydx_, "dJydx");
+        checkFinite(derived_state_.dJydx_, ModelQuantity::dJydx, nx_solver);
     }
 }
 
@@ -1758,7 +2171,7 @@ void Model::fdzdp(const int ie, const realtype t, const AmiVector &x) {
     }
 
     if (always_check_finite_) {
-        app->checkFinite(derived_state_.dzdp_, "dzdp");
+        checkFinite(derived_state_.dzdp_, ModelQuantity::dzdp, nplist());
     }
 }
 
@@ -1773,7 +2186,7 @@ void Model::fdzdx(const int ie, const realtype t, const AmiVector &x) {
           state_.h.data());
 
     if (always_check_finite_) {
-        app->checkFinite(derived_state_.dzdx_, "dzdx");
+        checkFinite(derived_state_.dzdx_, ModelQuantity::dzdx, nx_solver);
     }
 }
 
@@ -1799,7 +2212,7 @@ void Model::fdrzdp(const int ie, const realtype t, const AmiVector &x) {
     }
 
     if (always_check_finite_) {
-        app->checkFinite(derived_state_.drzdp_, "drzdp");
+        checkFinite(derived_state_.drzdp_, ModelQuantity::drzdp, nplist());
     }
 }
 
@@ -1814,7 +2227,7 @@ void Model::fdrzdx(const int ie, const realtype t, const AmiVector &x) {
            state_.h.data());
 
     if (always_check_finite_) {
-        app->checkFinite(derived_state_.drzdx_, "drzdx");
+        checkFinite(derived_state_.drzdx_, ModelQuantity::drzdx, nx_solver);
     }
 }
 
@@ -1876,7 +2289,8 @@ void Model::fdsigmazdp(const int ie, const int nroots, const realtype t,
     }
 
     if (always_check_finite_) {
-        app->checkFinite(derived_state_.dsigmazdp_, "dsigmazdp");
+        checkFinite(derived_state_.dsigmazdp_, ModelQuantity::dsigmazdp,
+                    nplist());
     }
 }
 
@@ -1897,11 +2311,14 @@ void Model::fdJzdz(const int ie, const int nroots, const realtype t,
                    state_.fixedParameters.data(),
                    derived_state_.z_.data(), derived_state_.sigmaz_.data(),
                    edata.getObservedEventsPtr(nroots));
+            if (always_check_finite_) {
+                checkFinite(
+                    gsl::span<realtype>(
+                        &derived_state_.dJzdz_.at(iztrue * nz * nJ),
+                        nz * nJ),
+                    ModelQuantity::dJzdz, nz);
+            }
         }
-    }
-
-    if (always_check_finite_) {
-        app->checkFinite(derived_state_.dJzdz_, "dJzdz");
     }
 }
 
@@ -1922,11 +2339,14 @@ void Model::fdJzdsigma(const int ie, const int nroots, const realtype t,
                        state_.fixedParameters.data(), derived_state_.z_.data(),
                        derived_state_.sigmaz_.data(),
                        edata.getObservedEventsPtr(nroots));
+            if (always_check_finite_) {
+                checkFinite(
+                    gsl::span<realtype>(
+                        &derived_state_.dJzdsigma_.at(iztrue * nz * nJ),
+                        nz * nJ),
+                    ModelQuantity::dJzdsigma, nz);
+            }
         }
-    }
-
-    if (always_check_finite_) {
-        app->checkFinite(derived_state_.dJzdsigma_, "dJzdsigma");
     }
 }
 
@@ -2038,11 +2458,14 @@ void Model::fdJrzdz(const int ie, const int nroots, const realtype t,
                     state_.unscaledParameters.data(),
                     state_.fixedParameters.data(), derived_state_.rz_.data(),
                     derived_state_.sigmaz_.data());
+            if (always_check_finite_) {
+                checkFinite(
+                    gsl::span<realtype>(
+                        &derived_state_.dJrzdz_.at(iztrue * nz * nJ),
+                        nz * nJ),
+                    ModelQuantity::dJrzdz, nz);
+            }
         }
-    }
-
-    if (always_check_finite_) {
-        app->checkFinite(derived_state_.dJrzdz_, "dJrzdz");
     }
 }
 
@@ -2062,11 +2485,14 @@ void Model::fdJrzdsigma(const int ie, const int nroots, const realtype t,
                         state_.unscaledParameters.data(),
                         state_.fixedParameters.data(), derived_state_.rz_.data(),
                         derived_state_.sigmaz_.data());
+            if (always_check_finite_) {
+                checkFinite(
+                    gsl::span<realtype>(
+                        &derived_state_.dJrzdsigma_.at(iztrue * nz * nJ),
+                        nz * nJ),
+                    ModelQuantity::dJrzdsigma, nz);
+            }
         }
-    }
-
-    if (always_check_finite_) {
-        app->checkFinite(derived_state_.dJrzdsigma_, "dJrzdsigma");
     }
 }
 
@@ -2076,7 +2502,7 @@ void Model::fw(const realtype t, const realtype *x) {
        state_.fixedParameters.data(), state_.h.data(), state_.total_cl.data());
 
     if (always_check_finite_) {
-        app->checkFinite(derived_state_.w_, "w");
+        checkFinite(derived_state_.w_, ModelQuantity::w);
     }
 }
 
@@ -2116,7 +2542,7 @@ void Model::fdwdp(const realtype t, const realtype *x) {
     }
 
     if (always_check_finite_) {
-        app->checkFinite(gsl::make_span(derived_state_.dwdp_.get()), "dwdp");
+        checkFinite(derived_state_.dwdp_.get(), ModelQuantity::dwdp, t);
     }
 }
 
@@ -2157,7 +2583,7 @@ void Model::fdwdx(const realtype t, const realtype *x) {
     }
 
     if (always_check_finite_) {
-        app->checkFinite(gsl::make_span(derived_state_.dwdx_.get()), "dwdx");
+        checkFinite(derived_state_.dwdx_.get(), ModelQuantity::dwdx, t);
     }
 }
 
@@ -2172,7 +2598,7 @@ void Model::fdwdw(const realtype t, const realtype *x) {
           derived_state_.w_.data(), state_.total_cl.data());
 
     if (always_check_finite_) {
-        app->checkFinite(gsl::make_span(dwdw_.get()), "dwdw");
+        checkFinite(dwdw_.get(), ModelQuantity::dwdw, t);
     }
 }
 
