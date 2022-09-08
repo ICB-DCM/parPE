@@ -7,6 +7,7 @@ import h5py
 from pypesto.result.optimize import OptimizerResult as PypestoOptimizerResult
 from pypesto.result.result import Result as PypestoResult
 from pypesto.store import write_result as write_pypesto_result
+from pypesto.C import HISTORY, TRACE, N_ITERATIONS
 
 
 def write_pypesto_history(
@@ -19,7 +20,7 @@ def write_pypesto_history(
     """
     with h5py.File(fn_parpe, 'r') as f:
         with h5py.File(fn_pypesto, 'a') as g:
-            trace_grp = g.require_group(f'/history/{i_ms}/trace')
+            trace_grp = g.require_group(f'/{HISTORY}/{i_ms}/{TRACE}')
 
             iterations = len(f[f'multistarts/{i_ms}/iteration'])
 
@@ -34,7 +35,9 @@ def write_pypesto_history(
                 iteration_grp['x'] = \
                     start_group_in['iterCostFunParameters'][:, i_iter]
                 iteration_grp['time'] = \
-                    start_group_in['iterCostFunWallSec'][:, i_iter]
+                    start_group_in['iterCostFunWallSec'][:, i_iter].squeeze()
+
+            trace_grp.attrs[N_ITERATIONS] = iterations
 
 
 def pypesto_optimizer_result_from_parpe(
