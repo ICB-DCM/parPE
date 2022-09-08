@@ -20,6 +20,8 @@ models and turning them into C++ Python extensions.
     the raw package without
 """
 
+
+import contextlib
 import importlib
 import os
 import re
@@ -63,6 +65,7 @@ def _imported_from_setup() -> bool:
     """Check whether this module is imported from `setup.py`"""
 
     from inspect import getouterframes, currentframe
+    from os import sep
 
     # in case we are imported from setup.py, this will be the AMICI package
     # root directory (otherwise it is most likely the Python library directory,
@@ -75,7 +78,9 @@ def _imported_from_setup() -> bool:
         # requires the AMICI extension during its installation, but seems
         # unlikely...
         frame_path = os.path.realpath(os.path.expanduser(frame.filename))
-        if frame_path == os.path.join(package_root, 'setup.py'):
+        if (frame_path == os.path.join(package_root, 'setup.py')
+                or frame_path.endswith(f"{sep}setuptools{sep}build_meta.py")
+        ):
             return True
 
     return False
@@ -87,8 +92,8 @@ amiciSwigPath = os.path.join(amici_path, 'swig')
 amiciSrcPath = os.path.join(amici_path, 'src')
 amiciModulePath = os.path.dirname(__file__)
 
-has_clibs = any([os.path.isfile(os.path.join(amici_path, wrapper))
-                 for wrapper in ['amici.py', 'amici_without_hdf5.py']])
+has_clibs = any(os.path.isfile(os.path.join(amici_path, wrapper))
+                for wrapper in ['amici.py', 'amici_without_hdf5.py'])
 hdf5_enabled = False
 
 # Get version number from file
@@ -136,10 +141,8 @@ class add_path:
             sys.path.insert(0, self.path)
 
     def __exit__(self, exc_type, exc_value, traceback):
-        try:
+        with contextlib.suppress(ValueError):
             sys.path.remove(self.path)
-        except ValueError:
-            pass
 
 
 def import_model_module(

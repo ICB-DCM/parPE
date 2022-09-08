@@ -2,6 +2,113 @@
 
 ## v0.X Series
 
+### v0.12.0 (2022-08-26)
+
+Features:
+* Support for event observables via the Python interface
+  by @FFroehlich in https://github.com/AMICI-dev/AMICI/pull/1845
+* Treat non-estimated parameters as constants during SBML-PEtab import
+  by @dweindl in https://github.com/AMICI-dev/AMICI/pull/1810
+* Updated SUNDIALS to v5.8.0
+  by @dweindl in https://github.com/AMICI-dev/AMICI/pull/1836
+* Option to extract common subexpressions
+  by @dweindl in https://github.com/AMICI-dev/AMICI/pull/1852,
+  https://github.com/AMICI-dev/AMICI/pull/1856
+* Parallelize matrix simplification
+  by @dweindl in https://github.com/AMICI-dev/AMICI/pull/1778
+* Validate PEtab problems before attempting import
+  by @dweindl in https://github.com/AMICI-dev/AMICI/pull/1842
+* Improved type annotations for the swig interface
+  by @dweindl in https://github.com/AMICI-dev/AMICI/pull/1860
+
+Fixes:
+* Fixed an issue with potentially infinite loops during conservation law
+  processing by @FFroehlich in https://github.com/AMICI-dev/AMICI/pull/1833
+* Fixed potential deadlocks during parallel simplification
+  by @dweindl in https://github.com/AMICI-dev/AMICI/pull/1844
+* Fix resetting `ReturnData::numstepsB` when re-using Solver
+  by @dweindl in https://github.com/AMICI-dev/AMICI/pull/1841
+
+And further contributions by @dilpath, @dweindl, @FFroehlich
+
+**Full Changelog**:
+https://github.com/AMICI-dev/AMICI/compare/v0.11.32...v0.11.33
+
+### v0.11.32 (2022-07-15)
+
+Fixes:
+* Fixed `ImportError`s during package installation with recent setuptools
+  by @dweindl in https://github.com/AMICI-dev/AMICI/pull/1830
+
+### v0.11.31 (2022-07-12)
+
+Fixes:
+* Fixed `ParameterMapping.__getitem__` to either return a
+  `ParameterMappingForCondition` or a new `ParameterMapping`, but not a list
+  by @dweindl in https://github.com/AMICI-dev/AMICI/pull/1826
+
+### v0.11.30 (2022-07-07)
+
+Features:
+* Allow overriding model name during PySB import by @dweindl in
+  https://github.com/AMICI-dev/AMICI/pull/1801
+* Added __repr__ for parameter mapping classes by @dweindl in
+  https://github.com/AMICI-dev/AMICI/pull/1799
+* More informative warning messages for NaNs/Infs by @dweindl in
+  https://github.com/AMICI-dev/AMICI/pull/1798
+* Moved `sim_steps` increment by @plakrisenko in
+  https://github.com/AMICI-dev/AMICI/pull/1806
+* Re-arranged application of parameters from `ExpData` to avoid initial
+  sensitivities error by @dilpath in
+  https://github.com/AMICI-dev/AMICI/pull/1805
+* Checking for unused parameters in `simulate_petab` by @dweindl in
+  https://github.com/AMICI-dev/AMICI/pull/1816
+* Add `create_parameter_mapping` kwarg forwarding by @dweindl in
+  https://github.com/AMICI-dev/AMICI/pull/1820
+
+Other
+* Remove `constant_species_to_parameters` by @dweindl in
+  https://github.com/AMICI-dev/AMICI/pull/1809
+
+Fixes
+* Fixed handling of SBML models given as `pathlib.Path` in
+  `petab_import.import_model_sbml by @dweindl in
+  https://github.com/AMICI-dev/AMICI/pull/1808
+* Fixed missing CPU time reset by @dweindl in
+  https://github.com/AMICI-dev/AMICI/pull/1814
+* Raise in `simulate_petab` with `scaled_parameters=True`
+  `problem_parameters=None` by @dweindl in
+  https://github.com/AMICI-dev/AMICI/pull/1819
+
+...
+
+**Full Changelog**:
+https://github.com/AMICI-dev/AMICI/compare/v0.11.29...v0.11.30
+
+### v0.11.29 (2022-05-06)
+
+## What's Changed
+
+Features:
+* Performance: Limit newton step convergence check by @FFroehlich in
+  https://github.com/AMICI-dev/AMICI/pull/1780
+* More informative NaN/Inf warnings by @dweindl in
+  https://github.com/AMICI-dev/AMICI/pull/1640
+* SBML import can now handle initial events by @FFroehlich in
+  https://github.com/AMICI-dev/AMICI/pull/1789
+
+Fixes:
+* Avoid error if no measurements in PEtab problem; fixed type handling in
+  PEtab parameter mapping by @dilpath in
+  https://github.com/AMICI-dev/AMICI/pull/1783
+* Fixed substitution of expressions in root and stau by @dilpath in
+  https://github.com/AMICI-dev/AMICI/pull/1784
+* Workaround for PEtab problems with state-dependent noise models by @dweindl
+  in https://github.com/AMICI-dev/AMICI/pull/1791
+
+**Full Changelog**: https://github.com/AMICI-dev/AMICI/compare/v0.11.28...v0.11.29
+
+
 ### v0.11.28 (2022-04-08)
 
 New features:
