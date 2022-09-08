@@ -385,7 +385,8 @@ def create_test_data(measurement_file_name, parameter_file_name, yaml_config,
     df.loc[~df.observableParameters.isnull(), 'observableParameters'] = \
         df.loc[~df.observableParameters.isnull(), 'observableParameters'] \
         + "_test"
-    petab.write_parameter_df(df, test_measurement_file_name)
+
+    petab.write_measurement_df(df, test_measurement_file_name)
 
     # parameters
     df = petab.get_parameter_df(parameter_file_name)
