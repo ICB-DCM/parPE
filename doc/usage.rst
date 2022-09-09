@@ -12,3 +12,4 @@ Usage
    parpe_with_charliecloud.md
    snakemake_workflow.md
    hdf5.md
+   minibatch_optimization.md
