@@ -32,7 +32,6 @@ reduced when using mini-batch optimization, more local optimizations can be run
 for most problems. Those can be set via
 `optimizationOptions.py <name_of_hdf5_input_file.h5> -s numStarts <number_of_starts>`
 
-
 ## Setting mini-batch optimization specific hyperparameters
 
 Beyond the mentioned settings, mini-batch optimizers have a couple of specific
@@ -41,11 +40,10 @@ The most intuitive ones are the number of epochs, i.e., the number of passes
 through the whole data set, which roughly corresponds to the maximum number of
 iterations in full-batch optimization, and the mini-batch size. Those can be
 set via
-`optimizationOptions.py <name_of_hdf5_input_file.h5> -s minibatch/batchSize
-<intended_batch_size>` 
+`optimizationOptions.py <name_of_hdf5_input_file.h5> -s minibatch/batchSize <intended_batch_size>`
 or 
-`optimizationOptions.py <name_of_hdf5_input_file.h5> -s minibatch/maxEpochs
-<number_of_epochs>`, respectively.
+`optimizationOptions.py <name_of_hdf5_input_file.h5> -s minibatch/maxEpochs <number_of_epochs>`,
+respectively.
 
 ### Optimization algorithms
 
