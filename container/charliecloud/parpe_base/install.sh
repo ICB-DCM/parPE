@@ -18,6 +18,7 @@ cd /u18
 echo "================= parPE requirements ============"
 # using openmpi coming with libboost-all-dev instead of libmpich-dev
 apt-get install -q -y \
+  clang \
   cmake \
   curl \
   coinor-libipopt-dev \
@@ -28,6 +29,7 @@ apt-get install -q -y \
   libboost-all-dev \
   libceres-dev \
   libhdf5-dev \
+  libomp-dev \
   python3-dev \
   python3-pip \
   python3-venv \
