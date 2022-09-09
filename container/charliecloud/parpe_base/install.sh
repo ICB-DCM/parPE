@@ -29,6 +29,7 @@ apt-get install -q -y \
   libboost-all-dev \
   libceres-dev \
   libhdf5-dev \
+  libomp-dev \
   python3-dev \
   python3-pip \
   python3-venv \
