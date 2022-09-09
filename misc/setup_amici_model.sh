@@ -44,6 +44,7 @@ amici_root=${AMICI_ROOT:-${script_path}/../deps/AMICI/}
 
 cmake -S "${output_dir}" \
       -B "${output_dir}/build" \
+      -DCMAKE_BUILD_TYPE="Release" \
       -DAmici_DIR="${amici_root}/build" \
       -DParPE_DIR="${script_path}/../build"
 
