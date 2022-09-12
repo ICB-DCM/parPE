@@ -1082,16 +1082,6 @@ def write_optimization_options(f: h5py.File) -> None:
     g.attrs["acceptable_obj_change_tol"] = 1e-12
     g.attrs["watchdog_shortened_iter_trigger"] = 0
 
-    # set fmincon options
-    g = f.require_group('optimizationOptions/fmincon')
-    g.attrs['MaxIter'] = 100
-    g.attrs["TolX"] = 1e-8
-    g.attrs["TolFun"] = 0
-    g.attrs["MaxFunEvals"] = 1e7
-    g.attrs["algorithm"] = np.string_("interior-point")
-    g.attrs["GradObj"] = np.string_("on")
-    g.attrs["display"] = np.string_("iter")
-
     # set CERES options
     g = f.require_group('optimizationOptions/ceres')
     g.attrs['max_num_iterations'] = 100
