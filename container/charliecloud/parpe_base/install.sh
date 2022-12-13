@@ -13,7 +13,6 @@ locale-gen en_US en_US.UTF-8
 dpkg-reconfigure locales
 
 echo "HOME=$HOME"
-cd /u18
 
 echo "================= parPE requirements ============"
 # using openmpi coming with libboost-all-dev instead of libmpich-dev
@@ -30,16 +29,16 @@ apt-get install -q -y \
   libceres-dev \
   libhdf5-dev \
   libomp-dev \
+  nano \
   python3-dev \
   python3-pip \
   python3-venv \
   libspdlog-dev \
-  swig3.0 \
+  swig \
   unzip \
   wget
 
 # for setuptools to find:
-ln -s /usr/bin/swig3.0 /usr/bin/swig
 python3 -m pip install --upgrade pip
 pip3 install -U setuptools pkgconfig wheel
 
