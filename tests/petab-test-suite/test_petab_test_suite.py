@@ -53,6 +53,8 @@ def check_run(cmd: List[str]) -> subprocess.CompletedProcess:
 
 def _test_case(case: Union[int, str]) -> None:
     """Run a single PEtab test suite case"""
+    model_type = 'sbml'
+    version = "v1.0.0"
 
     case = petabtests.test_id_str(case)
     logger.debug(f"Case {case}")
@@ -64,7 +66,8 @@ def _test_case(case: Union[int, str]) -> None:
     if case in ['0012', '0018']:
         raise NotImplementedError(case)
 
-    case_dir = petabtests.CASES_DIR / case
+    case_dir = petabtests.get_case_dir(case, model_type, version)
+    yaml_file = case_dir / petabtests.problem_yaml_name(case)
     yaml_file = case_dir / petabtests.problem_yaml_name(case)
     test_dir = Path(__file__).parent.absolute()
     parpe_dir = test_dir.parents[1]
@@ -111,7 +114,7 @@ def _test_case(case: Union[int, str]) -> None:
     g = re.search(r'Likelihood: (\d+\.\d+)', ret.stdout)[0]
     llh_actual = - float(g.split(' ')[1])
     print("Actual llh:", llh_actual)
-    solution = petabtests.load_solution(case, 'sbml')
+    solution = petabtests.load_solution(case, model_type, version=version)
 
     gt_llh = solution[petabtests.LLH]
     assert llh_actual == pytest.approx(gt_llh,
@@ -127,7 +130,7 @@ def run() -> None:
 
     n_success = 0
     n_skipped = 0
-    all_cases = list(petabtests.get_cases('sbml'))
+    all_cases = list(petabtests.get_cases('sbml', version="v1.0.0"))
     for case in all_cases:
         try:
             test_case(case)

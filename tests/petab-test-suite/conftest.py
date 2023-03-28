@@ -45,6 +45,6 @@ def pytest_generate_tests(metafunc):
             test_numbers = parse_selection(cases)
         else:
             # Run all tests
-            test_numbers = petabtests.get_cases('sbml')
+            test_numbers = petabtests.get_cases('sbml', version="v1.0.0")
 
         metafunc.parametrize("case", test_numbers)
