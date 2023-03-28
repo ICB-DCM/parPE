@@ -9,7 +9,7 @@ jobs:
     - uses: actions/checkout@master
     - run: git archive -v -o container/charliecloud/parpe_base/parpe.tar.gz --format=tar.gz HEAD
     - name: Publish to Registry
-      uses: elgohr/Publish-Docker-Github-Action@2.8
+      uses: elgohr/Publish-Docker-Github-Action@v5
       with:
         name: dweindl/parpe
         username: ${{ secrets.DOCKER_USERNAME }}
