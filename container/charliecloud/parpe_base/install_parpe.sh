@@ -7,7 +7,7 @@ export PARPE_BASE="${PARPE_DIR:-/parPE}"
 
 # unpack git archive
 mkdir "$PARPE_BASE" && cd "$PARPE_BASE"
-tar -xzf /u18/parpe.tar.gz
+tar -xzf /container-files/parpe.tar.gz
 
 # Build dependencies
 
@@ -18,7 +18,7 @@ cd "${AMICI_PATH}" \
   && scripts/buildSundials.sh
 mkdir -p "${AMICI_PATH}/build" && cd "${AMICI_PATH}/build"
 cmake \
-  -DCMAKE_BUILD_TYPE=Debug \
+  -DCMAKE_BUILD_TYPE=RelWithDebInfo \
   -DENABLE_PYTHON=ON \
   -DBUILD_TESTS=OFF \
   .. && make -j12

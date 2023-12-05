@@ -8,7 +8,7 @@ Short guide
 
 Installation of the AMICI Python package has the following prerequisites:
 
-* Python>=3.7
+* Python>=3.8
 * :term:`SWIG`>=3.0
 * CBLAS compatible BLAS library
   (e.g., OpenBLAS, CBLAS, Atlas, Accelerate, Intel MKL)
@@ -192,12 +192,12 @@ To build OpenBLAS, download the following scripts from the AMICI repository:
 The first script needs to be called in Powershell, and it needs to call
 ``compileBLAS.cmd``, so you will need to modify line 11:
 
-    C: \\Users\\travis\\build\\AMICI\\scripts\\compileBLAS.cmd
+    cmd /c "scripts\compileBLAS.cmd $version"
 
 so that it matches your directory structure.
 This will download OpenBLAS and compile it, creating
 
-    C:\\BLAS\lib\\openblas.lib
+    C:\\BLAS\\lib\\openblas.lib
     C:\\BLAS\\bin\\openblas.dll
 
 You will also need to define two environment variables:
@@ -205,7 +205,7 @@ You will also need to define two environment variables:
 .. code-block:: text
 
    BLAS_LIBS="/LIBPATH:C:\BLAS\lib openblas.lib"
-   BLAS_CFLAGS="/IC:/BLAS/OpenBLAS-0.3.12/OpenBLAS-0.3.12"
+   BLAS_CFLAGS="/IC:/BLAS/OpenBLAS-0.3.19/OpenBLAS-0.3.19"
 
 One way to do that is to run a PowerShell script with the following commands:
 
@@ -213,8 +213,8 @@ One way to do that is to run a PowerShell script with the following commands:
 
    [System.Environment]::SetEnvironmentVariable("BLAS_LIBS", "/LIBPATH:C:/BLAS/lib openblas.lib", [System.EnvironmentVariableTarget]::User)
    [System.Environment]::SetEnvironmentVariable("BLAS_LIBS", "/LIBPATH:C:/BLAS/lib openblas.lib", [System.EnvironmentVariableTarget]::Process)
-   [System.Environment]::SetEnvironmentVariable("BLAS_CFLAGS", "-IC:/BLAS/OpenBLAS-0.3.12/OpenBLAS-0.3.12", [System.EnvironmentVariableTarget]::User)
-   [System.Environment]::SetEnvironmentVariable("BLAS_CFLAGS", "-IC:/BLAS/OpenBLAS-0.3.12/OpenBLAS-0.3.12", [System.EnvironmentVariableTarget]::Process)
+   [System.Environment]::SetEnvironmentVariable("BLAS_CFLAGS", "-IC:/BLAS/OpenBLAS-0.3.19/OpenBLAS-0.3.19", [System.EnvironmentVariableTarget]::User)
+   [System.Environment]::SetEnvironmentVariable("BLAS_CFLAGS", "-IC:/BLAS/OpenBLAS-0.3.19/OpenBLAS-0.3.19", [System.EnvironmentVariableTarget]::Process)
 
 The call ending in ``Process`` sets the environment variable in the current
 process, and it is no longer in effect in the next process. The call ending in
@@ -234,14 +234,6 @@ If any DLLs are missing in the ``PATH`` variable, Python will return the
 following error upon ``import amici``:
 
     ImportError: DLL load failed: The specified module could not be found.
-
-This can be tested using the "where" command. For example
-
-    where openblas.dll
-
-should return
-
-    C:\\BLAS\\bin\\openblas.dll
 
 Almost all of the DLLs are standard Windows DLLs and should be included in
 either Windows or Visual Studio. But, in case it is necessary to test this,
@@ -268,7 +260,7 @@ by MSVC (see Visual Studio above). ``KERNEL32.dll`` is part of Windows and in
 
 .. note::
 
-    Since Python 3.8, the library directory needs to be set as follows:
+    Since Python 3.8, the library directory needs to be set either from Python:
 
     .. code-block:: python
 
@@ -277,7 +269,11 @@ by MSVC (see Visual Studio above). ``KERNEL32.dll`` is part of Windows and in
         os.add_dll_directory("C:\\BLAS\\bin")
         import amici
 
-    Adding it to ``PATH`` will not work.
+    or via the environment variable ``AMICI_DLL_DIRS``.
+
+If Python returns the following error upon ``import amici``, try updating to the latest Python version.
+
+    OSError: [WinError 87] The parameter is incorrect: ''
 
 Further topics
 ++++++++++++++
@@ -321,6 +317,8 @@ dependencies, you can run
    manually, and try again. (This is because ``pip`` ``--install-option`` is
    applied to *all* installed packages, including dependencies.)
 
+
+.. _amici_python_install_env_vars:
 
 Custom installation
 -------------------

@@ -1,7 +1,7 @@
 # Steady-state model example
 
 # This requires python to generate the model code from SBML
-find_package(PythonInterp 3.7)
+find_package(PythonInterp 3.8)
 
 # Generate model code and data; build model
 include(ExternalProject)

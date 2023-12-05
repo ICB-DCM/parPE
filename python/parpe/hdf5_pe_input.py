@@ -952,7 +952,7 @@ class HDF5DataGenerator:
         # Required to handle parametric initial concentrations where newton
         # solver would fail with KLU error
         g.attrs['steadyStateSensitivityMode'] = \
-            amici.SteadyStateSensitivityMode_simulationFSA
+            amici.SteadyStateSensitivityMode.integrationOnly
 
         num_model_parameters = \
             self.f['/parameters/modelParameterNames'].shape[0]
@@ -1081,16 +1081,6 @@ def write_optimization_options(f: h5py.File) -> None:
     g.attrs["acceptable_tol"] = 1e20
     g.attrs["acceptable_obj_change_tol"] = 1e-12
     g.attrs["watchdog_shortened_iter_trigger"] = 0
-
-    # set fmincon options
-    g = f.require_group('optimizationOptions/fmincon')
-    g.attrs['MaxIter'] = 100
-    g.attrs["TolX"] = 1e-8
-    g.attrs["TolFun"] = 0
-    g.attrs["MaxFunEvals"] = 1e7
-    g.attrs["algorithm"] = np.string_("interior-point")
-    g.attrs["GradObj"] = np.string_("on")
-    g.attrs["display"] = np.string_("iter")
 
     # set CERES options
     g = f.require_group('optimizationOptions/ceres')

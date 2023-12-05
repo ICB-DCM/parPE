@@ -20,8 +20,9 @@ from sphinx.transforms.post_transforms import ReferencesResolver
 
 # need to import before setting typing.TYPE_CHECKING=True, fails otherwise
 import pandas as pd
+import sympy as sp
 
-exhale_multiproject_monkeypatch, pd  # to avoid removal of unused import
+exhale_multiproject_monkeypatch, pd, sp  # to avoid removal of unused import
 
 # BEGIN Monkeypatch exhale
 from exhale.deploy import _generate_doxygen as exhale_generate_doxygen
@@ -129,10 +130,10 @@ def install_doxygen():
     some_dir_on_path = os.environ['PATH'].split(os.pathsep)[0]
     cmd = (
         f"cd '{os.path.join(amici_dir, 'ThirdParty')}' "
-        f"&& wget 'https://doxygen.nl/files/"
+        f"&& wget 'https://www.doxygen.nl/files/"
         f"doxygen-{version}.linux.bin.tar.gz' "
         f"&& tar -xzf doxygen-{version}.linux.bin.tar.gz "
-        f"&& ln -s '{doxygen_exe}' '{some_dir_on_path}'"
+        f"&& ln -sf '{doxygen_exe}' '{some_dir_on_path}'"
     )
     subprocess.run(cmd, shell=True, check=True)
     assert os.path.islink(os.path.join(some_dir_on_path, 'doxygen'))
@@ -180,6 +181,8 @@ except ModuleNotFoundError:
     sys.path.insert(0, os.path.join(amici_dir, 'python', 'sdist'))
 
     import amici
+# Works around some cyclic dependency issue with amici.petab_import_pysb
+import amici.petab_import
 
 typing.TYPE_CHECKING = False
 
@@ -235,7 +238,10 @@ extensions = [
 
 intersphinx_mapping = {
     'pysb': ('https://pysb.readthedocs.io/en/stable/', None),
-    'petab': ('https://petab.readthedocs.io/en/stable/', None),
+    'petab': (
+        'https://petab.readthedocs.io/projects/libpetab-python/en/latest/',
+        None
+    ),
     'pandas': ('https://pandas.pydata.org/docs/', None),
     'numpy': ('https://numpy.org/devdocs/', None),
     'sympy': ('https://docs.sympy.org/latest/', None),
@@ -259,7 +265,7 @@ master_doc = 'index'
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = "en"
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -511,23 +517,6 @@ def process_docstring(app, what, name, obj, options, lines):
             f'and '
             f':class:`numpy.array` [{vector_types[cname]}] to facilitate'
             ' interfacing with C++ bindings.'
-        )
-        return
-
-    if name == 'amici.amici.StringDoubleMap':
-        lines.append(
-            'Swig-Generated class templating :class:`Dict` '
-            '[:class:`str`, :class:`float`] to  facilitate'
-            ' interfacing with C++ bindings.'
-        )
-        return
-
-    if name == 'amici.amici.ParameterScalingVector':
-        lines.append(
-            'Swig-Generated class, which, in contrast to other Vector '
-            'classes, does not allow for simple interoperability with common '
-            'python types, but must be created using '
-            ':func:`amici.amici.parameterScalingFromIntVector`'
         )
         return
 

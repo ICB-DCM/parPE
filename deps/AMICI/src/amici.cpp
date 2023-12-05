@@ -104,6 +104,7 @@ AmiciApplication::runAmiciSimulation(Solver& solver,
                                      Model& model,
                                      bool rethrow)
 {
+    auto start_time_total = clock();
     solver.startTimer();
 
     /* Applies condition-specific model settings and restores them when going
@@ -124,14 +125,13 @@ AmiciApplication::runAmiciSimulation(Solver& solver,
     bool bwd_success = true;
 
     try {
-        if (solver.getPreequilibration() ||
-            (edata && !edata->fixedParametersPreequilibration.empty())) {
+        if (edata && !edata->fixedParametersPreequilibration.empty()) {
             ConditionContext cc2(
                 &model, edata, FixedParameterContext::preequilibration
             );
 
             preeq = std::make_unique<SteadystateProblem>(solver, model);
-            preeq->workSteadyStateProblem(&solver, &model, -1);
+            preeq->workSteadyStateProblem(solver, model, -1);
         }
 
 
@@ -142,7 +142,7 @@ AmiciApplication::runAmiciSimulation(Solver& solver,
 
         if (fwd->getCurrentTimeIteration() < model.nt()) {
             posteq = std::make_unique<SteadystateProblem>(solver, model);
-            posteq->workSteadyStateProblem(&solver, &model,
+            posteq->workSteadyStateProblem(solver, model,
                                            fwd->getCurrentTimeIteration());
         }
 
@@ -151,7 +151,7 @@ AmiciApplication::runAmiciSimulation(Solver& solver,
             fwd->getAdjointUpdates(model, *edata);
             if (posteq) {
                 posteq->getAdjointUpdates(model, *edata);
-                posteq->workSteadyStateBackwardProblem(&solver, &model,
+                posteq->workSteadyStateBackwardProblem(solver, model,
                                                        bwd.get());
             }
 
@@ -165,7 +165,7 @@ AmiciApplication::runAmiciSimulation(Solver& solver,
             if (preeq) {
                 ConditionContext cc2(&model, edata,
                                      FixedParameterContext::preequilibration);
-                preeq->workSteadyStateBackwardProblem(&solver, &model,
+                preeq->workSteadyStateBackwardProblem(solver, model,
                                                       bwd.get());
             }
         }
@@ -179,7 +179,7 @@ AmiciApplication::runAmiciSimulation(Solver& solver,
                 throw;
             warningF("AMICI:simulation",
                      "AMICI forward simulation failed at t = %f: "
-                     "Maximum time exceeed.\n",
+                     "Maximum time exceeded.\n",
                      ex.time);
         } else {
             rdata->status = ex.error_code;
@@ -199,7 +199,7 @@ AmiciApplication::runAmiciSimulation(Solver& solver,
             warningF(
                 "AMICI:simulation",
                 "AMICI backward simulation failed when trying to solve until "
-                "t = %f: Maximum time exceeed.\n",
+                "t = %f: Maximum time exceeded.\n",
                 ex.time);
 
         } else {
@@ -234,6 +234,28 @@ AmiciApplication::runAmiciSimulation(Solver& solver,
         preeq.get(), fwd.get(),
         bwd_success ? bwd.get() : nullptr,
         posteq.get(), model, solver, edata);
+
+    rdata->cpu_time_total = static_cast<double>(clock() - start_time_total)
+                            * 1000.0 / CLOCKS_PER_SEC;
+
+    // verify that reported CPU times are plausible
+    gsl_EnsuresDebug(rdata->cpu_time <= rdata->cpu_time_total);
+    gsl_EnsuresDebug(rdata->cpu_timeB <= rdata->cpu_time_total);
+    gsl_EnsuresDebug(rdata->preeq_cpu_time <= rdata->cpu_time_total);
+    gsl_EnsuresDebug(rdata->preeq_cpu_timeB <= rdata->cpu_time_total);
+    gsl_EnsuresDebug(rdata->posteq_cpu_time <= rdata->cpu_time_total);
+    gsl_EnsuresDebug(rdata->posteq_cpu_timeB <= rdata->cpu_time_total);
+    if (!posteq)
+        gsl_EnsuresDebug(
+            std::is_sorted(rdata->numsteps.begin(), rdata->numsteps.end())
+            || rdata->status != AMICI_SUCCESS
+        );
+    if (!preeq)
+        gsl_EnsuresDebug(
+            std::is_sorted(rdata->numstepsB.begin(), rdata->numstepsB.end())
+            || rdata->status != AMICI_SUCCESS
+        );
+
     return rdata;
 }
 
@@ -296,27 +318,6 @@ AmiciApplication::errorF(const char* identifier, const char* format, ...) const
     auto str = printfToString(format, argptr);
     va_end(argptr);
     error(identifier, str);
-}
-
-int
-AmiciApplication::checkFinite(gsl::span<const realtype> array, const char* fun)
-{
-
-    for (int idx = 0; idx < (int)array.size(); idx++) {
-        if (isNaN(array[idx])) {
-            warningF("AMICI:NaN",
-                     "AMICI encountered a NaN value for %s[%i]!",
-                     fun, idx);
-            return AMICI_RECOVERABLE_ERROR;
-        }
-        if (isInf(array[idx])) {
-            warningF("AMICI:Inf",
-                     "AMICI encountered an Inf value for %s[%i]!",
-                     fun, idx);
-            return AMICI_RECOVERABLE_ERROR;
-        }
-    }
-    return AMICI_SUCCESS;
 }
 
 } // namespace amici

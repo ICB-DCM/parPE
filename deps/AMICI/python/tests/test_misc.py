@@ -2,14 +2,15 @@
 
 import os
 import subprocess
-from tempfile import TemporaryDirectory
 
-import amici
-from amici.ode_export import smart_subs_dict
 import libsbml
 import pytest
 import sympy as sp
-from amici.ode_export import _monkeypatched, _custom_pow_eval_derivative
+
+import amici
+from amici.ode_export import _custom_pow_eval_derivative, _monkeypatched, \
+    smart_subs_dict
+from amici.testing import TemporaryDirectoryWinSafe as TemporaryDirectory
 
 
 def test_parameter_scaling_from_int_vector():
@@ -25,32 +26,6 @@ def test_parameter_scaling_from_int_vector():
     assert scale_vector[0] == amici.ParameterScaling.log10
     assert scale_vector[1] == amici.ParameterScaling.ln
     assert scale_vector[2] == amici.ParameterScaling.none
-
-
-def test_sbml2amici_no_observables():
-    """Test model generation works for model without observables"""
-
-    # test model
-    document = libsbml.SBMLDocument(3, 1)
-    model = document.createModel()
-    model.setTimeUnits("second")
-    model.setExtentUnits("mole")
-    model.setSubstanceUnits('mole')
-    c1 = model.createCompartment()
-    c1.setId('C1')
-    model.addCompartment(c1)
-    s1 = model.createSpecies()
-    s1.setId('S1')
-    s1.setCompartment('C1')
-    model.addSpecies(s1)
-
-    sbml_importer = amici.sbml_import.SbmlImporter(sbml_source=model,
-                                                   from_file=False)
-    tmpdir = TemporaryDirectory()
-    sbml_importer.sbml2amici(modelName="test",
-                             output_dir=tmpdir.name,
-                             observables=None,
-                             compute_conservation_laws=False)
 
 
 def test_hill_function_dwdx():
@@ -109,7 +84,7 @@ def test_smart_subs_dict():
     assert sp.simplify(result_default - expected_default).is_zero
     assert sp.simplify(result_reverse - expected_reverse).is_zero
 
-    
+
 def test_monkeypatch():
     t = sp.Symbol('t')
     n = sp.Symbol('n')
