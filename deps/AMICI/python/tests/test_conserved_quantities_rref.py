@@ -3,8 +3,8 @@ import os
 import numpy as np
 import pytest
 import sympy as sp
-
 from amici.conserved_quantities_rref import nullspace_by_rref, pivots, rref
+from amici.testing import skip_on_valgrind
 
 
 def random_matrix_generator(min_dim, max_dim, count):
@@ -14,8 +14,7 @@ def random_matrix_generator(min_dim, max_dim, count):
         yield np.random.rand(rows, cols)
 
 
-@pytest.mark.skipif(os.environ.get('GITHUB_JOB') == 'valgrind',
-                    reason="Python-only")
+@skip_on_valgrind
 @pytest.mark.parametrize("mat", random_matrix_generator(0, 10, 200))
 def test_rref(mat):
     """Create some random matrices and compare output of ``rref`` and
@@ -28,8 +27,7 @@ def test_rref(mat):
     assert np.allclose(expected_rref, actual_rref)
 
 
-@pytest.mark.skipif(os.environ.get('GITHUB_JOB') == 'valgrind',
-                    reason="Python-only")
+@skip_on_valgrind
 @pytest.mark.parametrize("mat", random_matrix_generator(0, 50, 50))
 def test_nullspace_by_rref(mat):
     """Test ``nullspace_by_rref`` on a number of random matrices and compare
@@ -40,7 +38,10 @@ def test_nullspace_by_rref(mat):
         assert np.allclose(mat.dot(actual.T), 0)
 
     expected = sp.Matrix(mat).nullspace()
-    expected = np.hstack(np.asarray(expected, dtype=float)).T \
-        if len(expected) else np.array([])
+    expected = (
+        np.hstack(np.asarray(expected, dtype=float)).T
+        if len(expected)
+        else np.array([])
+    )
 
     assert np.allclose(actual, expected, rtol=1e-8)

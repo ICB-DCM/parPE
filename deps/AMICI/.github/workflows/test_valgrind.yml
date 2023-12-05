@@ -1,4 +1,4 @@
-name: C++ Tests
+name: Valgrind tests
 on:
   push:
     branches:
@@ -12,27 +12,28 @@ on:
     - cron:  '48 4 * * *'
 
 jobs:
-  valgrind:
-    name: Tests Valgrind
-
-    # TODO: prepare image with more deps preinstalled
+  valgrind_cpp:
+    name: Valgrind C++
     runs-on: ubuntu-22.04
 
     strategy:
       matrix:
-        python-version: [ "3.8" ]
+        python-version: [ "3.9" ]
 
     env:
       ENABLE_AMICI_DEBUGGING: "TRUE"
 
     steps:
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
 
-    - uses: actions/checkout@master
+    - uses: actions/checkout@v3
     - run: git fetch --prune --unshallow
+
+    - name: Install apt dependencies
+      uses: ./.github/actions/install-apt-dependencies
 
     # install amici dependencies
     - name: apt
@@ -40,27 +41,53 @@ jobs:
         sudo apt-get update \
           && sudo apt-get install -y \
             cmake \
-            g++ \
-            libatlas-base-dev \
-            libboost-serialization-dev \
-            libhdf5-serial-dev \
             python3-venv \
-            swig \
-            valgrind \
-            libboost-math-dev
+            valgrind
 
     - name: Build AMICI
-      run: |
-        scripts/buildAll.sh
+      run: scripts/buildAll.sh
 
     - name: C++ tests / Valgrind
+      run: scripts/run-valgrind-cpp.sh
+
+  valgrind_python:
+    name: Valgrind Python
+
+    runs-on: ubuntu-22.04
+
+    strategy:
+      matrix:
+        python-version: [ "3.9" ]
+
+    env:
+      ENABLE_AMICI_DEBUGGING: "TRUE"
+
+    steps:
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - uses: actions/checkout@v3
+    - run: git fetch --prune --unshallow
+
+    - name: Install apt dependencies
+      uses: ./.github/actions/install-apt-dependencies
+
+    # install amici dependencies
+    - name: apt
       run: |
-        scripts/run-valgrind-cpp.sh
+        sudo apt-get update \
+          && sudo apt-get install -y \
+            cmake \
+            python3-venv \
+            valgrind
+
+    - name: Build AMICI
+      run: scripts/buildAll.sh
 
     - name: Install python package
-      run: |
-        scripts/installAmiciSource.sh
+      run: scripts/installAmiciSource.sh
 
     - name: Python tests / Valgrind
-      run: |
-        scripts/run-valgrind-py.sh
+      run: scripts/run-valgrind-py.sh
