@@ -30,7 +30,7 @@ if [[ ! -d "${venv_dir}" ]]; then
         source "${venv_dir}/bin/activate"
     fi
 
-    pip3 install wheel pytest
+    pip3 install wheel pytest numpy
 
     # install AMICI
     cd "${parpe_root}/deps/AMICI/python/sdist"
