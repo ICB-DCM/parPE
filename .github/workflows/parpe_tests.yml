@@ -60,7 +60,8 @@ jobs:
 
     - name: Install parPE Python deps
       run: |
-        pip install -r ${PARPE_BASE}/python/requirements.txt
+        pip install -r ${PARPE_BASE}/python/requirements.txt \
+          && sudo apt install lcov
 
     - name: "Install parPE deps: fides"
       run: |
