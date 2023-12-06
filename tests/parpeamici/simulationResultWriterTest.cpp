@@ -39,7 +39,7 @@ TEST(SimulationResultWriter, ResultWriter) {
     amici::ReturnData rdata(
                 timepoints,
                 amici::ModelDimensions(nx, nx, nx, nx, 0, 0, 0, nytrue, nytrue,
-                                       0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                       0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                                        std::vector<int>(), 0, 0, 0, 0, 0, 0),
                 0, 0, timepoints.size(), 0,
                 std::vector<amici::ParameterScaling>(),
