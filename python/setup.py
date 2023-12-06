@@ -24,6 +24,7 @@ setup(
                       'snakemake>=5.10.0',
                       'coloredlogs>=15.0',
                       'scipy',
+                      'matplotlib',
                       ],
     entry_points=ENTRY_POINTS,
 )
