@@ -9,6 +9,9 @@ jobs:
     name: benchmark models
     steps:
     - uses: actions/checkout@master
+    - name: chown checkout directory
+      # https://github.com/actions/runner/issues/2033
+      run: chown -R $(id -u):$(id -g) $PWD
 
     - run: echo "PARPE_BASE=$(pwd)" >> $GITHUB_ENV
     - run: echo "PARPE_BUILD=${PARPE_BASE}/build" >> $GITHUB_ENV
@@ -68,6 +71,6 @@ jobs:
     - name: Benchmark models --- tests
       run: |
         cd $PARPE_BASE/benchmark_collection \
-          && AMICI_PARALLEL_COMPILE=4 \
+          && AMICI_PARALLEL_COMPILE="" \
              BENCHMARK_COLLECTION="$(pwd)/Benchmark-Models-PEtab/Benchmark-Models/" \
              $PARPE_BASE/misc/run_in_venv.sh $PARPE_BASE/build/venv ./all.sh

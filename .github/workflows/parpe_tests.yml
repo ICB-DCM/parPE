@@ -21,6 +21,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@master
+    - name: chown checkout directory
+      # https://github.com/actions/runner/issues/2033
+      run: chown -R $(id -u):$(id -g) $PWD
     - run: git fetch --prune --unshallow
 
     - run: echo "PARPE_BASE=$(pwd)" >> $GITHUB_ENV
