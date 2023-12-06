@@ -1,11 +1,12 @@
-Sphinx==4.0.3
-sphinx_rtd_theme>=0.5.1
-breathe>=4.26.1
+sphinx
+sphinx_rtd_theme>=1.2.0
+breathe>=4.35.0
 exhale>=0.2.3
-IPython>=7.19.0
+ipython>=8.13.2
 m2r2>=0.2.7
 sphinx-autodoc-typehints>=1.10.3
-nbsphinx>=0.8.1
+nbsphinx==0.9.1
+-e git+https://github.com/svenevs/exhale.git@a1a8551321e246e3ab81f5456e04a8159804595b#egg=exhale
 
 # to import parpe package:
 numpy
