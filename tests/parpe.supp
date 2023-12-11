@@ -457,3 +457,25 @@
    ...
    fun:_dl_catch_error
 }
+
+{
+   orte_init
+   Memcheck:Param
+   socketcall.getsockopt(optlen)
+   fun:getsockopt_syscall
+   fun:getsockopt
+   ...
+   fun:orte_init
+   ...
+}
+
+{
+   glog
+   Memcheck:Param
+   write(buf)
+   fun:syscall
+   obj:/usr/lib/x86_64-linux-gnu/libunwind.so.8.0.1
+   ...
+   obj:/usr/lib/x86_64-linux-gnu/libglog.so.0.4.0
+   ...
+}
