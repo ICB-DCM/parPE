@@ -51,7 +51,7 @@ void optimizationProblemGradientCheckMultiEps(OptimizationProblem *problem,
                                       int numParameterIndicesToCheck
                                       ) {
     // set eps
-    std::vector<double> multi_eps {1e-1, 1e-3, 1e-5, 1e-7, 1e-9};
+    std::vector<double> multi_eps {1e-1, 1e-3, 1e-4, 1e-5, 1e-7};
 
     // setting the number of parameters to the minimum of
     // numParamaterIndicesToCheck and dimension of the problem
