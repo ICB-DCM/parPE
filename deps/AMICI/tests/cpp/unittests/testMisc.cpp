@@ -65,6 +65,7 @@ class ModelTest : public ::testing::Test {
             nz,        // nz
             nz,        // nztrue
             nmaxevent, // ne
+            0,         // nspl
             0,         // nJ
             0,         // nw
             0,         // ndwdx
@@ -302,6 +303,7 @@ class SolverTest : public ::testing::Test {
             nz,        // nz
             nz,        // nztrue
             ne,        // ne
+            0,         // nspl
             0,         // nJ
             0,         // nw
             0,         // ndwdx
@@ -704,5 +706,33 @@ TEST(UnravelIndex, UnravelIndexSunMatSparse)
     SUNMatDestroy(S);
 }
 
+TEST(ReturnCodeToStr, ReturnCodeToStr)
+{
+    EXPECT_EQ("AMICI_SUCCESS", simulation_status_to_str(AMICI_SUCCESS));
+    EXPECT_EQ("AMICI_UNRECOVERABLE_ERROR",
+              simulation_status_to_str(AMICI_UNRECOVERABLE_ERROR));
+}
+
+TEST(SpanEqual, SpanEqual)
+{
+    std::vector<realtype> a {1, 2, 3};
+    std::vector<realtype> b {1, 2, NAN};
+
+    EXPECT_TRUE(is_equal(a, a));
+    EXPECT_TRUE(is_equal(b, b));
+    EXPECT_FALSE(is_equal(a, b));
+}
+
+TEST(CpuTimer, CpuTimer)
+{
+    amici::CpuTimer timer;
+    auto elapsed = timer.elapsed_seconds();
+    EXPECT_LE(0.0, elapsed);
+    EXPECT_GT(1.0, elapsed);
+
+    elapsed = timer.elapsed_milliseconds();
+    EXPECT_LT(0.0, elapsed);
+    EXPECT_GT(1000.0, elapsed);
+}
 
 } // namespace

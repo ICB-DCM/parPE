@@ -31,6 +31,7 @@ apt-get install -q -y \
   libomp-dev \
   nano \
   python3-dev \
+  python3-numpy \
   python3-pip \
   python3-venv \
   libspdlog-dev \

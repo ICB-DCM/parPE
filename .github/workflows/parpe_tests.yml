@@ -21,6 +21,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@master
+    - name: chown checkout directory
+      # https://github.com/actions/runner/issues/2033
+      run: chown -R $(id -u):$(id -g) $PWD
     - run: git fetch --prune --unshallow
 
     - run: echo "PARPE_BASE=$(pwd)" >> $GITHUB_ENV
@@ -28,7 +31,7 @@ jobs:
     - run: echo "AMICI_PATH=${PARPE_BASE}/deps/AMICI/" >> $GITHUB_ENV
 
     # sonar cloud
-    - run: echo "SONAR_SCANNER_VERSION=4.6.1.2450" >> $GITHUB_ENV
+    - run: echo "SONAR_SCANNER_VERSION=5.0.1.3006" >> $GITHUB_ENV
     - run: echo "SONAR_SCANNER_HOME=/root/.sonar/sonar-scanner-$SONAR_SCANNER_VERSION-linux" >> $GITHUB_ENV
     - run: echo "SONAR_SCANNER_OPTS=-server" >> $GITHUB_ENV
     - run: echo "${SONAR_SCANNER_HOME}/bin" >> $GITHUB_PATH
@@ -57,7 +60,8 @@ jobs:
 
     - name: Install parPE Python deps
       run: |
-        pip install -r ${PARPE_BASE}/python/requirements.txt
+        pip install -r ${PARPE_BASE}/python/requirements.txt \
+          && sudo apt install lcov
 
     - name: "Install parPE deps: fides"
       run: |
@@ -103,14 +107,16 @@ jobs:
 
     - name: Cache sonar files
       id: cache-sonar
-      uses: actions/cache@v1
+      uses: actions/cache@v3
       with:
         path: sonar_cache
         key: ${{ runner.os }}-sonar_cache
 
     - name: Run sonar-scanner
+      if: ${{ env.SONAR_TOKEN != '' }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       run: |
         sonar-scanner \
          -Dsonar.cfamily.build-wrapper-output=bw-output \
@@ -118,7 +124,9 @@ jobs:
 
     - name: Run example notebooks
       run: |
-        misc/run_notebook.sh examples/parpeamici/steadystate/parpeExampleSteadystateBasic.ipynb examples/parpeamici/steadystate/parpeExampleSteadystateHierarchical.ipynb
+        misc/run_notebook.sh \
+          examples/parpeamici/steadystate/parpeExampleSteadystateBasic.ipynb \
+          examples/parpeamici/steadystate/parpeExampleSteadystateHierarchical.ipynb
 
     - name: Run valgrind
       run: |
