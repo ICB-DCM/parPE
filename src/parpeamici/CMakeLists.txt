@@ -2,7 +2,7 @@
 find_package(Amici
     HINTS ${CMAKE_SOURCE_DIR}/deps/AMICI/build)
 
-# dependecy: BOOST
+# dependency: BOOST
 if(CMAKE_BUILD_TYPE MATCHES Release)
     set(Boost_USE_STATIC_LIBS TRUE)
 else()
