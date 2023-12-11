@@ -21,7 +21,7 @@ cmake \
   -DCMAKE_BUILD_TYPE=RelWithDebInfo \
   -DENABLE_PYTHON=ON \
   -DBUILD_TESTS=OFF \
-  .. && make -j12
+  .. && make -j
 
 # install fides optimizer
 cd "$PARPE_BASE/ThirdParty" && ./installFides.sh
@@ -55,7 +55,7 @@ CC=mpicc CXX=mpiCC cmake \
       -DTESTS_MPIEXEC_COMMAND="$mpi_cmd" \
       ..
 
-make -j12 VERBOSE=1
+make -j VERBOSE=1
 
 # MPI settings for python tests
 export PARPE_TESTS_MPIEXEC="mpiexec -n 5 --oversubscribe --allow-run-as-root --mca btl_vader_single_copy_mechanism none --mca btl ^openib --mca oob_tcp_if_include lo --mca btl_tcp_if_include lo --mca orte_base_help_aggregate 0"

@@ -353,34 +353,10 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
 
     std::unique_ptr<amici::ReturnData> rdata;
 
-    // redirect AMICI output to parPE logging
-    amici::AmiciApplication amiciApp;
-    amiciApp.error = [logger](
-            std::string const& identifier,
-            std::string const& message){
-        if(!identifier.empty()) {
-            logger->logmessage(loglevel::error, "[" + identifier + "] " + message);
-        } else {
-            logger->logmessage(loglevel::error, message);
-        }
-    };
-    amiciApp.warning = [logger](
-            std::string const& identifier,
-            std::string const& message){
-        if(!identifier.empty()) {
-            logger->logmessage(loglevel::warning,
-                               "[" + identifier + "] " + message);
-        } else {
-            logger->logmessage(loglevel::warning, message);
-        }
-    };
-    model.app = &amiciApp; // TODO: may dangle need to unset on exit
-
     for(int trial = 1; trial <= maxNumTrials; ++trial) {
         /* It is currently not safe to reuse solver if an exception has
          * occurred,so clone every time */
         auto solver = std::unique_ptr<amici::Solver>(solverTemplate.clone());
-        solver->app = &amiciApp;
         if (!sendStates) {
             /* If we don't need the states, we can save memory here.
              * For current optimizers we only need the likelihood. For
@@ -459,7 +435,7 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
         }
 
         try {
-            rdata = amiciApp.runAmiciSimulation(*solver, edata.get(), model);
+            rdata = run_amici_simulation(*solver, edata.get(), model, false, logger);
         } catch (std::exception const& e) {
             std::cerr<<e.what()<<std::endl;
             std::string status = "-";

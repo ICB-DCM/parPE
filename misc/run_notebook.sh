@@ -27,7 +27,7 @@ fi
 
 source "${parpe_path}/build/venv/bin/activate"
 pip3 show ipython \
-  || (pip3 install --upgrade jupyter jupyter_contrib_nbextensions \
+  || (pip3 install --upgrade jupyter \
       && python3 -m ipykernel install --user \
                  --name parpe --display-name "Python (parpe)")
 

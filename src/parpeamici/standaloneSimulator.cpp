@@ -4,6 +4,7 @@
 #include <parpeamici/hierarchicalOptimization.h>
 #include <parpeamici/multiConditionDataProvider.h>
 #include <parpeamici/simulationResultWriter.h>
+#include <parpeamici/amiciMisc.h>
 #include <parpecommon/misc.h>
 #include <parpeloadbalancer/loadBalancerMaster.h>
 #include <parpeoptimization/optimizationOptions.h>
@@ -394,28 +395,8 @@ StandaloneSimulator::runSimulation(int conditionIdx,
 
     // redirect AMICI output to parPE logging
     Logger logger("c" + std::to_string(conditionIdx));
-    amici::AmiciApplication amiciApp;
-    amiciApp.error = [&logger](std::string const& identifier,
-                               std::string const& message) {
-        if (!identifier.empty()) {
-            logger.logmessage(loglevel::error, "[" + identifier + "] " + message);
-        } else {
-            logger.logmessage(loglevel::error, message);
-        }
-    };
-    amiciApp.warning = [&logger](std::string const& identifier,
-                                 std::string const& message) {
-        if (!identifier.empty()) {
-            logger.logmessage(loglevel::warning,
-                              "[" + identifier + "] " + message);
-        } else {
-            logger.logmessage(loglevel::warning, message);
-        }
-    };
-    model.app = &amiciApp;  // TODO: may dangle need to unset on exit
-    solver.app = &amiciApp; // TODO: may dangle need to unset on exit
 
-    auto rdata = amiciApp.runAmiciSimulation(solver, edata.get(), model);
+    auto rdata = run_amici_simulation(solver, edata.get(), model, false, &logger);
 
     Expects(rdata != nullptr);
 

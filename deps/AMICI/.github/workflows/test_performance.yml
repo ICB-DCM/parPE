@@ -23,23 +23,21 @@ jobs:
 
     strategy:
       matrix:
-        python-version: [3.8]
+        python-version: [3.9]
 
     steps:
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
 
-    - uses: actions/checkout@master
+    - uses: actions/checkout@v3
       with:
         fetch-depth: 20
 
-    # install dependencies
-    - name: apt
-      run: |
-        sudo apt-get update \
-          && sudo apt-get install -y swig libatlas-base-dev
+    - name: Install apt dependencies
+      uses: ./.github/actions/install-apt-dependencies
+
     - run: pip3 install petab shyaml build
 
     - run: echo "${HOME}/.local/bin/" >> $GITHUB_PATH
@@ -68,8 +66,8 @@ jobs:
     - name: "Upload artifact: CS_Signalling_ERBB_RAS_AKT_petab"
       uses: actions/upload-artifact@v3
       with:
-        name: CS_Signalling_ERBB_RAS_AKT
-        path: CS_Signalling_ERBB_RAS_AKT/CS_Signalling_ERBB_RAS_AKT_petab
+        name: model_performance_test
+        path: model_performance_test
 
     # install model package
     - name: Install test model
