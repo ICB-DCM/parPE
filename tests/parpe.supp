@@ -81,6 +81,18 @@
 }
 
 {
+   libhwloc
+   Memcheck:Leak
+   match-leak-kinds: all
+   fun:calloc
+   ...
+   obj:/usr/lib/x86_64-linux-gnu/libhwloc.so.15.*.*
+   ...
+   fun:hwloc_topology_load
+   ...
+}
+
+{
    <_dlerror_run OpenMPI?>
    Memcheck:Leak
    match-leak-kinds: definite
@@ -215,15 +227,14 @@
    dl
    Memcheck:Leak
    match-leak-kinds: reachable
-   fun:calloc
-   fun:_dl_check_map_versions
+   fun:*alloc
+   ...
    fun:dl_open_worker
    fun:_dl_catch_exception
    fun:_dl_open
    fun:dlopen_doit
    fun:_dl_catch_exception
    fun:_dl_catch_error
-   fun:_dlerror_run
    ...
 }
 
@@ -364,21 +375,12 @@
    ...
 }
 
-{
-   pmix_server_init
-   Memcheck:Leak
-   match-leak-kinds: indirect
-   fun:malloc
-   fun:strdup
-   ...
-   fun:pmix_server_init
-}
 
 {
    pmix_server_init
    Memcheck:Leak
-   match-leak-kinds: definite
-   fun:realloc
+   match-leak-kinds: all
+   fun:*alloc
    ...
    fun:pmix_server_init
    ...
@@ -470,6 +472,16 @@
 }
 
 {
+   orte_init
+   Memcheck:Param
+   socketcall.getsockopt(optlen_out)
+   fun:getsockopt_syscall
+   fun:getsockopt
+   ...
+   fun:orte_init
+}
+
+{
    libunwind
    Memcheck:Param
    write(buf)
@@ -484,8 +496,7 @@
    match-leak-kinds: reachable
    fun:_Znwm
    ...
-   fun:_ZN7testing12_GLOBAL__N_131SetReactionOnUninterestingCallsEmNS_8internal12CallReactionE
-   fun:_ZN7testing4Mock23AllowUninterestingCallsEm
+   fun:_ZN7testing*UninterestingCall*
    ...
 }
 
