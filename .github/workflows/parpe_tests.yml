@@ -113,8 +113,10 @@ jobs:
         key: ${{ runner.os }}-sonar_cache
 
     - name: Run sonar-scanner
+      if: ${{ env.SONAR_TOKEN != '' }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       run: |
         sonar-scanner \
          -Dsonar.cfamily.build-wrapper-output=bw-output \
