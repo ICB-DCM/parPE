@@ -420,18 +420,9 @@
    obj:*
 }
 
-{
-   ompi_mpi_init
-   Memcheck:Param
-   ...
-   fun:orte_init
-   fun:ompi_mpi_init
-   fun:PMPI_Init
-   ...
-}
 
 {
-   <insert_a_suppression_name_here>
+   orte_submit_init
    Memcheck:Leak
    match-leak-kinds: indirect
    fun:calloc
@@ -457,17 +448,6 @@
    obj:/usr/lib/x86_64-linux-gnu/libhdf5_serial_cpp.so.103.3.0
 }
 
-{
-   ??
-   Memcheck:Param
-   ...
-   obj:/usr/lib/x86_64-linux-gnu/libunwind.so.8.0.1
-   ...
-   obj:/usr/lib/x86_64-linux-gnu/libglog.so.0.4.0
-   ...
-   fun:_dl_init
-   ...
-}
 
 {
    <insert_a_suppression_name_here>
