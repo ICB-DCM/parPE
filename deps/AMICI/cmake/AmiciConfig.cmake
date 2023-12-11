@@ -30,7 +30,9 @@ find_package(BTF REQUIRED)
 find_package(COLAMD REQUIRED)
 find_package(KLU REQUIRED)
 
-add_library(SUNDIALS::KLU INTERFACE IMPORTED)
+if(NOT TARGET SUNDIALS::KLU)
+  add_library(SUNDIALS::KLU INTERFACE IMPORTED)
+endif()
 target_link_libraries(
   SUNDIALS::KLU
   INTERFACE "${KLU_STATIC}"
