@@ -34,7 +34,7 @@ if [[ ! -d "${venv_dir}" ]]; then
 
     # install AMICI
     cd "${parpe_root}/deps/AMICI/python/sdist"
-    pip3 install -e .
+    pip3 install -e .[vis]
 
     # install parPE
     cd "${parpe_root}/python"
