@@ -507,3 +507,14 @@
    fun:_Ux86_64_setcontext
    ...
 }
+
+{
+   MPI / ORTE
+   Memcheck:Param
+   setsockopt(optlen)
+   fun:setsockopt_syscall
+   fun:setsockopt
+   ...
+   fun:orte_init
+   ...
+}
