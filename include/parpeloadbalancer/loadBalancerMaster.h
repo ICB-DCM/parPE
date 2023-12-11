@@ -3,7 +3,10 @@
 
 #include <parpecommon/parpeConfig.h>
 
-#include <pthread.h>
+#include <atomic>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
 #include <queue>
 #include <semaphore.h>
 #include <functional>
@@ -19,8 +22,8 @@ struct JobData {
     JobData() = default;
 
     JobData(int *jobDone,
-            pthread_cond_t *jobDoneChangedCondition,
-            pthread_mutex_t *jobDoneChangedMutex)
+            std::condition_variable *jobDoneChangedCondition,
+            std::mutex *jobDoneChangedMutex)
         : jobDone(jobDone),
           jobDoneChangedCondition(jobDoneChangedCondition),
           jobDoneChangedMutex(jobDoneChangedMutex) {
@@ -39,9 +42,9 @@ struct JobData {
     int *jobDone = nullptr;
 
     /** is signaled after jobDone has been incremented (if set) */
-    pthread_cond_t *jobDoneChangedCondition = nullptr;
+    std::condition_variable *jobDoneChangedCondition = nullptr;
     /** is locked to signal jobDoneChangedCondition condition (if set) */
-    pthread_mutex_t *jobDoneChangedMutex = nullptr;
+    std::mutex *jobDoneChangedMutex = nullptr;
 
     /** callback when job is finished (if set) */
     std::function<void(JobData*)> callbackJobFinished = nullptr;
@@ -108,13 +111,6 @@ class LoadBalancerMaster {
 
   private:
     /**
-     * @brief Thread entry point. This is run from run()
-     * @param `this`
-     * @return nullptr, always
-     */
-    static void *threadEntryPoint(void *vpLoadBalancerMaster);
-
-    /**
      * @brief Main function of the load balancer thread.
      *
      * Called from threadEntryPoint. Will never return.
@@ -180,7 +176,7 @@ class LoadBalancerMaster {
     MPI_Datatype mpiJobDataType = MPI_BYTE;
 
     /** Indicates whether we are ready to handle jobs */
-    bool isRunning_ = false;
+    std::atomic_bool isRunning_ = false;
 
     /** Number of workers we can send jobs to */
     int numWorkers = 0;
@@ -208,7 +204,7 @@ class LoadBalancerMaster {
     std::vector<JobData *> sentJobsData;
 
     /** Mutex to protect access to `queue`. */
-    pthread_mutex_t mutexQueue = PTHREAD_MUTEX_INITIALIZER;
+    mutable std::mutex mutexQueue;
 
     /** Semaphore to limit queue length and avoid potentially huge memory
      * allocation for all send and receive buffers. Note that using this might
@@ -217,7 +213,11 @@ class LoadBalancerMaster {
     sem_t semQueue = {};
 
     /** Thread that runs the message dispatcher. */
-    pthread_t queueThread = 0;
+    std::thread queueThread;
+
+    /** Signals whether the queue thread should keep running */
+    std::atomic_bool queue_thread_continue_ = true;
+
 
     /** Value to indicate that there is currently no known free worker. */
     constexpr static int NO_FREE_WORKER = -1;

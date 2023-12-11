@@ -65,7 +65,6 @@ target_link_libraries(${PROJECT_NAME}
     Upstream::amici
     parpeoptimization
     parpeloadbalancer
-    ${CMAKE_THREAD_LIBS_INIT}
 )
 # /example_steadystate executable
 

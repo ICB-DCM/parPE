@@ -37,8 +37,8 @@ AmiciSimulationRunner::runDistributedMemory(LoadBalancerMaster* loadBalancer,
 #endif
 
     // mutex and condition to wait for simulations to finish
-    pthread_cond_t simulationsCond = PTHREAD_COND_INITIALIZER;
-    pthread_mutex_t simulationsMutex = PTHREAD_MUTEX_INITIALIZER;
+    std::condition_variable simulationsCond;
+    std::mutex simulationsMutex;
 
     // multiple simulations may be grouped into one work package
     auto numJobsTotal = static_cast<int>(
@@ -75,14 +75,10 @@ AmiciSimulationRunner::runDistributedMemory(LoadBalancerMaster* loadBalancer,
     }
 
     // wait for simulations to finish
-    pthread_mutex_lock(&simulationsMutex);
-    while (numJobsFinished < numJobsTotal) // TODO don't wait for all to
-                                           // complete; stop early if errors
-                                           // occurred
-        pthread_cond_wait(&simulationsCond, &simulationsMutex);
-    pthread_mutex_unlock(&simulationsMutex);
-    pthread_mutex_destroy(&simulationsMutex);
-    pthread_cond_destroy(&simulationsCond);
+    // TODO don't wait for all to complete; stop early if errors occurred
+    std::unique_lock lock(simulationsMutex);
+    simulationsCond.wait(lock, [&numJobsFinished, &numJobsTotal]{
+        return numJobsFinished == numJobsTotal;});
 
     // unpack
     if (aggregate_)
@@ -138,15 +134,15 @@ AmiciSimulationRunner::runSharedMemory(const messageHandlerFunc& messageHandler,
 #ifdef PARPE_ENABLE_MPI
 void
 AmiciSimulationRunner::queueSimulation(
-  LoadBalancerMaster* loadBalancer,
-  JobData* d,
-  int* jobDone,
-  pthread_cond_t* jobDoneChangedCondition,
-  pthread_mutex_t* jobDoneChangedMutex,
-  int jobIdx,
-  std::vector<double> const& optimizationParameters,
-  amici::SensitivityOrder sensitivityOrder,
-  std::vector<int> const& conditionIndices) const
+    LoadBalancerMaster* loadBalancer,
+    JobData* d,
+    int* jobDone,
+    std::condition_variable* jobDoneChangedCondition,
+    std::mutex* jobDoneChangedMutex,
+    int jobIdx,
+    std::vector<double> const& optimizationParameters,
+    amici::SensitivityOrder sensitivityOrder,
+    std::vector<int> const& conditionIndices) const
 {
     // TODO avoid copy optimizationParameters; reuse;; for const& in work
     // package need to split into(de)serialize
