@@ -470,13 +470,11 @@
 }
 
 {
-   glog
+   libunwind
    Memcheck:Param
    write(buf)
    fun:syscall
    obj:/usr/lib/x86_64-linux-gnu/libunwind.so.8.0.1
-   ...
-   obj:/usr/lib/x86_64-linux-gnu/libglog.so.0.4.0
    ...
 }
 
@@ -493,17 +491,8 @@
 
 
 {
-   <insert_a_suppression_name_here>
+   _Ux86_64_setcontext
    Memcheck:Addr8
    fun:_Ux86_64_setcontext
-   ...
-   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
-   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
-   fun:_ZN7testing4Test3RunEv
-   fun:_ZN7testing8TestInfo3RunEv
-   fun:_ZN7testing9TestSuite3RunEv
-   fun:_ZN7testing8internal12UnitTestImpl11RunAllTestsEv
-   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS0_12UnitTestImplEbEET0_PT_MS4_FS3_vEPKc
-   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS0_12UnitTestImplEbEET0_PT_MS4_FS3_vEPKc
    ...
 }
