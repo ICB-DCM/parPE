@@ -32,16 +32,16 @@ find_package(KLU REQUIRED)
 
 if(NOT TARGET SUNDIALS::KLU)
   add_library(SUNDIALS::KLU INTERFACE IMPORTED)
+  target_link_libraries(
+    SUNDIALS::KLU
+    INTERFACE "${KLU_STATIC}"
+    INTERFACE "${COLAMD_STATIC}"
+    INTERFACE "${BTF_STATIC}"
+    INTERFACE "${AMD_STATIC}"
+    INTERFACE "${SUITESPARSE_CONFIG_STATIC}")
+  set_target_properties(SUNDIALS::KLU PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
+                                                 "${KLU_INCLUDE_DIR}")
 endif()
-target_link_libraries(
-  SUNDIALS::KLU
-  INTERFACE "${KLU_STATIC}"
-  INTERFACE "${COLAMD_STATIC}"
-  INTERFACE "${BTF_STATIC}"
-  INTERFACE "${AMD_STATIC}"
-  INTERFACE "${SUITESPARSE_CONFIG_STATIC}")
-set_target_properties(SUNDIALS::KLU PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
-                                               "${KLU_INCLUDE_DIR}")
 
 find_package(SUNDIALS REQUIRED PATHS
              "@CMAKE_SOURCE_DIR@/ThirdParty/sundials/build/@CMAKE_INSTALL_LIBDIR@/cmake/sundials/")
