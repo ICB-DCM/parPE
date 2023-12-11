@@ -7,7 +7,7 @@
 }
 
 {
-   <insert_a_suppression_name_here>
+   ompi_mpi_init
    Memcheck:Cond
    ...
    fun:ompi_mpi_init
@@ -58,7 +58,7 @@
 }
 
 {
-   <insert_a_suppression_name_here>
+   opal_hwloc_base_get_topology
    Memcheck:Leak
    match-leak-kinds: indirect
    fun:*alloc
@@ -69,7 +69,7 @@
 }
 
 {
-   <insert_a_suppression_name_here>
+   opal_hwloc_base_get_topology
    Memcheck:Leak
    match-leak-kinds: definite
    fun:*alloc
@@ -151,7 +151,7 @@
 }
 
 {
-   <insert_a_suppression_name_here>
+   libgomp
    Memcheck:Leak
    ...
    obj:*libgomp.so.*
@@ -175,7 +175,7 @@
 }
 
 {
-   <insert_a_suppression_name_here>
+   hwloc_topology_init
    Memcheck:Leak
    match-leak-kinds: reachable
    fun:malloc
@@ -184,7 +184,7 @@
 }
 
 {
-   <insert_a_suppression_name_here>
+   hwloc_topology_destroy
    Memcheck:Leak
    match-leak-kinds: reachable
    fun:malloc
@@ -193,7 +193,7 @@
 }
 
 {
-   <insert_a_suppression_name_here>
+   opal_hwloc_base_get_topology
    Memcheck:Leak
    match-leak-kinds: reachable
    fun:malloc
@@ -202,7 +202,7 @@
 }
 
 {
-   <insert_a_suppression_name_here>
+   opal_hwloc_base_get_topology
    Memcheck:Leak
    match-leak-kinds: possible
    fun:malloc
@@ -212,7 +212,7 @@
 }
 
 {
-   <insert_a_suppression_name_here>
+   dl
    Memcheck:Leak
    match-leak-kinds: reachable
    fun:calloc
@@ -248,7 +248,7 @@
 }
 
 {
-   <insert_a_suppression_name_here>
+   dl
    Memcheck:Leak
    match-leak-kinds: definite
    fun:malloc
@@ -268,7 +268,7 @@
 
 
 {
-   <insert_a_suppression_name_here>
+   boost
    Memcheck:Leak
    match-leak-kinds: reachable
    ...
@@ -277,7 +277,7 @@
 }
 
 {
-   <insert_a_suppression_name_here>
+   boost
    Memcheck:Leak
    match-leak-kinds: reachable
    ...
@@ -286,7 +286,7 @@
 }
 
 {
-   <insert_a_suppression_name_here>
+   dl
    Memcheck:Leak
    match-leak-kinds: reachable
    ...
@@ -295,7 +295,7 @@
 }
 
 {
-   <insert_a_suppression_name_here>
+   opal_shmem_base_select
    Memcheck:Leak
    match-leak-kinds: reachable
    fun:malloc
@@ -304,7 +304,7 @@
 }
 
 {
-   <insert_a_suppression_name_here>
+   orte_submit_init
    Memcheck:Leak
    match-leak-kinds: definite
    fun:malloc
@@ -313,7 +313,7 @@
 }
 
 {
-   <insert_a_suppression_name_here>
+   orte_finalize
    Memcheck:Cond
    ...
    fun:orte_finalize
@@ -321,7 +321,7 @@
 }
 
 {
-   <insert_a_suppression_name_here>
+   libgflags
    Memcheck:Leak
    match-leak-kinds: reachable
    ...
@@ -330,7 +330,7 @@
 }
 
 {
-   <insert_a_suppression_name_here>
+   __dlerror_main_freeres
    Memcheck:Cond
    fun:check_free
    fun:free_key_mem
@@ -343,7 +343,7 @@
 }
 
 {
-   <insert_a_suppression_name_here>
+   __dlerror_main_freeres
    Memcheck:Addr1
    fun:check_free
    fun:free_key_mem
@@ -356,7 +356,7 @@
 }
 
 {
-   <insert_a_suppression_name_here>
+   libevent
    Memcheck:Addr8
    ...
    obj:*/libevent-2.1.so*
@@ -365,7 +365,7 @@
 }
 
 {
-   <insert_a_suppression_name_here>
+   pmix_server_init
    Memcheck:Leak
    match-leak-kinds: indirect
    fun:malloc
@@ -375,7 +375,7 @@
 }
 
 {
-   <insert_a_suppression_name_here>
+   pmix_server_init
    Memcheck:Leak
    match-leak-kinds: definite
    fun:realloc
@@ -385,7 +385,7 @@
 }
 
 {
-   <insert_a_suppression_name_here>
+   ???
    Memcheck:Leak
    match-leak-kinds: indirect
    fun:malloc
@@ -403,7 +403,7 @@
 }
 
 {
-   <insert_a_suppression_name_here>
+   ???
    Memcheck:Leak
    match-leak-kinds: definite
    fun:realloc
@@ -450,7 +450,7 @@
 
 
 {
-   <insert_a_suppression_name_here>
+   calloc
    Memcheck:Leak
    match-leak-kinds: reachable
    fun:calloc
@@ -477,5 +477,33 @@
    obj:/usr/lib/x86_64-linux-gnu/libunwind.so.8.0.1
    ...
    obj:/usr/lib/x86_64-linux-gnu/libglog.so.0.4.0
+   ...
+}
+
+{
+   gtest
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:_Znwm
+   ...
+   fun:_ZN7testing12_GLOBAL__N_131SetReactionOnUninterestingCallsEmNS_8internal12CallReactionE
+   fun:_ZN7testing4Mock23AllowUninterestingCallsEm
+   ...
+}
+
+
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Addr8
+   fun:_Ux86_64_setcontext
+   ...
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+   fun:_ZN7testing9TestSuite3RunEv
+   fun:_ZN7testing8internal12UnitTestImpl11RunAllTestsEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS0_12UnitTestImplEbEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS0_12UnitTestImplEbEET0_PT_MS4_FS3_vEPKc
    ...
 }
