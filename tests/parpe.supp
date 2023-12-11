@@ -419,3 +419,61 @@
    obj:*
    obj:*
 }
+
+{
+   ompi_mpi_init
+   Memcheck:Param
+   ...
+   fun:orte_init
+   fun:ompi_mpi_init
+   fun:PMPI_Init
+   ...
+}
+
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: indirect
+   fun:calloc
+   ...
+   fun:orte_submit_init
+}
+
+{
+   HDF5
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   fun:H5E__get_stack
+   fun:H5E_clear_stack
+   fun:H5Iget_type
+   fun:_ZN2H511IdComponent10p_valid_idEl
+   fun:_ZNK2H511IdComponent11incRefCountEl
+   fun:_ZN2H58DataTypeC1El
+   fun:_ZN2H58AtomTypeC1El
+   fun:_ZN2H58PredTypeC1El
+   fun:_ZN2H58PredType13makePredTypesEv
+   fun:_ZN2H58PredType12getPredTypesEv
+   obj:/usr/lib/x86_64-linux-gnu/libhdf5_serial_cpp.so.103.3.0
+}
+
+{
+   ??
+   Memcheck:Param
+   ...
+   obj:/usr/lib/x86_64-linux-gnu/libunwind.so.8.0.1
+   ...
+   obj:/usr/lib/x86_64-linux-gnu/libglog.so.0.4.0
+   ...
+   fun:_dl_init
+   ...
+}
+
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:calloc
+   ...
+   fun:_dl_catch_error
+}
