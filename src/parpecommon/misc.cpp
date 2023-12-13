@@ -1,13 +1,9 @@
 #include <parpecommon/misc.h>
 #include <parpecommon/logging.h>
 
-#include <cassert>
-#include <cerrno>
 #include <execinfo.h>
 #include <cmath>
-#include <cstdarg>
 #include <cstdio>
-#include <cstring>
 #include <sys/types.h>
 #include <ctime>
 #include <unistd.h>

@@ -14,7 +14,7 @@ sundials_build_path="${amici_path}/ThirdParty/sundials/build/"
 cmake=${CMAKE:-cmake}
 make=${MAKE:-make}
 
-if [[ $TRAVIS = true ]]; then
+if [[ $GITHUB_ACTIONS = true ]]; then
   # Running on CI server
   build_type="Debug"
 else
@@ -49,7 +49,7 @@ ${cmake} -DCMAKE_INSTALL_PREFIX="${sundials_build_path}" \
   -DENABLE_KLU=ON \
   -DKLU_LIBRARY_DIR="${suitesparse_root}/lib" \
   -DKLU_INCLUDE_DIR="${suitesparse_root}/include" \
-  "${SuperLUMT}" \
+  ${SuperLUMT} \
   ..
 
 ${make}

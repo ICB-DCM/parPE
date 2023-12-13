@@ -4,7 +4,6 @@
 #include <parpecommon/functions.h>
 
 #include <vector>
-#include <memory>
 
 namespace parpe {
 

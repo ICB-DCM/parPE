@@ -3,7 +3,6 @@
 
 #include <parpeoptimization/optimizer.h>
 
-#include <string>
 
 namespace parpe {
 

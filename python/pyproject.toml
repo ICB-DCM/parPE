@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "parpe"
+version = "0.0.0"
+authors = [
+    {name = "Daniel Weindl", email = "sci@danielweindl.de"},
+]
+description = "parpe python package"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+dependencies = [
+    'numpy>=1.18.1',
+    'termcolor>=1.1.0',
+    'colorama>=0.4.3',
+    'petab>=0.1.18',
+    'amici>=0.20.0',
+    'h5py>=3.0.0',
+    'python-libsbml>=5.17.0',
+    'snakemake>=5.10.0',
+    'coloredlogs>=15.0',
+    'scipy',
+    'matplotlib',
+]
+
+[project.optional-dependencies]
+test = ["pytest", "pre-commit"]
+
+[project.scripts]
+parpe_petab_to_hdf5 = "parpe.hdf5_pe_input:main"
+
+[project.urls]
+Documentation = "https://parpe.readthedocs.io/"
+Repository = "https://github.com/ICB-DCM/parPE/"
+
+[tool.black]
+line-length = 79
+
+[tool.semantic_release]
+version_toml = "pyproject.toml:project.version"
+

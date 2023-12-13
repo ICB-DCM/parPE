@@ -10,7 +10,7 @@ function this = getArgs(this,model)
     % Return values:
     %  this: updated function definition object @type amifun
     %
-        
+
     if(strcmp(model.wtype,'iw'))
         dx = ', const realtype *dx';
         sdx = ', const realtype *sdx';
@@ -24,7 +24,7 @@ function this = getArgs(this,model)
         M = '';
         cj = '';
     end
-    
+
     switch(this.funstr)
         case 'xdot'
             this.argstr = ['(realtype *xdot, const realtype t, const realtype *x, const realtype *p, const realtype *k, const realtype *h' dx ', const realtype *w)'];
@@ -42,7 +42,11 @@ function this = getArgs(this,model)
         case 'sx0'
             this.argstr = '(realtype *sx0, const realtype t,const realtype *x0, const realtype *p, const realtype *k, const int ip)';
         case 'root'
-            this.argstr = ['(realtype *root, const realtype t, const realtype *x, const realtype *p, const realtype *k, const realtype *h' dx ')'];
+            if(strcmp(model.wtype,'iw'))
+                this.argstr = ['(realtype *root, const realtype t, const realtype *x, const realtype *p, const realtype *k, const realtype *h' dx ')'];
+            else
+                this.argstr = ['(realtype *root, const realtype t, const realtype *x, const realtype *p, const realtype *k, const realtype *h, const realtype *tcl' dx ')'];
+            end
         case 'y'
             this.argstr = '(double *y, const realtype t, const realtype *x, const realtype *p, const realtype *k, const realtype *h, const realtype *w)';
         case 'z'
@@ -72,19 +76,19 @@ function this = getArgs(this,model)
         case 'deltaqB'
             this.argstr = '(double *deltaqB, const realtype t, const realtype *x, const realtype *p, const realtype *k, const realtype *h, const int ip, const int ie, const realtype *xdot, const realtype *xdot_old, const realtype *xB)';
         case 'deltasx'
-            this.argstr = '(double *deltasx, const realtype t, const realtype *x, const realtype *p, const realtype *k, const realtype *h, const realtype *w, const int ip, const int ie, const realtype *xdot, const realtype *xdot_old, const realtype *sx, const realtype *stau)';
+            this.argstr = '(double *deltasx, const realtype t, const realtype *x, const realtype *p, const realtype *k, const realtype *h, const realtype *w, const int ip, const int ie, const realtype *xdot, const realtype *xdot_old, const realtype *sx, const realtype *stau, const realtype *tcl)';
         case 'dxdotdp'
             this.argstr = ['(realtype *dxdotdp, const realtype t, const realtype *x, const realtype *p, const realtype *k, const realtype *h, const int ip' dx ', const realtype *w, const realtype *dwdp)'];
         case 'sigma_y'
-            this.argstr = '(double *sigmay, const realtype t, const realtype *p, const realtype *k)';
+            this.argstr = '(double *sigmay, const realtype t, const realtype *p, const realtype *k, const realtype *y)';
         case 'dsigma_ydp'
-            this.argstr = '(double *dsigmaydp, const realtype t, const realtype *p, const realtype *k, const int ip)';
+            this.argstr = '(double *dsigmaydp, const realtype t, const realtype *p, const realtype *k, const realtype *y, const int ip)';
         case 'sigma_z'
             this.argstr = '(double *sigmaz, const realtype t, const realtype *p, const realtype *k)';
         case 'dsigma_zdp'
             this.argstr = '(double *dsigmazdp, const realtype t, const realtype *p, const realtype *k, const int ip)';
         case 'stau'
-            this.argstr = '(double *stau, const realtype t, const realtype *x, const realtype *p, const realtype *k, const realtype *h, const realtype *sx, const int ip, const int ie)';
+            this.argstr = '(double *stau, const realtype t, const realtype *x, const realtype *p, const realtype *k, const realtype *h, const realtype *tcl, const realtype *sx, const int ip, const int ie)';
         case 'Jy'
             this.argstr = '(double *nllh, const int iy, const realtype *p, const realtype *k, const double *y, const double *sigmay, const double *my)';
         case 'dJydy'
@@ -104,15 +108,15 @@ function this = getArgs(this,model)
         case 'dJrzdsigma'
             this.argstr = '(double *dJrzdsigma, const int iz, const realtype *p, const realtype *k, const double *rz, const double *sigmaz)';
         case 'w'
-            this.argstr = '(realtype *w, const realtype t, const realtype *x, const realtype *p, const realtype *k, const realtype *h, const realtype *tcl)';
+            this.argstr = '(realtype *w, const realtype t, const realtype *x, const realtype *p, const realtype *k, const realtype *h, const realtype *tcl, const realtype *spl)';
         case 'dwdp'
-            this.argstr = '(realtype *dwdp, const realtype t, const realtype *x, const realtype *p, const realtype *k, const realtype *h, const realtype *w, const realtype *tcl, const realtype *stcl)';
+            this.argstr = '(realtype *dwdp, const realtype t, const realtype *x, const realtype *p, const realtype *k, const realtype *h, const realtype *w, const realtype *tcl, const realtype *stcl, const realtype *spl, const realtype *sspl)';
         case 'dwdx'
-            this.argstr = '(realtype *dwdx, const realtype t, const realtype *x, const realtype *p, const realtype *k, const realtype *h, const realtype *w, const realtype *tcl)';
+            this.argstr = '(realtype *dwdx, const realtype t, const realtype *x, const realtype *p, const realtype *k, const realtype *h, const realtype *w, const realtype *tcl, const realtype *spl)';
         case 'M'
             this.argstr = '(realtype *M, const realtype t, const realtype *x, const realtype *p, const realtype *k)';
         otherwise
             %nothing
     end
-    
+
 end

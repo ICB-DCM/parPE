@@ -15,6 +15,8 @@
 
 #include <functional>
 #include <vector>
+#include <mutex>
+#include <condition_variable>
 
 #include <boost/serialization/array.hpp>
 #include <boost/serialization/map.hpp>
@@ -122,8 +124,8 @@ class AmiciSimulationRunner
     void queueSimulation(LoadBalancerMaster* loadBalancer,
                          JobData* d,
                          int* jobDone,
-                         pthread_cond_t* jobDoneChangedCondition,
-                         pthread_mutex_t* jobDoneChangedMutex,
+                         std::condition_variable* jobDoneChangedCondition,
+                         std::mutex* jobDoneChangedMutex,
                          int jobIdx,
                          const std::vector<double>& optimizationParameters,
                          amici::SensitivityOrder sensitivityOrder,

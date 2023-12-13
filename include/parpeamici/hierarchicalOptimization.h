@@ -7,9 +7,7 @@
 
 #include <gsl/gsl-lite.hpp>
 
-#include <cmath>
 #include <memory>
-#include <numeric>
 
 
 namespace parpe {

@@ -6,33 +6,36 @@
 namespace amici {
 
 /**
- * amici_dgemm provides an interface to the CBlas matrix vector multiplication
- * routine dgemv. This routines computes
- * y = alpha*A*x + beta*y with A: [MxN] x:[Nx1] y:[Mx1]
+ * @brief CBLAS matrix vector multiplication (dgemv).
  *
- * @param layout    always needs to be AMICI_BLAS_ColMajor.
+ * Computes \f$ y = alpha*A*x + beta*y \f$ with A: [MxN] x:[Nx1] y:[Mx1]
+ *
+ * @param layout    Matrix layout, column major or row major.
  * @param TransA    flag indicating whether A should be transposed before
  * multiplication
  * @param M         number of rows in A
  * @param N         number of columns in A
  * @param alpha     coefficient alpha
  * @param A         matrix A
- * @param lda       leading dimension of A (m or n)
+ * @param lda       leading dimension / stride of A (>=N if row-major,
+ * >=M if col-major)
  * @param X         vector X
  * @param incX      increment for entries of X
  * @param beta      coefficient beta
  * @param Y         vector Y
  * @param incY      increment for entries of Y
  */
-void amici_dgemv(BLASLayout layout, BLASTranspose TransA,
-                 int M, int N, double alpha, const double *A,
-                 int lda, const double *X, int incX,
-                 double beta, double *Y, int incY);
+void amici_dgemv(
+    BLASLayout layout, BLASTranspose TransA, int M, int N, double alpha,
+    double const* A, int lda, double const* X, int incX, double beta, double* Y,
+    int incY
+);
 
 /**
- * amici_dgemm provides an interface to the CBlas matrix matrix multiplication
- * routine dgemm. This routines computes
- * C = alpha*A*B + beta*C with A: [MxK] B:[KxN] C:[MxN]
+ * @brief CBLAS matrix matrix multiplication (dgemm)
+ *
+ * This routines computes \f$ C = alpha*A*B + beta*C \f$
+ * with A: [MxK] B:[KxN] C:[MxN]
  *
  * @param layout    memory layout.
  * @param TransA    flag indicating whether A should be transposed before
@@ -44,18 +47,18 @@ void amici_dgemv(BLASLayout layout, BLASTranspose TransA,
  * @param K         number of rows in B, number of columns in A
  * @param alpha     coefficient alpha
  * @param A         matrix A
- * @param lda       leading dimension of A (m or k)
+ * @param lda       leading dimension of A (>=M or >=K)
  * @param B         matrix B
- * @param ldb       leading dimension of B (k or n)
+ * @param ldb       leading dimension of B (>=K or >=N)
  * @param beta      coefficient beta
  * @param C         matrix C
- * @param ldc       leading dimension of C (m or n)
+ * @param ldc       leading dimension of C (>=M or >= N)
  */
-void amici_dgemm(BLASLayout layout, BLASTranspose TransA,
-                 BLASTranspose TransB, int M, int N,
-                 int K, double alpha, const double *A,
-                 int lda, const double *B, int ldb,
-                 double beta, double *C, int ldc);
+void amici_dgemm(
+    BLASLayout layout, BLASTranspose TransA, BLASTranspose TransB, int M, int N,
+    int K, double alpha, double const* A, int lda, double const* B, int ldb,
+    double beta, double* C, int ldc
+);
 
 /**
  * @brief Compute y = a*x + y
@@ -66,7 +69,9 @@ void amici_dgemm(BLASLayout layout, BLASTranspose TransA,
  * @param y         vector of length n*incy
  * @param incy      y stride
  */
-void amici_daxpy(int n, double alpha, const double *x, int incx, double *y, int incy);
+void amici_daxpy(
+    int n, double alpha, double const* x, int incx, double* y, int incy
+);
 
 } // namespace amici
 

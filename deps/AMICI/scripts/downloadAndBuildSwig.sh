@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
 # Download and build SWIG
-set -e
+#
+# Usage: downloadAndBuildSwig.sh [swig_version]
+set -euo pipefail
 
 SCRIPT_PATH=$(dirname "$BASH_SOURCE")
 AMICI_PATH=$(cd "$SCRIPT_PATH/.." && pwd)
 
-swig_version=4.0.2
-SWIG_URL="http://prdownloads.sourceforge.net/swig/swig-${swig_version}.tar.gz"
+swig_version="${1:-"4.1.1"}"
 SWIG_ARCHIVE="swig-${swig_version}.tar.gz"
+SWIG_URL="http://downloads.sourceforge.net/project/swig/swig/swig-${swig_version}/${SWIG_ARCHIVE}"
 SWIG_DIR="swig-${swig_version}"
 PREFIX=${AMICI_PATH}/ThirdParty/${SWIG_DIR}/install
 SWIG_BIN_DIR=${PREFIX}/bin

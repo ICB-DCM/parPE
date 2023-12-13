@@ -26,9 +26,12 @@ project(${MODEL_NAME}) # for IDE
 
 find_package(ParPE REQUIRED)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-unused-function -fopenmp -D_GNU_SOURCE") # -D_GNU_SOURCE for pthread recursive mutex issues
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-unused-function -fopenmp")
 
-execute_process(COMMAND sh -c "cd ${CMAKE_CURRENT_SOURCE_DIR} && git describe --abbrev=4 --dirty=-dirty --always --tags  | tr -d '\n'" OUTPUT_VARIABLE GIT_VERSION)
+execute_process(
+    COMMAND sh -c "cd ${CMAKE_CURRENT_SOURCE_DIR} && git describe --abbrev=4 --dirty=-dirty --always --tags  | tr -d '\n'"
+    OUTPUT_VARIABLE GIT_VERSION
+)
 message(STATUS "Building version ${GIT_VERSION}")
 add_definitions(-DGIT_VERSION="${GIT_VERSION}")
 

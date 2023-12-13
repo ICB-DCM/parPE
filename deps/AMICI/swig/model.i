@@ -32,7 +32,7 @@ using namespace amici;
 %ignore getObservable;
 %ignore getObservableSensitivity;
 %ignore getExpression;
-%ignore initHeaviside;
+%ignore initEvents;
 %ignore initialize;
 %ignore initializeB;
 %ignore initializeStateSensitivities;
@@ -84,6 +84,16 @@ using namespace amici;
 %ignore getObservableSigma;
 %ignore getObservableSigmaSensitivity;
 %ignore getUnobservedEventSensitivity;
+%ignore fdsigmaydy;
+%ignore fdspline_slopesdp;
+%ignore fdspline_valuesdp;
+%ignore fdtotal_cldp;
+%ignore fdtotal_cldx_rdata;
+%ignore fdx_rdatadp;
+%ignore fdx_rdatadtcl;
+%ignore fdx_rdatadx_solver;
+%ignore fdsigmaydy;
+
 
 
 

@@ -1,7 +1,8 @@
 # Steady-state model example
 
 # This requires python to generate the model code from SBML
-find_package(PythonInterp 3.7)
+find_package(Python3 COMPONENTS Interpreter)
+# TODO: check python version
 
 # Generate model code and data; build model
 include(ExternalProject)
@@ -64,7 +65,6 @@ target_link_libraries(${PROJECT_NAME}
     Upstream::amici
     parpeoptimization
     parpeloadbalancer
-    ${CMAKE_THREAD_LIBS_INIT}
 )
 # /example_steadystate executable
 

@@ -48,10 +48,9 @@ described in [doc/petab_model_import.md](doc/petab_model_import.md).
 
 For full functionality, parPE requires the following libraries:
 
-* CMAKE (>=3.10)
+* CMAKE (>=3.15)
 * MPI ([OpenMPI](https://www.open-mpi.org/),
   [MPICH](https://www.mpich.org/), ...)
-* PTHREADS
 * IPOPT (>= 1.2.7) (requires coinhsl)
 * CERES (>=1.13)
   ([requires Eigen](http://ceres-solver.org/installation.html#dependencies))
@@ -61,7 +60,7 @@ For full functionality, parPE requires the following libraries:
 * [AMICI](https://github.com/AMICI-dev/AMICI) (included in this repository)
   (uses SuiteSparse, Sundials)
 * C++17 compiler
-* Python >= 3.7, including header files
+* Python >= 3.9, including header files
 
 On Debian-based systems, dependencies can be installed via:
 ```shell
@@ -73,6 +72,7 @@ sudo apt-get install \
   curl \
   gfortran \
   libblas-dev \
+  libboost-chrono-dev \
   libboost-serialization-dev \
   libboost-thread-dev \
   libceres-dev \
@@ -121,7 +121,7 @@ can be found on [dockerhub](https://hub.docker.com/r/dweindl/parpe/).
 
 Some high-level documentation is available at
 [https://parpe.readthedocs.io/en/latest/](https://parpe.readthedocs.io/en/latest/)
-and among [Github issues](https://github.com/ICB-DCM/parPE/issues). No extensive
+and among [GitHub issues](https://github.com/ICB-DCM/parPE/issues). No extensive
 full-text documentation is available for the C++ interface yet. For usage of
 the C++ interface see [`examples/`](examples/) and `*/tests`.
 
@@ -140,6 +140,11 @@ parPE is being used or has been used in the following projects:
   *enables training of ODE models on large-scale datasets*. Nat Commun 13, 34
   (2022). [doi:10.1038/s41467-021-27374-6](https://doi.org/10.1038/s41467-021-27374-6)
   (preprint: [doi:10.1101/859884](https://doi.org/10.1101/859884)).
+
+- Paul F. Lang, David R. Penas, Julio R. Banga, Daniel Weindl, Bela Novak.
+  *Reusable rule-based cell cycle model explains compartment-resolved dynamics*
+  *of 16 observables in RPE-1 cells*. bioRxiv (2023).
+  [doi:10.1101/2023.05.04.539349](https://doi.org/10.1101/2023.05.04.539349)
 
 - [CanPathPro](http://canpathpro.eu/)
 

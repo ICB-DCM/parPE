@@ -1,5 +1,5 @@
-cmake_minimum_required(VERSION 3.13) # pkg_search_module GLOBAL
-cmake_policy(VERSION 3.13)
+cmake_minimum_required(VERSION 3.15) # pkg_search_module GLOBAL
+cmake_policy(VERSION 3.15...3.28)
 
 if(POLICY CMP0074)
   # Use package_ROOT environment variables
@@ -17,11 +17,8 @@ include(BuildType) # Ensure CMAKE_BUILD_TYPE is always set
 include(CTest)
 
 set(CMAKE_DEBUG_POSTFIX "-dbg")
-# -D_GNU_SOURCE for pthread recursive mutex
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} \
-    -std=c99 -Wall -Wno-unused-function -D_GNU_SOURCE")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
-   -Wall -Wno-unused-function -D_GNU_SOURCE")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -Wall -Wno-unused-function")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-unused-function")
 
 if(BUILD_PYTHON_MODULE)
     # Build PIC code to be used for swig/python module
@@ -85,11 +82,6 @@ if(${PARPE_ENABLE_DLIB})
     set(DLIB_DIR "${CMAKE_CURRENT_LIST_DIR}/ThirdParty/dlib-19.7"
         CACHE PATH "DLIB base directory")
 endif(${PARPE_ENABLE_DLIB})
-
-# PThreads
-set(THREADS_PREFER_PTHREAD_FLAG ON)
-find_package(Threads REQUIRED)
-
 
 # HDF5
 #set(HDF5_PREFER_PARALLEL TRUE)
@@ -207,7 +199,7 @@ endif()
 if(BUILD_PYTHON_MODULE AND CMAKE_BUILD_TYPE MATCHES Debug)
     # Only build swig/python module when we are in debug mode
     # This requires PIC, but we don't want PIC for release build at the moment
-    add_subdirectory(python/swig)
+    add_subdirectory(swig)
 endif()
 
 

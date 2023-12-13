@@ -26,7 +26,7 @@ AMICI can import :term:`SBML` models via the
 Status of SBML support in Python-AMICI
 ++++++++++++++++++++++++++++++++++++++
 
-Python-AMICI currently **passes 996 out of the 1780 (~56%) test cases** from
+Python-AMICI currently **passes 1247 out of the 1821 (~68%) test cases** from
 the semantic
 `SBML Test Suite <https://github.com/sbmlteam/sbml-test-suite/>`_
 (`current status <https://github.com/AMICI-dev/AMICI/actions>`_).
@@ -37,17 +37,28 @@ The following SBML test suite tags are currently supported
 
 **Component tags:**
 
+* AlgebraicRule
 * AssignmentRule
+* comp
 * Compartment
 * CSymbolAvogadro
+* CSymbolRateOf
 * CSymbolTime
+* Deletion
 * EventNoDelay
+* ExternalModelDefinition
 * FunctionDefinition
 * InitialAssignment
+* ModelDefinition
 * Parameter
+* Port
 * RateRule
 * Reaction
+* ReplacedBy
+* ReplacedElement
+* SBaseRef
 * Species
+* Submodel
 
 **Test tags:**
 
@@ -57,10 +68,14 @@ The following SBML test suite tags are currently supported
 * AssignedVariableStoichiometry
 * BoolNumericSwap
 * BoundaryCondition
+* comp
 * Concentration
 * ConstantSpecies
+* ConversionFactor
 * ConversionFactors
+* DefaultValue
 * EventT0Firing
+* ExtentConversionFactor
 * HasOnlySubstanceUnits
 * InitialValueReassigned
 * L3v2MathML
@@ -73,18 +88,14 @@ The following SBML test suite tags are currently supported
 * NonUnityStoichiometry
 * ReversibleReaction
 * SpeciesReferenceInMath
+* SubmodelOutput
+* TimeConversionFactor
 * UncommonMathML
 * VolumeConcentrationRates
 
-In addition, we currently plan to add support for the following features
-(see corresponding `issues <https://github.com/AMICI-dev/AMICI/milestone/14>`_
-for details and progress):
+Additional support may be added in the future. However, the following features are
+unlikely to be supported:
 
-- Algebraic rules (`#760 <https://github.com/AMICI-dev/AMICI/issues/760>`_)
-
-However, the following features are unlikely to be supported:
-
-- any SBML extensions
 - `factorial()`, `ceil()`, `floor()`, due to incompatibility with
   symbolic sensitivity computations
 - `delay()` due to missing :term:`SUNDIALS` solver support
@@ -104,9 +115,11 @@ PySB import
 AMICI can import :term:`PySB` models via
 :py:func:`amici.pysb_import.pysb2amici`.
 
-`BioNetGen <https://www.csb.pitt.edu/Faculty/Faeder/?page_id=409>`_ and
-`Kappa <https://kappalanguage.org/>`_ models can be imported into AMICI using
-PySB.
+BNGL import
+-----------
+
+AMICI can import :term:`BNGL` models via
+:py:func:`amici.bngl_import.bngl2amici`.
 
 PEtab import
 ------------
@@ -120,9 +133,57 @@ Importing plain ODEs
 
 The AMICI Python interface does not currently support direct import of ODEs.
 However, it is straightforward to encode them as RateRules in an SBML model.
-The `yaml2sbml <https://github.com/yaml2sbml-dev/yaml2sbml>`_ package may come in
-handy, as it facilitates generating SBML models from a YAML-based specification
-of an ODE model. Besides the SBML model it can also create
+The most convenient options to do that are maybe
+`Antimony <https://tellurium.readthedocs.io/en/latest/antimony.html>`_
+and `yaml2sbml <https://yaml2sbml.readthedocs.io/en/latest/index.html>`_.
+
+An example using Antimony to specify the Lotka-Volterra equations is shown below:
+
+.. code-block:: python
+
+    ant_model = """
+
+    model lotka_volterra
+        # see https://en.wikipedia.org/wiki/Lotka%E2%80%93Volterra_equations
+
+        # initial conditions
+        prey_density = 10;
+        predator_density = 10;
+
+        # parameters
+        prey_growth_rate = 1.1;
+        predator_effect_on_prey = 0.4;
+        predator_death_rate = 0.4;
+        prey_effect_on_predator = 0.1;
+
+        # dx/dt
+        prey_density' = prey_growth_rate * prey_density - predator_effect_on_prey * prey_density * predator_density;
+        predator_density' = prey_effect_on_predator * prey_density * predator_density - predator_death_rate * predator_density;
+    end
+    """
+    module_name = "test_antimony_example_lv"
+    from amici.antimony_import import antimony2amici
+    antimony2amici(
+        ant_model,
+        model_name=module_name,
+        output_dir=module_name,
+    )
+    model_module = amici.import_model_module(
+        module_name=module_name, module_path=outdir
+    )
+    amici_model = model_module.getModel()
+    amici_model.setTimepoints(np.linspace(0, 100, 200))
+    amici_solver = amici_model.getSolver()
+    rdata = amici.runAmiciSimulation(amici_model, amici_solver)
+
+    from amici.plotting import plot_state_trajectories
+    plot_state_trajectories(rdata, model=amici_model)
+
+
+The `yaml2sbml <https://yaml2sbml.readthedocs.io/en/latest/index.html>`_ package creates SBML models
+from a YAML-based specification of an ODE model. Various examples are
+`provided <https://yaml2sbml.readthedocs.io/en/latest/examples/examples.html>`_.
+Besides the SBML model, yaml2sbml can also create
 `PEtab <https://github.com/PEtab-dev/PEtab>`_ files.
 
 SED-ML import
@@ -131,17 +192,34 @@ SED-ML import
 We also plan to implement support for the
 `Simulation Experiment Description Markup Language (SED-ML) <https://sed-ml.org/>`_.
 
-Examples
-========
+Environment variables affecting model import
+============================================
 
-.. toctree::
-   :maxdepth: 1
+In addition to the environment variables listed
+:ref:`here <amici_python_install_env_vars>`, the following environment
+variables control various behaviours during model import and compilation:
 
-   GettingStarted.ipynb
-   ExampleSteadystate.ipynb
-   petab.ipynb
-   ExampleExperimentalConditions.ipynb
-   ExampleEquilibrationLogic.ipynb
+.. list-table:: Environment variables affecting model import
+   :widths: 25 50 25
+   :header-rows: 1
+
+   * - Variable
+     - Purpose
+     - Example
+   * - ``AMICI_EXTRACT_CSE``
+     - Extract common subexpressions. May significantly reduce file size and
+       compile time for large models, but makes the generated code less
+       readable. Disabled by default.
+     - ``AMICI_EXTRACT_CSE=1``
+   * - ``AMICI_IMPORT_NPROCS``
+     - Number of processes to be used for model import. Defaults to 1.
+       Speeds up import of large models. Will slow down import of small models,
+       benchmarking recommended.
+     - ``AMICI_IMPORT_NPROCS=4``
+   * - ``AMICI_EXPERIMENTAL_SBML_NONCONST_CLS``
+     - Compute conservation laws for non-constant species. SBML-import only.
+       See :py:func:`amici.sbml_import.SbmlImporter.sbml2amici`.
+     -
 
 
 Miscellaneous

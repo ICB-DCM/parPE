@@ -1,30 +1,37 @@
 name: Deploy Branch
-on: [push, pull_request, workflow_dispatch]
+on: [push, merge_group, workflow_dispatch]
 
 jobs:
   sdist:
     name: Deploy Python Source Distribution
 
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
+
+    strategy:
+      matrix:
+        python-version: [3.9]
 
     steps:
-    - uses: actions/checkout@master
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - uses: actions/checkout@v3
       with:
         fetch-depth: 20
 
-    - run: echo "AMICI_DIR=$(pwd)" >> $GITHUB_ENV
-    - run: echo "SWIG=${AMICI_DIR}/ThirdParty/swig-4.0.1/install/bin/swig" >> $GITHUB_ENV
+    - name: Set up SWIG
+      uses: ./.github/actions/setup-swig
 
-    - name: Build swig4
-      run: |
-        sudo scripts/downloadAndBuildSwig.sh
+    - run: echo "AMICI_DIR=$(pwd)" >> $GITHUB_ENV
 
     - name: Create AMICI sdist
       run: |
         scripts/buildSdist.sh
 
     - name: "Upload artifact: sdist"
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v3
       with:
         name: sdist
-        path: python/sdist/dist
+        path: python/sdist/dist/amici-*.gz

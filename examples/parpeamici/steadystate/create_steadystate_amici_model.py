@@ -266,14 +266,14 @@ def append_measurements_for_condition(
         elif observable_id == 'obs_x1withsigma':
             noise_parameter = ['x1withsigma_sigma'] * model.nt()
 
-        measurement_df = measurement_df.append(pd.DataFrame(
+        measurement_df = pd.concat([measurement_df, pd.DataFrame(
             {ptc.OBSERVABLE_ID: [observable_id] * model.nt(),
              ptc.SIMULATION_CONDITION_ID: [condition_id] * model.nt(),
              ptc.TIME: np.array(model.getTimepoints()),
              ptc.MEASUREMENT: rdata['y'][:, iy],
              ptc.OBSERVABLE_PARAMETERS: scaling_parameter * model.nt(),
              ptc.NOISE_PARAMETERS: noise_parameter
-             }), ignore_index=True, sort=False)
+             })], ignore_index=True, sort=False)
     return measurement_df
 
 
@@ -385,7 +385,8 @@ def create_test_data(measurement_file_name, parameter_file_name, yaml_config,
     df.loc[~df.observableParameters.isnull(), 'observableParameters'] = \
         df.loc[~df.observableParameters.isnull(), 'observableParameters'] \
         + "_test"
-    petab.write_parameter_df(df, test_measurement_file_name)
+
+    petab.write_measurement_df(df, test_measurement_file_name)
 
     # parameters
     df = petab.get_parameter_df(parameter_file_name)

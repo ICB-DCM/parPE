@@ -8,35 +8,41 @@ jobs:
   pypi:
     name: Deploy PyPI
 
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
+
+    strategy:
+      matrix:
+        python-version: [3.9]
 
     steps:
-    - uses: actions/checkout@master
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - uses: actions/checkout@v3
       with:
         fetch-depth: 20
 
-    - run: echo "AMICI_DIR=$(pwd)" >> $GITHUB_ENV
-    - run: echo "SWIG=${AMICI_DIR}/ThirdParty/swig-4.0.1/install/bin/swig" >> $GITHUB_ENV
+    - name: Set up SWIG
+      uses: ./.github/actions/setup-swig
 
-    - name: Build swig4
-      run: |
-        sudo scripts/downloadAndBuildSwig.sh
+    - run: echo "AMICI_DIR=$(pwd)" >> $GITHUB_ENV
 
     - name: sdist
-      run: |
-        scripts/buildSdist.sh
+      run: scripts/buildSdist.sh
 
     - name: Publish a Python distribution to PyPI
-      uses: pypa/gh-action-pypi-publish@master
+      uses: pypa/gh-action-pypi-publish@release/v1
       with:
         user: __token__
         password: ${{ secrets.pypi_password }}
-        packages_dir: python/sdist/dist
+        packages-dir: python/sdist/dist
 
   bioSimulatorsUpdateCliAndDockerImage:
     name: Release to BioSimulators
     needs: pypi
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     env:
       # Owner/repository-id for the GitHub repository for the downstream command-line interface and Docker image
       DOWNSTREAM_REPOSITORY: biosimulators/Biosimulators_AMICI

@@ -11,8 +11,6 @@
 #include <IpIpoptApplication.hpp>
 #endif
 
-#include <cmath>
-#include <memory>
 #include <mutex>
 
 #include <parpecommon/misc.h>

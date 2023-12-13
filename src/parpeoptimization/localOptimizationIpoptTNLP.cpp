@@ -4,8 +4,6 @@
 
 #include <IpDenseVector.hpp>
 #include <IpIpoptData.hpp>
-#include <cassert>
-#include <cstring>
 //#include <IpIpoptCalculatedQuantities.hpp>
 
 namespace parpe {
@@ -202,7 +200,7 @@ LocalOptimizationIpoptTNLP::finalize_solution(
     // obj_value 0.0 along with the respective flag. This does not make too
     // much sense. Set to NAN.
     if(status == INVALID_NUMBER_DETECTED && obj_value == 0.0) {
-        obj_value = NAN;
+        obj_value = std::numeric_limits<double>::quiet_NaN();
     }
 
     reporter.finished(obj_value, gsl::span<double const>(x, n), status);

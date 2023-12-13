@@ -3,7 +3,6 @@
 
 #include <parpeoptimization/optimizationProblem.h>
 
-#include <vector>
 #include <memory>
 
 namespace parpe {

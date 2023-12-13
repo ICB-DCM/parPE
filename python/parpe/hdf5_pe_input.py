@@ -3,7 +3,7 @@ import argparse
 import logging
 import sys
 from numbers import Number
-from typing import Any, Collection, Optional, Dict, Tuple
+from typing import Any, Collection, Optional, Dict, Tuple, Iterator
 
 import amici
 import coloredlogs
@@ -13,7 +13,6 @@ import pandas as pd
 import petab
 from amici.petab_import import PREEQ_INDICATOR_ID
 from amici.petab_import import petab_scale_to_amici_scale
-from amici.petab_objective import subset_dict
 from colorama import Fore
 from colorama import init as init_colorama
 from pandas import DataFrame
@@ -446,17 +445,17 @@ class HDF5DataGenerator:
             condition_map_preeq_fix = None
             if condition_map_preeq:
                 condition_map_preeq_var, condition_map_preeq_fix = \
-                    subset_dict(condition_map_preeq, variable_par_ids,
-                                fixed_par_ids)
+                    _subset_dict(condition_map_preeq, variable_par_ids,
+                                 fixed_par_ids)
                 condition_scale_map_preeq_var, _ = \
-                    subset_dict(condition_scale_map_preeq, variable_par_ids,
-                                fixed_par_ids)
+                    _subset_dict(condition_scale_map_preeq, variable_par_ids,
+                                 fixed_par_ids)
 
             condition_map_sim_var, condition_map_sim_fix = \
-                subset_dict(condition_map_sim, variable_par_ids, fixed_par_ids)
+                _subset_dict(condition_map_sim, variable_par_ids, fixed_par_ids)
             condition_scale_map_sim_var, condition_scale_map_sim_fix = \
-                subset_dict(condition_scale_map_sim, variable_par_ids,
-                            fixed_par_ids)
+                _subset_dict(condition_scale_map_sim, variable_par_ids,
+                             fixed_par_ids)
 
             if condition_map_preeq:
                 # merge after having removed potentially fixed parameters
@@ -952,7 +951,7 @@ class HDF5DataGenerator:
         # Required to handle parametric initial concentrations where newton
         # solver would fail with KLU error
         g.attrs['steadyStateSensitivityMode'] = \
-            amici.SteadyStateSensitivityMode_simulationFSA
+            amici.SteadyStateSensitivityMode.integrationOnly
 
         num_model_parameters = \
             self.f['/parameters/modelParameterNames'].shape[0]
@@ -1058,6 +1057,23 @@ def write_parameter_map(f: h5py.File, mapping_matrix: np.array,
         data=mapping_matrix)
 
 
+def _subset_dict(
+    full: dict[Any, Any], *args: Collection[Any]
+) -> Iterator[dict[Any, Any]]:
+    """Get subset of dictionary based on provided keys
+
+    :param full:
+        Dictionary to subset
+    :param args:
+        Collections of keys to be contained in the different subsets
+
+    :return:
+        subsetted dictionary
+    """
+    for keys in args:
+        yield {key: val for (key, val) in full.items() if key in keys}
+
+
 def write_optimization_options(f: h5py.File) -> None:
     """
     Create groups and write some default optimization settings
@@ -1081,16 +1097,6 @@ def write_optimization_options(f: h5py.File) -> None:
     g.attrs["acceptable_tol"] = 1e20
     g.attrs["acceptable_obj_change_tol"] = 1e-12
     g.attrs["watchdog_shortened_iter_trigger"] = 0
-
-    # set fmincon options
-    g = f.require_group('optimizationOptions/fmincon')
-    g.attrs['MaxIter'] = 100
-    g.attrs["TolX"] = 1e-8
-    g.attrs["TolFun"] = 0
-    g.attrs["MaxFunEvals"] = 1e7
-    g.attrs["algorithm"] = np.string_("interior-point")
-    g.attrs["GradObj"] = np.string_("on")
-    g.attrs["display"] = np.string_("iter")
 
     # set CERES options
     g = f.require_group('optimizationOptions/ceres')

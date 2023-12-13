@@ -9,7 +9,6 @@
 #include <exception>
 #include <string>
 #include <mutex>
-#include <cstdarg>
 
 namespace parpe {
 
