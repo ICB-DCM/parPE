@@ -15,7 +15,6 @@
 #include <gsl/gsl-lite.hpp>
 
 #include <memory>
-#include <cstdlib>
 
 /** @file multiConditionProblem.h
  *  Interfaces between AMICI model and parPE optimization problem */

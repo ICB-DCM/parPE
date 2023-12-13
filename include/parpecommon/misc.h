@@ -4,10 +4,7 @@
 #include <parpecommon/parpeConfig.h>
 
 #include <chrono>
-#include <cstdio>
-#include <memory>
 #include <ostream>
-#include <stdlib.h>
 #include <vector>
 
 #include <gsl/gsl-lite.hpp>

@@ -404,7 +404,7 @@ void OptimizationReporter::finished(double optimalCost,
         // the optimal parameters from the optimizer. since we don't know them, rather set to nan
         if (logger_)
             logger_->logmessage(loglevel::info, "cachedCost != optimalCost && parameters.empty()");
-        cached_parameters_.assign(cached_parameters_.size(), NAN);
+        cached_parameters_.assign(cached_parameters_.size(), std::numeric_limits<double>::quiet_NaN());
         cached_cost_ = optimalCost;
     } // else: our cached parameters were better. use those
 

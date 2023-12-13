@@ -5,12 +5,11 @@
 #include <amici/logging.h>
 #include <parpecommon/logging.h>
 
+#include <memory>
+
 namespace parpe {
 
-using amici::ExpData;
-using amici::Model;
 using amici::ReturnData;
-using amici::Solver;
 
 std::unique_ptr<ReturnData> run_amici_simulation(
     amici::Solver &solver,
