@@ -1683,7 +1683,7 @@ int Model::checkFinite(
         if (hasObservableIds())
             row_id += " " + getObservableIds()[row];
         if (hasParameterIds())
-            col_id += " " + getParameterIds()[plist(gsl::narrow<int>(col))];
+            col_id += " " + getParameterIds()[col];
         break;
     case ModelQuantity::dydx:
         if (hasObservableIds())
