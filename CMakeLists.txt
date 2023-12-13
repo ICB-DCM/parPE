@@ -199,7 +199,7 @@ endif()
 if(BUILD_PYTHON_MODULE AND CMAKE_BUILD_TYPE MATCHES Debug)
     # Only build swig/python module when we are in debug mode
     # This requires PIC, but we don't want PIC for release build at the moment
-    add_subdirectory(python/swig)
+    add_subdirectory(swig)
 endif()
 
 
