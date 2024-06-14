@@ -6,54 +6,83 @@ Merge parPE result files.
 
 """
 
-import numpy as np
 import h5py
-import sys
-import re
-import os
+import glob
+import argparse
 
-def printUsage():
-    print('Usage: %s INFILE ... OUTFILE' % __file__)
-    
-def mergeFiles(infiles, outfile):
+
+def merge_files(in_files, out_file, save_iteration, same_input):
     """
-    Read final multistart optimization results from HDF5 infile and write to HDF5 outfile. 
+    Read final multistart optimization results from HDF5 in_files and write to HDF5 out_file.
     """
-    
-    fOut = h5py.File(outfile, "w")
-    
-    for infile in infiles:
-        print(infile)
-        with h5py.File(infile, "r") as fIn:
-            copyRecursive(fIn["/"], fOut["/"])
-            
-def copyRecursive(inObj, rootOut):
-    """
-    Recursively copy inObj to the same path under rootOut
-    
-    NOTE: no attributes are copied for now
-    """
-    print("\tCopy %s to %s" % (inObj.name, rootOut.name))
-    dest = rootOut.name + inObj.parent.name
-    if(not inObj.name in rootOut):
-        print("\tDestination %s does not exists: copy %s " %(dest, inObj.name))
-        inObj.copy(inObj.name, rootOut.file[dest])
+    if isinstance(in_files, list):
+        in_files_list = in_files
     else:
-        print("\tDestination %s exists: copy members of %s" %(dest, inObj.name))
-        for obj in inObj:
-            print("\t\t" + obj)
-            copyRecursive(inObj[obj], rootOut)
+        in_files_list = glob.glob(in_files)
+
+    f_out = h5py.File(out_file, "w")
+
+    start_idx = 0
+    if same_input:
+        f_out.create_group('multistarts')
+        for in_file in in_files_list:
+            print(in_file)
+            with h5py.File(in_file, "r") as fIn:
+                if '/inputData' not in f_out:
+                    fIn.copy('/inputData', f_out)
+                copy_multistarts(fIn, f_out, start_idx, save_iteration)
+                f_out['multistarts/' + str(start_idx)].attrs['source_file'] = in_file.split(sep='/')[-1]
+                start_idx += 1
+    else:
+        for in_file in in_files_list:
+            print(in_file)
+            with h5py.File(in_file, "r") as fIn:
+                fIn.copy('/', f_out, in_file.split(sep='/')[-1])
+
+
+def copy_multistarts(f_in, f_out, start_idx, save_iteration):
+    """
+    Copy all starts in fIn to fOut.
+    """
+    for start in f_in['/multistarts']:
+        if save_iteration:
+            f_in.copy('/multistarts/' + start, f_out, 'multistarts/' + str(start_idx))
+        else:
+            for key in f_in['/multistarts/' + start].keys():
+                if not (key == 'iteration'):
+                    f_in.copy('/multistarts/' + start + '/' + key, f_out, 'multistarts/' + str(start_idx) + '/' + key)
+
+
+def parse_cli_args():
+    """Parse command line arguments"""
+
+    parser = argparse.ArgumentParser(
+        description='Merge h5 resultfiles.')
+
+    parser.add_argument('-f', '--in-files', dest='in_files',
+                        required=True,
+                        help='Path for files to be merged. E.g. results/*-rank00000.h5. Or list with file names.')
+
+    parser.add_argument('-o', '--out-file', dest='out_file',
+                        required=True,
+                        help='Name of HDF5 file to be generated')
+
+    parser.add_argument('-i', '--save-iteration', dest='save_iteration', default=False,
+                        help='Save optimizer information for all iterations')
+
+    parser.add_argument('-s', '--same-input', dest='same_input', default=True,
+                        help='Merges multistarts with the same inputData.')
+    args = parser.parse_args()
+
+    return args
+
 
 def main():
-    numRequiredArgs = 2
-    if len(sys.argv) <= numRequiredArgs + 1:
-        printUsage()
-        sys.exit(1)
-        
-    infiles = sys.argv[1:(len(sys.argv) - 1)]
-    outfile = sys.argv[-1]
+
+    args = parse_cli_args()
     
-    mergeFiles(infiles, outfile)
-    
+    merge_files(args.in_files, args.out_file, args.save_iteration, args.same_input)
+
+
 if __name__ == "__main__":
     main()
