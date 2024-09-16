@@ -13,7 +13,6 @@ Borghans_BiophysChem1997
 Crauste_CellSystems2017
 Elowitz_Nature2000
 Fujita_SciSignal2010
-Schwen_PONE2014
 Sneyd_PNAS2002
 Weber_BMC2015
 Zheng_PNAS2012
@@ -47,7 +46,9 @@ Zheng_PNAS2012
 # Brannmark_JBC2010 FAILED: Expected llh 283.778227541074, got nllh 141.889034
 # Lucarelli_CellSystems2018
 # Fiedler_BMC2016 FAILED: Expected llh -117.16780323362, got nllh 109391.496205
-
+#
+# Unsupported priors:
+#   Schwen_PONE2014
 for model_name in $expected_to_work; do
   printf '=%.0s' {1..20}
   printf %s "${model_name}"
