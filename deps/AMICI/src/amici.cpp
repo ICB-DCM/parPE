@@ -13,11 +13,6 @@
 #include <cvodes/cvodes.h>           //return codes
 #include <sundials/sundials_types.h> //realtype
 
-#include <cassert>
-#include <cstdarg>
-#include <cstdlib>
-#include <cstring>
-#include <iostream>
 #include <map>
 #include <memory>
 #include <type_traits>
@@ -64,6 +59,7 @@ std::map<int, std::string> simulation_status_to_str_map = {
     {AMICI_ERR_FAILURE, "AMICI_ERR_FAILURE"},
     {AMICI_CONV_FAILURE, "AMICI_CONV_FAILURE"},
     {AMICI_FIRST_RHSFUNC_ERR, "AMICI_FIRST_RHSFUNC_ERR"},
+    {AMICI_CONSTR_FAIL, "AMICI_CONSTR_FAIL"},
     {AMICI_RHSFUNC_FAIL, "AMICI_RHSFUNC_FAIL"},
     {AMICI_ILL_INPUT, "AMICI_ILL_INPUT"},
     {AMICI_ERROR, "AMICI_ERROR"},
@@ -74,6 +70,7 @@ std::map<int, std::string> simulation_status_to_str_map = {
     {AMICI_MAX_TIME_EXCEEDED, "AMICI_MAX_TIME_EXCEEDED"},
     {AMICI_SUCCESS, "AMICI_SUCCESS"},
     {AMICI_NOT_RUN, "AMICI_NOT_RUN"},
+    {AMICI_LSETUP_FAIL, "AMICI_LSETUP_FAIL"},
 };
 
 std::unique_ptr<ReturnData> runAmiciSimulation(
@@ -210,11 +207,12 @@ std::unique_ptr<ReturnData> runAmiciSimulation(
             LogSeverity::error, "OTHER", "AMICI simulation failed: %s",
             ex.what()
         );
+#ifndef NDEBUG
         logger.log(
             LogSeverity::debug, "BACKTRACE",
             "The previous error occurred at:\n%s", ex.getBacktrace()
         );
-
+#endif
     } catch (std::exception const& ex) {
         rdata->status = AMICI_ERROR;
         if (rethrow)
@@ -225,10 +223,22 @@ std::unique_ptr<ReturnData> runAmiciSimulation(
         );
     }
 
-    rdata->processSimulationObjects(
-        preeq.get(), fwd.get(), bwd_success ? bwd.get() : nullptr, posteq.get(),
-        model, solver, edata
-    );
+    try {
+        rdata->processSimulationObjects(
+            preeq.get(), fwd.get(), bwd_success ? bwd.get() : nullptr,
+            posteq.get(), model, solver, edata
+        );
+    } catch (std::exception const& ex) {
+        rdata->status = AMICI_ERROR;
+        if (rethrow)
+            throw;
+        logger.log(
+            LogSeverity::error, "OTHER", "AMICI simulation failed: %s",
+            ex.what()
+        );
+    }
+
+    rdata->t_last = solver.gett();
 
     rdata->cpu_time_total = cpu_timer.elapsed_milliseconds();
 
@@ -272,17 +282,28 @@ std::vector<std::unique_ptr<ReturnData>> runAmiciSimulations(
 #pragma omp parallel for num_threads(num_threads)
 #endif
     for (int i = 0; i < (int)edatas.size(); ++i) {
-        auto mySolver = std::unique_ptr<Solver>(solver.clone());
-        auto myModel = std::unique_ptr<Model>(model.clone());
+        // must catch exceptions in parallel section to avoid termination
+        try {
+            auto mySolver = std::unique_ptr<Solver>(solver.clone());
+            auto myModel = std::unique_ptr<Model>(model.clone());
 
-        /* if we fail we need to write empty return datas for the python
-         interface */
-        if (skipThrough) {
-            ConditionContext conditionContext(myModel.get(), edatas[i]);
+            /* if we fail we need to write empty return datas for the python
+             interface */
+            if (skipThrough) {
+                ConditionContext conditionContext(myModel.get(), edatas[i]);
+                results[i]
+                    = std::unique_ptr<ReturnData>(new ReturnData(solver, model)
+                    );
+            } else {
+                results[i] = runAmiciSimulation(*mySolver, edatas[i], *myModel);
+            }
+        } catch (std::exception const& ex) {
             results[i]
                 = std::unique_ptr<ReturnData>(new ReturnData(solver, model));
-        } else {
-            results[i] = runAmiciSimulation(*mySolver, edatas[i], *myModel);
+            results[i]->status = AMICI_ERROR;
+            results[i]->messages.push_back(
+                LogItem(LogSeverity::error, "OTHER", ex.what())
+            );
         }
 
         skipThrough |= failfast && results[i]->status < 0;

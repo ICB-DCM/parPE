@@ -6,7 +6,7 @@
 #include <amici/symbolic_functions.h>
 
 #include <algorithm>
-#include <assert.h>
+#include <cassert>
 #include <cmath>
 #include <cstring>
 #include <numeric>
@@ -19,7 +19,7 @@ namespace amici {
 /**
  * @brief Maps ModelQuantity items to their string value
  */
-const std::map<ModelQuantity, std::string> model_quantity_to_str{
+std::map<ModelQuantity, std::string> const model_quantity_to_str{
     {ModelQuantity::J, "J"},
     {ModelQuantity::JB, "JB"},
     {ModelQuantity::Jv, "Jv"},
@@ -178,12 +178,14 @@ Model::Model(
     SimulationParameters simulation_parameters, SecondOrderMode o2mode,
     std::vector<realtype> idlist, std::vector<int> z2event,
     bool const pythonGenerated, int const ndxdotdp_explicit,
-    int const ndxdotdx_explicit, int const w_recursion_depth
+    int const ndxdotdx_explicit, int const w_recursion_depth,
+    std::map<realtype, std::vector<int>> state_independent_events
 )
     : ModelDimensions(model_dimensions)
     , pythonGenerated(pythonGenerated)
     , o2mode(o2mode)
     , idlist(std::move(idlist))
+    , state_independent_events_(std::move(state_independent_events))
     , derived_state_(model_dimensions)
     , z2event_(std::move(z2event))
     , state_is_non_negative_(nx_solver, false)
@@ -285,7 +287,9 @@ bool operator==(Model const& a, Model const& b) {
            && (a.nmaxevent_ == b.nmaxevent_)
            && (a.state_is_non_negative_ == b.state_is_non_negative_)
            && (a.sigma_res_ == b.sigma_res_) && (a.min_sigma_ == b.min_sigma_)
-           && a.state_ == b.state_;
+           && (a.state_ == b.state_)
+           && (a.steadystate_mask_.getVector()
+               == b.steadystate_mask_.getVector());
 }
 
 bool operator==(ModelDimensions const& a, ModelDimensions const& b) {
@@ -297,6 +301,7 @@ bool operator==(ModelDimensions const& a, ModelDimensions const& b) {
            && (a.nx_solver_reinit == b.nx_solver_reinit) && (a.np == b.np)
            && (a.nk == b.nk) && (a.ny == b.ny) && (a.nytrue == b.nytrue)
            && (a.nz == b.nz) && (a.nztrue == b.nztrue) && (a.ne == b.ne)
+           && (a.ne_solver == b.ne_solver) && (a.nspl == b.nspl)
            && (a.nw == b.nw) && (a.ndwdx == b.ndwdx) && (a.ndwdp == b.ndwdp)
            && (a.ndwdw == b.ndwdw) && (a.ndxdotdw == b.ndxdotdw)
            && (a.ndJydy == b.ndJydy) && (a.nnz == b.nnz) && (a.nJ == b.nJ)
@@ -320,6 +325,31 @@ void Model::initialize(
 
     if (ne)
         initEvents(x, dx, roots_found);
+
+    // evaluate static expressions once
+    auto x_pos = computeX_pos(x);
+    fw(t0(), x_pos, true);
+    fdwdw(t0(), x_pos, true);
+    fdwdx(t0(), x_pos, true);
+    if (computeSensitivities) {
+        fdwdp(t0(), x_pos, true);
+    }
+}
+
+void Model::reinitialize(
+    realtype t, AmiVector& x, AmiVectorArray& sx, bool computeSensitivities
+) {
+    fx0_fixedParameters(x);
+
+    // re-evaluate static expressions once
+    auto x_pos = computeX_pos(x);
+    fw(t, x_pos, true);
+    fdwdw(t, x_pos, true);
+    fdwdx(t, x_pos, true);
+    if (computeSensitivities) {
+        fsx0_fixedParameters(sx, x);
+        fdwdp(t, x_pos, true);
+    }
 }
 
 void Model::initializeB(
@@ -344,7 +374,7 @@ void Model::initializeStates(AmiVector& x) {
         std::copy(x0_solver.cbegin(), x0_solver.cend(), x.data());
     }
 
-    checkFinite(x.getVector(), ModelQuantity::x0);
+    checkFinite(x.getVector(), ModelQuantity::x0, t0());
 }
 
 void Model::initializeSplines() {
@@ -855,11 +885,11 @@ void Model::setStateIsNonNegative(std::vector<bool> const& nonNegative) {
         // in case of conservation laws
         return;
     }
-    if (state_is_non_negative_.size() != gsl::narrow<unsigned long>(nx_rdata)) {
+    if (nonNegative.size() != gsl::narrow<unsigned long>(nx_rdata)) {
         throw AmiException(
             "Dimension of input stateIsNonNegative (%u) does "
             "not agree with number of state variables (%d)",
-            state_is_non_negative_.size(), nx_rdata
+            nonNegative.size(), nx_rdata
         );
     }
     state_is_non_negative_ = nonNegative;
@@ -993,7 +1023,7 @@ void Model::setUnscaledInitialStateSensitivities(
     sx0data_ = sx0;
 }
 
-void Model::setSteadyStateComputationMode(const SteadyStateComputationMode mode
+void Model::setSteadyStateComputationMode(SteadyStateComputationMode const mode
 ) {
     steadystate_computation_mode_ = mode;
 }
@@ -1002,7 +1032,7 @@ SteadyStateComputationMode Model::getSteadyStateComputationMode() const {
     return steadystate_computation_mode_;
 }
 
-void Model::setSteadyStateSensitivityMode(const SteadyStateSensitivityMode mode
+void Model::setSteadyStateSensitivityMode(SteadyStateSensitivityMode const mode
 ) {
     steadystate_sensitivity_mode_ = mode;
 }
@@ -1043,14 +1073,14 @@ void Model::requireSensitivitiesForAllParameters() {
 }
 
 void Model::getExpression(
-    gsl::span<realtype> w, const realtype t, AmiVector const& x
+    gsl::span<realtype> w, realtype const t, AmiVector const& x
 ) {
-    fw(t, computeX_pos(x));
+    fw(t, computeX_pos(x), false);
     writeSlice(derived_state_.w_, w);
 }
 
 void Model::getObservable(
-    gsl::span<realtype> y, const realtype t, AmiVector const& x
+    gsl::span<realtype> y, realtype const t, AmiVector const& x
 ) {
     fy(t, x);
     writeSlice(derived_state_.y_, y);
@@ -1061,7 +1091,7 @@ ObservableScaling Model::getObservableScaling(int /*iy*/) const {
 }
 
 void Model::getObservableSensitivity(
-    gsl::span<realtype> sy, const realtype t, AmiVector const& x,
+    gsl::span<realtype> sy, realtype const t, AmiVector const& x,
     AmiVectorArray const& sx
 ) {
     if (!ny)
@@ -1202,14 +1232,14 @@ void Model::getAdjointStateObservableUpdate(
 }
 
 void Model::getEvent(
-    gsl::span<realtype> z, int const ie, const realtype t, AmiVector const& x
+    gsl::span<realtype> z, int const ie, realtype const t, AmiVector const& x
 ) {
     fz(ie, t, x);
     writeSliceEvent(derived_state_.z_, z, ie);
 }
 
 void Model::getEventSensitivity(
-    gsl::span<realtype> sz, int const ie, const realtype t, AmiVector const& x,
+    gsl::span<realtype> sz, int const ie, realtype const t, AmiVector const& x,
     AmiVectorArray const& sx
 ) {
     if (pythonGenerated) {
@@ -1260,14 +1290,14 @@ void Model::getUnobservedEventSensitivity(
 }
 
 void Model::getEventRegularization(
-    gsl::span<realtype> rz, int const ie, const realtype t, AmiVector const& x
+    gsl::span<realtype> rz, int const ie, realtype const t, AmiVector const& x
 ) {
     frz(ie, t, x);
     writeSliceEvent(derived_state_.rz_, rz, ie);
 }
 
 void Model::getEventRegularizationSensitivity(
-    gsl::span<realtype> srz, int const ie, const realtype t, AmiVector const& x,
+    gsl::span<realtype> srz, int const ie, realtype const t, AmiVector const& x,
     AmiVectorArray const& sx
 ) {
     if (pythonGenerated) {
@@ -1310,7 +1340,7 @@ void Model::getEventRegularizationSensitivity(
 
 void Model::getEventSigma(
     gsl::span<realtype> sigmaz, int const ie, int const nroots,
-    const realtype t, ExpData const* edata
+    realtype const t, ExpData const* edata
 ) {
     fsigmaz(ie, nroots, t, edata);
     writeSliceEvent(derived_state_.sigmaz_, sigmaz, ie);
@@ -1318,14 +1348,14 @@ void Model::getEventSigma(
 
 void Model::getEventSigmaSensitivity(
     gsl::span<realtype> ssigmaz, int const ie, int const nroots,
-    const realtype t, ExpData const* edata
+    realtype const t, ExpData const* edata
 ) {
     fdsigmazdp(ie, nroots, t, edata);
     writeSensitivitySliceEvent(derived_state_.dsigmazdp_, ssigmaz, ie);
 }
 
 void Model::addEventObjective(
-    realtype& Jz, int const ie, int const nroots, const realtype t,
+    realtype& Jz, int const ie, int const nroots, realtype const t,
     AmiVector const& x, ExpData const& edata
 ) {
     fz(ie, t, x);
@@ -1345,7 +1375,7 @@ void Model::addEventObjective(
 }
 
 void Model::addEventObjectiveRegularization(
-    realtype& Jrz, int const ie, int const nroots, const realtype t,
+    realtype& Jrz, int const ie, int const nroots, realtype const t,
     AmiVector const& x, ExpData const& edata
 ) {
     frz(ie, t, x);
@@ -1367,7 +1397,7 @@ void Model::addEventObjectiveRegularization(
 
 void Model::addEventObjectiveSensitivity(
     std::vector<realtype>& sllh, std::vector<realtype>& s2llh, int const ie,
-    int const nroots, const realtype t, AmiVector const& x,
+    int const nroots, realtype const t, AmiVector const& x,
     AmiVectorArray const& sx, ExpData const& edata
 ) {
 
@@ -1402,7 +1432,7 @@ void Model::addEventObjectiveSensitivity(
 }
 
 void Model::getAdjointStateEventUpdate(
-    gsl::span<realtype> dJzdx, int const ie, int const nroots, const realtype t,
+    gsl::span<realtype> dJzdx, int const ie, int const nroots, realtype const t,
     AmiVector const& x, ExpData const& edata
 ) {
     fdJzdx(ie, nroots, t, x, edata);
@@ -1411,7 +1441,7 @@ void Model::getAdjointStateEventUpdate(
 
 void Model::addPartialEventObjectiveSensitivity(
     std::vector<realtype>& sllh, std::vector<realtype>& s2llh, int const ie,
-    int const nroots, const realtype t, AmiVector const& x, ExpData const& edata
+    int const nroots, realtype const t, AmiVector const& x, ExpData const& edata
 ) {
     if (!nz)
         return;
@@ -1422,7 +1452,7 @@ void Model::addPartialEventObjectiveSensitivity(
 }
 
 void Model::getEventTimeSensitivity(
-    std::vector<realtype>& stau, const realtype t, int const ie,
+    std::vector<realtype>& stau, realtype const t, int const ie,
     AmiVector const& x, AmiVectorArray const& sx
 ) {
 
@@ -1438,7 +1468,7 @@ void Model::getEventTimeSensitivity(
 }
 
 void Model::addStateEventUpdate(
-    AmiVector& x, int const ie, const realtype t, AmiVector const& xdot,
+    AmiVector& x, int const ie, realtype const t, AmiVector const& xdot,
     AmiVector const& xdot_old
 ) {
 
@@ -1454,7 +1484,7 @@ void Model::addStateEventUpdate(
     );
 
     if (always_check_finite_) {
-        checkFinite(derived_state_.deltax_, ModelQuantity::deltax);
+        checkFinite(derived_state_.deltax_, ModelQuantity::deltax, t);
     }
 
     // update
@@ -1462,11 +1492,11 @@ void Model::addStateEventUpdate(
 }
 
 void Model::addStateSensitivityEventUpdate(
-    AmiVectorArray& sx, int const ie, const realtype t, AmiVector const& x_old,
+    AmiVectorArray& sx, int const ie, realtype const t, AmiVector const& x_old,
     AmiVector const& xdot, AmiVector const& xdot_old,
     std::vector<realtype> const& stau
 ) {
-    fw(t, x_old.data());
+    fw(t, x_old.data(), false);
 
     for (int ip = 0; ip < nplist(); ip++) {
 
@@ -1494,7 +1524,7 @@ void Model::addStateSensitivityEventUpdate(
 }
 
 void Model::addAdjointStateEventUpdate(
-    AmiVector& xB, int const ie, const realtype t, AmiVector const& x,
+    AmiVector& xB, int const ie, realtype const t, AmiVector const& x,
     AmiVector const& xdot, AmiVector const& xdot_old
 ) {
 
@@ -1508,7 +1538,7 @@ void Model::addAdjointStateEventUpdate(
     );
 
     if (always_check_finite_) {
-        checkFinite(derived_state_.deltaxB_, ModelQuantity::deltaxB);
+        checkFinite(derived_state_.deltaxB_, ModelQuantity::deltaxB, t);
     }
 
     // apply update
@@ -1519,7 +1549,7 @@ void Model::addAdjointStateEventUpdate(
 }
 
 void Model::addAdjointQuadratureEventUpdate(
-    AmiVector xQB, int const ie, const realtype t, AmiVector const& x,
+    AmiVector xQB, int const ie, realtype const t, AmiVector const& x,
     AmiVector const& xB, AmiVector const& xdot, AmiVector const& xdot_old
 ) {
     for (int ip = 0; ip < nplist(); ip++) {
@@ -1554,7 +1584,7 @@ void Model::updateHeavisideB(int const* rootsfound) {
 }
 
 int Model::checkFinite(
-    gsl::span<realtype const> array, ModelQuantity model_quantity
+    gsl::span<realtype const> array, ModelQuantity model_quantity, realtype t
 ) const {
     auto it = std::find_if(array.begin(), array.end(), [](realtype x) {
         return !std::isfinite(x);
@@ -1626,23 +1656,26 @@ int Model::checkFinite(
         gsl_ExpectsDebug(false);
         model_quantity_str = std::to_string(static_cast<int>(model_quantity));
     }
-    if (logger)
+    if (logger) {
+        auto t_msg = std::isfinite(t)
+                         ? std::string(" at t=" + std::to_string(t) + " ")
+                         : std::string();
+
         logger->log(
             LogSeverity::warning, msg_id,
-            "AMICI encountered a %s value for %s[%i] (%s)",
+            "AMICI encountered a %s value for %s[%i] (%s)%s",
             non_finite_type.c_str(), model_quantity_str.c_str(),
-            gsl::narrow<int>(flat_index), element_id.c_str()
+            gsl::narrow<int>(flat_index), element_id.c_str(), t_msg.c_str()
         );
-
+    }
     // check upstream, without infinite recursion
     if (model_quantity != ModelQuantity::k && model_quantity != ModelQuantity::p
         && model_quantity != ModelQuantity::ts) {
-        checkFinite(state_.fixedParameters, ModelQuantity::k);
-        checkFinite(state_.unscaledParameters, ModelQuantity::p);
-        checkFinite(simulation_parameters_.ts_, ModelQuantity::ts);
+        checkFinite(state_.fixedParameters, ModelQuantity::k, t);
+        checkFinite(state_.unscaledParameters, ModelQuantity::p, t);
         if (!always_check_finite_ && model_quantity != ModelQuantity::w) {
             // don't check twice if always_check_finite_ is true
-            checkFinite(derived_state_.w_, ModelQuantity::w);
+            checkFinite(derived_state_.w_, ModelQuantity::w, t);
         }
     }
     return AMICI_RECOVERABLE_ERROR;
@@ -1650,7 +1683,7 @@ int Model::checkFinite(
 
 int Model::checkFinite(
     gsl::span<realtype const> array, ModelQuantity model_quantity,
-    size_t num_cols
+    size_t num_cols, realtype t
 ) const {
     auto it = std::find_if(array.begin(), array.end(), [](realtype x) {
         return !std::isfinite(x);
@@ -1683,7 +1716,7 @@ int Model::checkFinite(
         if (hasObservableIds())
             row_id += " " + getObservableIds()[row];
         if (hasParameterIds())
-            col_id += " " + getParameterIds()[col];
+            col_id += " " + getParameterIds()[plist(gsl::narrow<int>(col))];
         break;
     case ModelQuantity::dydx:
         if (hasObservableIds())
@@ -1740,19 +1773,24 @@ int Model::checkFinite(
         model_quantity_str = std::to_string(static_cast<int>(model_quantity));
     }
 
-    if (logger)
+    if (logger) {
+        auto t_msg = std::isfinite(t)
+                         ? std::string(" at t=" + std::to_string(t) + " ")
+                         : std::string();
+
         logger->log(
             LogSeverity::warning, msg_id,
-            "AMICI encountered a %s value for %s[%i] (%s, %s)",
+            "AMICI encountered a %s value for %s[%i] (%s, %s)%s",
             non_finite_type.c_str(), model_quantity_str.c_str(),
-            gsl::narrow<int>(flat_index), row_id.c_str(), col_id.c_str()
+            gsl::narrow<int>(flat_index), row_id.c_str(), col_id.c_str(),
+            t_msg.c_str()
         );
+    }
 
     // check upstream
-    checkFinite(state_.fixedParameters, ModelQuantity::k);
-    checkFinite(state_.unscaledParameters, ModelQuantity::p);
-    checkFinite(simulation_parameters_.ts_, ModelQuantity::ts);
-    checkFinite(derived_state_.w_, ModelQuantity::w);
+    checkFinite(state_.fixedParameters, ModelQuantity::k, t);
+    checkFinite(state_.unscaledParameters, ModelQuantity::p, t);
+    checkFinite(derived_state_.w_, ModelQuantity::w, t);
 
     return AMICI_RECOVERABLE_ERROR;
 }
@@ -1815,7 +1853,7 @@ int Model::checkFinite(SUNMatrix m, ModelQuantity model_quantity, realtype t)
         if (hasExpressionIds())
             row_id += " " + getExpressionIds()[row];
         if (hasParameterIds())
-            col_id += " " + getParameterIds()[plist(gsl::narrow<int>(col))];
+            col_id += " " + getParameterIds()[col];
         break;
     default:
         break;
@@ -1840,10 +1878,9 @@ int Model::checkFinite(SUNMatrix m, ModelQuantity model_quantity, realtype t)
         );
 
     // check upstream
-    checkFinite(state_.fixedParameters, ModelQuantity::k);
-    checkFinite(state_.unscaledParameters, ModelQuantity::p);
-    checkFinite(simulation_parameters_.ts_, ModelQuantity::ts);
-    checkFinite(derived_state_.w_, ModelQuantity::w);
+    checkFinite(state_.fixedParameters, ModelQuantity::k, t);
+    checkFinite(state_.unscaledParameters, ModelQuantity::p, t);
+    checkFinite(derived_state_.w_, ModelQuantity::w, t);
 
     return AMICI_RECOVERABLE_ERROR;
 }
@@ -1867,7 +1904,7 @@ void Model::fx0(AmiVector& x) {
         state_.unscaledParameters.data(), state_.fixedParameters.data()
     );
 
-    checkFinite(derived_state_.x_rdata_, ModelQuantity::x0_rdata);
+    checkFinite(derived_state_.x_rdata_, ModelQuantity::x0_rdata, t0());
 }
 
 void Model::fx0_fixedParameters(AmiVector& x) {
@@ -1954,7 +1991,10 @@ void Model::fx_rdata(AmiVector& x_rdata, AmiVector const& x) {
         state_.unscaledParameters.data(), state_.fixedParameters.data()
     );
     if (always_check_finite_)
-        checkFinite(x_rdata.getVector(), ModelQuantity::x_rdata);
+        checkFinite(
+            x_rdata.getVector(), ModelQuantity::x_rdata,
+            std::numeric_limits<realtype>::quiet_NaN()
+        );
 }
 
 void Model::fsx_rdata(
@@ -2029,7 +2069,7 @@ void Model::initializeVectors() {
         derived_state_.dxdotdp = AmiVectorArray(nx_solver, nplist());
 }
 
-void Model::fy(const realtype t, AmiVector const& x) {
+void Model::fy(realtype const t, AmiVector const& x) {
     if (!ny)
         return;
 
@@ -2037,27 +2077,27 @@ void Model::fy(const realtype t, AmiVector const& x) {
 
     derived_state_.y_.assign(ny, 0.0);
 
-    fw(t, x_pos);
+    fw(t, x_pos, false);
     fy(derived_state_.y_.data(), t, x_pos, state_.unscaledParameters.data(),
        state_.fixedParameters.data(), state_.h.data(),
        derived_state_.w_.data());
 
     if (always_check_finite_) {
         checkFinite(
-            gsl::make_span(derived_state_.y_.data(), ny), ModelQuantity::y
+            gsl::make_span(derived_state_.y_.data(), ny), ModelQuantity::y, t
         );
     }
 }
 
-void Model::fdydp(const realtype t, AmiVector const& x) {
+void Model::fdydp(realtype const t, AmiVector const& x) {
     if (!ny)
         return;
 
     auto x_pos = computeX_pos(x);
 
     derived_state_.dydp_.assign(ny * nplist(), 0.0);
-    fw(t, x_pos);
-    fdwdp(t, x_pos);
+    fw(t, x_pos, false);
+    fdwdp(t, x_pos, false);
 
     /* get dydp slice (ny) for current time and parameter */
     for (int ip = 0; ip < nplist(); ip++)
@@ -2083,7 +2123,7 @@ void Model::fdydp(const realtype t, AmiVector const& x) {
     }
 }
 
-void Model::fdydx(const realtype t, AmiVector const& x) {
+void Model::fdydx(realtype const t, AmiVector const& x) {
     if (!ny)
         return;
 
@@ -2091,8 +2131,8 @@ void Model::fdydx(const realtype t, AmiVector const& x) {
 
     derived_state_.dydx_.assign(ny * nx_solver, 0.0);
 
-    fw(t, x_pos);
-    fdwdx(t, x_pos);
+    fw(t, x_pos, false);
+    fdwdx(t, x_pos, false);
     fdydx(
         derived_state_.dydx_.data(), t, x_pos, state_.unscaledParameters.data(),
         state_.fixedParameters.data(), state_.h.data(),
@@ -2246,7 +2286,7 @@ void Model::fdJydy(int const it, AmiVector const& x, ExpData const& edata) {
 
             auto tmp_sparse = SUNMatrixWrapper(tmp_dense, 0.0, CSC_MAT);
             auto ret = SUNMatScaleAdd(
-                1.0, derived_state_.dJydy_.at(iyt).get(), tmp_sparse.get()
+                1.0, derived_state_.dJydy_.at(iyt), tmp_sparse
             );
             if (ret != SUNMAT_SUCCESS) {
                 throw AmiException(
@@ -2417,7 +2457,7 @@ void Model::fdJydx(int const it, AmiVector const& x, ExpData const& edata) {
     }
 }
 
-void Model::fz(int const ie, const realtype t, AmiVector const& x) {
+void Model::fz(int const ie, realtype const t, AmiVector const& x) {
 
     derived_state_.z_.assign(nz, 0.0);
 
@@ -2426,7 +2466,7 @@ void Model::fz(int const ie, const realtype t, AmiVector const& x) {
        state_.h.data());
 }
 
-void Model::fdzdp(int const ie, const realtype t, AmiVector const& x) {
+void Model::fdzdp(int const ie, realtype const t, AmiVector const& x) {
     if (!nz)
         return;
 
@@ -2445,7 +2485,7 @@ void Model::fdzdp(int const ie, const realtype t, AmiVector const& x) {
     }
 }
 
-void Model::fdzdx(int const ie, const realtype t, AmiVector const& x) {
+void Model::fdzdx(int const ie, realtype const t, AmiVector const& x) {
     if (!nz)
         return;
 
@@ -2462,7 +2502,7 @@ void Model::fdzdx(int const ie, const realtype t, AmiVector const& x) {
     }
 }
 
-void Model::frz(int const ie, const realtype t, AmiVector const& x) {
+void Model::frz(int const ie, realtype const t, AmiVector const& x) {
 
     derived_state_.rz_.assign(nz, 0.0);
 
@@ -2471,7 +2511,7 @@ void Model::frz(int const ie, const realtype t, AmiVector const& x) {
         state_.h.data());
 }
 
-void Model::fdrzdp(int const ie, const realtype t, AmiVector const& x) {
+void Model::fdrzdp(int const ie, realtype const t, AmiVector const& x) {
     if (!nz)
         return;
 
@@ -2490,7 +2530,7 @@ void Model::fdrzdp(int const ie, const realtype t, AmiVector const& x) {
     }
 }
 
-void Model::fdrzdx(int const ie, const realtype t, AmiVector const& x) {
+void Model::fdrzdx(int const ie, realtype const t, AmiVector const& x) {
     if (!nz)
         return;
 
@@ -2508,7 +2548,7 @@ void Model::fdrzdx(int const ie, const realtype t, AmiVector const& x) {
 }
 
 void Model::fsigmaz(
-    int const ie, int const nroots, const realtype t, ExpData const* edata
+    int const ie, int const nroots, realtype const t, ExpData const* edata
 ) {
     if (!nz)
         return;
@@ -2544,7 +2584,7 @@ void Model::fsigmaz(
 }
 
 void Model::fdsigmazdp(
-    int const ie, int const nroots, const realtype t, ExpData const* edata
+    int const ie, int const nroots, realtype const t, ExpData const* edata
 ) {
     if (!nz)
         return;
@@ -2580,7 +2620,7 @@ void Model::fdsigmazdp(
 }
 
 void Model::fdJzdz(
-    int const ie, int const nroots, const realtype t, AmiVector const& x,
+    int const ie, int const nroots, realtype const t, AmiVector const& x,
     ExpData const& edata
 ) {
     if (!nz)
@@ -2612,7 +2652,7 @@ void Model::fdJzdz(
 }
 
 void Model::fdJzdsigma(
-    int const ie, int const nroots, const realtype t, AmiVector const& x,
+    int const ie, int const nroots, realtype const t, AmiVector const& x,
     ExpData const& edata
 ) {
     if (!nz)
@@ -2712,7 +2752,7 @@ void Model::fdJzdp(
 }
 
 void Model::fdJzdx(
-    int const ie, int const nroots, const realtype t, AmiVector const& x,
+    int const ie, int const nroots, realtype const t, AmiVector const& x,
     ExpData const& edata
 ) {
     // dJzdz         nJ x nz        x nztrue
@@ -2760,7 +2800,7 @@ void Model::fdJzdx(
 }
 
 void Model::fdJrzdz(
-    int const ie, int const nroots, const realtype t, AmiVector const& x,
+    int const ie, int const nroots, realtype const t, AmiVector const& x,
     ExpData const& edata
 ) {
     if (!nz)
@@ -2791,7 +2831,7 @@ void Model::fdJrzdz(
 }
 
 void Model::fdJrzdsigma(
-    int const ie, int const nroots, const realtype t, AmiVector const& x,
+    int const ie, int const nroots, realtype const t, AmiVector const& x,
     ExpData const& edata
 ) {
     if (!nz)
@@ -2822,12 +2862,12 @@ void Model::fdJrzdsigma(
     }
 }
 
-void Model::fspl(const realtype t) {
+void Model::fspl(realtype const t) {
     for (int ispl = 0; ispl < nspl; ispl++)
         state_.spl_[ispl] = splines_[ispl].get_value(t);
 }
 
-void Model::fsspl(const realtype t) {
+void Model::fsspl(realtype const t) {
     derived_state_.sspl_.zero();
     realtype* sspl_data = derived_state_.sspl_.data();
     for (int ip = 0; ip < nplist(); ip++) {
@@ -2837,38 +2877,42 @@ void Model::fsspl(const realtype t) {
     }
 }
 
-void Model::fw(const realtype t, realtype const* x) {
-    std::fill(derived_state_.w_.begin(), derived_state_.w_.end(), 0.0);
+void Model::fw(realtype const t, realtype const* x, bool include_static) {
+    if (include_static) {
+        std::fill(derived_state_.w_.begin(), derived_state_.w_.end(), 0.0);
+    }
     fspl(t);
     fw(derived_state_.w_.data(), t, x, state_.unscaledParameters.data(),
        state_.fixedParameters.data(), state_.h.data(), state_.total_cl.data(),
-       state_.spl_.data());
+       state_.spl_.data(), include_static);
 
     if (always_check_finite_) {
-        checkFinite(derived_state_.w_, ModelQuantity::w);
+        checkFinite(derived_state_.w_, ModelQuantity::w, t);
     }
 }
 
-void Model::fdwdp(const realtype t, realtype const* x) {
+void Model::fdwdp(realtype const t, realtype const* x, bool include_static) {
     if (!nw)
         return;
 
-    fw(t, x);
+    fw(t, x, include_static);
     derived_state_.dwdp_.zero();
     if (pythonGenerated) {
-        if (!dwdp_hierarchical_.at(0).capacity())
+        if (!ndwdp)
             return;
         fsspl(t);
-        fdwdw(t, x);
-        dwdp_hierarchical_.at(0).zero();
-        fdwdp_colptrs(dwdp_hierarchical_.at(0));
-        fdwdp_rowvals(dwdp_hierarchical_.at(0));
+        fdwdw(t, x, include_static);
+        if (include_static) {
+            dwdp_hierarchical_.at(0).zero();
+            fdwdp_colptrs(dwdp_hierarchical_.at(0));
+            fdwdp_rowvals(dwdp_hierarchical_.at(0));
+        }
         fdwdp(
             dwdp_hierarchical_.at(0).data(), t, x,
             state_.unscaledParameters.data(), state_.fixedParameters.data(),
             state_.h.data(), derived_state_.w_.data(), state_.total_cl.data(),
             state_.stotal_cl.data(), state_.spl_.data(),
-            derived_state_.sspl_.data()
+            derived_state_.sspl_.data(), include_static
         );
 
         for (int irecursion = 1; irecursion <= w_recursion_depth_;
@@ -2894,29 +2938,33 @@ void Model::fdwdp(const realtype t, realtype const* x) {
     }
 
     if (always_check_finite_) {
-        checkFinite(derived_state_.dwdp_.get(), ModelQuantity::dwdp, t);
+        checkFinite(derived_state_.dwdp_, ModelQuantity::dwdp, t);
     }
 }
 
-void Model::fdwdx(const realtype t, realtype const* x) {
+void Model::fdwdx(realtype const t, realtype const* x, bool include_static) {
     if (!nw)
         return;
 
-    fw(t, x);
+    fw(t, x, include_static);
 
     derived_state_.dwdx_.zero();
     if (pythonGenerated) {
         if (!dwdx_hierarchical_.at(0).capacity())
             return;
-        fdwdw(t, x);
-        dwdx_hierarchical_.at(0).zero();
-        fdwdx_colptrs(dwdx_hierarchical_.at(0));
-        fdwdx_rowvals(dwdx_hierarchical_.at(0));
+
+        fdwdw(t, x, include_static);
+
+        if (include_static) {
+            dwdx_hierarchical_.at(0).zero();
+            fdwdx_colptrs(dwdx_hierarchical_.at(0));
+            fdwdx_rowvals(dwdx_hierarchical_.at(0));
+        }
         fdwdx(
             dwdx_hierarchical_.at(0).data(), t, x,
             state_.unscaledParameters.data(), state_.fixedParameters.data(),
             state_.h.data(), derived_state_.w_.data(), state_.total_cl.data(),
-            state_.spl_.data()
+            state_.spl_.data(), include_static
         );
 
         for (int irecursion = 1; irecursion <= w_recursion_depth_;
@@ -2940,24 +2988,28 @@ void Model::fdwdx(const realtype t, realtype const* x) {
     }
 
     if (always_check_finite_) {
-        checkFinite(derived_state_.dwdx_.get(), ModelQuantity::dwdx, t);
+        checkFinite(derived_state_.dwdx_, ModelQuantity::dwdx, t);
     }
 }
 
-void Model::fdwdw(const realtype t, realtype const* x) {
-    if (!nw || !dwdw_.capacity())
+void Model::fdwdw(realtype const t, realtype const* x, bool include_static) {
+    if (!ndwdw)
         return;
-    dwdw_.zero();
-    fdwdw_colptrs(dwdw_);
-    fdwdw_rowvals(dwdw_);
+
+    if (include_static) {
+        dwdw_.zero();
+        fdwdw_colptrs(dwdw_);
+        fdwdw_rowvals(dwdw_);
+    }
+
     fdwdw(
         dwdw_.data(), t, x, state_.unscaledParameters.data(),
         state_.fixedParameters.data(), state_.h.data(),
-        derived_state_.w_.data(), state_.total_cl.data()
+        derived_state_.w_.data(), state_.total_cl.data(), include_static
     );
 
     if (always_check_finite_) {
-        checkFinite(dwdw_.get(), ModelQuantity::dwdw, t);
+        checkFinite(dwdw_, ModelQuantity::dwdw, t);
     }
 }
 
@@ -3069,6 +3121,37 @@ void Model::fstotal_cl(
     derived_state_.dtotal_cldx_rdata.multiply(
         gsl::make_span(stotal_cl, ncl()), gsl::make_span(sx_rdata, nx_rdata)
     );
+}
+
+std::vector<double> Model::get_trigger_timepoints() const {
+    std::vector<double> trigger_timepoints(
+        state_independent_events_.size(), 0.0
+    );
+    // collect keys from state_independent_events_ which are the trigger
+    // timepoints
+    auto it = trigger_timepoints.begin();
+    for (auto const& kv : state_independent_events_) {
+        *(it++) = kv.first;
+    }
+    std::sort(trigger_timepoints.begin(), trigger_timepoints.end());
+    return trigger_timepoints;
+}
+
+void Model::set_steadystate_mask(std::vector<double> const& mask) {
+    if (mask.size() == 0) {
+        if (steadystate_mask_.getLength() != 0) {
+            steadystate_mask_ = AmiVector();
+        }
+        return;
+    }
+
+    if (gsl::narrow<int>(mask.size()) != nx_solver)
+        throw AmiException(
+            "Steadystate mask has wrong size: %d, expected %d",
+            gsl::narrow<int>(mask.size()), nx_solver
+        );
+
+    steadystate_mask_ = AmiVector(mask);
 }
 
 const_N_Vector Model::computeX_pos(const_N_Vector x) {

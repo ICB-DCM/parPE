@@ -13,6 +13,8 @@
 #include <colamd.h>
 #include <klu.h>
 
+#include <sstream>
+
 #define ZERO RCONST(0.0)
 #define ONE RCONST(1.0)
 #define FOUR RCONST(4.0)
@@ -102,7 +104,7 @@ static int fsxdot(
 /* Function implementations */
 
 void CVodeSolver::
-    init(const realtype t0, AmiVector const& x0, AmiVector const& /*dx0*/)
+    init(realtype const t0, AmiVector const& x0, AmiVector const& /*dx0*/)
         const {
     solver_was_called_F_ = false;
     force_reinit_postprocess_F_ = false;
@@ -120,7 +122,7 @@ void CVodeSolver::
 }
 
 void CVodeSolver::initSteadystate(
-    const realtype /*t0*/, AmiVector const& /*x0*/, AmiVector const& /*dx0*/
+    realtype const /*t0*/, AmiVector const& /*x0*/, AmiVector const& /*dx0*/
 ) const {
     // We need to set the steadystate rhs function. Sundials doesn't have this
     // in its public API, so we have to change it in the solver memory,
@@ -159,7 +161,7 @@ void CVodeSolver::
 }
 
 void CVodeSolver::binit(
-    int const which, const realtype tf, AmiVector const& xB0,
+    int const which, realtype const tf, AmiVector const& xB0,
     AmiVector const& /*dxB0*/
 ) const {
     solver_was_called_B_ = false;
@@ -253,6 +255,37 @@ void CVodeSolver::setSparseJacFn_ss() const {
     int status = CVodeSetJacFn(solver_memory_.get(), fJSparseB_ss);
     if (status != CV_SUCCESS)
         throw CvodeException(status, "CVodeSetJacFn");
+}
+
+void CVodeSolver::apply_max_nonlin_iters() const {
+    int status
+        = CVodeSetMaxNonlinIters(solver_memory_.get(), getMaxNonlinIters());
+    if (status != CV_SUCCESS)
+        throw CvodeException(status, "CVodeSetMaxNonlinIters");
+}
+
+void CVodeSolver::apply_max_conv_fails() const {
+    int status = CVodeSetMaxConvFails(solver_memory_.get(), getMaxConvFails());
+    if (status != CV_SUCCESS)
+        throw CvodeException(status, "CVodeSetMaxConvFails");
+}
+
+void CVodeSolver::apply_constraints() const {
+    Solver::apply_constraints();
+
+    int status = CVodeSetConstraints(
+        solver_memory_.get(),
+        constraints_.getLength() > 0 ? constraints_.getNVector() : nullptr
+    );
+    if (status != CV_SUCCESS) {
+        throw CvodeException(status, "CVodeSetConstraints");
+    }
+}
+
+void CVodeSolver::apply_max_step_size() const {
+    int status = CVodeSetMaxStep(solver_memory_.get(), getMaxStepSize());
+    if (status != CV_SUCCESS)
+        throw CvodeException(status, "CVodeSetMaxStep");
 }
 
 Solver* CVodeSolver::clone() const { return new CVodeSolver(*this); }
@@ -450,12 +483,12 @@ void CVodeSolver::resetState(void* ami_mem, const_N_Vector y0) const {
     N_VScale(ONE, const_cast<N_Vector>(y0), cv_mem->cv_zn[0]);
 }
 
-void CVodeSolver::reInitPostProcessF(const realtype tnext) const {
+void CVodeSolver::reInitPostProcessF(realtype const tnext) const {
     reInitPostProcess(solver_memory_.get(), &t_, &x_, tnext);
     force_reinit_postprocess_F_ = false;
 }
 
-void CVodeSolver::reInitPostProcessB(const realtype tnext) const {
+void CVodeSolver::reInitPostProcessB(realtype const tnext) const {
     realtype tBret;
     auto cv_mem = static_cast<CVodeMem>(solver_memory_.get());
     auto ca_mem = cv_mem->cv_adj_mem;
@@ -475,7 +508,7 @@ void CVodeSolver::reInitPostProcessB(const realtype tnext) const {
 }
 
 void CVodeSolver::reInitPostProcess(
-    void* ami_mem, realtype* t, AmiVector* yout, const realtype tout
+    void* ami_mem, realtype* t, AmiVector* yout, realtype const tout
 ) const {
     auto cv_mem = static_cast<CVodeMem>(ami_mem);
     auto nst_tmp = cv_mem->cv_nst;
@@ -490,13 +523,16 @@ void CVodeSolver::reInitPostProcess(
     if (status == CV_ROOT_RETURN)
         throw CvodeException(
             status,
-            "CVode returned a root after "
-            "reinitialization. The initial step-size after the event or "
-            "heaviside function is too small. To fix this, increase absolute "
+            "CVode returned a root after reinitialization. "
+            "The initial step-size after the event or "
+            "Heaviside function is too small. To fix this, increase absolute "
             "and relative tolerances!"
         );
-    if (status != CV_SUCCESS)
-        throw CvodeException(status, "reInitPostProcess");
+    if (status != CV_SUCCESS) {
+        std::stringstream msg;
+        msg << "tout: " << tout << ", t: " << *t << ".";
+        throw CvodeException(status, "reInitPostProcess", msg.str().c_str());
+    }
 
     cv_mem->cv_nst = nst_tmp + 1;
     if (cv_mem->cv_adjMallocDone == SUNTRUE) {
@@ -515,7 +551,7 @@ void CVodeSolver::reInitPostProcess(
         dt_mem[cv_mem->cv_nst % ca_mem->ca_nsteps]->t = *t;
         ca_mem->ca_IMstore(cv_mem, dt_mem[cv_mem->cv_nst % ca_mem->ca_nsteps]);
 
-        /* Set t1 field of the current ckeck point structure
+        /* Set t1 field of the current check point structure
          for the case in which there will be no future
          check points */
         ca_mem->ck_mem->ck_t1 = *t;
@@ -526,7 +562,7 @@ void CVodeSolver::reInitPostProcess(
 }
 
 void CVodeSolver::
-    reInit(const realtype t0, AmiVector const& yy0, AmiVector const& /*yp0*/)
+    reInit(realtype const t0, AmiVector const& yy0, AmiVector const& /*yp0*/)
         const {
     auto cv_mem = static_cast<CVodeMem>(solver_memory_.get());
     cv_mem->cv_tn = t0;
@@ -554,7 +590,7 @@ void CVodeSolver::
 }
 
 void CVodeSolver::reInitB(
-    int const which, const realtype tB0, AmiVector const& yyB0,
+    int const which, realtype const tB0, AmiVector const& yyB0,
     AmiVector const& /*ypB0*/
 ) const {
     auto cv_memB = static_cast<CVodeMem>(
@@ -611,14 +647,14 @@ void CVodeSolver::getSens() const {
         throw CvodeException(status, "CVodeGetSens");
 }
 
-void CVodeSolver::getSensDky(const realtype t, int const k) const {
+void CVodeSolver::getSensDky(realtype const t, int const k) const {
     int status
         = CVodeGetSensDky(solver_memory_.get(), t, k, sx_.getNVectorArray());
     if (status != CV_SUCCESS)
         throw CvodeException(status, "CVodeGetSens");
 }
 
-void CVodeSolver::getDkyB(const realtype t, int const k, int const which)
+void CVodeSolver::getDkyB(realtype const t, int const k, int const which)
     const {
     int status = CVodeGetDky(
         CVodeGetAdjCVodeBmem(solver_memory_.get(), which), t, k,
@@ -643,7 +679,7 @@ void CVodeSolver::getQuad(realtype& t) const {
         throw CvodeException(status, "CVodeGetQuad");
 }
 
-void CVodeSolver::getQuadDkyB(const realtype t, int const k, int which) const {
+void CVodeSolver::getQuadDkyB(realtype const t, int const k, int which) const {
     int status = CVodeGetQuadDky(
         CVodeGetAdjCVodeBmem(solver_memory_.get(), which), t, k,
         xQB_.getNVector()
@@ -652,7 +688,7 @@ void CVodeSolver::getQuadDkyB(const realtype t, int const k, int which) const {
         throw CvodeException(status, "CVodeGetQuadDkyB");
 }
 
-void CVodeSolver::getQuadDky(const realtype t, int const k) const {
+void CVodeSolver::getQuadDky(realtype const t, int const k) const {
     int status = CVodeGetQuadDky(solver_memory_.get(), t, k, xQ_.getNVector());
     if (status != CV_SUCCESS)
         throw CvodeException(status, "CVodeGetQuadDky");
@@ -707,7 +743,7 @@ void CVodeSolver::allocateSolverB(int* which) const {
 }
 
 void CVodeSolver::setSStolerancesB(
-    int const which, const realtype relTolB, const realtype absTolB
+    int const which, realtype const relTolB, realtype const absTolB
 ) const {
     int status
         = CVodeSStolerancesB(solver_memory_.get(), which, relTolB, absTolB);
@@ -716,7 +752,7 @@ void CVodeSolver::setSStolerancesB(
 }
 
 void CVodeSolver::quadSStolerancesB(
-    int const which, const realtype reltolQB, const realtype abstolQB
+    int const which, realtype const reltolQB, realtype const abstolQB
 ) const {
     int status = CVodeQuadSStolerancesB(
         solver_memory_.get(), which, reltolQB, abstolQB
@@ -726,7 +762,7 @@ void CVodeSolver::quadSStolerancesB(
 }
 
 void CVodeSolver::quadSStolerances(
-    const realtype reltolQB, const realtype abstolQB
+    realtype const reltolQB, realtype const abstolQB
 ) const {
     int status
         = CVodeQuadSStolerances(solver_memory_.get(), reltolQB, abstolQB);
@@ -742,7 +778,7 @@ void CVodeSolver::getB(int const which) const {
         throw CvodeException(status, "CVodeGetB");
 }
 
-int CVodeSolver::solve(const realtype tout, int const itask) const {
+int CVodeSolver::solve(realtype const tout, int const itask) const {
     if (force_reinit_postprocess_F_)
         reInitPostProcessF(tout);
     int status = CVode(solver_memory_.get(), tout, x_.getNVector(), &t_, itask);
@@ -752,7 +788,7 @@ int CVodeSolver::solve(const realtype tout, int const itask) const {
     return status;
 }
 
-int CVodeSolver::solveF(const realtype tout, int const itask, int* ncheckPtr)
+int CVodeSolver::solveF(realtype const tout, int const itask, int* ncheckPtr)
     const {
     if (force_reinit_postprocess_F_)
         reInitPostProcessF(tout);
@@ -765,7 +801,7 @@ int CVodeSolver::solveF(const realtype tout, int const itask, int* ncheckPtr)
     return status;
 }
 
-void CVodeSolver::solveB(const realtype tBout, int const itaskB) const {
+void CVodeSolver::solveB(realtype const tBout, int const itaskB) const {
     if (force_reinit_postprocess_B_)
         reInitPostProcessB(tBout);
     int status = CVodeB(solver_memory_.get(), tBout, itaskB);
@@ -834,12 +870,12 @@ void* CVodeSolver::getAdjBmem(void* ami_mem, int which) const {
     return CVodeGetAdjCVodeBmem(ami_mem, which);
 }
 
-void CVodeSolver::calcIC(const realtype /*tout1*/) const {};
+void CVodeSolver::calcIC(realtype const /*tout1*/) const {};
 
-void CVodeSolver::calcICB(int const /*which*/, const realtype /*tout1*/)
-    const {};
+void CVodeSolver::calcICB(int const /*which*/, realtype const /*tout1*/) const {
+};
 
-void CVodeSolver::setStopTime(const realtype tstop) const {
+void CVodeSolver::setStopTime(realtype const tstop) const {
     int status = CVodeSetStopTime(solver_memory_.get(), tstop);
     if (status != CV_SUCCESS)
         throw CvodeException(status, "CVodeSetStopTime");
@@ -909,7 +945,7 @@ fJB(realtype t, N_Vector x, N_Vector xB, N_Vector xBdot, SUNMatrix JB,
     Expects(model);
 
     model->fJB(t, x, xB, xBdot, JB);
-    return model->checkFinite(gsl::make_span(JB), ModelQuantity::JB);
+    return model->checkFinite(gsl::make_span(JB), ModelQuantity::JB, t);
 }
 
 /**
@@ -960,7 +996,7 @@ static int fJSparseB(
     Expects(model);
 
     model->fJSparseB(t, x, xB, xBdot, JB);
-    return model->checkFinite(gsl::make_span(JB), ModelQuantity::JB);
+    return model->checkFinite(gsl::make_span(JB), ModelQuantity::JB, t);
 }
 
 /**
@@ -1023,7 +1059,7 @@ fJv(N_Vector v, N_Vector Jv, realtype t, N_Vector x, N_Vector /*xdot*/,
     Expects(model);
 
     model->fJv(v, Jv, t, x);
-    return model->checkFinite(gsl::make_span(Jv), ModelQuantity::Jv);
+    return model->checkFinite(gsl::make_span(Jv), ModelQuantity::Jv, t);
 }
 
 /**
@@ -1049,7 +1085,7 @@ static int fJvB(
     Expects(model);
 
     model->fJvB(vB, JvB, t, x, xB);
-    return model->checkFinite(gsl::make_span(JvB), ModelQuantity::JvB);
+    return model->checkFinite(gsl::make_span(JvB), ModelQuantity::JvB, t);
 }
 
 /**
@@ -1066,9 +1102,17 @@ static int froot(realtype t, N_Vector x, realtype* root, void* user_data) {
     auto model = dynamic_cast<Model_ODE*>(typed_udata->first);
     Expects(model);
 
-    model->froot(t, x, gsl::make_span<realtype>(root, model->ne));
+    if (model->ne != model->ne_solver) {
+        // temporary buffer to store all root function values, not only the ones
+        // tracked by the solver
+        static std::vector<realtype> root_buffer(model->ne, 0.0);
+        model->froot(t, x, root_buffer);
+        std::copy_n(root_buffer.begin(), model->ne_solver, root);
+    } else {
+        model->froot(t, x, gsl::make_span<realtype>(root, model->ne_solver));
+    }
     return model->checkFinite(
-        gsl::make_span<realtype>(root, model->ne), ModelQuantity::root
+        gsl::make_span<realtype>(root, model->ne_solver), ModelQuantity::root, t
     );
 }
 
@@ -1093,7 +1137,7 @@ static int fxdot(realtype t, N_Vector x, N_Vector xdot, void* user_data) {
     }
 
     if (t > 1e200
-        && !model->checkFinite(gsl::make_span(x), ModelQuantity::xdot)) {
+        && !model->checkFinite(gsl::make_span(x), ModelQuantity::xdot, t)) {
         /* when t is large (typically ~1e300), CVODES may pass all NaN x
            to fxdot from which we typically cannot recover. To save time
            on normal execution, we do not always want to check finiteness
@@ -1102,7 +1146,7 @@ static int fxdot(realtype t, N_Vector x, N_Vector xdot, void* user_data) {
     }
 
     model->fxdot(t, x, xdot);
-    return model->checkFinite(gsl::make_span(xdot), ModelQuantity::xdot);
+    return model->checkFinite(gsl::make_span(xdot), ModelQuantity::xdot, t);
 }
 
 /**
@@ -1128,7 +1172,7 @@ fxBdot(realtype t, N_Vector x, N_Vector xB, N_Vector xBdot, void* user_data) {
     }
 
     model->fxBdot(t, x, xB, xBdot);
-    return model->checkFinite(gsl::make_span(xBdot), ModelQuantity::xBdot);
+    return model->checkFinite(gsl::make_span(xBdot), ModelQuantity::xBdot, t);
 }
 
 /**
@@ -1148,7 +1192,7 @@ fqBdot(realtype t, N_Vector x, N_Vector xB, N_Vector qBdot, void* user_data) {
     Expects(model);
 
     model->fqBdot(t, x, xB, qBdot);
-    return model->checkFinite(gsl::make_span(qBdot), ModelQuantity::qBdot);
+    return model->checkFinite(gsl::make_span(qBdot), ModelQuantity::qBdot, t);
 }
 
 /**
@@ -1167,7 +1211,9 @@ static int fxBdot_ss(realtype t, N_Vector xB, N_Vector xBdot, void* user_data) {
     Expects(model);
 
     model->fxBdot_ss(t, xB, xBdot);
-    return model->checkFinite(gsl::make_span(xBdot), ModelQuantity::xBdot_ss);
+    return model->checkFinite(
+        gsl::make_span(xBdot), ModelQuantity::xBdot_ss, t
+    );
 }
 
 /**
@@ -1186,7 +1232,9 @@ static int fqBdot_ss(realtype t, N_Vector xB, N_Vector qBdot, void* user_data) {
     Expects(model);
 
     model->fqBdot_ss(t, xB, qBdot);
-    return model->checkFinite(gsl::make_span(qBdot), ModelQuantity::qBdot_ss);
+    return model->checkFinite(
+        gsl::make_span(qBdot), ModelQuantity::qBdot_ss, t
+    );
 }
 
 /**
@@ -1202,8 +1250,8 @@ static int fqBdot_ss(realtype t, N_Vector xB, N_Vector qBdot, void* user_data) {
  * @return status flag indicating successful execution
  */
 static int fJSparseB_ss(
-    realtype /*t*/, N_Vector /*x*/, N_Vector xBdot, SUNMatrix JB,
-    void* user_data, N_Vector /*tmp1*/, N_Vector /*tmp2*/, N_Vector /*tmp3*/
+    realtype t, N_Vector /*x*/, N_Vector xBdot, SUNMatrix JB, void* user_data,
+    N_Vector /*tmp1*/, N_Vector /*tmp2*/, N_Vector /*tmp3*/
 ) {
     auto typed_udata = static_cast<CVodeSolver::user_data_type*>(user_data);
     Expects(typed_udata);
@@ -1212,7 +1260,7 @@ static int fJSparseB_ss(
 
     model->fJSparseB_ss(JB);
     return model->checkFinite(
-        gsl::make_span(xBdot), ModelQuantity::JSparseB_ss
+        gsl::make_span(xBdot), ModelQuantity::JSparseB_ss, t
     );
 }
 
@@ -1241,7 +1289,7 @@ static int fsxdot(
     Expects(model);
 
     model->fsxdot(t, x, ip, sx, sxdot);
-    return model->checkFinite(gsl::make_span(sxdot), ModelQuantity::sxdot);
+    return model->checkFinite(gsl::make_span(sxdot), ModelQuantity::sxdot, t);
 }
 
 bool operator==(CVodeSolver const& a, CVodeSolver const& b) {
