@@ -1089,8 +1089,8 @@ def write_optimization_options(f: h5py.File) -> None:
     # set IpOpt options
     g = f.require_group('optimizationOptions/ipopt')
     g.attrs['max_iter'] = 100
-    g.attrs['hessian_approximation'] = np.string_("limited-memory")
-    g.attrs["limited_memory_update_type"] = np.string_("bfgs")
+    g.attrs['hessian_approximation'] = np.bytes_("limited-memory")
+    g.attrs["limited_memory_update_type"] = np.bytes_("bfgs")
     g.attrs["tol"] = 1e-9
     g.attrs["acceptable_iter"] = 1
     # set ridiculously high, so only the acceptable_* options below matter
