@@ -37,7 +37,7 @@ For any code contributions, please follow the guidelines below.
 
 ### Python 
 
-* We want to be compatible with Python 3.7
+* We want to be compatible with Python 3.9
 
 * For the Python code we want to follow 
   [PEP8](https://www.python.org/dev/peps/pep-0008/). Although this is not the
