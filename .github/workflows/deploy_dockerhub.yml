@@ -20,11 +20,12 @@ jobs:
   build:
     name: Deploy to dockerhub
     runs-on: ubuntu-latest
+    needs: [check-secret]
+    if: needs.check-secret.outputs.secrets-defined == 'true'
     steps:
     - uses: actions/checkout@master
     - run: git archive -v -o container/charliecloud/parpe_base/parpe.tar.gz --format=tar.gz HEAD
     - name: Publish to Registry
-      if: needs.check-secret.outputs.secrets-defined == 'true'
       uses: elgohr/Publish-Docker-Github-Action@v5
       with:
         name: dweindl/parpe
