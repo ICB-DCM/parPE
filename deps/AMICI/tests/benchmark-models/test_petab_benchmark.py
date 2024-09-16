@@ -31,19 +31,15 @@ models = [
     if petab_path.is_dir()
     if str(petab_path.stem)
     not in (
-        # excluded due to unsupported priors
-        "Schwen_PONE2014",
-        "Zhao_QuantBiol2020",
         # excluded due to excessive runtime
-        "Bachmann_MSB2011", # prior
+        "Bachmann_MSB2011",
         "Chen_MSB2009",
         "Froehlich_CellSystems2018",
-        "Raimundez_PCB2020", # prior
+        "Raimundez_PCB2020",
         "Lucarelli_CellSystems2018",
-        "Isensee_JCB2018", # prior
+        "Isensee_JCB2018",
         "Beer_MolBioSystems2014",
         "Alkan_SciSignal2018",
-        "Lang_PLOSComputBiol2024",
         # excluded due to excessive numerical failures
         "Crauste_CellSystems2017",
         "Fujita_SciSignal2010",
