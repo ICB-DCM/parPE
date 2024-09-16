@@ -93,9 +93,6 @@ class HDF5DataGenerator:
         self.petab_problem: petab.Problem = petab_problem
         self.amici_model: amici.Model = amici_model
 
-        # ensure we have valid inputs
-        petab.lint_problem(self.petab_problem)
-
         # index for no reference/preequilibration condition
         self.NO_PREEQ_CONDITION_IDX: int = NO_PREEQ_CONDITION_IDX
 
@@ -104,6 +101,28 @@ class HDF5DataGenerator:
 
         # hdf5 dataset compression
         self.compression = "gzip"
+
+        self._check_support()
+
+    def _check_support(self):
+        """
+        Check if the model is supported by parPE
+        """
+        # ensure we have valid inputs
+        petab.lint_problem(self.petab_problem)
+
+        # We can't handle priors yet
+        #  Initialization priors would work in principle when we sample
+        #  starting points using petab. However, the current parpe C++
+        #  resampling would ignore the initialization prior.
+        #  And they wouldn't be supported for hierarchical optimization.
+        parameter_df = self.petab_problem.parameter_df
+        for col_id in [
+            ptc.INITIALIZATION_PRIOR_TYPE, ptc.INITIALIZATION_PRIOR_PARAMETERS,
+            ptc.OBJECTIVE_PRIOR_TYPE, ptc.OBJECTIVE_PRIOR_PARAMETERS
+        ]:
+            if (col := parameter_df.get(col_id)) is not None and col.notna().any():
+                raise NotImplementedError("Priors are not supported yet.")
 
     def generate_file(self, hdf5_file_name: str) -> None:
         """
