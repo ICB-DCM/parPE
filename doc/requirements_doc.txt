@@ -3,7 +3,7 @@ sphinx_rtd_theme>=1.2.0
 breathe>=4.35.0
 exhale>=0.2.3
 ipython>=8.13.2
-m2r2>=0.2.7
+myst-parser
 sphinx-autodoc-typehints>=1.10.3
 nbsphinx==0.9.1
 nbconvert>=7.1.0
