@@ -11,8 +11,8 @@ import h5py
 import numpy as np
 import pandas as pd
 import petab
-from amici.petab_import import PREEQ_INDICATOR_ID
-from amici.petab_import import petab_scale_to_amici_scale
+from amici.petab import PREEQ_INDICATOR_ID
+from amici.petab.import_helpers import petab_scale_to_amici_scale
 from colorama import Fore
 from colorama import init as init_colorama
 from pandas import DataFrame

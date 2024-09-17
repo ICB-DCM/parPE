@@ -41,8 +41,7 @@ def parse_cli_args():
     return args
 
 
-def create_module(sbml_model_file, model_name, model_output_dir, condition_df,
-                  observable_df):
+def create_module(petab_problem, model_name, model_output_dir):
     """Create AMICI Python module from SBML model
 
     Arguments:
@@ -51,10 +50,10 @@ def create_module(sbml_model_file, model_name, model_output_dir, condition_df,
         model_output_dir: Directory for model code
     """
 
-    from amici.petab_import import import_model
-    import_model(sbml_model=sbml_model_file, observable_table=observable_df,
+    from amici.petab.petab_import import import_model
+    import_model(petab_problem=petab_problem,
                  model_name=model_name, model_output_dir=model_output_dir,
-                 verbose=True, condition_table=condition_df)
+                 verbose=True, )
 
 
 def print_model_info(sbml_file):
@@ -463,9 +462,19 @@ def main():
     })
     observable_df.set_index([ptc.OBSERVABLE_ID], inplace=True)
 
-    create_module(sbml_model_file=sbml_file_name, model_name=model_name,
-                  model_output_dir=args.model_output_dir,
-                  observable_df=observable_df, condition_df=condition_df)
+
+    # assemble PEtab problem
+    pp = petab.Problem.from_files(sbml_file=sbml_file_name)
+    pp.observable_df = observable_df
+    pp.condition_df = condition_df
+    # dummy parameter and measurement df needed for amici-import
+    pp.measurement_df = petab.create_measurement_df()
+    pp.parameter_df = pp.create_parameter_df(include_optional=True, lower_bound=1e-3, upper_bound=1e5)
+    pp.parameter_df[ptc.ESTIMATE] = 1
+
+
+    create_module(petab_problem=pp, model_name=model_name,
+                  model_output_dir=args.model_output_dir)
 
     # load model
     sys.path.insert(0, args.model_output_dir)
@@ -478,11 +487,7 @@ def main():
         model=model_module.getModel(),
         condition_df=condition_df)
 
-    # assemble PEtab problem
-    pp = petab.Problem.from_files(sbml_file=sbml_file_name)
-    pp.observable_df = observable_df
     pp.measurement_df = measurement_df
-    pp.condition_df = condition_df
     create_parameter_table(problem=pp, nominal_parameters=true_parameters)
 
     # check for valid PEtab
