@@ -46,7 +46,7 @@ jobs:
       run: |
         cd $AMICI_PATH \
           && scripts/buildSuiteSparse.sh \
-          && scripts/buildSundials.sh
+          && scripts/buildSundials.sh && find ThirdParty/SuiteSparse -name '*.cmake'
 
     - name: Install AMICI
       run: |
