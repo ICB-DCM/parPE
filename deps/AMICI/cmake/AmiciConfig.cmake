@@ -11,6 +11,7 @@ list(APPEND CMAKE_MODULE_PATH
      @CMAKE_SOURCE_DIR@/ThirdParty/SuiteSparse/lib/cmake/SuiteSparse/)
 if(NOT DEFINED SUITESPARSE_CONFIG_ROOT)
   set(SUITESPARSE_CONFIG_ROOT @CMAKE_SOURCE_DIR@/ThirdParty/SuiteSparse/)
+  set(SuiteSparse_config_ROOT @CMAKE_SOURCE_DIR@/ThirdParty/SuiteSparse/)
 endif()
 if(NOT DEFINED AMD_ROOT)
   set(AMD_ROOT @CMAKE_SOURCE_DIR@/ThirdParty/SuiteSparse/)
