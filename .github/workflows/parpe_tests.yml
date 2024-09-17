@@ -70,6 +70,7 @@ jobs:
     - name: Configure parPE
       run: |
         cmake \
+          --debug-find \
           -S"${PARPE_BASE}" \
           -B"${PARPE_BUILD}" \
           -DCMAKE_CXX_FLAGS="-Wall -Wextra -Werror -Wno-deprecated-copy" \
