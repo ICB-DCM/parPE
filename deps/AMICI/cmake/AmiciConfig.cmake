@@ -33,16 +33,18 @@ find_dependency(KLU REQUIRED)
 
 include("${CMAKE_CURRENT_LIST_DIR}/AmiciFindBLAS.cmake")
 
-add_library(SUNDIALS::KLU INTERFACE IMPORTED)
-target_link_libraries(
-  SUNDIALS::KLU
-  INTERFACE "${KLU_STATIC}"
-  INTERFACE "${COLAMD_STATIC}"
-  INTERFACE "${BTF_STATIC}"
-  INTERFACE "${AMD_STATIC}"
-  INTERFACE "${SUITESPARSE_CONFIG_STATIC}")
-set_target_properties(SUNDIALS::KLU PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
-                                               "${KLU_INCLUDE_DIR}")
+if(NOT TARGET SUNDIALS::KLU)
+    add_library(SUNDIALS::KLU INTERFACE IMPORTED)
+    target_link_libraries(
+      SUNDIALS::KLU
+      INTERFACE "${KLU_STATIC}"
+      INTERFACE "${COLAMD_STATIC}"
+      INTERFACE "${BTF_STATIC}"
+      INTERFACE "${AMD_STATIC}"
+      INTERFACE "${SUITESPARSE_CONFIG_STATIC}")
+    set_target_properties(SUNDIALS::KLU PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
+                                                   "${KLU_INCLUDE_DIR};${KLU_INCLUDE_DIR}/suitesparse")
+endif()
 
 find_dependency(SUNDIALS REQUIRED PATHS
              "@CMAKE_SOURCE_DIR@/ThirdParty/sundials/build/@CMAKE_INSTALL_LIBDIR@/cmake/sundials/")
