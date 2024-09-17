@@ -43,7 +43,7 @@ if(NOT TARGET SUNDIALS::KLU)
       INTERFACE "${AMD_STATIC}"
       INTERFACE "${SUITESPARSE_CONFIG_STATIC}")
     set_target_properties(SUNDIALS::KLU PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
-                                                   "${KLU_INCLUDE_DIR};${KLU_INCLUDE_DIR}/suitesparse")
+                                                   "${KLU_INCLUDE_DIR}")
 endif()
 
 find_dependency(SUNDIALS REQUIRED PATHS
