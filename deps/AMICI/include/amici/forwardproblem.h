@@ -9,6 +9,7 @@
 
 #include <sundials/sundials_direct.h>
 #include <vector>
+#include <iostream>
 
 namespace amici {
 
@@ -197,6 +198,15 @@ class ForwardProblem {
         if (model->getTimepoint(it) == initial_state_.t)
             return getInitialSimulationState();
         auto map_iter = timepoint_states_.find(model->getTimepoint(it));
+        if (map_iter == timepoint_states_.end()) {
+            std::cerr << "Simulation state not found for timepoint #"
+                      << it << " " << model->getTimepoint(it) << std::endl;
+            std::cerr << "Available timepoints: ";
+            for (auto const& [t, state] : timepoint_states_)
+                std::cerr << t << " ";
+            std::cerr << std::endl;
+        }
+
         assert(map_iter != timepoint_states_.end());
         return map_iter->second;
     };
