@@ -205,6 +205,7 @@ class ForwardProblem {
             for (auto const& [t, state] : timepoint_states_)
                 std::cerr << t << " ";
             std::cerr << std::endl;
+            std::cerr<<backtraceString(20)<<std::endl;
         }
 
         assert(map_iter != timepoint_states_.end());
