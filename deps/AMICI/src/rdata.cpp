@@ -10,20 +10,19 @@
 #include "amici/symbolic_functions.h"
 
 #include <cmath>
-#include <cstring>
 
 namespace amici {
 
 ReturnData::ReturnData(Solver const& solver, Model const& model)
     : ReturnData(
-        model.getTimepoints(),
-        ModelDimensions(static_cast<ModelDimensions const&>(model)),
-        model.nplist(), model.nMaxEvent(), model.nt(),
-        solver.getNewtonMaxSteps(), model.getParameterScale(), model.o2mode,
-        solver.getSensitivityOrder(), solver.getSensitivityMethod(),
-        solver.getReturnDataReportingMode(), model.hasQuadraticLLH(),
-        model.getAddSigmaResiduals(), model.getMinimumSigmaResiduals()
-    ) {}
+          model.getTimepoints(),
+          ModelDimensions(static_cast<ModelDimensions const&>(model)),
+          model.nplist(), model.nMaxEvent(), model.nt(),
+          solver.getNewtonMaxSteps(), model.getParameterScale(), model.o2mode,
+          solver.getSensitivityOrder(), solver.getSensitivityMethod(),
+          solver.getReturnDataReportingMode(), model.hasQuadraticLLH(),
+          model.getAddSigmaResiduals(), model.getMinimumSigmaResiduals()
+      ) {}
 
 ReturnData::ReturnData(
     std::vector<realtype> ts, ModelDimensions const& model_dimensions,
@@ -708,7 +707,7 @@ void ReturnData::applyChainRuleFactorToSimulationResults(Model const& model) {
         for (int IND1 = 0; (IND1) < (N1T); ++(IND1))                           \
             for (int ip = 0; ip < nplist; ++ip)                                \
                 for (int IND2 = 0; (IND2) < (N2); ++(IND2)) {                  \
-                    s##QUANT.at(((IND2)*nplist + ip) * (N1) + (IND1))          \
+                    s##QUANT.at(((IND2) * nplist + ip) * (N1) + (IND1))        \
                         *= pcoefficient.at(ip);                                \
                 }
 

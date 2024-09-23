@@ -1,9 +1,11 @@
 """Test amici.ReturnData(View)-related functionality"""
+
 import amici
 import numpy as np
 import pytest
 from amici.numpy import evaluate
 from numpy.testing import assert_almost_equal, assert_array_equal
+from amici.testing import skip_on_valgrind
 
 
 @pytest.fixture(scope="session")
@@ -19,6 +21,7 @@ def rdata_by_id_fixture(sbml_example_presimulation_module):
     return model, rdata
 
 
+@skip_on_valgrind
 def test_rdata_by_id(rdata_by_id_fixture):
     model, rdata = rdata_by_id_fixture
 
@@ -42,6 +45,7 @@ def test_rdata_by_id(rdata_by_id_fixture):
     )
 
 
+@skip_on_valgrind
 def test_evaluate(rdata_by_id_fixture):
     # get IDs of model components
     model, rdata = rdata_by_id_fixture

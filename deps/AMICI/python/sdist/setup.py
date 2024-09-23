@@ -9,6 +9,7 @@ Non-python-package requirements:
 - swig>=3.0
 - Optional: hdf5 libraries and headers
 """
+
 import os
 import sys
 from pathlib import Path
@@ -41,6 +42,7 @@ def get_extensions():
     # Used by all extensions
     global_cmake_configure_options = [
         "-DCMAKE_VERBOSE_MAKEFILE=ON",
+        f"-DCMAKE_MODULE_PATH={prefix_path.as_posix()}",
     ]
 
     # SuiteSparse Config
@@ -50,9 +52,16 @@ def get_extensions():
         source_dir="amici/ThirdParty/SuiteSparse/SuiteSparse_config",
         cmake_configure_options=[
             *global_cmake_configure_options,
-            "-DBLA_VENDOR=All",
-            "-DENABLE_CUDA=FALSE",
-            "-DNFORTRAN=TRUE",
+            "-DCMAKE_POSITION_INDEPENDENT_CODE=ON",
+            "-DBUILD_SHARED_LIBS=OFF",
+            # Building SuiteSparse_config does not require a BLAS
+            #  we just set BLAS_LIBRARIES to skip the search,
+            #  the value is not used
+            # "-DBLA_VENDOR=All",
+            "-DBLAS_LIBRARIES=dummy",
+            "-DSUITESPARSE_USE_64BIT_BLAS=ON",
+            "-DSUITESPARSE_USE_CUDA=OFF",
+            "-DSUITESPARSE_USE_FORTRAN=OFF",
         ],
     )
     # SuiteSparse AMD
@@ -62,7 +71,9 @@ def get_extensions():
         source_dir="amici/ThirdParty/SuiteSparse/AMD",
         cmake_configure_options=[
             *global_cmake_configure_options,
-            "-DNFORTRAN=TRUE",
+            "-DBUILD_SHARED_LIBS=OFF",
+            "-DCMAKE_POSITION_INDEPENDENT_CODE=ON",
+            "-DSUITESPARSE_USE_FORTRAN=OFF",
         ],
     )
     # SuiteSparse BTF
@@ -72,7 +83,9 @@ def get_extensions():
         source_dir="amici/ThirdParty/SuiteSparse/BTF",
         cmake_configure_options=[
             *global_cmake_configure_options,
-            "-DNFORTRAN=TRUE",
+            "-DSUITESPARSE_USE_FORTRAN=OFF",
+            "-DBUILD_SHARED_LIBS=OFF",
+            "-DCMAKE_POSITION_INDEPENDENT_CODE=ON",
         ],
     )
     # SuiteSparse COLAMD
@@ -82,7 +95,9 @@ def get_extensions():
         source_dir="amici/ThirdParty/SuiteSparse/COLAMD",
         cmake_configure_options=[
             *global_cmake_configure_options,
-            "-DNFORTRAN=TRUE",
+            "-DSUITESPARSE_USE_FORTRAN=OFF",
+            "-DBUILD_SHARED_LIBS=OFF",
+            "-DCMAKE_POSITION_INDEPENDENT_CODE=ON",
         ],
     )
     # SuiteSparse KLU
@@ -92,9 +107,11 @@ def get_extensions():
         source_dir="amici/ThirdParty/SuiteSparse/KLU",
         cmake_configure_options=[
             *global_cmake_configure_options,
-            "-DNCHOLMOD=ON",
-            "-DENABLE_CUDA=FALSE",
-            "-DNFORTRAN=TRUE",
+            "-DKLU_USE_CHOLMOD=OFF",
+            "-DSUITESPARSE_USE_CUDA=OFF",
+            "-DSUITESPARSE_USE_FORTRAN=OFF",
+            "-DBUILD_SHARED_LIBS=OFF",
+            "-DCMAKE_POSITION_INDEPENDENT_CODE=ON",
         ],
     )
     # SUNDIALS
@@ -120,10 +137,14 @@ def get_extensions():
             #  be replaced by the actual path by `AmiciBuildCMakeExtension`
             #  before being passed to CMake.
             "-DKLU_LIBRARY_DIR='${build_dir}/amici/lib'",
-            "-DKLU_INCLUDE_DIR='${build_dir}/amici/include'",
+            "-DKLU_INCLUDE_DIR='${build_dir}/amici/include/suitesparse'",
         ],
     )
     # AMICI
+    debug_build = os.getenv("ENABLE_AMICI_DEBUGGING", "").lower() in [
+        "1",
+        "true",
+    ] or os.getenv("ENABLE_GCOV_COVERAGE", "").lower() in ["1", "true"]
     amici_ext = CMakeExtension(
         name="amici",
         install_prefix="amici",
@@ -138,21 +159,13 @@ def get_extensions():
             "-DAMICI_PYTHON_BUILD_EXT_ONLY=ON",
             f"-DPython3_EXECUTABLE={Path(sys.executable).as_posix()}",
         ],
+        cmake_build_type="Debug" if debug_build else "Release",
     )
     # Order matters!
     return [suitesparse_config, amd, btf, colamd, klu, sundials, amici_ext]
 
 
 def main():
-    # Readme as long package description to go on PyPi
-    # (https://pypi.org/project/amici/)
-    with open(
-        os.path.join(os.path.dirname(__file__), "README.md"),
-        "r",
-        encoding="utf-8",
-    ) as fh:
-        long_description = fh.read()
-
     ext_modules = get_extensions()
 
     # handle parallel building
@@ -172,8 +185,6 @@ def main():
             "develop": AmiciDevelop,
             "build_py": AmiciBuildPy,
         },
-        long_description=long_description,
-        long_description_content_type="text/markdown",
         ext_modules=ext_modules,
     )
 

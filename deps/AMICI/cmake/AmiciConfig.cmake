@@ -11,6 +11,7 @@ list(APPEND CMAKE_MODULE_PATH
      @CMAKE_SOURCE_DIR@/ThirdParty/SuiteSparse/lib/cmake/SuiteSparse/)
 if(NOT DEFINED SUITESPARSE_CONFIG_ROOT)
   set(SUITESPARSE_CONFIG_ROOT @CMAKE_SOURCE_DIR@/ThirdParty/SuiteSparse/)
+  set(SuiteSparse_config_ROOT @CMAKE_SOURCE_DIR@/ThirdParty/SuiteSparse/)
 endif()
 if(NOT DEFINED AMD_ROOT)
   set(AMD_ROOT @CMAKE_SOURCE_DIR@/ThirdParty/SuiteSparse/)
@@ -24,34 +25,36 @@ endif()
 if(NOT DEFINED KLU_ROOT)
   set(KLU_ROOT @CMAKE_SOURCE_DIR@/ThirdParty/SuiteSparse/)
 endif()
-find_package(SuiteSparse_config REQUIRED)
-find_package(AMD REQUIRED)
-find_package(BTF REQUIRED)
-find_package(COLAMD REQUIRED)
-find_package(KLU REQUIRED)
+find_dependency(SuiteSparse_config REQUIRED)
+find_dependency(AMD REQUIRED)
+find_dependency(BTF REQUIRED)
+find_dependency(COLAMD REQUIRED)
+find_dependency(KLU REQUIRED)
+
+include("${CMAKE_CURRENT_LIST_DIR}/AmiciFindBLAS.cmake")
 
 if(NOT TARGET SUNDIALS::KLU)
-  add_library(SUNDIALS::KLU INTERFACE IMPORTED)
-  target_link_libraries(
-    SUNDIALS::KLU
-    INTERFACE "${KLU_STATIC}"
-    INTERFACE "${COLAMD_STATIC}"
-    INTERFACE "${BTF_STATIC}"
-    INTERFACE "${AMD_STATIC}"
-    INTERFACE "${SUITESPARSE_CONFIG_STATIC}")
-  set_target_properties(SUNDIALS::KLU PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
-                                                 "${KLU_INCLUDE_DIR}")
+    add_library(SUNDIALS::KLU INTERFACE IMPORTED)
+    target_link_libraries(
+      SUNDIALS::KLU
+      INTERFACE "${KLU_STATIC}"
+      INTERFACE "${COLAMD_STATIC}"
+      INTERFACE "${BTF_STATIC}"
+      INTERFACE "${AMD_STATIC}"
+      INTERFACE "${SUITESPARSE_CONFIG_STATIC}")
+    set_target_properties(SUNDIALS::KLU PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
+                                                   "${KLU_INCLUDE_DIR}")
 endif()
 
-find_package(SUNDIALS REQUIRED PATHS
+find_dependency(SUNDIALS REQUIRED PATHS
              "@CMAKE_SOURCE_DIR@/ThirdParty/sundials/build/@CMAKE_INSTALL_LIBDIR@/cmake/sundials/")
 
 if(@Boost_CHRONO_FOUND@)
-  find_package(Boost COMPONENTS chrono REQUIRED)
+  find_dependency(Boost COMPONENTS chrono REQUIRED)
 endif()
 
 if(@HDF5_FOUND@)
-  find_package(
+  find_dependency(
     HDF5
     COMPONENTS C HL CXX
     REQUIRED)
