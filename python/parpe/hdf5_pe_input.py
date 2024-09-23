@@ -515,9 +515,15 @@ class HDF5DataGenerator:
 
             if condition_map_preeq:
                 fixed_parameter_matrix[:,
-                self.condition_map[condition_idx, 0]] = \
-                    np.array([condition_map_preeq_fix[par_id]
+                self.condition_map[condition_idx, 0]] = (
+                    # the parameter might not be present if it is only used
+                    # in the simulation condition. any value should be fine
+                    # in this case. only NaN is problematic, because it will
+                    # propagate through multiplication with the indicator
+                    # variable.
+                    np.array([condition_map_preeq_fix.get(par_id, 0.0)
                               for par_id in fixed_par_ids])
+                )
 
         # write to file
         self.create_fixed_parameter_dataset_and_write_attributes(
