@@ -16,6 +16,7 @@ import pandas as pd
 import petab
 import petab.C as ptc
 import yaml
+from petab.v1.models.sbml_model import SbmlModel
 
 
 def parse_cli_args():
@@ -464,11 +465,11 @@ def main():
 
 
     # assemble PEtab problem
-    pp = petab.Problem.from_files(sbml_file=sbml_file_name)
+    pp = petab.v1.Problem(model=SbmlModel.from_file(sbml_file_name))
     pp.observable_df = observable_df
     pp.condition_df = condition_df
     # dummy parameter and measurement df needed for amici-import
-    pp.measurement_df = petab.create_measurement_df()
+    pp.measurement_df = petab.v1.create_measurement_df()
     pp.parameter_df = pp.create_parameter_df(include_optional=True, lower_bound=1e-3, upper_bound=1e5)
     pp.parameter_df[ptc.ESTIMATE] = 1
 
