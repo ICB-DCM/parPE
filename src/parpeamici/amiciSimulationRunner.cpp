@@ -155,7 +155,7 @@ AmiciSimulationRunner::queueSimulation(
 
     // TODO: must ignore 2nd argument for SimulationRunnerSimple
     if (callback_job_finished_)
-        d->callbackJobFinished = std::bind2nd(callback_job_finished_, jobIdx);
+        d->callbackJobFinished = std::bind(callback_job_finished_, std::placeholders::_1, jobIdx);
 
     loadBalancer->queueJob(d);
 }
