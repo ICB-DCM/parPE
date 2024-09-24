@@ -1,10 +1,5 @@
 cmake_minimum_required(VERSION 3.15) # pkg_search_module GLOBAL
-cmake_policy(VERSION 3.15...3.28)
-
-if(POLICY CMP0074)
-  # Use package_ROOT environment variables
-  cmake_policy(SET CMP0074 NEW)
-endif(POLICY CMP0074)
+cmake_policy(VERSION 3.15...3.30)
 
 project(parpe)
 
