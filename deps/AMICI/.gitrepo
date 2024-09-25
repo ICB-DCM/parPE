@@ -5,8 +5,8 @@
 ;
 [subrepo]
 	remote = git@github.com:ICB-DCM/AMICI.git
-	branch = release_0.26.2
-	commit = 51a53d2252fccf1b85049dc8f9e3cfe2cfb07a8c
-	parent = 77df2430ef62965d7fc252856307601e330d6c68
+	branch = ss_install
+	commit = d1668b20a139064be635a9db572382f61b2646db
+	parent = 786a7f3a8e2a4547f4c66efa10bb0efdb7c1cd06
 	cmdver = 0.4.6
 	method = merge
