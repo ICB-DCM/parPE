@@ -1,6 +1,9 @@
 # dependency: AMICI
 find_package(Amici
-    HINTS ${CMAKE_SOURCE_DIR}/deps/AMICI/build)
+    PATHS ${CMAKE_SOURCE_DIR}/deps/AMICI/build)
+if(Amici_FOUND)
+    message(STATUS "Found AMICI version ${Amici_VERSION} at ${Amici_DIR}")
+endif()
 
 # dependency: BOOST
 if(CMAKE_BUILD_TYPE MATCHES Release)
