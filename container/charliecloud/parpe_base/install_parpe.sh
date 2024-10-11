@@ -26,9 +26,6 @@ cmake \
 # install fides optimizer
 cd "$PARPE_BASE/ThirdParty" && ./installFides.sh
 
-# install parPE python requirements
-pip3 install -r "${PARPE_BASE}"/python/requirements.txt
-
 # build parPE
 cd "${PARPE_BASE}"
 mkdir -p build

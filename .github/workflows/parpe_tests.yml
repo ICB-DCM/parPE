@@ -58,10 +58,9 @@ jobs:
           -DBUILD_TESTS=OFF \
           && cmake --build "${AMICI_PATH}/build" --parallel -- VERBOSE=1
 
-    - name: Install parPE Python deps
+    - name: Install parPE deps
       run: |
-        pip install -r ${PARPE_BASE}/python/requirements.txt \
-          && sudo apt install lcov
+        sudo apt install lcov
 
     - name: "Install parPE deps: fides"
       run: |
