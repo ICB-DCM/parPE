@@ -10,15 +10,15 @@ import coloredlogs
 import h5py
 import numpy as np
 import pandas as pd
-import petab
 from amici.petab import PREEQ_INDICATOR_ID
 from amici.petab.import_helpers import petab_scale_to_amici_scale
 from colorama import Fore
 from colorama import init as init_colorama
 from pandas import DataFrame
 # noinspection PyPep8Naming
-from petab import C as ptc
-from petab import to_float_if_float
+from petab.v1 import C as ptc
+from petab.v1 import to_float_if_float
+import petab.v1 as petab
 
 from .hdf5 import write_string_array
 from .hierarchical_optimization import (get_candidates_for_hierarchical,

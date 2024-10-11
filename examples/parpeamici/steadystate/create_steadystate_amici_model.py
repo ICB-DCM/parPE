@@ -13,7 +13,7 @@ import h5py
 import libsbml
 import numpy as np
 import pandas as pd
-import petab
+import petab.v1 as petab
 import petab.C as ptc
 import yaml
 from petab.v1.models.sbml_model import SbmlModel
@@ -339,8 +339,10 @@ def create_parameter_table(problem: petab.Problem,
     """Create PEtab parameter table"""
 
     df = petab.create_parameter_df(
-        problem.sbml_model, problem.condition_df,
-        problem.observable_df, problem.measurement_df,
+        condition_df=problem.condition_df,
+        observable_df=problem.observable_df,
+        measurement_df=problem.measurement_df,
+        model=SbmlModel(problem.sbml_model),
         include_optional=True, lower_bound=1e-3, upper_bound=1e5)
 
     df['hierarchicalOptimization'] = 0
@@ -465,11 +467,11 @@ def main():
 
 
     # assemble PEtab problem
-    pp = petab.v1.Problem(model=SbmlModel.from_file(sbml_file_name))
+    pp = petab.Problem(model=SbmlModel.from_file(sbml_file_name))
     pp.observable_df = observable_df
     pp.condition_df = condition_df
     # dummy parameter and measurement df needed for amici-import
-    pp.measurement_df = petab.v1.create_measurement_df()
+    pp.measurement_df = petab.create_measurement_df()
     pp.parameter_df = pp.create_parameter_df(include_optional=True, lower_bound=1e-3, upper_bound=1e5)
     pp.parameter_df[ptc.ESTIMATE] = 1
 
