@@ -47,12 +47,12 @@ amici_root="${AMICI_ROOT:-${parpe_dir}/deps/AMICI/}"
 cd "${petab_model_dir}"
 
 echo "Running petablint on ${petab_yaml}..."
-petablint -v -y "${model_name}".yaml
+petablint -v "${model_name}".yaml
 
 # import AMICI model
 if [[ ! -d ${amici_model_dir} ]]; then
   echo "Importing model..."
-  cmd="amici_import_petab.py --verbose -y ${model_name}.yaml -n ${model_name} -o ${amici_model_dir}"
+  cmd="amici_import_petab.py --verbose ${model_name}.yaml -n ${model_name} -o ${amici_model_dir}"
   echo "${cmd}"
   ${cmd}
 fi

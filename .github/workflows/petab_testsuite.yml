@@ -34,6 +34,7 @@ jobs:
             -DCMAKE_BUILD_TYPE=Debug \
             -DENABLE_PYTHON=ON \
             -DBUILD_TESTS=OFF \
+            -DCMAKE_PREFIX_PATH="${CMAKE_PREFIX_PATH};${AMICI_PATH}/ThirdParty/SuiteSparse/install" \
           && cmake --build "${AMICI_PATH}/build" --parallel -- VERBOSE=1
 
     - name: Configure parpe
