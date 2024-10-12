@@ -71,6 +71,7 @@ jobs:
         cmake \
           -S"${PARPE_BASE}" \
           -B"${PARPE_BUILD}" \
+          -DCMAKE_BUILD_TYPE=Debug \
           -DCMAKE_CXX_FLAGS="-Wall -Wextra -Werror -Wno-deprecated-copy" \
           -DIPOPT_INCLUDE_DIRS=/usr/include/coin/ \
           -DIPOPT_LIBRARIES=/usr/lib/libipopt.so \
