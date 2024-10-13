@@ -7,8 +7,6 @@ set(PARPE_ENABLE_IPOPT @PARPE_ENABLE_IPOPT@)
 set(PARPE_ENABLE_CERES @PARPE_ENABLE_CERES@)
 set(PARPE_ENABLE_FIDES @PARPE_ENABLE_FIDES@)
 
-find_dependency(Amici REQUIRED)
-
 if(${PARPE_ENABLE_MPI})
 find_dependency(MPI REQUIRED)
 endif()
@@ -30,6 +28,7 @@ find_dependency(Fides
     HINTS "@Fides_DIR@")
 endif()
 
+find_dependency(Amici REQUIRED)
 find_dependency(OpenMP)
 find_dependency(HDF5 COMPONENTS C CXX HL REQUIRED)
 find_dependency(Boost COMPONENTS serialization thread REQUIRED)
