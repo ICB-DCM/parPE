@@ -1,10 +1,8 @@
 project(parpecommon)
 
 # write config header
-configure_file(
-    ${CMAKE_CURRENT_LIST_DIR}/parpeConfig.h.in
-    ${CMAKE_CURRENT_BINARY_DIR}/parpeConfig.h
-    @ONLY)
+configure_file(${CMAKE_CURRENT_LIST_DIR}/parpeConfig.h.in
+               ${CMAKE_CURRENT_BINARY_DIR}/parpeConfig.h @ONLY)
 
 set(SRC_LIST
     misc.cpp
@@ -13,40 +11,37 @@ set(SRC_LIST
     parpeException.cpp
     model.cpp
     costFunction.cpp
-    functions.cpp
-)
+    functions.cpp)
 
 add_library(${PROJECT_NAME} ${SRC_LIST})
 
-target_include_directories(${PROJECT_NAME}
-    PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/../>"
-    PUBLIC "$<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include/>"
-           "$<INSTALL_INTERFACE:include>"
-    PUBLIC ${HDF5_INCLUDE_DIRS}
-    PUBLIC ${GSL_INCLUDE_DIRS}
-    )
+target_include_directories(
+  ${PROJECT_NAME}
+  PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/../>"
+  PUBLIC "$<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include/>"
+         "$<INSTALL_INTERFACE:include>"
+  PUBLIC ${HDF5_INCLUDE_DIRS}
+  PUBLIC ${GSL_INCLUDE_DIRS})
 
-target_link_libraries(${PROJECT_NAME}
-    PUBLIC ${HDF5_LIBRARIES}
-    PRIVATE stdc++fs
-    )
+target_link_libraries(
+  ${PROJECT_NAME}
+  PUBLIC ${HDF5_LIBRARIES}
+  PRIVATE stdc++fs)
 
 if(${PARPE_ENABLE_MPI})
-    target_link_libraries(${PROJECT_NAME}
-        PUBLIC MPI::MPI_CXX
-        PUBLIC MPI::MPI_C
-        )
+  target_link_libraries(
+    ${PROJECT_NAME}
+    PUBLIC MPI::MPI_CXX
+    PUBLIC MPI::MPI_C)
 endif(${PARPE_ENABLE_MPI})
 
-install(TARGETS ${PROJECT_NAME} EXPORT ParPETargets
+install(
+  TARGETS ${PROJECT_NAME}
+  EXPORT ParPETargets
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
   RUNTIME DESTINATION bin
-  INCLUDES DESTINATION include
-)
+  INCLUDES
+  DESTINATION include)
 
-install(
-    DIRECTORY
-    ${CMAKE_SOURCE_DIR}/include/parpecommon
-    DESTINATION
-    include)
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/parpecommon DESTINATION include)
