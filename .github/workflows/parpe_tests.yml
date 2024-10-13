@@ -98,8 +98,6 @@ jobs:
     #  run: cd ${PARPE_BUILD} && CTEST_OUTPUT_ON_FAILURE=1 make test
 
     - name: Create coverage report
-      env:
-        LD_DEBUG: bindings
       run: |
         cd ${PARPE_BUILD} \
           && CTEST_OUTPUT_ON_FAILURE=1 make parpe_coverage \

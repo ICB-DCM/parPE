@@ -41,6 +41,17 @@ target_link_libraries(${PROJECT_NAME}
     PUBLIC parpecommon
     PUBLIC Upstream::amici
     PUBLIC ${Boost_SERIALIZATION_LIBRARY_RELEASE}
+    # For not fully understood reasons, `parpeoptimization` needs to come last.
+    # There was an issue with the Ubuntu 24.04 ipopt package, which is pulling
+    # in libdmumps_seq-5.6.so, which exports dummy MPI_* symbols that cause
+    # problems when building parpe with MPI. Run-time resolution would pick up
+    # the incorrect MPI symbols. We need to make sure that MPI::MPI_C linker
+    # flags come first, but CMake first lists all direct dependencies, and only
+    # then the transitive dependencies (in this case, in an unfortunate order).
+    # INTERFACE_LINK_LIBRARIES_DIRECT did not help.
+    # Note that in this case, parpe should *not* be compiled with the MPI
+    # compiler wrappers (mpicc, mpicxx), because this will prevent CMake from
+    # adding the MPI linker flags.
     PUBLIC parpeoptimization
 )
 

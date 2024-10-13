@@ -41,6 +41,9 @@
 # 2017-06-02, Lars Bilke
 # - Merged with modified version from github.com/ufz/ogs
 #
+# 2024-10-13, Daniel Weindl
+# - Added "--ignore-errors mismatch" to lcov command to ignore errors with
+#   recent gcc
 #
 # USAGE:
 #
