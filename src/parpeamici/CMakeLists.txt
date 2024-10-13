@@ -37,11 +37,11 @@ target_include_directories(${PROJECT_NAME}
 )
 
 target_link_libraries(${PROJECT_NAME}
-    PUBLIC parpeoptimization
     PUBLIC parpeloadbalancer
     PUBLIC parpecommon
     PUBLIC Upstream::amici
     PUBLIC ${Boost_SERIALIZATION_LIBRARY_RELEASE}
+    PUBLIC parpeoptimization
 )
 
 if (${OpenMP_FOUND})

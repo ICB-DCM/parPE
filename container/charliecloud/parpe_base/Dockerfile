@@ -9,7 +9,6 @@ ENV CC clang
 ENV CXX clang++
 ENV OMPI_CC clang
 ENV OMPI_CXX clang++
-
 RUN /container-files/install_parpe.sh
 
 ENV PARPE_DIR "/parPE"

@@ -80,6 +80,8 @@ set(SRC_LIST_EXE_PARALLEL
 add_executable(${PROJECT_NAME} ${SRC_LIST_EXE_PARALLEL})
 add_dependencies(${PROJECT_NAME} ${MODEL_NAME})
 target_link_libraries(${PROJECT_NAME}
+    PRIVATE $<$<BOOL:${PARPE_ENABLE_MPI}>:MPI::MPI_CXX>
+    $<$<BOOL:${PARPE_ENABLE_MPI}>:MPI::MPI_C>
     ${MODEL_LIBRARIES}
     parpeamici
     ${GCOV_LIBRARY}

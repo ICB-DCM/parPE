@@ -18,7 +18,6 @@ jobs:
       # If we are running in docker, we generally don't have SYS_PTRACE
       #  permissions  and thus, cannot use vader. Also disable Infiniband.
       PARPE_TESTS_MPIEXEC: mpiexec -n 5 --oversubscribe --allow-run-as-root --mca btl_vader_single_copy_mechanism none --mca btl ^openib --mca oob_tcp_if_include lo --mca btl_tcp_if_include lo --mca orte_base_help_aggregate 0
-
     steps:
     - uses: actions/checkout@master
     - name: chown checkout directory
@@ -99,6 +98,8 @@ jobs:
     #  run: cd ${PARPE_BUILD} && CTEST_OUTPUT_ON_FAILURE=1 make test
 
     - name: Create coverage report
+      env:
+        LD_DEBUG: bindings
       run: |
         cd ${PARPE_BUILD} \
           && CTEST_OUTPUT_ON_FAILURE=1 make parpe_coverage \

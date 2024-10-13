@@ -42,7 +42,7 @@ mpi_cmd="$mpi_cmd;--mca;oob_tcp_if_include;lo"
 mpi_cmd="$mpi_cmd;--mca;btl_tcp_if_include;lo;"
 mpi_cmd="$mpi_cmd;--mca;orte_base_help_aggregate;0"
 
-CC=mpicc CXX=mpiCC cmake \
+cmake \
       -DPARPE_BUILD_OPTIMIZED=OFF \
       -DPARPE_ENABLE_FIDES=ON \
       -DIPOPT_INCLUDE_DIRS=/usr/include/coin/ \
