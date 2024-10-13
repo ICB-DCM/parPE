@@ -33,15 +33,14 @@ add_library(${PROJECT_NAME} ${SRC_LIST})
 
 target_include_directories(
   ${PROJECT_NAME}
-  PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
-  PUBLIC ${Boost_INCLUDE_DIR})
+  PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 target_link_libraries(
   ${PROJECT_NAME}
   PUBLIC parpeloadbalancer
   PUBLIC parpecommon
   PUBLIC Upstream::amici
-  PUBLIC ${Boost_SERIALIZATION_LIBRARY_RELEASE}
+  PUBLIC Boost::serialization
   # For not fully understood reasons, `parpeoptimization` needs to come last.
   # There was an issue with the Ubuntu 24.04 ipopt package, which is pulling in
   # libdmumps_seq-5.6.so, which exports dummy MPI_* symbols that cause problems
