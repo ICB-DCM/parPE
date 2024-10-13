@@ -10,14 +10,15 @@ target_link_libraries(${PROJECT_NAME} PUBLIC parpecommon)
 if(${PARPE_ENABLE_MPI})
   target_compile_options(MPI::MPI_C INTERFACE -Wno-unused-parameter -Wno-error)
 
-    target_link_libraries(${PROJECT_NAME}
-        PUBLIC MPI::MPI_CXX
-        PUBLIC MPI::MPI_C
-        )
-    set_property(TARGET ${PROJECT_NAME} APPEND PROPERTY INTERFACE_LINK_LIBRARIES_DIRECT
-        $<LINK_ONLY:MPI::MPI_CXX>
-        $<LINK_ONLY:MPI::MPI_C>
-    )
+  target_link_libraries(
+    ${PROJECT_NAME}
+    PUBLIC MPI::MPI_CXX
+    PUBLIC MPI::MPI_C)
+  set_property(
+    TARGET ${PROJECT_NAME}
+    APPEND
+    PROPERTY INTERFACE_LINK_LIBRARIES_DIRECT $<LINK_ONLY:MPI::MPI_CXX>
+             $<LINK_ONLY:MPI::MPI_C>)
 endif(${PARPE_ENABLE_MPI})
 
 install(
