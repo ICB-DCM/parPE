@@ -36,10 +36,6 @@ jobs:
             -DBUILD_TESTS=OFF \
           && cmake --build "${AMICI_PATH}/build" --parallel -- VERBOSE=1
 
-    - name: Install parPE Python deps
-      run: |
-        pip install -r ${PARPE_BASE}/python/requirements.txt
-
     - name: Configure parpe
       run: |
         cmake \

@@ -39,10 +39,6 @@ apt-get install -q -y \
   unzip \
   wget
 
-# for setuptools to find:
-python3 -m pip install --upgrade pip
-pip3 install -U setuptools pkgconfig wheel
-
 echo "================= Cleaning package lists ==================="
 apt-get clean
 apt-get autoclean
