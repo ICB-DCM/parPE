@@ -551,7 +551,6 @@ H5::H5File hdf5CreateFile(const std::string &filename,
     }
 
     try {
-        std::cerr << "Creating file " << filename << std::endl;
         return H5::H5File(filename.c_str(), H5F_ACC_TRUNC);
     }  catch (H5::Exception const& e) {
         printBacktrace();

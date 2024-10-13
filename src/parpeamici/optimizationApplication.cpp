@@ -45,7 +45,6 @@ int OptimizationApplication::init(int argc, char **argv) {
     sigaction(SIGSEGV, &act, &oldact);
     sigaction(SIGHUP, &act, nullptr);
 
-    std::cerr<<"OptimizationApplication::init withMPI="<<withMPI<<" getMpiActive="<<getMpiActive()<<"\n";
     if(withMPI && !getMpiActive())
         initMPI(&argc, &argv);
 

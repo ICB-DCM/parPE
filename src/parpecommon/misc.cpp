@@ -111,7 +111,6 @@ int getMpiRank() {
         MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
     }
 #endif
-    std::cerr<<"getMpiRank: "<<mpiRank<<"\n";
     return mpiRank;
 }
 
@@ -133,14 +132,10 @@ int getMpiActive()
     int result = 0;
 
     MPI_Initialized(&result);
-    std::cerr<<"MPI_Initialized: "<<result<<"\n";
-
     if(!result)
         return false;
 
     MPI_Finalized(&result);
-    std::cerr<<"MPI_Finalized: "<<result<<"\n";
-
     return !result;
 #else
     return false;

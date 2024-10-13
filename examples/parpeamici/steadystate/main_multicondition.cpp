@@ -43,7 +43,6 @@ public:
     void initProblem(std::string const& inFileArgument,
                      std::string const& outFileArgument) override
     {
-        std::cerr << "initProblem rank:" << parpe::getMpiRank() << " outFileArgument: "<< outFileArgument << std::endl;
 
         // The same file should only be opened/created once, an then only be reopened
         h5File = parpe::hdf5CreateFile(outFileArgument, true);
