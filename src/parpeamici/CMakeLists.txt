@@ -1,5 +1,4 @@
 # dependency: AMICI
-find_package(KLU PATHS ${CMAKE_SOURCE_DIR}/deps/AMICI/ThirdParty/SuiteSparse/install/lib/cmake/KLU)
 find_package(Amici PATHS ${CMAKE_SOURCE_DIR}/deps/AMICI/build)
 if(Amici_FOUND)
   message(STATUS "Found AMICI version ${Amici_VERSION} at ${Amici_DIR}")
