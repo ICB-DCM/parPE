@@ -41,7 +41,6 @@ jobs:
         cmake \
           -S"${PARPE_BASE}" \
           -B"${PARPE_BUILD}" \
-          -DPARPE_ENABLE_CERES=OFF \
           -DIPOPT_INCLUDE_DIRS=/usr/include/coin/ \
           -DIPOPT_LIBRARIES=/usr/lib/libipopt.so \
           -DGCOVR_REPORT=TRUE \
