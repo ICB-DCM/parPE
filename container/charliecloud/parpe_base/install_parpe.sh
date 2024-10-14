@@ -47,6 +47,7 @@ mpi_cmd="$mpi_cmd;--mca;orte_base_help_aggregate;0"
 cmake \
       -DPARPE_BUILD_OPTIMIZED=OFF \
       -DPARPE_ENABLE_FIDES=ON \
+      -DPARPE_ENABLE_CERES=OFF \
       -DIPOPT_INCLUDE_DIRS=/usr/include/coin/ \
       -DIPOPT_LIBRARIES=/usr/lib/libipopt.so \
       -DMPI_INCLUDE_DIRS=/usr/include/openmpi-x86_64/ \
