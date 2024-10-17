@@ -953,45 +953,46 @@ class HDF5DataGenerator:
         Write simulation options
         """
         g = self.f.require_group("/amiciOptions")
+
+        # Set (some) amici default solver options
+        solver = self.amici_model.getSolver()
+        g.attrs['atol'] = solver.getAbsoluteTolerance()
+        g.attrs['interpType'] = solver.getInterpolationType()
+        g.attrs['ism'] = solver.getInternalSensitivityMethod()
+        g.attrs['iter'] = solver.getNonlinearSolverIteration()
+        g.attrs['linsol'] = solver.getLinearSolver()
+        g.attrs['lmm'] = solver.getLinearMultistepMethod()
+        g.attrs['maxsteps'] = solver.getMaxSteps()
+        g.attrs['maxstepsB'] = solver.getMaxStepsBackwardProblem()
+        g.attrs['newton_preeq'] = solver.getNewtonMaxSteps()
+        g.attrs['ordering'] = solver.getStateOrdering()
+        g.attrs['rtol'] = solver.getRelativeTolerance()
+        g.attrs['stldet'] = solver.getStabilityLimitFlag()
+
         g.attrs['sensi'] = amici.SensitivityOrder.first
         g.attrs['sensi_meth'] = amici.SensitivityMethod.adjoint
         g.attrs['sensi_meth_preeq'] = amici.SensitivityMethod.adjoint
-        # TODO PEtab support: get from file
-        g.attrs['tstart'] = 0.0
-        g.attrs['atol'] = 1e-14
-        g.attrs['interpType'] = amici.InterpolationType_hermite
-        g.attrs['ism'] = amici.InternalSensitivityMethod_simultaneous
-        g.attrs['iter'] = amici.NonlinearSolverIteration_newton
-        g.attrs['linsol'] = amici.LinearSolver_KLU
-        g.attrs['lmm'] = amici.LinearMultistepMethod_BDF
-        g.attrs['maxsteps'] = 10000
-        # fail fast to retry with looser tolerances
-        g.attrs['maxstepsB'] = 10000
-        g.attrs['newton_preeq'] = 0
-        g.attrs['nmaxevent'] = 0
-        g.attrs['ordering'] = 0
-        g.attrs['rtol'] = 1e-6
-        g.attrs['stldet'] = 1
 
         # Required to handle parametric initial concentrations where newton
         # solver would fail with KLU error
         g.attrs['steadyStateSensitivityMode'] = \
             amici.SteadyStateSensitivityMode.integrationOnly
 
+        # set amici model options
+        g.attrs['nmaxevent'] = 10
+
         num_model_parameters = \
             self.f['/parameters/modelParameterNames'].shape[0]
 
         # parameter indices w.r.t. which to compute sensitivities
+        #  default: all
+        # TODO: compute only for estimated parameters
+        #  that means, this may have to be condition-specific
+        #  https://github.com/ICB-DCM/parPE/issues/380
         self.f.require_dataset(
             '/amiciOptions/sens_ind', shape=(num_model_parameters,),
             dtype="<i4",
             data=range(num_model_parameters))
-
-        # TODO not really meaningful anymore - remove?
-        self.f.require_dataset(
-            '/amiciOptions/ts', shape=(len(self.unique_timepoints),),
-            dtype="f8",
-            data=self.unique_timepoints)
 
     def _get_analytically_computed_optimization_parameter_indices(self):
         """
