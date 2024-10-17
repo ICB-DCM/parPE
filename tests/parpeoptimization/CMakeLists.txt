@@ -22,6 +22,7 @@ endif()
 
 if(${PARPE_ENABLE_IPOPT})
   target_sources(${PROJECT_NAME} PRIVATE localOptimizationIpoptTest.cpp)
+  target_link_libraries(${PROJECT_NAME} PkgConfig::IPOPT)
 endif()
 
 if(${PARPE_ENABLE_CERES})

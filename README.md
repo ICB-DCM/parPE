@@ -48,7 +48,7 @@ described in [doc/petab_model_import.md](doc/petab_model_import.md).
 
 For full functionality, parPE requires the following libraries:
 
-* CMAKE (>=3.15)
+* CMAKE (>=3.22)
 * MPI ([OpenMPI](https://www.open-mpi.org/),
   [MPICH](https://www.mpich.org/), ...)
 * IPOPT (>= 1.2.7) (requires coinhsl)
@@ -60,7 +60,7 @@ For full functionality, parPE requires the following libraries:
 * [AMICI](https://github.com/AMICI-dev/AMICI) (included in this repository)
   (uses SuiteSparse, Sundials)
 * C++17 compiler
-* Python >= 3.9, including header files
+* Python >= 3.10, including header files
 
 On Debian-based systems, dependencies can be installed via:
 ```shell
@@ -109,10 +109,10 @@ Other sample build scripts are provided as `/build*.sh`.
 
 ## Recently tested compilers
 
-* GCC 10.2.0
-* Intel icpc (ICC) 17.0.6
+* GCC 13.2.0
+* Clang 18.1.3
 
-## Docker
+## Containers
 
 There is a Dockerfile available in `container/charliecloud/` and images
 can be found on [dockerhub](https://hub.docker.com/r/dweindl/parpe/).
@@ -153,7 +153,7 @@ parPE is being used or has been used in the following projects:
 
 parPE has been developed within research projects receiving external funding:
 
-* Through  the  European  Union's  Horizon  2020  research  and innovation
+* Through the European Union's Horizon 2020 research and innovation
   programme under grant agreement no. 686282
   ([CanPathPro](http://canpathpro.eu/)).
 
