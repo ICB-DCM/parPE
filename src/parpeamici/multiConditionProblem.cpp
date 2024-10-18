@@ -213,14 +213,22 @@ void printSimulationResult(Logger *logger, int jobId,
         return;
     }
 
-    bool with_sensi = rdata->sensi >= amici::SensitivityOrder::first;
+    char sensi_mode = '-';
+    if(rdata->sensi >= amici::SensitivityOrder::first
+        && rdata->sensi_meth == amici::SensitivityMethod::adjoint) {
+        sensi_mode = 'A';
+    } else if(rdata->sensi >= amici::SensitivityOrder::first
+               && rdata->sensi_meth == amici::SensitivityMethod::forward) {
+        sensi_mode = 'F';
+    }
+    bool with_sensi = rdata->sensi >= amici::SensitivityOrder::first && rdata->sensi_meth != amici::SensitivityMethod::none;
 
-    logger->logmessage(loglevel::debug, "Result for %d: %g (%d) (%d/%d/%.4fs%c)",
+    logger->logmessage(loglevel::debug, "Result for %d: %g (%d) (%d/%d/%.4fs/%c)",
                        jobId, rdata->llh, rdata->status,
                        rdata->numsteps.empty()?-1:rdata->numsteps[rdata->numsteps.size() - 1],
                        rdata->numstepsB.empty()?-1:rdata->numstepsB[0],
                        timeSeconds,
-                       with_sensi?'+':'-');
+                       sensi_mode);
 
 
     // check for NaNs, only report first
@@ -368,7 +376,7 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
 
             if(solver->getSensitivityOrder() >= amici::SensitivityOrder::first
                 && solver->getSensitivityMethod()
-                       == amici::SensitivityMethod::adjoint) {
+                       != amici::SensitivityMethod::none) {
                 solver->setReturnDataReportingMode(amici::RDataReporting::likelihood);
             } else {
                 // unset sensitivity method, because `residuals` is not allowed
