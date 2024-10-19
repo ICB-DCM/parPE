@@ -1,11 +1,6 @@
 # Build AMICI model
-cmake_minimum_required(VERSION 3.15)
-cmake_policy(VERSION 3.15...3.27)
-
-# cmake >=3.27
-if(POLICY CMP0144)
-  cmake_policy(SET CMP0144 NEW)
-endif(POLICY CMP0144)
+cmake_minimum_required(VERSION 3.22)
+cmake_policy(VERSION 3.22...3.31)
 
 project(TPL_MODELNAME)
 
@@ -64,7 +59,11 @@ set(MODEL_DIR ${CMAKE_CURRENT_LIST_DIR})
 set(SRC_LIST_LIB TPL_SOURCES ${MODEL_DIR}/wrapfunctions.cpp)
 
 add_library(${PROJECT_NAME} ${SRC_LIST_LIB})
-add_library(model ALIAS ${PROJECT_NAME})
+
+# ${PROJECT_NAME} might already be "model"
+if(NOT TARGET model)
+    add_library(model ALIAS ${PROJECT_NAME})
+endif()
 
 # Some special functions require boost
 #
