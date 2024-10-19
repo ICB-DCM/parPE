@@ -10,7 +10,7 @@ set -eou pipefail
 expected_to_work="
 Boehm_JProteomeRes2014
 Borghans_BiophysChem1997
-Bruno_JExpBio2016
+Bruno_JExpBot2016
 Crauste_CellSystems2017
 Elowitz_Nature2000
 Fujita_SciSignal2010
