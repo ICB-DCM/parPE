@@ -233,7 +233,7 @@ void printSimulationResult(Logger *logger, int jobId,
 
     // check for NaNs, only report first
     if (with_sensi) {
-        for (int i = 0; i < rdata->sllh.size(); ++i) {
+        for (std::vector<amici::realtype>::size_type i = 0; i < rdata->sllh.size(); ++i) {
             if (std::isnan(rdata->sllh[i])) {
                 logger->logmessage(loglevel::debug,
                                    "Gradient contains NaN at %d", i);
