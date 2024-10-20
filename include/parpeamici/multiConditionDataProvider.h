@@ -309,7 +309,7 @@ class MultiConditionDataProviderHDF5 : public MultiConditionDataProvider
                                                gsl::span<double> buffer) const;
 
     std::unique_ptr<amici::ExpData> getExperimentalDataForCondition(
-      int conditionIdx) const override;
+      int simulationIdx) const override;
 
     /**
      * @brief Get list of parameters w.r.t. which we need sensitivities
@@ -323,7 +323,7 @@ class MultiConditionDataProviderHDF5 : public MultiConditionDataProvider
 
     std::vector<double> getSigmaForSimulationIndex(int simulationIdx) const;
     std::vector<double> getMeasurementForSimulationIndex(
-      int conditionIdx) const;
+      int simulationIdx) const;
 
     /**
      * @brief Writes lower parameter bounds into the provided buffer
@@ -397,7 +397,7 @@ class MultiConditionDataProviderHDF5 : public MultiConditionDataProvider
      * parameters should be taken.
      * @param edata The object to be updated.
      */
-    void updateFixedSimulationParameters(int conditionIdx,
+    void updateFixedSimulationParameters(int simulationIdx,
                                          amici::ExpData& edata) const;
 
 
