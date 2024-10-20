@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "parpe"
-version = "0.0.0"
+dynamic = ["version"]
 authors = [
     {name = "Daniel Weindl", email = "sci@danielweindl.de"},
 ]
@@ -34,6 +34,9 @@ parpe_petab_to_hdf5 = "parpe.hdf5_pe_input:main"
 [project.urls]
 Documentation = "https://parpe.readthedocs.io/"
 Repository = "https://github.com/ICB-DCM/parPE/"
+
+[tool.setuptools_scm]
+root = ".."
 
 [tool.black]
 line-length = 79
