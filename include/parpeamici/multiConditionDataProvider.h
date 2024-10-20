@@ -311,6 +311,13 @@ class MultiConditionDataProviderHDF5 : public MultiConditionDataProvider
     std::unique_ptr<amici::ExpData> getExperimentalDataForCondition(
       int simulationIdx) const override;
 
+    /**
+     * @brief Get list of parameters w.r.t. which we need sensitivities
+     * @param mapping Mapping from model simulation to objective parameters
+     * @return AMICI's 'plist'
+     */
+    std::vector<int> getSensitivityParameterList(std::vector<int> const& mapping) const;
+
     std::vector<std::vector<double>> getAllMeasurements() const override;
     std::vector<std::vector<double>> getAllSigmas() const override;
 

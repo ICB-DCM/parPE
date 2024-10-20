@@ -277,6 +277,7 @@ class HDF5DataGenerator:
         self.parameter_mapping = self.petab_problem \
             .get_optimization_to_simulation_parameter_mapping(
             warn_unmapped=False, scaled_parameters=False,
+            fill_fixed_parameters=True,
             allow_timepoint_specific_numeric_noise_parameters=True)
 
         variable_par_ids = self.amici_model.getParameterIds()

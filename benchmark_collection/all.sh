@@ -10,6 +10,7 @@ set -eou pipefail
 expected_to_work="
 Boehm_JProteomeRes2014
 Borghans_BiophysChem1997
+Bruno_JExpBot2016
 Crauste_CellSystems2017
 Elowitz_Nature2000
 Fujita_SciSignal2010
@@ -25,7 +26,6 @@ Zheng_PNAS2012
 #
 # Alkan_SciSignal2018
 # Blasi_CellSystems2016
-# Bruno_JExpBio2016
 # Giordano_Nature2020
 # Okuonghae_ChaosSolitonsFractals2020
 # Perelson_Science1996
