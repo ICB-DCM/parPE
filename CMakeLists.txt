@@ -15,6 +15,10 @@ set(CMAKE_DEBUG_POSTFIX "-dbg")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -Wall -Wno-unused-function")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-unused-function")
 
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-vla-cxx-extension")
+endif()
+
 if(BUILD_PYTHON_MODULE)
     # Build PIC code to be used for swig/python module
     set(CMAKE_POSITION_INDEPENDENT_CODE ON)
