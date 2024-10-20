@@ -26,7 +26,7 @@
 
 namespace parpe {
 
-class JobData;
+struct JobData;
 #ifdef PARPE_ENABLE_MPI
 class LoadBalancerMaster;
 #else
