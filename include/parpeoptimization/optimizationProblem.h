@@ -1,15 +1,15 @@
 #ifndef OPTIMIZATION_PROBLEM_H
 #define OPTIMIZATION_PROBLEM_H
 
-#include <parpeoptimization/optimizationOptions.h>
-#include <parpeoptimization/optimizationResultWriter.h>
 #include <parpecommon/functions.h>
 #include <parpecommon/logging.h>
+#include <parpeoptimization/optimizationOptions.h>
+#include <parpeoptimization/optimizationResultWriter.h>
 
 #include <vector>
 
-#include <hdf5.h>
 #include <gsl/gsl-lite.hpp>
+#include <hdf5.h>
 
 namespace parpe {
 
@@ -26,20 +26,23 @@ class OptimizationReporter;
  * evaluation is added to allow caching previous cost function values.
  */
 
-class OptimizationReporter: public GradientFunction {
-public:
-    OptimizationReporter(GradientFunction *gradFun,
-                         std::unique_ptr<Logger> logger);
+class OptimizationReporter : public GradientFunction {
+  public:
+    OptimizationReporter(
+        GradientFunction* gradFun,
+        std::unique_ptr<Logger> logger);
 
-    OptimizationReporter(GradientFunction *gradFun,
-                         std::unique_ptr<OptimizationResultWriter> rw,
-                         std::unique_ptr<Logger> logger);
+    OptimizationReporter(
+        GradientFunction* gradFun,
+        std::unique_ptr<OptimizationResultWriter> rw,
+        std::unique_ptr<Logger> logger);
 
-    FunctionEvaluationStatus evaluate(gsl::span<double const> parameters,
-                                      double &fval,
-                                      gsl::span<double> gradient,
-                                      Logger *logger = nullptr,
-                                      double *cpuTime = nullptr) const override;
+    FunctionEvaluationStatus evaluate(
+        gsl::span<double const> parameters,
+        double& fval,
+        gsl::span<double> gradient,
+        Logger* logger = nullptr,
+        double* cpuTime = nullptr) const override;
 
     int numParameters() const override;
 
@@ -49,7 +52,7 @@ public:
      * @param initialParameters
      * @return Quit optimization?
      */
-    virtual bool starting(gsl::span<const double> initialParameters) const;
+    virtual bool starting(gsl::span<double const> initialParameters) const;
 
     /**
      * @brief Is called after each iteration except for the last one
@@ -58,29 +61,33 @@ public:
      * @param objectiveFunctionGradient
      * @return Quit optimization?
      */
-    virtual bool iterationFinished(gsl::span<const double> parameters,
-                                   double objectiveFunctionValue,
-                                   gsl::span<const double> objectiveFunctionGradient) const;
+    virtual bool iterationFinished(
+        gsl::span<double const> parameters,
+        double objectiveFunctionValue,
+        gsl::span<double const> objectiveFunctionGradient) const;
 
-    virtual bool beforeCostFunctionCall(gsl::span<const double> parameters) const;
+    virtual bool
+    beforeCostFunctionCall(gsl::span<double const> parameters) const;
 
-    virtual bool afterCostFunctionCall(gsl::span<const double> parameters,
-                                       double objectiveFunctionValue,
-                                       gsl::span<double const> objectiveFunctionGradient) const;
+    virtual bool afterCostFunctionCall(
+        gsl::span<double const> parameters,
+        double objectiveFunctionValue,
+        gsl::span<double const> objectiveFunctionGradient) const;
 
     /**
      * @brief Is called after optimization finished
      */
-    virtual void finished(double optimalCost,
-                          gsl::span<const double> parameters,
-                          int exitStatus) const;
+    virtual void finished(
+        double optimalCost,
+        gsl::span<double const> parameters,
+        int exitStatus) const;
 
     // TODO how to pass optimizer-specific info? pass OptimizerStatus class ?
 
     //    virtual int intermediateFunction(int alg_mod, int iter_count,
     //                                     double obj_value, double inf_pr,
-    //                                     double inf_du, double mu, double d_norm,
-    //                                     double regularization_size,
+    //                                     double inf_du, double mu, double
+    //                                     d_norm, double regularization_size,
     //                                     double alpha_du, double alpha_pr,
     //                                     int ls_trials);
 
@@ -88,7 +95,7 @@ public:
 
     virtual std::vector<double> const& getFinalParameters() const;
 
-    void setGradientFunction(GradientFunction *gradFun) const;
+    void setGradientFunction(GradientFunction* gradFun) const;
 
     std::vector<std::string> getParameterIds() const override;
 
@@ -98,7 +105,7 @@ public:
     mutable double cpu_time_iteration_sec_ = 0.0;
     std::unique_ptr<Logger> logger_;
 
-protected:
+  protected:
     void printObjectiveFunctionFailureMessage() const;
 
     // data members are mutable, because we inherit from GradientFunction,
@@ -113,7 +120,7 @@ protected:
     mutable bool started_ = false;
 
     // non-owning
-    mutable GradientFunction *grad_fun_ = nullptr;
+    mutable GradientFunction* grad_fun_ = nullptr;
 
     // for caching
     mutable bool have_cached_cost_ = false;
@@ -130,7 +137,6 @@ protected:
     std::string default_logger_prefix_;
 };
 
-
 /**
  * @brief The OptimizationProblem class describes an optimization problem.
  *
@@ -144,10 +150,11 @@ protected:
 
 class OptimizationProblem {
 
-public:
+  public:
     OptimizationProblem() = default;
-    OptimizationProblem(std::unique_ptr<GradientFunction> costFun,
-                        std::unique_ptr<Logger> logger);
+    OptimizationProblem(
+        std::unique_ptr<GradientFunction> costFun,
+        std::unique_ptr<Logger> logger);
     OptimizationProblem(OptimizationProblem const& other) = delete;
 
     virtual ~OptimizationProblem() = default;
@@ -173,17 +180,16 @@ public:
 
     std::unique_ptr<Logger> logger_;
 
-private:
+  private:
     OptimizationOptions optimization_options_;
 };
-
 
 /**
  * @brief Mixin class for handling parameter bounds
  */
-class OptimizationProblemImpl: public OptimizationProblem {
+class OptimizationProblemImpl : public OptimizationProblem {
 
-public:
+  public:
     using OptimizationProblem::OptimizationProblem;
 
     /** lower bound of parameter values */
@@ -200,13 +206,11 @@ public:
 
     void fillInitialParameters(gsl::span<double> buffer) const override;
 
-private:
+  private:
     std::vector<double> parametersMin;
     std::vector<double> parametersMax;
     std::vector<double> parametersStart;
-
 };
-
 
 /**
  * @brief getLocalOptimum
@@ -214,23 +218,26 @@ private:
  * @return int indicating status. 0: success, != 0: failure
  */
 
-int getLocalOptimum(OptimizationProblem *problem);
+int getLocalOptimum(OptimizationProblem* problem);
 
+void optimizationProblemGradientCheckMultiEps(
+    OptimizationProblem* problem,
+    int numParameterIndicesToCheck);
 
-void optimizationProblemGradientCheckMultiEps(OptimizationProblem *problem,
-                                              int numParameterIndicesToCheck);
+void optimizationProblemGradientCheckMultiEps(
+    OptimizationProblem* problem,
+    gsl::span<int const> parameterIndices,
+    gsl::span<double> multi_eps);
 
-void optimizationProblemGradientCheckMultiEps(OptimizationProblem *problem,
-                                              gsl::span<const int> parameterIndices,
-                                              gsl::span<double> multi_eps);
+void optimizationProblemGradientCheck(
+    OptimizationProblem* problem,
+    int numParameterIndicesToCheck,
+    double epsilon);
 
-void optimizationProblemGradientCheck(OptimizationProblem *problem,
-                                      int numParameterIndicesToCheck,
-                                      double epsilon);
-
-void optimizationProblemGradientCheck(OptimizationProblem *problem,
-                                      gsl::span<const int> parameterIndices,
-                                      double epsilon);
+void optimizationProblemGradientCheck(
+    OptimizationProblem* problem,
+    gsl::span<int const> parameterIndices,
+    double epsilon);
 
 } // namespace parpe
 

@@ -4,12 +4,12 @@
 #include <parpecommon/parpeConfig.h>
 
 #include <atomic>
-#include <thread>
-#include <mutex>
 #include <condition_variable>
+#include <functional>
+#include <mutex>
 #include <queue>
 #include <semaphore.h>
-#include <functional>
+#include <thread>
 
 #ifdef PARPE_ENABLE_MPI
 #include <mpi.h>
@@ -21,13 +21,13 @@ namespace parpe {
 struct JobData {
     JobData() = default;
 
-    JobData(int *jobDone,
-            std::condition_variable *jobDoneChangedCondition,
-            std::mutex *jobDoneChangedMutex)
-        : jobDone(jobDone),
-          jobDoneChangedCondition(jobDoneChangedCondition),
-          jobDoneChangedMutex(jobDoneChangedMutex) {
-    }
+    JobData(
+        int* jobDone,
+        std::condition_variable* jobDoneChangedCondition,
+        std::mutex* jobDoneChangedMutex)
+        : jobDone(jobDone)
+        , jobDoneChangedCondition(jobDoneChangedCondition)
+        , jobDoneChangedMutex(jobDoneChangedMutex) {}
 
     /** auto-assigned (unique number up to MAX_INT) */
     int jobId = -1;
@@ -39,17 +39,16 @@ struct JobData {
     std::vector<char> recvBuffer;
 
     /** incremented by one, once the results have been received (if set) */
-    int *jobDone = nullptr;
+    int* jobDone = nullptr;
 
     /** is signaled after jobDone has been incremented (if set) */
-    std::condition_variable *jobDoneChangedCondition = nullptr;
+    std::condition_variable* jobDoneChangedCondition = nullptr;
     /** is locked to signal jobDoneChangedCondition condition (if set) */
-    std::mutex *jobDoneChangedMutex = nullptr;
+    std::mutex* jobDoneChangedMutex = nullptr;
 
     /** callback when job is finished (if set) */
     std::function<void(JobData*)> callbackJobFinished = nullptr;
 };
-
 
 #ifdef PARPE_ENABLE_MPI
 /**
@@ -62,11 +61,11 @@ class LoadBalancerMaster {
 
     LoadBalancerMaster(LoadBalancerMaster& other) = delete;
 
-    LoadBalancerMaster& operator=(const LoadBalancerMaster& other) = delete;
+    LoadBalancerMaster& operator=(LoadBalancerMaster const& other) = delete;
 
-    LoadBalancerMaster(LoadBalancerMaster &&other) noexcept = delete;
+    LoadBalancerMaster(LoadBalancerMaster&& other) noexcept = delete;
 
-    LoadBalancerMaster const & operator=(LoadBalancerMaster &&fp) = delete;
+    LoadBalancerMaster const& operator=(LoadBalancerMaster&& fp) = delete;
 
     ~LoadBalancerMaster();
 
@@ -84,7 +83,7 @@ class LoadBalancerMaster {
      * @brief Assign job ID and append to queue for sending to workers.
      * @param data Data to be sent (user keeps ownership).
      */
-    void queueJob(JobData *data);
+    void queueJob(JobData* data);
 
     /**
      * @brief Stop the loadbalancer thread
@@ -141,7 +140,7 @@ class LoadBalancerMaster {
      * @brief Pop oldest element from the queue and return.
      * @return The first queue element.
      */
-    JobData *getNextJob();
+    JobData* getNextJob();
 
     /**
      * @brief Send the given work package to the given worker and track
@@ -149,7 +148,7 @@ class LoadBalancerMaster {
      * @param workerIdx Index (not rank)
      * @param data Job data to send
      */
-    void sendToWorker(int workerIdx, JobData *data);
+    void sendToWorker(int workerIdx, JobData* data);
 
     /**
      * @brief Handle the result message from a worker as indicated by mpiStatus.
@@ -157,7 +156,7 @@ class LoadBalancerMaster {
      * @param mpiStatus Receive the indicated message, mark job as done,
      * signal reception.
      */
-    int handleReply(MPI_Status *mpiStatus);
+    int handleReply(MPI_Status* mpiStatus);
 
     /**
      * @brief Check if jobs are waiting in queue and send to specified worker.
@@ -182,7 +181,7 @@ class LoadBalancerMaster {
     int numWorkers = 0;
 
     /** Queue with jobs to be sent to workers */
-    std::queue<JobData *> queue;
+    std::queue<JobData*> queue;
 
     /** Last assigned job ID used as MPI message tag */
     int lastJobId = 0;
@@ -201,7 +200,7 @@ class LoadBalancerMaster {
 
     /** Jobs that have been sent to workers. Required for handling replies and
      * signaling the client that processing has completed. */
-    std::vector<JobData *> sentJobsData;
+    std::vector<JobData*> sentJobsData;
 
     /** Mutex to protect access to `queue`. */
     mutable std::mutex mutexQueue;
@@ -217,7 +216,6 @@ class LoadBalancerMaster {
 
     /** Signals whether the queue thread should keep running */
     std::atomic_bool queue_thread_continue_ = true;
-
 
     /** Value to indicate that there is currently no known free worker. */
     constexpr static int NO_FREE_WORKER = -1;

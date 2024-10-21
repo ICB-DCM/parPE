@@ -5,25 +5,20 @@
 
 namespace parpe {
 
-
-std::vector<int>
-AnalyticalParameterProviderDefault::getConditionsForParameter(
-    int parameterIndex) const
-{
+std::vector<int> AnalyticalParameterProviderDefault::getConditionsForParameter(
+    int parameterIndex) const {
     return conditionsForParameter[parameterIndex];
 }
 
-const std::vector<int>&
+std::vector<int> const&
 AnalyticalParameterProviderDefault::getObservablesForParameter(
     int parameterIndex,
-    int conditionIdx) const
-{
+    int conditionIdx) const {
     return mapping[parameterIndex].at(conditionIdx);
 }
 
 std::vector<int>
-AnalyticalParameterProviderDefault::getOptimizationParameterIndices() const
-{
+AnalyticalParameterProviderDefault::getOptimizationParameterIndices() const {
     return optimizationParameterIndices;
 }
 
@@ -32,18 +27,15 @@ AnalyticalParameterHdf5Reader::AnalyticalParameterHdf5Reader(
     std::string analyticalParameterIndicesPath,
     std::string mapPath)
     : mapPath(std::move(mapPath))
-      , analyticalParameterIndicesPath(std::move(analyticalParameterIndicesPath))
-{
+    , analyticalParameterIndicesPath(
+          std::move(analyticalParameterIndicesPath)) {
     [[maybe_unused]] auto lock = hdf5MutexGetLock();
     this->file = file; // copy while mutex is locked!
     readParameterConditionObservableMappingFromFile();
 }
 
-
-std::vector<int>
-AnalyticalParameterHdf5Reader::getConditionsForParameter(
-    int parameterIndex) const
-{
+std::vector<int> AnalyticalParameterHdf5Reader::getConditionsForParameter(
+    int parameterIndex) const {
     std::vector<int> result;
     result.reserve(mapping[parameterIndex].size());
     for (auto const& [k, v] : mapping[parameterIndex])
@@ -51,17 +43,15 @@ AnalyticalParameterHdf5Reader::getConditionsForParameter(
     return result;
 }
 
-const std::vector<int>&
+std::vector<int> const&
 AnalyticalParameterHdf5Reader::getObservablesForParameter(
     int parameterIndex,
-    int conditionIdx) const
-{
+    int conditionIdx) const {
     return mapping[parameterIndex].at(conditionIdx);
 }
 
 std::vector<int>
-AnalyticalParameterHdf5Reader::getOptimizationParameterIndices() const
-{
+AnalyticalParameterHdf5Reader::getOptimizationParameterIndices() const {
     [[maybe_unused]] auto lock = hdf5MutexGetLock();
     std::vector<int> analyticalParameterIndices;
 
@@ -76,21 +66,18 @@ AnalyticalParameterHdf5Reader::getOptimizationParameterIndices() const
         dataspace.getSimpleExtentDims(&numScalings);
 
         analyticalParameterIndices.resize(numScalings);
-        dataset.read(analyticalParameterIndices.data(),
-                     H5::PredType::NATIVE_INT);
+        dataset.read(
+            analyticalParameterIndices.data(), H5::PredType::NATIVE_INT);
     }
     return analyticalParameterIndices;
 }
 
-AnalyticalParameterHdf5Reader::~AnalyticalParameterHdf5Reader()
-{
+AnalyticalParameterHdf5Reader::~AnalyticalParameterHdf5Reader() {
     [[maybe_unused]] auto lock = hdf5MutexGetLock();
     file.close();
 }
 
-int
-AnalyticalParameterHdf5Reader::getNumAnalyticalParameters() const
-{
+int AnalyticalParameterHdf5Reader::getNumAnalyticalParameters() const {
     hsize_t numAnalyticalParameters = 0;
     [[maybe_unused]] auto lock = hdf5MutexGetLock();
 
@@ -106,9 +93,8 @@ AnalyticalParameterHdf5Reader::getNumAnalyticalParameters() const
     return numAnalyticalParameters;
 }
 
-void
-AnalyticalParameterHdf5Reader::readParameterConditionObservableMappingFromFile()
-{
+void AnalyticalParameterHdf5Reader::
+    readParameterConditionObservableMappingFromFile() {
     [[maybe_unused]] auto lock = hdf5MutexGetLock();
     H5_SAVE_ERROR_HANDLER;
     try {
@@ -133,17 +119,14 @@ AnalyticalParameterHdf5Reader::readParameterConditionObservableMappingFromFile()
             int observableIdx = rawMap[i * nCols + observableCol];
             mapping[scalingIdx][conditionIdx].push_back(observableIdx);
         }
-    } catch (H5::FileIException const&) {
-        return;
-    }
+    } catch (H5::FileIException const&) { return; }
     H5_RESTORE_ERROR_HANDLER;
 }
 
-std::vector<int>
-AnalyticalParameterHdf5Reader::readRawMap(H5::DataSet const& dataset,
-                                          hsize_t& nRows,
-                                          hsize_t& nCols) const
-{
+std::vector<int> AnalyticalParameterHdf5Reader::readRawMap(
+    H5::DataSet const& dataset,
+    hsize_t& nRows,
+    hsize_t& nCols) const {
     [[maybe_unused]] auto lock = hdf5MutexGetLock();
 
     auto dataspace = dataset.getSpace();

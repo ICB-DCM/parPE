@@ -2,12 +2,11 @@
 
 #include <iostream>
 
+#include <parpecommon/hdf5Misc.h>
 #include <parpecommon/parpeConfig.h>
 #include <parpeoptimization/optimizationOptions.h>
-#include <parpecommon/hdf5Misc.h>
 
 #include "../parpecommon/testingMisc.h"
-
 
 #ifdef PARPE_ENABLE_IPOPT
 #include <parpeoptimization/localOptimizationIpopt.h>
@@ -15,17 +14,17 @@
 #endif
 
 #ifdef PARPE_ENABLE_CERES
-#include <parpeoptimization/localOptimizationCeres.h>
 #include <ceres/gradient_problem_solver.h>
+#include <parpeoptimization/localOptimizationCeres.h>
 
 // need prototype here, otherwise mess with headers
 // (including ceres.h causes some errors with EIGEN)
 namespace parpe {
-void setCeresOption(const std::pair<const std::string, const std::string> &pair,
-                    ceres::GradientProblemSolver::Options* options);
+void setCeresOption(
+    std::pair<std::string const, std::string const> const& pair,
+    ceres::GradientProblemSolver::Options* options);
 } // namespace parpe
 #endif
-
 
 TEST(OptimizationOptions, setGetOptionStr) {
     parpe::OptimizationOptions o;
@@ -57,7 +56,6 @@ TEST(OptimizationOptions, setGetOptionDouble) {
     EXPECT_EQ(expVal, actVal);
 }
 
-
 TEST(OptimizationOptions, getNonExistingOption) {
     parpe::OptimizationOptions o;
 
@@ -74,8 +72,8 @@ TEST(OptimizationOptions, setIpOptOptions) {
 
     parpe::OptimizationOptions o;
     o.setOption(key, expVal);
-    o.for_each<Ipopt::SmartPtr<Ipopt::OptionsList>*>(parpe::setIpOptOption,
-                                                     &options);
+    o.for_each<Ipopt::SmartPtr<Ipopt::OptionsList>*>(
+        parpe::setIpOptOption, &options);
 
     int actVal = 0;
     EXPECT_EQ(true, options->GetIntegerValue(key, actVal, ""));
@@ -92,8 +90,8 @@ TEST(OptimizationOptions, setCeresOptions) {
 
     parpe::OptimizationOptions o;
     o.setOption(key, expVal);
-    o.for_each<ceres::GradientProblemSolver::Options*>(parpe::setCeresOption,
-                                                       &options);
+    o.for_each<ceres::GradientProblemSolver::Options*>(
+        parpe::setCeresOption, &options);
 
     int actVal = options.max_num_iterations;
 
@@ -104,28 +102,34 @@ TEST(OptimizationOptions, setCeresOptions) {
 #endif
 
 TEST(OptimizationOptions, fromHDF5) {
-    const char* tmpName = "parpeTest_fromHDF5.h5";
+    char const* tmpName = "parpeTest_fromHDF5.h5";
     auto _ = gsl::finally([tmpName] { remove(tmpName); });
 
     // fail on non-existing file (hide hdf5 errors)
-    parpe::captureStreamToString([tmpName](){
-        EXPECT_THROW(parpe::OptimizationOptions::fromHDF5(tmpName),
-                     parpe::HDF5Exception);
-    }, stdout);
+    parpe::captureStreamToString(
+        [tmpName]() {
+            EXPECT_THROW(
+                parpe::OptimizationOptions::fromHDF5(tmpName),
+                parpe::HDF5Exception);
+        },
+        stdout);
 
     // create file
     auto file = parpe::hdf5CreateFile(tmpName, false);
     parpe::hdf5CreateGroup(file, "/optimizationOptions/ceres", true);
     int optimizer = 1;
-    H5LTset_attribute_int(file.getId(), "/optimizationOptions", "optimizer",
-                          &optimizer, 1);
-    H5LTset_attribute_int(file.getId(), "/optimizationOptions/ceres", "someOption",
-                          &optimizer, 1);
+    H5LTset_attribute_int(
+        file.getId(), "/optimizationOptions", "optimizer", &optimizer, 1);
+    H5LTset_attribute_int(
+        file.getId(),
+        "/optimizationOptions/ceres",
+        "someOption",
+        &optimizer,
+        1);
     hsize_t dims[] = {2, 3};
-    double buf[] = {1, 2, 3,
-                    4, 5, 6};
-    H5LTmake_dataset_double(file.getId(), "/optimizationOptions/randomStarts", 2,
-                            dims, buf);
+    double buf[] = {1, 2, 3, 4, 5, 6};
+    H5LTmake_dataset_double(
+        file.getId(), "/optimizationOptions/randomStarts", 2, dims, buf);
 
     auto startingPoint = parpe::OptimizationOptions::getStartingPoint(file, 0);
     EXPECT_EQ(1, startingPoint[0]);

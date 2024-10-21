@@ -1,8 +1,8 @@
-#include <gtest/gtest.h>
 #include <gmock/gmock.h>
+#include <gtest/gtest.h>
 
-#include <parpeloadbalancer/loadBalancerMaster.h>
 #include <parpecommon/misc.h>
+#include <parpeloadbalancer/loadBalancerMaster.h>
 
 #include <mpi.h>
 
@@ -13,59 +13,82 @@
 
 using ::testing::_;
 
-static std::function<int(MPI_Comm comm, int *size) > _MPI_Comm_size;
+static std::function<int(MPI_Comm comm, int* size)> _MPI_Comm_size;
 
 // mock for MPI_Comm_size
-int MPI_Comm_size(MPI_Comm comm, int *size) {
+int MPI_Comm_size(MPI_Comm comm, int* size) {
     _MPI_Comm_size(comm, size);
     *size = 10;
     return MPI_SUCCESS;
 }
 
-int MPI_Testany(int /*count*/, MPI_Request /*array_of_requests*/[], int */*index*/,
-                int */*flag*/, MPI_Status */*status*/) {
+int MPI_Testany(
+    int /*count*/,
+    MPI_Request /*array_of_requests*/[],
+    int* /*index*/,
+    int* /*flag*/,
+    MPI_Status* /*status*/) {
     sleep(1);
     return 0;
 }
 
-int MPI_Iprobe(int /*source*/, int /*tag*/, MPI_Comm /*comm*/, int */*flag*/,
-               MPI_Status */*status*/) {
+int MPI_Iprobe(
+    int /*source*/,
+    int /*tag*/,
+    MPI_Comm /*comm*/,
+    int* /*flag*/,
+    MPI_Status* /*status*/) {
     return 0;
 }
 
-int MPI_Isend(const void */*buf*/, int /*count*/, MPI_Datatype /*datatype*/,
-              int /*dest*/, int /*tag*/, MPI_Comm /*comm*/,
-              MPI_Request */*request*/) {
+int MPI_Isend(
+    void const* /*buf*/,
+    int /*count*/,
+    MPI_Datatype /*datatype*/,
+    int /*dest*/,
+    int /*tag*/,
+    MPI_Comm /*comm*/,
+    MPI_Request* /*request*/) {
     sleep(1);
     return 0;
 }
 
 class MockMPI {
-public:
-    MOCK_CONST_METHOD2(MPI_Comm_size, int(MPI_Comm comm, int *size));
-    MOCK_CONST_METHOD5(MPI_Testany, int(int count,
-                                        MPI_Request array_of_requests[],
-                                        int *index,
-                                        int *flag, MPI_Status *status));
-    MOCK_CONST_METHOD5(MPI_Iprobe, int(int source, int tag, MPI_Comm comm,
-                                       int *flag, MPI_Status *status));
+  public:
+    MOCK_CONST_METHOD2(MPI_Comm_size, int(MPI_Comm comm, int* size));
+    MOCK_CONST_METHOD5(
+        MPI_Testany,
+        int(int count,
+            MPI_Request array_of_requests[],
+            int* index,
+            int* flag,
+            MPI_Status* status));
+    MOCK_CONST_METHOD5(
+        MPI_Iprobe,
+        int(int source, int tag, MPI_Comm comm, int* flag, MPI_Status* status));
 
-    MOCK_CONST_METHOD7(MPI_Isend, int(const void *buf, int count,
-                                      MPI_Datatype datatype, int dest,
-                                      int tag, MPI_Comm comm,
-                                      MPI_Request *request));
+    MOCK_CONST_METHOD7(
+        MPI_Isend,
+        int(void const* buf,
+            int count,
+            MPI_Datatype datatype,
+            int dest,
+            int tag,
+            MPI_Comm comm,
+            MPI_Request* request));
 
     MockMPI() {
-        _MPI_Comm_size = [this](MPI_Comm comm, int *size){ return MPI_Comm_size(comm, size); };
+        _MPI_Comm_size = [this](MPI_Comm comm, int* size) {
+            return MPI_Comm_size(comm, size);
+        };
     }
 };
 
 class LoadBalancer : public ::testing::Test {
 
-protected:
+  protected:
     MockMPI mockMpi;
 };
-
 
 #include <loadBalancerMaster.cpp>
 

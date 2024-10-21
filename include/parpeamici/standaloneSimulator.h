@@ -22,8 +22,7 @@ namespace parpe {
  *                                 trajectory of all multi-start optimization
  *                                 runs
  */
-class StandaloneSimulator
-{
+class StandaloneSimulator {
   public:
     explicit StandaloneSimulator(MultiConditionDataProvider* dp);
 
@@ -40,12 +39,14 @@ class StandaloneSimulator
      * optimization
      * @return Number of errors encountered
      */
-    int run(const std::string& resultFile,
-            const std::string& resultPath,
-            std::map<std::string, double> &optimizationParameters,
-            LoadBalancerMaster* loadBalancer,
-            const H5::H5File& conditionFile,
-            std::string conditionFilePath, bool computeInnerParameters);
+    int
+    run(std::string const& resultFile,
+        std::string const& resultPath,
+        std::map<std::string, double>& optimizationParameters,
+        LoadBalancerMaster* loadBalancer,
+        const H5::H5File& conditionFile,
+        std::string conditionFilePath,
+        bool computeInnerParameters);
 
     void messageHandler(std::vector<char>& buffer, int jobId);
 
@@ -62,9 +63,9 @@ class StandaloneSimulator
 
 // enum class SimulatorOpType {finalParameters};
 
-std::pair<int, double>
-getFunctionEvaluationWithMinimalCost(std::string const& datasetPath,
-                                     H5::H5File const& file);
+std::pair<int, double> getFunctionEvaluationWithMinimalCost(
+    std::string const& datasetPath,
+    H5::H5File const& file);
 
 /**
  * @brief Read the final parameter set from parPE result file for the given
@@ -74,46 +75,45 @@ getFunctionEvaluationWithMinimalCost(std::string const& datasetPath,
  * @return The final parameter vector
  */
 std::vector<double>
-getFinalParameters(const std::string& startIndex, const H5::H5File& file);
+getFinalParameters(std::string const& startIndex, const H5::H5File& file);
 
 std::vector<std::vector<double>>
-getParameterTrajectory(const std::string& startIndex, H5::H5File const& file);
+getParameterTrajectory(std::string const& startIndex, H5::H5File const& file);
 
-int
-getNumStarts(const H5::H5File& file, const std::string& rootPath = "/");
+int getNumStarts(const H5::H5File& file, std::string const& rootPath = "/");
 
-int
-runFinalParameters(parpe::StandaloneSimulator& sim,
-                   const std::string& conditionFileName,
-                   const std::string&,
-                   const std::string& parameterFileName,
-                   const std::string& parameterFilePath,
-                   const std::string& resultFileName,
-                   const std::string& resultPath,
-                   parpe::LoadBalancerMaster* loadBalancer,
-                   bool computeInnerParameters);
+int runFinalParameters(
+    parpe::StandaloneSimulator& sim,
+    std::string const& conditionFileName,
+    std::string const&,
+    std::string const& parameterFileName,
+    std::string const& parameterFilePath,
+    std::string const& resultFileName,
+    std::string const& resultPath,
+    parpe::LoadBalancerMaster* loadBalancer,
+    bool computeInnerParameters);
 
-int
-runAlongTrajectory(parpe::StandaloneSimulator& sim,
-                   const std::string& conditionFileName,
-                   const std::string& conditionFilePath,
-                   const std::string& parameterFileName,
-                   const std::string& parameterFilePath,
-                   std::string const& resultFileName,
-                   std::string const& resultPath,
-                   parpe::LoadBalancerMaster* loadBalancer,
-                   bool computeInnerParameters);
+int runAlongTrajectory(
+    parpe::StandaloneSimulator& sim,
+    std::string const& conditionFileName,
+    std::string const& conditionFilePath,
+    std::string const& parameterFileName,
+    std::string const& parameterFilePath,
+    std::string const& resultFileName,
+    std::string const& resultPath,
+    parpe::LoadBalancerMaster* loadBalancer,
+    bool computeInnerParameters);
 
-int
-runSimulator(MultiConditionDataProvider& dp,
-             std::string const& simulationMode,
-             const std::string& conditionFileName,
-             const std::string& conditionFilePath,
-             const std::string& parameterFileName,
-             const std::string& parameterFilePath,
-             std::string const& resultFileName,
-             std::string const& resultPath,
-             bool computeInnerParameters);
+int runSimulator(
+    MultiConditionDataProvider& dp,
+    std::string const& simulationMode,
+    std::string const& conditionFileName,
+    std::string const& conditionFilePath,
+    std::string const& parameterFileName,
+    std::string const& parameterFilePath,
+    std::string const& resultFileName,
+    std::string const& resultPath,
+    bool computeInnerParameters);
 
 } // namespace parpe
 

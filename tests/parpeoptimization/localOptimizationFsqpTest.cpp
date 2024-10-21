@@ -22,32 +22,33 @@ TEST_GROUP(localOptimizationFsqp){
 };
 // clang-format on
 
-
 TEST(localOptimizationFsqp, testOptimizationGetlocalOptimum) {
     parpe::QuadraticTestProblem problem;
 
     mock().ignoreOtherCalls();
     parpe::OptimizerFsqp optimizer;
-    //auto result = optimizer.optimize(&problem);
+    // auto result = optimizer.optimize(&problem);
     auto result = optimizer.optimize(&problem);
 
     // check status, cost, parameter
-//    CHECK_EQUAL(0, std::get<0>(result));
+    //    CHECK_EQUAL(0, std::get<0>(result));
     DOUBLES_EQUAL(42.0, std::get<1>(result), 1e-12);
-    DOUBLES_EQUAL(-1.0, std::get<2>(result).at(0), 1e-8); // TODO adapt to optimizer tolerances
+    DOUBLES_EQUAL(
+        -1.0,
+        std::get<2>(result).at(0),
+        1e-8); // TODO adapt to optimizer tolerances
 }
-
-
 
 TEST(localOptimizationFsqp, testParallelMultistart) {
     /* Test if thread-safe
      * Test with:
-     *    while ./build/optimization/tests/unittests_optimization_fsqp; do :; done
+     *    while ./build/optimization/tests/unittests_optimization_fsqp; do :;
+     * done
      */
 
     mock().disable(); // mock() is not thread-safe
 
-    constexpr int numStarts {10};
+    constexpr int numStarts{10};
     parpe::QuadraticOptimizationMultiStartProblem msp(numStarts, false);
     msp.options.optimizer = parpe::optimizerName::OPTIMIZER_FSQP;
 
@@ -56,8 +57,6 @@ TEST(localOptimizationFsqp, testParallelMultistart) {
 
     mock().enable();
 }
-
-
 
 TEST(localOptimizationFsqp, testReporterCalled) {
     parpe::QuadraticTestProblem problem;
@@ -78,16 +77,23 @@ TEST(localOptimizationFsqp, testReporterCalled) {
 
     // "normal" iterations
     // "before" and "after" are called for f and g, but g is already cached
-    mock().expectNCalls(o.maxOptimizerIterations * 2, "OptimizationReporterTest::beforeCostFunctionCall");
+    mock().expectNCalls(
+        o.maxOptimizerIterations * 2,
+        "OptimizationReporterTest::beforeCostFunctionCall");
     mock().expectNCalls(o.maxOptimizerIterations, "testObjGrad");
-    mock().expectNCalls(o.maxOptimizerIterations * 2, "OptimizationReporterTest::afterCostFunctionCall");
-    mock().expectNCalls(o.maxOptimizerIterations, "OptimizationReporterTest::iterationFinished");
+    mock().expectNCalls(
+        o.maxOptimizerIterations * 2,
+        "OptimizationReporterTest::afterCostFunctionCall");
+    mock().expectNCalls(
+        o.maxOptimizerIterations,
+        "OptimizationReporterTest::iterationFinished");
 
-    mock().expectOneCall("OptimizationReporterTest::finished").ignoreOtherParameters();
+    mock()
+        .expectOneCall("OptimizationReporterTest::finished")
+        .ignoreOtherParameters();
 
     parpe::OptimizerFsqp optimizer;
     optimizer.optimize(&problem);
 
     // don't check results. could be anywhere, due to low iteration limit
 }
-

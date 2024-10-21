@@ -7,8 +7,7 @@
 
 #include <amici/amici.h>
 
-TEST(SimulationWorkerAmici, SerializeResultPackageMessage)
-{
+TEST(SimulationWorkerAmici, SerializeResultPackageMessage) {
     parpe::AmiciSimulationRunner::AmiciResultPackageSimple results = {
         1.1,
         2.345,
@@ -16,8 +15,7 @@ TEST(SimulationWorkerAmici, SerializeResultPackageMessage)
         std::vector<double>(3, 4.0),
         std::vector<double>(3, 4.0),
         std::vector<double>(1, 2.0),
-        10
-    };
+        10};
 
     int msgSize = 0;
     auto buffer =
@@ -25,8 +23,8 @@ TEST(SimulationWorkerAmici, SerializeResultPackageMessage)
 
     parpe::AmiciSimulationRunner::AmiciResultPackageSimple resultsAct =
         amici::deserializeFromChar<
-            parpe::AmiciSimulationRunner::AmiciResultPackageSimple>(buffer.get(),
-                                                                    msgSize);
+            parpe::AmiciSimulationRunner::AmiciResultPackageSimple>(
+            buffer.get(), msgSize);
 
     EXPECT_EQ(resultsAct, results);
 }

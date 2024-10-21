@@ -3,8 +3,8 @@
 
 #include <parpecommon/parpeConfig.h>
 
-#include <vector>
 #include <functional>
+#include <vector>
 
 constexpr int MPI_TAG_EXIT_SIGNAL = 0;
 
@@ -21,16 +21,17 @@ class LoadBalancerWorker {
      * @param jobId A message identifier, unique over the range of MAX_INT
      * messages.
      */
-    using messageHandlerFunc = std::function<void (std::vector<char> &buffer, int jobId)>;
+    using messageHandlerFunc =
+        std::function<void(std::vector<char>& buffer, int jobId)>;
 
-    void run(const messageHandlerFunc &messageHandler);
+    void run(messageHandlerFunc const& messageHandler);
 
   private:
     /**
      * @brief Probe for and dispatch the next incoming job
      * @return `true` if the termination signal was received, `false` otherwise.
      */
-    bool waitForAndHandleJobs(const messageHandlerFunc& messageHandler);
+    bool waitForAndHandleJobs(messageHandlerFunc const& messageHandler);
 };
 
 } // namespace parpe

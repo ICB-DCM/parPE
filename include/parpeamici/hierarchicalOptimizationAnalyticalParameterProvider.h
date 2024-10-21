@@ -1,21 +1,19 @@
 #ifndef HIERARCHICALOPTIMIZATIONANALYTICALPARAMETERPROVIDER_H
 #define HIERARCHICALOPTIMIZATIONANALYTICALPARAMETERPROVIDER_H
 
-#include <vector>
 #include <map>
+#include <vector>
 
 #include <H5Cpp.h>
 
 namespace parpe {
-
 
 /**
  * @brief The AnalyticalParameterProvider class is an interface for providing
  * information on optimization parameters to be computed analytically
  * (proportionality factors, offsets, sigmas, ...).
  */
-class AnalyticalParameterProvider
-{
+class AnalyticalParameterProvider {
   public:
     virtual ~AnalyticalParameterProvider() = default;
 
@@ -27,8 +25,8 @@ class AnalyticalParameterProvider
      * (*not* the optimization parameter index).
      * @return Vector of condition indices
      */
-    virtual std::vector<int> getConditionsForParameter(
-        int parameterIndex) const = 0;
+    virtual std::vector<int>
+    getConditionsForParameter(int parameterIndex) const = 0;
 
     /**
      * @brief Get vector of observable indices for the specified condition for
@@ -36,9 +34,8 @@ class AnalyticalParameterProvider
      * @param parameterIndex
      * @return
      */
-    virtual std::vector<int> const& getObservablesForParameter(
-        int parameterIndex,
-        int conditionIdx) const = 0;
+    virtual std::vector<int> const&
+    getObservablesForParameter(int parameterIndex, int conditionIdx) const = 0;
 
     /**
      * @brief Vector with indices of the of the analytically determined
@@ -48,13 +45,12 @@ class AnalyticalParameterProvider
     virtual std::vector<int> getOptimizationParameterIndices() const = 0;
 };
 
-class AnalyticalParameterProviderDefault : public AnalyticalParameterProvider
-{
+class AnalyticalParameterProviderDefault : public AnalyticalParameterProvider {
   public:
     AnalyticalParameterProviderDefault() = default;
 
-    std::vector<int> getConditionsForParameter(
-        int parameterIndex) const override;
+    std::vector<int>
+    getConditionsForParameter(int parameterIndex) const override;
 
     std::vector<int> const& getObservablesForParameter(
         int parameterIndex,
@@ -75,8 +71,7 @@ class AnalyticalParameterProviderDefault : public AnalyticalParameterProvider
  * are to be computed analytically.
  *
  */
-class AnalyticalParameterHdf5Reader : public AnalyticalParameterProvider
-{
+class AnalyticalParameterHdf5Reader : public AnalyticalParameterProvider {
   public:
     AnalyticalParameterHdf5Reader() = default;
 
@@ -89,9 +84,10 @@ class AnalyticalParameterHdf5Reader : public AnalyticalParameterProvider
      * @param mapPath path of to the dataset with the
      * parameter-observable-condition mapping
      */
-    AnalyticalParameterHdf5Reader(const H5::H5File& file,
-                                  std::string analyticalParameterIndicesPath,
-                                  std::string mapPath);
+    AnalyticalParameterHdf5Reader(
+        const H5::H5File& file,
+        std::string analyticalParameterIndicesPath,
+        std::string mapPath);
 
     AnalyticalParameterHdf5Reader(AnalyticalParameterHdf5Reader const&) =
         delete;
@@ -104,8 +100,8 @@ class AnalyticalParameterHdf5Reader : public AnalyticalParameterProvider
      * (*not* the optimization parameter index).
      * @return Vector of condition indices
      */
-    std::vector<int> getConditionsForParameter(
-        int parameterIndex) const override;
+    std::vector<int>
+    getConditionsForParameter(int parameterIndex) const override;
 
     /**
      * @brief Get vector of observable indices for the specified condition for
@@ -144,9 +140,10 @@ class AnalyticalParameterHdf5Reader : public AnalyticalParameterProvider
      * - observableIdx: index of model output
      */
     void readParameterConditionObservableMappingFromFile();
-    std::vector<int> readRawMap(const H5::DataSet &dataset,
-                                hsize_t& nRows,
-                                hsize_t& nCols) const;
+    std::vector<int> readRawMap(
+        const H5::DataSet& dataset,
+        hsize_t& nRows,
+        hsize_t& nCols) const;
 
     H5::H5File file;
     std::string rootPath;
@@ -157,6 +154,5 @@ class AnalyticalParameterHdf5Reader : public AnalyticalParameterProvider
     std::vector<std::map<int, std::vector<int>>> mapping;
 };
 
-
-}
+} // namespace parpe
 #endif // HIERARCHICALOPTIMIZATIONANALYTICALPARAMETERPROVIDER_H

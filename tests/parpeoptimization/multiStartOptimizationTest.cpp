@@ -3,8 +3,8 @@
 #include <parpecommon/parpeConfig.h>
 #include <parpeoptimization/multiStartOptimization.h>
 
-#include "quadraticTestProblem.h"
 #include "../parpecommon/testingMisc.h"
+#include "quadraticTestProblem.h"
 
 #ifdef PARPE_ENABLE_IPOPT
 #include <parpeoptimization/localOptimizationIpopt.h>

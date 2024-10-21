@@ -1,23 +1,23 @@
 #include <parpeamici/optimizationApplication.h>
 
+#include <parpeamici/amiciMisc.h>
 #include <parpecommon/hdf5Misc.h>
 #include <parpecommon/logging.h>
 #include <parpecommon/misc.h>
-#include <parpeoptimization/optimizationOptions.h>
 #include <parpecommon/parpeVersion.h>
-#include <parpeamici/amiciMisc.h>
+#include <parpeoptimization/optimizationOptions.h>
 
 #ifdef PARPE_ENABLE_MPI
 #include <mpi.h>
 #endif
 
+#include <algorithm>
+#include <csignal>
+#include <cstdlib>
 #include <cstring>
 #include <ctime>
 #include <numeric>
-#include <algorithm>
 #include <random>
-#include <csignal>
-#include <cstdlib>
 
 namespace parpe {
 
@@ -33,19 +33,19 @@ void signalHandler(int sig) {
     (*oldact.sa_sigaction)(sig, nullptr, nullptr);
 }
 
-int OptimizationApplication::init(int argc, char **argv) {
+int OptimizationApplication::init(int argc, char** argv) {
     // reduce verbosity
-    if(std::getenv("PARPE_NO_DEBUG"))
+    if (std::getenv("PARPE_NO_DEBUG"))
         minimumLogLevel = loglevel::info;
 
-    if(auto status = parseCliOptionsPreMpiInit(argc, argv))
+    if (auto status = parseCliOptionsPreMpiInit(argc, argv))
         return status;
 
     // install signal handler for backtrace on error
     sigaction(SIGSEGV, &act, &oldact);
     sigaction(SIGHUP, &act, nullptr);
 
-    if(withMPI && !getMpiActive())
+    if (withMPI && !getMpiActive())
         initMPI(&argc, &argv);
 
     printMPIInfo();
@@ -54,19 +54,18 @@ int OptimizationApplication::init(int argc, char **argv) {
     return parseCliOptionsPostMpiInit(argc, argv);
 }
 
-void OptimizationApplication::runMultiStarts() const
-{
+void OptimizationApplication::runMultiStarts() const {
     // TODO: use uniqe_ptr, not ref
-    MultiStartOptimization optimizer(*multiStartOptimizationProblem, true,
-                                     first_start_idx);
+    MultiStartOptimization optimizer(
+        *multiStartOptimizationProblem, true, first_start_idx);
     optimizer.run();
 }
 
-int OptimizationApplication::parseCliOptionsPreMpiInit(int argc, char **argv)
-{
+int OptimizationApplication::parseCliOptionsPreMpiInit(int argc, char** argv) {
     while (true) {
         int optionIndex = 0;
-        auto c = getopt_long(argc, argv, shortOptions, longOptions, &optionIndex);
+        auto c =
+            getopt_long(argc, argv, shortOptions, longOptions, &optionIndex);
 
         if (c == -1)
             break; // no more options
@@ -83,13 +82,14 @@ int OptimizationApplication::parseCliOptionsPreMpiInit(int argc, char **argv)
     return 0;
 }
 
-int OptimizationApplication::parseCliOptionsPostMpiInit(int argc, char **argv) {
+int OptimizationApplication::parseCliOptionsPostMpiInit(int argc, char** argv) {
     // restart from first argument
     optind = 1;
 
     while (true) {
         int optionIndex = 0;
-        int c = getopt_long(argc, argv, shortOptions, longOptions, &optionIndex);
+        int c =
+            getopt_long(argc, argv, shortOptions, longOptions, &optionIndex);
 
         if (c == -1)
             break; // no more options
@@ -123,42 +123,42 @@ int OptimizationApplication::parseCliOptionsPostMpiInit(int argc, char **argv) {
     if (optind < argc) {
         dataFileName = argv[optind++];
     } else {
-        logmessage(loglevel::critical,
-                   "Must provide input file as first and only argument to %s.",
-                   argv[0]);
+        logmessage(
+            loglevel::critical,
+            "Must provide input file as first and only argument to %s.",
+            argv[0]);
         return 1;
     }
 
     return 0;
 }
 
-void OptimizationApplication::printUsage(char * const argZero)
-{
+void OptimizationApplication::printUsage(char* const argZero) {
     printf("Usage: %s [OPTION]... FILE\n\n", argZero);
     printf("FILE: HDF5 data file\n\n");
-    printf("Options: \n"
-           "  -o, --outfile-prefix  Prefix for result files (path + "
-           "filename)\n"
-           "  -t, --task            What to do? Parameter estimation (default) "
-           "or check gradient ('gradient_check')\n"
-           "  -s, --first-start-idx Starting point index for first optimization\n"
-           "  -m, --mpi             Enable MPI (default: off)\n"
-           "  -h, --help            Print this help text\n"
-           "  -v, --version         Print version info\n");
+    printf(
+        "Options: \n"
+        "  -o, --outfile-prefix  Prefix for result files (path + "
+        "filename)\n"
+        "  -t, --task            What to do? Parameter estimation (default) "
+        "or check gradient ('gradient_check')\n"
+        "  -s, --first-start-idx Starting point index for first optimization\n"
+        "  -m, --mpi             Enable MPI (default: off)\n"
+        "  -h, --help            Print this help text\n"
+        "  -v, --version         Print version info\n");
     printf("\nSupported optimizers:\n");
     printAvailableOptimizers("  ");
 }
 
-void OptimizationApplication::logParPEVersion(H5::H5File const& file) const
-{
+void OptimizationApplication::logParPEVersion(H5::H5File const& file) const {
     hdf5WriteStringAttribute(file, "/", "PARPE_VERSION", PARPE_VERSION);
 }
 
-void OptimizationApplication::initMPI(int *argc, char ***argv) {
+void OptimizationApplication::initMPI(int* argc, char*** argv) {
 #ifdef PARPE_ENABLE_MPI
     int thread_support_provided = 0;
-    int mpiErr = MPI_Init_thread(argc, argv, MPI_THREAD_MULTIPLE,
-                                 &thread_support_provided);
+    int mpiErr = MPI_Init_thread(
+        argc, argv, MPI_THREAD_MULTIPLE, &thread_support_provided);
 
     if (thread_support_provided != MPI_THREAD_MULTIPLE)
         throw std::runtime_error("MPI_THREAD_MULTIPLE not supported?");
@@ -177,20 +177,21 @@ void OptimizationApplication::initMPI(int *argc, char ***argv) {
 #endif
 }
 
-int OptimizationApplication::run(int argc, char **argv) {
+int OptimizationApplication::run(int argc, char** argv) {
     // start Timers
     WallTimer wallTimer;
     CpuTimer cpuTimer;
 
     int status = init(argc, argv);
-    if(status)
+    if (status)
         return status;
 
     if (dataFileName.empty()) {
-        logmessage(loglevel::critical,
-                   "No input file provided. Must provide input file as first "
-                   "and only argument or set "
-                   "OptimizationApplication::inputFileName manually.");
+        logmessage(
+            loglevel::critical,
+            "No input file provided. Must provide input file as first "
+            "and only argument or set "
+            "OptimizationApplication::inputFileName manually.");
         return 1;
     }
 
@@ -225,9 +226,9 @@ int OptimizationApplication::run(int argc, char **argv) {
 void OptimizationApplication::runMaster() {
     switch (operationType) {
     case OperationType::gradientCheck: {
-        const int numParameterIndicesToCheck = 10000;
+        int const numParameterIndicesToCheck = 10000;
         optimizationProblemGradientCheckMultiEps(
-                    problem.get(), numParameterIndicesToCheck);
+            problem.get(), numParameterIndicesToCheck);
         break;
     }
     case OperationType::parameterEstimation:
@@ -240,15 +241,20 @@ void OptimizationApplication::runMaster() {
 void OptimizationApplication::runWorker() {
     // TODO: Move out of here
     LoadBalancerWorker lbw;
-    lbw.run([this](std::vector<char> &buffer, int jobId) {
+    lbw.run([this](std::vector<char>& buffer, int jobId) {
         // TODO: this is so damn ugly
-        auto sgf = dynamic_cast<SummedGradientFunctionGradientFunctionAdapter<int>*>(problem->cost_fun_.get());
-        if(sgf) {
+        auto sgf =
+            dynamic_cast<SummedGradientFunctionGradientFunctionAdapter<int>*>(
+                problem->cost_fun_.get());
+        if (sgf) {
             // non-hierarchical
-            dynamic_cast<AmiciSummedGradientFunction*>(sgf->getWrappedFunction())->messageHandler(buffer, jobId);
+            dynamic_cast<AmiciSummedGradientFunction*>(
+                sgf->getWrappedFunction())
+                ->messageHandler(buffer, jobId);
         } else {
             // hierarchical
-            auto hierarch = dynamic_cast<HierarchicalOptimizationWrapper *>(problem->cost_fun_.get());
+            auto hierarch = dynamic_cast<HierarchicalOptimizationWrapper*>(
+                problem->cost_fun_.get());
             Expects(hierarch != nullptr);
             hierarch->getWrappedFunction()->messageHandler(buffer, jobId);
         }
@@ -260,9 +266,9 @@ void OptimizationApplication::runSingleProcess() {
     // run serially
     switch (operationType) {
     case OperationType::gradientCheck: {
-        const int numParameterIndicesToCheck = 10000;
+        int const numParameterIndicesToCheck = 10000;
         optimizationProblemGradientCheckMultiEps(
-                    problem.get(), numParameterIndicesToCheck);
+            problem.get(), numParameterIndicesToCheck);
         break;
     }
     case OperationType::parameterEstimation:
@@ -275,33 +281,47 @@ void OptimizationApplication::runSingleProcess() {
     }
 }
 
-void OptimizationApplication::finalizeTiming(double wallTimeSeconds, double cpuTimeSeconds) {
+void OptimizationApplication::finalizeTiming(
+    double wallTimeSeconds,
+    double cpuTimeSeconds) {
 #ifdef PARPE_ENABLE_MPI
     // wall-time for current MPI process
     // total run-time
     double totalCpuTimeInSeconds = 0;
 
-    if(getMpiActive()) {
-        MPI_Reduce(&cpuTimeSeconds, &totalCpuTimeInSeconds, 1, MPI_DOUBLE, MPI_SUM, 0,
-                   MPI_COMM_WORLD);
+    if (getMpiActive()) {
+        MPI_Reduce(
+            &cpuTimeSeconds,
+            &totalCpuTimeInSeconds,
+            1,
+            MPI_DOUBLE,
+            MPI_SUM,
+            0,
+            MPI_COMM_WORLD);
     } else {
         totalCpuTimeInSeconds = cpuTimeSeconds;
     }
 
     if (getMpiRank() < 1) {
-        logmessage(loglevel::info, "Walltime on master: %fs, CPU time of all processes: %fs",
-                   wallTimeSeconds, totalCpuTimeInSeconds);
+        logmessage(
+            loglevel::info,
+            "Walltime on master: %fs, CPU time of all processes: %fs",
+            wallTimeSeconds,
+            totalCpuTimeInSeconds);
         saveTotalCpuTime(h5File, totalCpuTimeInSeconds);
     }
 #else
-    logmessage(LOGLVL_INFO, "Total walltime: %fs, CPU time: %fs",
-               wallTimeSeconds, cpuTimeSeconds);
+    logmessage(
+        LOGLVL_INFO,
+        "Total walltime: %fs, CPU time: %fs",
+        wallTimeSeconds,
+        cpuTimeSeconds);
     saveTotalCpuTime(file_id, cpuTimeSeconds);
 #endif
 }
 
 std::string OptimizationApplication::processResultFilenameCommandLineArgument(
-        const char *commandLineArg) {
+    char const* commandLineArg) {
     std::size_t bufSize = 1024;
     char tmpFileName[bufSize];
     int rank = std::max(getMpiRank(), 0);
@@ -343,22 +363,25 @@ OptimizationApplication::~OptimizationApplication() {
     h5File.close();
     problem.reset(nullptr);
 #ifdef PARPE_ENABLE_MPI
-    if(getMpiActive())
+    if (getMpiActive())
         MPI_Finalize();
 #endif
 }
 
-void saveTotalCpuTime(H5::H5File const& file, const double timeInSeconds)
-{
+void saveTotalCpuTime(H5::H5File const& file, double const timeInSeconds) {
     hsize_t dims[1] = {1};
 
     [[maybe_unused]] auto lock = hdf5MutexGetLock();
 
-    //std::string pathStr = rootPath + "/totalTimeInSec";
+    // std::string pathStr = rootPath + "/totalTimeInSec";
     std::string pathStr = "/totalTimeInSec";
-    H5LTmake_dataset(file.getId(), pathStr.c_str(), 1, dims, H5T_NATIVE_DOUBLE,
-                     &timeInSeconds);
-
+    H5LTmake_dataset(
+        file.getId(),
+        pathStr.c_str(),
+        1,
+        dims,
+        H5T_NATIVE_DOUBLE,
+        &timeInSeconds);
 }
 
 } // namespace parpe
