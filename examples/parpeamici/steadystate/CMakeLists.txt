@@ -117,6 +117,31 @@ if(${BUILD_TESTING})
 endif()
 # /example_steadystate_multi executable_simulator
 
+# example_steadystate_multi_simulator_json executable
+project(example_steadystate_multi_simulator_json)
+
+set(SRC_LIST_EXE_PARALLEL main_simulator_json.cpp
+                          steadyStateMultiConditionDataprovider.cpp)
+
+add_executable(${PROJECT_NAME} ${SRC_LIST_EXE_PARALLEL})
+add_dependencies(${PROJECT_NAME} ${MODEL_NAME})
+
+include(FetchContent)
+
+FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz)
+FetchContent_MakeAvailable(json)
+
+target_link_libraries(
+    ${PROJECT_NAME}
+    PRIVATE
+    ${MODEL_LIBRARIES}
+    parpeamici
+    nlohmann_json::nlohmann_json
+    ${GCOV_LIBRARY}
+)
+
+# /example_steadystate_multi executable_simulator_json
+
 if(${BUILD_TESTING})
   project(test_steadystate)
 
