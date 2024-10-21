@@ -4,7 +4,7 @@
 execute_process(
   COMMAND
     sh -c
-    "git ls-tree -r HEAD --name-only | grep -E '(\\.cpp$)|(\\.h$)' | tr '\n' ' '"
+    "git ls-tree -r HEAD --name-only | grep -E '(\\.cpp$)|(\\.h$)' | grep -v '^deps/' | grep -v '^ThirdParty/' | tr '\n' ' '"
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
   OUTPUT_VARIABLE ALL_CXX_SOURCE_FILES)
 
