@@ -1,11 +1,11 @@
 #include <parpeoptimization/localOptimizationIpopt.h>
 
+#include <parpecommon/logging.h>
+#include <parpecommon/parpeException.h>
 #include <parpeoptimization/localOptimizationIpoptTNLP.h>
 #include <parpeoptimization/optimizationOptions.h>
 #include <parpeoptimization/optimizationProblem.h>
 #include <parpeoptimization/optimizationResultWriter.h>
-#include <parpecommon/logging.h>
-#include <parpecommon/parpeException.h>
 
 #include <alloca.h>
 #include <cassert>
@@ -19,10 +19,9 @@
 
 namespace parpe {
 
-
 // https://www.coin-or.org/Ipopt/documentation/node40.html
 // grep -A1 -r "roptions->Add" ../ThirdParty/Ipopt-3.12.7
-const std::array<const char*, 91> strOpts = {
+std::array<char const*, 91> const strOpts = {
     "accept_every_trial_step",
     "adaptive_mu_globalization",
     "adaptive_mu_kkt_norm_type",
@@ -102,7 +101,8 @@ const std::array<const char*, 91> strOpts = {
     "quality_function_norm_type",
     "recalc_y",
     "replace_bounds",
-    "sb","print_info_string",
+    "sb",
+    "print_info_string",
     "skip_corr_if_neg_curv",
     "skip_corr_in_monotone_mode",
     "skip_finalize_solution_call",
@@ -115,7 +115,7 @@ const std::array<const char*, 91> strOpts = {
     "wsmp_skip_inertia_check",
 };
 
-const std::array<const char*, 59> intOpts = {
+std::array<char const*, 59> const intOpts = {
     "acceptable_iter",
     "accept_after_max_steps",
     "accept_every_trial_step",
@@ -177,7 +177,7 @@ const std::array<const char*, 59> intOpts = {
     "wsmp_write_matrix_iteration",
 };
 
-const std::array<const char*, 149> dblOpts = {
+std::array<char const*, 149> const dblOpts = {
     "acceptable_compl_inf_tol",
     "acceptable_constr_viol_tol",
     "acceptable_dual_inf_tol",
@@ -196,7 +196,8 @@ const std::array<const char*, 149> dblOpts = {
     "constr_mult_reset_threshold",
     "constr_viol_tol",
     "corrector_compl_avrg_red_fact",
-    "delta", "Multiplier for constraint violation in the switching rule.",
+    "delta",
+    "Multiplier for constraint violation in the switching rule.",
     "derivative_test_perturbation",
     "derivative_test_tol",
     "diverging_iterates_tol",
@@ -246,7 +247,8 @@ const std::array<const char*, 149> dblOpts = {
     "max_cpu_time",
     "max_hessian_perturbation",
     "min_hessian_perturbation",
-    "mu_init", "Initial value for the barrier parameter.",
+    "mu_init",
+    "Initial value for the barrier parameter.",
     "mu_linear_decrease_factor",
     "mu_max",
     "mu_max_fact",
@@ -259,7 +261,8 @@ const std::array<const char*, 149> dblOpts = {
     "neg_curv_test_tol",
     "nlp_lower_bound_inf",
     "nlp_scaling_constr_target_gradient",
-    "nlp_scaling_max_gradient", "Maximum gradient after NLP scaling.",
+    "nlp_scaling_max_gradient",
+    "Maximum gradient after NLP scaling.",
     "nlp_scaling_min_value",
     "nlp_scaling_obj_target_gradient",
     "nlp_upper_bound_inf",
@@ -330,40 +333,49 @@ const std::array<const char*, 149> dblOpts = {
 extern volatile sig_atomic_t caughtTerminationSignal;
 #endif
 
-static_assert(sizeof(double) == sizeof(Ipopt::Number),
-              "Sizeof IpOpt::Number != sizeof double");
-
+static_assert(
+    sizeof(double) == sizeof(Ipopt::Number),
+    "Sizeof IpOpt::Number != sizeof double");
 
 using namespace Ipopt;
 
-
-void setIpOptOption(const std::pair<const std::string, const std::string> &pair, SmartPtr<OptionsList>* o) {
+void setIpOptOption(
+    std::pair<std::string const, std::string const> const& pair,
+    SmartPtr<OptionsList>* o) {
     // for iterating over OptimizationOptions
 
     auto options = *o;
 
-    const std::string &key = pair.first;
-    const std::string &val = pair.second;
+    std::string const& key = pair.first;
+    std::string const& val = pair.second;
 
     bool success = true;
-    if(std::find(strOpts.begin(), strOpts.end(), key) != strOpts.end())
+    if (std::find(strOpts.begin(), strOpts.end(), key) != strOpts.end())
         success = options->SetStringValue(key, val);
-    else if(std::find(intOpts.begin(), intOpts.end(), key) != intOpts.end())
+    else if (std::find(intOpts.begin(), intOpts.end(), key) != intOpts.end())
         success = options->SetIntegerValue(key, std::stoi(val));
-    else if(std::find(dblOpts.begin(), dblOpts.end(), key) != dblOpts.end())
+    else if (std::find(dblOpts.begin(), dblOpts.end(), key) != dblOpts.end())
         success = options->SetNumericValue(key, std::stod(val));
     else {
-        logmessage(loglevel::warning, "Ignoring unknown optimization option %s.", key.c_str());
+        logmessage(
+            loglevel::warning,
+            "Ignoring unknown optimization option %s.",
+            key.c_str());
         return;
     }
 
     RELEASE_ASSERT(success, "Problem setting IpOpt option");
 
-    logmessage(loglevel::debug, "Set optimization option %s to %s.", key.c_str(), val.c_str());
+    logmessage(
+        loglevel::debug,
+        "Set optimization option %s to %s.",
+        key.c_str(),
+        val.c_str());
 }
 
-void setIpOptOptions(SmartPtr<OptionsList> optionsIpOpt,
-                     OptimizationProblem *problem) {
+void setIpOptOptions(
+    SmartPtr<OptionsList> optionsIpOpt,
+    OptimizationProblem* problem) {
 
     if (problem->getOptimizationOptions().printToStdout) {
         optionsIpOpt->SetIntegerValue("print_level", 5);
@@ -380,13 +392,15 @@ void setIpOptOptions(SmartPtr<OptionsList> optionsIpOpt,
     optionsIpOpt->SetStringValue("limited_memory_update_type", "bfgs");
 
     optionsIpOpt->SetIntegerValue(
-                "max_iter", problem->getOptimizationOptions().maxOptimizerIterations);
+        "max_iter", problem->getOptimizationOptions().maxOptimizerIterations);
 
     // set IpOpt options from OptimizationOptions
-    problem->getOptimizationOptions().for_each<SmartPtr<OptionsList> *>(setIpOptOption, &optionsIpOpt);
+    problem->getOptimizationOptions().for_each<SmartPtr<OptionsList>*>(
+        setIpOptOption, &optionsIpOpt);
 }
 
-std::tuple<int, double, std::vector<double> > OptimizerIpOpt::optimize(OptimizationProblem *problem) {
+std::tuple<int, double, std::vector<double>>
+OptimizerIpOpt::optimize(OptimizationProblem* problem) {
     ApplicationReturnStatus status = Unrecoverable_Exception;
 
     std::vector<double> finalParameters;
@@ -400,8 +414,8 @@ std::tuple<int, double, std::vector<double> > OptimizerIpOpt::optimize(Optimizat
         auto optimizationController = problem->getReporter();
 
         try {
-            SmartPtr<TNLP> mynlp =
-                    new LocalOptimizationIpoptTNLP(*problem, *optimizationController);
+            SmartPtr<TNLP> mynlp = new LocalOptimizationIpoptTNLP(
+                *problem, *optimizationController);
             SmartPtr<IpoptApplication> app = IpoptApplicationFactory();
             app->RethrowNonIpoptException(true);
 
@@ -414,28 +428,35 @@ std::tuple<int, double, std::vector<double> > OptimizerIpOpt::optimize(Optimizat
             Expects(status == Solve_Succeeded);
             status = app->OptimizeTNLP(mynlp);
 
-            if(status == Invalid_Number_Detected) {
+            if (status == Invalid_Number_Detected) {
                 // TODO: print where
             }
         } catch (IpoptException& e) {
-            logmessage(loglevel::error, "IpOpt exception: %s",  e.Message().c_str());
+            logmessage(
+                loglevel::error, "IpOpt exception: %s", e.Message().c_str());
         } catch (std::exception& e) {
-            logmessage(loglevel::error, "Unknown exception occurred during optimization: %s", e.what());
+            logmessage(
+                loglevel::error,
+                "Unknown exception occurred during optimization: %s",
+                e.what());
         } catch (...) {
-            logmessage(loglevel::error, "Unknown exception occurred during optimization");
+            logmessage(
+                loglevel::error,
+                "Unknown exception occurred during optimization");
         }
         finalCost = optimizationController->getFinalCost();
         finalParameters = optimizationController->getFinalParameters();
-
     }
 
     // TODO: need smarter way to decide if should retry or not
     //    if((int)status < Not_Enough_Degrees_Of_Freedom) {
     //        // should exit, retrying probably makes no sense
-    //        throw ParPEException(std::string("Unrecoverable IpOpt problem - see messages above. Code ") + std::to_string(status));
+    //        throw ParPEException(std::string("Unrecoverable IpOpt problem -
+    //        see messages above. Code ") + std::to_string(status));
     //    }
 
-    return std::tuple<int, double, std::vector<double> >((int)status < Maximum_Iterations_Exceeded, finalCost, finalParameters);
+    return std::tuple<int, double, std::vector<double>>(
+        (int)status < Maximum_Iterations_Exceeded, finalCost, finalParameters);
 }
 
 } // namespace parpe

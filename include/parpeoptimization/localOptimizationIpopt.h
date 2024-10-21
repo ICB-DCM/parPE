@@ -16,7 +16,8 @@ class OptimizerIpOpt : public Optimizer {
      * @return Returns 0 on success.
      */
 
-    std::tuple<int, double, std::vector<double> > optimize(OptimizationProblem *problem) override;
+    std::tuple<int, double, std::vector<double>>
+    optimize(OptimizationProblem* problem) override;
 };
 
 } // namespace parpe

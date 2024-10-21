@@ -13,10 +13,10 @@
 #include <amici/rdata.h>
 #include <amici/serialization.h>
 
-#include <functional>
-#include <vector>
-#include <mutex>
 #include <condition_variable>
+#include <functional>
+#include <mutex>
+#include <vector>
 
 #include <boost/serialization/array.hpp>
 #include <boost/serialization/map.hpp>
@@ -38,17 +38,15 @@ using LoadBalancerMaster = int;
  * @brief The AmiciSimulationRunner class queues AMICI simulations, waits for
  * the results and calls a user-provided aggregation function
  */
-class AmiciSimulationRunner
-{
+class AmiciSimulationRunner {
   public:
     using messageHandlerFunc =
-      std::function<void(std::vector<char>& buffer, int jobId)>;
+        std::function<void(std::vector<char>& buffer, int jobId)>;
 
     /**
      * @brief Data to be sent to a worker to run a simulation
      */
-    struct AmiciWorkPackageSimple
-    {
+    struct AmiciWorkPackageSimple {
         AmiciWorkPackageSimple() = default;
         std::vector<double> optimizationParameters;
         amici::SensitivityOrder sensitivityOrder;
@@ -60,8 +58,7 @@ class AmiciSimulationRunner
     /**
      * @brief Result from a single AMICI simulation
      */
-    struct AmiciResultPackageSimple
-    {
+    struct AmiciResultPackageSimple {
         AmiciResultPackageSimple() = default;
         double llh;
         double simulationTimeSeconds;
@@ -89,12 +86,13 @@ class AmiciSimulationRunner
      * completed. May be nullptr.
      * @param logPrefix
      */
-    AmiciSimulationRunner(const std::vector<double>& optimizationParameters,
-                          amici::SensitivityOrder sensitivityOrder,
-                          const std::vector<int>& conditionIndices,
-                          callbackJobFinishedType callbackJobFinished = nullptr,
-                          callbackAllFinishedType aggregate = nullptr,
-                          std::string logPrefix = "");
+    AmiciSimulationRunner(
+        std::vector<double> const& optimizationParameters,
+        amici::SensitivityOrder sensitivityOrder,
+        std::vector<int> const& conditionIndices,
+        callbackJobFinishedType callbackJobFinished = nullptr,
+        callbackAllFinishedType aggregate = nullptr,
+        std::string logPrefix = "");
 
     AmiciSimulationRunner(AmiciSimulationRunner const& other) = delete;
 
@@ -105,8 +103,9 @@ class AmiciSimulationRunner
      * @param maxSimulationsPerPackage
      * @return
      */
-    int runDistributedMemory(LoadBalancerMaster* loadBalancer,
-                             const int maxSimulationsPerPackage = 1);
+    int runDistributedMemory(
+        LoadBalancerMaster* loadBalancer,
+        int const maxSimulationsPerPackage = 1);
 #endif
 
     /**
@@ -116,20 +115,22 @@ class AmiciSimulationRunner
      * @param sequential Run sequential (not in parallel)
      * @return
      */
-    int runSharedMemory(const messageHandlerFunc& messageHandler,
-                        bool sequential = false);
+    int runSharedMemory(
+        messageHandlerFunc const& messageHandler,
+        bool sequential = false);
 
   private:
 #ifdef PARPE_ENABLE_MPI
-    void queueSimulation(LoadBalancerMaster* loadBalancer,
-                         JobData* d,
-                         int* jobDone,
-                         std::condition_variable* jobDoneChangedCondition,
-                         std::mutex* jobDoneChangedMutex,
-                         int jobIdx,
-                         const std::vector<double>& optimizationParameters,
-                         amici::SensitivityOrder sensitivityOrder,
-                         const std::vector<int>& conditionIndices) const;
+    void queueSimulation(
+        LoadBalancerMaster* loadBalancer,
+        JobData* d,
+        int* jobDone,
+        std::condition_variable* jobDoneChangedCondition,
+        std::mutex* jobDoneChangedMutex,
+        int jobIdx,
+        const std::vector<double>& optimizationParameters,
+        amici::SensitivityOrder sensitivityOrder,
+        const std::vector<int>& conditionIndices) const;
 #endif
 
     std::vector<double> const& optimization_parameters_;
@@ -142,43 +143,41 @@ class AmiciSimulationRunner
     std::string log_prefix_;
 };
 
-void
-swap(AmiciSimulationRunner::AmiciResultPackageSimple& first,
-     AmiciSimulationRunner::AmiciResultPackageSimple& second) noexcept;
+void swap(
+    AmiciSimulationRunner::AmiciResultPackageSimple& first,
+    AmiciSimulationRunner::AmiciResultPackageSimple& second) noexcept;
 
-bool
-operator==(AmiciSimulationRunner::AmiciResultPackageSimple const& lhs,
-           AmiciSimulationRunner::AmiciResultPackageSimple const& rhs);
+bool operator==(
+    AmiciSimulationRunner::AmiciResultPackageSimple const& lhs,
+    AmiciSimulationRunner::AmiciResultPackageSimple const& rhs);
 
 } // namespace parpe
 
 namespace boost::serialization {
 
-template<class Archive>
-void
-serialize(Archive& ar,
-          parpe::AmiciSimulationRunner::AmiciWorkPackageSimple& u,
-          const unsigned int /*version*/)
-{
-    ar& u.optimizationParameters;
-    ar& u.sensitivityOrder;
-    ar& u.conditionIndices;
-    ar& u.logPrefix;
+template <class Archive>
+void serialize(
+    Archive& ar,
+    parpe::AmiciSimulationRunner::AmiciWorkPackageSimple& u,
+    unsigned int const /*version*/) {
+    ar & u.optimizationParameters;
+    ar & u.sensitivityOrder;
+    ar & u.conditionIndices;
+    ar & u.logPrefix;
 }
 
-template<class Archive>
-void
-serialize(Archive& ar,
-          parpe::AmiciSimulationRunner::AmiciResultPackageSimple& u,
-          const unsigned int /*version*/)
-{
-    ar& u.llh;
-    ar& u.simulationTimeSeconds;
-    ar& u.gradient;
-    ar& u.modelOutput;
-    ar& u.modelSigmas;
-    ar& u.modelStates;
-    ar& u.status;
+template <class Archive>
+void serialize(
+    Archive& ar,
+    parpe::AmiciSimulationRunner::AmiciResultPackageSimple& u,
+    unsigned int const /*version*/) {
+    ar & u.llh;
+    ar & u.simulationTimeSeconds;
+    ar & u.gradient;
+    ar & u.modelOutput;
+    ar & u.modelSigmas;
+    ar & u.modelStates;
+    ar & u.status;
 }
 
 } // namespace boost::serialization

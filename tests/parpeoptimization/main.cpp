@@ -1,10 +1,10 @@
 #include <parpecommon/parpeConfig.h>
 
-#include <multiStartOptimizationTest.h>
 #include <minibatchOptimizationTest.h>
-#include <optimizationResultWriterTest.h>
+#include <multiStartOptimizationTest.h>
 #include <optimizationOptionsTest.h>
 #include <optimizationProblemTest.h>
+#include <optimizationResultWriterTest.h>
 
 #ifdef PARPE_ENABLE_IPOPT
 #include "localOptimizationIpoptTest.h"
@@ -31,9 +31,7 @@
 #include <cstdlib>
 #include <ctime>
 
-
-int main(int argc, char *argv[])
-{
+int main(int argc, char* argv[]) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }

@@ -9,10 +9,8 @@
 
 #include <gsl/gsl-lite.hpp>
 
-template<typename T>
-std::ostream&
-operator<<(std::ostream& o, std::vector<T> const& v)
-{
+template <typename T>
+std::ostream& operator<<(std::ostream& o, std::vector<T> const& v) {
     o << "[ ";
     for (auto const& e : v)
         o << e << " ";
@@ -20,10 +18,8 @@ operator<<(std::ostream& o, std::vector<T> const& v)
     return o;
 }
 
-template<typename T>
-std::ostream&
-operator<<(std::ostream& o, gsl::span<T> const& v)
-{
+template <typename T>
+std::ostream& operator<<(std::ostream& o, gsl::span<T> const& v) {
     o << "[ ";
     for (auto const& e : v)
         o << e << " ";
@@ -33,9 +29,8 @@ operator<<(std::ostream& o, gsl::span<T> const& v)
 
 namespace parpe {
 
-class WallTimer
-{
-public:
+class WallTimer {
+  public:
     WallTimer();
 
     void reset();
@@ -44,14 +39,13 @@ public:
 
     double getTotal() const;
 
-private:
+  private:
     std::chrono::time_point<std::chrono::system_clock> start;
     std::chrono::time_point<std::chrono::system_clock> roundStart;
 };
 
-class CpuTimer
-{
-public:
+class CpuTimer {
+  public:
     CpuTimer() = default;
 
     void reset();
@@ -60,7 +54,7 @@ public:
 
     double getTotal() const;
 
-private:
+  private:
     clock_t start = clock();
     clock_t roundStart = clock();
 };
@@ -69,25 +63,22 @@ private:
     if (!(expr)) {                                                             \
         /* NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay, \
          * cppcoreguidelines-pro-type-vararg) */                               \
-        printf("CRITICAL: Assertion %s in %s:%d failed (%s)\n",                \
-               (#expr),                                                        \
-               __FILE__,                                                       \
-               __LINE__,                                                       \
-               msg);                                                           \
+        printf(                                                                \
+            "CRITICAL: Assertion %s in %s:%d failed (%s)\n",                   \
+            (#expr),                                                           \
+            __FILE__,                                                          \
+            __LINE__,                                                          \
+            msg);                                                              \
         abort();                                                               \
     }
 
-void
-strFormatCurrentLocaltime(gsl::span<char> buffer, const char* format);
+void strFormatCurrentLocaltime(gsl::span<char> buffer, const char* format);
 
-void
-printBacktrace(int nMaxFrames = 20);
+void printBacktrace(int nMaxFrames = 20);
 
-std::string
-getBacktrace(int nMaxFrames = 20);
+std::string getBacktrace(int nMaxFrames = 20);
 
-double
-randDouble(double min, double max);
+double randDouble(double min, double max);
 
 /**
  * @brief fillArrayRandomDoubleIndividualInterval Fill "buffer" with
@@ -96,33 +87,28 @@ randDouble(double min, double max);
  * @param max
  * @param buffer
  */
-void
-fillArrayRandomDoubleIndividualInterval(gsl::span<const double> min,
-                                        gsl::span<const double> max,
-                                        gsl::span<double> buffer);
+void fillArrayRandomDoubleIndividualInterval(
+    gsl::span<double const> min,
+    gsl::span<double const> max,
+    gsl::span<double> buffer);
 
-void
-fillArrayRandomDoubleSameInterval(double min,
-                                  double max,
-                                  gsl::span<double> buffer);
+void fillArrayRandomDoubleSameInterval(
+    double min,
+    double max,
+    gsl::span<double> buffer);
 
-int
-getMpiRank();
-int
-getMpiCommSize();
-int
-getMpiActive();
+int getMpiRank();
+int getMpiCommSize();
+int getMpiActive();
 
-void
-finalizeMpiIfNeeded();
+void finalizeMpiIfNeeded();
 
-template<typename T_TEST, typename T_BOUNDS>
-bool
-withinBounds(long int n,
-             T_TEST const* x,
-             const T_BOUNDS* min,
-             const T_BOUNDS* max)
-{
+template <typename T_TEST, typename T_BOUNDS>
+bool withinBounds(
+    long int n,
+    T_TEST const* x,
+    const T_BOUNDS* min,
+    const T_BOUNDS* max) {
     for (int i = 0; i < n; ++i)
         if (x[i] < min[i])
             return false;
@@ -138,22 +124,18 @@ withinBounds(long int n,
  * @brief The Like std::unique_lock, but unlocking a mutex on construction and
  * locking on destruction.
  */
-template<typename MUTEX>
-class InverseUniqueLock
-{
+template <typename MUTEX> class InverseUniqueLock {
   public:
     explicit InverseUniqueLock(MUTEX* mutex)
-      : mutex(mutex)
-    {
+        : mutex(mutex) {
         mutex->unlock();
     }
 
     InverseUniqueLock(InverseUniqueLock& other) = delete;
 
-    InverseUniqueLock& operator=(const InverseUniqueLock& other) = delete;
+    InverseUniqueLock& operator=(InverseUniqueLock const& other) = delete;
 
-    InverseUniqueLock(InverseUniqueLock&& other) noexcept
-    {
+    InverseUniqueLock(InverseUniqueLock&& other) noexcept {
         mutex = other.mutex;
         other.mutex = nullptr;
     }
@@ -172,21 +154,18 @@ class InverseUniqueLock
  * @param b
  * @return
  */
-bool
-almostEqual(double a, double b);
+bool almostEqual(double a, double b);
 
 } // namespace parpe
 
 #ifndef __cpp_lib_make_unique
 // custom make_unique while we are still using c++11
 namespace std {
-template<typename T, typename... Args>
-std::unique_ptr<T>
-make_unique(Args&&... args)
-{
+template <typename T, typename... Args>
+std::unique_ptr<T> make_unique(Args&&... args) {
     return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
 }
-}
+} // namespace std
 #endif
 
 #endif

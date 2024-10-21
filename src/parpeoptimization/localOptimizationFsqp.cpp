@@ -1,14 +1,14 @@
 #include "localOptimizationFsqp.h"
 
-#include <cmath>
-#include <iostream>
 #include <cassert>
+#include <cmath>
 #include <cstring>
+#include <iostream>
 #include <stdexcept>
 
-#include <optimizationResultWriter.h>
-#include <misc.h>
 #include <logging.h>
+#include <misc.h>
+#include <optimizationResultWriter.h>
 
 extern "C" {
 #include <f2c.h>
@@ -16,20 +16,32 @@ extern "C" {
 }
 
 // callback functions types for FFSQP, see below
-using objType    = void (*) (integer &nparam, integer &j, doublereal *x, doublereal &fj);
-using constrType = void (*) (integer &nparam, integer &j, doublereal *x, doublereal &gj);
-using gradobType = void (*) (integer &nparam, integer &j, doublereal *x, doublereal *gradfj, doublereal *dummy);
-using gradcnType = void (*) (integer &nparam, integer &j, doublereal *x, doublereal *gradgj, doublereal *dummy);
-
+using objType =
+    void (*)(integer& nparam, integer& j, doublereal* x, doublereal& fj);
+using constrType =
+    void (*)(integer& nparam, integer& j, doublereal* x, doublereal& gj);
+using gradobType = void (*)(
+    integer& nparam,
+    integer& j,
+    doublereal* x,
+    doublereal* gradfj,
+    doublereal* dummy);
+using gradcnType = void (*)(
+    integer& nparam,
+    integer& j,
+    doublereal* x,
+    doublereal* gradgj,
+    doublereal* dummy);
 
 extern "C" {
-// These two functions are needed for linking by ql0001, so far they were never called though
-integer lnblnk_(char *a, ftnlen) {
+// These two functions are needed for linking by ql0001, so far they were never
+// called though
+integer lnblnk_(char* a, ftnlen) {
     throw std::runtime_error("FSQP: lnblnk_ was called but is not implemented");
 
     return strlen(a);
 }
-int basout_(integer *, integer *, char *, ftnlen) {
+int basout_(integer*, integer*, char*, ftnlen) {
     // TODO: should print?
     throw std::runtime_error("FSQP: basout_ was called but is not implemented");
 
@@ -67,26 +79,56 @@ int basout_(integer *, integer *, char *, ftnlen) {
  * @param gradcn
  * @return
  */
-int ffsqp_(integer &nparam, integer &nf, integer &nineqn,
-           integer &nineq, integer &neqn, integer &neq, integer &mode, integer &
-           iprint, integer &miter, integer &inform__, doublereal &bigbnd,
-           doublereal &eps, doublereal &epseqn, doublereal &udelta, doublereal *
-           bl, doublereal *bu, doublereal *x, doublereal *f, doublereal *g,
-           integer *iw, integer &iwsize, doublereal *w, integer &nwsize, objType
-           obj, constrType constr, gradobType gradob, gradcnType gradcn);
+int ffsqp_(
+    integer& nparam,
+    integer& nf,
+    integer& nineqn,
+    integer& nineq,
+    integer& neqn,
+    integer& neq,
+    integer& mode,
+    integer& iprint,
+    integer& miter,
+    integer& inform__,
+    doublereal& bigbnd,
+    doublereal& eps,
+    doublereal& epseqn,
+    doublereal& udelta,
+    doublereal* bl,
+    doublereal* bu,
+    doublereal* x,
+    doublereal* f,
+    doublereal* g,
+    integer* iw,
+    integer& iwsize,
+    doublereal* w,
+    integer& nwsize,
+    objType obj,
+    constrType constr,
+    gradobType gradob,
+    gradcnType gradcn);
 
-//#include "ffsqp.c"
+// #include "ffsqp.c"
 }
-
 
 namespace parpe {
 
 extern "C" {
 // FFSQP callback functions
-void obj(integer &nparam, integer &j, doublereal *x, doublereal &fj);
-void constr (integer &nparam, integer &j, doublereal *x, doublereal &gj);
-void gradob (integer &nparam, integer &j, doublereal *x, doublereal *gradfj, doublereal *dummy);
-void gradcn (integer &nparam, integer &j, doublereal *x, doublereal *gradgj, doublereal *dummy);
+void obj(integer& nparam, integer& j, doublereal* x, doublereal& fj);
+void constr(integer& nparam, integer& j, doublereal* x, doublereal& gj);
+void gradob(
+    integer& nparam,
+    integer& j,
+    doublereal* x,
+    doublereal* gradfj,
+    doublereal* dummy);
+void gradcn(
+    integer& nparam,
+    integer& j,
+    doublereal* x,
+    doublereal* gradgj,
+    doublereal* dummy);
 }
 
 // FFSQP print level options
@@ -111,57 +153,56 @@ enum class informExitStatus {
     bigbndExceeded
 };
 
-// make sure float sizes match; otherwise data must be copied to new containers first
+// make sure float sizes match; otherwise data must be copied to new containers
+// first
 static_assert(sizeof(double) == sizeof(doublereal), "");
 
 /** Mutex for managing access to FFSQP routines which are not thread-safe */
 using mutexFsqpType = std::recursive_mutex;
-static mutexFsqpType mutexFsqp {};
+static mutexFsqpType mutexFsqp{};
 
-std::unique_lock<mutexFsqpType> fsqpGetLock()
-{
+std::unique_lock<mutexFsqpType> fsqpGetLock() {
     return std::unique_lock<mutexFsqpType>(mutexFsqp);
 }
 
-InverseUniqueLock<mutexFsqpType> fsqpReleaseLock()
-{
+InverseUniqueLock<mutexFsqpType> fsqpReleaseLock() {
     return InverseUniqueLock<mutexFsqpType>(&mutexFsqp);
 }
-
 
 /**
  * @brief Wrapper for a FFSQP optimization problem.
  *
  * An instance of this class is slipped into the FFSQP callback functions.
  *
- * NOTE: FFSQP is not thread-safe, therefore we lock a mutex when passing control to
- * FFSQP routines. Not sure if strictly necessary, but in FFSQP code consider
- * changing `static` to `static __thread` for non-`fmt_` variables.
+ * NOTE: FFSQP is not thread-safe, therefore we lock a mutex when passing
+ * control to FFSQP routines. Not sure if strictly necessary, but in FFSQP code
+ * consider changing `static` to `static __thread` for non-`fmt_` variables.
  */
 class FsqpProblem {
-public:
-    explicit FsqpProblem(OptimizationProblem *problem)
-        : problem(problem),
-          reporter(problem->getReporter()),
-          nparam(problem->costFun->numParameters()),
-          miter(problem->getOptimizationOptions().maxOptimizerIterations),
-          bl(std::vector<doublereal>(nparam)),
-          bu(std::vector<doublereal>(nparam)),
-          x(std::vector<doublereal>(nparam)),
-          f(std::vector<doublereal>(std::max(1L, nf))),
-          g(std::vector<doublereal>(std::max(1L, nineq + neq))),
-          iwsize(6 * nparam + 8 * std::max(1L, nineq + neq) + 7 * std::max(1L, nf) + 30),
-          iw(std::vector<integer>(iwsize))
+  public:
+    explicit FsqpProblem(OptimizationProblem* problem)
+        : problem(problem)
+        , reporter(problem->getReporter())
+        , nparam(problem->costFun->numParameters())
+        , miter(problem->getOptimizationOptions().maxOptimizerIterations)
+        , bl(std::vector<doublereal>(nparam))
+        , bu(std::vector<doublereal>(nparam))
+        , x(std::vector<doublereal>(nparam))
+        , f(std::vector<doublereal>(std::max(1L, nf)))
+        , g(std::vector<doublereal>(std::max(1L, nineq + neq)))
+        , iwsize(
+              6 * nparam + 8 * std::max(1L, nineq + neq) +
+              7 * std::max(1L, nf) + 30)
+        , iw(std::vector<integer>(iwsize))
 
     {
-        nwsize = 4 * nparam * nparam
-                + 5 * std::max(1L, nineq + neq) * nparam
-                + 3 * std::max(1L, nf) * nparam
-                + 26 * (nparam + std::max(1L, nf))
-                + 45 * std::max(1L, nineq + neq) + 100;
+        nwsize = 4 * nparam * nparam + 5 * std::max(1L, nineq + neq) * nparam +
+                 3 * std::max(1L, nf) * nparam +
+                 26 * (nparam + std::max(1L, nf)) +
+                 45 * std::max(1L, nineq + neq) + 100;
 
-        // Reserve one more to hide a pointer to this instance behind the last parameter
-        // so we can use it in objective and constraint functions
+        // Reserve one more to hide a pointer to this instance behind the last
+        // parameter so we can use it in objective and constraint functions
         w.resize(nwsize + 1);
         // make sure it fits
         auto thisthis = this;
@@ -173,54 +214,89 @@ public:
         problem->fillInitialParameters(x);
         problem->fillParametersMin(bl);
         problem->fillParametersMax(bu);
-
     }
 
-    std::tuple<int, double, std::vector<double> > optimize()
-    {
-        if(reporter)
+    std::tuple<int, double, std::vector<double>> optimize() {
+        if (reporter)
             reporter->starting(x);
 
         // lock while ffsqp has control
         auto lock = fsqpGetLock();
 
-        ffsqp_(nparam, nf, nineqn, nineq, neq, neqn, mode, iprint, miter, inform,
-               bigbnd, eps, epseqn, udelta, bl.data(), bu.data(),
-               x.data(), f.data(), g.data(), iw.data(), iwsize, &w[1], nwsize,
-                parpe::obj, parpe::constr, parpe::gradob, parpe::gradcn);
+        ffsqp_(
+            nparam,
+            nf,
+            nineqn,
+            nineq,
+            neq,
+            neqn,
+            mode,
+            iprint,
+            miter,
+            inform,
+            bigbnd,
+            eps,
+            epseqn,
+            udelta,
+            bl.data(),
+            bu.data(),
+            x.data(),
+            f.data(),
+            g.data(),
+            iw.data(),
+            iwsize,
+            &w[1],
+            nwsize,
+            parpe::obj,
+            parpe::constr,
+            parpe::gradob,
+            parpe::gradcn);
 
-        if(reporter)
+        if (reporter)
             reporter->finished(f[0], x, inform);
 
-        std::cout<<"Final cost "<<f[0]<<std::endl;
+        std::cout << "Final cost " << f[0] << std::endl;
 
-        return std::tuple<int, double, std::vector<double> >(
-                    inform,
-                    f[0],
-                x);
+        return std::tuple<int, double, std::vector<double>>(inform, f[0], x);
     }
 
-    void obj(integer &nparam, integer &j, doublereal *x, doublereal &fj) {
+    void obj(integer& nparam, integer& j, doublereal* x, doublereal& fj) {
         gradientDummy.resize(nparam);
-        reporter->evaluate(gsl::span<double const>(x, nparam), fj, gradientDummy);
+        reporter->evaluate(
+            gsl::span<double const>(x, nparam), fj, gradientDummy);
 
-        std::cout<<"np:"<<nparam<<" j:"<<j<<" x:"<<x[0]<<" fj:"<<fj<<std::endl;
+        std::cout << "np:" << nparam << " j:" << j << " x:" << x[0]
+                  << " fj:" << fj << std::endl;
     }
 
-    // Once we want contraints: void constr (integer &nparam, integer &j, doublereal *x, doublereal &gj) {    }
+    // Once we want contraints: void constr (integer &nparam, integer &j,
+    // doublereal *x, doublereal &gj) {    }
 
-    void gradob (integer &nparam, integer &j, doublereal *x, doublereal *gradfj, doublereal* /*dummy*/) {
+    void gradob(
+        integer& nparam,
+        integer& j,
+        doublereal* x,
+        doublereal* gradfj,
+        doublereal* /*dummy*/) {
         static_assert(sizeof(double) == sizeof(doublereal), "");
 
         double fvalDummy = NAN;
-        reporter->evaluate(gsl::span<double const>(x, nparam), fvalDummy, gsl::span<double>(gradfj, nparam));
-        reporter->iterationFinished(gsl::span<double const>(x, nparam), fvalDummy, gsl::span<double>(gradfj, nparam));
-        std::cout<<"np:"<<nparam<<" j:"<<j<<" x:"<<x[0]<<" gradfj:"<<gradfj[0]<<std::endl;
+        reporter->evaluate(
+            gsl::span<double const>(x, nparam),
+            fvalDummy,
+            gsl::span<double>(gradfj, nparam));
+        reporter->iterationFinished(
+            gsl::span<double const>(x, nparam),
+            fvalDummy,
+            gsl::span<double>(gradfj, nparam));
+        std::cout << "np:" << nparam << " j:" << j << " x:" << x[0]
+                  << " gradfj:" << gradfj[0] << std::endl;
     }
 
-    // Once we want contraints: void gradcn (integer &nparam, integer &j, doublereal *x, doublereal *gradgj, doublereal *dummy) {}
+    // Once we want contraints: void gradcn (integer &nparam, integer &j,
+    // doublereal *x, doublereal *gradgj, doublereal *dummy) {}
 
-    OptimizationProblem *problem = nullptr;
+    OptimizationProblem* problem = nullptr;
     std::unique_ptr<OptimizationReporter> reporter;
 
     /* Do gradient evaluation always during `obj` and save results,
@@ -283,8 +359,8 @@ public:
     std::vector<doublereal> w;
 };
 
-std::tuple<int, double, std::vector<double> > OptimizerFsqp::optimize(parpe::OptimizationProblem *problem)
-{
+std::tuple<int, double, std::vector<double>>
+OptimizerFsqp::optimize(parpe::OptimizationProblem* problem) {
     FsqpProblem p(problem);
     return p.optimize();
 }
@@ -296,7 +372,8 @@ std::tuple<int, double, std::vector<double> > OptimizerFsqp::optimize(parpe::Opt
  * @return nwff
  */
 constexpr int getNwff(int nparam, int j) {
-    return 1 + nparam*nparam /* nwhes1*/ + (nparam+1)*(nparam+1) /* nwff */ + j;
+    return 1 + nparam * nparam /* nwhes1*/ +
+           (nparam + 1) * (nparam + 1) /* nwff */ + j;
 }
 
 /**
@@ -307,21 +384,23 @@ constexpr int getNwff(int nparam, int j) {
  */
 constexpr int getNwgrf(int nparam, int j) {
     return getNwff(nparam, j) + (1 + 1) /*nwx TODO: nobj*/
-            + 3 * (nparam + 1) /* nwdi, nwd, nwgm */
-            + 1 /* nwgrg */ +  (0 * nparam + 1) /* nwgrf */;
+           + 3 * (nparam + 1)           /* nwdi, nwd, nwgm */
+           + 1 /* nwgrg */ + (0 * nparam + 1) /* nwgrf */;
 }
 
 /**
- * @brief Recover out data that was hidden in front of FFSQP's w. Find from provided fj.
+ * @brief Recover out data that was hidden in front of FFSQP's w. Find from
+ * provided fj.
  * @param fj
  * @param nparam
  * @param j
  * @return
  */
-FsqpProblem *getProblemFromFj(doublereal &fj, integer nparam, integer j) {
-    // need to go relative to fj because location of x changes; for position see "nwff"
+FsqpProblem* getProblemFromFj(doublereal& fj, integer nparam, integer j) {
+    // need to go relative to fj because location of x changes; for position see
+    // "nwff"
 
-    parpe::FsqpProblem *problem = nullptr;
+    parpe::FsqpProblem* problem = nullptr;
     int nwff = getNwff(nparam, j);
 
     logmessage(loglevel::debug, "w0 obj: %p", &fj - nwff + 1);
@@ -334,14 +413,16 @@ FsqpProblem *getProblemFromFj(doublereal &fj, integer nparam, integer j) {
 }
 
 /**
- * @brief Recover out data that was hidden in front of FFSQP's w. Find from provided gradfj.
+ * @brief Recover out data that was hidden in front of FFSQP's w. Find from
+ * provided gradfj.
  * @param gradfj
  * @param nparam
  * @param j
  * @return
  */
-FsqpProblem *getProblemFromGradFj(doublereal *gradfj, integer nparam, integer j) {
-    parpe::FsqpProblem *problem = nullptr;
+FsqpProblem*
+getProblemFromGradFj(doublereal* gradfj, integer nparam, integer j) {
+    parpe::FsqpProblem* problem = nullptr;
     int nwgrf = getNwgrf(nparam, j);
 
     logmessage(loglevel::debug, "w0 gradobj: %p", gradfj - nwgrf + 1);
@@ -354,7 +435,6 @@ FsqpProblem *getProblemFromGradFj(doublereal *gradfj, integer nparam, integer j)
     return problem;
 }
 
-
 /**
  * @brief Objective function to be passed to FFSQP.
  * @param nparam Length of x
@@ -362,8 +442,10 @@ FsqpProblem *getProblemFromGradFj(doublereal *gradfj, integer nparam, integer j)
  * @param x Parameters
  * @param fj (out) Function value for objective j
  */
-void obj(integer &nparam, integer &j, doublereal *x, doublereal &fj) {
-    RELEASE_ASSERT(j == 1, "Error: j > 1. Only a single objective is currently supported.");
+void obj(integer& nparam, integer& j, doublereal* x, doublereal& fj) {
+    RELEASE_ASSERT(
+        j == 1,
+        "Error: j > 1. Only a single objective is currently supported.");
 
     auto unlockFsqp = fsqpReleaseLock();
 
@@ -378,8 +460,8 @@ void obj(integer &nparam, integer &j, doublereal *x, doublereal &fj) {
  * @param x Parameters
  * @param gj Value of constraint j
  */
-void constr (integer &nparam, integer &j, doublereal *x, doublereal &gj) {
-    //auto unlockFsqp = fsqpReleaseLock();
+void constr(integer& nparam, integer& j, doublereal* x, doublereal& gj) {
+    // auto unlockFsqp = fsqpReleaseLock();
 
     // no constraints currently supported
 }
@@ -392,8 +474,15 @@ void constr (integer &nparam, integer &j, doublereal *x, doublereal &gj) {
  * @param gradfj (out) Gradient value for objective j at x
  * @param dummy Passed to gradob for forward difference calculation
  */
-void gradob (integer &nparam, integer &j, doublereal *x, doublereal *gradfj, doublereal *dummy) {
-    RELEASE_ASSERT(j == 1, "Error: j > 1. Only a single objective is currently supported.");
+void gradob(
+    integer& nparam,
+    integer& j,
+    doublereal* x,
+    doublereal* gradfj,
+    doublereal* dummy) {
+    RELEASE_ASSERT(
+        j == 1,
+        "Error: j > 1. Only a single objective is currently supported.");
 
     auto unlockFsqp = fsqpReleaseLock();
 
@@ -409,12 +498,15 @@ void gradob (integer &nparam, integer &j, doublereal *x, doublereal *gradfj, dou
  * @param gradgj (out) Gradient value for constraint j at x
  * @param dummy Passed to gradob for forward difference calculation
  */
-void gradcn (integer &nparam, integer &j, doublereal *x, doublereal *gradgj, doublereal* /*dummy*/) {
-    //auto unlockFsqp = fsqpReleaseLock();
+void gradcn(
+    integer& nparam,
+    integer& j,
+    doublereal* x,
+    doublereal* gradgj,
+    doublereal* /*dummy*/) {
+    // auto unlockFsqp = fsqpReleaseLock();
 
     // no constraints currently supported
 }
 
-
 } // namespace parpe
-

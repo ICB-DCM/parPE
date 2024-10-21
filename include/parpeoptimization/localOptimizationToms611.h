@@ -22,7 +22,8 @@ class OptimizerToms611TrustRegionSumsl : public Optimizer {
      * @return Returns 0 on success.
      */
 
-    virtual std::tuple<int, double, std::vector<double> >  optimize(OptimizationProblem *problem) override;
+    virtual std::tuple<int, double, std::vector<double>>
+    optimize(OptimizationProblem* problem) override;
 };
 
 } // namespace parpe

@@ -11,7 +11,7 @@ namespace parpe {
  * @brief Interface for multi-start optimization problems
  */
 class MultiStartOptimizationProblem {
-public:
+  public:
     virtual int getNumberOfStarts() const = 0;
 
     virtual bool restartOnFailure() const { return false; }
@@ -22,7 +22,6 @@ public:
     virtual ~MultiStartOptimizationProblem() = default;
 };
 
-
 /**
  * @brief The MultiStartOptimization class runs multiple optimization runs
  */
@@ -30,9 +29,10 @@ public:
 class MultiStartOptimization {
 
   public:
-    MultiStartOptimization(MultiStartOptimizationProblem& problem,
-                           bool runParallel = true,
-                           int first_start_idx = 0);
+    MultiStartOptimization(
+        MultiStartOptimizationProblem& problem,
+        bool runParallel = true,
+        int first_start_idx = 0);
 
     ~MultiStartOptimization() = default;
 
@@ -61,7 +61,6 @@ class MultiStartOptimization {
      * @brief Optimize local problem for the given start index
      */
     int runStart(int start_idx) const;
-
 
     /** Optimization problem to be solved */
     MultiStartOptimizationProblem& msProblem;

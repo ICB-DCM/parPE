@@ -7,21 +7,21 @@
 
 #include <amici/amici.h>
 
-
 /**
  * @brief Cost function for the AMICI steady-state example
  */
 class ExampleSteadystateGradientFunction : public parpe::GradientFunction {
-public:
+  public:
     explicit ExampleSteadystateGradientFunction(hid_t fileId);
 
     using GradientFunction::evaluate;
 
     parpe::FunctionEvaluationStatus evaluate(
-            gsl::span<double const> parameters,
-            double &fval,
-            gsl::span<double> gradient,
-            parpe::Logger *logger, double *cpuTime) const override;
+        gsl::span<double const> parameters,
+        double& fval,
+        gsl::span<double> gradient,
+        parpe::Logger* logger,
+        double* cpuTime) const override;
 
     int numParameters() const override;
     void setupUserData(int conditionIdx);
@@ -29,7 +29,7 @@ public:
 
     std::vector<std::string> getParameterIds() const override;
 
-private:
+  private:
     void requireSensitivities(bool sensitivitiesRequired) const;
     void readFixedParameters(int conditionIdx) const;
     void readMeasurement(int conditionIdx) const;
@@ -40,7 +40,6 @@ private:
     std::unique_ptr<amici::Model> model;
     std::unique_ptr<amici::Solver> solver;
 };
-
 
 /**
  * @brief Optimization problem for the AMICI steady-state example
@@ -54,7 +53,7 @@ class ExampleSteadystateProblem : public parpe::OptimizationProblem {
     void fillParametersMin(gsl::span<double> buffer) const override;
     void fillParametersMax(gsl::span<double> buffer) const override;
 
-private:
+  private:
     H5::H5File file;
 };
 

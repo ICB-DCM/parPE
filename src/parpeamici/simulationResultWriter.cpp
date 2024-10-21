@@ -2,92 +2,83 @@
 
 #include <parpecommon/hdf5Misc.h>
 
-#include <cstdio>
 #include <cmath> // NAN
+#include <cstdio>
 #include <utility>
 
 namespace parpe {
 
-SimulationResultWriter::SimulationResultWriter(H5::H5File const& file,
-                                               std::string rootPath)
-    : rootPath(std::move(rootPath))
-{
+SimulationResultWriter::SimulationResultWriter(
+    H5::H5File const& file,
+    std::string rootPath)
+    : rootPath(std::move(rootPath)) {
     [[maybe_unused]] auto lock = hdf5MutexGetLock();
     this->file = file;
 
     updatePaths();
 }
 
-SimulationResultWriter::~SimulationResultWriter()
-{
+SimulationResultWriter::~SimulationResultWriter() {
     [[maybe_unused]] auto lock = hdf5MutexGetLock();
     file.close();
 }
 
-
-SimulationResultWriter::SimulationResultWriter(const std::string &hdf5FileName,
-                                               std::string rootPath)
-    : rootPath(std::move(rootPath))
-{
+SimulationResultWriter::SimulationResultWriter(
+    std::string const& hdf5FileName,
+    std::string rootPath)
+    : rootPath(std::move(rootPath)) {
     file = hdf5OpenForAppending(hdf5FileName);
     updatePaths();
 }
 
-
-void SimulationResultWriter::createDatasets(hsize_t numSimulations)
-{
+void SimulationResultWriter::createDatasets(hsize_t numSimulations) {
 
     [[maybe_unused]] auto lock = parpe::hdf5MutexGetLock();
 
-
-    double fillValueDbl = NAN;   /* Fill value for the dataset */
+    double fillValueDbl = NAN; /* Fill value for the dataset */
     H5::DSetCreatPropList propList;
     propList.setFillValue(H5::PredType::NATIVE_DOUBLE, &fillValueDbl);
 
     hdf5EnsureGroupExists(file, rootPath);
 
-    if(saveX || saveYMes || saveYSim)
+    if (saveX || saveYMes || saveYSim)
         hdf5EnsureGroupExists(file, timePath);
-    if(saveX)
+    if (saveX)
         hdf5EnsureGroupExists(file, xPath);
-    if(saveYMes)
+    if (saveYMes)
         hdf5EnsureGroupExists(file, yMesPath);
-    if(saveYSim)
+    if (saveYSim)
         hdf5EnsureGroupExists(file, ySimPath);
-    if(save_parameters_)
+    if (save_parameters_)
         hdf5EnsureGroupExists(file, parametersPath);
 
     // Individual datasets will be created per condition, since we need
     // condition-specific number of timepoints
     // Can only create llh dataset in advance
-    if(saveLlh && !file.nameExists(llhPath)) {
+    if (saveLlh && !file.nameExists(llhPath)) {
         hsize_t dims[] = {numSimulations};
         H5::DataSpace dataspace(1, dims);
         hsize_t one = 1;
         propList.setChunk(1, &one);
-        file.createDataSet(llhPath, H5::PredType::NATIVE_DOUBLE,
-                           dataspace, propList);
+        file.createDataSet(
+            llhPath, H5::PredType::NATIVE_DOUBLE, dataspace, propList);
     }
 
     file.flush(H5F_SCOPE_LOCAL);
 }
 
-
-void SimulationResultWriter::createDatasets(int numberOfSimulations)
-{
+void SimulationResultWriter::createDatasets(int numberOfSimulations) {
     createDatasets(static_cast<hsize_t>(numberOfSimulations));
 }
 
-
 void SimulationResultWriter::saveSimulationResults(
-        const amici::ExpData *edata,
-        const amici::ReturnData *rdata,
-        int simulationIdx)
-{
-    saveMeasurements(edata->getObservedData(), edata->nt(),
-                     edata->nytrue(), simulationIdx);
+    amici::ExpData const* edata,
+    amici::ReturnData const* rdata,
+    int simulationIdx) {
+    saveMeasurements(
+        edata->getObservedData(), edata->nt(), edata->nytrue(), simulationIdx);
     saveTimepoints(rdata->ts, simulationIdx);
-    saveModelOutputs(rdata->y,  edata->nt(), edata->nytrue(), simulationIdx);
+    saveModelOutputs(rdata->y, edata->nt(), edata->nytrue(), simulationIdx);
     saveStates(rdata->x, rdata->nt, rdata->nx, simulationIdx);
     saveLikelihood(rdata->llh, simulationIdx);
     // TODO: model or edata? saveParameters(edata->parameters)
@@ -96,10 +87,10 @@ void SimulationResultWriter::saveSimulationResults(
     file.flush(H5F_SCOPE_LOCAL);
 }
 
-void SimulationResultWriter::saveTimepoints(gsl::span<const double> timepoints,
-                                            int simulationIdx) const
-{
-    if(timepoints.empty())
+void SimulationResultWriter::saveTimepoints(
+    gsl::span<double const> timepoints,
+    int simulationIdx) const {
+    if (timepoints.empty())
         return;
 
     [[maybe_unused]] auto lock = parpe::hdf5MutexGetLock();
@@ -109,91 +100,99 @@ void SimulationResultWriter::saveTimepoints(gsl::span<const double> timepoints,
     hsize_t dims[rank] = {static_cast<hsize_t>(timepoints.size())};
     H5::DataSpace dataspace(rank, dims);
     auto dataset = file.createDataSet(
-                timePath + "/" + std::to_string(simulationIdx),
-                H5::PredType::NATIVE_DOUBLE, dataspace);
+        timePath + "/" + std::to_string(simulationIdx),
+        H5::PredType::NATIVE_DOUBLE,
+        dataspace);
 
     dataset.write(timepoints.data(), H5::PredType::NATIVE_DOUBLE);
 }
 
-
 void SimulationResultWriter::saveMeasurements(
-        gsl::span<const double> measurements, int nt,
-        int nytrue, int simulationIdx) const
-{
-    if(!saveYMes || nt < 1 || nytrue < 1 || measurements.empty()) {
+    gsl::span<double const> measurements,
+    int nt,
+    int nytrue,
+    int simulationIdx) const {
+    if (!saveYMes || nt < 1 || nytrue < 1 || measurements.empty()) {
         return;
     }
 
-    Expects(measurements.size() ==
-                static_cast<decltype(measurements)::index_type>(nt * nytrue));
+    Expects(
+        measurements.size() ==
+        static_cast<decltype(measurements)::index_type>(nt * nytrue));
 
     [[maybe_unused]] auto lock = parpe::hdf5MutexGetLock();
 
     // Create dataset
     constexpr int rank = 2;
-    hsize_t dims[rank] = {static_cast<hsize_t>(nt),
-                          static_cast<hsize_t>(nytrue)};
+    hsize_t dims[rank] = {
+        static_cast<hsize_t>(nt), static_cast<hsize_t>(nytrue)};
     H5::DataSpace dataspace(rank, dims);
     auto dataset = file.createDataSet(
-                yMesPath + "/" + std::to_string(simulationIdx),
-                H5::PredType::NATIVE_DOUBLE, dataspace);
+        yMesPath + "/" + std::to_string(simulationIdx),
+        H5::PredType::NATIVE_DOUBLE,
+        dataspace);
 
     dataset.write(measurements.data(), H5::PredType::NATIVE_DOUBLE);
 }
 
 void SimulationResultWriter::saveModelOutputs(
-        gsl::span<const double> outputs, int nt,
-        int nytrue, int simulationIdx) const
-{
-    if(!saveYSim || nt < 1 || nytrue < 1 || outputs.empty()) {
+    gsl::span<double const> outputs,
+    int nt,
+    int nytrue,
+    int simulationIdx) const {
+    if (!saveYSim || nt < 1 || nytrue < 1 || outputs.empty()) {
         return;
     }
 
-    Expects(outputs.size() ==
-            static_cast<decltype(outputs)::index_type>(nt * nytrue));
+    Expects(
+        outputs.size() ==
+        static_cast<decltype(outputs)::index_type>(nt * nytrue));
 
     [[maybe_unused]] auto lock = parpe::hdf5MutexGetLock();
 
     // Create dataset
     constexpr int rank = 2;
-    hsize_t dims[rank] = {static_cast<hsize_t>(nt),
-                          static_cast<hsize_t>(nytrue)};
+    hsize_t dims[rank] = {
+        static_cast<hsize_t>(nt), static_cast<hsize_t>(nytrue)};
     H5::DataSpace dataspace(rank, dims);
     auto dataset = file.createDataSet(
-                ySimPath + "/" + std::to_string(simulationIdx),
-                H5::PredType::NATIVE_DOUBLE, dataspace);
+        ySimPath + "/" + std::to_string(simulationIdx),
+        H5::PredType::NATIVE_DOUBLE,
+        dataspace);
 
     dataset.write(outputs.data(), H5::PredType::NATIVE_DOUBLE);
 }
 
-
 void SimulationResultWriter::saveStates(
-        gsl::span<const double> states, int nt, int nx, int simulationIdx) const
-{
-    if(!saveX || states.empty() || nx < 1 || nt < 1) {
+    gsl::span<double const> states,
+    int nt,
+    int nx,
+    int simulationIdx) const {
+    if (!saveX || states.empty() || nx < 1 || nt < 1) {
         return;
     }
 
-    Expects(states.size() ==
-                static_cast<decltype(states)::index_type>(nt * nx));
+    Expects(
+        states.size() == static_cast<decltype(states)::index_type>(nt * nx));
 
     [[maybe_unused]] auto lock = parpe::hdf5MutexGetLock();
 
     // Create dataset
     constexpr int rank = 2;
-    hsize_t dims[rank] = {static_cast<hsize_t>(nt),
-                          static_cast<hsize_t>(nx)};
+    hsize_t dims[rank] = {static_cast<hsize_t>(nt), static_cast<hsize_t>(nx)};
     H5::DataSpace dataspace(rank, dims);
     auto dataset = file.createDataSet(
-                xPath + "/" + std::to_string(simulationIdx),
-                H5::PredType::NATIVE_DOUBLE, dataspace);
+        xPath + "/" + std::to_string(simulationIdx),
+        H5::PredType::NATIVE_DOUBLE,
+        dataspace);
 
     dataset.write(states.data(), H5::PredType::NATIVE_DOUBLE);
 }
 
-void SimulationResultWriter::saveParameters(gsl::span<const double> parameters, int simulationIdx) const
-{
-    if(parameters.empty())
+void SimulationResultWriter::saveParameters(
+    gsl::span<double const> parameters,
+    int simulationIdx) const {
+    if (parameters.empty())
         return;
 
     [[maybe_unused]] auto lock = parpe::hdf5MutexGetLock();
@@ -204,15 +203,15 @@ void SimulationResultWriter::saveParameters(gsl::span<const double> parameters, 
     H5::DataSpace dataspace(rank, dims);
     auto dataset = file.createDataSet(
         parametersPath + "/" + std::to_string(simulationIdx),
-        H5::PredType::NATIVE_DOUBLE, dataspace);
+        H5::PredType::NATIVE_DOUBLE,
+        dataspace);
 
     dataset.write(parameters.data(), H5::PredType::NATIVE_DOUBLE);
 }
 
-
-void SimulationResultWriter::saveLikelihood(double llh, int simulationIdx) const
-{
-    if(!saveLlh) {
+void SimulationResultWriter::saveLikelihood(double llh, int simulationIdx)
+    const {
+    if (!saveLlh) {
         return;
     }
 
@@ -232,24 +231,18 @@ void SimulationResultWriter::saveLikelihood(double llh, int simulationIdx) const
     dataset.write(&llh, H5::PredType::NATIVE_DOUBLE, memspace, filespace);
 }
 
-
-H5::H5File SimulationResultWriter::reopenFile()
-{
+H5::H5File SimulationResultWriter::reopenFile() {
     [[maybe_unused]] auto lock = hdf5MutexGetLock();
     return H5::H5File(file);
 }
 
-
-void SimulationResultWriter::updatePaths()
-{
+void SimulationResultWriter::updatePaths() {
     yMesPath = rootPath + "/yMes";
     ySimPath = rootPath + "/ySim";
     xPath = rootPath + "/x";
-    llhPath  = rootPath + "/llh";
-    timePath  = rootPath + "/t";
-    parametersPath  = rootPath + "/parameters";
-
+    llhPath = rootPath + "/llh";
+    timePath = rootPath + "/t";
+    parametersPath = rootPath + "/parameters";
 }
-
 
 } // namespace parpe

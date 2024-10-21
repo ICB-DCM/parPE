@@ -1,9 +1,9 @@
 #ifndef OPTIMIZATIONAPPLICATION_H
 #define OPTIMIZATIONAPPLICATION_H
 
-#include <parpecommon/parpeConfig.h>
-#include <parpeamici/multiConditionProblem.h>
 #include <parpeamici/hierarchicalOptimization.h>
+#include <parpeamici/multiConditionProblem.h>
+#include <parpecommon/parpeConfig.h>
 
 #ifdef PARPE_ENABLE_MPI
 #include <parpeloadbalancer/loadBalancerMaster.h>
@@ -41,8 +41,9 @@ class OptimizationApplication {
      * @param inFileArgument
      * @param outFileArgument
      */
-    virtual void initProblem(std::string const& inFileArgument,
-                             std::string const& outFileArgument) = 0;
+    virtual void initProblem(
+        std::string const& inFileArgument,
+        std::string const& outFileArgument) = 0;
 
     /**
      * @brief Start the optimization run. Must only be called once.
@@ -50,7 +51,7 @@ class OptimizationApplication {
      * Must be called before any other functions.
      * @return status code; 0 on success
      */
-    int run(int argc, char **argv);
+    int run(int argc, char** argv);
 
     /**
      * @brief This is run by the MPI rank 0 process when started with multiple
@@ -72,7 +73,6 @@ class OptimizationApplication {
     virtual void runSingleProcess();
 
   protected:
-
     /**
      * @brief Receives and writes the total programm runtime
      * @param begin
@@ -85,7 +85,7 @@ class OptimizationApplication {
      * @return Result file name
      */
     std::string
-    processResultFilenameCommandLineArgument(const char *commandLineArg);
+    processResultFilenameCommandLineArgument(char const* commandLineArg);
 
     /**
      * @brief Are we running with MPI and are we master process?
@@ -104,7 +104,7 @@ class OptimizationApplication {
      * @param argc
      * @param argv
      */
-    static void initMPI(int *argc, char ***argv);
+    static void initMPI(int* argc, char*** argv);
 
     /**
      * @brief Parse command line options before MPI_INIT is potentially called.
@@ -116,7 +116,7 @@ class OptimizationApplication {
      * @param argv
      * @return
      */
-    virtual int parseCliOptionsPreMpiInit(int argc, char **argv);
+    virtual int parseCliOptionsPreMpiInit(int argc, char** argv);
 
     /**
      * @brief Parse command line options after MPI_Init is called.
@@ -126,7 +126,7 @@ class OptimizationApplication {
      * @param argv
      * @return
      */
-    virtual int parseCliOptionsPostMpiInit(int argc, char **argv);
+    virtual int parseCliOptionsPostMpiInit(int argc, char** argv);
 
     /**
      * @brief Print CLI usage
@@ -134,21 +134,21 @@ class OptimizationApplication {
      */
     virtual void printUsage(char* const argZero);
 
-    virtual void logParPEVersion(const H5::H5File &file) const;
+    virtual void logParPEVersion(const H5::H5File& file) const;
 
-private:
+  private:
     /**
      * @brief initialize MPI, mutexes, ...
      * @param argc
      * @param argv
      */
-    int init(int argc, char **argv);
+    int init(int argc, char** argv);
 
     void runMultiStarts() const;
 
-protected:
+  protected:
     // command line option parsing
-    const char *shortOptions = "dhvmt:o:s:";
+    char const* shortOptions = "dhvmt:o:s:";
     struct option const longOptions[9] = {
         {"debug", no_argument, nullptr, 'd'},
         {"print-worklist", no_argument, nullptr, 'p'},
@@ -160,18 +160,16 @@ protected:
         {"first-start-idx", required_argument, nullptr, 's'},
         {nullptr, 0, nullptr, 0}};
 
-    enum class OperationType {
-        parameterEstimation,
-        gradientCheck
-    };
+    enum class OperationType { parameterEstimation, gradientCheck };
 
     std::string dataFileName;
     std::string resultFileName;
 
-    int first_start_idx {0};
+    int first_start_idx{0};
 
     // the need to be filled in by sub
-    std::unique_ptr<MultiStartOptimizationProblem> multiStartOptimizationProblem;
+    std::unique_ptr<MultiStartOptimizationProblem>
+        multiStartOptimizationProblem;
     std::unique_ptr<OptimizationProblem> problem;
     H5::H5File h5File = 0;
     OperationType operationType = OperationType::parameterEstimation;
@@ -179,14 +177,12 @@ protected:
     bool withMPI = false;
 };
 
-
 /**
  * @brief CPU time for whole application run
  * @param file
  * @param timeInSeconds
  */
-void saveTotalCpuTime(const H5::H5File &file, const double timeInSeconds);
-
+void saveTotalCpuTime(const H5::H5File& file, double const timeInSeconds);
 
 } // namespace parpe
 
