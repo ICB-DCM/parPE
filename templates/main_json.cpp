@@ -25,12 +25,22 @@
 #include <cstdio> // remove
 #include <iostream>
 #include <fstream>
+#include <string_view>
 #include <nlohmann/json.hpp>
 #ifdef PARPE_ENABLE_MPI
 #include <mpi.h>
 #endif
 
 using json = nlohmann::json;
+
+// fields in the input/output json
+constexpr std::string_view DATA_FILE = "conditionFileName";
+constexpr std::string_view PARAMETERS = "parameters";
+constexpr std::string_view FVAL = "fval";
+constexpr std::string_view GRADIENT = "gradient";
+constexpr std::string_view STATUS = "status";
+constexpr std::string_view ERROR = "error";
+
 
 namespace amici::generic_model {
 std::unique_ptr<amici::Model> getModel();
@@ -64,8 +74,8 @@ int main(int argc, char **argv) {
         std::cout<<job<<std::endl;
         auto cur_result = job;
         try {
-            if (job["conditionFileName"] != h5file_name) {
-                h5file_name = job["conditionFileName"];
+            if (job[DATA_FILE] != h5file_name) {
+                h5file_name = job[DATA_FILE];
                 dataProvider = std::make_unique<parpe::MultiConditionDataProviderHDF5>(
                     amici::generic_model::getModel(), h5file_name);
             }
@@ -82,20 +92,20 @@ int main(int argc, char **argv) {
             parameters.reserve(parameter_ids.size());
 
             for (auto& parameter_id: parameter_ids) {
-                parameters.push_back(job["parameters"][parameter_id]);
+                parameters.push_back(job[PARAMETERS][parameter_id]);
             }
 
             double fval;
             std::vector<double> gradient(parameter_ids.size());
-            auto fv = objective->evaluate(parameters, fval, job["gradient"]?gsl::make_span(gradient):gsl::span<double>(nullptr, 0));
-            cur_result["fval"] = fval;
-            if (job["gradient"]) {
-                cur_result["gradient"] = gradient;
+            auto fv = objective->evaluate(parameters, fval, job[GRADIENT]?gsl::make_span(gradient):gsl::span<double>(nullptr, 0));
+            cur_result[FVAL] = fval;
+            if (job[GRADIENT]) {
+                cur_result[GRADIENT] = gradient;
             }
-            cur_result["status"] = fv;
+            cur_result[STATUS] = fv;
         } catch(std::exception& e) {
             std::cerr<<e.what()<<std::endl;
-            cur_result["error"] = e.what();
+            cur_result[ERROR] = e.what();
 
         }
         results.push_back(cur_result);
