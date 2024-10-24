@@ -64,11 +64,14 @@ jobs:
         BM_REPO_URL: https://github.com/Benchmarking-Initiative/Benchmark-Models-PEtab.git
       run: |
         cd $PARPE_BASE/benchmark_collection \
-          && git clone --depth 1 $BM_REPO_URL
+          && git clone --depth 1 $BM_REPO_URL \
+          && echo "BENCHMARK_COLLECTION=$(pwd)/Benchmark-Models-PEtab/Benchmark-Models/" >> $GITHUB_ENV
 
     - name: Benchmark models --- tests
       run: |
         cd $PARPE_BASE/benchmark_collection \
-          && AMICI_PARALLEL_COMPILE="" \
-             BENCHMARK_COLLECTION="$(pwd)/Benchmark-Models-PEtab/Benchmark-Models/" \
-             $PARPE_BASE/misc/run_in_venv.sh $PARPE_BASE/build/venv ./all.sh
+          && . $PARPE_BASE/build/venv/bin/activate \
+          && python -m pip uninstall -y petab \
+          && python -m pip install https://github.com/PEtab-dev/libpetab-python/archive/develop.zip \
+          && python priors_to_measurements.py \
+          && AMICI_PARALLEL_COMPILE="" ./all.sh
