@@ -49,10 +49,23 @@ cd "${petab_model_dir}"
 echo "Running petablint on ${petab_yaml}..."
 petablint -v "${model_name}".yaml
 
+# problems we need to flatten
+to_flatten=(
+  "Bruno_JExpBot2016" "Chen_MSB2009" "Crauste_CellSystems2017"
+  "Fiedler_BMCSystBiol2016" "Fujita_SciSignal2010" "SalazarCavazos_MBoC2020"
+)
+flatten=""
+for item in "${to_flatten[@]}"; do
+  if [[ "$item" == "$model_name" ]]; then
+    flatten="--flatten"
+    break
+  fi
+done
+
 # import AMICI model
 if [[ ! -d ${amici_model_dir} ]]; then
   echo "Importing model..."
-  cmd="amici_import_petab.py --verbose ${model_name}.yaml -n ${model_name} -o ${amici_model_dir}"
+  cmd="amici_import_petab --verbose ${model_name}.yaml -n ${model_name} -o ${amici_model_dir} ${flatten}"
   echo "${cmd}"
   ${cmd}
 fi
@@ -74,7 +87,8 @@ cmd="parpe_petab_to_hdf5 \
     -d ${amici_model_dir} \
     -y ${petab_model_dir}/${model_name}.yaml \
     -n ${model_name} \
-    --ignore-initialization-priors"
+    --ignore-initialization-priors \
+    ${flatten}"
 echo "$cmd"
 $cmd
 
