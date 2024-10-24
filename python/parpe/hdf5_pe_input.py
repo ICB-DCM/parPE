@@ -1162,6 +1162,12 @@ def parse_cli_args():
                         help='Flatten measurement specific overrides of '
                              'observable and noise parameters')
 
+    parser.add_argument('--ignore-initialization-priors',
+                        dest='ignore_initialization_prior', default=False,
+                        action='store_true',
+                        help='Ignore unsupported initialization prior in '
+                             'PEtab problem')
+
     return parser.parse_args()
 
 
@@ -1175,6 +1181,13 @@ def main():
     args = parse_cli_args()
 
     petab_problem = petab.Problem.from_yaml(args.petab_yaml)
+
+    if args.ignore_initialization_prior:
+        # delete initialization prior columns if they exist
+        for col in [ptc.INITIALIZATION_PRIOR_TYPE,
+                    ptc.INITIALIZATION_PRIOR_PARAMETERS]:
+            if col in petab_problem.parameter_df:
+                del petab_problem.parameter_df[col]
 
     if args.flatten:
         petab.flatten_timepoint_specific_output_overrides(petab_problem)

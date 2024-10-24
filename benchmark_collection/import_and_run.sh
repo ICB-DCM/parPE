@@ -73,7 +73,8 @@ cmd="parpe_petab_to_hdf5 \
     -o ${hdf5_infile} \
     -d ${amici_model_dir} \
     -y ${petab_model_dir}/${model_name}.yaml \
-    -n ${model_name}"
+    -n ${model_name} \
+    --ignore-initialization-priors"
 echo "$cmd"
 $cmd
 
