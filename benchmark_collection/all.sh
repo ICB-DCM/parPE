@@ -14,6 +14,7 @@ Brannmark_JBC2010
 Bruno_JExpBot2016
 Crauste_CellSystems2017
 Elowitz_Nature2000
+Fiedler_BMCSystBiol2016
 Fujita_SciSignal2010
 Lucarelli_CellSystems2018
 Sneyd_PNAS2002
@@ -45,7 +46,6 @@ Zheng_PNAS2012
 #
 # Mismatch:
 # Bachmann_MSB2011: Expected llh -478.459689232875, got nllh -418.409381
-# Fiedler_BMC2016 FAILED: Expected llh -117.16780323362, got nllh 109391.496205 TODO: flatten
 #
 # Unsupported priors:
 #   Schwen_PONE2014
