@@ -1,11 +1,11 @@
 #ifndef PARPE_AMICI_MULTI_CONDITION_PROBLEM_H
 #define PARPE_AMICI_MULTI_CONDITION_PROBLEM_H
 
+#include <parpeamici/amiciSimulationRunner.h>
 #include <parpecommon/parpeConfig.h>
+#include <parpeoptimization/minibatchOptimization.h>
 #include <parpeoptimization/multiStartOptimization.h>
 #include <parpeoptimization/optimizationProblem.h>
-#include <parpeamici/amiciSimulationRunner.h>
-#include <parpeoptimization/minibatchOptimization.h>
 
 #include <amici/amici.h>
 #include <amici/serialization.h>
@@ -38,15 +38,16 @@ class MultiConditionDataProvider;
  * @return Simulation results
  */
 
-AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(amici::Solver const &solver,
-        amici::Model &model,
-        int conditionIdx,
-        int jobId,
-        const MultiConditionDataProvider *dataProvider,
-        OptimizationResultWriter *resultWriter,
-        bool logLineSearch,
-        Logger *logger,
-        bool sendStates = false);
+AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
+    amici::Solver const& solver,
+    amici::Model& model,
+    int conditionIdx,
+    int jobId,
+    MultiConditionDataProvider const* dataProvider,
+    OptimizationResultWriter* resultWriter,
+    bool logLineSearch,
+    Logger* logger,
+    bool sendStates = false);
 
 /**
  * @brief Run simulations (no gradient) with given parameters and collect
@@ -65,15 +66,17 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(amici::Solve
  * @return Simulation status
  */
 FunctionEvaluationStatus getModelOutputsAndSigmas(
-        MultiConditionDataProvider *dataProvider,
-        LoadBalancerMaster *loadBalancer,
-        int maxSimulationsPerPackage,
-        OptimizationResultWriter *resultWriter,
-        bool logLineSearch,
-        gsl::span<const double> parameters,
-        std::vector<std::vector<double> > &modelOutputs,
-        std::vector<std::vector<double> > &modelSigmas,
-        Logger *logger, double *cpuTime, bool sendStates);
+    MultiConditionDataProvider* dataProvider,
+    LoadBalancerMaster* loadBalancer,
+    int maxSimulationsPerPackage,
+    OptimizationResultWriter* resultWriter,
+    bool logLineSearch,
+    gsl::span<double const> parameters,
+    std::vector<std::vector<double>>& modelOutputs,
+    std::vector<std::vector<double>>& modelSigmas,
+    Logger* logger,
+    double* cpuTime,
+    bool sendStates);
 
 /**
  * @brief Callback function for LoadBalancer
@@ -83,10 +86,13 @@ FunctionEvaluationStatus getModelOutputsAndSigmas(
  * @param buffer In/out: message buffer
  * @param jobId: In: Identifier of the job (unique up to INT_MAX)
  */
-void messageHandler(MultiConditionDataProvider *dataProvider,
-                    OptimizationResultWriter *resultWriter,
-                    bool logLineSearch,
-                    std::vector<char> &buffer, int jobId, bool sendStates);
+void messageHandler(
+    MultiConditionDataProvider* dataProvider,
+    OptimizationResultWriter* resultWriter,
+    bool logLineSearch,
+    std::vector<char>& buffer,
+    int jobId,
+    bool sendStates);
 
 /**
  * @brief The AmiciSummedGradientFunction class represents a cost function
@@ -94,7 +100,7 @@ void messageHandler(MultiConditionDataProvider *dataProvider,
  */
 class AmiciSummedGradientFunction : public SummedGradientFunction<int> {
 
-public:
+  public:
     using WorkPackage = AmiciSimulationRunner::AmiciWorkPackageSimple;
     using ResultPackage = AmiciSimulationRunner::AmiciResultPackageSimple;
     using ResultMap = std::map<int, ResultPackage>;
@@ -107,27 +113,27 @@ public:
      * @param resultWriter
      */
     AmiciSummedGradientFunction(
-            MultiConditionDataProvider *dataProvider,
-            LoadBalancerMaster *loadBalancer,
-            OptimizationResultWriter *resultWriter);
+        MultiConditionDataProvider* dataProvider,
+        LoadBalancerMaster* loadBalancer,
+        OptimizationResultWriter* resultWriter);
 
     ~AmiciSummedGradientFunction() override = default;
 
     FunctionEvaluationStatus evaluate(
-            gsl::span<const double> parameters,
-            int dataset,
-            double &fval,
-            gsl::span<double> gradient,
-            Logger *logger,
-            double *cpuTime) const override;
+        gsl::span<double const> parameters,
+        int dataset,
+        double& fval,
+        gsl::span<double> gradient,
+        Logger* logger,
+        double* cpuTime) const override;
 
     FunctionEvaluationStatus evaluate(
-            gsl::span<const double> parameters,
-            std::vector<int> datasets,
-            double &fval,
-            gsl::span<double> gradient,
-            Logger *logger,
-            double *cpuTime) const override;
+        gsl::span<double const> parameters,
+        std::vector<int> datasets,
+        double& fval,
+        gsl::span<double> gradient,
+        Logger* logger,
+        double* cpuTime) const override;
 
     /**
      * @brief Number of optimization parameters
@@ -148,26 +154,28 @@ public:
      */
     virtual FunctionEvaluationStatus getModelOutputsAndSigmas(
         gsl::span<double const> parameters,
-        std::vector<std::vector<double> > &modelOutputs,
-        std::vector<std::vector<double> > &modelSigmas,
-        Logger *logger,
-        double *cpuTime) const;
+        std::vector<std::vector<double>>& modelOutputs,
+        std::vector<std::vector<double>>& modelSigmas,
+        Logger* logger,
+        double* cpuTime) const;
 
-    [[nodiscard]] virtual std::vector<std::vector<double>> getAllMeasurements() const;
+    [[nodiscard]] virtual std::vector<std::vector<double>>
+    getAllMeasurements() const;
 
     /**
      * @brief Callback function for LoadBalancer
      * @param buffer In/out: message buffer
      * @param jobId: In: Identifier of the job (unique up to INT_MAX)
      */
-    virtual void messageHandler(std::vector<char> &buffer, int jobId) const;
+    virtual void messageHandler(std::vector<char>& buffer, int jobId) const;
 
-    [[nodiscard]] virtual amici::ParameterScaling getParameterScaling(int parameterIndex) const;
+    [[nodiscard]] virtual amici::ParameterScaling
+    getParameterScaling(int parameterIndex) const;
 
     /** Include model states in result package */
     bool sendStates = false;
 
-protected:// for testing
+  protected: // for testing
     AmiciSummedGradientFunction() = default;
 
     /**
@@ -179,12 +187,13 @@ protected:// for testing
      * @param numDataIndices
      * @return Simulation status, != 0 indicates failure
      */
-    virtual int runSimulations(gsl::span<double const> optimizationParameters,
-                               double &nllh,
-                               gsl::span<double> objectiveFunctionGradient,
-                               const std::vector<int> &dataIndices,
-                               Logger *logger,
-                               double *cpuTime) const;
+    virtual int runSimulations(
+        gsl::span<double const> optimizationParameters,
+        double& nllh,
+        gsl::span<double> objectiveFunctionGradient,
+        std::vector<int> const& dataIndices,
+        Logger* logger,
+        double* cpuTime) const;
 
     /**
      * @brief Aggregates log-likelihood received from workers.
@@ -197,12 +206,12 @@ protected:// for testing
      * @return
      */
 
-    int aggregateLikelihood(JobData &data, double &negLogLikelihood,
-                            gsl::span<double> negLogLikelihoodGradient,
-                            double &simulationTimeInS,
-                            gsl::span<const double> optimizationParameters
-                            ) const;
-
+    int aggregateLikelihood(
+        JobData& data,
+        double& negLogLikelihood,
+        gsl::span<double> negLogLikelihoodGradient,
+        double& simulationTimeInS,
+        gsl::span<double const> optimizationParameters) const;
 
     /**
      * @brief Aggregates log-likelihood gradient received from workers.
@@ -213,50 +222,46 @@ protected:// for testing
      */
 
     void addSimulationGradientToObjectiveFunctionGradient(
-            int conditionIdx,
-            gsl::span<const double> simulationGradient,
-            gsl::span<double> objectiveFunctionGradient,
-            gsl::span<const double> parameters) const;
+        int conditionIdx,
+        gsl::span<double const> simulationGradient,
+        gsl::span<double> objectiveFunctionGradient,
+        gsl::span<double const> parameters) const;
 
     void setSensitivityOptions(bool sensiRequired) const;
 
-private:
+  private:
     // TODO: make owning
-    MultiConditionDataProvider *dataProvider = nullptr;
+    MultiConditionDataProvider* dataProvider = nullptr;
     // Non-owning
-    LoadBalancerMaster *loadBalancer = nullptr;
+    LoadBalancerMaster* loadBalancer = nullptr;
     std::unique_ptr<amici::Model> model;
     std::unique_ptr<amici::Solver> solver;
     /** For saving sensitivity options which are changed depending on whether
      * gradient is needed */
     std::unique_ptr<amici::Solver> solverOriginal;
-    OptimizationResultWriter *resultWriter = nullptr; // TODO: owning?
+    OptimizationResultWriter* resultWriter = nullptr; // TODO: owning?
     bool logLineSearch = false;
     int maxSimulationsPerPackage = 8;
     int maxGradientSimulationsPerPackage = 1;
 };
-
-
 
 /**
  * @brief The MultiConditionProblem class represents an optimization problem
  * based on an MultiConditionGradientFunction (AMICI ODE model) and
  * MultiConditionDataProvider
  */
-class MultiConditionProblem
-        : public MinibatchOptimizationProblem<int>
-{
+class MultiConditionProblem : public MinibatchOptimizationProblem<int> {
 
   public:
     MultiConditionProblem() = default;
 
-    explicit MultiConditionProblem(MultiConditionDataProvider *dp);
+    explicit MultiConditionProblem(MultiConditionDataProvider* dp);
 
     MultiConditionProblem(
-            MultiConditionDataProvider *dp,
-            LoadBalancerMaster *loadBalancer,
-            std::unique_ptr<Logger> logger,
-            std::unique_ptr<OptimizationResultWriter> resultWriter);
+        MultiConditionDataProvider* dp,
+        LoadBalancerMaster* loadBalancer,
+        std::unique_ptr<Logger> logger,
+        std::unique_ptr<OptimizationResultWriter> resultWriter);
 
     ~MultiConditionProblem() override = default;
 
@@ -266,13 +271,14 @@ class MultiConditionProblem
      */
     virtual int earlyStopping();
 
-    MultiConditionDataProvider *getDataProvider();
-    OptimizationResultWriter *getResultWriter();
+    MultiConditionDataProvider* getDataProvider();
+    OptimizationResultWriter* getResultWriter();
 
-    //    virtual std::unique_ptr<double[]> getInitialParameters(int multiStartIndex) const override;
+    //    virtual std::unique_ptr<double[]> getInitialParameters(int
+    //    multiStartIndex) const override;
 
-    void setInitialParameters(const std::vector<double> &startingPoint);
-    void setParametersMin(const std::vector<double> &lowerBounds);
+    void setInitialParameters(std::vector<double> const& startingPoint);
+    void setParametersMin(std::vector<double> const& lowerBounds);
     void setParametersMax(std::vector<double> const& upperBounds);
 
     void fillParametersMin(gsl::span<double> buffer) const override;
@@ -283,10 +289,10 @@ class MultiConditionProblem
 
     std::vector<int> getTrainingData() const override;
 
-private:
-    //TODO std::unique_ptr<OptimizationProblem> validationProblem;
+  private:
+    // TODO std::unique_ptr<OptimizationProblem> validationProblem;
 
-    MultiConditionDataProvider *dataProvider = nullptr;
+    MultiConditionDataProvider* dataProvider = nullptr;
 
     std::unique_ptr<OptimizationResultWriter> resultWriter;
 
@@ -294,9 +300,6 @@ private:
     std::vector<double> parametersMin;
     std::vector<double> parametersMax;
 };
-
-
-
 
 /**
  * @brief The MultiConditionProblemGeneratorForMultiStart class generates new
@@ -307,34 +310,40 @@ class MultiConditionProblemMultiStartOptimizationProblem
     : public MultiStartOptimizationProblem {
   public:
     MultiConditionProblemMultiStartOptimizationProblem(
-            MultiConditionDataProviderHDF5 *dp,
-            OptimizationOptions options,
-            OptimizationResultWriter *resultWriter,
-            LoadBalancerMaster *loadBalancer,
-            std::unique_ptr<Logger> logger);
-
+        MultiConditionDataProviderHDF5* dp,
+        OptimizationOptions options,
+        OptimizationResultWriter* resultWriter,
+        LoadBalancerMaster* loadBalancer,
+        std::unique_ptr<Logger> logger);
 
     int getNumberOfStarts() const override;
 
     bool restartOnFailure() const override;
 
-    std::unique_ptr<OptimizationProblem> getLocalProblem(
-            int multiStartIndex) const override;
+    std::unique_ptr<OptimizationProblem>
+    getLocalProblem(int multiStartIndex) const override;
 
-private:
-    MultiConditionDataProviderHDF5 *data_provider_ = nullptr;
+  private:
+    MultiConditionDataProviderHDF5* data_provider_ = nullptr;
     OptimizationOptions options_;
-    OptimizationResultWriter *result_writer_ = nullptr;
-    LoadBalancerMaster *load_balancer_ = nullptr;
+    OptimizationResultWriter* result_writer_ = nullptr;
+    LoadBalancerMaster* load_balancer_ = nullptr;
     std::unique_ptr<Logger> logger_;
 };
 
-
-void saveSimulation(H5::H5File const& file, const std::string &pathStr,
-        const std::vector<double> &parameters, double llh,
-        gsl::span<const double> gradient, double timeElapsedInSeconds, gsl::span<const double>, gsl::span<const double>, gsl::span<const double>,
-        int jobId, int status, const std::string &label);
-
+void saveSimulation(
+    H5::H5File const& file,
+    std::string const& pathStr,
+    std::vector<double> const& parameters,
+    double llh,
+    gsl::span<double const> gradient,
+    double timeElapsedInSeconds,
+    gsl::span<double const>,
+    gsl::span<double const>,
+    gsl::span<double const>,
+    int jobId,
+    int status,
+    std::string const& label);
 
 } // namespace parpe
 

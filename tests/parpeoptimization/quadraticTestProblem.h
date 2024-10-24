@@ -16,71 +16,89 @@ namespace parpe {
  * OptimizationReporter
  */
 class OptimizationReporterTest : public OptimizationReporter {
-public:
+  public:
     using OptimizationReporter::OptimizationReporter;
 
-    bool starting(gsl::span<const double> parameters) const override;
+    bool starting(gsl::span<double const> parameters) const override;
 
-    bool iterationFinished(gsl::span<const double> parameters,
-                           double objectiveFunctionValue,
-                           gsl::span<const double> objectiveFunctionGradient) const override;
+    bool iterationFinished(
+        gsl::span<double const> parameters,
+        double objectiveFunctionValue,
+        gsl::span<double const> objectiveFunctionGradient) const override;
 
-    bool beforeCostFunctionCall(gsl::span<const double> parameters) const override;
+    bool
+    beforeCostFunctionCall(gsl::span<double const> parameters) const override;
 
-    bool afterCostFunctionCall(gsl::span<const double> parameters,
-                               double objectiveFunctionValue,
-                               gsl::span<const double> objectiveFunctionGradient) const override;
+    bool afterCostFunctionCall(
+        gsl::span<double const> parameters,
+        double objectiveFunctionValue,
+        gsl::span<double const> objectiveFunctionGradient) const override;
 
-    void finished(double optimalCost,
-                  gsl::span<const double> parameters, int exitStatus) const override;
+    void finished(
+        double optimalCost,
+        gsl::span<double const> parameters,
+        int exitStatus) const override;
 
     bool printDebug = false;
 };
 
-
-class OptimizationReporterMock: public OptimizationReporter {
-public:
-    OptimizationReporterMock(GradientFunction *gradFun,
-                         std::unique_ptr<Logger> logger)
-        :OptimizationReporter(gradFun, std::make_unique<Logger>(*logger))
-    {
-        testRep = std::make_unique<OptimizationReporterTest>(gradFun, std::move(logger));
+class OptimizationReporterMock : public OptimizationReporter {
+  public:
+    OptimizationReporterMock(
+        GradientFunction* gradFun,
+        std::unique_ptr<Logger> logger)
+        : OptimizationReporter(gradFun, std::make_unique<Logger>(*logger)) {
+        testRep = std::make_unique<OptimizationReporterTest>(
+            gradFun, std::move(logger));
 
         ON_CALL(*this, starting(_))
-            .WillByDefault(Invoke(testRep.get(), &OptimizationReporterTest::starting));
+            .WillByDefault(
+                Invoke(testRep.get(), &OptimizationReporterTest::starting));
         ON_CALL(*this, iterationFinished(_, _, _))
-            .WillByDefault(Invoke(testRep.get(), &OptimizationReporterTest::iterationFinished));
+            .WillByDefault(Invoke(
+                testRep.get(), &OptimizationReporterTest::iterationFinished));
         ON_CALL(*this, beforeCostFunctionCall(_))
-            .WillByDefault(Invoke(testRep.get(), &OptimizationReporterTest::beforeCostFunctionCall));
+            .WillByDefault(Invoke(
+                testRep.get(),
+                &OptimizationReporterTest::beforeCostFunctionCall));
         ON_CALL(*this, afterCostFunctionCall(_, _, _))
-            .WillByDefault(Invoke(testRep.get(), &OptimizationReporterTest::afterCostFunctionCall));
+            .WillByDefault(Invoke(
+                testRep.get(),
+                &OptimizationReporterTest::afterCostFunctionCall));
         ON_CALL(*this, finished(_, _, _))
-            .WillByDefault(Invoke(testRep.get(), &OptimizationReporterTest::finished));
+            .WillByDefault(
+                Invoke(testRep.get(), &OptimizationReporterTest::finished));
     }
 
+    MOCK_CONST_METHOD1(starting, bool(gsl::span<double const> parameters));
 
-    MOCK_CONST_METHOD1(starting, bool(gsl::span<const double> parameters));
+    MOCK_CONST_METHOD3(
+        iterationFinished,
+        bool(
+            gsl::span<double const> parameters,
+            double objectiveFunctionValue,
+            gsl::span<double const> objectiveFunctionGradient));
 
-    MOCK_CONST_METHOD3(iterationFinished,
-                 bool(gsl::span<const double> parameters,
-                      double objectiveFunctionValue,
-                      gsl::span<const double> objectiveFunctionGradient));
+    MOCK_CONST_METHOD1(
+        beforeCostFunctionCall,
+        bool(gsl::span<double const> parameters));
 
-    MOCK_CONST_METHOD1(beforeCostFunctionCall,
-                 bool(gsl::span<const double> parameters));
+    MOCK_CONST_METHOD3(
+        afterCostFunctionCall,
+        bool(
+            gsl::span<double const> parameters,
+            double objectiveFunctionValue,
+            gsl::span<double const> objectiveFunctionGradient));
 
-    MOCK_CONST_METHOD3(afterCostFunctionCall,
-                 bool(gsl::span<const double> parameters,
-                      double objectiveFunctionValue,
-                      gsl::span<const double> objectiveFunctionGradient));
-
-    MOCK_CONST_METHOD3(finished,
-                 void(double optimalCost, gsl::span<const double> parameters,
-                      int exitStatus));
+    MOCK_CONST_METHOD3(
+        finished,
+        void(
+            double optimalCost,
+            gsl::span<double const> parameters,
+            int exitStatus));
 
     std::unique_ptr<OptimizationReporterTest> testRep;
 };
-
 
 /**
  * @brief The QuadraticGradientFunction class is a simple function for testing
@@ -99,45 +117,46 @@ public:
  */
 
 class QuadraticGradientFunction : public GradientFunction {
-public:
-    FunctionEvaluationStatus evaluate(gsl::span<const double> parameters,
-                                      double &fval,
-                                      gsl::span<double> gradient,
-                                      Logger *logger = nullptr,
-                                      double *cpuTime = nullptr) const override;
+  public:
+    FunctionEvaluationStatus evaluate(
+        gsl::span<double const> parameters,
+        double& fval,
+        gsl::span<double> gradient,
+        Logger* logger = nullptr,
+        double* cpuTime = nullptr) const override;
 
     int numParameters() const override;
     std::vector<std::string> getParameterIds() const override;
 };
 
 class QuadraticGradientFunctionMock : public GradientFunction {
-public:
+  public:
     QuadraticGradientFunctionMock();
 
-    MOCK_CONST_METHOD5(evaluate_impl, FunctionEvaluationStatus(
-                     gsl::span<const double> parameters,
-                     double &fval,
-                     gsl::span<double> gradient,
-                     Logger *logger,
-                     double *cpuTime));
+    MOCK_CONST_METHOD5(
+        evaluate_impl,
+        FunctionEvaluationStatus(
+            gsl::span<double const> parameters,
+            double& fval,
+            gsl::span<double> gradient,
+            Logger* logger,
+            double* cpuTime));
 
     virtual FunctionEvaluationStatus evaluate(
-            gsl::span<const double> parameters,
-            double &fval,
-            gsl::span<double> gradient,
-            Logger *logger = nullptr,
-            double *cpuTime = nullptr) const {
+        gsl::span<double const> parameters,
+        double& fval,
+        gsl::span<double> gradient,
+        Logger* logger = nullptr,
+        double* cpuTime = nullptr) const {
         return evaluate_impl(parameters, fval, gradient, logger, cpuTime);
     }
 
     MOCK_CONST_METHOD0(numParameters, int());
     MOCK_CONST_METHOD0(getParameterIds, std::vector<std::string>());
 
-
-private:
+  private:
     QuadraticGradientFunction fun;
 };
-
 
 /**
  * @brief The QuadraticTestProblem class is a test optimization problem built
@@ -145,33 +164,37 @@ private:
  */
 
 class QuadraticTestProblem : public OptimizationProblem {
-public:
-    explicit QuadraticTestProblem(std::unique_ptr<Logger> logger = std::make_unique<Logger>());
+  public:
+    explicit QuadraticTestProblem(
+        std::unique_ptr<Logger> logger = std::make_unique<Logger>());
     void fillParametersMin(gsl::span<double> buffer) const override;
     void fillParametersMax(gsl::span<double> buffer) const override;
 
     ~QuadraticTestProblem() {
-        if(!getReporterCalled && reporter)
+        if (!getReporterCalled && reporter)
             // manual cleanup if not passed in unique_ptr
             delete reporter;
     }
     std::unique_ptr<OptimizationReporter> getReporter() const override;
 
-    OptimizationReporterMock *reporter;
+    OptimizationReporterMock* reporter;
     mutable bool getReporterCalled = false;
 };
 
-
-class QuadraticOptimizationMultiStartProblem : public MultiStartOptimizationProblem {
-public:
-    QuadraticOptimizationMultiStartProblem(int numberOfStarts, bool restartOnFailure = false)
-        : numberOfStarts(numberOfStarts), restartOnFailure_(restartOnFailure)
-    {
+class QuadraticOptimizationMultiStartProblem
+    : public MultiStartOptimizationProblem {
+  public:
+    QuadraticOptimizationMultiStartProblem(
+        int numberOfStarts,
+        bool restartOnFailure = false)
+        : numberOfStarts(numberOfStarts)
+        , restartOnFailure_(restartOnFailure) {
         QuadraticTestProblem p;
         options = p.getOptimizationOptions();
     }
 
-    std::unique_ptr<OptimizationProblem> getLocalProblem(int multiStartIndex) const override;
+    std::unique_ptr<OptimizationProblem>
+    getLocalProblem(int multiStartIndex) const override;
 
     int getNumberOfStarts() const override { return numberOfStarts; }
 
@@ -179,8 +202,7 @@ public:
 
     OptimizationOptions options;
 
-private:
-
+  private:
     int numberOfStarts = 1;
     bool restartOnFailure_ = false;
 };

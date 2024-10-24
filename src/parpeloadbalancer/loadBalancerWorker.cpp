@@ -25,7 +25,8 @@ void LoadBalancerWorker::run(messageHandlerFunc const& messageHandler) {
     }
 }
 
-bool LoadBalancerWorker::waitForAndHandleJobs(const messageHandlerFunc& messageHandler) {
+bool LoadBalancerWorker::waitForAndHandleJobs(
+    messageHandlerFunc const& messageHandler) {
     int rank, err;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 #ifdef LOADBALANCERWORKER_REPORT_WAITING_TIME
@@ -45,8 +46,14 @@ bool LoadBalancerWorker::waitForAndHandleJobs(const messageHandlerFunc& messageH
 
     // receive message
     int source = 0;
-    err = MPI_Recv(buffer.data(), msgSize, MPI_BYTE, source, MPI_ANY_TAG,
-                   MPI_COMM_WORLD, &mpiStatus);
+    err = MPI_Recv(
+        buffer.data(),
+        msgSize,
+        MPI_BYTE,
+        source,
+        MPI_ANY_TAG,
+        MPI_COMM_WORLD,
+        &mpiStatus);
 
 #if QUEUE_WORKER_H_VERBOSE >= 3
     printf("W%d: Received job %d\n", rank, mpiStatus.MPI_TAG);
@@ -61,7 +68,11 @@ bool LoadBalancerWorker::waitForAndHandleJobs(const messageHandlerFunc& messageH
 #ifdef LOADBALANCERWORKER_REPORT_WAITING_TIME
     double endTime = MPI_Wtime();
     double waitedSeconds = (endTime - startTime);
-    logmessage(loglevel::debug, "Message received after waiting %fs.", rank, waitedSeconds);
+    logmessage(
+        loglevel::debug,
+        "Message received after waiting %fs.",
+        rank,
+        waitedSeconds);
 #endif
 
     messageHandler(buffer, mpiStatus.MPI_TAG);
@@ -69,7 +80,13 @@ bool LoadBalancerWorker::waitForAndHandleJobs(const messageHandlerFunc& messageH
 #if QUEUE_WORKER_H_VERBOSE >= 2
     printf("[%d] Job done, sending results, %dB.\n", rank, msgSize);
 #endif
-    MPI_Send(buffer.data(), buffer.size(), MPI_BYTE, 0, mpiStatus.MPI_TAG, MPI_COMM_WORLD);
+    MPI_Send(
+        buffer.data(),
+        buffer.size(),
+        MPI_BYTE,
+        0,
+        mpiStatus.MPI_TAG,
+        MPI_COMM_WORLD);
 
     return false;
 }

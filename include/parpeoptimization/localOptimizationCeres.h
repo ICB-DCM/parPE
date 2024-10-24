@@ -3,7 +3,6 @@
 
 #include <parpeoptimization/optimizer.h>
 
-
 namespace parpe {
 
 class OptimizationProblem;
@@ -18,8 +17,8 @@ class OptimizerCeres : public Optimizer {
      * @param problem the optimization problem
      * @return Returns 0 on success.
      */
-    std::tuple<int, double, std::vector<double> >
-    optimize(OptimizationProblem *problem) override;
+    std::tuple<int, double, std::vector<double>>
+    optimize(OptimizationProblem* problem) override;
 };
 
 } // namespace parpe

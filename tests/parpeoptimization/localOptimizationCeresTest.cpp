@@ -2,18 +2,16 @@
 
 #include <parpeoptimization/localOptimizationCeres.h>
 
-#include "quadraticTestProblem.h"
 #include "../parpecommon/testingMisc.h"
+#include "quadraticTestProblem.h"
 
-#include <cmath>
 #include <ceres/version.h>
-
+#include <cmath>
 
 using ::testing::_;
+using ::testing::AtLeast;
 using ::testing::Eq;
 using ::testing::Ne;
-using ::testing::AtLeast;
-
 
 TEST(LocalOptimizationCeres, Optimization) {
     parpe::QuadraticTestProblem problem;
@@ -57,13 +55,22 @@ TEST(LocalOptimizationCeres, IsReporterCalled) {
     problem.setOptimizationOptions(o);
 
     EXPECT_CALL(*problem.reporter, starting(_));
-    EXPECT_CALL(*dynamic_cast<parpe::QuadraticGradientFunctionMock *>(problem.cost_fun_.get()),
-                numParameters()).Times(3);
-    EXPECT_CALL(*problem.reporter, beforeCostFunctionCall(_)).Times(1 + o.maxOptimizerIterations);
-    EXPECT_CALL(*dynamic_cast<parpe::QuadraticGradientFunctionMock *>(problem.cost_fun_.get()),
-                evaluate_impl(_, _, Ne(gsl::span<const double>()), _, _)).Times(1 + o.maxOptimizerIterations);
-    EXPECT_CALL(*problem.reporter, iterationFinished(_, _, _)).Times(1 + o.maxOptimizerIterations);
-    EXPECT_CALL(*problem.reporter, afterCostFunctionCall(_, _, _)).Times(1 + o.maxOptimizerIterations);
+    EXPECT_CALL(
+        *dynamic_cast<parpe::QuadraticGradientFunctionMock*>(
+            problem.cost_fun_.get()),
+        numParameters())
+        .Times(3);
+    EXPECT_CALL(*problem.reporter, beforeCostFunctionCall(_))
+        .Times(1 + o.maxOptimizerIterations);
+    EXPECT_CALL(
+        *dynamic_cast<parpe::QuadraticGradientFunctionMock*>(
+            problem.cost_fun_.get()),
+        evaluate_impl(_, _, Ne(gsl::span<double const>()), _, _))
+        .Times(1 + o.maxOptimizerIterations);
+    EXPECT_CALL(*problem.reporter, iterationFinished(_, _, _))
+        .Times(1 + o.maxOptimizerIterations);
+    EXPECT_CALL(*problem.reporter, afterCostFunctionCall(_, _, _))
+        .Times(1 + o.maxOptimizerIterations);
 
     EXPECT_CALL(*problem.reporter, finished(_, _, _));
 

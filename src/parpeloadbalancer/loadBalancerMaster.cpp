@@ -3,13 +3,13 @@
 #ifdef PARPE_ENABLE_MPI
 
 #include <cassert>
-#include <climits>
 #include <chrono>
+#include <climits>
 
 #include <parpecommon/misc.h>
 #include <parpecommon/parpeException.h>
 
-//#define MASTER_QUEUE_H_SHOW_COMMUNICATION 1
+// #define MASTER_QUEUE_H_SHOW_COMMUNICATION 1
 
 namespace parpe {
 
@@ -24,7 +24,7 @@ void LoadBalancerMaster::run() {
     int mpiCommSize;
     MPI_Comm_size(mpiComm, &mpiCommSize);
 
-    if(mpiCommSize <= 2) {
+    if (mpiCommSize <= 2) {
         // crashes otherwise
         throw std::runtime_error("Need at least 2 MPI processes!");
     }
@@ -48,18 +48,14 @@ void LoadBalancerMaster::run() {
     isRunning_ = true;
 }
 
-LoadBalancerMaster::~LoadBalancerMaster()
-{
+LoadBalancerMaster::~LoadBalancerMaster() {
     terminate();
     sem_destroy(&semQueue);
 }
 
 #ifndef QUEUE_MASTER_TEST
-void LoadBalancerMaster::assertMpiActive() {
-    Expects(getMpiActive());
-}
+void LoadBalancerMaster::assertMpiActive() { Expects(getMpiActive()); }
 #endif
-
 
 void LoadBalancerMaster::loadBalancerThreadRun() {
 
@@ -68,8 +64,9 @@ void LoadBalancerMaster::loadBalancerThreadRun() {
         int freeWorkerIndex = NO_FREE_WORKER;
 
         // empty send queue while there are free workers
-        while(queue_thread_continue_ && (freeWorkerIndex = getNextFreeWorkerIndex()) >= 0
-              && sendQueuedJob(freeWorkerIndex)) {}
+        while (queue_thread_continue_ &&
+               (freeWorkerIndex = getNextFreeWorkerIndex()) >= 0 &&
+               sendQueuedJob(freeWorkerIndex)) {}
 
         // check if any job finished
         handleFinishedJobs();
@@ -83,15 +80,21 @@ void LoadBalancerMaster::freeEmptiedSendBuffers() {
     while (true) {
         int emptiedBufferIdx = MPI_UNDEFINED;
         int anySendCompleted = 0;
-        MPI_Testany(sendRequests.size(), sendRequests.data(), &emptiedBufferIdx,
-                    &anySendCompleted, MPI_STATUS_IGNORE);
+        MPI_Testany(
+            sendRequests.size(),
+            sendRequests.data(),
+            &emptiedBufferIdx,
+            &anySendCompleted,
+            MPI_STATUS_IGNORE);
 
-        if (anySendCompleted && emptiedBufferIdx != MPI_UNDEFINED
-                && sentJobsData[emptiedBufferIdx]) {
-            /* By the time we check for send to be finished, we might have received the reply
-             * already and the pointed-to object might have been already destroyed. This
-             * is therefore set to nullptr when receiving the reply. */
-            std::vector<char>().swap(sentJobsData[emptiedBufferIdx]->sendBuffer);
+        if (anySendCompleted && emptiedBufferIdx != MPI_UNDEFINED &&
+            sentJobsData[emptiedBufferIdx]) {
+            /* By the time we check for send to be finished, we might have
+             * received the reply already and the pointed-to object might have
+             * been already destroyed. This is therefore set to nullptr when
+             * receiving the reply. */
+            std::vector<char>().swap(
+                sentJobsData[emptiedBufferIdx]->sendBuffer);
         } else {
             break;
         }
@@ -106,15 +109,15 @@ int LoadBalancerMaster::handleFinishedJobs() {
         // check for waiting incoming message
         MPI_Status status;
         int messageWaiting = 0;
-        MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, mpiComm,
-                   &messageWaiting, &status);
+        MPI_Iprobe(
+            MPI_ANY_SOURCE, MPI_ANY_TAG, mpiComm, &messageWaiting, &status);
 
         if (messageWaiting) {
             // some job is finished, process that
             finishedWorkerIdx = handleReply(&status);
 
             // directly send new work if available
-            if(sendQueuedJob(finishedWorkerIdx))
+            if (sendQueuedJob(finishedWorkerIdx))
                 finishedWorkerIdx = NO_FREE_WORKER; // not free anymore
         } else {
             // there was nothing to be finished
@@ -133,11 +136,11 @@ int LoadBalancerMaster::getNextFreeWorkerIndex() {
     return NO_FREE_WORKER;
 }
 
-JobData *LoadBalancerMaster::getNextJob() {
+JobData* LoadBalancerMaster::getNextJob() {
 
     std::unique_lock lock(mutexQueue);
 
-    JobData *nextJob = nullptr;
+    JobData* nextJob = nullptr;
     if (!queue.empty()) {
         nextJob = queue.front();
         queue.pop();
@@ -146,7 +149,7 @@ JobData *LoadBalancerMaster::getNextJob() {
     return nextJob;
 }
 
-void LoadBalancerMaster::sendToWorker(int workerIdx, JobData *data) {
+void LoadBalancerMaster::sendToWorker(int workerIdx, JobData* data) {
     Expects(workerIdx >= 0);
     Expects(workerIdx < numWorkers);
 
@@ -156,17 +159,26 @@ void LoadBalancerMaster::sendToWorker(int workerIdx, JobData *data) {
     int workerRank = workerIdx + 1;
 
 #ifdef MASTER_QUEUE_H_SHOW_COMMUNICATION
-    printf("\x1b[31mSending job #%d to rank %d (%luB).\x1b[0m\n", tag, workerRank, data->sendBuffer.size());
+    printf(
+        "\x1b[31mSending job #%d to rank %d (%luB).\x1b[0m\n",
+        tag,
+        workerRank,
+        data->sendBuffer.size());
 #endif
 
-    MPI_Isend(data->sendBuffer.data(), data->sendBuffer.size(), mpiJobDataType,
-              workerRank, tag,
-              mpiComm, &sendRequests[workerIdx]);
+    MPI_Isend(
+        data->sendBuffer.data(),
+        data->sendBuffer.size(),
+        mpiJobDataType,
+        workerRank,
+        tag,
+        mpiComm,
+        &sendRequests[workerIdx]);
 
     sem_post(&semQueue);
 }
 
-void LoadBalancerMaster::queueJob(JobData *data) {
+void LoadBalancerMaster::queueJob(JobData* data) {
     RELEASE_ASSERT(isRunning_, "Can't queue job while not running.");
 
     sem_wait(&semQueue);
@@ -181,10 +193,13 @@ void LoadBalancerMaster::queueJob(JobData *data) {
     queue.push(data);
 
 #ifdef MASTER_QUEUE_H_SHOW_COMMUNICATION
-    int size = sizeof(*data) + data->sendBuffer.size() + data->recvBuffer.size();
-    printf("\x1b[33mQueued job with size %dB. New queue length is %d.\x1b[0m\n", size, queue.size());
+    int size =
+        sizeof(*data) + data->sendBuffer.size() + data->recvBuffer.size();
+    printf(
+        "\x1b[33mQueued job with size %dB. New queue length is %d.\x1b[0m\n",
+        size,
+        queue.size());
 #endif
-
 }
 
 void LoadBalancerMaster::terminate() {
@@ -197,10 +212,10 @@ void LoadBalancerMaster::terminate() {
     queueThread.join();
 }
 
-int LoadBalancerMaster::handleReply(MPI_Status *mpiStatus) {
+int LoadBalancerMaster::handleReply(MPI_Status* mpiStatus) {
 
     int workerIdx = mpiStatus->MPI_SOURCE - 1;
-    JobData *data = sentJobsData[workerIdx];
+    JobData* data = sentJobsData[workerIdx];
     sentJobsData[workerIdx] = nullptr;
 
     // allocate memory for result
@@ -209,33 +224,42 @@ int LoadBalancerMaster::handleReply(MPI_Status *mpiStatus) {
     data->recvBuffer.resize(lenRecvBuffer);
 
 #ifdef MASTER_QUEUE_H_SHOW_COMMUNICATION
-    printf("\x1b[32mReceiving result for job %d from %d (%luB)\x1b[0m\n",
-           mpiStatus->MPI_TAG, mpiStatus->MPI_SOURCE, data->recvBuffer.size());
+    printf(
+        "\x1b[32mReceiving result for job %d from %d (%luB)\x1b[0m\n",
+        mpiStatus->MPI_TAG,
+        mpiStatus->MPI_SOURCE,
+        data->recvBuffer.size());
 #endif
 
     // receive
-    MPI_Recv(data->recvBuffer.data(), data->recvBuffer.size(), mpiJobDataType,
-             mpiStatus->MPI_SOURCE, mpiStatus->MPI_TAG, mpiComm,
-             MPI_STATUS_IGNORE);
+    MPI_Recv(
+        data->recvBuffer.data(),
+        data->recvBuffer.size(),
+        mpiJobDataType,
+        mpiStatus->MPI_SOURCE,
+        mpiStatus->MPI_TAG,
+        mpiComm,
+        MPI_STATUS_IGNORE);
 
     workerIsBusy[workerIdx] = false;
 
 #ifdef MASTER_QUEUE_H_SHOW_COMMUNICATION
-    printf("\x1b[32mReceived result for job %d from %d\x1b[0m\n",
-           mpiStatus->MPI_TAG, mpiStatus->MPI_SOURCE);
+    printf(
+        "\x1b[32mReceived result for job %d from %d\x1b[0m\n",
+        mpiStatus->MPI_TAG,
+        mpiStatus->MPI_SOURCE);
 #endif
 
     // user-provided callback if specified
-    if(data->callbackJobFinished)
+    if (data->callbackJobFinished)
         data->callbackJobFinished(data);
-
 
     // signal job done
     std::unique_lock<std::mutex> lock;
-    if(data->jobDoneChangedMutex) {
+    if (data->jobDoneChangedMutex) {
         lock = std::unique_lock(*data->jobDoneChangedMutex);
     }
-    if(data->jobDone)
+    if (data->jobDone)
         ++(*data->jobDone);
     if (data->jobDoneChangedCondition) {
         data->jobDoneChangedCondition->notify_all();
@@ -243,12 +267,11 @@ int LoadBalancerMaster::handleReply(MPI_Status *mpiStatus) {
     return workerIdx;
 }
 
-bool LoadBalancerMaster::sendQueuedJob(int freeWorkerIndex)
-{
+bool LoadBalancerMaster::sendQueuedJob(int freeWorkerIndex) {
     if (freeWorkerIndex < 0)
         return false;
 
-    JobData *currentQueueElement = getNextJob();
+    JobData* currentQueueElement = getNextJob();
 
     if (currentQueueElement) {
         sendToWorker(freeWorkerIndex, currentQueueElement);
@@ -271,16 +294,14 @@ void LoadBalancerMaster::sendTerminationSignalToAllWorkers() {
     MPI_Waitall(commSize - 1, reqs, MPI_STATUS_IGNORE);
 }
 
-bool LoadBalancerMaster::isRunning() const
-{
+bool LoadBalancerMaster::isRunning() const {
 #ifdef MASTER_QUEUE_H_SHOW_COMMUNICATION
     printf("LoadBalancerMaster::isRunning -> %d\n", isRunning_);
 #endif
     return isRunning_;
 }
 
-int LoadBalancerMaster::getNumQueuedJobs() const
-{
+int LoadBalancerMaster::getNumQueuedJobs() const {
     std::unique_lock lock(mutexQueue);
     return queue.size();
 }

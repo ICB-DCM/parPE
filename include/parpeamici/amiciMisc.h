@@ -10,10 +10,10 @@ using amici::getUnscaledParameter;
 
 using amici::getScaledParameter;
 
-std::unique_ptr<amici::ReturnData>
-run_amici_simulation(amici::Solver& solver,
-                     amici::ExpData const* edata,
-                     amici::Model& model,
-                     bool rethrow = false,
-                     Logger* logger = nullptr);
-}
+std::unique_ptr<amici::ReturnData> run_amici_simulation(
+    amici::Solver& solver,
+    amici::ExpData const* edata,
+    amici::Model& model,
+    bool rethrow = false,
+    Logger* logger = nullptr);
+} // namespace parpe

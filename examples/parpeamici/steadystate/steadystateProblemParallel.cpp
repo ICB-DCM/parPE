@@ -11,34 +11,45 @@
 
 #include <mpi.h>
 
-ExampleSteadystateGradientFunctionParallel::ExampleSteadystateGradientFunctionParallel(parpe::LoadBalancerMaster *loadBalancer, const std::string &dataFileName)
-    :loadBalancer(loadBalancer),
-      model(std::unique_ptr<amici::Model>(getModel()))
-{
+ExampleSteadystateGradientFunctionParallel::
+    ExampleSteadystateGradientFunctionParallel(
+        parpe::LoadBalancerMaster* loadBalancer,
+        std::string const& dataFileName)
+    : loadBalancer(loadBalancer)
+    , model(std::unique_ptr<amici::Model>(getModel())) {
     dataProvider = std::make_unique<SteadyStateMultiConditionDataProvider>(
-                std::unique_ptr<amici::Model>(model->clone()),
-                dataFileName);
+        std::unique_ptr<amici::Model>(model->clone()), dataFileName);
     numConditions = dataProvider->getNumberOfSimulationConditions();
 }
 
-parpe::FunctionEvaluationStatus ExampleSteadystateGradientFunctionParallel::evaluate(gsl::span<const double> parameters, double &fval, gsl::span<double> gradient, parpe::Logger *logger, double *cpuTime) const
+parpe::FunctionEvaluationStatus
+ExampleSteadystateGradientFunctionParallel::evaluate(
+    gsl::span<double const> parameters,
+    double& fval,
+    gsl::span<double> gradient,
+    parpe::Logger* logger,
+    double* cpuTime) const
 
 {
     if (parpe::getMpiCommSize() > 1) {
-        return evaluateParallel(parameters, fval, gradient) ? parpe::functionEvaluationFailure : parpe::functionEvaluationSuccess;
+        return evaluateParallel(parameters, fval, gradient)
+                   ? parpe::functionEvaluationFailure
+                   : parpe::functionEvaluationSuccess;
     } else {
-        return evaluateSerial(parameters, fval, gradient) ? parpe::functionEvaluationFailure : parpe::functionEvaluationSuccess;
+        return evaluateSerial(parameters, fval, gradient)
+                   ? parpe::functionEvaluationFailure
+                   : parpe::functionEvaluationSuccess;
     }
 }
 
-int ExampleSteadystateGradientFunctionParallel::numParameters() const
-{
+int ExampleSteadystateGradientFunctionParallel::numParameters() const {
     return model->np();
 }
 
-int ExampleSteadystateGradientFunctionParallel::evaluateParallel(gsl::span<double const> parameters,
-                                                                 double &objFunVal,
-                                                                 gsl::span<double> objFunGrad) const {
+int ExampleSteadystateGradientFunctionParallel::evaluateParallel(
+    gsl::span<double const> parameters,
+    double& objFunVal,
+    gsl::span<double> objFunGrad) const {
     // TODO: always computes gradient; ignores simulation status
 
     // create load balancer job for each simulation
@@ -51,7 +62,7 @@ int ExampleSteadystateGradientFunctionParallel::evaluateParallel(gsl::span<doubl
     int numJobsFinished = 0;
 
     for (int i = 0; i < numConditions; ++i) {
-        parpe::JobData *job = &jobdata[i];
+        parpe::JobData* job = &jobdata[i];
         job->jobDone = &numJobsFinished;
         job->jobDoneChangedCondition = &simulationsCond;
         job->jobDoneChangedMutex = &simulationsMutex;
@@ -60,9 +71,12 @@ int ExampleSteadystateGradientFunctionParallel::evaluateParallel(gsl::span<doubl
         int needGradient = objFunGrad.size() ? 1 : 0;
 
         memcpy(job->sendBuffer.data(), &i, sizeof(int));
-        memcpy(job->sendBuffer.data() + sizeof(int), &needGradient, sizeof(int));
-        memcpy(job->sendBuffer.data() + 2 * sizeof(int), parameters.data(),
-               model->np() * sizeof(double));
+        memcpy(
+            job->sendBuffer.data() + sizeof(int), &needGradient, sizeof(int));
+        memcpy(
+            job->sendBuffer.data() + 2 * sizeof(int),
+            parameters.data(),
+            model->np() * sizeof(double));
 
         loadBalancer->queueJob(job);
     }
@@ -84,7 +98,7 @@ int ExampleSteadystateGradientFunctionParallel::evaluateParallel(gsl::span<doubl
         std::fill(objFunGrad.begin(), objFunGrad.end(), 0.0);
 
     for (int i = 0; i < numConditions; ++i) {
-        double *buffer = (double *)(jobdata[i].recvBuffer.data());
+        double* buffer = (double*)(jobdata[i].recvBuffer.data());
         objFunVal -= buffer[0];
 
         if (objFunGrad.size())
@@ -97,11 +111,13 @@ int ExampleSteadystateGradientFunctionParallel::evaluateParallel(gsl::span<doubl
     return 0;
 }
 
-int ExampleSteadystateGradientFunctionParallel::evaluateSerial(gsl::span<const double> parameters,
-                                                               double &objFunVal,
-                                                               gsl::span<double> objFunGrad) const {
+int ExampleSteadystateGradientFunctionParallel::evaluateSerial(
+    gsl::span<double const> parameters,
+    double& objFunVal,
+    gsl::span<double> objFunGrad) const {
     int status = 0;
-    model->setParameters(std::vector<double>(parameters.begin(), parameters.end()));
+    model->setParameters(
+        std::vector<double>(parameters.begin(), parameters.end()));
     //    printArray(parameters, udata->np);printf("\n");
 
     objFunVal = 0;
@@ -131,17 +147,19 @@ int ExampleSteadystateGradientFunctionParallel::evaluateSerial(gsl::span<const d
     return status;
 }
 
-void ExampleSteadystateGradientFunctionParallel::messageHandler(std::vector<char> &buffer,
-                                                                int jobId) {
+void ExampleSteadystateGradientFunctionParallel::messageHandler(
+    std::vector<char>& buffer,
+    int jobId) {
     //    int mpiRank;
     //    MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
-    //    parpe::logmessage(parpe::LOGLVL_DEBUG, "Worker #%d: Job #%d received.", mpiRank, jobId);
+    //    parpe::logmessage(parpe::LOGLVL_DEBUG, "Worker #%d: Job #%d
+    //    received.", mpiRank, jobId);
 
     // unpack parameters
 
     int conditionIdx = *(int*)buffer.data();
     int needGradient = *(int*)(buffer.data() + sizeof(int));
-    double *pstart = reinterpret_cast<double *>(buffer.data() + 2 * sizeof(int));
+    double* pstart = reinterpret_cast<double*>(buffer.data() + 2 * sizeof(int));
     model->setParameters(std::vector<double>(pstart, pstart + model->np()));
 
     // read data for current conditions
@@ -160,11 +178,10 @@ void ExampleSteadystateGradientFunctionParallel::messageHandler(std::vector<char
     // printf("Result for %d: %f\n", conditionIdx, *rdata->llh);
     // pack results
     buffer.resize(sizeof(double) * (model->nplist() + 1));
-    double *doubleBuffer = (double *) buffer.data();
+    double* doubleBuffer = (double*)buffer.data();
 
     doubleBuffer[0] = rdata->llh;
     if (needGradient)
         for (int i = 0; i < model->nplist(); ++i)
             doubleBuffer[1 + i] = rdata->sllh[i];
-
 }

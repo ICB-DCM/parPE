@@ -1,10 +1,10 @@
-#include <parpeamici/optimizationApplication.h>
 #include <parpeamici/multiConditionDataProvider.h>
 #include <parpeamici/multiConditionProblem.h>
-#include <parpeoptimization/optimizationResultWriter.h>
+#include <parpeamici/optimizationApplication.h>
 #include <parpecommon/logging.h>
-#include <parpeoptimization/optimizationOptions.h>
 #include <parpecommon/misc.h>
+#include <parpeoptimization/optimizationOptions.h>
+#include <parpeoptimization/optimizationResultWriter.h>
 
 #include <amici/model.h>
 
@@ -12,20 +12,21 @@
 
 // to avoid including model-specific header files
 namespace amici::generic_model {
-    std::unique_ptr<amici::Model> getModel();
+std::unique_ptr<amici::Model> getModel();
 }
 
 class MyOptimizationApplication : public parpe::OptimizationApplication {
-public:
+  public:
     using OptimizationApplication::OptimizationApplication;
 
-    virtual void initProblem(std::string const& inFileArgument,
-                             std::string const& outFileArgument) override
-    {
+    virtual void initProblem(
+        std::string const& inFileArgument,
+        std::string const& outFileArgument) override {
         if (!isWorker())
-            parpe::logmessage(parpe::loglevel::info,
-                              "Reading options and data from '%s'.",
-                              inFileArgument.c_str());
+            parpe::logmessage(
+                parpe::loglevel::info,
+                "Reading options and data from '%s'.",
+                inFileArgument.c_str());
 
         auto h5Outfile = parpe::hdf5CreateFile(outFileArgument, true);
         logParPEVersion(h5Outfile);
@@ -36,24 +37,24 @@ public:
 
         // read options from file
         auto h5Infile = dataProvider->getHdf5File();
-        auto optimizationOptions = parpe::OptimizationOptions::fromHDF5(h5Infile);
+        auto optimizationOptions =
+            parpe::OptimizationOptions::fromHDF5(h5Infile);
 
-        // Create one instance for the problem, one for the application for clear ownership
+        // Create one instance for the problem, one for the application for
+        // clear ownership
         auto multiCondProb = new parpe::MultiConditionProblem(
-                    dataProvider.get(), &loadBalancer,
-                    std::make_unique<parpe::Logger>(),
-                    // TODO remove this resultwriter
-                    std::make_unique<parpe::OptimizationResultWriter>(
-                        h5Outfile,
-                        std::string("/multistarts/"))
-                    );
+            dataProvider.get(),
+            &loadBalancer,
+            std::make_unique<parpe::Logger>(),
+            // TODO remove this resultwriter
+            std::make_unique<parpe::OptimizationResultWriter>(
+                h5Outfile, std::string("/multistarts/")));
 
         // hierarchical optimization?
-        if(optimizationOptions->hierarchicalOptimization) {
+        if (optimizationOptions->hierarchicalOptimization) {
             problem.reset(new parpe::HierarchicalOptimizationProblemWrapper(
-                              std::unique_ptr<parpe::MultiConditionProblem>(multiCondProb),
-                              dataProvider.get())
-                          );
+                std::unique_ptr<parpe::MultiConditionProblem>(multiCondProb),
+                dataProvider.get()));
         } else {
             problem.reset(multiCondProb);
         }
@@ -61,29 +62,26 @@ public:
         problem->setOptimizationOptions(*optimizationOptions);
 
         // On master, copy input data to result file
-        if(parpe::getMpiRank() < 1)
+        if (parpe::getMpiRank() < 1)
             dataProvider->copyInputData(h5Outfile);
 
         auto ms = new parpe::MultiConditionProblemMultiStartOptimizationProblem(
-                    dataProvider.get(),
-                    problem->getOptimizationOptions(),
-                    multiCondProb->getResultWriter(),
-                    &loadBalancer,
-                    std::make_unique<parpe::Logger>()
-                    );
+            dataProvider.get(),
+            problem->getOptimizationOptions(),
+            multiCondProb->getResultWriter(),
+            &loadBalancer,
+            std::make_unique<parpe::Logger>());
         multiStartOptimizationProblem.reset(ms);
     }
 
-    virtual ~MyOptimizationApplication() override {
-        parpe::logProcessStats();
-    }
+    virtual ~MyOptimizationApplication() override { parpe::logProcessStats(); }
 
-private:
+  private:
     /** DataProvider as interface to HDF5 data */
     std::unique_ptr<parpe::MultiConditionDataProviderHDF5> dataProvider;
 };
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
 #ifndef NDEBUG
     // Set stdout to unbuffered when debugging
     setbuf(stdout, NULL);

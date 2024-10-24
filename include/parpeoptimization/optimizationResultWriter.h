@@ -16,14 +16,13 @@ namespace parpe {
  */
 
 class OptimizationResultWriter {
-public:
+  public:
     /**
      * @brief Write to pre-opened HDF5 file (will be re-opened)
      * @param file
      * @param rootPath
      */
-    OptimizationResultWriter(const H5::H5File &file,
-                             std::string rootPath);
+    OptimizationResultWriter(const H5::H5File& file, std::string rootPath);
 
     /**
      * @brief Open HDF5 file and write there
@@ -31,11 +30,13 @@ public:
      * @param overwrite Overwrite output file if already exists
      * @param rootPath
      */
-    OptimizationResultWriter(const std::string &filename,
-                             bool overwrite,
-                             std::string rootPath);
+    OptimizationResultWriter(
+        std::string const& filename,
+        bool overwrite,
+        std::string rootPath);
 
-    OptimizationResultWriter& operator=(const OptimizationResultWriter& other) = delete;
+    OptimizationResultWriter&
+    operator=(OptimizationResultWriter const& other) = delete;
 
     OptimizationResultWriter(OptimizationResultWriter const& other);
 
@@ -53,12 +54,12 @@ public:
      * evaluation (wall time)
      */
     virtual void logObjectiveFunctionEvaluation(
-            gsl::span<const double> parameters,
-            double objectiveFunctionValue,
-            gsl::span<const double> objectiveFunctionGradient,
-            int numIterations,
-            int numFunctionCalls,
-            double timeElapsedInSeconds);
+        gsl::span<double const> parameters,
+        double objectiveFunctionValue,
+        gsl::span<double const> objectiveFunctionGradient,
+        int numIterations,
+        int numFunctionCalls,
+        double timeElapsedInSeconds);
 
     /**
      * @brief Function to be called after each optimizer iteration. (For
@@ -78,23 +79,23 @@ public:
      * @param alpha_pr
      * @param ls_trials
      */
-    virtual void logOptimizerIteration(int numIterations,
-                                       gsl::span<const double> parameters,
-                                       double objectiveFunctionValue,
-                                       gsl::span<const double> gradient,
-                                       double wallSeconds,
-                                       double cpuSeconds);
+    virtual void logOptimizerIteration(
+        int numIterations,
+        gsl::span<double const> parameters,
+        double objectiveFunctionValue,
+        gsl::span<double const> gradient,
+        double wallSeconds,
+        double cpuSeconds);
 
     void setLoggingEachIteration(bool logGradient);
 
-    void setLoggingEachFunctionEvaluation(bool logGradient,
-                                          bool logParameters);
+    void setLoggingEachFunctionEvaluation(bool logGradient, bool logParameters);
 
     /**
      * @brief Log optimizer start
      * @param initialParameters
      */
-    virtual void starting(gsl::span<const double> initialParameters);
+    virtual void starting(gsl::span<double const> initialParameters);
 
     /**
      * @brief Function to be called when local optimization is finished.
@@ -103,11 +104,12 @@ public:
      * @param masterTime Wall time for this optimization
      * @param exitStatus Exit status (cause of optimizer termination)
      */
-    virtual void saveOptimizerResults(double finalNegLogLikelihood,
-                                      gsl::span<const double> optimalParameters,
-                                      double wallSec,
-                                      double cpuSec,
-                                      int exitStatus) const;
+    virtual void saveOptimizerResults(
+        double finalNegLogLikelihood,
+        gsl::span<double const> optimalParameters,
+        double wallSec,
+        double cpuSec,
+        int exitStatus) const;
 
     H5::H5File const& getH5File() const;
 
@@ -125,20 +127,19 @@ public:
      */
     void setRootPath(std::string const& path);
 
-protected:
+  protected:
     /**
      * @brief Write buffered output to file
      */
     virtual void flushResultWriter() const;
 
-private:
+  private:
     virtual std::string getIterationPath(int iterationIdx) const;
 
     H5::H5File file = 0;
 
     /** Root path within HDF5 file */
     std::string rootPath = "/";
-
 };
 
 } // namespace parpe

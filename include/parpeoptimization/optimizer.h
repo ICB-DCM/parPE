@@ -14,7 +14,8 @@ class OptimizationOptions;
  */
 class Optimizer {
   public:
-    virtual std::tuple<int, double, std::vector<double> > optimize(OptimizationProblem *) = 0;
+    virtual std::tuple<int, double, std::vector<double>>
+    optimize(OptimizationProblem*) = 0;
 
     virtual ~Optimizer() = default;
 };

@@ -1,17 +1,17 @@
 #include <parpecommon/logging.h>
 
-#include <parpecommon/parpeConfig.h>
 #include <parpecommon/misc.h> // getMpiActive
+#include <parpecommon/parpeConfig.h>
 
-#include <fstream>
-#include <ctime>
-#include <cstdio>
 #include <cmath>
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <unistd.h>
+#include <ctime>
+#include <fstream>
 #include <sstream>
 #include <thread>
+#include <unistd.h>
 
 #ifdef PARPE_ENABLE_MPI
 #include <mpi.h>
@@ -19,11 +19,11 @@
 
 namespace parpe {
 
-const char *loglevelShortStr[] = {"", "CRI", "ERR", "WRN", "INF", "DBG"};
+char const* loglevelShortStr[] = {"", "CRI", "ERR", "WRN", "INF", "DBG"};
 loglevel minimumLogLevel = loglevel::debug;
-static void printlogmessage(loglevel lvl, const char *message);
+static void printlogmessage(loglevel lvl, char const* message);
 
-std::string printfToString(const char *fmt, va_list ap) {
+std::string printfToString(char const* fmt, va_list ap) {
     // Get size of string
     va_list ap_count;
     va_copy(ap_count, ap);
@@ -32,14 +32,13 @@ std::string printfToString(const char *fmt, va_list ap) {
     ++size;
 
     // actual formatting
-    auto buf = std::make_unique<char []>(size);
+    auto buf = std::make_unique<char[]>(size);
     size = vsnprintf(buf.get(), size, fmt, ap);
 
     return std::string(buf.get(), size);
 }
 
-void logmessage(loglevel lvl, const char *format, ...)
-{
+void logmessage(loglevel lvl, char const* format, ...) {
     va_list argptr;
     va_start(argptr, format);
     auto str = printfToString(format, argptr);
@@ -47,18 +46,16 @@ void logmessage(loglevel lvl, const char *format, ...)
     logmessage(lvl, str);
 }
 
-void logmessage(loglevel lvl, const char *format, va_list argptr) {
+void logmessage(loglevel lvl, char const* format, va_list argptr) {
     logmessage(lvl, printfToString(format, argptr));
 }
 
-void logProcessStats()
-{
+void logProcessStats() {
     std::ifstream file("/proc/self/status");
     if (file.is_open()) {
         std::string line;
         while (std::getline(file, line)) {
-            if(line.rfind("Vm", 0) == 0
-                    || line.rfind("Rss", 0) == 0) {
+            if (line.rfind("Vm", 0) == 0 || line.rfind("Rss", 0) == 0) {
                 logmessage(loglevel::debug, line);
             }
         }
@@ -70,7 +67,7 @@ void printMPIInfo() {
 #ifdef PARPE_ENABLE_MPI
     int mpiActive = getMpiActive();
 
-    if(mpiActive) {
+    if (mpiActive) {
         int mpiCommSize, mpiRank;
         MPI_Comm_size(MPI_COMM_WORLD, &mpiCommSize);
         MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
@@ -79,8 +76,12 @@ void printMPIInfo() {
         int procNameLen;
         MPI_Get_processor_name(procName, &procNameLen);
 
-        logmessage(loglevel::debug, "Rank %d/%d running on %s.", mpiRank,
-                   mpiCommSize, procName);
+        logmessage(
+            loglevel::debug,
+            "Rank %d/%d running on %s.",
+            mpiRank,
+            mpiCommSize,
+            procName);
     } else {
         logmessage(loglevel::debug, "MPI not initialized.");
     }
@@ -89,33 +90,32 @@ void printMPIInfo() {
 #endif
 }
 
-
 void printDebugInfoAndWait(int seconds) {
-    //int i = 0;
+    // int i = 0;
     char hostname[256];
     gethostname(hostname, sizeof(hostname));
-    logmessage(loglevel::debug,
-               "PID %d on %s ready for attach (will wait for %ds)", getpid(),
-               hostname, seconds);
+    logmessage(
+        loglevel::debug,
+        "PID %d on %s ready for attach (will wait for %ds)",
+        getpid(),
+        hostname,
+        seconds);
     fflush(stdout);
-    //while (0 == i)
+    // while (0 == i)
     sleep(seconds);
 }
 
-void logmessage(loglevel lvl, const std::string &msg)
-{
+void logmessage(loglevel lvl, std::string const& msg) {
     std::stringstream ss(msg);
     std::string line;
 
-    while(std::getline(ss, line, '\n'))
+    while (std::getline(ss, line, '\n'))
         printlogmessage(lvl, line.c_str());
 }
 
-void printlogmessage(loglevel lvl, const char *message)
-{
-    if(minimumLogLevel < lvl)
+void printlogmessage(loglevel lvl, char const* message) {
+    if (minimumLogLevel < lvl)
         return;
-
 
     // TODO: fileLogLevel, consoleLogLevel
     // Coloring
@@ -150,14 +150,14 @@ void printlogmessage(loglevel lvl, const char *message)
 #ifdef PARPE_ENABLE_MPI
     auto mpiActive = getMpiActive();
 
-    if(mpiActive) {
+    if (mpiActive) {
         MPI_Comm_size(MPI_COMM_WORLD, &mpiCommSize);
         MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
     }
 
     char procName[MPI_MAX_PROCESSOR_NAME];
     procName[0] = '\0';
-    if(mpiActive) {
+    if (mpiActive) {
         int procNameLen;
         MPI_Get_processor_name(procName, &procNameLen);
     }
@@ -166,10 +166,14 @@ void printlogmessage(loglevel lvl, const char *message)
 #endif
     std::ostringstream thread_id_oss;
     thread_id_oss << std::this_thread::get_id();
-    auto thread_id {thread_id_oss.str()};
+    auto thread_id{thread_id_oss.str()};
 
-    printf("[%*d:%s/%s] ", 1 + static_cast<int>(log10(mpiCommSize)),
-           mpiRank, thread_id.c_str(), procName );
+    printf(
+        "[%*d:%s/%s] ",
+        1 + static_cast<int>(log10(mpiCommSize)),
+        mpiRank,
+        thread_id.c_str(),
+        procName);
     printf("%s", message);
     printf("%s\n", ANSI_COLOR_RESET);
 
@@ -182,36 +186,34 @@ void printlogmessage(loglevel lvl, const char *message)
     default:
         break;
     }
-
 }
 
-Logger::Logger(std::string prefix) : prefix(std::move(prefix)) {}
+Logger::Logger(std::string prefix)
+    : prefix(std::move(prefix)) {}
 
-std::unique_ptr<Logger> Logger::getChild(const std::string &appendedPrefix) const {
+std::unique_ptr<Logger>
+Logger::getChild(std::string const& appendedPrefix) const {
     return std::make_unique<Logger>(prefix + appendedPrefix);
 }
 
-void Logger::logmessage(loglevel lvl, const std::string &msg) const {
+void Logger::logmessage(loglevel lvl, std::string const& msg) const {
     parpe::logmessage(lvl, "[" + prefix + "] " + msg);
 }
 
-void Logger::logmessage(loglevel lvl, const char *format, ...) const {
+void Logger::logmessage(loglevel lvl, char const* format, ...) const {
     va_list argptr;
     va_start(argptr, format);
     logmessage(lvl, format, argptr);
     va_end(argptr);
 }
 
-void Logger::logmessage(loglevel lvl, const char *format, va_list argptr) const {
+void Logger::logmessage(loglevel lvl, char const* format, va_list argptr)
+    const {
     logmessage(lvl, printfToString(format, argptr));
 }
 
-void Logger::setPrefix(const std::string &pre) {
-    prefix = pre;
-}
+void Logger::setPrefix(std::string const& pre) { prefix = pre; }
 
-const std::string &Logger::getPrefix() const {
-    return prefix;
-}
+std::string const& Logger::getPrefix() const { return prefix; }
 
 } // namespace parpe

@@ -1,11 +1,11 @@
 #ifndef PARPE_AMICI_SIMULATION_RESULT_WRITER_H
 #define PARPE_AMICI_SIMULATION_RESULT_WRITER_H
 
-#include <string>
 #include <amici/amici.h>
+#include <string>
 
-#include <gsl/gsl-lite.hpp>
 #include <H5Cpp.h>
+#include <gsl/gsl-lite.hpp>
 
 namespace parpe {
 
@@ -29,8 +29,7 @@ namespace parpe {
 
 class SimulationResultWriter {
 
-public:
-
+  public:
     SimulationResultWriter() = default;
 
     /**
@@ -38,15 +37,16 @@ public:
      * @param file HDF5 file object to write to
      * @param rootPath Path prefix inside HDF5 file
      */
-    SimulationResultWriter(const H5::H5File &file, std::string rootPath);
+    SimulationResultWriter(const H5::H5File& file, std::string rootPath);
 
     /**
      * @brief SimulationResultWriter
      * @param hdf5FileName HDF5 file to create or open for appending
      * @param rootPath Path prefix inside HDF5 file
      */
-    SimulationResultWriter(std::string const& hdf5FileName,
-                           std::string  rootPath);
+    SimulationResultWriter(
+        std::string const& hdf5FileName,
+        std::string rootPath);
 
     // Implement me
     SimulationResultWriter(SimulationResultWriter const&) = delete;
@@ -71,24 +71,34 @@ public:
      * position of the result data sets (-> createDatasets)
      */
 
-    void saveSimulationResults(const amici::ExpData *edata,
-                               const amici::ReturnData *rdata,
-                               int simulationIdx);
+    void saveSimulationResults(
+        amici::ExpData const* edata,
+        amici::ReturnData const* rdata,
+        int simulationIdx);
 
-    void saveTimepoints(gsl::span<const double> timepoints,
-                        int simulationIdx) const;
+    void
+    saveTimepoints(gsl::span<double const> timepoints, int simulationIdx) const;
 
-    void saveMeasurements(gsl::span<const double> measurements, int nt,
-                          int nytrue, int simulationIdx) const;
+    void saveMeasurements(
+        gsl::span<double const> measurements,
+        int nt,
+        int nytrue,
+        int simulationIdx) const;
 
-    void saveModelOutputs(gsl::span<const double> outputs, int nt,
-                          int nytrue, int simulationIdx) const;
+    void saveModelOutputs(
+        gsl::span<double const> outputs,
+        int nt,
+        int nytrue,
+        int simulationIdx) const;
 
-    void saveStates(gsl::span<const double> states, int nt, int nx,
-                    int simulationIdx) const;
+    void saveStates(
+        gsl::span<double const> states,
+        int nt,
+        int nx,
+        int simulationIdx) const;
 
-    void saveParameters(gsl::span<const double> parameters,
-                    int simulationIdx) const;
+    void
+    saveParameters(gsl::span<double const> parameters, int simulationIdx) const;
 
     void saveLikelihood(double llh, int simulationIdx) const;
 
@@ -96,11 +106,11 @@ public:
 
     bool saveX = false;
     bool saveLlh = false;
-//    bool saveSllh = false;
+    //    bool saveSllh = false;
     bool saveYSim = false;
     bool saveYMes = false;
     bool save_parameters_ = false;
-//    bool saveK = false;
+    //    bool saveK = false;
 
     std::string yMesPath;
     std::string ySimPath;
@@ -109,7 +119,7 @@ public:
     std::string timePath;
     std::string parametersPath;
 
-private:
+  private:
     void updatePaths();
 
     std::string rootPath;

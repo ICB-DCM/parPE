@@ -1,10 +1,10 @@
 #include <parpeamici/standaloneSimulator.h>
 
+#include <parpeamici/amiciMisc.h>
 #include <parpeamici/amiciSimulationRunner.h>
 #include <parpeamici/hierarchicalOptimization.h>
 #include <parpeamici/multiConditionDataProvider.h>
 #include <parpeamici/simulationResultWriter.h>
-#include <parpeamici/amiciMisc.h>
 #include <parpecommon/misc.h>
 #include <parpeloadbalancer/loadBalancerMaster.h>
 #include <parpeoptimization/optimizationOptions.h>
@@ -21,22 +21,20 @@
 namespace parpe {
 
 StandaloneSimulator::StandaloneSimulator(MultiConditionDataProvider* dp)
-    : dataProvider(dp)
-{
+    : dataProvider(dp) {
     if (auto env = std::getenv("PARPE_MAX_SIMULATIONS_PER_PACKAGE")) {
         maxSimulationsPerPackage = std::stoi(env);
     }
 }
 
-int
-StandaloneSimulator::run(const std::string& resultFile,
-                         const std::string& resultPath,
-                         std::map<std::string, double>& optimizationParameters,
-                         LoadBalancerMaster* loadBalancer,
-                         H5::H5File const& conditionFile,
-                         std::string conditionFilePath,
-                         bool computeInnerParameters)
-{
+int StandaloneSimulator::run(
+    std::string const& resultFile,
+    std::string const& resultPath,
+    std::map<std::string, double>& optimizationParameters,
+    LoadBalancerMaster* loadBalancer,
+    H5::H5File const& conditionFile,
+    std::string conditionFilePath,
+    bool computeInnerParameters) {
     // Data to save
     SimulationResultWriter rw(resultFile, resultPath);
     rw.saveYMes = true;
@@ -71,25 +69,22 @@ StandaloneSimulator::run(const std::string& resultFile,
     hdf5EnsureGroupExists(resultFileH5.getId(), resultPath.c_str());
     {
         [[maybe_unused]] auto lock = hdf5MutexGetLock();
-        hdf5Write1dStringDataset(resultFileH5,
-                                 resultPath,
-                                 "stateIds",
-                                 model->getStateIds());
-        hdf5Write1dStringDataset(resultFileH5,
-                                 resultPath,
-                                 "observableIds",
-                                 model->getObservableIds());
-        hdf5Write1dStringDataset(resultFileH5,
-                                 resultPath,
-                                 "parameterIds",
-                                 model->getParameterIds());
+        hdf5Write1dStringDataset(
+            resultFileH5, resultPath, "stateIds", model->getStateIds());
+        hdf5Write1dStringDataset(
+            resultFileH5,
+            resultPath,
+            "observableIds",
+            model->getObservableIds());
+        hdf5Write1dStringDataset(
+            resultFileH5, resultPath, "parameterIds", model->getParameterIds());
     }
 
     std::cout << "Starting simulation. Number of conditions: "
               << dataProvider->getNumberOfSimulationConditions() << std::endl;
     std::unique_ptr<AmiciSimulationRunner> simRunner;
 
-    if(computeInnerParameters) {
+    if (computeInnerParameters) {
         // hierarchical optimization
         HierarchicalOptimizationWrapper hierarchical(nullptr, 0, 0);
 
@@ -129,10 +124,11 @@ StandaloneSimulator::run(const std::string& resultFile,
         // Collect parameter values
         auto outerParameterNames = hierarchical.getParameterIds();
         std::vector<double> outerParameters(outerParameterNames.size());
-        for(int i = 0; i < static_cast<int>(outerParameterNames.size()); ++i) {
+        for (int i = 0; i < static_cast<int>(outerParameterNames.size()); ++i) {
             outerParameters[i] = optimizationParameters[outerParameterNames[i]];
         }
-        Expects(outerParameters.size() == (unsigned)hierarchical.numParameters());
+        Expects(
+            outerParameters.size() == (unsigned)hierarchical.numParameters());
 
         // expand parameter vector
         auto scalingDummy = hierarchical.getDefaultScalingFactors();
@@ -147,27 +143,29 @@ StandaloneSimulator::run(const std::string& resultFile,
             offsetDummy,
             sigmaDummy);
 
-        allFinished = [this, &dataIndices, &hierarchical, &parameterValues,
-                       &outerParameters, &resultFileH5, &resultPath, &model,
-                       &rw](std::vector<JobData>& jobs)
-        {
+        allFinished = [this,
+                       &dataIndices,
+                       &hierarchical,
+                       &parameterValues,
+                       &outerParameters,
+                       &resultFileH5,
+                       &resultPath,
+                       &model,
+                       &rw](std::vector<JobData>& jobs) {
             /* all finished */
             // must wait for all jobs to finish because of hierarchical
             // optimization and scaling factors
             std::vector<AmiciSimulationRunner::AmiciResultPackageSimple>
                 simulationResults(dataIndices.size());
-            std::vector<std::vector<double>> modelOutputs(
-                dataIndices.size());
-            std::vector<std::vector<double>> modelSigmas(
-                dataIndices.size());
-            std::vector<std::vector<double>> modelStates(
-                dataIndices.size());
+            std::vector<std::vector<double>> modelOutputs(dataIndices.size());
+            std::vector<std::vector<double>> modelSigmas(dataIndices.size());
+            std::vector<std::vector<double>> modelStates(dataIndices.size());
 
             // collect all model outputs
             for (auto& job : jobs) {
-                auto results = amici::deserializeFromChar<
-                    std::map<int,
-                             AmiciSimulationRunner::AmiciResultPackageSimple>>(
+                auto results = amici::deserializeFromChar<std::map<
+                    int,
+                    AmiciSimulationRunner::AmiciResultPackageSimple>>(
                     job.recvBuffer.data(), job.recvBuffer.size());
                 std::vector<char>().swap(job.recvBuffer); // free buffer
                 for (auto& [condition_idx, result] : results) {
@@ -178,7 +176,6 @@ StandaloneSimulator::run(const std::string& resultFile,
                         simulationResults[condition_idx].modelSigmas;
                     modelStates[condition_idx] =
                         simulationResults[condition_idx].modelStates;
-
                 }
             }
 
@@ -211,7 +208,9 @@ StandaloneSimulator::run(const std::string& resultFile,
             {
                 [[maybe_unused]] auto lock = hdf5MutexGetLock();
                 amici::hdf5::createAndWriteDouble1DDataset(
-                    resultFileH5, resultPath + "/problemParameters", parameterValues);
+                    resultFileH5,
+                    resultPath + "/problemParameters",
+                    parameterValues);
             }
 
             // compute llh
@@ -223,29 +222,32 @@ StandaloneSimulator::run(const std::string& resultFile,
                     modelOutputs[conditionIdx],
                     modelSigmas[conditionIdx]);
 
-                auto edata = dataProvider->getExperimentalDataForCondition(
-                    conditionIdx);
+                auto edata =
+                    dataProvider->getExperimentalDataForCondition(conditionIdx);
                 rw.saveTimepoints(edata->getTimepoints(), conditionIdx);
-                if(!modelStates[conditionIdx].empty()) {
-                    rw.saveStates(modelStates[conditionIdx], edata->nt(),
-                                  model->nx_rdata, conditionIdx);
+                if (!modelStates[conditionIdx].empty()) {
+                    rw.saveStates(
+                        modelStates[conditionIdx],
+                        edata->nt(),
+                        model->nx_rdata,
+                        conditionIdx);
                 }
-                rw.saveMeasurements(edata->getObservedData(),
-                                    edata->nt(),
-                                    edata->nytrue(),
-                                    conditionIdx);
-                rw.saveModelOutputs(modelOutputs[conditionIdx],
-                                    edata->nt(),
-                                    model->nytrue,
-                                    conditionIdx);
+                rw.saveMeasurements(
+                    edata->getObservedData(),
+                    edata->nt(),
+                    edata->nytrue(),
+                    conditionIdx);
+                rw.saveModelOutputs(
+                    modelOutputs[conditionIdx],
+                    edata->nt(),
+                    model->nytrue,
+                    conditionIdx);
                 rw.saveLikelihood(llh, conditionIdx);
 
                 // to save simulation parameters
                 dataProvider->updateSimulationParametersAndScale(
                     conditionIdx, parameterValues, *model);
-                rw.saveParameters(model->getParameters(),
-                                  conditionIdx);
-
+                rw.saveParameters(model->getParameters(), conditionIdx);
             }
             return 0;
         };
@@ -263,8 +265,8 @@ StandaloneSimulator::run(const std::string& resultFile,
                 loadBalancer, maxSimulationsPerPackage);
         } else {
 #endif
-            errors +=
-                simRunner->runSharedMemory([this](std::vector<char>& buffer, int jobId) {
+            errors += simRunner->runSharedMemory(
+                [this](std::vector<char>& buffer, int jobId) {
                     messageHandler(buffer, jobId);
                 });
 #ifdef PARPE_ENABLE_MPI
@@ -274,54 +276,57 @@ StandaloneSimulator::run(const std::string& resultFile,
         // Collect parameter values
         auto parameterNames = wrappedFun->getParameterIds();
         parameterValues.resize(parameterNames.size());
-        for(int i = 0; i < static_cast<int>(parameterNames.size()); ++i) {
+        for (int i = 0; i < static_cast<int>(parameterNames.size()); ++i) {
             parameterValues[i] = optimizationParameters[parameterNames[i]];
         }
-        Expects(parameterValues.size() == (unsigned)wrappedFun->numParameters());
+        Expects(
+            parameterValues.size() == (unsigned)wrappedFun->numParameters());
 
         {
             [[maybe_unused]] auto lock = hdf5MutexGetLock();
             amici::hdf5::createAndWriteDouble1DDataset(
-                resultFileH5, resultPath + "/problemParameters", parameterValues);
+                resultFileH5,
+                resultPath + "/problemParameters",
+                parameterValues);
         }
-        jobFinished =
-            [&](
-                JobData* job,
-                int /*dataIdx*/) {
-                /* job finished */
-                auto results = amici::deserializeFromChar<std::map<
-                    int,
-                    AmiciSimulationRunner::AmiciResultPackageSimple>>(
-                    job->recvBuffer.data(), job->recvBuffer.size());
-                std::vector<char>().swap(job->recvBuffer); // free buffer
+        jobFinished = [&](JobData* job, int /*dataIdx*/) {
+            /* job finished */
+            auto results = amici::deserializeFromChar<
+                std::map<int, AmiciSimulationRunner::AmiciResultPackageSimple>>(
+                job->recvBuffer.data(), job->recvBuffer.size());
+            std::vector<char>().swap(job->recvBuffer); // free buffer
 
-                for (auto const& [condition_idx, result] : results) {
-                    errors += result.status;
-                    auto edata =
-                        dataProvider->getExperimentalDataForCondition(
-                            condition_idx);
+            for (auto const& [condition_idx, result] : results) {
+                errors += result.status;
+                auto edata = dataProvider->getExperimentalDataForCondition(
+                    condition_idx);
 
-                    rw.saveTimepoints(edata->getTimepoints(), condition_idx);
-                    if(!result.modelStates.empty()) {
-                        rw.saveStates(result.modelStates, edata->nt(),
-                                      model->nx_rdata, condition_idx);
-                    }
-                    rw.saveMeasurements(edata->getObservedData(),
-                                        edata->nt(),
-                                        edata->nytrue(),
-                                        condition_idx);
-                    rw.saveModelOutputs(result.modelOutput,
-                                        edata->nt(),
-                                        model->nytrue,
-                                        condition_idx);
-                    rw.saveLikelihood(result.llh, condition_idx);
-
-                    // to save simulation parameters
-                    dataProvider->updateSimulationParametersAndScale(
-                        condition_idx, parameterValues, *model);
-                    rw.saveParameters(model->getParameters(), condition_idx);
+                rw.saveTimepoints(edata->getTimepoints(), condition_idx);
+                if (!result.modelStates.empty()) {
+                    rw.saveStates(
+                        result.modelStates,
+                        edata->nt(),
+                        model->nx_rdata,
+                        condition_idx);
                 }
-            };
+                rw.saveMeasurements(
+                    edata->getObservedData(),
+                    edata->nt(),
+                    edata->nytrue(),
+                    condition_idx);
+                rw.saveModelOutputs(
+                    result.modelOutput,
+                    edata->nt(),
+                    model->nytrue,
+                    condition_idx);
+                rw.saveLikelihood(result.llh, condition_idx);
+
+                // to save simulation parameters
+                dataProvider->updateSimulationParametersAndScale(
+                    condition_idx, parameterValues, *model);
+                rw.saveParameters(model->getParameters(), condition_idx);
+            }
+        };
 
         simRunner = std::make_unique<AmiciSimulationRunner>(
             parameterValues,
@@ -336,8 +341,8 @@ StandaloneSimulator::run(const std::string& resultFile,
                 loadBalancer, maxSimulationsPerPackage);
         } else {
 #endif
-            errors +=
-                simRunner->runSharedMemory([this](std::vector<char>& buffer, int jobId) {
+            errors += simRunner->runSharedMemory(
+                [this](std::vector<char>& buffer, int jobId) {
                     messageHandler(buffer, jobId);
                 });
 #ifdef PARPE_ENABLE_MPI
@@ -348,16 +353,16 @@ StandaloneSimulator::run(const std::string& resultFile,
     return errors;
 }
 
-void
-StandaloneSimulator::messageHandler(std::vector<char>& buffer, int /*jobId*/)
-{
+void StandaloneSimulator::messageHandler(
+    std::vector<char>& buffer,
+    int /*jobId*/) {
     // TODO: pretty redundant with messageHandler in multiconditionproblem
     // unpack simulation job data
     auto model = dataProvider->getModel();
     auto solver = dataProvider->getSolver();
-    auto sim =
-        amici::deserializeFromChar<AmiciSimulationRunner::AmiciWorkPackageSimple>(
-            buffer.data(), buffer.size());
+    auto sim = amici::deserializeFromChar<
+        AmiciSimulationRunner::AmiciWorkPackageSimple>(
+        buffer.data(), buffer.size());
     solver->setSensitivityOrder(sim.sensitivityOrder);
 
 #if QUEUE_WORKER_H_VERBOSE >= 2
@@ -385,10 +390,10 @@ StandaloneSimulator::messageHandler(std::vector<char>& buffer, int /*jobId*/)
 }
 
 AmiciSimulationRunner::AmiciResultPackageSimple
-StandaloneSimulator::runSimulation(int conditionIdx,
-                                   amici::Solver& solver,
-                                   amici::Model& model)
-{
+StandaloneSimulator::runSimulation(
+    int conditionIdx,
+    amici::Solver& solver,
+    amici::Model& model) {
     // currently requires edata, since all condition specific parameters are set
     // via edata
     auto edata = dataProvider->getExperimentalDataForCondition(conditionIdx);
@@ -396,7 +401,8 @@ StandaloneSimulator::runSimulation(int conditionIdx,
     // redirect AMICI output to parPE logging
     Logger logger("c" + std::to_string(conditionIdx));
 
-    auto rdata = run_amici_simulation(solver, edata.get(), model, false, &logger);
+    auto rdata =
+        run_amici_simulation(solver, edata.get(), model, false, &logger);
 
     Expects(rdata != nullptr);
 
@@ -409,13 +415,11 @@ StandaloneSimulator::runSimulation(int conditionIdx,
         rdata->y,
         rdata->sigmay,
         rdata->x,
-        rdata->status
-    };
+        rdata->status};
 }
 
 std::vector<double>
-getFinalParameters(std::string const& startIndex, H5::H5File const& file)
-{
+getFinalParameters(std::string const& startIndex, H5::H5File const& file) {
     [[maybe_unused]] auto lock = hdf5MutexGetLock();
 
     // find last iteration /multistarts/$/iteration/$/costFunParameters
@@ -424,14 +428,15 @@ getFinalParameters(std::string const& startIndex, H5::H5File const& file)
     int iteration = 0;
     while (
         hdf5GroupExists(file, iterationPath + std::to_string(iteration)) &&
-        file.nameExists(iterationPath + std::to_string(iteration)
-                        + "/costFunParameters")) {
+        file.nameExists(
+            iterationPath + std::to_string(iteration) + "/costFunParameters")) {
         ++iteration;
     }
     --iteration; // last one did not exist
 
-    auto [costFunEvaluationIndexLast, costFunValLast] = getFunctionEvaluationWithMinimalCost(
-        iterationPath + std::to_string(iteration) + "/costFunCost", file);
+    auto [costFunEvaluationIndexLast, costFunValLast] =
+        getFunctionEvaluationWithMinimalCost(
+            iterationPath + std::to_string(iteration) + "/costFunCost", file);
     int costFunEvaluationIndex = costFunEvaluationIndexLast;
 
     if (iteration > 0) {
@@ -440,7 +445,8 @@ getFinalParameters(std::string const& startIndex, H5::H5File const& file)
         // iteration
         auto [costFunEvaluationIndexSecondLast, costFunValSecondLast] =
             getFunctionEvaluationWithMinimalCost(
-                iterationPath + std::to_string(iteration - 1) + "/costFunCost", file);
+                iterationPath + std::to_string(iteration - 1) + "/costFunCost",
+                file);
         if (costFunValSecondLast < costFunValLast) {
             --iteration;
             costFunEvaluationIndex = costFunEvaluationIndexSecondLast;
@@ -462,13 +468,14 @@ getFinalParameters(std::string const& startIndex, H5::H5File const& file)
 
     std::vector<double> parameters(numParam);
 
-    parpe::hdf5Read2DDoubleHyperslab(file.getId(),
-                                     parameterPath.c_str(),
-                                     numParam,
-                                     1,
-                                     0,
-                                     costFunEvaluationIndex,
-                                     parameters);
+    parpe::hdf5Read2DDoubleHyperslab(
+        file.getId(),
+        parameterPath.c_str(),
+        numParam,
+        1,
+        0,
+        costFunEvaluationIndex,
+        parameters);
 
     /*
     // read from last iteration (last column in
@@ -491,13 +498,12 @@ getFinalParameters(std::string const& startIndex, H5::H5File const& file)
                                      numParam, 1, 0, numIter - 1,
                                      parameters.data());
     */
-        return parameters;
+    return parameters;
 }
 
-std::pair<int, double>
-getFunctionEvaluationWithMinimalCost(std::string const& datasetPath,
-                                     H5::H5File const& file)
-{
+std::pair<int, double> getFunctionEvaluationWithMinimalCost(
+    std::string const& datasetPath,
+    H5::H5File const& file) {
     [[maybe_unused]] auto lock = hdf5MutexGetLock();
 
     H5::DataSet dataset = file.openDataSet(datasetPath);
@@ -516,12 +522,11 @@ getFunctionEvaluationWithMinimalCost(std::string const& datasetPath,
     parpe::hdf5Read2DDoubleHyperslab(
         file, datasetPath, 1, numFunctionEvalations, 0, 0, cost);
     int minIndex = std::min_element(cost.begin(), cost.end()) - cost.begin();
-    return { minIndex, cost[minIndex] };
+    return {minIndex, cost[minIndex]};
 }
 
 std::vector<std::vector<double>>
-getParameterTrajectory(std::string const& startIndex, H5::H5File const& file)
-{
+getParameterTrajectory(std::string const& startIndex, H5::H5File const& file) {
     [[maybe_unused]] auto lock = hdf5MutexGetLock();
 
     std::string parameterPath =
@@ -541,47 +546,41 @@ getParameterTrajectory(std::string const& startIndex, H5::H5File const& file)
 
     for (int iter = 0; iter < numIter; ++iter) {
         parameters[iter] = std::vector<double>(numParam);
-        parpe::hdf5Read2DDoubleHyperslab(file,
-                                         parameterPath,
-                                         numParam,
-                                         1,
-                                         0,
-                                         iter,
-                                         parameters[iter]);
+        parpe::hdf5Read2DDoubleHyperslab(
+            file, parameterPath, numParam, 1, 0, iter, parameters[iter]);
     }
 
     return parameters;
 }
 
-int
-getNumStarts(H5::H5File const& file, std::string const& rootPath)
-{
+int getNumStarts(H5::H5File const& file, std::string const& rootPath) {
     auto o = parpe::OptimizationOptions::fromHDF5(
         file, rootPath + "/optimizationOptions");
     return o->numStarts;
 }
 
-int
-runFinalParameters(StandaloneSimulator& sim,
-                   std::string const& conditionFileName,
-                   std::string const& conditionFilePath,
-                   std::string const& parameterFileName,
-                   std::string const& parameterFilePath,
-                   std::string const& resultFileName,
-                   std::string const& resultPath,
-                   LoadBalancerMaster* loadBalancer, bool computeInnerParameters)
-{
+int runFinalParameters(
+    StandaloneSimulator& sim,
+    std::string const& conditionFileName,
+    std::string const& conditionFilePath,
+    std::string const& parameterFileName,
+    std::string const& parameterFilePath,
+    std::string const& resultFileName,
+    std::string const& resultPath,
+    LoadBalancerMaster* loadBalancer,
+    bool computeInnerParameters) {
     [[maybe_unused]] auto lock = hdf5MutexGetLock();
     H5::H5File parameterFile(parameterFileName, H5F_ACC_RDONLY);
     H5::H5File conditionFile(conditionFileName, H5F_ACC_RDONLY);
     std::vector<std::string> parameterNames;
-    if(hdf5GroupExists(parameterFile,
-                        parameterFilePath + "/parameters/parameterNames")){
+    if (hdf5GroupExists(
+            parameterFile, parameterFilePath + "/parameters/parameterNames")) {
         parameterNames = hdf5Read1dStringDataset(
             parameterFile, parameterFilePath + "/parameters/parameterNames");
     } else {
         parameterNames = hdf5Read1dStringDataset(
-            parameterFile, parameterFilePath + "/inputData/parameters/parameterNames");
+            parameterFile,
+            parameterFilePath + "/inputData/parameters/parameterNames");
     }
     lock.unlock();
 
@@ -591,23 +590,24 @@ runFinalParameters(StandaloneSimulator& sim,
     for (int iStart = 0; iStart < numStarts; ++iStart) {
         std::cout << "Running for start " << iStart << std::endl;
         try {
-            auto parameterValues =
-                parpe::getFinalParameters(std::to_string(iStart), parameterFile);
+            auto parameterValues = parpe::getFinalParameters(
+                std::to_string(iStart), parameterFile);
             Expects(parameterValues.size() == parameterNames.size());
             std::map<std::string, double> parameters;
-            for(int i = 0; i < static_cast<int>(parameters.size()); ++i)
+            for (int i = 0; i < static_cast<int>(parameters.size()); ++i)
                 parameters[parameterNames[i]] = parameterValues[i];
 
             std::string curResultPath =
                 resultPath + "multistarts/" + std::to_string(iStart);
 
-            errors += sim.run(resultFileName,
-                              curResultPath,
-                              parameters,
-                              loadBalancer,
-                              conditionFile,
-                              conditionFilePath,
-                              computeInnerParameters);
+            errors += sim.run(
+                resultFileName,
+                curResultPath,
+                parameters,
+                loadBalancer,
+                conditionFile,
+                conditionFilePath,
+                computeInnerParameters);
         } catch (H5::FileIException const& e) {
             std::cerr << "Exception during start " << iStart << " "
                       << e.getDetailMsg() << std::endl;
@@ -622,27 +622,28 @@ runFinalParameters(StandaloneSimulator& sim,
     return errors;
 }
 
-int
-runAlongTrajectory(StandaloneSimulator& sim,
-                   const std::string& conditionFileName,
-                   const std::string& conditionFilePath,
-                   const std::string& parameterFileName,
-                   const std::string& parameterFilePath,
-                   std::string const& resultFileName,
-                   std::string const& resultPath,
-                   LoadBalancerMaster* loadBalancer, bool computeInnerParameters)
-{
+int runAlongTrajectory(
+    StandaloneSimulator& sim,
+    std::string const& conditionFileName,
+    std::string const& conditionFilePath,
+    std::string const& parameterFileName,
+    std::string const& parameterFilePath,
+    std::string const& resultFileName,
+    std::string const& resultPath,
+    LoadBalancerMaster* loadBalancer,
+    bool computeInnerParameters) {
     [[maybe_unused]] auto lock = hdf5MutexGetLock();
     H5::H5File parameterFile(parameterFileName, H5F_ACC_RDONLY);
     H5::H5File conditionFile(conditionFileName, H5F_ACC_RDONLY);
     std::vector<std::string> parameterNames;
-    if(hdf5GroupExists(parameterFile,
-                        parameterFilePath + "/parameters/parameterNames")){
+    if (hdf5GroupExists(
+            parameterFile, parameterFilePath + "/parameters/parameterNames")) {
         parameterNames = hdf5Read1dStringDataset(
             parameterFile, parameterFilePath + "/parameters/parameterNames");
     } else {
         parameterNames = hdf5Read1dStringDataset(
-            parameterFile, parameterFilePath + "/inputData/parameters/parameterNames");
+            parameterFile,
+            parameterFilePath + "/inputData/parameters/parameterNames");
     }
 
     lock.unlock();
@@ -654,7 +655,8 @@ runAlongTrajectory(StandaloneSimulator& sim,
             auto parameterTrajectory =
                 getParameterTrajectory(std::to_string(startIdx), parameterFile);
 
-            for (int iter = 0; (unsigned)iter < parameterTrajectory.size(); ++iter) {
+            for (int iter = 0; (unsigned)iter < parameterTrajectory.size();
+                 ++iter) {
                 std::cout << "Running for start " << startIdx << " iter "
                           << iter << std::endl;
                 std::string curResultPath = resultPath + "/multistarts/" +
@@ -664,16 +666,17 @@ runAlongTrajectory(StandaloneSimulator& sim,
 
                 Expects(parameterValues.size() == parameterNames.size());
                 std::map<std::string, double> parameters;
-                for(int i = 0; i < static_cast<int>(parameters.size()); ++i)
+                for (int i = 0; i < static_cast<int>(parameters.size()); ++i)
                     parameters[parameterNames[i]] = parameterValues[i];
 
-                errors += sim.run(resultFileName,
-                                  curResultPath,
-                                  parameters,
-                                  loadBalancer,
-                                  conditionFile,
-                                  conditionFilePath,
-                                  computeInnerParameters);
+                errors += sim.run(
+                    resultFileName,
+                    curResultPath,
+                    parameters,
+                    loadBalancer,
+                    conditionFile,
+                    conditionFilePath,
+                    computeInnerParameters);
             }
         } catch (std::exception const& e) {
             std::cerr << e.what() << std::endl;
@@ -687,27 +690,25 @@ runAlongTrajectory(StandaloneSimulator& sim,
     return errors;
 }
 
-
-int
-runNominalParameters(StandaloneSimulator& sim,
-                     std::string const& conditionFileName,
-                     std::string const& conditionFilePath,
-                     std::string const& parameterFileName,
-                     std::string const& parameterFilePath,
-                     std::string const& resultFileName,
-                     std::string const& resultPath,
-                     LoadBalancerMaster* loadBalancer,
-                     bool computeInnerParameters)
-{
+int runNominalParameters(
+    StandaloneSimulator& sim,
+    std::string const& conditionFileName,
+    std::string const& conditionFilePath,
+    std::string const& parameterFileName,
+    std::string const& parameterFilePath,
+    std::string const& resultFileName,
+    std::string const& resultPath,
+    LoadBalancerMaster* loadBalancer,
+    bool computeInnerParameters) {
     [[maybe_unused]] auto lock = hdf5MutexGetLock();
     H5::H5File parameterFile(parameterFileName, H5F_ACC_RDONLY);
     H5::H5File conditionFile(conditionFileName, H5F_ACC_RDONLY);
 
     int errors = 0;
 
-    std::cout << "Running for nominal parameter from "
-              <<parameterFileName<<" "
-              <<parameterFilePath + "/parameters/nominalValues"<< std::endl;
+    std::cout << "Running for nominal parameter from " << parameterFileName
+              << " " << parameterFilePath + "/parameters/nominalValues"
+              << std::endl;
     // Read nominal parameters
     auto parameterValues = amici::hdf5::getDoubleDataset1D(
         parameterFile, parameterFilePath + "/parameters/nominalValues");
@@ -717,19 +718,19 @@ runNominalParameters(StandaloneSimulator& sim,
 
     Expects(parameterValues.size() == parameterNames.size());
     std::map<std::string, double> parameters;
-    for(int i = 0; i < static_cast<int>(parameterValues.size()); ++i)
+    for (int i = 0; i < static_cast<int>(parameterValues.size()); ++i)
         parameters[parameterNames[i]] = parameterValues[i];
 
     std::string curResultPath = resultPath + "nominal/";
 
-
-    errors += sim.run(resultFileName,
-                      curResultPath,
-                      parameters,
-                      loadBalancer,
-                      conditionFile,
-                      conditionFilePath,
-                      computeInnerParameters);
+    errors += sim.run(
+        resultFileName,
+        curResultPath,
+        parameters,
+        loadBalancer,
+        conditionFile,
+        conditionFilePath,
+        computeInnerParameters);
 
     // lock for destruction of H5Files
     // FIXME: won't lock if an unhandled exception occurs
@@ -738,96 +739,100 @@ runNominalParameters(StandaloneSimulator& sim,
     return errors;
 }
 
-int
-runSimulationTasks(StandaloneSimulator& sim,
-                   std::string const& simulationMode,
-                   std::string const& conditionFileName,
-                   std::string const& conditionFilePath,
-                   std::string const& parameterFileName,
-                   std::string const& parameterFilePath,
-                   std::string const& resultFileName,
-                   std::string const& resultPath,
-                   LoadBalancerMaster* loadBalancer,
-                   bool computeInnerParameters)
-{
+int runSimulationTasks(
+    StandaloneSimulator& sim,
+    std::string const& simulationMode,
+    std::string const& conditionFileName,
+    std::string const& conditionFilePath,
+    std::string const& parameterFileName,
+    std::string const& parameterFilePath,
+    std::string const& resultFileName,
+    std::string const& resultPath,
+    LoadBalancerMaster* loadBalancer,
+    bool computeInnerParameters) {
     {
-        std::cout<<"Running "<<simulationMode<<" for \n\tconditions from "
-                  <<conditionFileName<<":"<<conditionFilePath
-                  <<" and \n\tparameters from "
-                  <<parameterFileName<<":"<<parameterFilePath<<"\n\t> "
-                  <<resultFileName<<":"<<resultPath<<std::endl;
+        std::cout << "Running " << simulationMode << " for \n\tconditions from "
+                  << conditionFileName << ":" << conditionFilePath
+                  << " and \n\tparameters from " << parameterFileName << ":"
+                  << parameterFilePath << "\n\t> " << resultFileName << ":"
+                  << resultPath << std::endl;
         // copy input data
         [[maybe_unused]] auto lock = hdf5MutexGetLock();
         H5::H5File conditionFile = hdf5OpenForReading(conditionFileName);
         H5::H5File resultFile = hdf5OpenForAppending(resultFileName);
 
         // TODO: this may not always be present. decide elsewhere what to copy
-        std::vector<std::string> datasetsToCopy {"/inputData"};
+        std::vector<std::string> datasetsToCopy{"/inputData"};
         for (auto const& datasetToCopy : datasetsToCopy) {
             auto source = conditionFilePath + datasetToCopy;
 
-            if(!conditionFile.exists(source)) {
+            if (!conditionFile.exists(source)) {
                 continue;
             }
 
             auto dest = resultPath + "/" + datasetToCopy;
-            H5Ocopy(conditionFile.getId(), source.c_str(),
-                    resultFile.getId(), dest.c_str(),
-                    H5P_DEFAULT, H5P_DEFAULT);
+            H5Ocopy(
+                conditionFile.getId(),
+                source.c_str(),
+                resultFile.getId(),
+                dest.c_str(),
+                H5P_DEFAULT,
+                H5P_DEFAULT);
         }
     }
 
     if (simulationMode == "--at-optimum") {
-        return parpe::runFinalParameters(sim,
-                                         conditionFileName,
-                                         conditionFilePath,
-                                         parameterFileName,
-                                         parameterFilePath,
-                                         resultFileName,
-                                         resultPath,
-                                         loadBalancer,
-                                         computeInnerParameters);
+        return parpe::runFinalParameters(
+            sim,
+            conditionFileName,
+            conditionFilePath,
+            parameterFileName,
+            parameterFilePath,
+            resultFileName,
+            resultPath,
+            loadBalancer,
+            computeInnerParameters);
     }
 
     if (simulationMode == "--along-trajectory") {
-        return parpe::runAlongTrajectory(sim,
-                                         conditionFileName,
-                                         conditionFilePath,
-                                         parameterFileName,
-                                         parameterFilePath,
-                                         resultFileName,
-                                         resultPath,
-                                         loadBalancer,
-                                         computeInnerParameters);
+        return parpe::runAlongTrajectory(
+            sim,
+            conditionFileName,
+            conditionFilePath,
+            parameterFileName,
+            parameterFilePath,
+            resultFileName,
+            resultPath,
+            loadBalancer,
+            computeInnerParameters);
     }
 
     if (simulationMode == "--nominal") {
-        return parpe::runNominalParameters(sim,
-                                           conditionFileName,
-                                           conditionFilePath,
-                                           parameterFileName,
-                                           parameterFilePath,
-                                           resultFileName,
-                                           resultPath,
-                                           loadBalancer,
-                                           computeInnerParameters);
-
+        return parpe::runNominalParameters(
+            sim,
+            conditionFileName,
+            conditionFilePath,
+            parameterFileName,
+            parameterFilePath,
+            resultFileName,
+            resultPath,
+            loadBalancer,
+            computeInnerParameters);
     }
 
     return EXIT_FAILURE;
 }
 
-int
-runSimulator(MultiConditionDataProvider& dp,
-             std::string const& simulationMode,
-             std::string const& conditionFileName,
-             std::string const& conditionFilePath,
-             std::string const& parameterFileName,
-             std::string const& parameterFilePath,
-             std::string const& resultFileName,
-             std::string const& resultPath,
-             bool computeInnerParameters)
-{
+int runSimulator(
+    MultiConditionDataProvider& dp,
+    std::string const& simulationMode,
+    std::string const& conditionFileName,
+    std::string const& conditionFilePath,
+    std::string const& parameterFileName,
+    std::string const& parameterFilePath,
+    std::string const& resultFileName,
+    std::string const& resultPath,
+    bool computeInnerParameters) {
     parpe::StandaloneSimulator sim(&dp);
     int status = 0;
 
@@ -837,16 +842,17 @@ runSimulator(MultiConditionDataProvider& dp,
         if (parpe::getMpiRank() == 0) {
             parpe::LoadBalancerMaster loadBalancer;
             loadBalancer.run();
-            status = runSimulationTasks(sim,
-                                        simulationMode,
-                                        conditionFileName,
-                                        conditionFilePath,
-                                        parameterFileName,
-                                        parameterFilePath,
-                                        resultFileName,
-                                        resultPath,
-                                        &loadBalancer,
-                                        computeInnerParameters);
+            status = runSimulationTasks(
+                sim,
+                simulationMode,
+                conditionFileName,
+                conditionFilePath,
+                parameterFileName,
+                parameterFilePath,
+                resultFileName,
+                resultPath,
+                &loadBalancer,
+                computeInnerParameters);
             loadBalancer.terminate();
             loadBalancer.sendTerminationSignalToAllWorkers();
         } else {
@@ -857,22 +863,22 @@ runSimulator(MultiConditionDataProvider& dp,
         }
     } else {
 #endif
-        status = runSimulationTasks(sim,
-                                    simulationMode,
-                                    conditionFileName,
-                                    conditionFilePath,
-                                    parameterFileName,
-                                    parameterFilePath,
-                                    resultFileName,
-                                    resultPath,
-                                    nullptr,
-                                    computeInnerParameters);
+        status = runSimulationTasks(
+            sim,
+            simulationMode,
+            conditionFileName,
+            conditionFilePath,
+            parameterFileName,
+            parameterFilePath,
+            resultFileName,
+            resultPath,
+            nullptr,
+            computeInnerParameters);
 #ifdef PARPE_ENABLE_MPI
     }
 #endif
 
     return status;
 }
-
 
 } // namespace parpe
