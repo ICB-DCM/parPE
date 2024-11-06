@@ -65,7 +65,9 @@ jobs:
       run: |
         cd $PARPE_BASE/benchmark_collection \
           && git clone --depth 1 $BM_REPO_URL \
-          && echo "BENCHMARK_COLLECTION=$(pwd)/Benchmark-Models-PEtab/Benchmark-Models/" >> $GITHUB_ENV
+          && echo "BENCHMARK_COLLECTION=$(pwd)/Benchmark-Models-PEtab/Benchmark-Models/" >> $GITHUB_ENV \
+          && . $PARPE_BASE/build/venv/bin/activate \
+          && python -m pip install -e Benchmark-Models-PEtab/src/python
 
     - name: Benchmark models --- tests
       run: |

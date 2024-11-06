@@ -37,7 +37,7 @@ script_path=$(get_abs_filename "$(dirname "$BASH_SOURCE")")
 parpe_dir=${script_path}/..
 model_name=$(basename "${petab_model_dir}")
 amici_model_dir=${script_path}/${model_name}
-petab_yaml=${model_name}.yaml
+petab_yaml=$(python -c "import benchmark_models_petab; print(benchmark_models_petab.get_problem_yaml_path('${model_name}'))")
 output_file=tmp.out
 hdf5_infile="parpe_${model_name}/${model_name}.h5"
 estimate_exe="parpe_${model_name}/build/estimate_${model_name}"
@@ -47,7 +47,7 @@ amici_root="${AMICI_ROOT:-${parpe_dir}/deps/AMICI/}"
 cd "${petab_model_dir}"
 
 echo "Running petablint on ${petab_yaml}..."
-petablint -v "${model_name}".yaml
+petablint -v ${petab_yaml}
 
 # problems we need to flatten
 to_flatten=(
@@ -65,7 +65,7 @@ done
 # import AMICI model
 if [[ ! -d ${amici_model_dir} ]]; then
   echo "Importing model..."
-  cmd="amici_import_petab --verbose ${model_name}.yaml -n ${model_name} -o ${amici_model_dir} ${flatten}"
+  cmd="amici_import_petab --verbose ${petab_yaml} -n ${model_name} -o ${amici_model_dir} ${flatten}"
   echo "${cmd}"
   ${cmd}
 fi
@@ -85,7 +85,7 @@ echo "Importing data..."
 cmd="parpe_petab_to_hdf5 \
     -o ${hdf5_infile} \
     -d ${amici_model_dir} \
-    -y ${petab_model_dir}/${model_name}.yaml \
+    -y ${petab_yaml} \
     -n ${model_name} \
     --ignore-initialization-priors \
     ${flatten}"
