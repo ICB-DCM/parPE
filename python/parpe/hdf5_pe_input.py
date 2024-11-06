@@ -116,12 +116,12 @@ class HDF5DataGenerator:
         #  starting points using petab. However, the current parpe C++
         #  resampling would ignore the initialization prior.
         #  And they wouldn't be supported for hierarchical optimization.
-        parameter_df = self.petab_problem.parameter_df
+        est_parameter_df = self.petab_problem.parameter_df[self.petab_problem.parameter_df[ptc.ESTIMATE] == 1]
         for col_id in [
             ptc.INITIALIZATION_PRIOR_TYPE, ptc.INITIALIZATION_PRIOR_PARAMETERS,
             ptc.OBJECTIVE_PRIOR_TYPE, ptc.OBJECTIVE_PRIOR_PARAMETERS
         ]:
-            if (col := parameter_df.get(col_id)) is not None and col.notna().any():
+            if (col := est_parameter_df.get(col_id)) is not None and col.notna().any():
                 raise NotImplementedError("Priors are not supported yet.")
 
     def generate_file(self, hdf5_file_name: str) -> None:
