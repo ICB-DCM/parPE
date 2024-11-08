@@ -658,6 +658,20 @@ class HDF5DataGenerator:
                               dtype="<i4",
                               data=condition_map)
 
+        if ptc.PREEQUILIBRATION_CONDITION_ID in simulations:
+            experiment_ids = [
+                f"{preeq_id}+{sim_id}" if preeq_id else sim_id
+                for preeq_id, sim_id in zip(
+                    simulations[ptc.PREEQUILIBRATION_CONDITION_ID],
+                    simulations[ptc.SIMULATION_CONDITION_ID]
+                )
+            ]
+        else:
+            experiment_ids = simulations[ptc.SIMULATION_CONDITION_ID]
+
+        write_string_array(self.f, "/fixedParameters/experimentIds",
+                           experiment_ids)
+
     def _generate_measurement_matrices(self):
         """
         Generate matrices with training data for conditions, observables and
