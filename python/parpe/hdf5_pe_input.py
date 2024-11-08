@@ -958,17 +958,10 @@ class HDF5DataGenerator:
         # Set (some) amici default solver options
         solver = self.amici_model.getSolver()
         g.attrs['atol'] = solver.getAbsoluteTolerance()
-        g.attrs['interpType'] = solver.getInterpolationType()
-        g.attrs['ism'] = solver.getInternalSensitivityMethod()
-        g.attrs['iter'] = solver.getNonlinearSolverIteration()
         g.attrs['linsol'] = solver.getLinearSolver()
-        g.attrs['lmm'] = solver.getLinearMultistepMethod()
         g.attrs['maxsteps'] = solver.getMaxSteps()
         g.attrs['maxstepsB'] = solver.getMaxStepsBackwardProblem()
-        g.attrs['newton_preeq'] = solver.getNewtonMaxSteps()
-        g.attrs['ordering'] = solver.getStateOrdering()
         g.attrs['rtol'] = solver.getRelativeTolerance()
-        g.attrs['stldet'] = solver.getStabilityLimitFlag()
 
         g.attrs['sensi'] = amici.SensitivityOrder.first
         g.attrs['sensi_meth'] = amici.SensitivityMethod.adjoint
