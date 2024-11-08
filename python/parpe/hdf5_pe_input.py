@@ -975,19 +975,6 @@ class HDF5DataGenerator:
         # set amici model options
         g.attrs['nmaxevent'] = 10
 
-        num_model_parameters = \
-            self.f['/parameters/modelParameterNames'].shape[0]
-
-        # parameter indices w.r.t. which to compute sensitivities
-        #  default: all
-        # TODO: compute only for estimated parameters
-        #  that means, this may have to be condition-specific
-        #  https://github.com/ICB-DCM/parPE/issues/380
-        self.f.require_dataset(
-            '/amiciOptions/sens_ind', shape=(num_model_parameters,),
-            dtype="<i4",
-            data=range(num_model_parameters))
-
     def _get_analytically_computed_optimization_parameter_indices(self):
         """
         Get optimization parameter index of all analytically computed
