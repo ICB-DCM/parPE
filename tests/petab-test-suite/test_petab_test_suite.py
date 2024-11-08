@@ -120,10 +120,6 @@ def _test_case(case: Union[int, str]) -> None:
     assert llh_actual == pytest.approx(gt_llh,
                                        rel=solution[petabtests.TOL_LLH])
 
-    # FIXME
-    #  0011 init conc condition table
-    #  0013 parametric init conc condition table
-
 
 def run() -> None:
     """Run the full PEtab test suite"""
