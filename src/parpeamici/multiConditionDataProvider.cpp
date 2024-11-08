@@ -304,6 +304,7 @@ std::unique_ptr<amici::ExpData> MultiConditionDataProviderHDF5::getExperimentalD
     auto edata = std::make_unique<amici::ExpData>(*model_);
 
     [[maybe_unused]] auto lock = hdf5MutexGetLock();
+    edata->id = std::to_string(simulationIdx);
     edata->setTimepoints(
                 amici::hdf5::getDoubleDataset1D(
                     file_, root_path_ + "/measurements/t/"
