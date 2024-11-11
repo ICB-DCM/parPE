@@ -70,6 +70,9 @@ jobs:
           && python -m pip install -e Benchmark-Models-PEtab/src/python
 
     - name: Benchmark models --- tests
+      env:
+        # parallel compilation
+        MAKE_OPTS: "-j"
       run: |
         cd $PARPE_BASE/benchmark_collection \
           && . $PARPE_BASE/build/venv/bin/activate \
