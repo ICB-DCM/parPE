@@ -15,6 +15,7 @@
 #include <cassert>
 #include <cstring>
 #include <ctime>
+#include <mutex>
 #include <numeric>
 #include <utility>
 
@@ -719,6 +720,9 @@ int AmiciSummedGradientFunction::runSimulations(
         std::vector<int> const& dataIndices, Logger *logger, double *cpuTime) const {
 
     int errors = 0;
+    // Mutex to protect likelihood and gradient that are potentially updated
+    // by multiple threads
+    std::mutex mutex;
 
     auto parameterVector = std::vector<double>(
                 optimizationParameters.begin(),
@@ -732,7 +736,10 @@ int AmiciSummedGradientFunction::runSimulations(
                 : amici::SensitivityOrder::none,
                 dataIndices,
                 [&nllh, &objectiveFunctionGradient, &simulationTimeSec,
-         &optimizationParameters, &errors, this](JobData *job, int /*jobIdx*/) {
+         &optimizationParameters, &errors, &mutex, this](JobData *job, int /*jobIdx*/) {
+            // protect shared variables llh, gradient, simulationTimeSec
+            std::lock_guard<std::mutex> lock(mutex);
+
             errors += this->aggregateLikelihood(*job,
                                       nllh,
                                       objectiveFunctionGradient,
