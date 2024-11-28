@@ -36,6 +36,7 @@ add_custom_target(
 include("getVersion")
 include("split_version")
 split_version(${PARPE_VERSION} libname major minor patch)
+message(STATUS "parPE version: ${major}.${minor}.${patch}")
 # </versioning>
 
 # <Build options>
