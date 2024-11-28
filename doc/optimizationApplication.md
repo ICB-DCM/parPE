@@ -40,7 +40,11 @@ Run the created executable with the `-h`/`--help` argument.
 - llh: Log-likelihood as provided by AMICI
 - status: AMICI status
 - time: simulation wall-time
-- gradientFlag: '+' indicates simulation with gradient, '-' indicates simulation without gradient   
+- gradientFlag: '-' indicates simulation without gradient computation;
+  'A' indicates gradient computation using adjoint sensitivity analysis;
+  'F' indicates gradient computation using forward sensitivity analysis;
+  this is followed by a number indicating w.r.t. how many parameters the
+  gradient was computed.
 
 ## Environment variables
 

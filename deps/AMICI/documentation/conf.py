@@ -1,27 +1,41 @@
-# -*- coding: utf-8 -*-
 #
 # Configuration file for the Sphinx documentation builder.
 #
 # This file does only contain a selection of the most common options. For a
 # full list see the documentation:
 # http://www.sphinx-doc.org/en/stable/config
-
 import os
 import re
 import subprocess
 import sys
-
-# need to import before setting typing.TYPE_CHECKING=True, fails otherwise
-import amici
+from enum import EnumType
 import exhale.deploy
-import exhale_multiproject_monkeypatch
-import mock
-import pandas as pd
-import sympy as sp
+from unittest import mock
+import sphinx
 from exhale import configs as exhale_configs
 from sphinx.transforms.post_transforms import ReferencesResolver
 
-exhale_multiproject_monkeypatch, pd, sp  # to avoid removal of unused import
+try:
+    import exhale_multiproject_monkeypatch  # noqa: F401
+except ModuleNotFoundError:
+    # for unclear reasons, the import of exhale_multiproject_monkeypatch
+    #  fails on some systems, because the the location of the editable install
+    #  is not automatically added to sys.path ¯\_(ツ)_/¯
+    from importlib.metadata import Distribution
+    import json
+    from urllib.parse import unquote_plus, urlparse
+
+    dist = Distribution.from_name("sphinx-contrib-exhale-multiproject")
+    url = json.loads(dist.read_text("direct_url.json"))["url"]
+    package_dir = unquote_plus(urlparse(url).path)
+    sys.path.append(package_dir)
+    import exhale_multiproject_monkeypatch  # noqa: F401
+
+# need to import before setting typing.TYPE_CHECKING=True, fails otherwise
+import amici
+import pandas as pd  # noqa: F401
+import sympy as sp  # noqa: F401
+
 
 # BEGIN Monkeypatch exhale
 from exhale.deploy import _generate_doxygen as exhale_generate_doxygen
@@ -90,7 +104,9 @@ def install_mtocpp():
 
 def install_doxygen():
     """Get a more recent doxygen"""
-    version = "1.9.7"
+    version = "1.11.0"
+    release = f"Release_{version.replace('.', '_')}"
+    filename = f"doxygen-{version}.linux.bin.tar.gz"
     doxygen_exe = os.path.join(
         amici_dir, "ThirdParty", f"doxygen-{version}", "bin", "doxygen"
     )
@@ -98,9 +114,9 @@ def install_doxygen():
     some_dir_on_path = os.environ["PATH"].split(os.pathsep)[0]
     cmd = (
         f"cd '{os.path.join(amici_dir, 'ThirdParty')}' "
-        f"&& wget 'https://www.doxygen.nl/files/"
-        f"doxygen-{version}.linux.bin.tar.gz' "
-        f"&& tar -xzf doxygen-{version}.linux.bin.tar.gz "
+        f"&& wget 'https://github.com/doxygen/doxygen/releases/download/"
+        f"{release}/{filename}' "
+        f"&& tar -xzf '{filename}' "
         f"&& ln -sf '{doxygen_exe}' '{some_dir_on_path}'"
     )
     subprocess.run(cmd, shell=True, check=True)
@@ -190,6 +206,7 @@ intersphinx_mapping = {
     "numpy": ("https://numpy.org/devdocs/", None),
     "sympy": ("https://docs.sympy.org/latest/", None),
     "python": ("https://docs.python.org/3", None),
+    "jax": ["https://jax.readthedocs.io/en/latest/", None],
 }
 
 # Add notebooks prolog with binder links
@@ -199,7 +216,7 @@ ref = ret.stdout.rstrip().decode()
 nbsphinx_prolog = (
     f"{{% set {ref=} %}}"
     r"""
-    {% set docname = "documentation/" + env.doc2path(env.docname, base=False) %}
+    {% set docname = "documentation/" + env.doc2path(env.docname, base=False)|string %}
     .. raw:: html
 
         <div class="note">
@@ -254,6 +271,7 @@ todo_include_todos = False
 autodoc_default_options = {
     "special-members": "__init__",
     "inherited-members": True,
+    "undoc-members": True,
 }
 
 # sphinx-autodoc-typehints
@@ -543,15 +561,15 @@ def fix_typehints(sig: str) -> str:
     sig = sig.replace("sunindextype", "int")
     sig = sig.replace("H5::H5File", "object")
 
-    # remove const
-    sig = sig.replace(" const ", r" ")
-    sig = re.sub(r" const$", r"", sig)
+    # remove const / const&
+    sig = sig.replace(" const&? ", r" ")
+    sig = re.sub(r" const&?$", r"", sig)
 
     # remove pass by reference
     sig = re.sub(r" &(,|\))", r"\1", sig)
     sig = re.sub(r" &$", r"", sig)
 
-    # turn gsl_spans and pointers int Iterables
+    # turn gsl_spans and pointers into Iterables
     sig = re.sub(r"([\w.]+) \*", r"Iterable[\1]", sig)
     sig = re.sub(r"gsl::span< ([\w.]+) >", r"Iterable[\1]", sig)
 
@@ -567,7 +585,8 @@ def process_signature(
         return
 
     # only apply in the amici.amici module
-    if name.split(".")[1] != "amici":
+    split_name = name.split(".")
+    if len(split_name) < 2 or split_name[1] != "amici":
         return
 
     signature = fix_typehints(signature)
@@ -605,7 +624,7 @@ def process_missing_ref(app, env, node, contnode):
 
 
 def skip_member(app, what, name, obj, skip, options):
-    ignored = [
+    ignored_names = {
         "AbstractModel",
         "CVodeSolver",
         "IDASolver",
@@ -613,7 +632,6 @@ def skip_member(app, what, name, obj, skip, options):
         "Model_DAE",
         "ConditionContext",
         "checkSigmaPositivity",
-        "createGroup",
         "createGroup",
         "equals",
         "printErrMsgIdAndTxt",
@@ -639,24 +657,45 @@ def skip_member(app, what, name, obj, skip, options):
         "stdVec2ndarray",
         "SwigPyIterator",
         "thisown",
-    ]
+    }
 
-    if name in ignored:
+    if name in ignored_names:
         return True
 
     if name.startswith("_") and name != "__init__":
         return True
 
+    obj_str = str(obj)
+
     # ignore various functions for std::vector<> types
-    if re.match(r"^<function [\w]+Vector\.", str(obj)):
+    if re.match(r"^<function [\w]+Vector\.", obj_str):
         return True
 
     # ignore various functions for smart pointer types
-    if re.match(r"^<function [\w]+Ptr\.", str(obj)):
+    if re.match(r"^<function [\w]+Ptr\.", obj_str):
         return True
 
     # ignore various functions for StringDoubleMap
-    if str(obj).startswith("<function StringDoubleMap"):
+    if obj_str.startswith("<function StringDoubleMap"):
+        return True
+
+    # Skip inherited members from builtins
+    #  (skips, for example, all the int/str-derived methods of enums
+    if (
+        objclass := getattr(obj, "__objclass__", None)
+    ) and objclass.__module__ == "builtins":
+        return True
+
+    # Avoid the following issue for all enum types:
+    # > python/sdist/amici/amici.py:docstring of amici.amici.FixedParameterContext.from_bytes:9:
+    #   WARNING: Inline interpreted text or phrase reference start-string without end-string.
+    if (
+        (qualname := getattr(obj, "__qualname__", ""))
+        and qualname == "int.to_bytes"
+    ) or (
+        isinstance(getattr(obj, "__self__", None), EnumType)
+        and name == "from_bytes"
+    ):
         return True
 
     return None

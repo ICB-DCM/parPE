@@ -24,11 +24,15 @@ equation (ODE) models.
 parPE offers the following features:
 
 * MPI-based load-balancing of individual simulations
+  (if you don't need this, and don't require a C++ library, consider using
+  the [pypesto](https://pypesto.readthedocs.io/en/latest/) Python package
+  which is more mature and user-friendly)
 * improved load balancing by intermingling multiple optimization runs
   (multi-start local optimization)
-* simple integration with [SBML](http://sbml.org/) models via
+* integration with [SBML](http://sbml.org/) models via
   [AMICI](https://github.com/AMICI-dev/AMICI) and
   [PEtab](https://github.com/PEtab-dev/PEtab)
+  * hierarchical optimization (https://doi.org/10.1093/bioinformatics/btz581)
 * interfaces to [Ipopt](https://www.coin-or.org/Ipopt/),
   [Ceres](http://ceres-solver.org/),
   [FFSQP](https://www.isr.umd.edu/news/news_story.php?id=4088) and
@@ -36,6 +40,12 @@ parPE offers the following features:
 * HDF5 I/O compatible with a wide variety of programming languages
 * Good parallel scaling to up to several thousand cores
   (highly problem dependent)
+
+**Note that this library has been developed for specific research questions
+and certain assumptions may not always hold. Use with caution.
+In particular, certain default settings may need adaptation (in particular,
+parallelization settings and AMICI settings such as the sensitivity method).
+PEtab support is patchy. Always verify your simulation results.**
 
 ## Getting started
 
@@ -48,7 +58,7 @@ described in [doc/petab_model_import.md](doc/petab_model_import.md).
 
 For full functionality, parPE requires the following libraries:
 
-* CMAKE (>=3.15)
+* CMAKE (>=3.22)
 * MPI ([OpenMPI](https://www.open-mpi.org/),
   [MPICH](https://www.mpich.org/), ...)
 * IPOPT (>= 1.2.7) (requires coinhsl)
@@ -60,7 +70,7 @@ For full functionality, parPE requires the following libraries:
 * [AMICI](https://github.com/AMICI-dev/AMICI) (included in this repository)
   (uses SuiteSparse, Sundials)
 * C++17 compiler
-* Python >= 3.9, including header files
+* Python >= 3.10, including header files
 
 On Debian-based systems, dependencies can be installed via:
 ```shell
@@ -109,10 +119,10 @@ Other sample build scripts are provided as `/build*.sh`.
 
 ## Recently tested compilers
 
-* GCC 10.2.0
-* Intel icpc (ICC) 17.0.6
+* GCC 14.2.0
+* Clang 18.1.3
 
-## Docker
+## Containers
 
 There is a Dockerfile available in `container/charliecloud/` and images
 can be found on [dockerhub](https://hub.docker.com/r/dweindl/parpe/).
@@ -153,7 +163,7 @@ parPE is being used or has been used in the following projects:
 
 parPE has been developed within research projects receiving external funding:
 
-* Through  the  European  Union's  Horizon  2020  research  and innovation
+* Through the European Union's Horizon 2020 research and innovation
   programme under grant agreement no. 686282
   ([CanPathPro](http://canpathpro.eu/)).
 

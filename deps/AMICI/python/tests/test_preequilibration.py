@@ -5,15 +5,25 @@ import itertools
 import amici
 import numpy as np
 import pytest
-from numpy.testing import assert_allclose
+from amici.debugging import get_model_for_preeq
+from numpy.testing import assert_allclose, assert_equal
 from test_pysb import get_data
+from amici.testing import (
+    TemporaryDirectoryWinSafe as TemporaryDirectory,
+    skip_on_valgrind,
+)
 
 
 @pytest.fixture
 def preeq_fixture(pysb_example_presimulation_module):
     model = pysb_example_presimulation_module.getModel()
     model.setReinitializeFixedParameterInitialStates(True)
-
+    model.setSteadyStateComputationMode(
+        amici.SteadyStateComputationMode.integrateIfNewtonFails
+    )
+    model.setSteadyStateSensitivityMode(
+        amici.SteadyStateSensitivityMode.integrateIfNewtonFails
+    )
     solver = model.getSolver()
     solver.setSensitivityOrder(amici.SensitivityOrder.first)
     solver.setSensitivityMethod(amici.SensitivityMethod.forward)
@@ -27,7 +37,7 @@ def preeq_fixture(pysb_example_presimulation_module):
 
     edata_preeq = amici.ExpData(edata)
     edata_preeq.t_presim = 0
-    edata_preeq.setTimepoints([np.infty])
+    edata_preeq.setTimepoints([np.inf])
     edata_preeq.fixedParameters = edata.fixedParametersPreequilibration
     edata_preeq.fixedParametersPresimulation = ()
     edata_preeq.fixedParametersPreequilibration = ()
@@ -607,8 +617,6 @@ def test_simulation_errors(preeq_fixture):
         )
         assert rdata._swigptr.messages[1].severity == amici.LogSeverity_error
         assert rdata._swigptr.messages[1].identifier == "OTHER"
-        assert rdata._swigptr.messages[2].severity == amici.LogSeverity_debug
-        assert rdata._swigptr.messages[2].identifier == "BACKTRACE"
 
     # too long simulations
     solver.setMaxSteps(int(1e4))
@@ -618,18 +626,102 @@ def test_simulation_errors(preeq_fixture):
     for e in [edata_preeq, edata]:
         rdata = amici.runAmiciSimulation(model, solver, e)
         assert rdata["status"] != amici.AMICI_SUCCESS
-        assert rdata._swigptr.messages[0].severity == amici.LogSeverity_debug
-        assert (
-            rdata._swigptr.messages[0].identifier
-            == "CVODES:CVode:RHSFUNC_FAIL"
+        messages = []
+        # remove repeated RHSFUNC_FAIL messages
+        for message in rdata._swigptr.messages:
+            if not messages or message.message != messages[-1].message:
+                messages.append(message)
+        assert messages[0].severity == amici.LogSeverity_debug
+        assert messages[0].identifier.endswith(":RHSFUNC_FAIL")
+        assert messages[1].severity == amici.LogSeverity_debug
+        assert messages[1].identifier == "EQUILIBRATION_FAILURE"
+        assert "exceedingly long simulation time" in messages[1].message
+        assert messages[2].severity == amici.LogSeverity_error
+        assert messages[2].identifier == "OTHER"
+
+
+def test_get_model_for_preeq(preeq_fixture):
+    (
+        model,
+        solver,
+        edata,
+        edata_preeq,
+        edata_presim,
+        edata_sim,
+        pscales,
+        plists,
+    ) = preeq_fixture
+    model.setSteadyStateSensitivityMode(
+        amici.SteadyStateSensitivityMode.integrationOnly
+    )
+    model_preeq = get_model_for_preeq(model, edata)
+    # the exactly same settings are used, so results should match exactly
+    rdata1 = amici.runAmiciSimulation(model_preeq, solver)
+    rdata2 = amici.runAmiciSimulation(model, solver, edata_preeq)
+    assert_equal(
+        rdata1.x,
+        rdata2.x,
+    )
+    assert_equal(
+        rdata1.sx,
+        rdata2.sx,
+    )
+
+
+@skip_on_valgrind
+def test_partial_eq():
+    """Check that partial equilibration is possible."""
+    from amici.antimony_import import antimony2amici
+
+    ant_str = """
+    model test_partial_eq
+        explodes = 1
+        explodes' = explodes
+        A = 1
+        B = 0
+        R: A -> B; k*A - k*B
+        k = 1
+    end
+    """
+    module_name = "test_partial_eq"
+    with TemporaryDirectory(prefix=module_name) as outdir:
+        antimony2amici(
+            ant_str,
+            model_name=module_name,
+            output_dir=outdir,
         )
-        assert rdata._swigptr.messages[1].severity == amici.LogSeverity_debug
-        assert rdata._swigptr.messages[1].identifier == "EQUILIBRATION_FAILURE"
-        assert (
-            "exceedingly long simulation time"
-            in rdata._swigptr.messages[1].message
+        model_module = amici.import_model_module(
+            module_name=module_name, module_path=outdir
         )
-        assert rdata._swigptr.messages[2].severity == amici.LogSeverity_error
-        assert rdata._swigptr.messages[2].identifier == "OTHER"
-        assert rdata._swigptr.messages[3].severity == amici.LogSeverity_debug
-        assert rdata._swigptr.messages[3].identifier == "BACKTRACE"
+        amici_model = model_module.getModel()
+        amici_model.setTimepoints([np.inf])
+        amici_solver = amici_model.getSolver()
+        amici_solver.setRelativeToleranceSteadyState(1e-12)
+
+        # equilibration of `explodes` will fail
+        rdata = amici.runAmiciSimulation(amici_model, amici_solver)
+        assert rdata.status == amici.AMICI_ERROR
+        assert rdata.messages[0].identifier == "EQUILIBRATION_FAILURE"
+
+        # excluding `explodes` should enable equilibration
+        amici_model.set_steadystate_mask(
+            [
+                0 if state_id == "explodes" else 1
+                for state_id in amici_model.getStateIdsSolver()
+            ]
+        )
+        rdata = amici.runAmiciSimulation(amici_model, amici_solver)
+        assert rdata.status == amici.AMICI_SUCCESS
+        assert_allclose(
+            rdata.by_id("A"),
+            0.5,
+            atol=amici_solver.getAbsoluteToleranceSteadyState(),
+            rtol=amici_solver.getRelativeToleranceSteadyState(),
+        )
+        assert_allclose(
+            rdata.by_id("B"),
+            0.5,
+            atol=amici_solver.getAbsoluteToleranceSteadyState(),
+            rtol=amici_solver.getRelativeToleranceSteadyState(),
+        )
+        assert rdata.t_last < 100

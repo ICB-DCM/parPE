@@ -33,17 +33,15 @@ jobs:
             -DCMAKE_BUILD_TYPE=Debug \
             -DENABLE_PYTHON=ON \
             -DBUILD_TESTS=OFF \
+            -DCMAKE_PREFIX_PATH="${CMAKE_PREFIX_PATH};${AMICI_PATH}/ThirdParty/SuiteSparse/install" \
           && cmake --build "${AMICI_PATH}/build" --parallel -- VERBOSE=1
-
-    - name: Install parPE Python deps
-      run: |
-        pip install -r ${PARPE_BASE}/python/requirements.txt
 
     - name: Configure parpe
       run: |
         cmake \
           -S"${PARPE_BASE}" \
           -B"${PARPE_BUILD}" \
+          -DPARPE_ENABLE_CERES=OFF \
           -DIPOPT_INCLUDE_DIRS=/usr/include/coin/ \
           -DIPOPT_LIBRARIES=/usr/lib/libipopt.so \
           -DGCOVR_REPORT=TRUE \
@@ -66,11 +64,19 @@ jobs:
         BM_REPO_URL: https://github.com/Benchmarking-Initiative/Benchmark-Models-PEtab.git
       run: |
         cd $PARPE_BASE/benchmark_collection \
-          && git clone --depth 1 $BM_REPO_URL
+          && git clone --depth 1 $BM_REPO_URL \
+          && echo "BENCHMARK_COLLECTION=$(pwd)/Benchmark-Models-PEtab/Benchmark-Models/" >> $GITHUB_ENV \
+          && . $PARPE_BASE/build/venv/bin/activate \
+          && python -m pip install -e Benchmark-Models-PEtab/src/python
 
     - name: Benchmark models --- tests
+      env:
+        # parallel compilation
+        MAKE_OPTS: "-j"
       run: |
         cd $PARPE_BASE/benchmark_collection \
-          && AMICI_PARALLEL_COMPILE="" \
-             BENCHMARK_COLLECTION="$(pwd)/Benchmark-Models-PEtab/Benchmark-Models/" \
-             $PARPE_BASE/misc/run_in_venv.sh $PARPE_BASE/build/venv ./all.sh
+          && . $PARPE_BASE/build/venv/bin/activate \
+          && python -m pip uninstall -y petab \
+          && python -m pip install https://github.com/PEtab-dev/libpetab-python/archive/develop.zip \
+          && python priors_to_measurements.py \
+          && AMICI_PARALLEL_COMPILE="" ./all.sh

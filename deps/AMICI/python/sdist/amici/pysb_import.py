@@ -12,15 +12,10 @@ import sys
 from pathlib import Path
 from typing import (
     Any,
-    Callable,
-    Dict,
-    Iterable,
-    List,
-    Optional,
-    Set,
-    Tuple,
     Union,
 )
+from collections.abc import Callable
+from collections.abc import Iterable
 
 import numpy as np
 import pysb
@@ -31,38 +26,38 @@ import sympy as sp
 from .de_export import (
     Constant,
     DEExporter,
-    DEModel,
     DifferentialState,
     Expression,
     LogLikelihoodY,
     Observable,
     Parameter,
     SigmaY,
-    _default_simplify,
 )
+from .de_model import DEModel
 from .import_utils import (
     _get_str_symbol_identifiers,
     _parse_special_functions,
     generate_measurement_symbol,
     noise_distribution_to_cost_function,
     noise_distribution_to_observable_transformation,
+    _default_simplify,
 )
 from .logging import get_logger, log_execution_time, set_log_level
 
-CL_Prototype = Dict[str, Dict[str, Any]]
-ConservationLaw = Dict[str, Union[Dict, str, sp.Basic]]
+CL_Prototype = dict[str, dict[str, Any]]
+ConservationLaw = dict[str, Union[dict, str, sp.Basic]]
 
 logger = get_logger(__name__, logging.ERROR)
 
 
 def pysb2amici(
     model: pysb.Model,
-    output_dir: Optional[Union[str, Path]] = None,
-    observables: List[str] = None,
-    constant_parameters: List[str] = None,
-    sigmas: Dict[str, str] = None,
-    noise_distributions: Optional[Dict[str, Union[str, Callable]]] = None,
-    verbose: Union[int, bool] = False,
+    output_dir: str | Path | None = None,
+    observables: list[str] = None,
+    constant_parameters: list[str] = None,
+    sigmas: dict[str, str] = None,
+    noise_distributions: dict[str, str | Callable] | None = None,
+    verbose: int | bool = False,
     assume_pow_positivity: bool = False,
     compiler: str = None,
     compute_conservation_laws: bool = True,
@@ -72,7 +67,7 @@ def pysb2amici(
     # See https://github.com/AMICI-dev/AMICI/pull/1672
     cache_simplify: bool = False,
     generate_sensitivity_code: bool = True,
-    model_name: Optional[str] = None,
+    model_name: str | None = None,
 ):
     r"""
     Generate AMICI C++ files for the provided model.
@@ -182,6 +177,10 @@ def pysb2amici(
         compiler=compiler,
         generate_sensitivity_code=generate_sensitivity_code,
     )
+    # Sympy code optimizations are incompatible with PySB objects, as
+    #  `pysb.Observable` comes with its own `.match` which overrides
+    #  `sympy.Basic.match()`, breaking `sympy.codegen.rewriting.optimize`.
+    exporter._code_printer_cpp._fpoptimizer = None
     exporter.generate_model_code()
 
     if compile:
@@ -191,16 +190,16 @@ def pysb2amici(
 @log_execution_time("creating ODE model", logger)
 def ode_model_from_pysb_importer(
     model: pysb.Model,
-    constant_parameters: List[str] = None,
-    observables: List[str] = None,
-    sigmas: Dict[str, str] = None,
-    noise_distributions: Optional[Dict[str, Union[str, Callable]]] = None,
+    constant_parameters: list[str] = None,
+    observables: list[str] = None,
+    sigmas: dict[str, str] = None,
+    noise_distributions: dict[str, str | Callable] | None = None,
     compute_conservation_laws: bool = True,
     simplify: Callable = sp.powsimp,
     # Do not enable by default without testing.
     # See https://github.com/AMICI-dev/AMICI/pull/1672
     cache_simplify: bool = False,
-    verbose: Union[int, bool] = False,
+    verbose: int | bool = False,
 ) -> DEModel:
     """
     Creates an :class:`amici.DEModel` instance from a :class:`pysb.Model`
@@ -245,10 +244,6 @@ def ode_model_from_pysb_importer(
         simplify=simplify,
         cache_simplify=cache_simplify,
     )
-    # Sympy code optimizations are incompatible with PySB objects, as
-    #  `pysb.Observable` comes with its own `.match` which overrides
-    #  `sympy.Basic.match()`, breaking `sympy.codegen.rewriting.optimize`.
-    ode._code_printer._fpoptimizer = None
 
     if constant_parameters is None:
         constant_parameters = []
@@ -285,7 +280,7 @@ def ode_model_from_pysb_importer(
 
 @log_execution_time("processing PySB stoich. matrix", logger)
 def _process_stoichiometric_matrix(
-    pysb_model: pysb.Model, ode_model: DEModel, constant_parameters: List[str]
+    pysb_model: pysb.Model, ode_model: DEModel, constant_parameters: list[str]
 ) -> None:
     """
     Exploits the PySB stoichiometric matrix to generate xdot derivatives
@@ -410,12 +405,12 @@ def _process_pysb_species(pysb_model: pysb.Model, ode_model: DEModel) -> None:
                 sp.Symbol(f"__s{ix}"), f"{specie}", init, xdot[ix]
             )
         )
-    logger.debug(f"Finished Processing PySB species ")
+    logger.debug("Finished Processing PySB species ")
 
 
 @log_execution_time("processing PySB parameters", logger)
 def _process_pysb_parameters(
-    pysb_model: pysb.Model, ode_model: DEModel, constant_parameters: List[str]
+    pysb_model: pysb.Model, ode_model: DEModel, constant_parameters: list[str]
 ) -> None:
     """
     Converts pysb parameters into Parameters or Constants and adds them to
@@ -443,9 +438,9 @@ def _process_pysb_parameters(
 def _process_pysb_expressions(
     pysb_model: pysb.Model,
     ode_model: DEModel,
-    observables: List[str],
-    sigmas: Dict[str, str],
-    noise_distributions: Optional[Dict[str, Union[str, Callable]]] = None,
+    observables: list[str],
+    sigmas: dict[str, str],
+    noise_distributions: dict[str, str | Callable] | None = None,
 ) -> None:
     r"""
     Converts pysb expressions/observables into Observables (with
@@ -508,9 +503,9 @@ def _add_expression(
     expr: sp.Basic,
     pysb_model: pysb.Model,
     ode_model: DEModel,
-    observables: List[str],
-    sigmas: Dict[str, str],
-    noise_distributions: Optional[Dict[str, Union[str, Callable]]] = None,
+    observables: list[str],
+    sigmas: dict[str, str],
+    noise_distributions: dict[str, str | Callable] | None = None,
 ):
     """
     Adds expressions to the ODE model given and adds observables/sigmas if
@@ -568,7 +563,11 @@ def _add_expression(
         cost_fun_expr = sp.sympify(
             cost_fun_str,
             locals=dict(
-                zip(_get_str_symbol_identifiers(name), (y, my, sigma))
+                zip(
+                    _get_str_symbol_identifiers(name),
+                    (y, my, sigma),
+                    strict=True,
+                )
             ),
         )
         ode_model.add_component(
@@ -579,8 +578,8 @@ def _add_expression(
 
 
 def _get_sigma_name_and_value(
-    pysb_model: pysb.Model, obs_name: str, sigmas: Dict[str, str]
-) -> Tuple[str, sp.Basic]:
+    pysb_model: pysb.Model, obs_name: str, sigmas: dict[str, str]
+) -> tuple[str, sp.Basic]:
     """
     Tries to extract standard deviation symbolic identifier and formula
     for a given observable name from the pysb model and if no specification is
@@ -623,9 +622,9 @@ def _get_sigma_name_and_value(
 def _process_pysb_observables(
     pysb_model: pysb.Model,
     ode_model: DEModel,
-    observables: List[str],
-    sigmas: Dict[str, str],
-    noise_distributions: Optional[Dict[str, Union[str, Callable]]] = None,
+    observables: list[str],
+    sigmas: dict[str, str],
+    noise_distributions: dict[str, str | Callable] | None = None,
 ) -> None:
     """
     Converts :class:`pysb.core.Observable` into
@@ -704,7 +703,7 @@ def _process_pysb_conservation_laws(
 
 def _compute_monomers_with_fixed_initial_conditions(
     pysb_model: pysb.Model,
-) -> Set[str]:
+) -> set[str]:
     """
     Computes the set of monomers in a model with species that have fixed
     initial conditions
@@ -988,7 +987,7 @@ def _cl_has_cycle(monomer: str, cl_prototypes: CL_Prototype) -> bool:
 
 
 def _is_in_cycle(
-    monomer: str, cl_prototypes: CL_Prototype, visited: List[str], root: str
+    monomer: str, cl_prototypes: CL_Prototype, visited: list[str], root: str
 ) -> bool:
     """
     Recursively checks for cycles in conservation law dependencies via
@@ -1131,7 +1130,7 @@ def _greedy_target_index_update(cl_prototypes: CL_Prototype) -> None:
             del prototype["appearance_counts"][prototype["local_index"]]
 
 
-def _get_target_indices(cl_prototypes: CL_Prototype) -> List[List[int]]:
+def _get_target_indices(cl_prototypes: CL_Prototype) -> list[list[int]]:
     """
     Computes the list target indices for the current
     conservation law prototype
@@ -1147,7 +1146,7 @@ def _get_target_indices(cl_prototypes: CL_Prototype) -> List[List[int]]:
 
 def _construct_conservation_from_prototypes(
     cl_prototypes: CL_Prototype, pysb_model: pysb.Model
-) -> List[ConservationLaw]:
+) -> list[ConservationLaw]:
     """
     Computes the algebraic expression for the total amount of a given
     monomer
@@ -1183,7 +1182,7 @@ def _construct_conservation_from_prototypes(
 
 
 def _add_conservation_for_constant_species(
-    ode_model: DEModel, conservation_laws: List[ConservationLaw]
+    ode_model: DEModel, conservation_laws: list[ConservationLaw]
 ) -> None:
     """
     Computes the algebraic expression for the total amount of a given
@@ -1209,7 +1208,7 @@ def _add_conservation_for_constant_species(
 
 
 def _flatten_conservation_laws(
-    conservation_laws: List[ConservationLaw],
+    conservation_laws: list[ConservationLaw],
 ) -> None:
     """
     Flatten the conservation laws such that the state_expr not longer
@@ -1233,7 +1232,7 @@ def _flatten_conservation_laws(
 
 
 def _apply_conseration_law_sub(
-    cl: ConservationLaw, sub: Tuple[sp.Symbol, ConservationLaw]
+    cl: ConservationLaw, sub: tuple[sp.Symbol, ConservationLaw]
 ) -> bool:
     """
     Applies a substitution to a conservation law by replacing the
@@ -1288,8 +1287,8 @@ def _state_in_cl_formula(state: sp.Symbol, cl: ConservationLaw) -> bool:
 
 
 def _get_conservation_law_subs(
-    conservation_laws: List[ConservationLaw],
-) -> List[Tuple[sp.Symbol, Dict[sp.Symbol, sp.Expr]]]:
+    conservation_laws: list[ConservationLaw],
+) -> list[tuple[sp.Symbol, dict[sp.Symbol, sp.Expr]]]:
     """
     Computes a list of (state, coeffs) tuples for conservation laws that still
     appear in other conservation laws
@@ -1353,8 +1352,8 @@ def has_fixed_parameter_ic(
 
 
 def extract_monomers(
-    complex_patterns: Union[pysb.ComplexPattern, List[pysb.ComplexPattern]]
-) -> List[str]:
+    complex_patterns: pysb.ComplexPattern | list[pysb.ComplexPattern],
+) -> list[str]:
     """
     Constructs a list of monomer names contained in complex patterns.
     Multiplicity of names corresponds to the stoichiometry in the complex.
@@ -1377,7 +1376,7 @@ def extract_monomers(
 
 def _get_unconserved_monomers(
     rule: pysb.Rule, pysb_model: pysb.Model
-) -> Set[str]:
+) -> set[str]:
     """
     Constructs the set of monomer names for which the specified rule changes
     the stoichiometry of the monomer in the specified model.
@@ -1419,9 +1418,9 @@ def _get_unconserved_monomers(
 
 
 def _get_changed_stoichiometries(
-    reactants: Union[pysb.ComplexPattern, List[pysb.ComplexPattern]],
-    products: Union[pysb.ComplexPattern, List[pysb.ComplexPattern]],
-) -> Set[str]:
+    reactants: pysb.ComplexPattern | list[pysb.ComplexPattern],
+    products: pysb.ComplexPattern | list[pysb.ComplexPattern],
+) -> set[str]:
     """
     Constructs the set of monomer names which have different
     stoichiometries in reactants and products.
@@ -1448,7 +1447,7 @@ def _get_changed_stoichiometries(
     return changed_stoichiometries
 
 
-def pysb_model_from_path(pysb_model_file: Union[str, Path]) -> pysb.Model:
+def pysb_model_from_path(pysb_model_file: str | Path) -> pysb.Model:
     """Load a pysb model module and return the :class:`pysb.Model` instance
 
     :param pysb_model_file: Full or relative path to the PySB model module

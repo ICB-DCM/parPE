@@ -4,6 +4,7 @@ set -euo pipefail
 set -x
 
 export PARPE_BASE="${PARPE_DIR:-/parPE}"
+export CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH:-""}
 
 # unpack git archive
 mkdir "$PARPE_BASE" && cd "$PARPE_BASE"
@@ -21,13 +22,11 @@ cmake \
   -DCMAKE_BUILD_TYPE=RelWithDebInfo \
   -DENABLE_PYTHON=ON \
   -DBUILD_TESTS=OFF \
-  .. && make -j
+  -DCMAKE_PREFIX_PATH="${CMAKE_PREFIX_PATH};${AMICI_PATH}/ThirdParty/SuiteSparse/install" \
+  .. && cmake --build . --parallel
 
 # install fides optimizer
 cd "$PARPE_BASE/ThirdParty" && ./installFides.sh
-
-# install parPE python requirements
-pip3 install -r "${PARPE_BASE}"/python/requirements.txt
 
 # build parPE
 cd "${PARPE_BASE}"
@@ -45,9 +44,10 @@ mpi_cmd="$mpi_cmd;--mca;oob_tcp_if_include;lo"
 mpi_cmd="$mpi_cmd;--mca;btl_tcp_if_include;lo;"
 mpi_cmd="$mpi_cmd;--mca;orte_base_help_aggregate;0"
 
-CC=mpicc CXX=mpiCC cmake \
+cmake \
       -DPARPE_BUILD_OPTIMIZED=OFF \
       -DPARPE_ENABLE_FIDES=ON \
+      -DPARPE_ENABLE_CERES=OFF \
       -DIPOPT_INCLUDE_DIRS=/usr/include/coin/ \
       -DIPOPT_LIBRARIES=/usr/lib/libipopt.so \
       -DMPI_INCLUDE_DIRS=/usr/include/openmpi-x86_64/ \

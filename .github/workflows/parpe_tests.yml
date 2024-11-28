@@ -18,7 +18,6 @@ jobs:
       # If we are running in docker, we generally don't have SYS_PTRACE
       #  permissions  and thus, cannot use vader. Also disable Infiniband.
       PARPE_TESTS_MPIEXEC: mpiexec -n 5 --oversubscribe --allow-run-as-root --mca btl_vader_single_copy_mechanism none --mca btl ^openib --mca oob_tcp_if_include lo --mca btl_tcp_if_include lo --mca orte_base_help_aggregate 0
-
     steps:
     - uses: actions/checkout@master
     - name: chown checkout directory
@@ -56,12 +55,12 @@ jobs:
           -DCMAKE_BUILD_TYPE=Debug \
           -DENABLE_PYTHON=ON \
           -DBUILD_TESTS=OFF \
+          -DCMAKE_PREFIX_PATH="${CMAKE_PREFIX_PATH};${AMICI_PATH}/ThirdParty/SuiteSparse/install" \
           && cmake --build "${AMICI_PATH}/build" --parallel -- VERBOSE=1
 
-    - name: Install parPE Python deps
+    - name: Install parPE deps
       run: |
-        pip install -r ${PARPE_BASE}/python/requirements.txt \
-          && sudo apt install lcov
+        sudo apt install lcov
 
     - name: "Install parPE deps: fides"
       run: |
@@ -77,7 +76,8 @@ jobs:
           -DIPOPT_LIBRARIES=/usr/lib/libipopt.so \
           -DGCOV_REPORT=TRUE \
           -DBUILD_TESTING=TRUE \
-          -DPARPE_ENABLE_FIDES=TRUE
+          -DPARPE_ENABLE_FIDES=TRUE \
+          -DPARPE_ENABLE_CERES=FALSE
 
     - name: Build parPE
       # with sonar build wrapper
@@ -107,7 +107,7 @@ jobs:
 
     - name: Cache sonar files
       id: cache-sonar
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: sonar_cache
         key: ${{ runner.os }}-sonar_cache

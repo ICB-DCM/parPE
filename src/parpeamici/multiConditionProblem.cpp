@@ -15,6 +15,7 @@
 #include <cassert>
 #include <cstring>
 #include <ctime>
+#include <mutex>
 #include <numeric>
 #include <utility>
 
@@ -213,19 +214,27 @@ void printSimulationResult(Logger *logger, int jobId,
         return;
     }
 
-    bool with_sensi = rdata->sensi >= amici::SensitivityOrder::first;
+    char sensi_mode = '-';
+    if(rdata->sensi >= amici::SensitivityOrder::first
+        && rdata->sensi_meth == amici::SensitivityMethod::adjoint) {
+        sensi_mode = 'A';
+    } else if(rdata->sensi >= amici::SensitivityOrder::first
+               && rdata->sensi_meth == amici::SensitivityMethod::forward) {
+        sensi_mode = 'F';
+    }
+    bool with_sensi = rdata->sensi >= amici::SensitivityOrder::first && rdata->sensi_meth != amici::SensitivityMethod::none;
 
-    logger->logmessage(loglevel::debug, "Result for %d: %g (%d) (%d/%d/%.4fs%c)",
+    logger->logmessage(loglevel::debug, "Result for %d: %g (%d) (%d/%d/%.4fs/%c%d)",
                        jobId, rdata->llh, rdata->status,
                        rdata->numsteps.empty()?-1:rdata->numsteps[rdata->numsteps.size() - 1],
                        rdata->numstepsB.empty()?-1:rdata->numstepsB[0],
                        timeSeconds,
-                       with_sensi?'+':'-');
-
+                       sensi_mode,
+                       rdata->nplist);
 
     // check for NaNs, only report first
     if (with_sensi) {
-        for (int i = 0; i < rdata->np; ++i) {
+        for (std::vector<amici::realtype>::size_type i = 0; i < rdata->sllh.size(); ++i) {
             if (std::isnan(rdata->sllh[i])) {
                 logger->logmessage(loglevel::debug,
                                    "Gradient contains NaN at %d", i);
@@ -264,13 +273,17 @@ void saveSimulation(const H5::H5File &file, std::string const& pathStr,
                 file, fullGroupPath, "jobId",
                 gsl::make_span<const int>(&jobId, 1));
 
-    if (!gradient.empty()) {
+    // save sllh; but sllh may vary depending on the condition-specific plist
+    if (gradient.size() == parameters.size()) {
         hdf5CreateOrExtendAndWriteToDouble2DArray(
             file, fullGroupPath, "simulationLogLikelihoodGradient",
                     gradient);
     } else if(!parameters.empty()) {
         double dummyGradient[parameters.size()];
         std::fill_n(dummyGradient, parameters.size(), NAN);
+        if(!gradient.empty()) {
+            std::copy_n(gradient.begin(), std::min(gradient.size(), parameters.size()), dummyGradient);
+        }
         hdf5CreateOrExtendAndWriteToDouble2DArray(
             file, fullGroupPath, "simulationLogLikelihoodGradient",
             gsl::make_span<const double>(dummyGradient, parameters.size()));
@@ -368,7 +381,7 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
 
             if(solver->getSensitivityOrder() >= amici::SensitivityOrder::first
                 && solver->getSensitivityMethod()
-                       == amici::SensitivityMethod::adjoint) {
+                       != amici::SensitivityMethod::none) {
                 solver->setReturnDataReportingMode(amici::RDataReporting::likelihood);
             } else {
                 // unset sensitivity method, because `residuals` is not allowed
@@ -466,7 +479,8 @@ AmiciSimulationRunner::AmiciResultPackageSimple runAndLogSimulation(
             rdata->llh,
             timeSeconds,
             (solverTemplate.getSensitivityOrder()
-             > amici::SensitivityOrder::none)
+             > amici::SensitivityOrder::none
+             && solverTemplate.getSensitivityMethod() != amici::SensitivityMethod::none)
                 ? rdata->sllh : std::vector<double>(),
             rdata->y, rdata->sigmay,
             sendStates ? rdata->x : std::vector<double>(),
@@ -706,6 +720,9 @@ int AmiciSummedGradientFunction::runSimulations(
         std::vector<int> const& dataIndices, Logger *logger, double *cpuTime) const {
 
     int errors = 0;
+    // Mutex to protect likelihood and gradient that are potentially updated
+    // by multiple threads
+    std::mutex mutex;
 
     auto parameterVector = std::vector<double>(
                 optimizationParameters.begin(),
@@ -719,7 +736,10 @@ int AmiciSummedGradientFunction::runSimulations(
                 : amici::SensitivityOrder::none,
                 dataIndices,
                 [&nllh, &objectiveFunctionGradient, &simulationTimeSec,
-         &optimizationParameters, &errors, this](JobData *job, int /*jobIdx*/) {
+         &optimizationParameters, &errors, &mutex, this](JobData *job, int /*jobIdx*/) {
+            // protect shared variables llh, gradient, simulationTimeSec
+            std::lock_guard<std::mutex> lock(mutex);
+
             errors += this->aggregateLikelihood(*job,
                                       nllh,
                                       objectiveFunctionGradient,

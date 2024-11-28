@@ -1,9 +1,5 @@
-cmake_minimum_required(VERSION 3.3)
-
-if(POLICY CMP0074)
-  # Use package_ROOT environment variables
-  cmake_policy(SET CMP0074 NEW)
-endif(POLICY CMP0074)
+cmake_minimum_required(VERSION 3.15)
+cmake_policy(VERSION 3.15...3.30)
 
 set(default_build_type "RelWithDebInfo")
 
@@ -103,6 +99,33 @@ target_link_libraries(${PROJECT_NAME}
 )
 target_include_directories(${PROJECT_NAME} PUBLIC "model")
 
+#################################
+# simulateJSON executable
+#################################
+
+option(BUILD_JSON_SIMULATOR "Build JSON simulator" ON)
+
+if(BUILD_JSON_SIMULATOR)
+    project(simulateJSON_${MODEL_NAME})
+
+    set(SRC_LIST main_json.cpp)
+
+    add_executable(${PROJECT_NAME} ${SRC_LIST})
+    add_dependencies(${PROJECT_NAME} ${MODEL_NAME})
+
+    include(FetchContent)
+
+    FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz)
+    FetchContent_MakeAvailable(json)
+
+    target_link_libraries(
+        ${PROJECT_NAME}
+        PRIVATE
+        model
+        Upstream::parpe
+        nlohmann_json::nlohmann_json
+    )
+endif()
 #################################
 
 project(${MODEL_NAME}) # for IDE, will use last project as label

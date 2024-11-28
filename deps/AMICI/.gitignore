@@ -137,6 +137,8 @@ tests/test/*
 */tests/explicit_amici/*
 */tests/fixed_initial_amici/*
 */tests/localfunc_amici/*
+*/tests/conversion/*
+*/tests/dimerization/*
 tests/cpp/writeResults.h5
 tests/cpp/writeResults.h5.bak
 tests/sbml-test-suite/*
@@ -182,6 +184,7 @@ ThirdParty/sundials/build/*
 ThirdParty/SuiteSparse/lib/*
 ThirdParty/SuiteSparse/include/
 ThirdParty/SuiteSparse/share/*
+ThirdParty/SuiteSparse/install/*
 ThirdParty/SuperLU_MT_3.1/
 ThirdParty/superlu_mt_3.1.tar.gz
 ThirdParty/swig-*
@@ -202,3 +205,5 @@ CS_Signalling_ERBB_RAS_AKT/
 cache_fiddy/*
 debug/*
 tests/benchmark-models/cache_fiddy/*
+venv/*
+.coverage

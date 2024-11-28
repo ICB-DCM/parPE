@@ -5,6 +5,7 @@ import amici
 import numpy as np
 import pytest
 from numpy.testing import assert_allclose, assert_array_equal
+from amici.testing import skip_on_valgrind
 
 
 @pytest.fixture
@@ -101,6 +102,7 @@ def get_results(
     sensi_order=0,
     sensi_meth=amici.SensitivityMethod.forward,
     sensi_meth_preeq=amici.SensitivityMethod.forward,
+    stst_mode=amici.SteadyStateComputationMode.integrateIfNewtonFails,
     stst_sensi_mode=amici.SteadyStateSensitivityMode.newtonOnly,
     reinitialize_states=False,
 ):
@@ -114,6 +116,7 @@ def get_results(
     solver.setSensitivityMethodPreequilibration(sensi_meth_preeq)
     solver.setSensitivityMethod(sensi_meth)
     model.setSteadyStateSensitivityMode(stst_sensi_mode)
+    model.setSteadyStateComputationMode(stst_mode)
     if edata is None:
         model.setTimepoints(np.linspace(0, 5, 101))
     else:
@@ -123,6 +126,7 @@ def get_results(
     return amici.runAmiciSimulation(model, solver, edata)
 
 
+@skip_on_valgrind
 def test_compare_conservation_laws_sbml(models, edata_fixture):
     # first, create the model
     model_with_cl, model_without_cl = models
@@ -288,6 +292,7 @@ def test_adjoint_pre_and_post_equilibration(models, edata_fixture):
             assert_allclose(raa_cl["sllh"], raa["sllh"], 1e-5, 1e-5)
 
 
+@skip_on_valgrind
 def test_get_set_model_settings(models):
     """test amici.(get|set)_model_settings cycles for models with and without
     conservation laws"""

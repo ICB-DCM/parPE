@@ -2,13 +2,11 @@
 #define AMICI_FORWARDPROBLEM_H
 
 #include "amici/defines.h"
+#include "amici/edata.h"
 #include "amici/misc.h"
 #include "amici/model.h"
 #include "amici/vector.h"
-#include <amici/amici.h>
 
-#include <memory>
-#include <sundials/sundials_direct.h>
 #include <vector>
 
 namespace amici {
@@ -197,7 +195,9 @@ class ForwardProblem {
     SimulationState const& getSimulationStateTimepoint(int it) const {
         if (model->getTimepoint(it) == initial_state_.t)
             return getInitialSimulationState();
-        return timepoint_states_.find(model->getTimepoint(it))->second;
+        auto map_iter = timepoint_states_.find(model->getTimepoint(it));
+        Ensures(map_iter != timepoint_states_.end());
+        return map_iter->second;
     };
 
     /**
@@ -251,6 +251,21 @@ class ForwardProblem {
     void handleEvent(realtype* tlastroot, bool seflag, bool initial_event);
 
     /**
+     * @brief Store pre-event model state
+     *
+     * @param seflag Secondary event flag
+     * @param initial_event initial event flag
+     */
+    void store_pre_event_state(bool seflag, bool initial_event);
+
+    /**
+     * @brief Check for, and if applicable, handle any secondary events
+     *
+     * @param tlastroot pointer to the timepoint of the last event
+     */
+    void handle_secondary_event(realtype* tlastroot);
+
+    /**
      * @brief Extract output information for events
      */
     void storeEvent();
@@ -258,9 +273,9 @@ class ForwardProblem {
     /**
      * @brief Execute everything necessary for the handling of data points
      *
-     * @param it index of data point
+     * @param t measurement timepoint
      */
-    void handleDataPoint(int it);
+    void handleDataPoint(realtype t);
 
     /**
      * @brief Applies the event bolus to the current state
@@ -300,7 +315,7 @@ class ForwardProblem {
      * @brief Creates a carbon copy of the current simulation state variables
      * @return state
      */
-    SimulationState getSimulationState() const;
+    SimulationState getSimulationState();
 
     /** array of index vectors (dimension ne) indicating whether the respective
      * root has been detected for all so far encountered discontinuities,
@@ -353,7 +368,8 @@ class ForwardProblem {
      * @brief Array of flags indicating which root has been found.
      *
      * Array of length nr (ne) with the indices of the user functions gi found
-     * to have a root. For i = 0, . . . ,nr 1 if gi has a root, and = 0 if not.
+     * to have a root. For i = 0, . . . ,nr 1 or -1 if gi has a root, and = 0
+     * if not. See CVodeGetRootInfo for details.
      */
     std::vector<int> roots_found_;
 
@@ -426,8 +442,20 @@ class FinalStateStorer : public ContextManager {
      * @brief destructor, stores simulation state
      */
     ~FinalStateStorer() {
-        if (fwd_)
+        if (fwd_) {
             fwd_->final_state_ = fwd_->getSimulationState();
+            // if there is an associated output timepoint, also store it in
+            // timepoint_states if it's not present there.
+            // this may happen if there is an error just at
+            // (or indistinguishably before) an output timepoint
+            auto final_time = fwd_->getFinalTime();
+            auto const timepoints = fwd_->model->getTimepoints();
+            if (!fwd_->timepoint_states_.count(final_time)
+                && std::find(timepoints.cbegin(), timepoints.cend(), final_time)
+                       != timepoints.cend()) {
+                fwd_->timepoint_states_[final_time] = fwd_->final_state_;
+            }
+        }
     }
 
   private:

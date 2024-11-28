@@ -110,18 +110,16 @@ MultiConditionDataProviderHDF5::mapSimulationToOptimizationGradientAddMultiply(
   double coefficient) const
 {
     auto mapping = getSimulationToOptimizationParameterMapping(conditionIdx);
-
+    auto plist = getSensitivityParameterList(mapping);
     // Need to consider varying scaling
     auto scaleOpt = getParameterScaleOpt();
     auto scaleSim = getParameterScaleSim(conditionIdx);
 
-    for (int i = 0; i < model_->np(); ++i) {
-        // some model parameter are not mapped if there is no respective data
-        if (mapping[i] >= 0) {
-            double newGrad = applyChainRule(
-              simulation[i], parameters[i], scaleSim[i], scaleOpt[mapping[i]]);
-            optimization[mapping[i]] += coefficient * newGrad;
-        }
+    for(std::vector<int>::size_type i_plist = 0; i_plist < plist.size(); ++i_plist) {
+        auto i_p = plist[i_plist];
+        double newGrad = applyChainRule(simulation[i_plist], parameters[i_p],
+                                        scaleSim[i_p], scaleOpt[mapping[i_p]]);
+        optimization[mapping[i_p]] += coefficient * newGrad;
     }
 }
 
@@ -153,6 +151,8 @@ MultiConditionDataProviderHDF5::mapAndSetOptimizationToSimulationVariables(
     }
 
     for (int i = 0; i < model_->np(); ++i) {
+        // a negative index means there is no mapping to a problem parameter,
+        //  but that there is a fixed value
         if (mapping[i] >= 0) {
             // map from optimization parameters
             simulation[i] = getScaledParameter(
@@ -304,15 +304,38 @@ std::unique_ptr<amici::ExpData> MultiConditionDataProviderHDF5::getExperimentalD
     auto edata = std::make_unique<amici::ExpData>(*model_);
 
     [[maybe_unused]] auto lock = hdf5MutexGetLock();
+    edata->id = std::to_string(simulationIdx);
     edata->setTimepoints(
                 amici::hdf5::getDoubleDataset1D(
                     file_, root_path_ + "/measurements/t/"
                     + std::to_string(simulationIdx)));
     edata->setObservedData(getMeasurementForSimulationIndex(simulationIdx));
     edata->setObservedDataStdDev(getSigmaForSimulationIndex(simulationIdx));
+    // fixed parameters and state variable indices for reinitialization
     updateFixedSimulationParameters(simulationIdx, *edata);
 
+    auto mapping = getSimulationToOptimizationParameterMapping(simulationIdx);
+    edata->plist = getSensitivityParameterList(mapping);
+
     return edata;
+}
+
+std::vector<int> MultiConditionDataProviderHDF5::getSensitivityParameterList(
+    const std::vector<int> &mapping) const {
+    // We can construct plist simply from the parameter mapping:
+    //  If a model parameter does not map to a problem parameter (w.r.t. all
+    //  of which we need to compute sensitivities), there is a negative index
+    //  in the mapping. That means, plist is the list of indices for which
+    //  the mapping is non-negative.
+    int nplist = std::count_if(mapping.begin(), mapping.end(), [](int i) { return i >= 0; });
+    int i_plist = 0;
+    std::vector<int> plist(nplist);
+    for (int i_p = 0; i_p < model_->np(); ++i_p) {
+        if (mapping[i_p] >= 0) {
+            plist[i_plist++] = i_p;
+        }
+    }
+    return plist;
 }
 
 std::vector<std::vector<double>>
@@ -618,6 +641,7 @@ MultiConditionDataProviderDefault ::
     // TODO redundant
     auto mapping = getSimulationToOptimizationParameterMapping(conditionIdx);
 
+    // TODO respect plist
     for (int i = 0; i < model_->np(); ++i) {
         optimization[mapping[i]] = coefficient * simulation[i];
     }

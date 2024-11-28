@@ -24,6 +24,7 @@ import pytest
 from amici.constants import SymbolId
 from amici.gradient_check import check_derivatives
 from numpy.testing import assert_allclose
+from conftest import format_test_id
 
 
 @pytest.fixture(scope="session")
@@ -130,10 +131,12 @@ def verify_results(settings, rdata, expected, wrapper, model, atol, rtol):
     # collect parameters
     for par in model.getParameterIds():
         simulated[par] = rdata["ts"] * 0 + model.getParameterById(par)
-    # collect fluxes
+    # collect fluxes and other expressions
     for expr_idx, expr_id in enumerate(model.getExpressionIds()):
         if expr_id.startswith("flux_"):
             simulated[expr_id.removeprefix("flux_")] = rdata.w[:, expr_idx]
+        elif expr_id.removeprefix("amici_") not in simulated.columns:
+            simulated[expr_id] = rdata.w[:, expr_idx]
     # handle renamed reserved symbols
     simulated.rename(
         columns={c: c.replace("amici_", "") for c in simulated.columns},
@@ -349,8 +352,3 @@ def read_settings_file(current_test_path: Path, test_id: str):
                 (key, val) = line.split(":")
                 settings[key] = val.strip()
     return settings
-
-
-def format_test_id(test_id) -> str:
-    """Format numeric to 0-padded string"""
-    return f"{test_id:0>5}"

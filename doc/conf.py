@@ -55,7 +55,7 @@ extensions = [
     # 'recommonmark',
     'nbsphinx',
     'IPython.sphinxext.ipython_console_highlighting',
-    'm2r2',
+    'myst_parser',
 ]
 
 # Add any paths that contain templates here, relative to this directory.

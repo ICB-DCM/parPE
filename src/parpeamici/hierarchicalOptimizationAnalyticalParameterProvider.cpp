@@ -166,4 +166,4 @@ AnalyticalParameterHdf5Reader::readRawMap(H5::DataSet const& dataset,
     return rawMap;
 }
 
-}
+} // namespace parpe

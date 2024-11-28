@@ -27,8 +27,8 @@ void SteadyStateMultiConditionDataProvider::setupModelAndSolver() const {
     //model.requireSensitivitiesForAllParameters();
 
     solver_->setSensitivityOrder(amici::SensitivityOrder::first);
-    solver_->setSensitivityMethod(amici::SensitivityMethod::adjoint);
-    solver_->setMaxSteps(10000);
-    solver_->setNewtonMaxSteps(40);
+    // solver_->setSensitivityMethod(amici::SensitivityMethod::adjoint);
+    // solver_->setMaxSteps(10000);
+    // solver_->setNewtonMaxSteps(40);
 }
 

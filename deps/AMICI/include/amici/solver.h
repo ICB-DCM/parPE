@@ -39,7 +39,8 @@ namespace amici {
  * variables and status flags) are specified as mutable and not included in
  * serialization or equality checks. No solver setting parameter should be
  * marked mutable.
- *
+ */
+/*
  * NOTE: Any changes in data members here must be propagated to copy ctor,
  * equality operator, serialization functions in serialization.h, and
  * amici::hdf5::(read/write)SolverSettings(From/To)HDF5 in hdf5.cpp.
@@ -48,7 +49,8 @@ class Solver {
   public:
     /** Type of what is passed to Sundials solvers as user_data */
     using user_data_type = std::pair<Model*, Solver const*>;
-
+    /** Type of the function to free a raw sundials solver pointer */
+    using free_solver_ptr = std::function<void(void*)>;
     /**
      * @brief Default constructor
      */
@@ -67,6 +69,12 @@ class Solver {
      * @return The clone
      */
     virtual Solver* clone() const = 0;
+
+    /**
+     * @brief Get SUNDIALS context
+     * @return context
+     */
+    SUNContext getSunContext() const;
 
     /**
      * @brief runs a forward simulation until the specified timepoint
@@ -133,7 +141,7 @@ class Solver {
      */
 
     void setupSteadystate(
-        const realtype t0, Model* model, AmiVector const& x0,
+        realtype const t0, Model* model, AmiVector const& x0,
         AmiVector const& dx0, AmiVector const& xB0, AmiVector const& dxB0,
         AmiVector const& xQ0
     ) const;
@@ -936,6 +944,64 @@ class Solver {
     }
 
     /**
+     * @brief Set the maximum number of nonlinear solver iterations permitted
+     * per step.
+     * @param max_nonlin_iters maximum number of nonlinear solver iterations
+     */
+    void setMaxNonlinIters(int max_nonlin_iters);
+
+    /**
+     * @brief Get the maximum number of nonlinear solver iterations permitted
+     * per step.
+     * @return maximum number of nonlinear solver iterations
+     */
+    int getMaxNonlinIters() const;
+
+    /**
+     * @brief Set the maximum number of nonlinear solver convergence failures
+     * permitted per step.
+     * @param max_conv_fails maximum number of nonlinear solver convergence
+     */
+    void setMaxConvFails(int max_conv_fails);
+
+    /**
+     * @brief Get the maximum number of nonlinear solver convergence failures
+     * permitted per step.
+     * @return maximum number of nonlinear solver convergence
+     */
+    int getMaxConvFails() const;
+
+    /**
+     * @brief Set constraints on the model state.
+     *
+     * See
+     * https://sundials.readthedocs.io/en/latest/cvode/Usage/index.html#c.CVodeSetConstraints.
+     *
+     * @param constraints
+     */
+    void setConstraints(std::vector<realtype> const& constraints);
+
+    /**
+     * @brief Get constraints on the model state.
+     * @return constraints
+     */
+    std::vector<realtype> getConstraints() const {
+        return constraints_.getVector();
+    }
+
+    /**
+     * @brief Set the maximum step size
+     * @param max_step_size maximum step size. `0.0` means no limit.
+     */
+    void setMaxStepSize(realtype max_step_size);
+
+    /**
+     * @brief Get the maximum step size
+     * @return maximum step size
+     */
+    realtype getMaxStepSize() const;
+
+    /**
      * @brief Serialize Solver (see boost::serialization::serialize)
      * @param ar Archive to serialize to
      * @param s Data to serialize
@@ -1089,7 +1155,7 @@ class Solver {
     virtual void rootInit(int ne) const = 0;
 
     /**
-     * @brief Initalize non-linear solver for sensitivities
+     * @brief Initialize non-linear solver for sensitivities
      * @param model Model instance
      */
     void initializeNonLinearSolverSens(Model const* model) const;
@@ -1197,11 +1263,9 @@ class Solver {
     virtual void setQuadErrCon(bool flag) const = 0;
 
     /**
-     * @brief Attaches the error handler function (errMsgIdAndTxt)
-     * to the solver
-     *
+     * @brief Attaches the error handler function to the solver
      */
-    virtual void setErrHandlerFn() const = 0;
+    virtual void setErrHandlerFn() const;
 
     /**
      * @brief Attaches the user data to the forward problem
@@ -1607,11 +1671,19 @@ class Solver {
      */
     void applySensitivityTolerances() const;
 
-    /** pointer to solver memory block */
-    mutable std::unique_ptr<void, std::function<void(void*)>> solver_memory_;
+    /**
+     * @brief Apply the constraints to the solver.
+     */
+    virtual void apply_constraints() const;
+
+    /** SUNDIALS context */
+    sundials::Context sunctx_;
 
     /** pointer to solver memory block */
-    mutable std::vector<std::unique_ptr<void, std::function<void(void*)>>>
+    mutable std::unique_ptr<void, free_solver_ptr> solver_memory_;
+
+    /** pointer to solver memory block */
+    mutable std::vector<std::unique_ptr<void, free_solver_ptr>>
         solver_memory_B_;
 
     /** Sundials user_data */
@@ -1708,36 +1780,53 @@ class Solver {
      * @param preequilibration flag indicating preequilibration or simulation
      */
     void checkSensitivityMethod(
-        const SensitivityMethod sensi_meth, bool preequilibration
+        SensitivityMethod const sensi_meth, bool preequilibration
     ) const;
 
+    /**
+     * @brief Apply the maximum number of nonlinear solver iterations permitted
+     * per step.
+     */
+    virtual void apply_max_nonlin_iters() const = 0;
+
+    /**
+     * @brief Apply the maximum number of nonlinear solver convergence failures
+     * permitted per step.
+     */
+    virtual void apply_max_conv_fails() const = 0;
+
+    /**
+     * @brief Apply the allowed maximum stepsize to the solver.
+     */
+    virtual void apply_max_step_size() const = 0;
+
     /** state (dimension: nx_solver) */
-    mutable AmiVector x_{0};
+    mutable AmiVector x_{0, sunctx_};
 
     /** state interface variable (dimension: nx_solver) */
-    mutable AmiVector dky_{0};
+    mutable AmiVector dky_{0, sunctx_};
 
     /** state derivative dummy (dimension: nx_solver) */
-    mutable AmiVector dx_{0};
+    mutable AmiVector dx_{0, sunctx_};
 
     /** state sensitivities interface variable (dimension: nx_solver x nplist)
      */
-    mutable AmiVectorArray sx_{0, 0};
+    mutable AmiVectorArray sx_{0, 0, sunctx_};
     /** state derivative sensitivities dummy (dimension: nx_solver x nplist)
      */
-    mutable AmiVectorArray sdx_{0, 0};
+    mutable AmiVectorArray sdx_{0, 0, sunctx_};
 
     /** adjoint state interface variable (dimension: nx_solver) */
-    mutable AmiVector xB_{0};
+    mutable AmiVector xB_{0, sunctx_};
 
     /** adjoint derivative dummy variable (dimension: nx_solver) */
-    mutable AmiVector dxB_{0};
+    mutable AmiVector dxB_{0, sunctx_};
 
     /** adjoint quadrature interface variable (dimension: nJ x nplist) */
-    mutable AmiVector xQB_{0};
+    mutable AmiVector xQB_{0, sunctx_};
 
     /** forward quadrature interface variable (dimension: nx_solver) */
-    mutable AmiVector xQ_{0};
+    mutable AmiVector xQ_{0, sunctx_};
 
     /** integration time of the forward problem */
     mutable realtype t_{std::nan("")};
@@ -1750,6 +1839,9 @@ class Solver {
 
     /** flag indicating whether sensInit1 was called */
     mutable bool sens_initialized_{false};
+
+    /** Vector of constraints on the solution */
+    mutable AmiVector constraints_;
 
   private:
     /**
@@ -1769,7 +1861,7 @@ class Solver {
     SensitivityMethod sensi_meth_preeq_{SensitivityMethod::forward};
 
     /** flag controlling stability limit detection */
-    booleantype stldet_{true};
+    sunbooleantype stldet_{SUNTRUE};
 
     /** state ordering */
     int ordering_{static_cast<int>(SUNLinSolKLU::StateOrdering::AMD)};
@@ -1777,13 +1869,10 @@ class Solver {
     /** maximum number of allowed Newton steps for steady state computation */
     long int newton_maxsteps_{0L};
 
-    /** maximum number of allowed linear steps per Newton step for steady state
-     * computation */
-    long int newton_maxlinsteps_{0L};
-
     /** Damping factor state used int the Newton method */
     NewtonDampingFactorMode newton_damping_factor_mode_{
-        NewtonDampingFactorMode::on};
+        NewtonDampingFactorMode::on
+    };
 
     /** Lower bound of the damping factor. */
     realtype newton_damping_factor_lower_bound_{1e-8};
@@ -1841,6 +1930,16 @@ class Solver {
     /** whether sensitivities should be checked for convergence to steadystate
      */
     bool check_sensi_steadystate_conv_{true};
+
+    /** Maximum number of nonlinear solver iterations permitted per step */
+    int max_nonlin_iters_{3};
+
+    /** Maximum number of nonlinear solver convergence failures permitted per
+     *  step */
+    int max_conv_fails_{10};
+
+    /** Maximum allowed step size */
+    realtype max_step_size_{0.0};
 
     /** CPU time, forward solve */
     mutable realtype cpu_time_{0.0};
@@ -1908,21 +2007,6 @@ class Solver {
 };
 
 bool operator==(Solver const& a, Solver const& b);
-
-/**
- * @brief Extracts diagnosis information from solver memory block and
- * passes them to the specified output function
- *
- * @param error_code error identifier
- * @param module name of the module in which the error occurred
- * @param function name of the function in which the error occurred
- * @param msg error message
- * @param eh_data amici::Solver as void*
- */
-void wrapErrHandlerFn(
-    int error_code, char const* module, char const* function, char* msg,
-    void* eh_data
-);
 
 } // namespace amici
 

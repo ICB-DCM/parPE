@@ -7,6 +7,11 @@
 #endif
 
 #include <utility>
+#include <vector>
+#include <string>
+#include <mutex>
+#include <cmath>
+#include <functional>
 
 // #define PARPE_SIMULATION_RUNNER_DEBUG
 
@@ -51,9 +56,9 @@ AmiciSimulationRunner::runDistributedMemory(LoadBalancerMaster* loadBalancer,
 
     // prepare and queue work package
     for (int jobIdx = 0; jobIdx < numJobsTotal; ++jobIdx) {
-        int simulationsLeft =
+        int const simulationsLeft =
           static_cast<int>(condition_indices_.size()) - numConditionsSent;
-        int simulationsCurrentPackage =
+        int const simulationsCurrentPackage =
           std::min(simulationsLeft, maxSimulationsPerPackage);
 
         auto currentConditions = std::vector<int>(
@@ -155,7 +160,7 @@ AmiciSimulationRunner::queueSimulation(
 
     // TODO: must ignore 2nd argument for SimulationRunnerSimple
     if (callback_job_finished_)
-        d->callbackJobFinished = std::bind2nd(callback_job_finished_, jobIdx);
+        d->callbackJobFinished = std::bind(callback_job_finished_, std::placeholders::_1, jobIdx);
 
     loadBalancer->queueJob(d);
 }

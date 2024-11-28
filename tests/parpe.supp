@@ -84,7 +84,7 @@
    libhwloc
    Memcheck:Leak
    match-leak-kinds: all
-   fun:calloc
+   fun:*alloc
    ...
    obj:/usr/lib/x86_64-linux-gnu/libhwloc.so.15.*.*
    ...
@@ -447,7 +447,7 @@
    fun:_ZN2H58PredTypeC1El
    fun:_ZN2H58PredType13makePredTypesEv
    fun:_ZN2H58PredType12getPredTypesEv
-   obj:/usr/lib/x86_64-linux-gnu/libhdf5_serial_cpp.so.103.3.0
+   obj:/usr/lib/x86_64-linux-gnu/libhdf5_serial_cpp.so.*
 }
 
 
@@ -516,5 +516,20 @@
    fun:setsockopt
    ...
    fun:orte_init
+   ...
+}
+
+
+{
+   fides_cpp
+   Memcheck:BadSize
+   fun:posix_memalign
+   fun:_ZN5blaze15alignedAllocateEmm
+   fun:_ZN5blaze16AlignedAllocatorIdE8allocateEm
+   fun:_ZN5blaze13DynamicMatrixIdLb0ENS_16AlignedAllocatorIdEENS_8GroupTagILm0EEEEC1EmmmmRKS2_NS5_13UninitializedE
+   fun:_ZN5blaze13DynamicMatrixIdLb0ENS_16AlignedAllocatorIdEENS_8GroupTagILm0EEEEC1EmmmRKS2_NS5_13UninitializedE
+   fun:_ZN5blaze13DynamicMatrixIdLb0ENS_16AlignedAllocatorIdEENS_8GroupTagILm0EEEEC1EmmRKS2_
+   fun:_ZN5blaze13DynamicMatrixIdLb0ENS_16AlignedAllocatorIdEENS_8GroupTagILm0EEEEC1ERKS5_
+   fun:_ZN5fides9Optimizer11do_minimizeEv
    ...
 }

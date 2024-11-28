@@ -10,10 +10,13 @@ set -eou pipefail
 expected_to_work="
 Boehm_JProteomeRes2014
 Borghans_BiophysChem1997
+Brannmark_JBC2010
+Bruno_JExpBot2016
 Crauste_CellSystems2017
 Elowitz_Nature2000
+Fiedler_BMCSystBiol2016
 Fujita_SciSignal2010
-Schwen_PONE2014
+Lucarelli_CellSystems2018
 Sneyd_PNAS2002
 Weber_BMC2015
 Zheng_PNAS2012
@@ -26,7 +29,6 @@ Zheng_PNAS2012
 #
 # Alkan_SciSignal2018
 # Blasi_CellSystems2016
-# Bruno_JExpBio2016
 # Giordano_Nature2020
 # Okuonghae_ChaosSolitonsFractals2020
 # Perelson_Science1996
@@ -44,10 +46,9 @@ Zheng_PNAS2012
 #
 # Mismatch:
 # Bachmann_MSB2011: Expected llh -478.459689232875, got nllh -418.409381
-# Brannmark_JBC2010 FAILED: Expected llh 283.778227541074, got nllh 141.889034
-# Lucarelli_CellSystems2018
-# Fiedler_BMC2016 FAILED: Expected llh -117.16780323362, got nllh 109391.496205
-
+#
+# Unsupported priors:
+#   Schwen_PONE2014
 for model_name in $expected_to_work; do
   printf '=%.0s' {1..20}
   printf %s "${model_name}"

@@ -3,9 +3,12 @@
 import re
 import sys
 from pathlib import Path
-from typing import List, Set, Tuple
+from typing import TYPE_CHECKING
 
 import pytest
+
+if TYPE_CHECKING:
+    from _pytest.reports import TestReport
 
 # stores passed SBML semantic test suite IDs
 passed_ids = []
@@ -21,7 +24,7 @@ def sbml_semantic_cases_dir() -> Path:
     return SBML_SEMANTIC_CASES_DIR
 
 
-def parse_selection(selection_str: str, last: int) -> List[int]:
+def parse_selection(selection_str: str, last: int) -> list[int]:
     """
     Parse comma-separated list of integer ranges, return selected indices as
     integer list
@@ -73,7 +76,7 @@ def pytest_generate_tests(metafunc):
         else:
             # Run all tests
             test_numbers = get_all_semantic_case_ids()
-
+        test_numbers = map(format_test_id, test_numbers)
         metafunc.parametrize("test_number", test_numbers)
 
 
@@ -86,8 +89,6 @@ def pytest_sessionfinish(session, exitstatus):
     terminalreporter.ensure_newline()
     # parse test names to get passed case IDs (don't know any better way to
     # access fixture values)
-    from testSBMLSuite import format_test_id
-
     passed_ids = [format_test_id(_) for _ in passed_ids]
     if passed_ids:
         write_passed_tags(passed_ids, terminalreporter)
@@ -128,7 +129,7 @@ def pytest_runtest_logreport(report: "TestReport") -> None:
         passed_ids.append(test_case_id)
 
 
-def get_tags_for_test(test_id: str) -> Tuple[Set[str], Set[str]]:
+def get_tags_for_test(test_id: str) -> tuple[set[str], set[str]]:
     """Get sbml test suite tags for the given test ID
 
     Returns:
@@ -154,3 +155,8 @@ def get_tags_for_test(test_id: str) -> Tuple[Set[str], Set[str]]:
                 return component_tags, test_tags
     print(f"No componentTags or testTags found for test case {test_id}.")
     return component_tags, test_tags
+
+
+def format_test_id(test_id) -> str:
+    """Format numeric to 0-padded string"""
+    return f"{test_id:0>5}"
