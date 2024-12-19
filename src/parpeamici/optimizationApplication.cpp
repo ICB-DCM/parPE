@@ -343,7 +343,7 @@ OptimizationApplication::~OptimizationApplication() {
     h5File.close();
     problem.reset(nullptr);
 #ifdef PARPE_ENABLE_MPI
-    if(getMpiActive())
+    if(withMPI && getMpiActive())
         MPI_Finalize();
 #endif
 }
