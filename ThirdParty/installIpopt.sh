@@ -8,9 +8,9 @@ cd "${script_dir}"
 
 make_opts=${MAKEOPTS-}
 
-ipopt_url="https://www.coin-or.org/download/source/Ipopt/Ipopt-3.13.3.tgz"
-ipopt_archive="Ipopt-3.13.3.tgz"
-ipopt_dir="${script_dir}/Ipopt-releases-3.13.3"
+ipopt_url="https://www.coin-or.org/download/source/Ipopt/Ipopt-3.14.16.tgz"
+ipopt_archive="Ipopt-3.14.16.tgz"
+ipopt_dir="${script_dir}/Ipopt-releases-3.14.16"
 ipopt_install_dir="${ipopt_dir}/install"
 hsl_install_dir="${ipopt_dir}/ThirdParty-HSL/install"
 
@@ -45,6 +45,7 @@ if [[ ! -d "${ipopt_dir}" ]]; then
       coinhsl-2014.01.10
       coinhsl-2015.06.23
       coinhsl-2019.05.21
+      coinhsl-2024.05.15
       "
       for coinhsl_archive in $coinhsl_archive_names; do
         if [[ -f "${script_dir}/${coinhsl_archive}.tar.gz" ]]; then
