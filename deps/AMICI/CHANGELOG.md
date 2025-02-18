@@ -4,6 +4,69 @@ See also our [versioning policy](https://amici.readthedocs.io/en/latest/versioni
 
 ## v0.X Series
 
+### v0.30.1 (2025-02-18)
+
+Bugfix-only release.
+
+* Removed `eqx.debug.nan`, fixes #2629
+  by @FFroehlich in https://github.com/AMICI-dev/AMICI/pull/2630
+* Fixes an SBML import issue that led to incorrect results for models with
+  species-dependent initial assignments (fixes #2642)
+  by @FFroehlich in https://github.com/AMICI-dev/AMICI/pull/2643
+* Fixed `CVodeGetSensDky` error message
+  by @dweindl in https://github.com/AMICI-dev/AMICI/pull/2644
+* Disabled `CvodeF` checkpointing to prevent certain rare crashes when forward
+  integration takes exactly `maxsteps` integration steps, plus some additional
+  yet unclear condition.
+  by @dweindl in https://github.com/AMICI-dev/AMICI/pull/2645
+* Fixed rare crashes due to uncaught exceptions in `~FinalStateStorer`
+  by @dweindl in https://github.com/AMICI-dev/AMICI/pull/2647
+
+**Full Changelog**: https://github.com/AMICI-dev/AMICI/compare/v0.30.0...v0.30.1
+
+
+### v0.30.0 (2024-12-10)
+
+*Please note that the amici JAX model generation introduced in v0.29.0 is
+experimental, the API may substantially change in the future.
+Use at your own risk and do not expect backward compatibility.*
+
+**Features**
+
+* Added serialisation for JAX models
+
+  by @FFroehlich in https://github.com/AMICI-dev/AMICI/pull/2608
+
+* Disabled building the C++ extension by default when generating a JAX model
+
+  by @FFroehlich in https://github.com/AMICI-dev/AMICI/pull/2609
+
+* Separate pre-equilibration and dynamic simulation in jax
+
+  by @FFroehlich in https://github.com/AMICI-dev/AMICI/pull/2617
+
+* State reinitialisation in JAX
+
+  by @FFroehlich in https://github.com/AMICI-dev/AMICI/pull/2619
+
+**Fixes**
+
+* Fixed ModelStateDerived copy ctor (fixes potential segfaults)
+
+  by @dweindl in https://github.com/AMICI-dev/AMICI/pull/2612
+
+* PEtab parameter mapping: fill in fixed parameter values for initial values
+
+  by @dweindl in https://github.com/AMICI-dev/AMICI/pull/2613
+
+* `nan`-safe log&divide for JAX models
+
+  by @FFroehlich in https://github.com/AMICI-dev/AMICI/pull/2611
+
+
+**Full Changelog**: https://github.com/AMICI-dev/AMICI/compare/v0.29.0...v0.30.0
+
+
 ### v0.29.0 (2024-11-28)
 
 **Fixes**

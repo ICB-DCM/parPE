@@ -24,13 +24,13 @@ jobs:
     if: needs.check-secret.outputs.secrets-defined == 'true'
     steps:
     - uses: actions/checkout@master
-    - run: git archive -v -o container/charliecloud/parpe_base/parpe.tar.gz --format=tar.gz HEAD
+    - run: git archive -v -o container/charliecloud/container_files/parpe.tar.gz --format=tar.gz HEAD
     - name: Publish to Registry
       uses: elgohr/Publish-Docker-Github-Action@v5
       with:
         name: dweindl/parpe
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
-        workdir: container/charliecloud/parpe_base/
+        workdir: container/charliecloud/
         dockerfile: Dockerfile
         tag_names: true

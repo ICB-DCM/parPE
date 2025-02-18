@@ -22,8 +22,8 @@ This will create the parPE base image *from parPE from github*
 takes about 10'):
 
 ```shell
-git archive -v -o container/charliecloud/parpe_base/parpe.tar.gz --format=tar.gz HEAD
-cd container/charliecloud/parpe_base
+git archive -v -o container/charliecloud/container_files/parpe.tar.gz --format=tar.gz HEAD
+cd container/charliecloud/
 ch-build -t parpe .
 ```
 
