@@ -6,7 +6,7 @@ apt-get clean && apt-get update
 apt-get install -y apt-utils
 
 echo "================ Installing locales ======================="
-apt-get install -q locales
+apt-get install -q -y locales
 
 dpkg-divert --local --rename --add /sbin/initctl
 locale-gen en_US en_US.UTF-8
