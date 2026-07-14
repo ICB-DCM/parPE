@@ -5,11 +5,8 @@ build_blaze() {
   cd "${script_dir}"
 
   if [[ ! -d "${blaze_dir}" ]]; then
-    if [[ ! -f "blaze-3.8.tar.gz" ]]; then
-      wget https://bitbucket.org/blaze-lib/blaze/downloads/blaze-3.8.tar.gz
-    fi
-    tar -xzf blaze-3.8.tar.gz
-    cd blaze-3.8
+    git clone --depth 1 --branch v3.8 https://bitbucket.org/blaze-lib/blaze.git "${blaze_dir}"
+    cd "${blaze_dir}"
     cmake -S . -B build/ -DCMAKE_INSTALL_PREFIX="$(pwd)/build/install"
     cd build
     make -j2 install
