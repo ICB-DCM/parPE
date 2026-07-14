@@ -156,6 +156,11 @@ parPE is being used or has been used in the following projects:
   *of 16 observables in RPE-1 cells*. bioRxiv (2023).
   [doi:10.1101/2023.05.04.539349](https://doi.org/10.1101/2023.05.04.539349)
 
+- S. Grein, D. R. Penas, D. Weindl, P. Lakrisenko, J. R. Banga, and J. Hasenauer.
+  *Large-scale analysis of optimisation methods for parameter estimation problems in the life sciences*.
+  bioRxiv, 2026, [doi: 10.64898/2026.07.11.737731](https://doi.org/10.64898/2026.07.11.737731).
+
+
 - [CanPathPro](http://canpathpro.eu/)
 
 
