@@ -6,7 +6,8 @@ build_blaze() {
 
   if [[ ! -d "${blaze_dir}" ]]; then
     if [[ ! -f "0380370f0626de2ad0ec7ea815803e22bbf6b42e.tar.gz" ]]; then
-      wget https://bitbucket.org/blaze-lib/blaze/get/0380370f0626de2ad0ec7ea815803e22bbf6b42e.tar.gz
+      wget --tries=5 --waitretry=15 --retry-on-http-error=404,503 \
+        https://bitbucket.org/blaze-lib/blaze/get/0380370f0626de2ad0ec7ea815803e22bbf6b42e.tar.gz
     fi
     tar -xzf 0380370f0626de2ad0ec7ea815803e22bbf6b42e.tar.gz
     cd blaze-lib-blaze-0380370f0626
