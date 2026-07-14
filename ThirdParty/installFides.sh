@@ -5,12 +5,8 @@ build_blaze() {
   cd "${script_dir}"
 
   if [[ ! -d "${blaze_dir}" ]]; then
-    if [[ ! -f "0380370f0626de2ad0ec7ea815803e22bbf6b42e.tar.gz" ]]; then
-      wget --tries=5 --waitretry=15 --retry-on-http-error=404,503 \
-        https://bitbucket.org/blaze-lib/blaze/get/0380370f0626de2ad0ec7ea815803e22bbf6b42e.tar.gz
-    fi
-    tar -xzf 0380370f0626de2ad0ec7ea815803e22bbf6b42e.tar.gz
-    cd blaze-lib-blaze-0380370f0626
+    git clone --depth 1 --branch v3.8 https://bitbucket.org/blaze-lib/blaze.git "${blaze_dir}"
+    cd "${blaze_dir}"
     cmake -S . -B build/ -DCMAKE_INSTALL_PREFIX="$(pwd)/build/install"
     cd build
     make -j2 install
@@ -39,7 +35,7 @@ cd "${script_dir}"
 make_opts=${MAKEOPTS-}
 
 fides_dir=${script_dir}/fides-cpp
-blaze_dir=${script_dir}/blaze-lib-blaze-0380370f0626
+blaze_dir=${script_dir}/blaze-3.8
 
 build_blaze
 build_fides
